@@ -34,6 +34,17 @@ def read_signed_byte(buffer: BufferedReader) -> int:
     return int.from_bytes(buffer.read(1), byteorder='little', signed=True)
 
 
-def read_vector3_as_list(buffer, size_koeff = 1):
-    coords = [read_signed_short(buffer) * size_koeff for _ in range(3)]
-    return [coords[0], coords[2], coords[1]]
+def read_nfs1_float32(buffer: BufferedReader) -> float:
+    return float(read_signed_int(buffer) / 0x10000)
+
+
+def read_nfs1_float32_7(buffer: BufferedReader) -> float:
+    return float(read_signed_int(buffer) / 0x80)
+
+
+def read_nfs1_float32_4(buffer: BufferedReader) -> float:
+    return float(read_signed_int(buffer) / 0x10)
+
+
+def read_nfs1_float16(buffer: BufferedReader) -> float:
+    return float(read_signed_short(buffer) / 0x100)

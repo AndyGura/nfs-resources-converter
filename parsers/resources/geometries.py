@@ -6,7 +6,7 @@ from string import Template
 from typing import List
 
 import settings
-from buffer_utils import read_int, read_utf_bytes, read_byte, read_signed_int
+from buffer_utils import read_int, read_utf_bytes, read_byte, read_signed_int, read_nfs1_float32_7, read_nfs1_float32_4
 from parsers.resources.base import BaseResource
 from parsers.resources.bitmaps import BaseBitmap
 from parsers.resources.collections import ArchiveResource
@@ -28,11 +28,6 @@ class Block:
 
 class OripGeometryResource(BaseResource):
 
-    # means which part of meter equivalent to one unit of coordinates. Calculated from LDIABLO
-    car_model_size_koeff = 0.00767546
-    # means which part of meter equivalent to one unit of coordinates. Calculated approximately
-    prop_model_size_koeff = car_model_size_koeff * 7
-
     bounding_box = None
 
     @property
@@ -40,9 +35,8 @@ class OripGeometryResource(BaseResource):
         from parsers.resources.archives import WwwwArchive
         return isinstance(self.parent, WwwwArchive) and self.parent.name[-4:] == '.CFM'
 
-    @property
-    def model_size_koeff(self):
-        return self.car_model_size_koeff if self.is_car else self.prop_model_size_koeff
+    def read_float(self, buffer):
+        return read_nfs1_float32_7(buffer) if self.is_car else read_nfs1_float32_4(buffer)
 
     def __init__(self):
         super().__init__()
@@ -135,7 +129,7 @@ class OripGeometryResource(BaseResource):
         if self.is_car:
             for model in self.sub_models.values():
                 model.change_axes(new_y='-z', new_z='y')
-            # FIXME how the NFS knows the dimensions of car? Looks like it uses box collision as well
+            # TODO use body collision box from PBS (CarPBSFile parser)
             self.bounding_box = {'min': [9999999, 9999999, 9999999], 'max': [-9999999, -9999999, -9999999]}
             # omit wheel + shadow polygons
             for model in [x for (key, x) in self.sub_models.items() if key not in ['\x00\x00\x00\x00', 'shad', 'circ', 'wing']]:
@@ -148,7 +142,7 @@ class OripGeometryResource(BaseResource):
         return length
 
     def save_converted(self, path: str):
-        if not settings.save_obj and not settings.save_glb and not settings.save_blend:
+        if not settings.save_obj and not settings.save_blend:
             return
         if path[-1] != '/':
             path = path + '/'
@@ -177,9 +171,8 @@ map_Kd assets/{texture.name}.png""")
                     script=self.blender_script.substitute({'obj_file_path': 'geometry.obj', 'is_car': self.is_car,
                                                            'bounding_box': json.dumps(self.bounding_box),
                                                            'mass': 1500}),
-                    out_glb_name='body' if settings.save_glb else None,
                     export_materials='EXPORT',
-                    out_blend_name='body' if settings.save_blend else None)
+                    out_blend_name=f'{os.getcwd()}/{path}body' if settings.save_blend else None)
         if not settings.save_obj:
             os.unlink(f'{path}material.mtl')
             os.unlink(f'{path}geometry.obj')
@@ -198,12 +191,7 @@ map_Kd assets/{texture.name}.png""")
         buffer.seek(self._offsets[Block.POLYGON_VERTEX_MAP] + index_3D * self._record_power[Block.POLYGON_VERTEX_MAP])
         buffer.seek(self._offsets[Block.VERTEX] + read_int(buffer) * self._record_power[Block.VERTEX])
         # z inverted
-        vertex = [
-            read_signed_int(buffer) * self.model_size_koeff,
-            read_signed_int(buffer) * self.model_size_koeff,
-            -read_signed_int(buffer) * self.model_size_koeff
-        ]
-        model.vertices.append(vertex)
+        model.vertices.append([self.read_float(buffer), self.read_float(buffer), -self.read_float(buffer)])
         self.vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
         # setup texture coordinate
         buffer.seek(self._offsets[Block.POLYGON_VERTEX_MAP] + index_2D * self._record_power[Block.POLYGON_VERTEX_MAP])
@@ -228,7 +216,10 @@ import math
 import json
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True, axis_up='Z', axis_forward='Y')
+if $is_car:
+    bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True, axis_up='Z', axis_forward='Y')
+else:
+    bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True)
 
 if $is_car:
 

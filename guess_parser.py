@@ -18,9 +18,10 @@ from parsers.resources.compressed import (
     Qfs2Archive,
     Qfs3Archive,
 )
+from parsers.resources.fonts import FfnFont
 from parsers.resources.geometries import OripGeometryResource
 from parsers.resources.maps import TriMapResource
-from parsers.resources.misc import TextResource, BinaryResource
+from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo, CarPBSFile, CarPDNFile
 from parsers.resources.palettes import (
     Palette24BitDos,
     Palette24Bit,
@@ -34,8 +35,10 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> Ba
     if file_name:
         if file_name.endswith('.BNK'):
             return SoundBank()
-        elif file_name.endswith('.PBS_UNCOMPRESSED') or file_name.endswith('.PDN_UNCOMPRESSED'):
-            return BinaryResource()
+        elif file_name.endswith('.PBS_UNCOMPRESSED'):
+            return CarPBSFile()
+        elif file_name.endswith('.PDN_UNCOMPRESSED'):
+            return CarPDNFile()
     header_bytes = binary_file.read(4)
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
@@ -43,8 +46,7 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> Ba
         if header_str == 'SHPI':
             return SHPIArchive()
         elif header_str == 'FNTF':
-            print('FFN file (NFS1 font)')
-            raise NotImplementedError('Don`t have parser for such resource')
+            return FfnFont()
         elif header_str == 'ORIP':
             return OripGeometryResource()
         elif header_str == 'wwww':
@@ -55,6 +57,8 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> Ba
             return ASFAudio()
         elif header_str == 'EACS':
             return EacsAudio()
+        elif file_name and header_str == '#ver' and file_name.endswith('INFO'):
+            return Nfs1MapInfo()
     except UnicodeDecodeError:
         pass
     try:

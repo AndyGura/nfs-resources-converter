@@ -9,6 +9,12 @@ from parsers.resources.base import BaseResource
 
 class ResourceCollection(BaseResource, ABC):
 
+    def get_resource_by_name(self, name: str) -> BaseResource:
+        for resource in self.resources:
+            if resource.name == name:
+                return resource
+        return None
+
     def __init__(self):
         super().__init__()
         self.resources = []
@@ -64,6 +70,7 @@ class ArchiveResource(ResourceCollection):
         pass
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
+        super().read(buffer, length, path)
         start_offset = buffer.tell()
         self.resources = []
         children_descriptors = self.get_children_descriptors(buffer, length)

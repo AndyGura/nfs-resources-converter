@@ -165,6 +165,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
         self.unk_table_2 = [0] * 256
         self.unk_table_3 = [0] * 256  # maybe has different size
         self.accumulator = 0
+        self.available_acc_bits = 0
 
     def append_to_output(self, buffer, value):
         buffer.extend(value.to_bytes(1, 'little'))
@@ -174,16 +175,14 @@ class Qfs3Archive(CompressedResource, AsmRunner):
         for i in range(length):
             self.append_to_output(buffer, value)
 
-    def accumulate(self, buffer):
-        value = (read_short(buffer, 'big') | (self.accumulator << 16))
-        self.accumulator = value
-        self.esi = value << self.cl
+    def read_next(self, buffer):
+        self.accumulator = (read_short(buffer, 'big') | (self.accumulator << 16))
 
     def accumulate_if_needed(self, buffer):
-        if self.get_register_signed_value('edi') < 0:
-            self.ecx = -self.edi
-            self.accumulate(buffer)
-            self.edi += 16
+        if self.available_acc_bits < 0:
+            self.read_next(buffer)
+            self.esi = self.accumulator << -self.available_acc_bits
+            self.available_acc_bits += 16
 
     def uncompress(self, buffer: BufferedReader, input_length: int) -> bytes:
         uncompressed: bytearray = bytearray()
@@ -196,31 +195,31 @@ class Qfs3Archive(CompressedResource, AsmRunner):
         index_table_0_capacity = 0
         unk_counter = 0
 
-        self.edi = 0
+        self.available_acc_bits = 0
         file_header = self.accumulator = read_short(buffer, 'big')
-        self.cl = 16
-        self.accumulate(buffer)
+        self.read_next(buffer)
+        self.esi = self.accumulator << 16
         # if compressed size presented
         if file_header & 0x100:
             self.edx = read_int(buffer, 'big')
-            self.edi = 8
+            self.available_acc_bits = 8
             self.esi = self.edx << 8
             self.accumulator = self.edx
             # reset size presented flag bit
             file_header = file_header & 0xFEFF
         self.ebx = self.esi >> 0x18
-        self.edi -= 8
+        self.available_acc_bits -= 8
         self.esi = self.esi << 8
         self.accumulate_if_needed(buffer)
         self.eax = self.esi >> 16
-        self.edi -= 16
+        self.available_acc_bits -= 16
         self.esi = self.esi << 16
         self.output_length = self.eax
         self.accumulate_if_needed(buffer)
         self.edx = self.output_length = self.output_length | (self.ebx << 16)
         self.ebx = 1
         self.eax = self.esi >> 0x18
-        self.edi -= 8
+        self.available_acc_bits -= 8
         self.esi = self.esi << 8
         unk_1 = self.al
         self.accumulate_if_needed(buffer)
@@ -242,7 +241,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                     while self.edx == 0:
                         self.edx = self.esi >> 0x1F
                         self.eax += 1
-                        self.edi -= 1
+                        self.available_acc_bits -= 1
                         self.esi = self.esi << 1
                         self.accumulate_if_needed(buffer)
                 else:
@@ -250,31 +249,31 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                         self.esi = self.esi << 1
                         self.eax += 1
                     self.edx = self.eax - 1
-                    self.edi -= self.edx
+                    self.available_acc_bits -= self.edx
                     self.esi = self.esi << 1
                     self.accumulate_if_needed(buffer)
                 if self.get_register_signed_value('eax') <= 16:
                     self.edx = self.esi >> (0x20 - self.eax)
                     self.ecx = self.al
-                    self.edi -= self.eax
+                    self.available_acc_bits -= self.eax
                     self.esi = self.esi << self.cl
                     self.accumulate_if_needed(buffer)
                 else:
                     self.ebx = self.eax - 16
                     self.edx = self.esi >> (0x20 - self.ebx)
                     self.ecx = self.bl
-                    self.edi -= self.ebx
+                    self.available_acc_bits -= self.ebx
                     self.esi = self.esi << self.cl
                     self.accumulate_if_needed(buffer)
                     self.ebx = self.esi >> 16
-                    self.edi -= 16
+                    self.available_acc_bits -= 16
                     self.esi = self.esi << 16
                     self.accumulate_if_needed(buffer)
                     self.edx = (self.edx << 16) | self.ebx
                 self.edx += (1 << self.al)
             else:
                 self.edx = self.esi >> 0x1D
-                self.edi -= 3
+                self.available_acc_bits -= 3
                 self.esi = self.esi << 3
                 self.accumulate_if_needed(buffer)
             self.edx -= 4
@@ -316,7 +315,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                         while True:
                             self.ebp = self.esi
                             self.edx += 1
-                            self.edi -= 1
+                            self.available_acc_bits -= 1
                             self.ebp = self.ebp >> 0x1F
                             self.esi = self.esi << 1
                             self.accumulate_if_needed(buffer)
@@ -327,14 +326,14 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                             self.esi = self.esi << 1
                             self.edx += 1
                         self.ebx = self.edx - 1
-                        self.edi -= self.ebx
+                        self.available_acc_bits -= self.ebx
                         self.esi = self.esi << 1
                         self.accumulate_if_needed(buffer)
                     self.ebx = self.accumulator << 8
                     if self.get_register_signed_value('edx') <= 16:
                         self.ebx = self.esi >> (0x20 - self.edx)
                         self.cl = self.dl
-                        self.edi -= self.edx
+                        self.available_acc_bits -= self.edx
                         self.esi = self.esi << self.cl
                         self.accumulate_if_needed(buffer)
                     else:
@@ -343,10 +342,10 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                         self.ebx = self.esi >> self.cl
                         self.cl = unk_4
                         self.esi = self.esi << self.cl
-                        self.edi -= unk_4
+                        self.available_acc_bits -= unk_4
                         self.accumulate_if_needed(buffer)
                         self.ecx = self.esi >> 16
-                        self.edi -= 16
+                        self.available_acc_bits -= 16
                         self.esi = self.esi << 16
                         unk_7 = self.ecx
                         self.accumulate_if_needed(buffer)
@@ -357,7 +356,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                     self.ebx += self.edx
                 else:
                     self.ebx = self.esi >> 0x1D
-                    self.edi -= 3
+                    self.available_acc_bits -= 3
                     self.esi = self.esi << 3
                     self.accumulate_if_needed(buffer)
                 self.ebx -= 3
@@ -439,28 +438,27 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                     continue
                 break
         while True:
-            print(f'{len(uncompressed)}\t/\t{self.output_length}')
             if len(uncompressed) > self.output_length:
                 raise Exception('Uncompress algorythm writes more that file length')
             self.eax = self.unk_table_2[self.esi >> 0x18]
-            self.edi -= self.eax
-            while self.get_register_signed_value('edi') >= 0:
+            self.available_acc_bits -= self.eax
+            while self.available_acc_bits >= 0:
                 self.edx = self.esi >> 0x18
                 for _ in range(4):
                     self.append_to_output(uncompressed, self.unk_table[self.edx])
                     self.esi = self.esi << self.al
                     self.edx = self.esi >> 0x18
                     self.eax = self.unk_table_2[self.edx]
-                    self.edi -= self.eax
-                    if self.get_register_signed_value('edi') < 0:
+                    self.available_acc_bits -= self.eax
+                    if self.available_acc_bits < 0:
                         break
-            self.edi += 0x10
-            if self.get_register_signed_value('edi') >= 0:
+            self.available_acc_bits += 0x10
+            if self.available_acc_bits >= 0:
                 self.append_to_output(uncompressed, self.unk_table[(self.esi >> 0x18)])
-                self.ecx = 0x10 - self.edi
-                self.accumulate(buffer)
+                self.read_next(buffer)
+                self.esi = self.accumulator << (0x10 - self.available_acc_bits)
                 continue
-            self.edi += self.eax - 0x10
+            self.available_acc_bits += self.eax - 0x10
             if self.eax == 0x60:
                 self.eax = unk_9
             else:
@@ -476,13 +474,13 @@ class Qfs3Archive(CompressedResource, AsmRunner):
             self.ecx = 0x20 - self.eax
             self.edx = self.esi >> self.cl
             self.cl = self.al
-            self.edi -= self.eax
+            self.available_acc_bits -= self.eax
             self.esi = self.esi << self.cl
             self.ecx = self.unk_table_3[self.eax]
             self.eax = self.edx - self.ecx
             self.al = self.index_table_0[self.eax]
             if self.al != unk_1:
-                if self.get_register_signed_value('edi') >= 0:
+                if self.available_acc_bits >= 0:
                     self.append_to_output(uncompressed, self.al)
                     continue
             self.accumulate_if_needed(buffer)
@@ -496,7 +494,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                     while unk0 == 0:
                         unk0 = self.esi >> 0x1F
                         self.eax += 1
-                        self.edi -= 1
+                        self.available_acc_bits -= 1
                         self.esi = self.esi << 1
                         self.accumulate_if_needed(buffer)
                 else:
@@ -506,13 +504,13 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                         if self.get_register_signed_value('esi') < 0:
                             break
                     self.ecx = self.eax - 1
-                    self.edi -= self.ecx
+                    self.available_acc_bits -= self.ecx
                     self.esi = self.esi << 1
                     self.accumulate_if_needed(buffer)
                 if self.get_register_signed_value('eax') <= 16:
                     self.ecx = 0x20 - self.eax
                     self.ebp = self.esi >> self.cl
-                    self.edi -= self.eax
+                    self.available_acc_bits -= self.eax
                     self.cl = self.al
                     fill_bytes_length = self.ebp
                     self.esi = self.esi << self.cl
@@ -523,12 +521,12 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                     self.ecx = self.eax - 16
                     self.ebp = self.esi >> (0x20 - self.ecx)
                     self.esi = self.esi << self.cl
-                    self.edi -= self.ecx
+                    self.available_acc_bits -= self.ecx
                     unk_4 = self.ecx
                     fill_bytes_length = self.ebp
                     self.accumulate_if_needed(buffer)
                     self.ecx = self.esi >> 16
-                    self.edi -= 16
+                    self.available_acc_bits -= 16
                     self.esi = self.esi << 16
                     unk3 = self.ecx
                     self.accumulate_if_needed(buffer)
@@ -538,7 +536,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                 fill_bytes_length = self.eax
             else:
                 self.eax = self.esi >> 0x1D
-                self.edi -= 3
+                self.available_acc_bits -= 3
                 self.esi = self.esi << 3
                 fill_bytes_length = self.eax
                 self.accumulate_if_needed(buffer)
@@ -546,7 +544,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
             self.ebp = fill_bytes_length
             if self.ebp == 0:
                 self.ebp = self.esi >> 0x1F
-                self.edi -= 1
+                self.available_acc_bits -= 1
                 self.esi = self.esi << 1
                 self.accumulate_if_needed(buffer)
                 if self.ebp != 0:
@@ -564,7 +562,7 @@ class Qfs3Archive(CompressedResource, AsmRunner):
                     break
                 else:
                     self.eax = self.esi >> 0x18
-                    self.edi -= 8
+                    self.available_acc_bits -= 8
                     self.esi = self.esi << 8
                     self.accumulate_if_needed(buffer)
                     self.append_to_output(uncompressed, self.eax & 0xFF)

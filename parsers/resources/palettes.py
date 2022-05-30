@@ -49,6 +49,7 @@ class BasePalette(BaseResource, ABC):
             0xF2_00_FF_FF,
             0xFF_00_F7_FF,  # TNFS AL2 map props
             0xFF_00_FF_FF,
+            0xFF_00_F6_FF,  # TNFS NTRACKFM/AL3_T01.FAM map props
             # gray
             0x28_28_28_FF,  # car wheels
             0xFF_FF_FF_FF,  # map props

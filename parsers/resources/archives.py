@@ -8,6 +8,8 @@ from parsers.resources.geometries import OripGeometryResource
 
 
 # TODO check VET2.QFS. Why has two pictures?
+
+
 class SHPIArchive(ArchiveResource):
 
     def get_children_descriptors(self, buffer: BufferedReader, length: int) -> List[Dict]:
@@ -47,7 +49,7 @@ class WwwwArchive(ArchiveResource):
         return children
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
-        length = super().read(buffer, length)
+        length = super().read(buffer, length, path)
         # attach shpi to orip
         for index, geometry in enumerate(self.resources):
             if not isinstance(geometry, OripGeometryResource):
@@ -86,6 +88,17 @@ class WwwwArchive(ArchiveResource):
             self.resources[3].name = 'props'
         return length
 
+    def save_converted(self, path: str):
+        super().save_converted(path)
+        try:
+            if self.resources[2].name == 'skybox':
+                from parsers.resources.misc import nfs1_panorama_to_spherical
+                nfs1_panorama_to_spherical(archive=self,
+                                           file_name=f'{path}/skybox/horz.png',
+                                           out_file_name=f'{path}/skybox/spherical.png')
+        except Exception as ex:
+            pass
+
 
 class SoundBank(ArchiveResource):
 
@@ -97,9 +110,18 @@ class SoundBank(ArchiveResource):
             child['name'] = hex(start_offset + child['start_offset'])
         children = sorted(children, key=lambda x: x['start_offset'])
         for i in range(0, len(children) - 1):
-            children[i]['length'] = children[i + 1]['start_offset'] - children[i]['start_offset']
+            children[i]['length'] = children[i + 1]['start_offset'] - children[i]['start_offset'] - 40
         children[-1]['length'] = length - children[-1]['start_offset']
         # TODO why + 40? I dont parse block headers...
         for child in children:
             child['start_offset'] += 40
         return children
+
+    def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
+        length = super().read(buffer, length, path)
+        if len(self.resources) == 4 and [x.name for x in self.resources] == ['0x200', '0x248', '0x290', '0x2d8'] and ('SW.BNK' in self.name or self.name in ['TRAFFC.BNK', 'TESTBANK.BNK']):
+            self.resources[0].name = 'engine_on'
+            self.resources[1].name = 'engine_off'
+            self.resources[2].name = 'honk'
+            self.resources[3].name = 'gear'
+        return length

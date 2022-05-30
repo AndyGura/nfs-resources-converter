@@ -46,6 +46,8 @@ class ASFAudio(BaseResource):
 
 
 class EacsAudio(BaseResource):
+    loop_start_time_ms = 0
+    loop_end_time_ms = 0
 
     def read(self, buffer: BufferedReader, length: int, path=None) -> int:
         if not settings.save_media_files:
@@ -75,6 +77,8 @@ class EacsAudio(BaseResource):
             # unsigned
             else:
                 self.wave_data = buffer.read(wave_data_length * self.sound_resolution)
+        self.loop_start_time_ms = 1000 * repeat_loop_beginning / (self.sampling_rate * self.channels)
+        self.loop_end_time_ms = self.loop_start_time_ms + 1000 * (repeat_loop_length - 1) / (self.sampling_rate * self.channels)
         return length
 
     def save_converted(self, path: str):
@@ -94,3 +98,8 @@ class EacsAudio(BaseResource):
             except Exception as ex:
                 remove(f'{path}.wav')
                 raise ex
+        with open(f'{path}.meta.json', 'w') as file:
+            file.write(json.dumps({
+                "loop_start_time_ms": self.loop_start_time_ms,
+                "loop_end_time_ms": self.loop_end_time_ms
+            }, indent=4))
