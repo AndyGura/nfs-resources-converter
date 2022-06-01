@@ -11,10 +11,10 @@ Feel free to contribute
 3) run `python app.py games`
 4) observe output files in `out/`
 
-
 <h1>Supported resources</h1>
 
 <h2>The Need For Speed</h2>
+
 - **\*INFO** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) track settings with unknown purpose
 - **\*.AS4** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings
 - **\*.ASF** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings
