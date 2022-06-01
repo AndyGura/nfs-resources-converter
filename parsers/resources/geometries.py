@@ -142,8 +142,6 @@ class OripGeometryResource(BaseResource):
         return length
 
     def save_converted(self, path: str):
-        if not settings.save_obj and not settings.save_blend:
-            return
         if path[-1] != '/':
             path = path + '/'
         if not os.path.exists(path):
@@ -166,14 +164,15 @@ illum 1
 Ns 0.000000
 map_Kd assets/{texture.name}.png""")
         self.textures_archive.save_converted(os.path.join(path, 'assets/'))
+        # FIXME hardcoded car mass
+        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj', 'is_car': self.is_car,
+                                                 'bounding_box': json.dumps(self.bounding_box),
+                                                 'mass': 1500})
+        script += '\n' + settings.geometry__additional_exporter(f'{os.getcwd()}/{path}body', 'car' if self.is_car else 'prop')
         run_blender(path=path,
-                    # FIXME hardcoded car mass
-                    script=self.blender_script.substitute({'obj_file_path': 'geometry.obj', 'is_car': self.is_car,
-                                                           'bounding_box': json.dumps(self.bounding_box),
-                                                           'mass': 1500}),
-                    export_materials='EXPORT',
-                    out_blend_name=f'{os.getcwd()}/{path}body' if settings.save_blend else None)
-        if not settings.save_obj:
+                    script=script,
+                    out_blend_name=f'{os.getcwd()}/{path}body' if settings.geometry__save_blend else None)
+        if not settings.geometry__save_obj:
             os.unlink(f'{path}material.mtl')
             os.unlink(f'{path}geometry.obj')
 
