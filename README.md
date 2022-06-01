@@ -5,6 +5,7 @@ Feel free to contribute
 <h1>How to use converter:</h1>
 
 *Note: I use python 3.8, not sure whether it works well with another python :)*
+
 0) install python, ffmpeg, blender
 1) install dependencies `pip install -r requirements.txt`
 2) put entire game directory to `games/`
