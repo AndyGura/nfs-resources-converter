@@ -73,8 +73,8 @@ class ArchiveResource(ResourceCollection):
         super().read(buffer, length, path)
         start_offset = buffer.tell()
         self.resources = []
-        children_descriptors = self.get_children_descriptors(buffer, length)
-        for child in children_descriptors:
+        self.children_descriptors = self.get_children_descriptors(buffer, length)
+        for child in self.children_descriptors:
             from guess_parser import get_resource_class
             buffer.seek(start_offset + child['start_offset'])
             try:

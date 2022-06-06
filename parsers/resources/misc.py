@@ -83,13 +83,15 @@ class DashDeclarationResource(JsonOutputResource, TextResource):
 
 # https://gist.github.com/Five-Damned-Dollarz/99e955994ebbcf970532406a197b580e
 class CarPBSFile(JsonOutputResource, BaseResource):
+
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         self.dictionary = {
             'engine': {},
             'transmission': {},
         }
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        # those value meaning is theoretical. For all cars those values are the ame and equal to mass / 2
+        mass_front_axle = read_nfs1_float32(buffer)
+        mass_rear_axle = read_nfs1_float32(buffer)
         self.dictionary['mass'] = read_nfs1_float32(buffer)
         unk = [read_nfs1_float32(buffer) for _ in range(4)]
         brake_bias = read_nfs1_float32(buffer) # how much car rotates when brake? In this case should be used for chassis setup
@@ -120,9 +122,8 @@ class CarPBSFile(JsonOutputResource, BaseResource):
         front_roll_stiffness = read_nfs1_float32(buffer)
         rear_roll_stiffness = read_nfs1_float32(buffer)
         roll_axis_height = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        # those 3 are 0.5, 0.5, 0.18 (F512TR) center of mass? position of collision cube?
+        unk = [read_nfs1_float32(buffer) for _ in range(3)]
         slip_angle_cutoff = read_nfs1_float32(buffer)
         normal_coefficient_loss = read_nfs1_float32(buffer)
         self.dictionary['engine']['maxRpm'] = read_int(buffer)
@@ -163,8 +164,8 @@ class CarPBSFile(JsonOutputResource, BaseResource):
 
         # engine shifting
         engine_shifting__shift_timer = read_int(buffer)  # ticks taken to shift. Tick is probably 100ms
-        engine_shifting__rpm_decel = read_int(buffer)  # when gas released
-        engine_shifting__rpm_accel = read_int(buffer)  # when gas applied
+        engine_shifting__rpm_decel = read_int(buffer)
+        engine_shifting__rpm_accel = read_int(buffer)
         engine_shifting__clutch_drop_decel = read_int(buffer)
         engine_shifting__neg_torque = read_nfs1_float32(buffer)
 
@@ -180,13 +181,10 @@ class CarPBSFile(JsonOutputResource, BaseResource):
 class CarPDNFile(JsonOutputResource, BaseResource):
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         self.dictionary = {}
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        # values for playable cars, zeros for non-playable
+        unk1 = [read_nfs1_float32(buffer) for _ in range(3)]
         moment_of_inertia = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        unk2 = [read_nfs1_float32(buffer) for _ in range(3)]
         power_curve = [read_nfs1_float32(buffer) for _ in range(100)]
         top_speeds = [read_nfs1_float32(buffer) for _ in range(6)]
         max_rpm = read_nfs1_float32(buffer)

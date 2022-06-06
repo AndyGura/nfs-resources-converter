@@ -1,5 +1,6 @@
 # media
 save_media_files = True
+audio__save_car_sfx_loops = False
 
 # 3D
 geometry__save_obj = False

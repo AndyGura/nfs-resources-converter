@@ -19,7 +19,7 @@ Feel free to contribute
 - **\*INFO** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) track settings with unknown purpose
 - **\*.AS4** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings
 - **\*.ASF** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings
-- **\*.BNK** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) sound banks
+- **\*.BNK** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/90) sound banks. *Some sounds are off: RX7 engine sound keeps switching left and right channel*
 - **\*.CFM** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/90) car 3D model. *Some unknown info is skipped*
 - **\*.DAT** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) binary configs
 - **\*.EAS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings

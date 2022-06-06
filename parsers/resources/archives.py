@@ -102,6 +102,10 @@ class WwwwArchive(ArchiveResource):
 
 class SoundBank(ArchiveResource):
 
+    @property
+    def is_car_soundbank(self):
+        return len(self.children_descriptors) == 4 and [x['start_offset'] for x in self.children_descriptors] == [552, 624, 696, 768] and ('SW.BNK' in self.name or self.name in ['TRAFFC.BNK', 'TESTBANK.BNK'])
+
     def get_children_descriptors(self, buffer: BufferedReader, length: int) -> List[Dict]:
         start_offset = buffer.tell()
         children = [{'start_offset': read_int(buffer)} for i in range(0, 128)]
@@ -119,7 +123,7 @@ class SoundBank(ArchiveResource):
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         length = super().read(buffer, length, path)
-        if len(self.resources) == 4 and [x.name for x in self.resources] == ['0x200', '0x248', '0x290', '0x2d8'] and ('SW.BNK' in self.name or self.name in ['TRAFFC.BNK', 'TESTBANK.BNK']):
+        if self.is_car_soundbank:
             self.resources[0].name = 'engine_on'
             self.resources[1].name = 'engine_off'
             self.resources[2].name = 'honk'

@@ -48,7 +48,10 @@ class ASFAudio(BaseResource):
 class EacsAudio(BaseResource):
     loop_start_time_ms = 0
     loop_end_time_ms = 0
+    wave_data = None
+    loop_wave_data = None
 
+    # TODO RX7 engine off sounds wrong: plays in one channel than in another. Doesn't happen in real game
     def read(self, buffer: BufferedReader, length: int, path=None) -> int:
         if not settings.save_media_files:
             return length
@@ -77,13 +80,30 @@ class EacsAudio(BaseResource):
             # unsigned
             else:
                 self.wave_data = buffer.read(wave_data_length * self.sound_resolution)
-        self.loop_start_time_ms = 1000 * repeat_loop_beginning / (self.sampling_rate * self.channels)
-        self.loop_end_time_ms = self.loop_start_time_ms + 1000 * (repeat_loop_length - 1) / (self.sampling_rate * self.channels)
+        self.loop_start_time_ms = 1000 * repeat_loop_beginning / (self.sampling_rate)
+        self.loop_end_time_ms = self.loop_start_time_ms + 1000 * (repeat_loop_length - 1) / self.sampling_rate
+        if settings.audio__save_car_sfx_loops:
+            try:
+                if self.parent.is_car_soundbank:
+                    # not sure why * 2. It is needed for stereo but also for car honk sample (mono)
+                    self.loop_wave_data = self.wave_data[repeat_loop_beginning * 2:(repeat_loop_beginning + repeat_loop_length) * 2] * 16
+            except:
+                pass
         return length
 
     def save_converted(self, path: str):
         if not settings.save_media_files:
             return
+        self._save_wave_data(self.wave_data, path)
+        if self.loop_wave_data:
+            self._save_wave_data(self.loop_wave_data, f"{path}_loop")
+        with open(f'{path}.meta.json', 'w') as file:
+            file.write(json.dumps({
+                "loop_start_time_ms": self.loop_start_time_ms,
+                "loop_end_time_ms": self.loop_end_time_ms
+            }, indent=4))
+
+    def _save_wave_data(self, wave_data, path):
         temp_wav_file = '/tmp/' + ''.join(choice(ascii_lowercase) for i in range(12)) + '.wav'
         with open(temp_wav_file, 'w+b') as file:
             try:
@@ -91,15 +111,10 @@ class EacsAudio(BaseResource):
                 wave.setnchannels(self.channels)
                 wave.setsampwidth(self.sound_resolution)
                 wave.setframerate(self.sampling_rate)
-                wave.writeframesraw(self.wave_data)
+                wave.writeframesraw(wave_data)
                 wave.close()
                 subprocess.run(["ffmpeg", "-y", "-i", temp_wav_file, f'{path}.mp3'], check=True)
                 remove(temp_wav_file)
             except Exception as ex:
                 remove(f'{path}.wav')
                 raise ex
-        with open(f'{path}.meta.json', 'w') as file:
-            file.write(json.dumps({
-                "loop_start_time_ms": self.loop_start_time_ms,
-                "loop_end_time_ms": self.loop_end_time_ms
-            }, indent=4))
