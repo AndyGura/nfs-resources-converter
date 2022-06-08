@@ -41,7 +41,7 @@ class RoadSplineItem:
         self.right_verge_distance = 0
         self.left_barrier_distance = 0
         self.right_barrier_distance = 0
-        self.node_property = 0
+        self.flags = [0, 0, 0, 0]
         self.slope = 0
         self.slant_a = 0
         self.orientation = 0
@@ -52,13 +52,20 @@ class RoadSplineItem:
         self.y = 0
         self.z = 0
 
+    @property
+    def is_lane_split(self):
+        return self.flags[3] == 0
+
+    @property
+    def is_lane_merge(self):
+        return self.flags[3] == 2
+
     def read(self, buffer):
         self.left_verge_distance = read_byte(buffer)
         self.right_verge_distance = read_byte(buffer)
         self.left_barrier_distance = float(read_byte(buffer) / 8)
         self.right_barrier_distance = float(read_byte(buffer) / 8)
-        buffer.seek(3, SEEK_CUR)  # maybe index of polygon for adding fence?
-        self.node_property = read_byte(buffer)
+        self.flags = [read_byte(buffer) for _ in range(4)]
         self.x = read_nfs1_float32(buffer)
         self.z = read_nfs1_float32(buffer)
         self.y = read_nfs1_float32(buffer)
@@ -140,6 +147,26 @@ class TerrainChunk:
         self.fence_texture_name = None
         self.has_left_fence = False
         self.has_right_fence = False
+        self.lane_merge_initiated = False
+
+    # for lane split and merge chunks. Happens in TNFS open tracks
+    # pure magic. No idea how I wrote it
+    def _make_vertex_offset(self, build_matrix_row, vertex_to_remove, vertex_to_duplicate, com_matrix_row):
+        build_matrix_row = row = (build_matrix_row[:vertex_to_remove]
+                                  + build_matrix_row[vertex_to_remove+1:vertex_to_duplicate+1]
+                                  + build_matrix_row[vertex_to_duplicate:])
+        # add a tiny offset for duplicated vertex so polygon will be rendered correctly
+        row[vertex_to_duplicate - 1] = deepcopy(row[vertex_to_duplicate - 1])
+        for i in range(3):
+            row[vertex_to_duplicate - 1][i] = row[vertex_to_duplicate - 1][i] * 0.99 + row[vertex_to_duplicate - 2][i] * 0.01
+        # fix vertex position in default matrix to omit holes in chunk connection (second point was removed from build matrix)
+        row = com_matrix_row
+        distance_to_left_vertex = math.sqrt(sum((row[vertex_to_remove][i] - row[vertex_to_remove - 1][i])**2 for i in range(3)))
+        distance_to_right_vertex = math.sqrt(sum((row[vertex_to_remove][i] - row[vertex_to_remove + 1][i])**2 for i in range(3)))
+        left_right_factor = distance_to_left_vertex / (distance_to_left_vertex + distance_to_right_vertex)
+        # now vertex will be located on the straight line between neighbour vertices
+        row[vertex_to_remove] = [row[vertex_to_remove - 1][i] * (1 - left_right_factor) + row[vertex_to_remove + 1][i] * left_right_factor for i in range(3)]
+        return build_matrix_row, com_matrix_row
 
     def read_row(self, buffer):
         coords = [2 * read_nfs1_float16(buffer) for _ in range(3)]
@@ -173,11 +200,28 @@ class TerrainChunk:
                     A610[i][j] += A0[j] if i == 0 else A610[i - 1][j]
             A610.reverse()
             self.matrix[3 - row_index] = A610 + [A0] + A15
+        self.build_matrix = deepcopy(self.matrix)
+        for row_index in range(4):
+            if reference_points[row_index].is_lane_split:
+                self.build_matrix[3 - row_index], self.matrix[3 - row_index] = self._make_vertex_offset(
+                    self.build_matrix[3 - row_index],
+                    2, 6,
+                    self.matrix[3 - row_index]
+                )
+            elif reference_points[row_index].is_lane_merge:
+                assert row_index == 0, Exception('Unexpected lane merge position!')
+                self.lane_merge_initiated = True
 
     def build_models(self, counter, texture_names):
-        matrix = deepcopy(self.matrix)
+        matrix = deepcopy(self.build_matrix)
         if self.next_chunk:
             matrix = [self.next_chunk.matrix[-1]] + matrix
+            if self.lane_merge_initiated:
+                matrix[0], self.next_chunk.build_matrix[3] = self._make_vertex_offset(
+                    matrix[0],
+                    3, 6,
+                    self.next_chunk.build_matrix[3]
+                )
         models = []
         inverted_matrix = [list(x) for x in zip(*matrix)]
         for i in range(10):
