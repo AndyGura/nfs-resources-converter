@@ -1,5 +1,7 @@
 The goal of this project is to implement parsers for uncommon game files and save them in widely used format. Supports a variety of files for EA games Need For Speed series 1 - 6. Right now I'm focused on The Need For Speed SE (1996) game only, however some files, like FSH, were used even in NFS HP 2 (2002)
 
+Output files are directly used in my project [The Need For Speed Web](https://tnfsw.guraklgames.com/)
+
 Feel free to contribute
 
 <h1>How to use converter:</h1>
@@ -33,7 +35,7 @@ Feel free to contribute
 - **\*.QFS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) compressed image archive
 - **\*.RPL** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) replay files
 - **\*.TGV** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) video
-- **\*.TRI** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/70) tracks. *Produces track, which have enough info for conversion to another game. Some data is skipped, some props are missed due to absence in FAM file*
+- **\*.TRI** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/73) tracks. *Produces track, which have enough info for conversion to another game. Some data is skipped, some props are missed due to absence in FAM file*
 
 <h1>Output file formats</h1>
 
