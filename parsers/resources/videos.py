@@ -13,9 +13,10 @@ class FFmpegSupportedVideo(BaseResource):
         return length
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         if not settings.save_media_files:
             return
-        subprocess.run(["ffmpeg", "-y", "-i", self.path,
+        subprocess.run([settings.ffmpeg_executable, "-y", "-i", self.path,
                         # add video on black square so we will not have transparent pixels (displays wrong in chrome)
                         '-filter_complex',
                         'color=black,format=rgb24[c];[c][0]scale2ref[c][i];[c][i]overlay=format=auto:shortest=1,setsar=1',

@@ -9,10 +9,11 @@ Feel free to contribute
 *Note: I use python 3.8, not sure whether it works well with another python :)*
 
 0) install python, ffmpeg, blender
-1) install dependencies `pip install -r requirements.txt`
-2) put entire game directory to `games/`
-3) run `python app.py games`
-4) observe output files in `out/`
+1) make sure that `blender` and `ffmpeg` commands work in terminal (cmd). If not, either fix your system environment variable PATH, or reboot your system if software was just installed, or set an absolute path to executables in [settings.py](settings.py)
+2) install dependencies `pip install -r requirements.txt`
+3) put entire game directory to `games/`
+4) run `python app.py games`
+5) observe output files in `out/`
 
 <h1>Supported resources</h1>
 
@@ -28,14 +29,14 @@ Feel free to contribute
 - **\*.FAM** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/80) track textures, 3D props + auto-convert horizon to approximate spherical sky texture. *FSH issues, some props couldn't be found. Skybox positioning hardcoded and tested only for ETRACKFM/\*.FAM files.*
 - **\*.FFN** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/93) bitmap font. *Exported font works, but have hardcoded line height*
 - **\*.FMM** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/3) something for car interior. *Parses archive header only*
-- **\*.FSH** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/95) image archive + palettes + image position on screen. *Some textures have broken transparency or wrong palette used*
+- **\*.FSH** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/98) image archive + palettes + image position on screen. *Some textures have broken transparency or wrong palette used*
 - **\*.INV** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) some info about elements on the screen?
 - **\*.PBS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/40) car physics. *Decompression works, many values known*
 - **\*.PDN** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/20) car characteristic for unknown purpose. *Decompression works, some values known*
 - **\*.QFS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) compressed image archive
 - **\*.RPL** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) replay files
 - **\*.TGV** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) video
-- **\*.TRI** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/73) tracks. *Produces track, which have enough info for conversion to another game. Some data is skipped, some props are missed due to absence in FAM file*
+- **\*.TRI** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/85) tracks. *Produces track, which have enough info for conversion to another game. Some data is skipped, some props are missed due to absence in FAM file*
 
 <h1>Output file formats</h1>
 

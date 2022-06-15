@@ -1,6 +1,8 @@
 import os
 import tempfile
 
+import settings
+
 
 def get_blender_save_script(out_blend_name=None):
     script = '\n\n\n'
@@ -16,5 +18,5 @@ def run_blender(path, script, out_blend_name=None):
     script_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
     script_file.write(script)
     script_file.flush()
-    os.system(f"cd {path} && blender --python {script_file.name} --background")
+    os.system(f"cd {path} && {settings.blender_executable} --python {script_file.name} --background")
     os.unlink(script_file.name)

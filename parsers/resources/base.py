@@ -1,11 +1,12 @@
+import json
 from abc import ABC, abstractmethod
 from io import BufferedReader
-from typing import List
+
+import settings
 
 
 class BaseResource(ABC):
-
-    resources: List['BaseResource'] = []
+    unknowns = []
 
     name = None
     parent = None
@@ -13,7 +14,7 @@ class BaseResource(ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.resources = []
+        self.unknowns = []
 
     @abstractmethod
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
@@ -21,6 +22,8 @@ class BaseResource(ABC):
         # returns how many bytes were used
         pass
 
-    @abstractmethod
     def save_converted(self, path: str):
-        pass
+        if self.unknowns and settings.save_unknown_values:
+            with open(f'{path}__unknowns.json', 'w') as file:
+                file.write(json.dumps(self.unknowns, indent=4))
+

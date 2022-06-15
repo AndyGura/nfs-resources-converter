@@ -21,6 +21,7 @@ class BinaryResource(BaseResource):
         return length
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         if self.save_binary_file:
             if self.id:
                 path = f'{path}__{hex(self.id)}'
@@ -43,6 +44,7 @@ class TextResource(BaseResource):
         return length
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         with open(f'{path}.txt', 'w') as file:
             file.write(self.text)
 

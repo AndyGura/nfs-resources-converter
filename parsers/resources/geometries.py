@@ -142,6 +142,7 @@ class OripGeometryResource(BaseResource):
         return length
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         if path[-1] != '/':
             path = path + '/'
         if not os.path.exists(path):

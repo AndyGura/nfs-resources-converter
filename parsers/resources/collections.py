@@ -21,6 +21,7 @@ class ResourceCollection(BaseResource, ABC):
         self.skipped_resources = []
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         if path[-1] != '/':
             path = path + '/'
         if not os.path.exists(path):
@@ -87,21 +88,9 @@ class ArchiveResource(ResourceCollection):
             try:
                 print(f'READING {self.name}/{resource.name}')
                 bytes_used = resource.read(buffer, child['length'])
-                bytes_used = math.ceil(bytes_used/4)*4
+                assert bytes_used == child['length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
             except BaseException as ex:
                 self.skipped_resources.append((child['name'], str(ex)))
                 continue
             self.resources.append(resource)
-            sub_resources_count = 0
-            while bytes_used < child['length']:
-                try:
-                    sub_resource = get_resource_class(buffer)
-                except BaseException as ex:
-                    self.skipped_resources.append((f'{resource.name}/{sub_resources_count}', str(ex)))
-                    break
-                sub_resource.name = str(sub_resources_count)
-                sub_resource.parent = resource
-                bytes_used = bytes_used + sub_resource.read(buffer, child['length'] - bytes_used)
-                resource.resources.append(sub_resource)
-                sub_resources_count = sub_resources_count + 1
         return length

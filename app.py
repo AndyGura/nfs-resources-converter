@@ -13,10 +13,10 @@ if os.path.isdir(args.file):
     for subdir, dirs, files in os.walk(args.file):
         res = ResourceDirectory()
         res.read(subdir, files)
-        res.save_converted(os.path.join('out', subdir))
+        res.save_converted(os.path.join('out', subdir).replace('\\', '/'))
 else:
     with args.file.open('rb') as bdata:
         resource = get_resource_class(bdata, bdata.name)
         resource.name = bdata.name.split('/')[-1]
         resource.read(bdata, os.path.getsize(args.file), path=str(args.file))
-        resource.save_converted(os.path.join('out', bdata.name))
+        resource.save_converted(os.path.join('out', bdata.name).replace('\\', '/'))

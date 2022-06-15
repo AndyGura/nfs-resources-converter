@@ -35,9 +35,10 @@ class ASFAudio(BaseResource):
         return length
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         if not settings.save_media_files:
             return
-        subprocess.run(["ffmpeg", "-y", "-i", self.path, f'{path}.mp3'], check=True)
+        subprocess.run([settings.ffmpeg_executable, "-y", "-i", self.path, f'{path}.mp3'], check=True)
         with open(f'{path}.meta.json', 'w') as file:
             file.write(json.dumps({
                 "loop_start_time_ms": self.loop_start_time_ms,
@@ -113,7 +114,7 @@ class EacsAudio(BaseResource):
                 wave.setframerate(self.sampling_rate)
                 wave.writeframesraw(wave_data)
                 wave.close()
-                subprocess.run(["ffmpeg", "-y", "-i", temp_wav_file, f'{path}.mp3'], check=True)
+                subprocess.run([settings.ffmpeg_executable, "-y", "-i", temp_wav_file, f'{path}.mp3'], check=True)
                 remove(temp_wav_file)
             except Exception as ex:
                 remove(f'{path}.wav')

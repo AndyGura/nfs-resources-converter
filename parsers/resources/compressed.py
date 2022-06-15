@@ -25,7 +25,7 @@ class CompressedResource(BaseResource, ABC):
         self.uncompressed_resource.name = self.name
         self.uncompressed_resource.parent = self.parent
         self.uncompressed_resource.read(uncompressed_buffer, len(uncompressed))
-        self.resources = self.uncompressed_resource.resources
+        self.resources = getattr(self.uncompressed_resource, 'resources', None)
         return length
 
     def save_converted(self, path: str):

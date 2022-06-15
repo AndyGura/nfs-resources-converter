@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 from functools import cached_property
 from io import BufferedReader, SEEK_CUR
@@ -5,7 +6,8 @@ from typing import List
 
 from PIL import Image
 
-from buffer_utils import read_short, read_3int
+import settings
+from buffer_utils import read_short, read_3int, read_byte
 from parsers.resources.base import BaseResource
 from parsers.resources.collections import ResourceDirectory, ArchiveResource
 from parsers.resources.palettes import BasePalette
@@ -16,6 +18,9 @@ class BaseBitmap(BaseResource, ABC):
     pixel_size = 1
     bitmap_bytes = None
 
+    def _handle_trailing_bytes(self, buffer, trailing_bytes_length):
+        raise f'Trailing bytes reader not implemented for {self.__class__.__name__}'
+
     def _get_directory_identifier(self):
         from parsers.resources.archives import SHPIArchive
         entity = self
@@ -24,55 +29,99 @@ class BaseBitmap(BaseResource, ABC):
         return entity and entity.directory_identifier
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
+        start_buffer_cur = buffer.tell()
         buffer.seek(1, SEEK_CUR)  # bitmap type byte
         block_size = read_3int(buffer)
         self.width = read_short(buffer)
         self.height = read_short(buffer)
         # TODO in WRAP directory there is no block size. What's there instead?
         directory_identifier = self._get_directory_identifier()
-        if directory_identifier == 'LN32':
-            assert block_size == self.pixel_size * self.width * self.height + 16, \
-                f'Not expected bitmap block size {block_size}. Expected {self.pixel_size * self.width * self.height}'
-        else:
-            block_size = self.pixel_size * self.width * self.height + 16
+        if directory_identifier == 'WRAP':
+            wrap_block_size = block_size
+            block_size = 4 * int(math.ceil(self.pixel_size * self.width * self.height / 4)) + 16
+            self.unknowns.append({'WRAP block_size': { 'value': wrap_block_size, 'real_block_size': block_size}})
+        elif block_size == 0:
+            # some NFS2 resources have block size equal to 0
+            block_size = 4 * int(math.ceil(self.pixel_size * self.width * self.height / 4)) + 16
+        trailing_bytes_length = length - block_size
+        if trailing_bytes_length < 0:
+            raise Exception(
+                f'Too small bitmap block size {block_size}. Expected {self.pixel_size * self.width * self.height + 16}')
         if self.width > 8192 or self.height > 8192:
             raise Exception(f'Suspiciously large bitmap {self.width}/{self.height}')
-        buffer.seek(4, SEEK_CUR)  # unknown bytes :(
-        # position on screen
+        self.unknowns += [read_byte(buffer) for _ in range(4)]
         self.x = read_short(buffer)
         self.y = read_short(buffer)
         self.bitmap_bytes = buffer.read(block_size - 16)
-        return block_size
+        buffer.seek(start_buffer_cur + block_size)
+        if trailing_bytes_length > 0:
+            try:
+                self._handle_trailing_bytes(buffer, trailing_bytes_length)
+            except Exception as ex:
+                buffer.seek(start_buffer_cur + length - trailing_bytes_length)
+                self.unknowns.append({'Unhandled trailing bytes': { 'err': str(ex), 'values': [read_byte(buffer) for _ in range(trailing_bytes_length)]}})
+        return buffer.tell() - start_buffer_cur
 
     @abstractmethod
     def _read_pixel(self, value: int) -> int:
         pass
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         colors = [self._read_pixel(self.bitmap_bytes[x * self.pixel_size:(x + 1) * self.pixel_size]).to_bytes(4, 'big')
                   for x in range(0, self.width * self.height)]
         colors = bytes().join(colors)
         img = Image.frombytes('RGBA', (self.width, self.height), colors)
         img.save(f'{path}.png')
-        for resource in self.resources:
-            resource.save_converted(f"{path}.{resource.name.replace('/', '_')}")
 
 
 class Bitmap8Bit(BaseBitmap):
     palette = None
+    is_inline_palette = False
 
-    def find_palettes(self, instance: BaseResource, recursive=True) -> List[BasePalette]:
-        own_palettes = [[x] if isinstance(x, BasePalette) else self.find_palettes(x, recursive=False)
-                        for i, x in enumerate(instance.resources)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.palette = None
+        self.is_inline_palette = False
+
+    # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
+    # sometimes better, sometime worse, the difference is not much noticeable.
+    # In case of Autumn Valley fence texture it totally breaks the picture.
+    # If ignore inline palettes in LN32 SHPI, DASH FSH will be broken ¯\_(ツ)_/¯
+    # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯
+    # autumn valley fence texture broken only in ETRACKFM and NTRACKFM
+    # FIXME find a generic solution to this problem
+    @property
+    def ignore_child_palette(self):
+        try:
+            return self.name == 'ga00' and self.parent.parent.parent.name == 'TR2_001.FAM'
+        except:
+            return False
+
+    def _handle_trailing_bytes(self, buffer, trailing_bytes_length):
+        from guess_parser import get_resource_class
+        while trailing_bytes_length > 0:
+            sub_resource = get_resource_class(buffer)
+            assert isinstance(sub_resource, BasePalette), f'Not a palette: {sub_resource.__class__.__name__}'
+            trailing_bytes_length -= sub_resource.read(buffer, trailing_bytes_length)
+            if not self.ignore_child_palette:
+                self.palette = sub_resource
+                self.is_inline_palette = True
+
+    def _find_palettes(self, instance: BaseResource = None, recursive=True) -> List[BasePalette]:
+        if not instance:
+            instance = self.parent
+        own_palettes = [[x] if isinstance(x, BasePalette) else self._find_palettes(x, recursive=False)
+                        for i, x in enumerate(getattr(instance, 'resources', []))
                         if (isinstance(x, BasePalette) or isinstance(instance, ArchiveResource))]
         own_palettes = [i for g in own_palettes for i in g]  # flatten
-        own_palettes.reverse() # invert, last palette more preferred
+        own_palettes.reverse()  # invert, last palette more preferred
         if recursive and not own_palettes:
             if isinstance(instance, ResourceDirectory):
                 for file_resource in instance.resources:
-                    own_palettes.extend(self.find_palettes(file_resource, recursive=False))
+                    own_palettes.extend(self._find_palettes(file_resource, recursive=False))
             if not own_palettes and instance.parent:
-                return self.find_palettes(instance.parent)
+                return self._find_palettes(instance.parent)
         return own_palettes
 
     # NFS 1 car texture have transparent tail lights
@@ -87,7 +136,7 @@ class Bitmap8Bit(BaseBitmap):
 
     def _read_pixel(self, value: bytes) -> int:
         if self.palette is None:
-            palettes = self.find_palettes(self)
+            palettes = self._find_palettes()
             self.palette = next((p for p in palettes if p.name != '!xxx'), None)
             if self.palette is None and len(palettes) > 0:
                 self.palette = palettes[0]
@@ -97,6 +146,11 @@ class Bitmap8Bit(BaseBitmap):
         if index == 0xFE and self.is_tail_lights_texture_for_nfs1_car:
             return 0
         return self.palette.get_color(index)
+
+    def save_converted(self, path: str):
+        super().save_converted(path)
+        if settings.images__save_inline_palettes and self.is_inline_palette:
+            self.palette.save_converted(path)
 
 
 class Bitmap16Bit1555(BaseBitmap):

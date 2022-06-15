@@ -1,3 +1,13 @@
+# generic
+blender_executable = 'blender'
+ffmpeg_executable = 'ffmpeg'
+# example of absolute path for windows '"C:/Program Files/Blender Foundation/Blender 3.2/blender.exe"'
+
+save_unknown_values = False
+
+# images
+images__save_inline_palettes = False
+
 # media
 save_media_files = True
 audio__save_car_sfx_loops = False

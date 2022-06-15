@@ -2,6 +2,7 @@ import json
 import math
 import os
 from copy import deepcopy
+from functools import cached_property
 from io import BufferedReader, SEEK_CUR
 from string import Template
 from typing import List
@@ -33,6 +34,25 @@ class SceneryType:
     TwoSidedBitmap = 6
 
 
+# Thank you jeff-1amstudios for this!
+# https://github.com/jeff-1amstudios/OpenNFS1
+class SplineItemMode:
+    LANE_SPLIT = 0
+    REGULAR = 1
+    LANE_MERGE = 2
+    TUNNEL = 4  # TODO implement appropriate logic
+    COBBLED_ROAD = 5  # TODO implement appropriate logic
+    RIGHT_TUNNEL_A2_A9 = 7
+    LEFT_TUNNEL_A9_A4 = 12
+    LEFT_TUNNEL_A9_A5 = 13
+    WATERFALL_AUDIO_LEFT_CHANNEL = 14  # TODO implement appropriate logic
+    WATERFALL_AUDIO_RIGHT_CHANNEL = 15  # TODO implement appropriate logic
+    WATER_AUDIO = 18  # TODO implement appropriate logic
+
+    KNOWN_MODES = [REGULAR, LANE_SPLIT, LANE_MERGE, TUNNEL, COBBLED_ROAD, RIGHT_TUNNEL_A2_A9, LEFT_TUNNEL_A9_A4,
+                   LEFT_TUNNEL_A9_A5, WATERFALL_AUDIO_LEFT_CHANNEL, WATERFALL_AUDIO_RIGHT_CHANNEL, WATER_AUDIO]
+
+
 class RoadSplineItem:
 
     def __init__(self):
@@ -41,7 +61,8 @@ class RoadSplineItem:
         self.right_verge_distance = 0
         self.left_barrier_distance = 0
         self.right_barrier_distance = 0
-        self.flags = [0, 0, 0, 0]
+        self.unk = [0, 0, 0]
+        self.spline_item_mode = None
         self.slope = 0
         self.slant_a = 0
         self.orientation = 0
@@ -52,20 +73,15 @@ class RoadSplineItem:
         self.y = 0
         self.z = 0
 
-    @property
-    def is_lane_split(self):
-        return self.flags[3] == 0
-
-    @property
-    def is_lane_merge(self):
-        return self.flags[3] == 2
-
     def read(self, buffer):
-        self.left_verge_distance = read_byte(buffer)
-        self.right_verge_distance = read_byte(buffer)
-        self.left_barrier_distance = float(read_byte(buffer) / 8)
-        self.right_barrier_distance = float(read_byte(buffer) / 8)
-        self.flags = [read_byte(buffer) for _ in range(4)]
+        self.left_verge_distance = read_byte(buffer) / 8
+        self.right_verge_distance = read_byte(buffer) / 8
+        self.left_barrier_distance = read_byte(buffer) / 8
+        self.right_barrier_distance = read_byte(buffer) / 8
+        self.unk = [read_byte(buffer) for _ in range(3)]
+        self.spline_item_mode = read_byte(buffer)
+        if self.spline_item_mode not in SplineItemMode.KNOWN_MODES:
+            print(f'WARNING Unknown spline item mode {self.spline_item_mode}')
         self.x = read_nfs1_float32(buffer)
         self.z = read_nfs1_float32(buffer)
         self.y = read_nfs1_float32(buffer)
@@ -138,15 +154,37 @@ class BarrierPath:
 
 
 class TerrainChunk:
-    # not tested
-    fence_height = 1
 
-    def __init__(self):
+    def get_fence_height(self, fence_texture_name):
+        try:
+            # TODO determine where to get fence height from resource file
+            # resource = self.tri_resource.fam.resources[0]
+            # for path in fence_texture_name.split('/'):
+            #     resource = resource.get_resource_by_name(path)
+            if self.tri_resource.name[:3] in ['TR1', 'TR3']:
+                # TR1 texture height == 64; TR3: 51
+                return 1
+            elif self.tri_resource.name[:3] in ['AL1', 'TR2', 'TR6']:
+                return 2 # TR2 95; TR6: 65; AL1: 64
+            elif self.tri_resource.name[:3] in ['TR7']:
+                return 1.5  # TR7: 47
+            # didn't test other tracks
+            return 1
+        except:
+            return 1
+
+    def __init__(self, tri_resource):
+        self.tri_resource = tri_resource
         self.next_chunk = None
         self.matrix = None
         self.fence_texture_name = None
         self.has_left_fence = False
+        self.left_fence_polygon_index = 3
+        # FIXME hardcode
+        if self.tri_resource.name[:3] == 'TR3':
+            self.left_fence_polygon_index = 2
         self.has_right_fence = False
+        self.right_fence_polygon_index = 7
         self.lane_merge_initiated = False
 
     # for lane split and merge chunks. Happens in TNFS open tracks
@@ -184,6 +222,7 @@ class TerrainChunk:
         # |    |    |    |    |    ||    |    |    |    |    |
         # |    |    |    |    |    ||    |    |    |    |    |
         # A10---A9---A8---A7---A6---A0---A1---A2---A3---A4---A5  node 4n
+        self.reference_points = reference_points
         self.matrix = [None] * 4
         for row_index in range(4):
             A0 = self.read_row(buffer)
@@ -202,13 +241,13 @@ class TerrainChunk:
             self.matrix[3 - row_index] = A610 + [A0] + A15
         self.build_matrix = deepcopy(self.matrix)
         for row_index in range(4):
-            if reference_points[row_index].is_lane_split:
+            if reference_points[row_index].spline_item_mode == SplineItemMode.LANE_SPLIT:
                 self.build_matrix[3 - row_index], self.matrix[3 - row_index] = self._make_vertex_offset(
                     self.build_matrix[3 - row_index],
                     2, 6,
                     self.matrix[3 - row_index]
                 )
-            elif reference_points[row_index].is_lane_merge:
+            elif reference_points[row_index].spline_item_mode == SplineItemMode.LANE_MERGE:
                 assert row_index == 0, Exception('Unexpected lane merge position!')
                 self.lane_merge_initiated = True
 
@@ -223,10 +262,25 @@ class TerrainChunk:
                     self.next_chunk.build_matrix[3]
                 )
         models = []
-        inverted_matrix = [list(x) for x in zip(*matrix)]
         for i in range(10):
+            inverted_matrix = [list(x) for x in zip(*matrix)]
             model = SubMesh()
             model.vertices = sum(inverted_matrix[i:i + 2], [])
+            # in some cases, first polygon is placed differently (tunnels in Vertigo Ridge and Coastal #2)
+            if i == 0:
+                for j in range(5):
+                    vertices_matrix_indices = 0, 1
+                    # we have 4 points, but 5 items in matrix. last should obey mode of 4th point
+                    mode = self.reference_points[min(j, 3)].spline_item_mode
+                    if mode == SplineItemMode.LEFT_TUNNEL_A9_A4:
+                        vertices_matrix_indices = 9, 2
+                    elif mode == SplineItemMode.LEFT_TUNNEL_A9_A5:
+                        vertices_matrix_indices = 10, 2
+                    elif mode == SplineItemMode.RIGHT_TUNNEL_A2_A9:
+                        vertices_matrix_indices = 1, 7
+                    if vertices_matrix_indices != (0, 1):
+                        model.vertices[j] = inverted_matrix[vertices_matrix_indices[0]][j]
+                        model.vertices[j + 5] = inverted_matrix[vertices_matrix_indices[1]][j]
             model.polygons = [
                 [0, int(len(model.vertices) / 2), 1],
                 [int(len(model.vertices) / 2), int(len(model.vertices) / 2) + 1, 1],
@@ -246,26 +300,34 @@ class TerrainChunk:
             model.name = f'terrain_chunk_{counter}_{i}_{model.texture_id}'
             models.append(model)
         if self.has_left_fence:
-            models.append(self.build_fence(counter, True))
+            models.append(self.build_fence(counter, self.left_fence_polygon_index))
         if self.has_right_fence:
-            models.append(self.build_fence(counter, False))
+            models.append(self.build_fence(counter, self.right_fence_polygon_index))
         return models
 
-    def build_fence(self, counter, is_left):
+    def build_fence(self, counter, index):
+        is_left = index < 5
         matrix = deepcopy(self.matrix)
         if self.next_chunk:
             matrix = [self.next_chunk.matrix[-1]] + matrix
         model = SubMesh()
-        index = 3 if is_left else 7
         for i in range(len(matrix)):
             road_point = matrix[i][index]
+            # shift a bit (20cm) fence to fix z-fighting specifically on transtropolis track.
+            # It has vertical walls, intersecting with fence
+            # FIXME remove this after finding a way to render with custom z-buffer, required for NFS1 wheels
+            if self.tri_resource.name[:3] == 'TR7':
+                neighbour_point = matrix[i][index + 1 if is_left else index - 1]
+                distance = math.sqrt(sum(pow(neighbour_point[c] - road_point[c], 2) for c in range(3)))
+                koef = 0.2 / distance
+                road_point = [road_point[c] * (1 - koef) + neighbour_point[c] * koef for c in range(3)]
             model.vertices.append(road_point)
-            model.vertices.append([road_point[0], road_point[1], road_point[2] + self.fence_height])
+            model.vertices.append([road_point[0], road_point[1], road_point[2] + self.get_fence_height(self.fence_texture_name)])
         for i in range(len(matrix) - 1):
             model.polygons.append([i * 2, i * 2 + 1, i * 2 + 3])
             model.polygons.append([i * 2 + 2, i * 2, i * 2 + 3])
         model.vertex_uvs = [[
-            (x % int(len(model.vertices) / 2)) / 2,
+            math.floor(x / 2),
             0 if x % 2 == 1 else 1
         ] for x in range(len(model.vertices))]
         model.texture_id = self.fence_texture_name
@@ -275,7 +337,8 @@ class TerrainChunk:
 
 class ProxyObjectDescriptor:
 
-    def __init__(self, index):
+    def __init__(self, index, tri_resource):
+        self.tri_resource = tri_resource
         self.index = index
         self.flags = 0
         self.type = 0
@@ -285,6 +348,10 @@ class ProxyObjectDescriptor:
         self.resource_2_id = 0
         self.animation_frame_count = 1
 
+    def _texture_ids(self, tex_id):
+        return [f"{tex_id + i}/0000" if self.tri_resource.is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
+                for i in range(self.animation_frame_count)]
+
     def read(self, buffer):
         # https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202
         pos = buffer.tell()
@@ -293,14 +360,19 @@ class ProxyObjectDescriptor:
         self.resource_id = read_byte(buffer)
         if self.type == SceneryType.TwoSidedBitmap:
             self.resource_2_id = read_byte(buffer)
-        buffer.seek(pos + 6)
-        self.width = read_short(buffer)
+        else:
+            unk0 = read_byte(buffer)
+        self.width = read_nfs1_float32(buffer)
         if (self.flags & SceneryFlags.Animated) == SceneryFlags.Animated:
             self.animation_frame_count = read_byte(buffer)
-        buffer.seek(pos + 14)
-        self.height = read_short(buffer)
+        unk1 = [read_byte(buffer) for _ in range(pos + 12 - buffer.tell())]
+        self.height = read_nfs1_float32(buffer)
+        if self.width == 0:
+            raise Exception('Zero scenery object width')
+        if self.height == 0:
+            raise Exception('Zero scenery object height')
 
-    def get_export_data(self, is_opened_track):
+    def get_export_data(self):
         res = {}
         res['type'] = self.type
         res['width'] = self.width
@@ -308,15 +380,9 @@ class ProxyObjectDescriptor:
         if self.type == SceneryType.Model:
             res['model_ref_id'] = self.resource_id
         else:
-            tex_id = math.floor(self.resource_id / 4)
-            res['texture'] = ';'.join(
-                [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
-                 for i in range(self.animation_frame_count)])
+            res['texture'] = ';'.join(self._texture_ids(math.floor(self.resource_id / 4)))
             if self.type == SceneryType.TwoSidedBitmap:
-                tex_id = math.floor(self.resource_2_id / 4)
-                res['back_texture'] = ';'.join(
-                    [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
-                     for i in range(self.animation_frame_count)])
+                res['back_texture'] = ';'.join(self._texture_ids(math.floor(self.resource_2_id / 4)))
             if self.animation_frame_count > 1:
                 res['animation_interval'] = 250  # TODO maybe NFS defines it somewhere?
         return res
@@ -332,6 +398,21 @@ class TriMapResource(BaseResource):
         self.objects: List[dict] = []
         self.object_descriptors: List[ProxyObjectDescriptor] = []
         self.terrain_data: List[dict] = []
+
+    @cached_property
+    def fam(self):
+        fam_name = f'{self.name.split(".")[0]}_001.FAM'
+        file_path = os.path.join('/'.join(self.read_from_path.split('/')[:-2]), f'ETRACKFM/{fam_name}')
+        try:
+            with open(file_path, 'rb') as bdata:
+                from parsers.resources.archives import WwwwArchive
+                fam = WwwwArchive()
+                fam.name = fam_name
+                fam.read(bdata, os.path.getsize(file_path), file_path)
+                return fam
+        except:
+            pass
+        return None
 
     def _get_texture_name_from_id(self, texture_id):
         if self.is_opened_track:
@@ -357,6 +438,7 @@ class TriMapResource(BaseResource):
         return res
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
+        super().read(buffer, length, path)
         start_offset = buffer.tell()
         buffer.seek(12, SEEK_CUR)
         (x, z, y) = (
@@ -394,8 +476,9 @@ class TriMapResource(BaseResource):
         if check_header_text != 'SJBO':
             raise Exception('OBJS block not found')
         buffer.seek(0x8, SEEK_CUR)
+        print('reading track objects....')
         for i in range(object_descriptor_count):
-            descr = ProxyObjectDescriptor(len(self.object_descriptors))
+            descr = ProxyObjectDescriptor(len(self.object_descriptors), self)
             descr.read(buffer)
             self.object_descriptors.append(descr)
         for i in range(objects_count):
@@ -408,6 +491,7 @@ class TriMapResource(BaseResource):
         buffer.seek(492, SEEK_CUR)
 
         # terrain data
+        print('reading terrain....')
         buffer.seek(start_offset + 0x1A4A8)
         try:
             index = -1
@@ -428,7 +512,7 @@ class TriMapResource(BaseResource):
                 fence_type = read_byte(buffer)
                 res['texture_names'] = [self._get_texture_name_from_id(read_byte(buffer)) for _ in range(10)]
                 road_path_index = len(self.terrain_data) * 4
-                res['chunk'] = TerrainChunk()
+                res['chunk'] = TerrainChunk(self)
                 res['chunk'].read_matrix(buffer, self.road_path[road_path_index:road_path_index + 4])
                 if fence_type != 0:
                     # Ignore the top 2 bits to find the texture to use
@@ -447,6 +531,7 @@ class TriMapResource(BaseResource):
         except:
             pass
         # build terrain models
+        print('building terrain mesh....')
         for i, terrain_data in enumerate(self.terrain_data):
             terrain_data['chunk'].next_chunk = self.terrain_data[i + 1]['chunk'] if (
                     i < len(self.terrain_data) - 1) else (None
@@ -458,6 +543,7 @@ class TriMapResource(BaseResource):
         if not self.is_opened_track:
             road_path += [road_path[0]]
         if settings.maps__save_collisions:
+            print('building invisible barriers....')
             self.left_barrier_points = BarrierPath([[rp.x + rp.left_barrier_distance * math.cos(rp.orientation + math.pi),
                                                      rp.y - rp.left_barrier_distance * math.sin(rp.orientation + math.pi),
                                                      rp.z] for rp in road_path])
@@ -485,10 +571,12 @@ class TriMapResource(BaseResource):
         map_Kd ../../ETRACKFM/{self.name[:3]}_001.FAM/background/{texture_name}.png""")
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         if path[-1] != '/':
             path = path + '/'
         if not os.path.exists(path):
             os.makedirs(path)
+        save_path = os.getcwd().replace('\\', '/')
         self._save_mtl(path)
         blender_script = "import bpy\nbpy.ops.wm.read_factory_settings(use_empty=True)"
         if settings.maps__save_as_chunked:
@@ -511,13 +599,13 @@ class TriMapResource(BaseResource):
                                                        'y': o['y'] - self.road_path[i * 4].y,
                                                        'z': o['z'] - self.road_path[i * 4].z,
                                                        'descriptor': None,
-                                                       **(o['descriptor'].get_export_data(self.is_opened_track))}
+                                                       **(o['descriptor'].get_export_data())}
                                                       for o in self.objects
                                                       if (i + 1) * 4 > o['reference_road_path_vertex'] >= i * 4]),
                 })
                 if settings.geometry__save_blend:
-                    blender_script += get_blender_save_script(out_blend_name=f'{os.getcwd()}/{path}terrain_chunk_{i}')
-                blender_script += '\n' + settings.geometry__additional_exporter(f'{os.getcwd()}/{path}terrain_chunk_{i}', 'terrain_chunk')
+                    blender_script += get_blender_save_script(out_blend_name=f'{save_path}/{path}terrain_chunk_{i}')
+                blender_script += '\n' + settings.geometry__additional_exporter(f'{save_path}/{path}terrain_chunk_{i}', 'terrain_chunk')
         else:
             with open(f'{path}/terrain.obj', 'w') as f:
                 face_index_increment = 1
@@ -534,7 +622,7 @@ class TriMapResource(BaseResource):
                                                    'y': o['y'],
                                                    'z': o['z'],
                                                    'descriptor': None,
-                                                   **(o['descriptor'].get_export_data(self.is_opened_track))}
+                                                   **(o['descriptor'].get_export_data())}
                                                   for o in self.objects]),
             })
         blender_script += '\n\n\n\n' + self.blender_map_script.substitute({
@@ -560,10 +648,10 @@ class TriMapResource(BaseResource):
                 'orientations': self.right_barrier_points.orientations,
             }) if settings.maps__save_collisions else 'null',
         })
-        blender_script += '\n' + settings.geometry__additional_exporter(f'{os.getcwd()}/{path}map', 'map')
+        blender_script += '\n' + settings.geometry__additional_exporter(f'{save_path}/{path}map', 'map')
         run_blender(path=path,
                     script=blender_script,
-                    out_blend_name=f'{os.getcwd()}/{path}map' if settings.geometry__save_blend else None)
+                    out_blend_name=f'{save_path}/{path}map' if settings.geometry__save_blend else None)
         if not settings.geometry__save_obj:
             if settings.maps__save_as_chunked:
                 for i in range(len(self.terrain_data)):
@@ -676,22 +764,21 @@ for index, proxy_obj in enumerate(proxy_objects):
     o['width'] = proxy_obj['width']
     o['height'] = proxy_obj['height']
     
-def find_subchunks(index):
+def find_terrain_chunks():
     import re
-    pattern = re.compile(f"^terrain_chunk_\d+_{index}_")
+    pattern = re.compile(f"^terrain_chunk")
     return [x for x in bpy.data.objects if pattern.match(x.name)]
     
 # terrain collisions
 if $save_collisions:
     bpy.ops.object.select_all(action='DESELECT')
     is_active_set = False
-    for subchunk_index in list(range(2, 8)) + ['leftfence', 'rightfence']:
-        objects = find_subchunks(subchunk_index)
-        for object in objects:
-            object.select_set(True)
-            if not is_active_set:
-                bpy.context.view_layer.objects.active = object
-                is_active_set = True
+    objects = find_terrain_chunks()
+    for object in objects:
+        object.select_set(True)
+        if not is_active_set:
+            bpy.context.view_layer.objects.active = object
+            is_active_set = True
     bpy.ops.rigidbody.objects_add(type='PASSIVE')
     # for obj in bpy.context.selected_objects:
     #     obj.rigid_body.collision_shape = 'CONVEX_HULL'

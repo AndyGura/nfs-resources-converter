@@ -10,10 +10,13 @@ from parsers.resources.utils import transform_bitness
 
 
 class FfnFont(BaseResource):
-    bit_data = []
-    width = 0
-    height = 0
-    symbols = []
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.bit_data = []
+        self.width = 0
+        self.height = 0
+        self.symbols = []
 
     # Structure
     # 0x0000: 4-bytes UTF header string 'FNTF'
@@ -73,6 +76,7 @@ class FfnFont(BaseResource):
         return length
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         if not os.path.exists(path):
             os.makedirs(path)
         data = [transform_bitness(item, 4) for sublist in [[(x & 0xf0) >> 4, x & 0xf] for x in self.bit_data] for item in sublist]

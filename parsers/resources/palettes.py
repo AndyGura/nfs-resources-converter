@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 from io import BufferedReader, SEEK_CUR
 
@@ -11,16 +12,22 @@ class BasePalette(BaseResource, ABC):
     rgb_colors = []
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
-        buffer.seek(16, SEEK_CUR)
+        start = buffer.tell()
+        buffer.seek(1, SEEK_CUR)  # resource_id
+        [self.unknowns.append(read_byte(buffer)) for _ in range(15)]
         self.rgb_colors = []
-        for x in range(0, 256):
+        colors_amount = min(256, math.floor((length - 16) / self.color_size))
+        for x in range(0, colors_amount):
             color = self._read_color_from_palette_file(buffer)
             if x == 0xFF and self.is_last_color_transparent(color):
                 self.rgb_colors.append(0)
                 continue
             else:
                 self.rgb_colors.append(color)
-        return 16 + self.color_size * 256
+        bytes_consumed = buffer.tell() - start
+        if bytes_consumed < length:
+            self.unknowns.append({ 'trailing_bytes': [read_byte(buffer) for _ in range(length - bytes_consumed)]})
+        return length
 
     @abstractmethod
     def _read_color_from_palette_file(self, buffer: BufferedReader):
@@ -31,6 +38,7 @@ class BasePalette(BaseResource, ABC):
             # green-ish
             0x00_EA_1C_FF,  # TNFS lost vegas map props
             0x00_EB_1C_FF,  # TNFS lost vegas map props
+            # 0x00_FB_00_FF,  # NFS2 GAMEDATA/TRACKS/SE/TR050M TODO not working, there is Bitmap 0565 without alpha
             0x00_FF_00_FF,
             0x04_FF_00_FF,
             0x0C_FF_00_FF,
@@ -50,6 +58,7 @@ class BasePalette(BaseResource, ABC):
             0xFF_00_F7_FF,  # TNFS AL2 map props
             0xFF_00_FF_FF,
             0xFF_00_F6_FF,  # TNFS NTRACKFM/AL3_T01.FAM map props
+            0xFF_31_59_FF,  # TNFS ETRACKFM/CL3_001.FAM road sign
             # gray
             0x28_28_28_FF,  # car wheels
             0xFF_FF_FF_FF,  # map props
@@ -63,6 +72,7 @@ class BasePalette(BaseResource, ABC):
             return 0
 
     def save_converted(self, path: str):
+        super().save_converted(path)
         with open(f'{path}.pal.txt', 'w') as f:
             f.write(f'{self.__class__.__name__}\n')
             f.write('Palette used in bitmap serialization. Contains mapping bitmap data bytes to RGBA colors.\n')
