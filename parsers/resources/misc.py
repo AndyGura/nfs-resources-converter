@@ -1,7 +1,7 @@
 import json
 from io import BufferedReader, SEEK_CUR
 
-from buffer_utils import read_utf_bytes, read_int, read_nfs1_float32, read_byte
+from buffer_utils import read_utf_bytes, read_int, read_nfs1_float32, read_byte, read_nfs1_float32_7
 from parsers.resources.base import BaseResource
 from parsers.resources.collections import ArchiveResource
 
@@ -88,35 +88,37 @@ class CarPBSFile(JsonOutputResource, BaseResource):
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         self.dictionary = {
+            'body': {},
             'engine': {},
             'transmission': {},
         }
-        # those value meaning is theoretical. For all cars those values are the ame and equal to mass / 2
+        # those value meaning is theoretical. For all cars those values are the same and equal to mass / 2
         mass_front_axle = read_nfs1_float32(buffer)
         mass_rear_axle = read_nfs1_float32(buffer)
         self.dictionary['mass'] = read_nfs1_float32(buffer)
-        unk = [read_nfs1_float32(buffer) for _ in range(4)]
+        unk0 = [read_nfs1_float32(buffer) for _ in range(4)]
         brake_bias = read_nfs1_float32(buffer) # how much car rotates when brake? In this case should be used for chassis setup
-        unk = read_nfs1_float32(buffer)
+        unk1 = read_nfs1_float32(buffer)
         center_of_gravity = read_nfs1_float32(buffer) # probably the height of mass center in meters
         max_brake_decel = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        unk2 = read_nfs1_float32(buffer)
+        unk3 = read_nfs1_float32(buffer)
         drag = read_nfs1_float32(buffer)
         top_speed = read_nfs1_float32(buffer)
         efficiency = read_nfs1_float32(buffer)
-        wheel_base = read_nfs1_float32(buffer)
+        self.dictionary['body']['wheelBase'] = read_nfs1_float32(buffer)
         burnout_div = read_nfs1_float32(buffer)  # reduce lateral accel during burnout
-        wheel_track = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        self.dictionary['body']['wheelTrack'] = read_nfs1_float32(buffer)
+        # maybe offset for wheel base?
+        unk4 = read_nfs1_float32(buffer)
+        unk5 = read_nfs1_float32(buffer)
         mps_to_rpm_factor = read_nfs1_float32(buffer)  # speed(m/s) = RPM / (mpsToRpmFactor * gearRatio)
         self.dictionary['mpsToRpmFactor'] = mps_to_rpm_factor
         gear_count = read_int(buffer)
         final_drive_ratio = read_nfs1_float32(buffer)
         self.dictionary['transmission']['finalDriveRatio'] = final_drive_ratio
         roll_radius = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        unk6 = read_nfs1_float32(buffer)
         gear_ratios = [read_nfs1_float32(buffer) for _ in range(8)][:gear_count]
         self.dictionary['transmission']['reverseGearRatio'] = gear_ratios[0]
         self.dictionary['transmission']['gearRatios'] = gear_ratios[2:]
@@ -125,7 +127,7 @@ class CarPBSFile(JsonOutputResource, BaseResource):
         rear_roll_stiffness = read_nfs1_float32(buffer)
         roll_axis_height = read_nfs1_float32(buffer)
         # those 3 are 0.5, 0.5, 0.18 (F512TR) center of mass? position of collision cube?
-        unk = [read_nfs1_float32(buffer) for _ in range(3)]
+        unk7 = [read_nfs1_float32(buffer) for _ in range(3)]
         slip_angle_cutoff = read_nfs1_float32(buffer)
         normal_coefficient_loss = read_nfs1_float32(buffer)
         self.dictionary['engine']['maxRpm'] = read_int(buffer)
@@ -133,23 +135,23 @@ class CarPBSFile(JsonOutputResource, BaseResource):
         self.dictionary['engine']['torques'] = [{'rpm': read_int(buffer), 'torque': read_int(buffer)} for _ in range(torque_count)]
         buffer.seek(8 * (60 - torque_count), SEEK_CUR)
         self.dictionary['transmission']['upShifts'] = [read_int(buffer) for _ in range(5)]
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
-        unk = read_nfs1_float32(buffer)
+        unk8 = read_nfs1_float32(buffer)
+        unk9 = read_nfs1_float32(buffer)
+        unk10 = read_nfs1_float32(buffer)
+        unk11 = read_nfs1_float32(buffer)
+        unk12 = read_nfs1_float32(buffer)
+        unk13 = read_nfs1_float32(buffer)
+        unk14 = read_nfs1_float32(buffer)
+        unk15 = read_nfs1_float32(buffer)
+        unk16 = read_nfs1_float32(buffer)
+        unk17 = read_nfs1_float32(buffer)
         inertia_factor = read_nfs1_float32(buffer) # always 0.5
         body_roll_factor = read_nfs1_float32(buffer)  # g-force to body roll
         body_pitch_factor = read_nfs1_float32(buffer)  # g-force to body pitch
         front_friction_factor = read_nfs1_float32(buffer)
         rear_fricton_factor = read_nfs1_float32(buffer)
-        body_length = read_nfs1_float32(buffer)
-        body_width = read_nfs1_float32(buffer)
+        self.dictionary['body']['length'] = read_nfs1_float32(buffer)
+        self.dictionary['body']['width'] = read_nfs1_float32(buffer)
         # steering
         steering__max_auto_steer_angle = read_nfs1_float32(buffer)
         steering__auto_steer_mult_shift = read_int(buffer)
@@ -162,7 +164,7 @@ class CarPBSFile(JsonOutputResource, BaseResource):
         steering__auto_steer_ramp_div_shift = read_int(buffer)
 
         lateral_accel_cutoff = read_nfs1_float32(buffer)
-        unk = [read_nfs1_float32(buffer) for _ in range(13)]
+        unk18 = [read_nfs1_float32(buffer) for _ in range(13)]
 
         # engine shifting
         engine_shifting__shift_timer = read_int(buffer)  # ticks taken to shift. Tick is probably 100ms
@@ -171,9 +173,9 @@ class CarPBSFile(JsonOutputResource, BaseResource):
         engine_shifting__clutch_drop_decel = read_int(buffer)
         engine_shifting__neg_torque = read_nfs1_float32(buffer)
 
-        ride_height = read_nfs1_float32(buffer)
-        center_y = read_int(buffer)
-        center_y = read_int(buffer)
+        self.dictionary['body']['clearance'] = read_nfs1_float32_7(buffer)   # According to Five-Damned-Dollarz, it is a ride height
+        self.dictionary['body']['height'] = read_nfs1_float32(buffer)
+        center_x = read_nfs1_float32(buffer)
         grip_curve_front = [read_byte(buffer) for _ in range(512)]
         grip_curve_rear = [read_byte(buffer) for _ in range(512)]
         assert (length - buffer.tell() == 4), Exception('Unexpected PBS file length')

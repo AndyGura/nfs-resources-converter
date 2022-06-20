@@ -15,6 +15,7 @@ audio__save_car_sfx_loops = False
 # 3D
 geometry__save_obj = False
 geometry__save_blend = True
+geometry__skip_car_wheel_polygons = False
 
 # maps export settings
 maps__save_as_chunked = False
@@ -25,7 +26,6 @@ maps__save_collisions = False    # this one will consume time...
 # geometry kind: 'car', 'map', 'terrain_chunk', 'prop'
 def geometry__additional_exporter(dest_file_name, geometry_kind):
     return ""
-    # Example of saving GLB + meta.json, which is used for TNFS Web project
 #     from string import Template
 #     __blender_script_template = Template("""
 # import bpy

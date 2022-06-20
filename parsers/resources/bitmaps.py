@@ -129,7 +129,7 @@ class Bitmap8Bit(BaseBitmap):
     def is_tail_lights_texture_for_nfs1_car(self):
         from parsers.resources.archives import SHPIArchive
         from parsers.resources.geometries import OripGeometryResource
-        return (self.name == 'rsid'
+        return ((self.name in ['rsid', 'lite'])
                 and isinstance(self.parent, SHPIArchive)
                 and isinstance(self.parent.parent, OripGeometryResource)
                 and self.parent.parent.is_car)

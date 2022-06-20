@@ -42,7 +42,7 @@ class BasePalette(BaseResource, ABC):
             0x00_FF_00_FF,
             0x04_FF_00_FF,
             0x0C_FF_00_FF,
-            # 0x24_ff_10_FF,  # TNFS TRAFFC.CFM TODO not working??????
+            0x24_ff_10_FF,  # TNFS TRAFFC.CFM
             0x28_FF_28_FF,
             0x28_FF_2C_FF,
             # blue

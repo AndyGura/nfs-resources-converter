@@ -31,7 +31,7 @@ Feel free to contribute
 - **\*.FMM** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/3) something for car interior. *Parses archive header only*
 - **\*.FSH** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/98) image archive + palettes + image position on screen. *Some textures have broken transparency or wrong palette used*
 - **\*.INV** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) some info about elements on the screen?
-- **\*.PBS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/40) car physics. *Decompression works, many values known*
+- **\*.PBS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/45) car physics. *Decompression works, many values known*
 - **\*.PDN** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/20) car characteristic for unknown purpose. *Decompression works, some values known*
 - **\*.QFS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) compressed image archive
 - **\*.RPL** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) replay files

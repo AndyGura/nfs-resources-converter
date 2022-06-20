@@ -28,8 +28,6 @@ class Block:
 
 class OripGeometryResource(BaseResource):
 
-    bounding_box = None
-
     @property
     def is_car(self):
         from parsers.resources.archives import WwwwArchive
@@ -71,7 +69,9 @@ class OripGeometryResource(BaseResource):
         self._record_count[Block.UNK4] = read_int(buffer)
         self._offsets[Block.UNK4] = start_offset + read_int(buffer)
         self._offsets[Block.POLYGON_VERTEX_MAP] = start_offset + read_int(buffer)
-        self._record_count[Block.POLYGON_VERTEX_MAP] = int((length - self._offsets[Block.POLYGON_VERTEX_MAP] + start_offset) / self._record_power[Block.POLYGON_VERTEX_MAP])
+        self._record_count[Block.POLYGON_VERTEX_MAP] = int(
+            (length - self._offsets[Block.POLYGON_VERTEX_MAP] + start_offset) / self._record_power[
+                Block.POLYGON_VERTEX_MAP])
         self._record_count[Block.UNK5] = read_int(buffer)
         self._offsets[Block.UNK5] = start_offset + read_int(buffer)
         self._record_count[Block.LABEL] = read_int(buffer)
@@ -98,27 +98,27 @@ class OripGeometryResource(BaseResource):
             if is_triangle:
                 if normal in [17, 19]:
                     # two sided polygon
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 1, 2)
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 2, 1)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 1, 2)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 2, 1)
                 elif normal in [18, 2, 3, 48, 50]:
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 1, 2, flip_texture=True)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 1, 2, flip_texture=True)
                 elif normal in [0, 1, 16]:
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 2, 1)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 2, 1)
                 else:
                     raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
             elif is_quad:
                 if normal in [17, 19]:
                     # two sided polygon
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 1, 3)
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 1, 2, 3)
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 3, 1)
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 1, 3, 2)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 1, 3)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 2, 3)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 3, 1)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 3, 2)
                 elif normal in [18, 2, 3, 48, 50]:
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 1, 3, flip_texture=True)
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 1, 2, 3, flip_texture=True)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 1, 3, flip_texture=True)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 2, 3, flip_texture=True)
                 elif normal in [0, 1, 16]:
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 0, 3, 1)
-                    self._setup_polygon(sub_model, texture_id, buffer, offset_3D, offset_2D, 1, 3, 2)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 3, 1)
+                    self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 3, 2)
                 else:
                     # TODO Unknown normal: 10 nfs1/SIMDATA/ETRACKFM/CY1_001.FAM/props/0xcd59c/0xcd5ac
                     raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
@@ -127,18 +127,44 @@ class OripGeometryResource(BaseResource):
             else:
                 raise NotImplementedError(f'Unknown polygon: {polygon_type}')
         if self.is_car:
-            for model in self.sub_models.values():
-                model.change_axes(new_y='-z', new_z='y')
-            # TODO use body collision box from PBS (CarPBSFile parser)
-            self.bounding_box = {'min': [9999999, 9999999, 9999999], 'max': [-9999999, -9999999, -9999999]}
-            # omit wheel + shadow polygons
-            for model in [x for (key, x) in self.sub_models.items() if key not in ['\x00\x00\x00\x00', 'shad', 'circ', 'wing']]:
-                for v in model.vertices:
-                    for i in range(3):
-                        self.bounding_box['min'][i] = min(self.bounding_box['min'][i], v[i])
-                        self.bounding_box['max'][i] = max(self.bounding_box['max'][i], v[i])
-            # extra 5cm clearance
-            self.bounding_box['min'][2] += 0.05
+            if settings.geometry__skip_car_wheel_polygons:
+                def is_model_nfs1_wheel(model: SubMesh) -> bool:
+                    if model.name in ['tyr4', 'rty4']:  # TRAFFC.CFM
+                        return True
+                    if model.name == 'circ':  # wheel shadow
+                        return True
+                    if model.name == '\x00\x00\x00\x00':  # any other CFM
+                        if len(model.polygons) == 8:
+                            return True
+                        if len(model.polygons) > 8:
+                            # removing only wheel polygons (F512TR)
+                            def is_polygon_wheel(polygon):
+                                vertices = [model.vertices[i] for i in polygon]
+                                is_match = True
+                                wheel_key = None
+                                for vert in vertices:
+                                    key = (None
+                                             if abs(vert[2]) < 0.1 or abs(vert[0]) < 0.1
+                                             else f"{'f' if vert[2] > 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
+                                    if not key or (wheel_key is not None and key != wheel_key):
+                                        is_match = False
+                                        break
+                                    wheel_key = key
+                                return is_match
+                            model.polygons = [p for p in model.polygons if not is_polygon_wheel(p)]
+                            removed_vertex_indices = [vi for vi in range(len(model.vertices)) if
+                                                      vi not in [element for sublist in model.polygons for element in
+                                                                 sublist]]
+                            model.vertices = [v for (i, v) in enumerate(model.vertices) if
+                                              i not in removed_vertex_indices]
+                            model.vertex_uvs = [v for (i, v) in enumerate(model.vertex_uvs) if
+                                                i not in removed_vertex_indices]
+                            for removed_index in removed_vertex_indices[::-1]:
+                                for j, p in enumerate(model.polygons):
+                                    model.polygons[j] = [idx if idx <= removed_index else idx - 1 for idx in p]
+                    return False
+
+                self.sub_models = {k: v for k, v in self.sub_models.items() if not is_model_nfs1_wheel(v)}
         return length
 
     def save_converted(self, path: str):
@@ -165,11 +191,9 @@ illum 1
 Ns 0.000000
 map_Kd assets/{texture.name}.png""")
         self.textures_archive.save_converted(os.path.join(path, 'assets/'))
-        # FIXME hardcoded car mass
-        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj', 'is_car': self.is_car,
-                                                 'bounding_box': json.dumps(self.bounding_box),
-                                                 'mass': 1500})
-        script += '\n' + settings.geometry__additional_exporter(f'{os.getcwd()}/{path}body', 'car' if self.is_car else 'prop')
+        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj', 'is_car': self.is_car})
+        script += '\n' + settings.geometry__additional_exporter(f'{os.getcwd()}/{path}body',
+                                                                'car' if self.is_car else 'prop')
         run_blender(path=path,
                     script=script,
                     out_blend_name=f'{os.getcwd()}/{path}body' if settings.geometry__save_blend else None)
@@ -177,7 +201,7 @@ map_Kd assets/{texture.name}.png""")
             os.unlink(f'{path}material.mtl')
             os.unlink(f'{path}geometry.obj')
 
-    def _setup_polygon(self, model: SubMesh, texture_id: str, buffer: BufferedReader, offset_3D, offset_2D, *offsets,
+    def _setup_polygon(self, model: SubMesh, buffer: BufferedReader, offset_3D, offset_2D, *offsets,
                        flip_texture=False):
         model.polygons.append([self._setup_vertex(model, buffer, offset_3D + offset, offset_2D + offset, flip_texture)
                                for offset in offsets])
@@ -212,111 +236,6 @@ map_Kd assets/{texture.name}.png""")
 
     blender_script = Template("""
 import bpy
-import math
-import json
-
 bpy.ops.wm.read_factory_settings(use_empty=True)
-if $is_car:
-    bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True, axis_up='Z', axis_forward='Y')
-else:
-    bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True)
-
-if $is_car:
-
-    def get_wheel_vertex_key(vert):
-        if abs(vert.co.y) < 0.1 or abs(vert.co.x) < 0.1:
-            # not a wheel vertex
-            return None, vert.co.x, vert.co.y, vert.co.z
-        key = 'f' if vert.co.y > 0 else 'r'
-        key += 'l' if vert.co.x < 0 else 'r'
-        return key, vert.co.x, vert.co.y, vert.co.z
-    
-    if bpy.data.objects.get('circ') is not None:
-        circ_mesh = bpy.data.objects['circ'].data
-        from collections import defaultdict
-        import bmesh
-        wheel_vertices = defaultdict(list)
-        for vert in circ_mesh.vertices:
-            (key, x, y, z) = get_wheel_vertex_key(vert)
-            wheel_vertices[key].append((x, y, z))
-        wheel_centers = ({ 
-            key: {
-                'coordinates': (
-                    sum([x for (x, y, z) in vertices_list])/len(vertices_list),
-                    sum([y for (x, y, z) in vertices_list])/len(vertices_list),
-                    sum([z for (x, y, z) in vertices_list])/len(vertices_list),
-                ),
-                'radius': 0.4,
-                'width': 0.3,
-            } for (key, vertices_list) in wheel_vertices.items() 
-        })
-        print(f'wheel_centers: {wheel_centers}')
-        for (key, wheel_center) in wheel_centers.items():
-            distances = [math.sqrt(
-                (x - wheel_center['coordinates'][0])**2 +
-                (y - wheel_center['coordinates'][1])**2 +
-                (z - wheel_center['coordinates'][2])**2
-            ) for (x, y, z) in wheel_vertices[key]]
-            wheel_center['radius'] =  (sum(distances) / len(distances)) / math.sqrt(2)
-            wheels_mesh = bpy.data.objects['Mesh'].data
-            wheel_face_vertex_indices = []        
-            for polygon in wheels_mesh.polygons:
-                vertices = [wheels_mesh.vertices[v] for v in polygon.vertices]
-                is_match = True
-                for vert in vertices:
-                    (vert_key, x, y, z) = get_wheel_vertex_key(vert)
-                    if vert_key != key:
-                        is_match = False
-                        break
-                if is_match:
-                    wheel_face_vertex_indices += polygon.vertices
-            wheel_face_vertex_indices = list(dict.fromkeys(wheel_face_vertex_indices))
-            wheel_face_vertices = [
-                (wheels_mesh.vertices[i].co.x, wheels_mesh.vertices[i].co.y, wheels_mesh.vertices[i].co.z) 
-                for i in wheel_face_vertex_indices
-            ]
-            bm = bmesh.new()
-            bm.from_mesh(wheels_mesh)
-            bm.verts.ensure_lookup_table()
-            vertices_to_remove = [bm.verts[x] for x in wheel_face_vertex_indices]
-            for bmv in vertices_to_remove:
-                bm.verts.remove(bmv)
-            bm.to_mesh(wheels_mesh)
-            wheels_mesh.update()
-            wheel_face_center = (
-                sum([x for (x, y, z) in wheel_face_vertices])/len(wheel_face_vertices),
-                sum([y for (x, y, z) in wheel_face_vertices])/len(wheel_face_vertices),
-                sum([z for (x, y, z) in wheel_face_vertices])/len(wheel_face_vertices),
-            )
-            wheel_center['width'] = math.sqrt(
-                (wheel_center['coordinates'][0] - wheel_face_center[0])**2 +
-                (wheel_center['coordinates'][1] - wheel_face_center[1])**2 +
-                (wheel_center['coordinates'][2] - wheel_face_center[2])**2
-            )
-        for wheel_key in wheel_centers.keys():
-            o = bpy.data.objects.new( f"wheel_{wheel_key}", None )
-            bpy.context.scene.collection.objects.link(o)
-            o.location = wheel_centers[wheel_key]['coordinates']
-            o['tyre_radius'] = wheel_centers[wheel_key]['radius']
-            o['tyre_width'] = wheel_centers[wheel_key]['width']
-        bpy.data.objects.remove(bpy.data.objects['circ'])
-        bpy.data.meshes.remove(circ_mesh)
-        
-    bounding_box = json.loads('$bounding_box')
-    bpy.ops.mesh.primitive_cube_add(location=(
-                                        (bounding_box['min'][0] + bounding_box['max'][0]) / 2,
-                                        (bounding_box['min'][1] + bounding_box['max'][1]) / 2,
-                                        (bounding_box['min'][2] + bounding_box['max'][2]) / 2),
-                                    scale=(
-                                        (bounding_box['min'][0] - bounding_box['max'][0]) / 2,
-                                        (bounding_box['min'][1] - bounding_box['max'][1]) / 2,
-                                        (bounding_box['min'][2] - bounding_box['max'][2]) / 2))
-    cube = bpy.data.objects['Cube']
-    cube.name = "chassis_collision"
-    bpy.ops.rigidbody.objects_add()
-    cube.rigid_body.type='ACTIVE'
-    print(cube.rigid_body)
-    cube.rigid_body.collision_shape = 'BOX'
-    cube.rigid_body.mass=$mass
-    cube['invisible'] = True
+bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True)
     """)
