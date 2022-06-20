@@ -1,9 +1,11 @@
-import math
+import json
 import os
 from abc import ABC, abstractmethod
 from io import BufferedReader
+from multiprocessing import Pool, cpu_count
 from typing import List, Dict
 
+import settings
 from parsers.resources.base import BaseResource
 
 
@@ -61,7 +63,54 @@ class ResourceDirectory(ResourceCollection):
                 except BaseException as ex:
                     self.skipped_resources.append((file, str(ex)))
                     continue
+        self.skipped_resources.sort(key=lambda x:x[0])
         return None
+
+
+class MultiprocessResourceDirectory(ResourceCollection):
+
+    def _process_file(self, read_path, path, file):
+        file_path = os.path.join(read_path, file)
+        with open(file_path, 'rb') as bdata:
+            try:
+                from guess_parser import get_resource_class
+                resource = get_resource_class(bdata, file)
+                resource.name = file
+                resource.parent = self
+                resource.read(bdata, os.path.getsize(file_path), file_path)
+                self.resources.append(resource)
+                print(f'SAVING {self.name}/{resource.name}')
+                resource.save_converted(os.path.join(path, resource.name.replace('/', '_')))
+                return 0
+            except BaseException as ex:
+                return file, str(ex)
+
+    def read(self, path: str, files: List):
+        self.name = path
+        self.read_path = path
+        self.files = files
+        self.skipped_resources = []
+        return None
+
+    def save_converted(self, path: str):
+        if self.unknowns and settings.save_unknown_values:
+            with open(f'{path}__unknowns.json', 'w') as file:
+                file.write(json.dumps(self.unknowns, indent=4))
+        self.resources = []
+        self.skipped_resources = []
+        if path[-1] != '/':
+            path = path + '/'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        with Pool(processes=cpu_count()) as pool:
+            results = [pool.apply_async(self._process_file, (self.read_path, path, file)) for file in self.files]
+            [result.wait() for result in results]
+            self.skipped_resources = [res for res in (r.get() for r in results) if res != 0]
+            if self.skipped_resources:
+                self.skipped_resources.sort(key=lambda x:x[0])
+                with open(f'{path}/skipped.txt', 'w') as f:
+                    for item in self.skipped_resources:
+                        f.write("%s\t\t%s\n" % item)
 
 
 class ArchiveResource(ResourceCollection):

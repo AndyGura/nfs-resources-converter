@@ -3,6 +3,11 @@ blender_executable = 'blender'
 ffmpeg_executable = 'ffmpeg'
 # example of absolute path for windows '"C:/Program Files/Blender Foundation/Blender 3.2/blender.exe"'
 
+multiprocess_directory_blacklist = [
+    'FRONTEND/ART/CONTROL',  # here we have SHPI archives, which use palette from neighbour file
+    'FRONTEND/GART/CONTROL',  # the same here
+]
+
 save_unknown_values = False
 
 # images
