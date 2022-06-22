@@ -44,6 +44,10 @@ def read_byte(buffer: [BufferedReader, BytesIO]) -> int:
     return int.from_bytes(buffer.read(1), byteorder='little')
 
 
+def write_byte(buffer: [BufferedReader, BytesIO], value: int) -> int:
+    return buffer.write(value.to_bytes(1, byteorder='little'))
+
+
 def read_signed_byte(buffer: [BufferedReader, BytesIO]) -> int:
     return int.from_bytes(buffer.read(1), byteorder='little', signed=True)
 

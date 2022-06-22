@@ -3,17 +3,13 @@ from io import BufferedReader, BytesIO
 from math import floor
 from typing import Literal, final
 
-from buffer_utils import read_byte
+from buffer_utils import read_byte, write_byte
 
 
 class ReadBlock(ABC):
     block_description = None
     description = None
     allow_multiread = False
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._data = None
 
     @property
     @abstractmethod
@@ -28,27 +24,20 @@ class ReadBlock(ABC):
     def max_size(self):
         return self.size
 
-    @property
-    def data(self):
-        if self._data is None:
-            raise Exception("Block wasn't read yet")
-        return self._data
-
-    @final
     def read(self, buffer: [BufferedReader, BytesIO], size: int):
-        if self._data is not None and not self.allow_multiread:
-            raise Exception('Block was already read')
         if self.min_size > size:
-            raise Exception(f'Cannot read block {self.__class__.__name__}: minimum block size {self.min_size}, available size: {size}')
-        self._data = self._read_internal(buffer, size)
-        return self._data
+            raise Exception(f'Cannot read {self.__class__.__name__}: min size {self.min_size}, available: {size}')
+        return self._read_internal(buffer, size)
 
     @abstractmethod
     def _read_internal(self, buffer: [BufferedReader, BytesIO], size: int):
         pass
 
+    def write(self, buffer, data):
+        self._write_internal(buffer, data)
+
     @abstractmethod
-    def write(self, buffer, value):
+    def _write_internal(self, buffer, value):
         pass
 
 
@@ -61,6 +50,14 @@ class ResourceField(ReadBlock, ABC):
         self.description = description
         self.is_unknown = is_unknown
 
+    @final
+    def read(self, buffer: [BufferedReader, BytesIO], size: int):
+        return super().read(buffer, size)
+
+    @final
+    def write(self, buffer, data):
+        super().write(buffer, data)
+
 
 class ByteField(ResourceField):
     block_description = '1-byte field'
@@ -72,8 +69,8 @@ class ByteField(ResourceField):
     def _read_internal(self, buffer, size):
         return read_byte(buffer)
 
-    def write(self, buffer, value):
-        raise NotImplementedError
+    def _write_internal(self, buffer, value):
+        write_byte(buffer, value)
 
 
 class BitmapField(ResourceField):
@@ -90,9 +87,10 @@ class BitmapField(ResourceField):
 
     def _read_internal(self, buffer, size):
         value = read_byte(buffer)
-        return {(self.flag_names[i] if self.flag_names else str(i)): bool(value & mask) for (i, mask) in enumerate(self.masks)}
+        return {(self.flag_names[i] if self.flag_names else str(i)): bool(value & mask) for (i, mask) in
+                enumerate(self.masks)}
 
-    def write(self, buffer, value):
+    def _write_internal(self, buffer, value):
         raise NotImplementedError
 
 
@@ -114,9 +112,6 @@ class RequiredByteField(ByteField):
             raise Exception(f'Expected {hex(self.required_value)}, found {hex(value)}')
         return value
 
-    def write(self, buffer, value):
-        raise NotImplementedError
-
 
 class ArrayField(ResourceField):
     block_description = 'Array field'
@@ -134,7 +129,8 @@ class ArrayField(ResourceField):
     def max_size(self):
         return self.child.max_size * self.length
 
-    def __init__(self, *args, child: ResourceField, length: int, length_strategy: Literal["strict", "read_available"]="strict", **kwargs):
+    def __init__(self, *args, child: ResourceField, length: int,
+                 length_strategy: Literal["strict", "read_available"] = "strict", **kwargs):
         super().__init__(*args, **kwargs)
         self.child = child
         self.length = length
@@ -151,8 +147,9 @@ class ArrayField(ResourceField):
             size -= self.child.size
         return res
 
-    def write(self, buffer, value):
-        raise NotImplementedError
+    def _write_internal(self, buffer, value):
+        for item in value:
+            self.child.write(buffer, item)
 
 
 from .colors import (Color24BitDosField,

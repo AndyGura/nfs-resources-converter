@@ -16,7 +16,7 @@ class Color24BitDosField(ResourceField):
         blue = transform_bitness(read_byte(buffer), 6)
         return red << 24 | green << 16 | blue << 8 | 255
 
-    def write(self, buffer, value):
+    def _write_internal(self, buffer, value):
         red = (value & 0xff000000) >> 26
         green = (value & 0xff0000) >> 18
         blue = (value & 0xff00) >> 10
@@ -33,7 +33,7 @@ class Color24BitField(ResourceField):
     def _read_internal(self, buffer, size):
         return read_byte(buffer) << 24 | read_byte(buffer) << 16 | read_byte(buffer) << 8 | 255
 
-    def write(self, buffer, value):
+    def _write_internal(self, buffer, value):
         red = (value & 0xff000000) >> 24
         green = (value & 0xff0000) >> 16
         blue = (value & 0xff00) >> 8
@@ -52,7 +52,7 @@ class Color32BitField(ResourceField):
         # ARGB => RGBA
         return (value & 0x00_ff_ff_ff) << 8 | (value & 0xff_00_00_00) >> 24
 
-    def write(self, buffer, value):
+    def _write_internal(self, buffer, value):
         # RGBA => ARGB
         write_int(buffer, (value & 0xff_ff_ff_00) >> 8 | (value & 0xff) << 24)
 
@@ -67,7 +67,7 @@ class Color16BitField(ResourceField):
     def _read_internal(self, buffer, size):
         return transform_color_bitness(read_short(buffer), 0, 5, 6, 5)
 
-    def write(self, buffer, value):
+    def _write_internal(self, buffer, value):
         red = (value & 0xff000000) >> 27
         green = (value & 0xff0000) >> 18
         blue = (value & 0xff00) >> 11
