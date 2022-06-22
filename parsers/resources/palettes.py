@@ -1,69 +1,30 @@
-import math
 from abc import ABC, abstractmethod
-from io import BufferedReader, SEEK_CUR
+from io import BufferedReader
 
 from buffer_utils import read_short, read_byte, read_int
 from parsers.resources.base import BaseResource
 from parsers.resources.utils import transform_bitness, transform_color_bitness
+from resources.eac.palettes import (Palette24BitResource, Palette16BitResource, Palette32BitResource,
+                                    Palette24BitDosResource)
 
 
 class BasePalette(BaseResource, ABC):
     color_size = 1
     rgb_colors = []
+    new_res = Palette24BitResource()
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         start = buffer.tell()
-        buffer.seek(1, SEEK_CUR)  # resource_id
-        [self.unknowns.append(read_byte(buffer)) for _ in range(15)]
-        self.rgb_colors = []
-        colors_amount = min(256, math.floor((length - 16) / self.color_size))
-        for x in range(0, colors_amount):
-            color = self._read_color_from_palette_file(buffer)
-            if x == 0xFF and self.is_last_color_transparent(color):
-                self.rgb_colors.append(0)
-                continue
-            else:
-                self.rgb_colors.append(color)
+        res = self.new_res.read(buffer, length)
+        self.rgb_colors = res['colors']
         bytes_consumed = buffer.tell() - start
         if bytes_consumed < length:
-            self.unknowns.append({ 'trailing_bytes': [read_byte(buffer) for _ in range(length - bytes_consumed)]})
+            self.unknowns.append({'trailing_bytes': [read_byte(buffer) for _ in range(length - bytes_consumed)]})
         return length
 
     @abstractmethod
     def _read_color_from_palette_file(self, buffer: BufferedReader):
         pass
-
-    def is_last_color_transparent(self, color):
-        return color in [
-            # green-ish
-            0x00_EA_1C_FF,  # TNFS lost vegas map props
-            0x00_EB_1C_FF,  # TNFS lost vegas map props
-            # 0x00_FB_00_FF,  # NFS2 GAMEDATA/TRACKS/SE/TR050M TODO not working, there is Bitmap 0565 without alpha
-            0x00_FF_00_FF,
-            0x04_FF_00_FF,
-            0x0C_FF_00_FF,
-            0x24_ff_10_FF,  # TNFS TRAFFC.CFM
-            0x28_FF_28_FF,
-            0x28_FF_2C_FF,
-            # blue
-            0x00_00_FF_FF,
-            0x00_00_FC_FF,  # TNFS Porsche 911 CFM
-            # light blue
-            0x00_FF_FF_FF,
-            0x1a_ff_ff_ff,  # NFS2SE TRACKS/PC/TR000M.QFS
-            0x48_ff_ff_FF,  # NFS2SE TRACKS/PC/TR020M.QFS
-            # purple
-            0xCE_1C_C6_FF,  # some TNFS map props
-            0xF2_00_FF_FF,
-            0xFF_00_F7_FF,  # TNFS AL2 map props
-            0xFF_00_FF_FF,
-            0xFF_00_F6_FF,  # TNFS NTRACKFM/AL3_T01.FAM map props
-            0xFF_31_59_FF,  # TNFS ETRACKFM/CL3_001.FAM road sign
-            # gray
-            0x28_28_28_FF,  # car wheels
-            0xFF_FF_FF_FF,  # map props
-            0x00_00_00_FF,  # some menu items: SHOW/DIABLO.QFS
-        ]
 
     def get_color(self, index: int) -> int:
         try:
@@ -82,6 +43,7 @@ class BasePalette(BaseResource, ABC):
 
 class Palette16Bit(BasePalette):
     color_size = 2
+    new_res = Palette16BitResource()
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         color = read_short(buffer)
@@ -90,6 +52,7 @@ class Palette16Bit(BasePalette):
 
 class Palette24Bit(BasePalette):
     color_size = 3
+    new_res = Palette24BitResource()
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         return read_byte(buffer) << 24 | read_byte(buffer) << 16 | read_byte(buffer) << 8 | 255
@@ -97,6 +60,7 @@ class Palette24Bit(BasePalette):
 
 class Palette24BitDos(BasePalette):
     color_size = 3
+    new_res = Palette24BitDosResource()
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         red = transform_bitness(read_byte(buffer), 6)
@@ -107,12 +71,9 @@ class Palette24BitDos(BasePalette):
 
 class Palette32Bit(BasePalette):
     color_size = 4
+    new_res = Palette32BitResource()
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         value = read_int(buffer)
         # ARGB => RGBA
         return (value & 0x00_ff_ff_ff) << 8 | (value & 0xff_00_00_00) >> 24
-
-    def is_last_color_transparent(self, color):
-        # transparency already defined in color itself
-        return False

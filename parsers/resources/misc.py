@@ -1,7 +1,7 @@
 import json
 from io import BufferedReader, SEEK_CUR
 
-from buffer_utils import read_utf_bytes, read_int, read_nfs1_float32, read_byte, read_nfs1_float32_7
+from buffer_utils import read_utf_bytes, read_int, read_nfs1_float32, read_byte, read_nfs1_float32_7, read_nfs1_float16
 from parsers.resources.base import BaseResource
 from parsers.resources.collections import ArchiveResource
 
@@ -135,8 +135,10 @@ class CarPBSFile(JsonOutputResource, BaseResource):
         self.dictionary['engine']['torques'] = [{'rpm': read_int(buffer), 'torque': read_int(buffer)} for _ in range(torque_count)]
         buffer.seek(8 * (60 - torque_count), SEEK_CUR)
         self.dictionary['transmission']['upShifts'] = [read_int(buffer) for _ in range(5)]
-        unk8 = read_nfs1_float32(buffer)
-        unk9 = read_nfs1_float32(buffer)
+        unk8_1 = read_nfs1_float16(buffer)
+        unk8_2 = read_nfs1_float16(buffer)
+        unk9_1 = read_nfs1_float16(buffer)
+        unk9_2 = read_nfs1_float16(buffer)
         unk10 = read_nfs1_float32(buffer)
         unk11 = read_nfs1_float32(buffer)
         unk12 = read_nfs1_float32(buffer)
@@ -144,7 +146,8 @@ class CarPBSFile(JsonOutputResource, BaseResource):
         unk14 = read_nfs1_float32(buffer)
         unk15 = read_nfs1_float32(buffer)
         unk16 = read_nfs1_float32(buffer)
-        unk17 = read_nfs1_float32(buffer)
+        unk17_1 = read_nfs1_float16(buffer)  # AHA! looks like Y wheel offset (ANSX + F512TR), no.... but recheck please
+        unk17_2 = read_nfs1_float16(buffer)
         inertia_factor = read_nfs1_float32(buffer) # always 0.5
         body_roll_factor = read_nfs1_float32(buffer)  # g-force to body roll
         body_pitch_factor = read_nfs1_float32(buffer)  # g-force to body pitch
