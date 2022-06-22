@@ -15,7 +15,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         ba.append(0xCC)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color24BitDosField().read(buffer)
+        result = Color24BitDosField().read(buffer, 5)
         self.assertEqual(buffer.tell(), 3)
 
     def test_should_read_from_current_position(self):
@@ -28,7 +28,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         ba.append(0)
         buffer = BytesIO(ba)
         buffer.seek(3)
-        result = Color24BitDosField().read(buffer)
+        result = Color24BitDosField().read(buffer, 6)
         self.assertEqual(result, 255)
 
     def test_should_transform_correctly(self):
@@ -37,7 +37,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         ba.append(255)
         ba.append(255)
         buffer = BytesIO(ba)
-        result = Color24BitDosField().read(buffer)
+        result = Color24BitDosField().read(buffer, 3)
         self.assertEqual(result, 0xffffffff)
 
     def test_transformation_2(self):
@@ -46,7 +46,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         ba.append(127)
         ba.append(127)
         buffer = BytesIO(ba)
-        result = Color24BitDosField().read(buffer)
+        result = Color24BitDosField().read(buffer, 3)
         self.assertEqual(result, 0xffffffff)
 
     def test_transformation_3(self):
@@ -55,7 +55,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         ba.append(63)
         ba.append(63)
         buffer = BytesIO(ba)
-        result = Color24BitDosField().read(buffer)
+        result = Color24BitDosField().read(buffer, 3)
         self.assertEqual(result, 0xffffffff)
 
     def test_transformation_control_value(self):
@@ -64,7 +64,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         ba.append(31)
         ba.append(31)
         buffer = BytesIO(ba)
-        result = Color24BitDosField().read(buffer)
+        result = Color24BitDosField().read(buffer, 3)
         self.assertEqual(result, 0x7d7d7dff)
 
     def test_should_write_the_same_as_read(self):
@@ -73,7 +73,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         ba.append(0x1A)
         ba.append(0x4)
         buffer = BytesIO(ba)
-        result = Color24BitDosField().read(buffer)
+        result = Color24BitDosField().read(buffer, 3)
         out_buffer = BytesIO()
         Color24BitDosField().write(out_buffer, result)
         buffer.seek(0)
@@ -91,7 +91,7 @@ class Color24BitFieldTest(unittest.TestCase):
         ba.append(0xCC)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color24BitField().read(buffer)
+        result = Color24BitField().read(buffer, 3)
         self.assertEqual(buffer.tell(), 3)
 
     def test_should_read_correctly(self):
@@ -100,7 +100,7 @@ class Color24BitFieldTest(unittest.TestCase):
         ba.append(0x03)
         ba.append(0x31)
         buffer = BytesIO(ba)
-        result = Color24BitField().read(buffer)
+        result = Color24BitField().read(buffer, 3)
         self.assertEqual(result, 0xFA0331FF)
 
     def test_should_write_the_same_as_read(self):
@@ -109,7 +109,7 @@ class Color24BitFieldTest(unittest.TestCase):
         ba.append(0x1A)
         ba.append(0x4)
         buffer = BytesIO(ba)
-        result = Color24BitField().read(buffer)
+        result = Color24BitField().read(buffer, 3)
         out_buffer = BytesIO()
         Color24BitField().write(out_buffer, result)
         buffer.seek(0)
@@ -127,7 +127,7 @@ class Color32BitFieldTest(unittest.TestCase):
         ba.append(0xCC)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color32BitField().read(buffer)
+        result = Color32BitField().read(buffer, 5)
         self.assertEqual(buffer.tell(), 4)
 
     def test_should_read_correctly(self):
@@ -137,7 +137,7 @@ class Color32BitFieldTest(unittest.TestCase):
         ba.append(0x74)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color32BitField().read(buffer)
+        result = Color32BitField().read(buffer, 4)
         self.assertEqual(result, 0x749A10CC)
 
     def test_should_write_correct_value(self):
@@ -155,7 +155,7 @@ class Color32BitFieldTest(unittest.TestCase):
         ba.append(0x74)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color32BitField().read(buffer)
+        result = Color32BitField().read(buffer, 4)
         out_buffer = BytesIO()
         Color32BitField().write(out_buffer, result)
         buffer.seek(0)
@@ -173,7 +173,7 @@ class Color16BitFieldTest(unittest.TestCase):
         ba.append(0xCC)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color16BitField().read(buffer)
+        result = Color16BitField().read(buffer, 5)
         self.assertEqual(buffer.tell(), 2)
 
     def test_should_read_correctly(self):
@@ -181,7 +181,7 @@ class Color16BitFieldTest(unittest.TestCase):
         ba.append(0b1001_1010)
         ba.append(0b1110_0000)
         buffer = BytesIO(ba)
-        result = Color16BitField().read(buffer)
+        result = Color16BitField().read(buffer, 2)
         self.assertEqual(result, 0b1110_0110_0001_0000_1101_0110_1111_1111)
 
     def test_should_write_the_same_as_read(self):
@@ -189,7 +189,7 @@ class Color16BitFieldTest(unittest.TestCase):
         ba.append(0x1F)
         ba.append(0x1A)
         buffer = BytesIO(ba)
-        result = Color16BitField().read(buffer)
+        result = Color16BitField().read(buffer, 2)
         out_buffer = BytesIO()
         Color16BitField().write(out_buffer, result)
         buffer.seek(0)

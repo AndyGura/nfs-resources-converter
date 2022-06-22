@@ -11,12 +11,13 @@ from resources.eac.palettes import (Palette24BitResource, Palette16BitResource, 
 class BasePalette(BaseResource, ABC):
     color_size = 1
     rgb_colors = []
-    new_res = Palette24BitResource()
+    new_res = Palette24BitResource
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         start = buffer.tell()
-        res = self.new_res.read(buffer, length)
-        self.rgb_colors = res['colors']
+        resource = self.new_res()
+        resource.read(buffer, length)
+        self.rgb_colors = resource.colors
         bytes_consumed = buffer.tell() - start
         if bytes_consumed < length:
             self.unknowns.append({'trailing_bytes': [read_byte(buffer) for _ in range(length - bytes_consumed)]})
@@ -43,7 +44,7 @@ class BasePalette(BaseResource, ABC):
 
 class Palette16Bit(BasePalette):
     color_size = 2
-    new_res = Palette16BitResource()
+    new_res = Palette16BitResource
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         color = read_short(buffer)
@@ -52,7 +53,7 @@ class Palette16Bit(BasePalette):
 
 class Palette24Bit(BasePalette):
     color_size = 3
-    new_res = Palette24BitResource()
+    new_res = Palette24BitResource
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         return read_byte(buffer) << 24 | read_byte(buffer) << 16 | read_byte(buffer) << 8 | 255
@@ -60,7 +61,7 @@ class Palette24Bit(BasePalette):
 
 class Palette24BitDos(BasePalette):
     color_size = 3
-    new_res = Palette24BitDosResource()
+    new_res = Palette24BitDosResource
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         red = transform_bitness(read_byte(buffer), 6)
@@ -71,7 +72,7 @@ class Palette24BitDos(BasePalette):
 
 class Palette32Bit(BasePalette):
     color_size = 4
-    new_res = Palette32BitResource()
+    new_res = Palette32BitResource
 
     def _read_color_from_palette_file(self, buffer: BufferedReader) -> int:
         value = read_int(buffer)

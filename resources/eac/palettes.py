@@ -42,8 +42,8 @@ def is_last_color_transparent(color):
 class BasePalette(BaseResource, ABC):
     description = 'An array of colors'
 
-    def read(self, buffer, size):
-        res = super().read(buffer, size)
+    def _read_internal(self, buffer, size):
+        res = super()._read_internal(buffer, size)
         try:
             if is_last_color_transparent(res['colors'][255]):
                 res['colors'][255] = 0
@@ -56,26 +56,30 @@ class BasePalette(BaseResource, ABC):
 
 
 class Palette24BitDosResource(BasePalette):
-    resource_id = RequiredByteField(required_value=0x22)
-    unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-    colors = ArrayField(length=256, child=Color24BitDosField(), length_strategy="read_available")
+    class Fields(BaseResource.Fields):
+        resource_id = RequiredByteField(required_value=0x22)
+        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+        colors = ArrayField(length=256, child=Color24BitDosField(), length_strategy="read_available")
 
 
 class Palette24BitResource(BasePalette):
-    resource_id = RequiredByteField(required_value=0x24)
-    unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-    colors = ArrayField(length=256, child=Color24BitField(), length_strategy="read_available")
+    class Fields(BaseResource.Fields):
+        resource_id = RequiredByteField(required_value=0x24)
+        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+        colors = ArrayField(length=256, child=Color24BitField(), length_strategy="read_available")
 
 
 class Palette32BitResource(BaseResource):
     description = 'An array of colors'
 
-    resource_id = RequiredByteField(required_value=0x2A)
-    unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-    colors = ArrayField(length=256, child=Color32BitField(), length_strategy="read_available")
+    class Fields(BaseResource.Fields):
+        resource_id = RequiredByteField(required_value=0x2A)
+        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+        colors = ArrayField(length=256, child=Color32BitField(), length_strategy="read_available")
 
 
 class Palette16BitResource(BasePalette):
-    resource_id = RequiredByteField(required_value=0x2D)
-    unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-    colors = ArrayField(length=256, child=Color16BitField(), length_strategy="read_available")
+    class Fields(BaseResource.Fields):
+        resource_id = RequiredByteField(required_value=0x2D)
+        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+        colors = ArrayField(length=256, child=Color16BitField(), length_strategy="read_available")

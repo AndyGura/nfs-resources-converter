@@ -1,6 +1,7 @@
-from abc import ABC, abstractmethod, abstractclassmethod
+from abc import ABC, abstractmethod
+from io import BufferedReader, BytesIO
 from math import floor
-from typing import Literal
+from typing import Literal, final
 
 from buffer_utils import read_byte
 
@@ -8,6 +9,11 @@ from buffer_utils import read_byte
 class ReadBlock(ABC):
     block_description = None
     description = None
+    allow_multiread = False
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._data = None
 
     @property
     @abstractmethod
@@ -22,10 +28,24 @@ class ReadBlock(ABC):
     def max_size(self):
         return self.size
 
-    @abstractmethod
-    def read(self, buffer, size):
+    @property
+    def data(self):
+        if self._data is None:
+            raise Exception("Block wasn't read yet")
+        return self._data
+
+    @final
+    def read(self, buffer: [BufferedReader, BytesIO], size: int):
+        if self._data is not None and not self.allow_multiread:
+            raise Exception('Block was already read')
         if self.min_size > size:
             raise Exception(f'Cannot read block {self.__class__.__name__}: minimum block size {self.min_size}, available size: {size}')
+        self._data = self._read_internal(buffer, size)
+        return self._data
+
+    @abstractmethod
+    def _read_internal(self, buffer: [BufferedReader, BytesIO], size: int):
+        pass
 
     @abstractmethod
     def write(self, buffer, value):
@@ -34,8 +54,10 @@ class ReadBlock(ABC):
 
 class ResourceField(ReadBlock, ABC):
     is_unknown = False
+    allow_multiread = True
 
     def __init__(self, description: str = '', is_unknown: bool = False):
+        super().__init__()
         self.description = description
         self.is_unknown = is_unknown
 
@@ -47,8 +69,7 @@ class ByteField(ResourceField):
     def size(self):
         return 1
 
-    def read(self, buffer, size):
-        super().read(buffer, size)
+    def _read_internal(self, buffer, size):
         return read_byte(buffer)
 
     def write(self, buffer, value):
@@ -67,8 +88,7 @@ class BitmapField(ResourceField):
         super().__init__(*args, **kwargs)
         self.flag_names = flag_names
 
-    def read(self, buffer, size):
-        super().read(buffer, size)
+    def _read_internal(self, buffer, size):
         value = read_byte(buffer)
         return {(self.flag_names[i] if self.flag_names else str(i)): bool(value & mask) for (i, mask) in enumerate(self.masks)}
 
@@ -88,8 +108,8 @@ class RequiredByteField(ByteField):
         self.required_value = required_value
         self.block_description += f' (required value: {hex(self.required_value)})'
 
-    def read(self, buffer, size):
-        value = super().read(buffer, size)
+    def _read_internal(self, buffer, size):
+        value = super()._read_internal(buffer, size)
         if value != self.required_value:
             raise Exception(f'Expected {hex(self.required_value)}, found {hex(value)}')
         return value
@@ -121,8 +141,7 @@ class ArrayField(ResourceField):
         self.length_strategy = length_strategy
         self.block_description += f' (size: {length} bytes)'
 
-    def read(self, buffer, size):
-        super().read(buffer, size)
+    def _read_internal(self, buffer, size):
         res = []
         amount = self.length
         if self.length_strategy == "read_available":
