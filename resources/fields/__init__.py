@@ -9,7 +9,6 @@ from buffer_utils import read_byte, write_byte
 class ReadBlock(ABC):
     block_description = None
     description = None
-    allow_multiread = False
 
     @property
     @abstractmethod
@@ -43,12 +42,13 @@ class ReadBlock(ABC):
 
 class ResourceField(ReadBlock, ABC):
     is_unknown = False
-    allow_multiread = True
 
     def __init__(self, description: str = '', is_unknown: bool = False):
         super().__init__()
         self.description = description
         self.is_unknown = is_unknown
+        if not self.description and self.is_unknown:
+            self.description = 'Unknown purpose'
 
     @final
     def read(self, buffer: [BufferedReader, BytesIO], size: int):
@@ -95,7 +95,6 @@ class BitmapField(ResourceField):
 
 
 class RequiredByteField(ByteField):
-    block_description = '1-byte field'
 
     @property
     def size(self):
@@ -104,7 +103,7 @@ class RequiredByteField(ByteField):
     def __init__(self, *args, required_value: int, **kwargs):
         super().__init__(*args, **kwargs)
         self.required_value = required_value
-        self.block_description += f' (required value: {hex(self.required_value)})'
+        self.block_description = f'Always == {hex(self.required_value)}'
 
     def _read_internal(self, buffer, size):
         value = super()._read_internal(buffer, size)
@@ -114,7 +113,6 @@ class RequiredByteField(ByteField):
 
 
 class ArrayField(ResourceField):
-    block_description = 'Array field'
     child = None
 
     @property
@@ -135,7 +133,11 @@ class ArrayField(ResourceField):
         self.child = child
         self.length = length
         self.length_strategy = length_strategy
-        self.block_description += f' (size: {length} bytes)'
+        if self.length_strategy == "read_available":
+            length_label = f'0..{self.length}'
+        else:
+            length_label = str(self.length)
+        self.block_description = f'Array of {length_label} items'
 
     def _read_internal(self, buffer, size):
         res = []

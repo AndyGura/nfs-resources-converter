@@ -40,12 +40,13 @@ def is_last_color_transparent(color):
 
 
 class BasePalette(BaseResource, ABC):
-    description = 'An array of colors'
+    block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette'
+    can_use_last_color_as_transparent = True
 
     def _read_internal(self, buffer, size):
         res = super()._read_internal(buffer, size)
         try:
-            if is_last_color_transparent(res['colors'][255]):
+            if self.can_use_last_color_as_transparent and is_last_color_transparent(res['colors'][255]):
                 res['colors'][255] = 0
         except IndexError:
             pass
@@ -57,29 +58,29 @@ class BasePalette(BaseResource, ABC):
 
 class Palette24BitDosResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x22)
+        resource_id = RequiredByteField(required_value=0x22, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-        colors = ArrayField(length=256, child=Color24BitDosField(), length_strategy="read_available")
+        colors = ArrayField(length=256, child=Color24BitDosField(), length_strategy="read_available", description='Colors LUT')
 
 
 class Palette24BitResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x24)
+        resource_id = RequiredByteField(required_value=0x24, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-        colors = ArrayField(length=256, child=Color24BitField(), length_strategy="read_available")
+        colors = ArrayField(length=256, child=Color24BitField(), length_strategy="read_available", description='Colors LUT')
 
 
-class Palette32BitResource(BaseResource):
-    description = 'An array of colors'
-
+class Palette32BitResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x2A)
+        resource_id = RequiredByteField(required_value=0x2A, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-        colors = ArrayField(length=256, child=Color32BitField(), length_strategy="read_available")
+        colors = ArrayField(length=256, child=Color32BitField(), length_strategy="read_available", description='Colors LUT')
+
+    can_use_last_color_as_transparent = False
 
 
 class Palette16BitResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x2D)
+        resource_id = RequiredByteField(required_value=0x2D, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-        colors = ArrayField(length=256, child=Color16BitField(), length_strategy="read_available")
+        colors = ArrayField(length=256, child=Color16BitField(), length_strategy="read_available", description='Colors LUT')

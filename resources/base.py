@@ -1,15 +1,20 @@
-from abc import ABC, abstractmethod
+from abc import ABC
+from functools import cached_property
 from io import BufferedReader, BytesIO
 from typing import List, Tuple, final
 
-from resources.fields import ResourceField, ReadBlock
+from resources.fields import ReadBlock
 
 
 class BaseFields(ABC):
     @classmethod
     @property
-    def fields(cls) -> List[Tuple[str, ResourceField]]:
-        return [(key, value) for (key, value) in cls.__dict__.items() if isinstance(value, ResourceField)]
+    def fields(cls) -> List[Tuple[str, ReadBlock]]:
+        try:
+            return cls.__fields_cache
+        except AttributeError:
+            cls.__fields_cache = [(key, value) for (key, value) in cls.__dict__.items() if isinstance(value, ReadBlock)]
+            return cls.__fields_cache
 
 
 class BaseResource(ReadBlock, ABC):
@@ -28,19 +33,19 @@ class BaseResource(ReadBlock, ABC):
         self.description = description
         self._data = None
 
-    @property
+    @cached_property
     def size(self):
         return sum(f.size for (_, f) in self.Fields.fields)
 
-    @property
+    @cached_property
     def min_size(self):
         return sum(f.min_size for (_, f) in self.Fields.fields)
 
-    @property
+    @cached_property
     def max_size(self):
         return sum(f.max_size for (_, f) in self.Fields.fields)
 
-    @property
+    @cached_property
     def data(self):
         if self._data is None:
             raise Exception("Resource wasn't read yet")
@@ -48,7 +53,7 @@ class BaseResource(ReadBlock, ABC):
 
     @final
     def read(self, buffer: [BufferedReader, BytesIO], size: int):
-        if self._data is not None and not self.allow_multiread:
+        if self._data is not None:
             raise Exception('Block was already read')
         self._data = super().read(buffer, size)
         return self._data
@@ -72,5 +77,3 @@ class BaseResource(ReadBlock, ABC):
         fields = self.Fields.fields
         for name, field in fields:
             field.write(buffer, value[name])
-
-

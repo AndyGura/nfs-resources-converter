@@ -17,6 +17,8 @@ Feel free to contribute
 
 <h1>Supported resources</h1>
 
+All the resources have an [auto-generated format specs](resources/README.md)
+
 <h2>The Need For Speed</h2>
 
 - **\*INFO** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) track settings with unknown purpose

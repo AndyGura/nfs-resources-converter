@@ -27,6 +27,14 @@ maps__save_as_chunked = False
 maps__save_collisions = False    # this one will consume time...
 
 
+SERIALIZER_CLASSES = {
+    'Palette24BitDosResource': 'PaletteSerializer',
+    'Palette24BitResource': 'PaletteSerializer',
+    'Palette32BitResource': 'PaletteSerializer',
+    'Palette16BitResource': 'PaletteSerializer',
+}
+
+
 # returned script will be executed in blender for every exported scene
 # geometry kind: 'car', 'map', 'terrain_chunk', 'prop'
 def geometry__additional_exporter(dest_file_name, geometry_kind):

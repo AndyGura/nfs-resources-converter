@@ -10,8 +10,9 @@ import settings
 from buffer_utils import read_short, read_3int, read_byte
 from parsers.resources.base import BaseResource
 from parsers.resources.collections import ResourceDirectory, ArchiveResource
-from parsers.resources.palettes import BasePalette
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.utils import transform_color_bitness
+from resources.eac.palettes import BasePalette
 
 
 class BaseBitmap(BaseResource, ABC):
@@ -102,18 +103,18 @@ class Bitmap8Bit(BaseBitmap):
         from guess_parser import get_resource_class
         while trailing_bytes_length > 0:
             sub_resource = get_resource_class(buffer)
-            assert isinstance(sub_resource, BasePalette), f'Not a palette: {sub_resource.__class__.__name__}'
+            assert isinstance(sub_resource, ReadBlockWrapper) and issubclass(sub_resource.block_class, BasePalette), f'Not a palette: {sub_resource.__class__.__name__}'
             trailing_bytes_length -= sub_resource.read(buffer, trailing_bytes_length)
             if not self.ignore_child_palette:
                 self.palette = sub_resource
                 self.is_inline_palette = True
 
-    def _find_palettes(self, instance: BaseResource = None, recursive=True) -> List[BasePalette]:
+    def _find_palettes(self, instance: BaseResource = None, recursive=True) -> List[ReadBlockWrapper]:
         if not instance:
             instance = self.parent
-        own_palettes = [[x] if isinstance(x, BasePalette) else self._find_palettes(x, recursive=False)
+        own_palettes = [[x] if (isinstance(x, ReadBlockWrapper) and issubclass(x.block_class, BasePalette)) else self._find_palettes(x, recursive=False)
                         for i, x in enumerate(getattr(instance, 'resources', []))
-                        if (isinstance(x, BasePalette) or isinstance(instance, ArchiveResource))]
+                        if ((isinstance(x, ReadBlockWrapper) and issubclass(x.block_class, BasePalette)) or isinstance(instance, ArchiveResource))]
         own_palettes = [i for g in own_palettes for i in g]  # flatten
         own_palettes.reverse()  # invert, last palette more preferred
         if recursive and not own_palettes:
@@ -145,7 +146,10 @@ class Bitmap8Bit(BaseBitmap):
         index = int.from_bytes(value, byteorder='little')
         if index == 0xFE and self.is_tail_lights_texture_for_nfs1_car:
             return 0
-        return self.palette.get_color(index)
+        try:
+            return self.palette.resource.colors[index]
+        except IndexError:
+            return 0
 
     def save_converted(self, path: str):
         super().save_converted(path)

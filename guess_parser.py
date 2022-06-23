@@ -22,16 +22,44 @@ from parsers.resources.fonts import FfnFont
 from parsers.resources.geometries import OripGeometryResource
 from parsers.resources.maps import TriMapResource
 from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo, CarPBSFile, CarPDNFile
-from parsers.resources.palettes import (
-    Palette24BitDos,
-    Palette24Bit,
-    Palette32Bit,
-    Palette16Bit,
-)
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
+from resources.eac.palettes import (
+    Palette16BitResource,
+    Palette32BitResource,
+    Palette24BitResource,
+    Palette24BitDosResource,
+)
+from resources.fields import ReadBlock
 
 
-def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> BaseResource:
+# new logic
+def probe_block_class(binary_file: BufferedReader, file_name: str = None):
+    header_bytes = binary_file.read(4)
+    binary_file.seek(-len(header_bytes), SEEK_CUR)
+    try:
+        resource_id = header_bytes[0]
+    except IndexError:
+        raise NotImplementedError('Don`t have parser for such resource. header_bytes are missed')
+    if resource_id == 0x22:
+        return Palette24BitDosResource
+    elif resource_id == 0x24:
+        return Palette24BitResource
+    # 41 (0x29) 16 bit dos palette
+    elif resource_id == 0x2A:
+        return Palette32BitResource
+    elif resource_id == 0x2D:
+        return Palette16BitResource
+    raise NotImplementedError('Don`t have parser for such resource')
+
+
+# old logic
+def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [BaseResource, ReadBlock]:
+    try:
+        block_class = probe_block_class(binary_file, file_name)
+        return ReadBlockWrapper(block_class=block_class)
+    except NotImplementedError:
+        pass
     if file_name:
         if file_name.endswith('.BNK'):
             return SoundBank()
@@ -81,15 +109,6 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> Ba
         return BinaryResource(id=resource_id, length=84, save_binary_file=False)
     elif resource_id == 0x11 and header_bytes[1] == 0x00 and header_bytes[2] == 0x00 and header_bytes[3] == 0x00:
         return TriMapResource()
-    elif resource_id == 0x22:
-        return Palette24BitDos()
-    elif resource_id == 0x24:
-        return Palette24Bit()
-    # 41 (0x29) 16 bit dos palette
-    elif resource_id == 0x2A:
-        return Palette32Bit()
-    elif resource_id == 0x2D:
-        return Palette16Bit()
     elif resource_id == 0x6F:
         return TextResource()
     elif resource_id == 0x78:
