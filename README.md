@@ -2,6 +2,8 @@ The goal of this project is to implement parsers for uncommon game files and sav
 
 Output files are directly used in my project [The Need For Speed Web](https://tnfsw.guraklgames.com/)
 
+All the supported resources have an [auto-generated format specs](resources/README.md)
+
 Feel free to contribute
 
 <h1>How to use converter:</h1>
@@ -16,8 +18,6 @@ Feel free to contribute
 5) observe output files in `out/`
 
 <h1>Supported resources</h1>
-
-All the resources have an [auto-generated format specs](resources/README.md)
 
 <h2>The Need For Speed</h2>
 
