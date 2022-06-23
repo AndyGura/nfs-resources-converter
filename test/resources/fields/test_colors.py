@@ -2,7 +2,7 @@ import unittest
 from io import BytesIO
 
 from buffer_utils import read_byte
-from resources.fields import Color24BitDosField, Color24BitField, Color32BitField, Color16BitField
+from resources.fields import Color24BitDosField, Color24BitField, Color32BitField, Color16Bit0565Field
 
 
 class Color24BitDosFieldTest(unittest.TestCase):
@@ -163,7 +163,7 @@ class Color32BitFieldTest(unittest.TestCase):
         self.assertEqual(buffer.read(), out_buffer.read())
 
 
-class Color16BitFieldTest(unittest.TestCase):
+class Color16Bit0565FieldTest(unittest.TestCase):
 
     def test_should_read_2_bytes(self):
         ba = bytearray(b'')
@@ -173,7 +173,7 @@ class Color16BitFieldTest(unittest.TestCase):
         ba.append(0xCC)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color16BitField().read(buffer, 5)
+        result = Color16Bit0565Field().read(buffer, 5)
         self.assertEqual(buffer.tell(), 2)
 
     def test_should_read_correctly(self):
@@ -181,7 +181,7 @@ class Color16BitFieldTest(unittest.TestCase):
         ba.append(0b1001_1010)
         ba.append(0b1110_0000)
         buffer = BytesIO(ba)
-        result = Color16BitField().read(buffer, 2)
+        result = Color16Bit0565Field().read(buffer, 2)
         self.assertEqual(result, 0b1110_0110_0001_0000_1101_0110_1111_1111)
 
     def test_should_write_the_same_as_read(self):
@@ -189,9 +189,9 @@ class Color16BitFieldTest(unittest.TestCase):
         ba.append(0x1F)
         ba.append(0x1A)
         buffer = BytesIO(ba)
-        result = Color16BitField().read(buffer, 2)
+        result = Color16Bit0565Field().read(buffer, 2)
         out_buffer = BytesIO()
-        Color16BitField().write(out_buffer, result)
+        Color16Bit0565Field().write(out_buffer, result)
         buffer.seek(0)
         out_buffer.seek(0)
         self.assertEqual(buffer.read(), out_buffer.read())

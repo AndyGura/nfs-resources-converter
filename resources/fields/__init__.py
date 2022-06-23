@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from functools import cached_property
+from inspect import getsourcelines
 from io import BufferedReader, BytesIO
 from math import floor
 from typing import Literal, final
 
-from buffer_utils import read_byte, write_byte
+from buffer_utils import read_byte, write_byte, read_3int, write_3int, read_short, write_short
 
 
 class ReadBlock(ABC):
@@ -60,7 +62,7 @@ class ResourceField(ReadBlock, ABC):
 
 
 class ByteField(ResourceField):
-    block_description = '1-byte field'
+    block_description = '1-byte unsigned integer'
 
     @property
     def size(self):
@@ -71,6 +73,34 @@ class ByteField(ResourceField):
 
     def _write_internal(self, buffer, value):
         write_byte(buffer, value)
+
+
+class Int2Field(ResourceField):
+    block_description = '2-byte unsigned integer'
+
+    @property
+    def size(self):
+        return 2
+
+    def _read_internal(self, buffer, size):
+        return read_short(buffer)
+
+    def _write_internal(self, buffer, value):
+        write_short(buffer, value)
+
+
+class Int3Field(ResourceField):
+    block_description = '3-byte unsigned integer'
+
+    @property
+    def size(self):
+        return 3
+
+    def _read_internal(self, buffer, size):
+        return read_3int(buffer)
+
+    def _write_internal(self, buffer, value):
+        write_3int(buffer, value)
 
 
 class BitmapField(ResourceField):
@@ -115,25 +145,31 @@ class RequiredByteField(ByteField):
 class ArrayField(ResourceField):
     child = None
 
-    @property
+    @cached_property
     def size(self):
         return self.child.size * self.length
 
-    @property
+    @cached_property
     def min_size(self):
+        if callable(self.length):
+            return 0
         return self.child.min_size * self.length if self.length_strategy == "strict" else 0
 
-    @property
+    @cached_property
     def max_size(self):
+        if callable(self.length):
+            return float('inf')
         return self.child.max_size * self.length
 
-    def __init__(self, *args, child: ResourceField, length: int,
+    def __init__(self, *args, child: ResourceField, length: Literal[int, callable] = None,
                  length_strategy: Literal["strict", "read_available"] = "strict", **kwargs):
         super().__init__(*args, **kwargs)
         self.child = child
         self.length = length
         self.length_strategy = length_strategy
-        if self.length_strategy == "read_available":
+        if callable(self.length):
+            length_label = f"<{getsourcelines(self.length)[0][0].split('lambda self:')[-1].split(',')[0].strip().replace('self.', '')}>"
+        elif self.length_strategy == "read_available":
             length_label = f'0..{self.length}'
         else:
             length_label = str(self.length)
@@ -157,5 +193,5 @@ class ArrayField(ResourceField):
 from .colors import (Color24BitDosField,
                      Color24BitField,
                      Color32BitField,
-                     Color16BitField,
+                     Color16Bit0565Field,
                      )

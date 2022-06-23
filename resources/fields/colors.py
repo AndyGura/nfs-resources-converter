@@ -57,8 +57,25 @@ class Color32BitField(ResourceField):
         write_int(buffer, (value & 0xff_ff_ff_00) >> 8 | (value & 0xff) << 24)
 
 
-class Color16BitField(ResourceField):
+class Color16Bit0565Field(ResourceField):
     block_description = 'EA games 16-bit 0565 color, rrrrrggg_gggbbbbb'
+
+    @property
+    def size(self):
+        return 2
+
+    def _read_internal(self, buffer, size):
+        return transform_color_bitness(read_short(buffer), 0, 5, 6, 5)
+
+    def _write_internal(self, buffer, value):
+        red = (value & 0xff000000) >> 27
+        green = (value & 0xff0000) >> 18
+        blue = (value & 0xff00) >> 11
+        write_short(buffer, red << 11 | green << 5 | blue)
+
+
+class Color16Bit1555Field(ResourceField):
+    block_description = 'EA games 16-bit 1555 color, arrrrrgg_gggbbbbb'
 
     @property
     def size(self):

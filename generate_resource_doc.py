@@ -1,9 +1,12 @@
 import os
 
-from resources.eac import palettes
+from resources.eac import palettes, bitmaps
 from resources.fields import ReadBlock, ResourceField, ArrayField
 
 EXPORT_RESOURCES = {
+    'Bitmaps': [
+        bitmaps.Bitmap16Bit1555(),
+    ],
     'Palettes': [
         palettes.Palette24BitDosResource(),
         palettes.Palette24BitResource(),

@@ -8,6 +8,7 @@ multiprocess_directory_blacklist = [
     'FRONTEND/GART/CONTROL',  # the same here
 ]
 
+# FIXME not working with new resources approach
 save_unknown_values = False
 
 # images

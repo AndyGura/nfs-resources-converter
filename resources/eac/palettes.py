@@ -2,7 +2,7 @@ from abc import ABC
 
 from resources.base import BaseResource
 from resources.fields import (RequiredByteField, ArrayField, ByteField, Color24BitDosField, Color24BitField,
-                              Color32BitField, Color16BitField)
+                              Color32BitField, Color16Bit0565Field)
 
 
 # TODO probably this flag is somewhere in image resource, need to find it
@@ -83,4 +83,4 @@ class Palette16BitResource(BasePalette):
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x2D, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
-        colors = ArrayField(length=256, child=Color16BitField(), length_strategy="read_available", description='Colors LUT')
+        colors = ArrayField(length=256, child=Color16Bit0565Field(), length_strategy="read_available", description='Colors LUT')
