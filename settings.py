@@ -37,6 +37,7 @@ SERIALIZER_CLASSES = {
     'Bitmap32Bit': 'BitmapSerializer',
     'Bitmap16Bit1555': 'BitmapSerializer',
     'Bitmap24Bit': 'BitmapSerializer',
+    'Bitmap8Bit': 'BitmapWithPaletteSerializer',
 }
 
 

@@ -25,29 +25,34 @@ class BaseResource(ReadBlock, ABC):
     description = None
 
     def __getattr__(self, name):
-        if name in [key for key, _ in self._instance_fields]:
-            return self.data[name]
+        if self.instance_fields_map.get(name):
+            if isinstance(self.instance_fields_map[name], BaseResource):
+                return self.instance_fields_map[name]
+            else:
+                return self.data[name]
         return object.__getattribute__(self, name)
 
-    def __init__(self, description: str = '', is_optional=False):
-        super().__init__()
+    def __init__(self, description: str = '', is_optional=False, **kwargs):
+        super().__init__(description=description,
+                         is_optional=is_optional,
+                         **kwargs)
         self.description = description
         self.is_optional = is_optional
-        self._instance_fields = deepcopy(self.__class__.Fields.fields)
-        self._instance_fields_map = {name: res for (name, res) in self._instance_fields}
+        self.instance_fields = [(name, instance.__class__(**instance.instantiate_kwargs)) for name, instance in self.__class__.Fields.fields]
+        self.instance_fields_map = {name: res for (name, res) in self.instance_fields}
         self._data = None
 
     @cached_property
     def size(self):
-        return sum(f.size for (_, f) in self._instance_fields)
+        return sum(f.size for (_, f) in self.instance_fields)
 
     @cached_property
     def min_size(self):
-        return 0 if self.is_optional else sum(f.min_size for (_, f) in self._instance_fields)
+        return 0 if self.is_optional else sum(f.min_size for (_, f) in self.instance_fields)
 
     @cached_property
     def max_size(self):
-        return sum(f.max_size for (_, f) in self._instance_fields)
+        return sum(f.max_size for (_, f) in self.instance_fields)
 
     @cached_property
     def data(self):
@@ -63,7 +68,7 @@ class BaseResource(ReadBlock, ABC):
         return self._data
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
-        fields = self._instance_fields
+        fields = self.instance_fields
         res = dict()
         remaining_size = size
         for name, field in fields:
@@ -86,7 +91,7 @@ class BaseResource(ReadBlock, ABC):
 
     def _write_internal(self, buffer, value):
         super()._write_internal(buffer, value)
-        fields = self._instance_fields
+        fields = self.instance_fields
         for name, field in fields:
             field.write(buffer, value[name])
 
@@ -111,14 +116,23 @@ class LiteralResource(BaseResource):
     def data(self):
         return self.selected_resource.data
 
-    def __init__(self, *args, possible_resources: List[BaseResource], **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, possible_resources: List[BaseResource], **kwargs):
+        super().__init__(possible_resources=possible_resources,
+                         **kwargs)
         self.possible_resources = possible_resources
         self.selected_resource = None
 
+    def __getattr__(self, name):
+        if self.selected_resource and self.selected_resource.instance_fields_map.get(name):
+            return getattr(self.selected_resource, name)
+        return super().__getattr__(name)
+
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
         from guess_parser import probe_block_class
-        block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
+        try:
+            block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
+        except Exception:
+            raise Exception('Expectation failed for literal block: class not found')
         for res in self.possible_resources:
             if isinstance(res, block_class):
                 self.selected_resource = res

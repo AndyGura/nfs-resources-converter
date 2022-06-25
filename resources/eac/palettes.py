@@ -40,7 +40,8 @@ def is_last_color_transparent(color):
 
 
 class BasePalette(BaseResource, ABC):
-    block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette'
+    block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, ' \
+                        'meaning the index of color in LUT of assigned palette'
     can_use_last_color_as_transparent = True
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
@@ -54,6 +55,15 @@ class BasePalette(BaseResource, ABC):
 
 
 # TODO 41 (0x29) 16 bit dos palette
+
+
+class PaletteReference(BaseResource):
+    block_description = 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. ' \
+                        'Probably a reference to pallete which should be used'
+
+    class Fields(BaseResource.Fields):
+        resource_id = RequiredByteField(required_value=0x7C, description='Resource ID')
+        unknowns = ArrayField(length=7, child=ByteField(), is_unknown=True)
 
 
 class Palette24BitDosResource(BasePalette):

@@ -1,6 +1,4 @@
 from abc import ABC, abstractmethod
-from functools import cached_property
-from inspect import getsourcelines
 from io import BufferedReader, BytesIO
 from math import floor
 from typing import Literal, final
@@ -11,6 +9,9 @@ from buffer_utils import read_byte, write_byte, read_3int, write_3int, read_shor
 class ReadBlock(ABC):
     block_description = None
     description = None
+
+    def __init__(self, **kwargs):
+        self.instantiate_kwargs = kwargs
 
     @property
     @abstractmethod
@@ -45,8 +46,10 @@ class ReadBlock(ABC):
 class ResourceField(ReadBlock, ABC):
     is_unknown = False
 
-    def __init__(self, description: str = '', is_unknown: bool = False):
-        super().__init__()
+    def __init__(self, description: str = '', is_unknown: bool = False, **kwargs):
+        super().__init__(description=description,
+                         is_unknown=is_unknown,
+                         **kwargs)
         self.description = description
         self.is_unknown = is_unknown
         if not self.description and self.is_unknown:
@@ -111,8 +114,9 @@ class BitmapField(ResourceField):
     def size(self):
         return 1
 
-    def __init__(self, *args, flag_names: list[str] = None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, flag_names: list[str] = None, **kwargs):
+        super().__init__(flag_names=flag_names,
+                         **kwargs)
         self.flag_names = flag_names
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
@@ -130,8 +134,9 @@ class RequiredByteField(ByteField):
     def size(self):
         return 1
 
-    def __init__(self, *args, required_value: int, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, required_value: int, **kwargs):
+        super().__init__(required_value=required_value,
+                         **kwargs)
         self.required_value = required_value
         self.block_description = f'Always == {hex(self.required_value)}'
 
@@ -163,11 +168,17 @@ class ArrayField(ResourceField):
             return float('inf')
         return self.child.max_size * self.length
 
-    def __init__(self, *args, child: ResourceField, length: int = None,
+    def __init__(self,
+                 child: ResourceField,
+                 length: int = None,
                  length_strategy: Literal["strict", "read_available"] = "strict",
                  length_label: str = None,
                  **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(child=child,
+                         length=length,
+                         length_strategy=length_strategy,
+                         length_label=length_label,
+                         **kwargs)
         self.child = child
         self.length = length
         self.length_strategy = length_strategy

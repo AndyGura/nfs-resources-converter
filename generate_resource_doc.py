@@ -7,11 +7,13 @@ from resources.fields import ReadBlock, ResourceField, ArrayField
 EXPORT_RESOURCES = {
     'Bitmaps': [
         bitmaps.Bitmap16Bit0565(),
+        bitmaps.Bitmap8Bit(),
         bitmaps.Bitmap32Bit(),
         bitmaps.Bitmap16Bit1555(),
         bitmaps.Bitmap24Bit(),
     ],
     'Palettes': [
+        palettes.PaletteReference(),
         palettes.Palette24BitDosResource(),
         palettes.Palette24BitResource(),
         palettes.Palette32BitResource(),

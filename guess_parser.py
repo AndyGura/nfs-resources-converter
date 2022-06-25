@@ -7,7 +7,6 @@ from parsers.resources.archives import (
 )
 from parsers.resources.audios import ASFAudio, EacsAudio
 from parsers.resources.base import BaseResource
-from parsers.resources.bitmaps import Bitmap8Bit
 from parsers.resources.compressed import (
     RefPackArchive,
     Qfs2Archive,
@@ -24,8 +23,10 @@ from resources.eac.bitmaps import (
     Bitmap16Bit1555,
     Bitmap16Bit0565,
     Bitmap24Bit,
+    Bitmap8Bit,
 )
 from resources.eac.palettes import (
+    PaletteReference,
     Palette16BitResource,
     Palette32BitResource,
     Palette24BitResource,
@@ -47,13 +48,17 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         return Palette24BitDosResource
     elif resource_id == 0x24 and (not resources_to_pick or Palette24BitResource in resources_to_pick):
         return Palette24BitResource
-    # 41 (0x29) 16 bit dos palette
+    # TODO 41 (0x29) 16 bit dos palette
     elif resource_id == 0x2A and (not resources_to_pick or Palette32BitResource in resources_to_pick):
         return Palette32BitResource
     elif resource_id == 0x2D and (not resources_to_pick or Palette16BitResource in resources_to_pick):
         return Palette16BitResource
     elif resource_id == 0x78 and (not resources_to_pick or Bitmap16Bit0565 in resources_to_pick):
         return Bitmap16Bit0565
+    elif resource_id == 0x7B and (not resources_to_pick or Bitmap8Bit in resources_to_pick):
+        return Bitmap8Bit
+    elif resource_id == 0x7C and (not resources_to_pick or PaletteReference in resources_to_pick):
+        return PaletteReference
     elif resource_id == 0x7D and (not resources_to_pick or Bitmap32Bit in resources_to_pick):
         return Bitmap32Bit
     elif resource_id == 0x7E and (not resources_to_pick or Bitmap16Bit1555 in resources_to_pick):
@@ -121,10 +126,5 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
         return TriMapResource()
     elif resource_id == 0x6F:
         return TextResource()
-    elif resource_id == 0x7B:
-        return Bitmap8Bit()
-    elif resource_id == 0x7C:
-        # it looks like we often see 0x7C after texture, No idea what's this, doesnt look like alpha channel container
-        return BinaryResource(id=resource_id, save_binary_file=False)
     else:
         raise NotImplementedError('Don`t have parser for such resource')

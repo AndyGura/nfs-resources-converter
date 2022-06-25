@@ -12,7 +12,7 @@ from resources.fields.colors import (
 class AnyBitmapResource:
 
     def _after_height_read(self, data, total_size, **kwargs):
-        pixel_size = self._instance_fields_map['bitmap'].child.size
+        pixel_size = self.instance_fields_map['bitmap'].child.size
         block_size = data['block_size']
         expected_block_size = pixel_size * data['width'] * data['height'] + 16
         if block_size == 0:
@@ -22,7 +22,7 @@ class AnyBitmapResource:
         if trailing_bytes_length < 0:
             raise Exception(
                 f'Too big bitmap block size {block_size}, available: {total_size}. Expected block size {expected_block_size}')
-        self._instance_fields_map['bitmap'].length = data['width'] * data['height']
+        self.instance_fields_map['bitmap'].length = data['width'] * data['height']
 
 
 class Bitmap16Bit0565(AnyBitmapResource, BaseResource):
@@ -50,14 +50,15 @@ class Bitmap8Bit(AnyBitmapResource, BaseResource):
         bitmap = ArrayField(child=ByteField(), length_label='<width * height>',
                             description='Color indexes of bitmap pixels. The actual colors are '
                                         'in assigned to this bitmap palette')
-        palette = LiteralResource(possible_resources=[palettes.Palette24BitDosResource(),
+        palette = LiteralResource(possible_resources=[palettes.PaletteReference(),
+                                                      palettes.Palette24BitDosResource(),
                                                       palettes.Palette24BitResource(),
                                                       palettes.Palette32BitResource(),
                                                       palettes.Palette16BitResource(),
-                                                      ], is_optional=True,
-                                  description='Palette, assigned to this bitmap. Can not be used for another bitmap. '
-                                              'If not defined, nearest palette should be used. The exact mechanism of '
-                                              'choosing the correct palette (except this embedded one) is unknown')
+                                                      ],
+                                  description='Palette, assigned to this bitmap or reference to external palette?. '
+                                              'The exact mechanism of choosing the correct palette '
+                                              '(except embedded one) is unknown')
 
 
 class Bitmap32Bit(AnyBitmapResource, BaseResource):

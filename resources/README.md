@@ -12,6 +12,19 @@
 | 12 | **x** | 2 | 2-byte unsigned integer | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-byte unsigned integer | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | 0..? | Array of <width * height> items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb | Colors of bitmap pixels |
+### **Bitmap8Bit** ###
+#### **Size**: 24..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | Always == 0x7b | Resource ID |
+| 1 | **block_size** | 3 | 3-byte unsigned integer | Bitmap block size 16+2\*width\*height, but not always |
+| 4 | **width** | 2 | 2-byte unsigned integer | Bitmap width in pixels |
+| 6 | **height** | 2 | 2-byte unsigned integer | Bitmap width in pixels |
+| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 12 | **x** | 2 | 2-byte unsigned integer | X coordinate of bitmap position on screen. Used for menu/dash sprites |
+| 14 | **y** | 2 | 2-byte unsigned integer | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
+| 16 | **bitmap** | 0..? | Array of <width * height> items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Color indexes of bitmap pixels. The actual colors are in assigned to this bitmap palette |
+| 16..? | **palette** | 8..1040 | One of types:<br/>[PaletteReference](#palettereference)<br/>[Palette24BitDos](#palette24bitdos)<br/>[Palette24Bit](#palette24bit)<br/>[Palette32Bit](#palette32bit)<br/>[Palette16Bit](#palette16bit) | Palette, assigned to this bitmap or reference to external palette?. The exact mechanism of choosing the correct palette (except embedded one) is unknown |
 ### **Bitmap32Bit** ###
 #### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -49,6 +62,13 @@
 | 14 | **y** | 2 | 2-byte unsigned integer | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | 0..? | Array of <width * height> items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit color (little-endian), rrrrrrrr_gggggggg_bbbbbbbb | Colors of bitmap pixels |
 ## **Palettes** ##
+### **PaletteReference** ###
+#### **Size**: 8 bytes ####
+#### **Description**: Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. Probably a reference to pallete which should be used ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | Always == 0x7c | Resource ID |
+| 1 | **unknowns** | 7 | Array of 7 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 ### **Palette24BitDos** ###
 #### **Size**: 16..784 bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette ####
