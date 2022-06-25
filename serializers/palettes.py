@@ -1,11 +1,12 @@
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.eac.palettes import BasePalette
 from serializers import BaseFileSerializer
 
 
 class PaletteSerializer(BaseFileSerializer):
 
-    def serialize(self, block: BasePalette, path: str):
-        super().serialize(block, path)
+    def serialize(self, block: BasePalette, path: str, wrapper: ReadBlockWrapper):
+        super().serialize(block, path, wrapper)
         with open(f'{path}.pal.txt', 'w') as f:
             f.write(f'{block.__class__.__name__.replace("Resource", "")}\n')
             f.write('Palette used in bitmap serialization. Contains mapping bitmap data bytes to RGBA colors.\n')

@@ -36,4 +36,4 @@ class ReadBlockWrapper(BaseResource, ABC):
         if not serializer_class_name or not serializer_class:
             raise NotImplementedError(f'Serializer for resource {self.block_class.__name__} not implemented!')
         serializer = serializer_class()
-        serializer.serialize(self.resource, path)
+        serializer.serialize(self.resource, path, self)

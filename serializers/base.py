@@ -1,12 +1,13 @@
 import json
 
 import settings
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.fields import ReadBlock
 
 
 class BaseFileSerializer:
 
-    def serialize(self, block: ReadBlock, path: str):
+    def serialize(self, block: ReadBlock, path: str, wrapper: ReadBlockWrapper):
         if settings.save_unknown_values:
             unknown_data = {}
             # TODO put unknown data to dict

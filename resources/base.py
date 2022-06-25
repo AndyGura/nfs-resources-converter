@@ -119,7 +119,7 @@ class LiteralResource(BaseResource):
     def __init__(self, possible_resources: List[BaseResource], **kwargs):
         super().__init__(possible_resources=possible_resources,
                          **kwargs)
-        self.possible_resources = possible_resources
+        self.possible_resources = [res.__class__(**res.instantiate_kwargs) for res in possible_resources]
         self.selected_resource = None
 
     def __getattr__(self, name):
