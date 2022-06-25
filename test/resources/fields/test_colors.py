@@ -2,7 +2,12 @@ import unittest
 from io import BytesIO
 
 from buffer_utils import read_byte
-from resources.fields import Color24BitDosField, Color24BitField, Color32BitField, Color16Bit0565Field
+from resources.fields import (Color24BitDosField,
+                              Color24BitLittleEndianField,
+                              Color24BitBigEndianField,
+                              Color32BitField,
+                              Color16Bit0565Field,
+                              )
 
 
 class Color24BitDosFieldTest(unittest.TestCase):
@@ -81,7 +86,7 @@ class Color24BitDosFieldTest(unittest.TestCase):
         self.assertEqual(buffer.read(), out_buffer.read())
 
 
-class Color24BitFieldTest(unittest.TestCase):
+class Color24BitLittleEndianFieldTest(unittest.TestCase):
 
     def test_should_read_3_bytes(self):
         ba = bytearray(b'')
@@ -91,7 +96,7 @@ class Color24BitFieldTest(unittest.TestCase):
         ba.append(0xCC)
         ba.append(0xCC)
         buffer = BytesIO(ba)
-        result = Color24BitField().read(buffer, 3)
+        result = Color24BitLittleEndianField().read(buffer, 3)
         self.assertEqual(buffer.tell(), 3)
 
     def test_should_read_correctly(self):
@@ -100,8 +105,8 @@ class Color24BitFieldTest(unittest.TestCase):
         ba.append(0x03)
         ba.append(0x31)
         buffer = BytesIO(ba)
-        result = Color24BitField().read(buffer, 3)
-        self.assertEqual(result, 0xFA0331FF)
+        result = Color24BitLittleEndianField().read(buffer, 3)
+        self.assertEqual(result, 0x3103faff)
 
     def test_should_write_the_same_as_read(self):
         ba = bytearray(b'')
@@ -109,9 +114,45 @@ class Color24BitFieldTest(unittest.TestCase):
         ba.append(0x1A)
         ba.append(0x4)
         buffer = BytesIO(ba)
-        result = Color24BitField().read(buffer, 3)
+        result = Color24BitLittleEndianField().read(buffer, 3)
         out_buffer = BytesIO()
-        Color24BitField().write(out_buffer, result)
+        Color24BitLittleEndianField().write(out_buffer, result)
+        buffer.seek(0)
+        out_buffer.seek(0)
+        self.assertEqual(buffer.read(), out_buffer.read())
+
+
+class Color24BitBigEndianFieldTest(unittest.TestCase):
+
+    def test_should_read_3_bytes(self):
+        ba = bytearray(b'')
+        ba.append(0x10)
+        ba.append(0x9A)
+        ba.append(0x74)
+        ba.append(0xCC)
+        ba.append(0xCC)
+        buffer = BytesIO(ba)
+        result = Color24BitBigEndianField().read(buffer, 3)
+        self.assertEqual(buffer.tell(), 3)
+
+    def test_should_read_correctly(self):
+        ba = bytearray(b'')
+        ba.append(0xFA)
+        ba.append(0x03)
+        ba.append(0x31)
+        buffer = BytesIO(ba)
+        result = Color24BitBigEndianField().read(buffer, 3)
+        self.assertEqual(result, 0xfa0331ff)
+
+    def test_should_write_the_same_as_read(self):
+        ba = bytearray(b'')
+        ba.append(0x10)
+        ba.append(0x1A)
+        ba.append(0x4)
+        buffer = BytesIO(ba)
+        result = Color24BitBigEndianField().read(buffer, 3)
+        out_buffer = BytesIO()
+        Color24BitBigEndianField().write(out_buffer, result)
         buffer.seek(0)
         out_buffer.seek(0)
         self.assertEqual(buffer.read(), out_buffer.read())

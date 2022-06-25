@@ -1,11 +1,15 @@
 import os
 
+from resources.base import LiteralResource
 from resources.eac import palettes, bitmaps
 from resources.fields import ReadBlock, ResourceField, ArrayField
 
 EXPORT_RESOURCES = {
     'Bitmaps': [
+        bitmaps.Bitmap16Bit0565(),
+        bitmaps.Bitmap32Bit(),
         bitmaps.Bitmap16Bit1555(),
+        bitmaps.Bitmap24Bit(),
     ],
     'Palettes': [
         palettes.Palette24BitDosResource(),
@@ -19,7 +23,10 @@ EXPORT_RESOURCES = {
 def render_range(min: int, max: int, render_hex: bool) -> str:
     if min == max:
         return hex(min) if render_hex else str(min)
-    return f'{hex(min) if render_hex else str(min)}..{hex(max) if render_hex else str(max)}'
+    label = f'{hex(min) if render_hex else str(min)}..{hex(max) if render_hex else str(max)}'.replace('inf', '?')
+    if label == '?..?':
+        label = '?'
+    return label
 
 
 def render_type(instance: ReadBlock) -> str:
@@ -31,6 +38,8 @@ def render_type(instance: ReadBlock) -> str:
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
             descr += f'<br/>Item type: {render_type(instance.child)}'
         return descr
+    if isinstance(instance, LiteralResource):
+        return 'One of types:<br/>' + '<br/>'.join([render_type(x) for x in instance.possible_resources])
     name = instance.__class__.__name__.replace("Resource", "")
     return f'[{name}](#{name.lower()})'
 
@@ -51,6 +60,6 @@ with open(md_name, 'w') as f:
             offset_min = 0
             offset_max = 0
             for key, field in resource.Fields.fields:
-                f.write(f'\n| {render_range(offset_min, offset_max, False)} | **{key}** | {render_range(field.min_size, field.max_size, False)} | {render_type(field)} | {field.description or "-"} |')
+                f.write(f'\n| {render_range(offset_min, offset_max, False)} | **{key}**{" (optional)" if getattr(field, "is_optional", False) else ""} | {render_range(field.min_size, field.max_size, False)} | {render_type(field)} | {field.description or "-"} |')
                 offset_min += field.min_size
                 offset_max += field.max_size

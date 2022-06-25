@@ -34,6 +34,6 @@ class ReadBlockWrapper(BaseResource, ABC):
             except ImportError:
                 pass
         if not serializer_class_name or not serializer_class:
-            raise NotImplementedError(f'Serializer for resource {self.new_res.__name__} not implemented!')
+            raise NotImplementedError(f'Serializer for resource {self.block_class.__name__} not implemented!')
         serializer = serializer_class()
         serializer.serialize(self.resource, path)

@@ -33,6 +33,10 @@ SERIALIZER_CLASSES = {
     'Palette24BitResource': 'PaletteSerializer',
     'Palette32BitResource': 'PaletteSerializer',
     'Palette16BitResource': 'PaletteSerializer',
+    'Bitmap16Bit0565': 'BitmapSerializer',
+    'Bitmap32Bit': 'BitmapSerializer',
+    'Bitmap16Bit1555': 'BitmapSerializer',
+    'Bitmap24Bit': 'BitmapSerializer',
 }
 
 

@@ -5,11 +5,11 @@ from buffer_utils import read_int, read_utf_bytes
 from parsers.resources.bitmaps import BaseBitmap
 from parsers.resources.collections import ArchiveResource
 from parsers.resources.geometries import OripGeometryResource
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
+from resources.eac.bitmaps import AnyBitmapResource
 
 
 # TODO check VET2.QFS. Why has two pictures?
-
-
 class SHPIArchive(ArchiveResource):
 
     def get_children_descriptors(self, buffer: BufferedReader, length: int) -> List[Dict]:
@@ -31,8 +31,11 @@ class SHPIArchive(ArchiveResource):
     def save_converted(self, path: str):
         super().save_converted(path)
         with open(f'{path}/positions.txt', 'w') as f:
-            for item in [x for x in self.resources if isinstance(x, BaseBitmap)]:
-                f.write(f"{item.name}: {item.x}, {item.y}\n")
+            for item in [x for x in self.resources]:
+                if isinstance(item, BaseBitmap):
+                    f.write(f"{item.name}: {item.x}, {item.y}\n")
+                elif isinstance(item, ReadBlockWrapper) and isinstance(item.resource, AnyBitmapResource):
+                    f.write(f"{item.name}: {item.resource.x}, {item.resource.y}\n")
 
 
 class WwwwArchive(ArchiveResource):
@@ -111,6 +114,8 @@ class SoundBank(ArchiveResource):
         children = [{'start_offset': read_int(buffer)} for i in range(0, 128)]
         children = [x for x in children if x['start_offset'] > 0]
         for child in children:
+            if child['start_offset'] >= length:
+                raise Exception(f'Child cannot start at offset {child["start_offset"]}. Resource length: {length}')
             child['name'] = hex(start_offset + child['start_offset'])
         children = sorted(children, key=lambda x: x['start_offset'])
         for i in range(0, len(children) - 1):

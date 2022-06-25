@@ -7,12 +7,7 @@ from parsers.resources.archives import (
 )
 from parsers.resources.audios import ASFAudio, EacsAudio
 from parsers.resources.base import BaseResource
-from parsers.resources.bitmaps import (
-    Bitmap8Bit,
-    Bitmap16Bit1555,
-    Bitmap16Bit0565,
-    Bitmap24Bit,
-    Bitmap32Bit)
+from parsers.resources.bitmaps import Bitmap8Bit
 from parsers.resources.compressed import (
     RefPackArchive,
     Qfs2Archive,
@@ -24,6 +19,12 @@ from parsers.resources.maps import TriMapResource
 from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo, CarPBSFile, CarPDNFile
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
+from resources.eac.bitmaps import (
+    Bitmap32Bit,
+    Bitmap16Bit1555,
+    Bitmap16Bit0565,
+    Bitmap24Bit,
+)
 from resources.eac.palettes import (
     Palette16BitResource,
     Palette32BitResource,
@@ -34,22 +35,31 @@ from resources.fields import ReadBlock
 
 
 # new logic
-def probe_block_class(binary_file: BufferedReader, file_name: str = None):
+# TODO optimize
+def probe_block_class(binary_file: BufferedReader, file_name: str = None, resources_to_pick=None):
     header_bytes = binary_file.read(4)
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         resource_id = header_bytes[0]
     except IndexError:
         raise NotImplementedError('Don`t have parser for such resource. header_bytes are missed')
-    if resource_id == 0x22:
+    if resource_id == 0x22 and (not resources_to_pick or Palette24BitDosResource in resources_to_pick):
         return Palette24BitDosResource
-    elif resource_id == 0x24:
+    elif resource_id == 0x24 and (not resources_to_pick or Palette24BitResource in resources_to_pick):
         return Palette24BitResource
     # 41 (0x29) 16 bit dos palette
-    elif resource_id == 0x2A:
+    elif resource_id == 0x2A and (not resources_to_pick or Palette32BitResource in resources_to_pick):
         return Palette32BitResource
-    elif resource_id == 0x2D:
+    elif resource_id == 0x2D and (not resources_to_pick or Palette16BitResource in resources_to_pick):
         return Palette16BitResource
+    elif resource_id == 0x78 and (not resources_to_pick or Bitmap16Bit0565 in resources_to_pick):
+        return Bitmap16Bit0565
+    elif resource_id == 0x7D and (not resources_to_pick or Bitmap32Bit in resources_to_pick):
+        return Bitmap32Bit
+    elif resource_id == 0x7E and (not resources_to_pick or Bitmap16Bit1555 in resources_to_pick):
+        return Bitmap16Bit1555
+    elif resource_id == 0x7F and (not resources_to_pick or Bitmap24Bit in resources_to_pick):
+        return Bitmap24Bit
     raise NotImplementedError('Don`t have parser for such resource')
 
 
@@ -111,18 +121,10 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
         return TriMapResource()
     elif resource_id == 0x6F:
         return TextResource()
-    elif resource_id == 0x78:
-        return Bitmap16Bit0565()
     elif resource_id == 0x7B:
         return Bitmap8Bit()
     elif resource_id == 0x7C:
         # it looks like we often see 0x7C after texture, No idea what's this, doesnt look like alpha channel container
         return BinaryResource(id=resource_id, save_binary_file=False)
-    elif resource_id == 0x7D:
-        return Bitmap32Bit()
-    elif resource_id == 0x7E:
-        return Bitmap16Bit1555()
-    elif resource_id == 0x7F:
-        return Bitmap24Bit()
     else:
         raise NotImplementedError('Don`t have parser for such resource')

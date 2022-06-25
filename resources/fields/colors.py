@@ -1,6 +1,16 @@
-from buffer_utils import read_byte, read_int, read_short, write_int, write_short, write_3int
-from parsers.resources.utils import transform_bitness, transform_color_bitness
+from buffer_utils import read_byte, read_int, read_short, write_int, write_short, write_3int, read_3int
+from parsers.resources.utils import transform_bitness, extract_number
 from resources.fields import ResourceField
+
+
+# transforms 0565, 1555 etc. colors to regular 8888
+def transform_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_bitness):
+    alpha = transform_bitness(extract_number(color, alpha_bitness, red_bitness + green_bitness + blue_bitness),
+                              alpha_bitness) if alpha_bitness else 0xFF
+    red = transform_bitness(extract_number(color, red_bitness, green_bitness + blue_bitness), red_bitness)
+    green = transform_bitness(extract_number(color, green_bitness, blue_bitness), green_bitness)
+    blue = transform_bitness(extract_number(color, blue_bitness), blue_bitness)
+    return red << 24 | green << 16 | blue << 8 | alpha
 
 
 class Color24BitDosField(ResourceField):
@@ -10,7 +20,7 @@ class Color24BitDosField(ResourceField):
     def size(self):
         return 3
 
-    def _read_internal(self, buffer, size):
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
         red = transform_bitness(read_byte(buffer), 6)
         green = transform_bitness(read_byte(buffer), 6)
         blue = transform_bitness(read_byte(buffer), 6)
@@ -23,21 +33,32 @@ class Color24BitDosField(ResourceField):
         write_3int(buffer, red << 16 | green << 8 | blue, byteorder='big')
 
 
-class Color24BitField(ResourceField):
-    block_description = 'EA games 24-bit color, rrrrrrrr_gggggggg_bbbbbbbb'
+class Color24BitBigEndianField(ResourceField):
+    block_description = 'EA games 24-bit color (big-endian), rrrrrrrr_gggggggg_bbbbbbbb'
 
     @property
     def size(self):
         return 3
 
-    def _read_internal(self, buffer, size):
-        return read_byte(buffer) << 24 | read_byte(buffer) << 16 | read_byte(buffer) << 8 | 255
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+        return read_3int(buffer, byteorder='big') << 8 | 0xFF
 
     def _write_internal(self, buffer, value):
-        red = (value & 0xff000000) >> 24
-        green = (value & 0xff0000) >> 16
-        blue = (value & 0xff00) >> 8
-        write_3int(buffer, red << 16 | green << 8 | blue, byteorder='big')
+        write_3int(buffer, value >> 8, byteorder='big')
+
+
+class Color24BitLittleEndianField(ResourceField):
+    block_description = 'EA games 24-bit color (little-endian), rrrrrrrr_gggggggg_bbbbbbbb'
+
+    @property
+    def size(self):
+        return 3
+
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+        return read_3int(buffer) << 8 | 0xFF
+
+    def _write_internal(self, buffer, value):
+        write_3int(buffer, value >> 8)
 
 
 class Color32BitField(ResourceField):
@@ -47,7 +68,7 @@ class Color32BitField(ResourceField):
     def size(self):
         return 4
 
-    def _read_internal(self, buffer, size):
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
         value = read_int(buffer)
         # ARGB => RGBA
         return (value & 0x00_ff_ff_ff) << 8 | (value & 0xff_00_00_00) >> 24
@@ -64,7 +85,7 @@ class Color16Bit0565Field(ResourceField):
     def size(self):
         return 2
 
-    def _read_internal(self, buffer, size):
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
         return transform_color_bitness(read_short(buffer), 0, 5, 6, 5)
 
     def _write_internal(self, buffer, value):
@@ -81,8 +102,8 @@ class Color16Bit1555Field(ResourceField):
     def size(self):
         return 2
 
-    def _read_internal(self, buffer, size):
-        return transform_color_bitness(read_short(buffer), 0, 5, 6, 5)
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+        return transform_color_bitness(read_short(buffer), 1, 5, 5, 5)
 
     def _write_internal(self, buffer, value):
         red = (value & 0xff000000) >> 27

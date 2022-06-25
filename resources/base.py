@@ -1,4 +1,5 @@
 from abc import ABC
+from copy import deepcopy
 from functools import cached_property
 from io import BufferedReader, BytesIO
 from typing import List, Tuple, final
@@ -24,26 +25,29 @@ class BaseResource(ReadBlock, ABC):
     description = None
 
     def __getattr__(self, name):
-        if name in [key for key, _ in self.Fields.fields]:
+        if name in [key for key, _ in self._instance_fields]:
             return self.data[name]
         return object.__getattribute__(self, name)
 
-    def __init__(self, description: str = ''):
+    def __init__(self, description: str = '', is_optional=False):
         super().__init__()
         self.description = description
+        self.is_optional = is_optional
+        self._instance_fields = deepcopy(self.__class__.Fields.fields)
+        self._instance_fields_map = {name: res for (name, res) in self._instance_fields}
         self._data = None
 
     @cached_property
     def size(self):
-        return sum(f.size for (_, f) in self.Fields.fields)
+        return sum(f.size for (_, f) in self._instance_fields)
 
     @cached_property
     def min_size(self):
-        return sum(f.min_size for (_, f) in self.Fields.fields)
+        return 0 if self.is_optional else sum(f.min_size for (_, f) in self._instance_fields)
 
     @cached_property
     def max_size(self):
-        return sum(f.max_size for (_, f) in self.Fields.fields)
+        return sum(f.max_size for (_, f) in self._instance_fields)
 
     @cached_property
     def data(self):
@@ -52,18 +56,26 @@ class BaseResource(ReadBlock, ABC):
         return self._data
 
     @final
-    def read(self, buffer: [BufferedReader, BytesIO], size: int):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         if self._data is not None:
             raise Exception('Block was already read')
-        self._data = super().read(buffer, size)
+        self._data = super().read(buffer, size, parent_read_data)
         return self._data
 
-    def _read_internal(self, buffer, size):
-        fields = self.Fields.fields
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+        fields = self._instance_fields
         res = dict()
+        remaining_size = size
         for name, field in fields:
-            res[name] = field.read(buffer, size)
-            size -= field.size
+            start = buffer.tell()
+            res[name] = field.read(buffer, remaining_size, parent_read_data=res)
+            if hasattr(self, f'_after_{name}_read'):
+                getattr(self, f'_after_{name}_read')(data=res,
+                                                     buffer=buffer,
+                                                     total_size=size,
+                                                     remaining_size=remaining_size,
+                                                     parent_read_data=parent_read_data)
+            remaining_size -= buffer.tell() - start
         return res
 
     @final
@@ -74,6 +86,44 @@ class BaseResource(ReadBlock, ABC):
 
     def _write_internal(self, buffer, value):
         super()._write_internal(buffer, value)
-        fields = self.Fields.fields
+        fields = self._instance_fields
         for name, field in fields:
             field.write(buffer, value[name])
+
+
+class LiteralResource(BaseResource):
+    class Fields(BaseFields):
+        pass
+
+    @cached_property
+    def size(self):
+        return self.selected_resource.size if self.selected_resource is not None else None
+
+    @cached_property
+    def min_size(self):
+        return 0 if self.is_optional else min(x.min_size for x in self.possible_resources)
+
+    @cached_property
+    def max_size(self):
+        return max(x.max_size for x in self.possible_resources)
+
+    @cached_property
+    def data(self):
+        return self.selected_resource.data
+
+    def __init__(self, *args, possible_resources: List[BaseResource], **kwargs):
+        super().__init__(*args, **kwargs)
+        self.possible_resources = possible_resources
+        self.selected_resource = None
+
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+        from guess_parser import probe_block_class
+        block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
+        for res in self.possible_resources:
+            if isinstance(res, block_class):
+                self.selected_resource = res
+                break
+        return self.selected_resource.read(buffer, size)
+
+    def _write_internal(self, buffer, value):
+        self.selected_resource._write_internal(buffer, value)
