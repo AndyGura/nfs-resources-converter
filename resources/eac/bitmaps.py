@@ -1,3 +1,5 @@
+from typing import Literal
+
 from resources.base import BaseResource, LiteralResource
 from resources.eac import palettes
 from resources.fields import RequiredByteField, Int3Field, Int2Field, ArrayField, ByteField
@@ -11,11 +13,19 @@ from resources.fields.colors import (
 
 class AnyBitmapResource:
 
+    def __init__(self, shpi_directory_identifier: Literal["LN32", "WRAP", "GIMX"] = None, **kwargs):
+        super(AnyBitmapResource, self).__init__(shpi_directory_identifier=shpi_directory_identifier,
+                                                **kwargs)
+        self.shpi_directory_identifier = shpi_directory_identifier
+
     def _after_height_read(self, data, total_size, **kwargs):
         pixel_size = self.instance_fields_map['bitmap'].child.size
         block_size = data['block_size']
         expected_block_size = pixel_size * data['width'] * data['height'] + 16
-        if block_size == 0:
+        # TODO in WRAP directory there is no block size. What's there instead?
+        if self.shpi_directory_identifier == 'WRAP':
+            block_size = expected_block_size
+        elif block_size == 0:
             # some NFS2 resources have block size equal to 0
             block_size = expected_block_size
         trailing_bytes_length = total_size - block_size
@@ -28,7 +38,8 @@ class AnyBitmapResource:
 class Bitmap16Bit0565(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x78, description='Resource ID')
-        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height, but not always')
+        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height. For "WRAP" SHPI directory it '
+                                           'contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
         height = Int2Field(description='Bitmap width in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
@@ -42,7 +53,8 @@ class Bitmap8Bit(AnyBitmapResource, BaseResource):
     # TODO write description
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x7B, description='Resource ID')
-        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height, but not always')
+        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height. For "WRAP" SHPI directory it '
+                                           'contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
         height = Int2Field(description='Bitmap width in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
@@ -66,7 +78,8 @@ class Bitmap8Bit(AnyBitmapResource, BaseResource):
 class Bitmap32Bit(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x7D, description='Resource ID')
-        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height, but not always')
+        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height. For "WRAP" SHPI directory it '
+                                           'contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
         height = Int2Field(description='Bitmap width in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
@@ -79,7 +92,8 @@ class Bitmap32Bit(AnyBitmapResource, BaseResource):
 class Bitmap16Bit1555(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x7E, description='Resource ID')
-        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height, but not always')
+        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height. For "WRAP" SHPI directory it '
+                                           'contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
         height = Int2Field(description='Bitmap width in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
@@ -92,7 +106,8 @@ class Bitmap16Bit1555(AnyBitmapResource, BaseResource):
 class Bitmap24Bit(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x7F, description='Resource ID')
-        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height, but not always')
+        block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height. For "WRAP" SHPI directory it '
+                                           'contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
         height = Int2Field(description='Bitmap width in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)

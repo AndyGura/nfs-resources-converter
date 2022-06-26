@@ -11,14 +11,16 @@ from utils import my_import
 class ReadBlockWrapper(BaseResource, ABC):
     block_class = None
     resource = None
+    block_init_kwargs = {}
 
     def __init__(self, *args, block_class, **kwargs):
         super().__init__(*args, **kwargs)
         self.block_class = block_class
+        self.block_init_kwargs = {}
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         start = buffer.tell()
-        self.resource = self.block_class()
+        self.resource = self.block_class(**self.block_init_kwargs)
         self.resource.read(buffer, length)
         bytes_consumed = buffer.tell() - start
         if bytes_consumed < length:

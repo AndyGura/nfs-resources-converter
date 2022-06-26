@@ -28,6 +28,32 @@ class SHPIArchive(ArchiveResource):
             child['length'] = next_resource_offset - offset
         return children
 
+    def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
+        start_offset = buffer.tell()
+        self.resources = []
+        self.children_descriptors = self.get_children_descriptors(buffer, length)
+        for child in self.children_descriptors:
+            from guess_parser import get_resource_class
+            buffer.seek(start_offset + child['start_offset'])
+            try:
+                resource = get_resource_class(buffer)
+            except BaseException as ex:
+                self.skipped_resources.append((child['name'], str(ex)))
+                continue
+            resource.name = child['name']
+            resource.parent = self
+            if isinstance(resource, ReadBlockWrapper) and issubclass(resource.block_class, AnyBitmapResource):
+                resource.block_init_kwargs['shpi_directory_identifier'] = self.directory_identifier
+            try:
+                print(f'READING {self.name}/{resource.name}')
+                bytes_used = resource.read(buffer, child['length'])
+                assert bytes_used == child['length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
+            except BaseException as ex:
+                self.skipped_resources.append((child['name'], str(ex)))
+                continue
+            self.resources.append(resource)
+        return length
+
     def save_converted(self, path: str):
         super().save_converted(path)
         with open(f'{path}/positions.txt', 'w') as f:
