@@ -73,7 +73,18 @@ class BaseResource(ReadBlock, ABC):
         remaining_size = size
         for name, field in fields:
             start = buffer.tell()
-            res[name] = field.read(buffer, remaining_size, parent_read_data=res)
+            if remaining_size == 0:
+                if field.is_optional:
+                    continue
+                else:
+                    raise Exception('Block read went out of available size')
+            try:
+                res[name] = field.read(buffer, remaining_size, parent_read_data=res)
+            except Exception as ex:
+                if field.is_optional:
+                    buffer.seek(start)
+                else:
+                    raise ex
             if hasattr(self, f'_after_{name}_read'):
                 getattr(self, f'_after_{name}_read')(data=res,
                                                      buffer=buffer,
@@ -81,6 +92,8 @@ class BaseResource(ReadBlock, ABC):
                                                      remaining_size=remaining_size,
                                                      parent_read_data=parent_read_data)
             remaining_size -= buffer.tell() - start
+            if remaining_size < 0:
+                raise Exception('Block read went out of available size')
         return res
 
     @final

@@ -39,6 +39,7 @@ class Bitmap16Bit0565(AnyBitmapResource, BaseResource):
 
 
 class Bitmap8Bit(AnyBitmapResource, BaseResource):
+    # TODO write description
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x7B, description='Resource ID')
         block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height, but not always')
@@ -56,6 +57,7 @@ class Bitmap8Bit(AnyBitmapResource, BaseResource):
                                                       palettes.Palette32BitResource(),
                                                       palettes.Palette16BitResource(),
                                                       ],
+                                  is_optional=True,
                                   description='Palette, assigned to this bitmap or reference to external palette?. '
                                               'The exact mechanism of choosing the correct palette '
                                               '(except embedded one) is unknown')
