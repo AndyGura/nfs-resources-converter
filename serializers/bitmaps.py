@@ -62,7 +62,9 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
 
     def serialize(self, block: AnyBitmapResource, path: str, wrapper: ReadBlockWrapper):
         super().serialize(block, path, wrapper)
-        if block.palette.selected_resource is None or isinstance(block.palette.selected_resource, PaletteReference):
+        if (block.palette.selected_resource is None
+                or isinstance(block.palette.selected_resource, PaletteReference)
+                or (wrapper.name == 'ga00' and wrapper.parent.parent.parent.name == 'TR2_001.FAM')):
             # need to find the palette, it is a tricky part
             # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
             # sometimes better, sometime worse, the difference is not much noticeable.
