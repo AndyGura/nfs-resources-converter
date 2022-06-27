@@ -3,6 +3,8 @@ from functools import cached_property
 from io import BufferedReader, BytesIO
 from typing import List, Tuple, final
 
+from exceptions import ResourceWasntReadException, ResourceAlreadyReadException, EndOfBufferException, \
+    BlockIntegrityException
 from resources.fields import ReadBlock
 
 
@@ -56,13 +58,13 @@ class BaseResource(ReadBlock, ABC):
     @cached_property
     def data(self):
         if self._data is None:
-            raise Exception("Resource wasn't read yet")
+            raise ResourceWasntReadException()
         return self._data
 
     @final
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         if self._data is not None:
-            raise Exception('Block was already read')
+            raise ResourceAlreadyReadException()
         self._data = super().read(buffer, size, parent_read_data)
         return self._data
 
@@ -76,10 +78,10 @@ class BaseResource(ReadBlock, ABC):
                 if field.is_optional or field.min_size == 0:
                     continue
                 else:
-                    raise Exception('Block read went out of available size')
+                    raise EndOfBufferException()
             try:
                 res[name] = field.read(buffer, remaining_size, parent_read_data=res)
-            except Exception as ex:
+            except (EndOfBufferException, BlockIntegrityException) as ex:
                 if field.is_optional:
                     buffer.seek(start)
                 else:
@@ -92,7 +94,7 @@ class BaseResource(ReadBlock, ABC):
                                                      parent_read_data=parent_read_data)
             remaining_size -= buffer.tell() - start
             if remaining_size < 0:
-                raise Exception('Block read went out of available size')
+                raise EndOfBufferException()
         return res
 
     @final
@@ -141,10 +143,9 @@ class LiteralResource(BaseResource):
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
         from guess_parser import probe_block_class
-        try:
-            block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
-        except Exception:
-            raise Exception('Expectation failed for literal block: class not found')
+        block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
+        if not block_class:
+            raise BlockIntegrityException('Expectation failed for literal block: class not found')
         selected_resource = None
         for res in self.possible_resources:
             if isinstance(res, block_class):

@@ -1,3 +1,5 @@
+from io import BufferedReader, BytesIO
+
 from buffer_utils import read_byte, read_int, read_short, write_int, write_short, write_3int, read_3int
 from parsers.resources.utils import transform_bitness, extract_number
 from resources.fields import ResourceField
@@ -21,10 +23,20 @@ class Color24BitDosField(ResourceField):
         return 3
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
-        red = transform_bitness(read_byte(buffer), 6)
-        green = transform_bitness(read_byte(buffer), 6)
-        blue = transform_bitness(read_byte(buffer), 6)
+        return self._transform_value(read_byte(buffer), read_byte(buffer), read_byte(buffer))
+
+    def _transform_value(self, *values):
+        red = transform_bitness(values[0], 6)
+        green = transform_bitness(values[1], 6)
+        blue = transform_bitness(values[2], 6)
         return red << 24 | green << 16 | blue << 8 | 255
+
+    def _read_multiple_internal(self, buffer: [BufferedReader, BytesIO], size: int, length: int,
+                                parent_read_data: dict = None):
+        bts = list(buffer.read(length * 3))
+        return [self._transform_value(*x)
+                for x in (bts[i:i + 3]
+                          for i in range(0, length * 3, 3))]
 
     def _write_internal(self, buffer, value):
         red = (value & 0xff000000) >> 26
@@ -102,7 +114,7 @@ class Color16Bit1555Field(ResourceField):
     def size(self):
         return 2
 
-    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+    def _read_internal(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         return transform_color_bitness(read_short(buffer), 1, 5, 5, 5)
 
     def _write_internal(self, buffer, value):

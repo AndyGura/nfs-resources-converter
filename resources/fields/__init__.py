@@ -4,6 +4,7 @@ from math import floor
 from typing import Literal, final
 
 from buffer_utils import read_byte, write_byte, read_3int, write_3int, read_short, write_short
+from exceptions import EndOfBufferException, BlockIntegrityException, BlockDefinitionException
 
 
 class ReadBlock(ABC):
@@ -28,7 +29,8 @@ class ReadBlock(ABC):
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         if self.min_size > size:
-            raise Exception(f'Cannot read {self.__class__.__name__}: min size {self.min_size}, available: {size}')
+            raise EndOfBufferException(f'Cannot read {self.__class__.__name__}: '
+                                       f'min size {self.min_size}, available: {size}')
         return self._read_internal(buffer, size, parent_read_data)
 
     @abstractmethod
@@ -60,6 +62,16 @@ class ResourceField(ReadBlock, ABC):
         return super().read(buffer, size, parent_read_data)
 
     @final
+    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
+        if self.min_size * length > size:
+            raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
+                                       f'min size {self.min_size * length}, available: {size}')
+        return self._read_multiple_internal(buffer, size, length, parent_read_data)
+
+    def _read_multiple_internal(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
+        raise NotImplementedError()
+
+    @final
     def write(self, buffer, data):
         super().write(buffer, data)
 
@@ -73,6 +85,9 @@ class ByteField(ResourceField):
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
         return read_byte(buffer)
+
+    def _read_multiple_internal(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
+        return list(buffer.read(length))
 
     def _write_internal(self, buffer, value):
         write_byte(buffer, value)
@@ -130,10 +145,6 @@ class BitmapField(ResourceField):
 
 class RequiredByteField(ByteField):
 
-    @property
-    def size(self):
-        return 1
-
     def __init__(self, required_value: int, **kwargs):
         super().__init__(required_value=required_value,
                          **kwargs)
@@ -143,7 +154,7 @@ class RequiredByteField(ByteField):
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
         value = super()._read_internal(buffer, size, parent_read_data)
         if value != self.required_value:
-            raise Exception(f'Expected {hex(self.required_value)}, found {hex(value)}')
+            raise BlockIntegrityException(f'Expected {hex(self.required_value)}, found {hex(value)}')
         return value
 
 
@@ -202,23 +213,29 @@ class ArrayField(ResourceField):
         res = []
         amount = self.length
         if self.length is None and self.length_strategy != "read_available":
-            raise 'Array field length is unknown'
+            raise BlockDefinitionException('Array field length is unknown')
         if self.length_strategy == "read_available":
             amount = (min(amount, floor(size / self.child.size))
                       if amount is not None
                       else floor(size / self.child.size))
-        for _ in range(amount):
-            start = buffer.tell()
-            try:
-                res.append(self.child.read(buffer, size))
-            except Exception as ex:
-                if self.length_strategy == "read_available":
-                    # assume this array is finished
-                    buffer.seek(start)
-                    return res
-                else:
-                    raise ex
+        start = buffer.tell()
+        try:
+            res = self.child.read_multiple(buffer, size, amount, parent_read_data)
             size -= (buffer.tell() - start)
+        except (NotImplementedError, EndOfBufferException) as ex:
+            buffer.seek(start)
+            for _ in range(amount):
+                start = buffer.tell()
+                try:
+                    res.append(self.child.read(buffer, size))
+                except EndOfBufferException as ex:
+                    if self.length_strategy == "read_available":
+                        # assume this array is finished
+                        buffer.seek(start)
+                        return res
+                    else:
+                        raise ex
+                size -= (buffer.tell() - start)
         return res
 
     def _write_internal(self, buffer, value):

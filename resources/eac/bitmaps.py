@@ -1,5 +1,6 @@
 from typing import Literal
 
+from exceptions import BlockIntegrityException
 from resources.base import BaseResource, LiteralResource
 from resources.eac import palettes
 from resources.fields import RequiredByteField, Int3Field, Int2Field, ArrayField, ByteField
@@ -27,8 +28,8 @@ class AnyBitmapResource(BaseResource):
             # some NFS2 resources have block size equal to 0
             block_size = expected_block_size
         if block_size > total_size:
-            raise Exception(
-                f'Too big bitmap block size {block_size}, available: {total_size}. Expected block size {expected_block_size}')
+            raise BlockIntegrityException(f'Too big bitmap block size {block_size}, available: '
+                                          f'{total_size}. Expected block size {expected_block_size}')
         self.instance_fields_map['trailing_bytes'].length = block_size - expected_block_size
         self.instance_fields_map['bitmap'].length = data['width'] * data['height']
 

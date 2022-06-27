@@ -2,6 +2,7 @@ from copy import deepcopy
 
 from PIL import Image
 
+from exceptions import SerializationException
 from parsers.resources.archives import WwwwArchive, SHPIArchive
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.eac.bitmaps import AnyBitmapResource
@@ -89,7 +90,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         else:
             palette = block.palette
         if palette is None:
-            raise Exception('Palette not found for 8bit bitmap')
+            raise SerializationException('Palette not found for 8bit bitmap')
         colors = []
         palette_colors = palette.colors
         if is_tail_lights_texture_for_nfs1_car(wrapper):

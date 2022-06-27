@@ -1,5 +1,6 @@
 from io import BufferedReader, SEEK_CUR
 
+from exceptions import BlockIntegrityException
 from parsers.resources.archives import (
     SHPIArchive,
     WwwwArchive,
@@ -43,7 +44,7 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
     try:
         resource_id = header_bytes[0]
     except IndexError:
-        raise NotImplementedError('Don`t have parser for such resource. header_bytes are missed')
+        raise BlockIntegrityException('Don`t have parser for such resource. header_bytes are missed')
     if resource_id == 0x22 and (not resources_to_pick or Palette24BitDosResource in resources_to_pick):
         return Palette24BitDosResource
     elif resource_id == 0x24 and (not resources_to_pick or Palette24BitResource in resources_to_pick):
@@ -65,15 +66,16 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         return Bitmap16Bit1555
     elif resource_id == 0x7F and (not resources_to_pick or Bitmap24Bit in resources_to_pick):
         return Bitmap24Bit
-    raise NotImplementedError('Don`t have parser for such resource')
+    return None
 
 
 # old logic
 def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [BaseResource, ReadBlock]:
     try:
         block_class = probe_block_class(binary_file, file_name)
-        return ReadBlockWrapper(block_class=block_class)
-    except NotImplementedError:
+        if block_class:
+            return ReadBlockWrapper(block_class=block_class)
+    except Exception:
         pass
     if file_name:
         if file_name.endswith('.BNK'):
