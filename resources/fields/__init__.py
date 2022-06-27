@@ -168,6 +168,12 @@ class ArrayField(ResourceField):
             return float('inf')
         return self.child.max_size * self.length
 
+    @property
+    def is_optional(self):
+        return self.length_strategy == "read_available" or (
+            self.length_strategy == "strict" and self.length == 0
+        )
+
     def __init__(self,
                  child: ResourceField,
                  length: int = None,
@@ -189,6 +195,7 @@ class ArrayField(ResourceField):
                 length_label = f'0..{self.length}'
             else:
                 length_label = str(self.length)
+        self.length_label = length_label
         self.block_description = f'Array of {length_label} items'
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
@@ -202,7 +209,15 @@ class ArrayField(ResourceField):
                       else floor(size / self.child.size))
         for _ in range(amount):
             start = buffer.tell()
-            res.append(self.child.read(buffer, size))
+            try:
+                res.append(self.child.read(buffer, size))
+            except Exception as ex:
+                if self.length_strategy == "read_available":
+                    # assume this array is finished
+                    buffer.seek(start)
+                    return res
+                else:
+                    raise ex
             size -= (buffer.tell() - start)
         return res
 

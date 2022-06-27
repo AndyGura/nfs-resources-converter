@@ -1,5 +1,4 @@
 from abc import ABC
-from copy import deepcopy
 from functools import cached_property
 from io import BufferedReader, BytesIO
 from typing import List, Tuple, final
@@ -48,7 +47,7 @@ class BaseResource(ReadBlock, ABC):
 
     @cached_property
     def min_size(self):
-        return 0 if self.is_optional else sum(f.min_size for (_, f) in self.instance_fields)
+        return sum(0 if getattr(f, 'is_optional', False) else f.min_size for (_, f) in self.instance_fields)
 
     @cached_property
     def max_size(self):
@@ -74,7 +73,7 @@ class BaseResource(ReadBlock, ABC):
         for name, field in fields:
             start = buffer.tell()
             if remaining_size == 0:
-                if field.is_optional:
+                if field.is_optional or field.min_size == 0:
                     continue
                 else:
                     raise Exception('Block read went out of available size')
@@ -146,11 +145,14 @@ class LiteralResource(BaseResource):
             block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
         except Exception:
             raise Exception('Expectation failed for literal block: class not found')
+        selected_resource = None
         for res in self.possible_resources:
             if isinstance(res, block_class):
-                self.selected_resource = res
+                selected_resource = res
                 break
-        return self.selected_resource.read(buffer, size)
+        result = selected_resource.read(buffer, size)
+        self.selected_resource = selected_resource
+        return result
 
     def _write_internal(self, buffer, value):
         self.selected_resource._write_internal(buffer, value)

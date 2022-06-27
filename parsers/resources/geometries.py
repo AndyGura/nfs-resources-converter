@@ -8,10 +8,11 @@ from typing import List
 import settings
 from buffer_utils import read_int, read_utf_bytes, read_byte, read_signed_int, read_nfs1_float32_7, read_nfs1_float32_4
 from parsers.resources.base import BaseResource
-from parsers.resources.bitmaps import BaseBitmap
 from parsers.resources.collections import ArchiveResource
 from parsers.resources.common.blender_scripts import run_blender
 from parsers.resources.common.meshes import SubMesh
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
+from resources.eac.bitmaps import AnyBitmapResource
 
 
 class Block:
@@ -181,7 +182,7 @@ class OripGeometryResource(BaseResource):
                 face_index_increment += len(sub_model.vertices)
         with open(f'{path}material.mtl', 'w') as f:
             for texture in self.textures_archive.resources:
-                if not isinstance(texture, BaseBitmap):
+                if not isinstance(texture, ReadBlockWrapper) or not isinstance(texture.resource, AnyBitmapResource):
                     continue
                 f.write(f"""\n\nnewmtl {texture.name}
 Ka 1.000000 1.000000 1.000000

@@ -1,3 +1,6 @@
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
+from resources.eac.bitmaps import AnyBitmapResource
+
 # Mesh with one single texture
 class SubMesh:
     def __init__(self):
@@ -20,9 +23,8 @@ class SubMesh:
             uvs_scaled_to_texture = False
             if self.texture_id:
                 for texture_res in textures_archive.resources:
-                    from parsers.resources.bitmaps import BaseBitmap
-                    if isinstance(texture_res, BaseBitmap) and texture_res.name == self.texture_id:
-                        u_multiplier, v_multiplier = 1 / texture_res.width, 1 / texture_res.height
+                    if isinstance(texture_res, ReadBlockWrapper) and isinstance(texture_res.resource, AnyBitmapResource) and texture_res.name == self.texture_id:
+                        u_multiplier, v_multiplier = 1 / texture_res.resource.width, 1 / texture_res.resource.height
                         uvs_scaled_to_texture = True
                         break
             if not uvs_scaled_to_texture:

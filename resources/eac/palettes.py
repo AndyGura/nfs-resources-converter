@@ -59,7 +59,7 @@ class BasePalette(BaseResource, ABC):
 
 class PaletteReference(BaseResource):
     block_description = 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. ' \
-                        'Probably a reference to pallete which should be used'
+                        'Probably a reference to palette which should be used, that\'s why named so'
 
     class Fields(BaseResource.Fields):
         resource_id = RequiredByteField(required_value=0x7C, description='Resource ID')

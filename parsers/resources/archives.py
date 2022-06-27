@@ -2,7 +2,6 @@ from io import BufferedReader, SEEK_CUR
 from typing import List, Dict
 
 from buffer_utils import read_int, read_utf_bytes
-from parsers.resources.bitmaps import BaseBitmap
 from parsers.resources.collections import ArchiveResource
 from parsers.resources.geometries import OripGeometryResource
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
@@ -57,11 +56,10 @@ class SHPIArchive(ArchiveResource):
     def save_converted(self, path: str):
         super().save_converted(path)
         with open(f'{path}/positions.txt', 'w') as f:
-            for item in [x for x in self.resources]:
-                if isinstance(item, BaseBitmap):
-                    f.write(f"{item.name}: {item.x}, {item.y}\n")
-                elif isinstance(item, ReadBlockWrapper) and isinstance(item.resource, AnyBitmapResource):
-                    f.write(f"{item.name}: {item.resource.x}, {item.resource.y}\n")
+            for item in [x
+                         for x in self.resources
+                         if isinstance(x, ReadBlockWrapper) and isinstance(x.resource, AnyBitmapResource)]:
+                f.write(f"{item.name}: {item.resource.x}, {item.resource.y}\n")
 
 
 class WwwwArchive(ArchiveResource):

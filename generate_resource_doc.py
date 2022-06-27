@@ -22,7 +22,11 @@ EXPORT_RESOURCES = {
 }
 
 
-def render_range(min: int, max: int, render_hex: bool) -> str:
+def render_range(field, min: int, max: int, render_hex: bool) -> str:
+    if field is not None and isinstance(field, ArrayField) and field.length_label is not None:
+        if field.child.size == 1:
+            return field.length_label
+        return f'{field.child.size} * ({field.length_label})'
     if min == max:
         return hex(min) if render_hex else str(min)
     label = f'{hex(min) if render_hex else str(min)}..{hex(max) if render_hex else str(max)}'.replace('inf', '?')
@@ -36,7 +40,7 @@ def render_type(instance: ReadBlock) -> str:
         descr = instance.block_description
         if isinstance(instance, ArrayField):
             if isinstance(instance.child, ResourceField):
-                size = render_range(instance.child.min_size, instance.child.max_size, False)
+                size = render_range(None, instance.child.min_size, instance.child.max_size, False)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
             descr += f'<br/>Item type: {render_type(instance.child)}'
         return descr
@@ -54,7 +58,7 @@ with open(md_name, 'w') as f:
         f.write(f'\n## **{heading}** ##')
         for resource in resources:
             f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
-            f.write(f'\n#### **Size**: {render_range(resource.min_size, resource.max_size, False)} bytes ####')
+            f.write(f'\n#### **Size**: {render_range(None, resource.min_size, resource.max_size, False)} bytes ####')
             if resource.block_description:
                 f.write(f'\n#### **Description**: {resource.block_description} ####')
             f.write(f'\n| Offset | Name | Size (bytes) | Type | Description |')
@@ -62,6 +66,6 @@ with open(md_name, 'w') as f:
             offset_min = 0
             offset_max = 0
             for key, field in resource.Fields.fields:
-                f.write(f'\n| {render_range(offset_min, offset_max, False)} | **{key}**{" (optional)" if getattr(field, "is_optional", False) else ""} | {render_range(field.min_size, field.max_size, False)} | {render_type(field)} | {field.description or "-"} |')
+                f.write(f'\n| {render_range(None, offset_min, offset_max, False)} | **{key}**{" (optional)" if getattr(field, "is_optional", False) else ""} | {render_range(field, field.min_size, field.max_size, False)} | {render_type(field)} | {field.description or "-"} |')
                 offset_min += field.min_size
                 offset_max += field.max_size
