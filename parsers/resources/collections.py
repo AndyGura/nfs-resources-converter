@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 from abc import ABC, abstractmethod
 from io import BufferedReader
 from multiprocessing import Pool, cpu_count

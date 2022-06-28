@@ -2,11 +2,11 @@ from copy import deepcopy
 
 from PIL import Image
 
-from exceptions import SerializationException
 from parsers.resources.archives import WwwwArchive, SHPIArchive
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
+from resources.basic.exceptions import SerializationException
 from resources.eac.bitmaps import AnyBitmapResource
-from resources.eac.palettes import PaletteReference, BasePalette
+from resources.eac.palettes import BasePalette
 from serializers import BaseFileSerializer
 
 
@@ -63,8 +63,8 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
 
     def serialize(self, block: AnyBitmapResource, path: str, wrapper: ReadBlockWrapper):
         super().serialize(block, path, wrapper)
-        if (block.palette.selected_resource is None
-                or isinstance(block.palette.selected_resource, PaletteReference)
+        if (block.palette is None
+                or block.palette.resource_id == 0x7C
                 or (wrapper.name == 'ga00' and wrapper.parent.parent.parent.name == 'TR2_001.FAM')):
             # need to find the palette, it is a tricky part
             # For textures in FAM files, inline palettes appear to be almost the same as parent palette,

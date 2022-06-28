@@ -1,6 +1,6 @@
 from io import BufferedReader, SEEK_CUR
 
-from exceptions import BlockIntegrityException
+from resources.basic.exceptions import BlockIntegrityException
 from parsers.resources.archives import (
     SHPIArchive,
     WwwwArchive,
@@ -19,6 +19,7 @@ from parsers.resources.maps import TriMapResource
 from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo, CarPBSFile, CarPDNFile
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
+from resources.basic.read_block import ReadBlock
 from resources.eac.bitmaps import (
     Bitmap32Bit,
     Bitmap16Bit1555,
@@ -34,7 +35,6 @@ from resources.eac.palettes import (
     Palette24BitResource,
     Palette24BitDosResource,
 )
-from resources.fields import ReadBlock
 
 
 # new logic

@@ -1,8 +1,14 @@
 from abc import ABC
 
-from resources.base import BaseResource
-from resources.fields import (ArrayField, ByteField, Color24BitDosField, Color24BitBigEndianField,
-                              Color32BitField, Color16Bit0565Field)
+from resources.basic.array_field import ArrayField
+from resources.basic.atomic import IntegerField
+from resources.basic.compound_block import CompoundBlock
+from resources.eac.fields.colors import (
+    Color24BitBigEndianField,
+    Color24BitDosField,
+    Color32BitField,
+    Color16Bit0565Field,
+)
 
 
 # TODO probably this flag is somewhere in image resource, need to find it
@@ -39,16 +45,19 @@ def is_last_color_transparent(color):
     ]
 
 
-class BasePalette(BaseResource, ABC):
-    block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, ' \
-                        'meaning the index of color in LUT of assigned palette'
+class BasePalette(CompoundBlock, ABC):
     can_use_last_color_as_transparent = True
 
-    def _read_internal(self, buffer, size, parent_read_data: dict = None):
-        res = super()._read_internal(buffer, size, parent_read_data)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, ' \
+                                 'meaning the index of color in LUT of assigned palette'
+
+    def from_raw_value(self, raw: dict):
+        res = super().from_raw_value(raw)
         try:
-            if self.can_use_last_color_as_transparent and is_last_color_transparent(res['colors'][255]):
-                res['colors'][255] = 0
+            if self.can_use_last_color_as_transparent and is_last_color_transparent(res.colors[255]):
+                res.colors[255] = 0
         except IndexError:
             pass
         return res
@@ -57,35 +66,37 @@ class BasePalette(BaseResource, ABC):
 # TODO 41 (0x29) 16 bit dos palette
 
 
-class PaletteReference(BaseResource):
-    block_description = 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. ' \
-                        'Probably a reference to palette which should be used, that\'s why named so'
+class PaletteReference(CompoundBlock):
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x7C, description='Resource ID')
+        unknowns = ArrayField(length=7, child=IntegerField(static_size=1), is_unknown=True)
 
-    class Fields(BaseResource.Fields):
-        resource_id = ByteField(required_value=0x7C, description='Resource ID')
-        unknowns = ArrayField(length=7, child=ByteField(), is_unknown=True)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.block_description = 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. ' \
+                                 'Probably a reference to palette which should be used, that\'s why named so'
 
 
 class Palette24BitDosResource(BasePalette):
-    class Fields(BaseResource.Fields):
-        resource_id = ByteField(required_value=0x22, description='Resource ID')
-        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x22, description='Resource ID')
+        unknowns = ArrayField(length=15, child=IntegerField(static_size=1), is_unknown=True)
         colors = ArrayField(length=256, child=Color24BitDosField(), length_strategy="read_available",
                             description='Colors LUT')
 
 
 class Palette24BitResource(BasePalette):
-    class Fields(BaseResource.Fields):
-        resource_id = ByteField(required_value=0x24, description='Resource ID')
-        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x24, description='Resource ID')
+        unknowns = ArrayField(length=15, child=IntegerField(static_size=1), is_unknown=True)
         colors = ArrayField(length=256, child=Color24BitBigEndianField(), length_strategy="read_available",
                             description='Colors LUT')
 
 
 class Palette32BitResource(BasePalette):
-    class Fields(BaseResource.Fields):
-        resource_id = ByteField(required_value=0x2A, description='Resource ID')
-        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x2A, description='Resource ID')
+        unknowns = ArrayField(length=15, child=IntegerField(static_size=1), is_unknown=True)
         colors = ArrayField(length=256, child=Color32BitField(), length_strategy="read_available",
                             description='Colors LUT')
 
@@ -93,8 +104,8 @@ class Palette32BitResource(BasePalette):
 
 
 class Palette16BitResource(BasePalette):
-    class Fields(BaseResource.Fields):
-        resource_id = ByteField(required_value=0x2D, description='Resource ID')
-        unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x2D, description='Resource ID')
+        unknowns = ArrayField(length=15, child=IntegerField(static_size=1), is_unknown=True)
         colors = ArrayField(length=256, child=Color16Bit0565Field(), length_strategy="read_available",
                             description='Colors LUT')

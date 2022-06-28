@@ -5,7 +5,7 @@
 
 def transform_bitness(value: int, bitness: int) -> int:
     koef = 255 / (pow(2, bitness) - 1)
-    return round((value & generate_bit_mask(6)) * koef)
+    return round((value & generate_bit_mask(bitness)) * koef)
 
 
 # generates 0b01110 if args are 3, 1

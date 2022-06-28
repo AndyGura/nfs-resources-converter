@@ -2,7 +2,7 @@ import json
 
 import settings
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
-from resources.fields import ReadBlock
+from resources.basic.read_block import ReadBlock
 
 
 class BaseFileSerializer:

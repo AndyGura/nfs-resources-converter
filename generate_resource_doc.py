@@ -1,8 +1,10 @@
 import os
 
-from resources.base import LiteralResource
+from resources.basic.array_field import ArrayField
+from resources.basic.compound_block import CompoundBlock
+from resources.basic.literal_block import LiteralResource
+from resources.basic.read_block import ReadBlock
 from resources.eac import palettes, bitmaps
-from resources.fields import ReadBlock, ResourceField, ArrayField
 
 EXPORT_RESOURCES = {
     'Bitmaps': [
@@ -37,16 +39,16 @@ def render_range(field, min: int, max: int, render_hex: bool) -> str:
 
 
 def render_type(instance: ReadBlock) -> str:
-    if isinstance(instance, ResourceField):
+    if isinstance(instance, LiteralResource):
+        return 'One of types:<br/>' + '<br/>'.join([render_type(x) for x in instance.possible_resources])
+    if not isinstance(instance, CompoundBlock):
         descr = instance.block_description
         if isinstance(instance, ArrayField):
-            if isinstance(instance.child, ResourceField):
+            if not isinstance(instance.child, CompoundBlock):
                 size = render_range(None, instance.child.min_size, instance.child.max_size, False)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
             descr += f'<br/>Item type: {render_type(instance.child)}'
         return descr
-    if isinstance(instance, LiteralResource):
-        return 'One of types:<br/>' + '<br/>'.join([render_type(x) for x in instance.possible_resources])
     name = instance.__class__.__name__.replace("Resource", "")
     return f'[{name}](#{name.lower()})'
 
@@ -67,6 +69,10 @@ with open(md_name, 'w') as f:
             offset_min = 0
             offset_max = 0
             for key, field in resource.Fields.fields:
-                f.write(f'\n| {render_range(None, offset_min, offset_max, False)} | **{key}**{" (optional)" if getattr(field, "is_optional", False) else ""} | {render_range(field, field.min_size, field.max_size, False)} | {render_type(field)} | {field.description or "-"} |')
+                f.write(f'\n| {render_range(None, offset_min, offset_max, False)} | '
+                        f'**{key}**{" (optional)" if key in resource.Fields.optional_fields else ""} | '
+                        f'{render_range(field, field.min_size, field.max_size, False)} | '
+                        f'{render_type(field)} | '
+                        f'{field.description or "-"} |')
                 offset_min += field.min_size
                 offset_max += field.max_size
