@@ -3,7 +3,8 @@ from io import BufferedReader, BytesIO
 from math import floor
 from typing import Literal, final
 
-from buffer_utils import read_byte, write_byte, read_3int, write_3int, read_short, write_short
+from buffer_utils import read_byte, write_byte, read_3int, write_3int, read_short, write_short, read_utf_bytes, \
+    read_int, write_int, read_signed_byte
 from exceptions import EndOfBufferException, BlockIntegrityException, BlockDefinitionException
 
 
@@ -48,18 +49,26 @@ class ReadBlock(ABC):
 class ResourceField(ReadBlock, ABC):
     is_unknown = False
 
-    def __init__(self, description: str = '', is_unknown: bool = False, **kwargs):
+    def __init__(self, description: str = '', is_unknown: bool = False, required_value: int = None, **kwargs):
         super().__init__(description=description,
                          is_unknown=is_unknown,
+                         required_value=required_value,
                          **kwargs)
         self.description = description
         self.is_unknown = is_unknown
+        self.required_value = required_value
         if not self.description and self.is_unknown:
             self.description = 'Unknown purpose'
+        if self.required_value:
+            self.block_description += f'. Always == {hex(self.required_value) if isinstance(self.required_value, int) else self.required_value} '
 
     @final
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        return super().read(buffer, size, parent_read_data)
+        value = super().read(buffer, size, parent_read_data)
+        if self.required_value and value != self.required_value:
+            raise BlockIntegrityException(f'Expected {hex(self.required_value) if isinstance(self.required_value, int) else self.required_value}, '
+                                          f'found {hex(value) if isinstance(value, int) else value}')
+        return value
 
     @final
     def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
@@ -93,6 +102,20 @@ class ByteField(ResourceField):
         write_byte(buffer, value)
 
 
+class SignedByteField(ResourceField):
+    block_description = '1-byte signed integer'
+
+    @property
+    def size(self):
+        return 1
+
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+        return read_signed_byte(buffer)
+
+    def _write_internal(self, buffer, value):
+        raise NotImplementedError
+
+
 class Int2Field(ResourceField):
     block_description = '2-byte unsigned integer'
 
@@ -121,6 +144,20 @@ class Int3Field(ResourceField):
         write_3int(buffer, value)
 
 
+class Int4Field(ResourceField):
+    block_description = '4-byte unsigned integer'
+
+    @property
+    def size(self):
+        return 4
+
+    def _read_internal(self, buffer, size, parent_read_data: dict = None):
+        return read_int(buffer)
+
+    def _write_internal(self, buffer, value):
+        write_int(buffer, value)
+
+
 class BitmapField(ResourceField):
     block_description = '1-byte field, set of 8 flags'
     masks = [pow(2, 7 - i) for i in range(8)]
@@ -143,19 +180,23 @@ class BitmapField(ResourceField):
         raise NotImplementedError
 
 
-class RequiredByteField(ByteField):
+class Utf8Field(ResourceField):
+    block_description = 'UTF-8 string'
 
-    def __init__(self, required_value: int, **kwargs):
-        super().__init__(required_value=required_value,
+    def __init__(self, length: int, **kwargs):
+        super().__init__(length=length,
                          **kwargs)
-        self.required_value = required_value
-        self.block_description = f'Always == {hex(self.required_value)}'
+        self.length = length
+
+    @property
+    def size(self):
+        return self.length
 
     def _read_internal(self, buffer, size, parent_read_data: dict = None):
-        value = super()._read_internal(buffer, size, parent_read_data)
-        if value != self.required_value:
-            raise BlockIntegrityException(f'Expected {hex(self.required_value)}, found {hex(value)}')
-        return value
+        return read_utf_bytes(buffer, self.length)
+
+    def _write_internal(self, buffer, value):
+        write_3int(buffer, value)
 
 
 class ArrayField(ResourceField):
@@ -186,7 +227,7 @@ class ArrayField(ResourceField):
         )
 
     def __init__(self,
-                 child: ResourceField,
+                 child: ReadBlock,
                  length: int = None,
                  length_strategy: Literal["strict", "read_available"] = "strict",
                  length_label: str = None,
@@ -222,7 +263,7 @@ class ArrayField(ResourceField):
         try:
             res = self.child.read_multiple(buffer, size, amount, parent_read_data)
             size -= (buffer.tell() - start)
-        except (NotImplementedError, EndOfBufferException) as ex:
+        except (NotImplementedError, EndOfBufferException, AttributeError) as ex:
             buffer.seek(start)
             for _ in range(amount):
                 start = buffer.tell()

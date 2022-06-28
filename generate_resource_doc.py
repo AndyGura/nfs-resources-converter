@@ -7,6 +7,7 @@ from resources.fields import ReadBlock, ResourceField, ArrayField
 EXPORT_RESOURCES = {
     'Bitmaps': [
         bitmaps.Bitmap16Bit0565(),
+        bitmaps.Bitmap4Bit(),
         bitmaps.Bitmap8Bit(),
         bitmaps.Bitmap32Bit(),
         bitmaps.Bitmap16Bit1555(),

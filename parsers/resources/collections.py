@@ -33,7 +33,7 @@ class ResourceCollection(BaseResource, ABC):
             try:
                 resource.save_converted(os.path.join(path, resource.name.replace('/', '_')))
             except BaseException as ex:
-                self.skipped_resources.append((resource.name, str(ex)))
+                self.skipped_resources.append((resource.name, f'{ex.__class__.__name__}: {str(ex)}'))
         if self.skipped_resources:
             with open(f'{path}/skipped.txt', 'w') as f:
                 for item in self.skipped_resources:
@@ -53,7 +53,7 @@ class ResourceDirectory(ResourceCollection):
                     from guess_parser import get_resource_class
                     resource = get_resource_class(bdata, file)
                 except NotImplementedError as ex:
-                    self.skipped_resources.append((file, str(ex)))
+                    self.skipped_resources.append((file, f'{ex.__class__.__name__}: {str(ex)}'))
                     continue
                 resource.name = file
                 resource.parent = self
@@ -61,7 +61,7 @@ class ResourceDirectory(ResourceCollection):
                     resource.read(bdata, os.path.getsize(file_path), file_path)
                     self.resources.append(resource)
                 except BaseException as ex:
-                    self.skipped_resources.append((file, str(ex)))
+                    self.skipped_resources.append((file, f'{ex.__class__.__name__}: {str(ex)}'))
                     continue
         self.skipped_resources.sort(key=lambda x:x[0])
         return None
@@ -83,7 +83,7 @@ class MultiprocessResourceDirectory(ResourceCollection):
                 resource.save_converted(os.path.join(path, resource.name.replace('/', '_')))
                 return 0
             except BaseException as ex:
-                return file, str(ex)
+                return file, f'{ex.__class__.__name__}: {str(ex)}'
 
     def read(self, path: str, files: List):
         self.name = path
@@ -130,7 +130,7 @@ class ArchiveResource(ResourceCollection):
             try:
                 resource = get_resource_class(buffer)
             except BaseException as ex:
-                self.skipped_resources.append((child['name'], str(ex)))
+                self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
                 continue
             resource.name = child['name']
             resource.parent = self
@@ -139,7 +139,7 @@ class ArchiveResource(ResourceCollection):
                 bytes_used = resource.read(buffer, child['length'])
                 assert bytes_used == child['length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
             except BaseException as ex:
-                self.skipped_resources.append((child['name'], str(ex)))
+                self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
                 continue
             self.resources.append(resource)
         return length

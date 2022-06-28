@@ -25,6 +25,7 @@ from resources.eac.bitmaps import (
     Bitmap16Bit0565,
     Bitmap24Bit,
     Bitmap8Bit,
+    Bitmap4Bit,
 )
 from resources.eac.palettes import (
     PaletteReference,
@@ -56,6 +57,8 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         return Palette16BitResource
     elif resource_id == 0x78 and (not resources_to_pick or Bitmap16Bit0565 in resources_to_pick):
         return Bitmap16Bit0565
+    elif resource_id == 0x7A and (not resources_to_pick or Bitmap4Bit in resources_to_pick):
+        return Bitmap4Bit
     elif resource_id == 0x7B and (not resources_to_pick or Bitmap8Bit in resources_to_pick):
         return Bitmap8Bit
     elif resource_id == 0x7C and (not resources_to_pick or PaletteReference in resources_to_pick):

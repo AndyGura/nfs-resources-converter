@@ -37,7 +37,7 @@ class SHPIArchive(ArchiveResource):
             try:
                 resource = get_resource_class(buffer)
             except BaseException as ex:
-                self.skipped_resources.append((child['name'], str(ex)))
+                self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
                 continue
             resource.name = child['name']
             resource.parent = self
@@ -48,7 +48,7 @@ class SHPIArchive(ArchiveResource):
                 bytes_used = resource.read(buffer, child['length'])
                 assert bytes_used == child['length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
             except BaseException as ex:
-                self.skipped_resources.append((child['name'], str(ex)))
+                self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
                 continue
             self.resources.append(resource)
         return length

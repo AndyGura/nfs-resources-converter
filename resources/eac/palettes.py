@@ -1,7 +1,7 @@
 from abc import ABC
 
 from resources.base import BaseResource
-from resources.fields import (RequiredByteField, ArrayField, ByteField, Color24BitDosField, Color24BitBigEndianField,
+from resources.fields import (ArrayField, ByteField, Color24BitDosField, Color24BitBigEndianField,
                               Color32BitField, Color16Bit0565Field)
 
 
@@ -62,13 +62,13 @@ class PaletteReference(BaseResource):
                         'Probably a reference to palette which should be used, that\'s why named so'
 
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x7C, description='Resource ID')
+        resource_id = ByteField(required_value=0x7C, description='Resource ID')
         unknowns = ArrayField(length=7, child=ByteField(), is_unknown=True)
 
 
 class Palette24BitDosResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x22, description='Resource ID')
+        resource_id = ByteField(required_value=0x22, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
         colors = ArrayField(length=256, child=Color24BitDosField(), length_strategy="read_available",
                             description='Colors LUT')
@@ -76,7 +76,7 @@ class Palette24BitDosResource(BasePalette):
 
 class Palette24BitResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x24, description='Resource ID')
+        resource_id = ByteField(required_value=0x24, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
         colors = ArrayField(length=256, child=Color24BitBigEndianField(), length_strategy="read_available",
                             description='Colors LUT')
@@ -84,7 +84,7 @@ class Palette24BitResource(BasePalette):
 
 class Palette32BitResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x2A, description='Resource ID')
+        resource_id = ByteField(required_value=0x2A, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
         colors = ArrayField(length=256, child=Color32BitField(), length_strategy="read_available",
                             description='Colors LUT')
@@ -94,7 +94,7 @@ class Palette32BitResource(BasePalette):
 
 class Palette16BitResource(BasePalette):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x2D, description='Resource ID')
+        resource_id = ByteField(required_value=0x2D, description='Resource ID')
         unknowns = ArrayField(length=15, child=ByteField(), is_unknown=True)
         colors = ArrayField(length=256, child=Color16Bit0565Field(), length_strategy="read_available",
                             description='Colors LUT')

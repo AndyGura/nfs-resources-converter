@@ -1,9 +1,10 @@
+from math import ceil
 from typing import Literal
 
 from exceptions import BlockIntegrityException
 from resources.base import BaseResource, LiteralResource
 from resources.eac import palettes
-from resources.fields import RequiredByteField, Int3Field, Int2Field, ArrayField, ByteField
+from resources.fields import Int3Field, Int2Field, ArrayField, ByteField
 from resources.fields.colors import (
     Color16Bit1555Field,
     Color16Bit0565Field,
@@ -36,11 +37,11 @@ class AnyBitmapResource(BaseResource):
 
 class Bitmap16Bit0565(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x78, description='Resource ID')
+        resource_id = ByteField(required_value=0x78, description='Resource ID')
         block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
                                            '"WRAP" SHPI directory it contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
-        height = Int2Field(description='Bitmap width in pixels')
+        height = Int2Field(description='Bitmap height in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
         x = Int2Field(description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = Int2Field(description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
@@ -51,20 +52,38 @@ class Bitmap16Bit0565(AnyBitmapResource, BaseResource):
                                     description="Looks like aligning size to be divisible by 4")
 
 
-class Bitmap8Bit(AnyBitmapResource, BaseResource):
-    description = '8bit bitmap can be serialized to image only with palette. Basically, for every pixel it uses ' \
-                  '8-bit index of color in assigned palette. The tricky part is to determine how the game ' \
-                  'understands which palette to use. In most cases, if bitmap has embedded palette, it should be used, ' \
-                  'EXCEPT Autumn Valley fence texture: there embedded palette should be ignored. In all other cases it ' \
-                  'is tricky even more: it uses !pal or !PAL palette from own SHPI archive, if it is WWWW archive, ' \
-                  'palette can be in a different SHPI before this one. In CONTROL directory most of QFS files ' \
-                  'use !pal even from different QFS file! It is a mystery how to reliably pick needed palette'
+class Bitmap4Bit(AnyBitmapResource, BaseResource):
+    block_description = 'Grayscale image, 4 bits per pixel. Used in FFN font files. In some of NFS2SE SHPI ' \
+                        'directories there is an image with the same signature named "dot", but they do not work: ' \
+                        'size 36x1536 == 27648 bytes, but available is only 100 for entire block (87 without header)'
+
+    def _after_height_read(self, data, total_size, **kwargs):
+        self.instance_fields_map['bitmap'].length = ceil(data['width'] * data['height'] / 2)
+
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x7B, description='Resource ID')
+        resource_id = ByteField(required_value=0x7A, description='Resource ID')
+        width = Int2Field(description='Bitmap width in pixels')
+        height = Int2Field(description='Bitmap height in pixels')
+        unknowns = ArrayField(length=8, child=ByteField(), is_unknown=True)
+        bitmap = ArrayField(length_label='width * height / 2', child=ByteField(),
+                            description='Font atlas bitmap data')  # TODO bit array
+
+
+class Bitmap8Bit(AnyBitmapResource, BaseResource):
+    block_description = '8bit bitmap can be serialized to image only with palette. Basically, for every pixel it uses ' \
+                        '8-bit index of color in assigned palette. The tricky part is to determine how the game ' \
+                        'understands which palette to use. In most cases, if bitmap has embedded palette, it should be used, ' \
+                        'EXCEPT Autumn Valley fence texture: there embedded palette should be ignored. In all other cases it ' \
+                        'is tricky even more: it uses !pal or !PAL palette from own SHPI archive, if it is WWWW archive, ' \
+                        'palette can be in a different SHPI before this one. In CONTROL directory most of QFS files ' \
+                        'use !pal even from different QFS file! It is a mystery how to reliably pick needed palette'
+
+    class Fields(BaseResource.Fields):
+        resource_id = ByteField(required_value=0x7B, description='Resource ID')
         block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
                                            '"WRAP" SHPI directory it contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
-        height = Int2Field(description='Bitmap width in pixels')
+        height = Int2Field(description='Bitmap height in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
         x = Int2Field(description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = Int2Field(description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
@@ -88,11 +107,11 @@ class Bitmap8Bit(AnyBitmapResource, BaseResource):
 
 class Bitmap32Bit(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x7D, description='Resource ID')
+        resource_id = ByteField(required_value=0x7D, description='Resource ID')
         block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
                                            '"WRAP" SHPI directory it contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
-        height = Int2Field(description='Bitmap width in pixels')
+        height = Int2Field(description='Bitmap height in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
         x = Int2Field(description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = Int2Field(description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
@@ -105,11 +124,11 @@ class Bitmap32Bit(AnyBitmapResource, BaseResource):
 
 class Bitmap16Bit1555(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x7E, description='Resource ID')
+        resource_id = ByteField(required_value=0x7E, description='Resource ID')
         block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
                                            '"WRAP" SHPI directory it contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
-        height = Int2Field(description='Bitmap width in pixels')
+        height = Int2Field(description='Bitmap height in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
         x = Int2Field(description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = Int2Field(description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
@@ -122,11 +141,11 @@ class Bitmap16Bit1555(AnyBitmapResource, BaseResource):
 
 class Bitmap24Bit(AnyBitmapResource, BaseResource):
     class Fields(BaseResource.Fields):
-        resource_id = RequiredByteField(required_value=0x7F, description='Resource ID')
+        resource_id = ByteField(required_value=0x7F, description='Resource ID')
         block_size = Int3Field(description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
                                            '"WRAP" SHPI directory it contains some different unknown data')
         width = Int2Field(description='Bitmap width in pixels')
-        height = Int2Field(description='Bitmap width in pixels')
+        height = Int2Field(description='Bitmap height in pixels')
         unknowns = ArrayField(length=4, child=ByteField(), is_unknown=True)
         x = Int2Field(description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = Int2Field(description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
