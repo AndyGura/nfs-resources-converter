@@ -13,7 +13,7 @@ class ArrayField(ReadBlock):
     @property
     def size(self):
         if self.length is None:
-            return 0
+            return None
         return self.child.size * self.length
 
     @property

@@ -4,9 +4,14 @@ from resources.basic.array_field import ArrayField
 from resources.basic.compound_block import CompoundBlock
 from resources.basic.literal_block import LiteralResource
 from resources.basic.read_block import ReadBlock
-from resources.eac import palettes, bitmaps
+from resources.eac import palettes, bitmaps, fonts, car_specs
 
 EXPORT_RESOURCES = {
+    'Physics': [
+        car_specs.CarPerformanceSpec(),
+        car_specs.EngineTorqueRecord(),
+        car_specs.CarSimplifiedPerformanceSpec(),
+    ],
     'Bitmaps': [
         bitmaps.Bitmap16Bit0565(),
         bitmaps.Bitmap4Bit(),
@@ -14,6 +19,10 @@ EXPORT_RESOURCES = {
         bitmaps.Bitmap32Bit(),
         bitmaps.Bitmap16Bit1555(),
         bitmaps.Bitmap24Bit(),
+    ],
+    'Fonts': [
+        fonts.FfnFont(),
+        fonts.SymbolDefinitionRecord(),
     ],
     'Palettes': [
         palettes.PaletteReference(),
@@ -60,10 +69,14 @@ with open(md_name, 'w') as f:
     for (heading, resources) in EXPORT_RESOURCES.items():
         f.write(f'\n## **{heading}** ##')
         for resource in resources:
+            collapse_table = len(resource.Fields.fields) > 16
             f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
             f.write(f'\n#### **Size**: {render_range(None, resource.min_size, resource.max_size, False)} bytes ####')
             if resource.block_description:
                 f.write(f'\n#### **Description**: {resource.block_description} ####')
+            if collapse_table:
+                f.write('\n<details>')
+                f.write(f'\n<summary>Click to see block specs ({len(resource.Fields.fields)} fields)</summary>\n')
             f.write(f'\n| Offset | Name | Size (bytes) | Type | Description |')
             f.write(f'\n| --- | --- | --- | --- | --- |')
             offset_min = 0
@@ -76,3 +89,5 @@ with open(md_name, 'w') as f:
                         f'{field.description or "-"} |')
                 offset_min += field.min_size
                 offset_max += field.max_size
+            if collapse_table:
+                f.write('\n</details>\n')

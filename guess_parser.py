@@ -13,10 +13,9 @@ from parsers.resources.compressed import (
     Qfs2Archive,
     Qfs3Archive,
 )
-from parsers.resources.fonts import FfnFont
 from parsers.resources.geometries import OripGeometryResource
 from parsers.resources.maps import TriMapResource
-from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo, CarPBSFile, CarPDNFile
+from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
 from resources.basic.read_block import ReadBlock
@@ -35,13 +34,33 @@ from resources.eac.palettes import (
     Palette24BitResource,
     Palette24BitDosResource,
 )
+from resources.eac.fonts import (
+    FfnFont,
+)
+
+from resources.eac.car_specs import (
+    CarPerformanceSpec,
+    CarSimplifiedPerformanceSpec,
+)
 
 
 # new logic
 # TODO optimize
 def probe_block_class(binary_file: BufferedReader, file_name: str = None, resources_to_pick=None):
+    if file_name:
+        # FIXME remove, master parser will use this block class
+        if file_name.endswith('.PBS_UNCOMPRESSED') and (not resources_to_pick or CarPerformanceSpec in resources_to_pick):
+            return CarPerformanceSpec
+        elif file_name.endswith('.PDN_UNCOMPRESSED'):
+            return CarSimplifiedPerformanceSpec
     header_bytes = binary_file.read(4)
     binary_file.seek(-len(header_bytes), SEEK_CUR)
+    try:
+        header_str = header_bytes.decode('utf8')
+        if header_str == 'FNTF' and (not resources_to_pick or FfnFont in resources_to_pick):
+            return FfnFont
+    except UnicodeDecodeError:
+        pass
     try:
         resource_id = header_bytes[0]
     except IndexError:
@@ -83,18 +102,12 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
     if file_name:
         if file_name.endswith('.BNK'):
             return SoundBank()
-        elif file_name.endswith('.PBS_UNCOMPRESSED'):
-            return CarPBSFile()
-        elif file_name.endswith('.PDN_UNCOMPRESSED'):
-            return CarPDNFile()
     header_bytes = binary_file.read(4)
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
         if header_str == 'SHPI':
             return SHPIArchive()
-        elif header_str == 'FNTF':
-            return FfnFont()
         elif header_str == 'ORIP':
             return OripGeometryResource()
         elif header_str == 'wwww':

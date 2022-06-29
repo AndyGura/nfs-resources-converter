@@ -114,14 +114,13 @@ class OripGeometryResource(BaseResource):
                     self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 2, 3)
                     self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 3, 1)
                     self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 3, 2)
-                elif normal in [18, 2, 3, 48, 50]:
+                elif normal in [18, 2, 3, 48, 50, 10, 6]:  # 10, 6 are unknown. Placed here for testing and looks good
                     self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 1, 3, flip_texture=True)
                     self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 2, 3, flip_texture=True)
                 elif normal in [0, 1, 16]:
                     self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 0, 3, 1)
                     self._setup_polygon(sub_model, buffer, offset_3D, offset_2D, 1, 3, 2)
                 else:
-                    # TODO Unknown normal: 10 nfs1/SIMDATA/ETRACKFM/CY1_001.FAM/props/0xcd59c/0xcd5ac
                     raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
             elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon
                 continue

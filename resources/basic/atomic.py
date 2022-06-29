@@ -69,10 +69,10 @@ class IntegerField(AtomicReadBlock):
 class Utf8Field(AtomicReadBlock):
 
     def __init__(self, length: int = None, **kwargs):
+        self.block_description = 'UTF-8 string'
         super().__init__(length=length,
                          **kwargs)
         self.length = length
-        self.block_description = 'UTF-8 string'
 
     @property
     def size(self):
