@@ -26,8 +26,10 @@ class CompoundBlock(ReadBlock, ABC):
     class Fields(CompoundBlockFields):
         pass
 
-    def __init__(self, **kwargs):
+    def __init__(self, inline_description=False, **kwargs):
+        kwargs['inline_description'] = inline_description
         super().__init__(**kwargs)
+        self.inline_description = inline_description
         self.instance_fields = [(name, deepcopy(instance)) for name, instance in self.__class__.Fields.fields]
         self.instance_fields_map = {name: res for (name, res) in self.instance_fields}
         self.persistent_data = None
@@ -65,6 +67,9 @@ class CompoundBlock(ReadBlock, ABC):
                     raise EndOfBufferException()
             try:
                 res[name] = field.read(buffer, remaining_size, parent_read_data=res)
+                remaining_size -= buffer.tell() - start
+                if remaining_size < 0:
+                    raise EndOfBufferException()
             except (EndOfBufferException, BlockIntegrityException) as ex:
                 if name in self.Fields.optional_fields:
                     buffer.seek(start)
@@ -76,9 +81,6 @@ class CompoundBlock(ReadBlock, ABC):
                                                      total_size=size,
                                                      remaining_size=remaining_size,
                                                      parent_read_data=parent_read_data)
-            remaining_size -= buffer.tell() - start
-            if remaining_size < 0:
-                raise EndOfBufferException()
         return res
 
     def from_raw_value(self, raw: dict):

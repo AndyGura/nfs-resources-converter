@@ -4,9 +4,16 @@ from resources.basic.array_field import ArrayField
 from resources.basic.compound_block import CompoundBlock
 from resources.basic.literal_block import LiteralResource
 from resources.basic.read_block import ReadBlock
-from resources.eac import palettes, bitmaps, fonts, car_specs
+from resources.eac import palettes, bitmaps, fonts, car_specs, maps
 
 EXPORT_RESOURCES = {
+    'Maps': [
+        maps.TriMap(),
+        maps.RoadSplinePoint(),
+        maps.ProxyObject(),
+        maps.ProxyObjectInstance(),
+        maps.TerrainEntry(),
+    ],
     'Physics': [
         car_specs.CarPerformanceSpec(),
         car_specs.EngineTorqueRecord(),
@@ -50,10 +57,10 @@ def render_range(field, min: int, max: int, render_hex: bool) -> str:
 def render_type(instance: ReadBlock) -> str:
     if isinstance(instance, LiteralResource):
         return 'One of types:<br/>' + '<br/>'.join([render_type(x) for x in instance.possible_resources])
-    if not isinstance(instance, CompoundBlock):
+    if not isinstance(instance, CompoundBlock) or instance.inline_description:
         descr = instance.block_description
         if isinstance(instance, ArrayField):
-            if not isinstance(instance.child, CompoundBlock):
+            if not isinstance(instance.child, CompoundBlock) or instance.child.inline_description:
                 size = render_range(None, instance.child.min_size, instance.child.max_size, False)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
             descr += f'<br/>Item type: {render_type(instance.child)}'

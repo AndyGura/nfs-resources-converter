@@ -14,7 +14,6 @@ from parsers.resources.compressed import (
     Qfs3Archive,
 )
 from parsers.resources.geometries import OripGeometryResource
-from parsers.resources.maps import TriMapResource
 from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
@@ -27,6 +26,7 @@ from resources.eac.bitmaps import (
     Bitmap8Bit,
     Bitmap4Bit,
 )
+from resources.eac.maps import TriMap
 from resources.eac.palettes import (
     PaletteReference,
     Palette16BitResource,
@@ -65,7 +65,9 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         resource_id = header_bytes[0]
     except IndexError:
         raise BlockIntegrityException('Don`t have parser for such resource. header_bytes are missed')
-    if resource_id == 0x22 and (not resources_to_pick or Palette24BitDosResource in resources_to_pick):
+    if resource_id == 0x11 and header_bytes[1] == 0x00 and header_bytes[2] == 0x00 and header_bytes[3] == 0x00:
+        return TriMap
+    elif resource_id == 0x22 and (not resources_to_pick or Palette24BitDosResource in resources_to_pick):
         return Palette24BitDosResource
     elif resource_id == 0x24 and (not resources_to_pick or Palette24BitResource in resources_to_pick):
         return Palette24BitResource
@@ -140,8 +142,6 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
         # unknown resource with length == 84
         # looks like some info about sprite positioning on screen
         return BinaryResource(id=resource_id, length=84, save_binary_file=False)
-    elif resource_id == 0x11 and header_bytes[1] == 0x00 and header_bytes[2] == 0x00 and header_bytes[3] == 0x00:
-        return TriMapResource()
     elif resource_id == 0x6F:
         return TextResource()
     else:

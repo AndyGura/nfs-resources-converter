@@ -1,6 +1,6 @@
 from abc import ABC
 from io import BufferedReader, BytesIO
-from typing import Literal
+from typing import Literal, List, Tuple
 
 from resources.basic.exceptions import BlockIntegrityException, EndOfBufferException, MultiReadUnavailableException
 from resources.basic.read_block import ReadBlock
@@ -83,3 +83,48 @@ class Utf8Field(AtomicReadBlock):
 
     def to_raw_value(self, value) -> bytes:
         return value.decode('utf-8')
+
+
+class BitFlagsField(IntegerField, ABC):
+    def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
+        kwargs['static_size'] = 1
+        kwargs['is_signed'] = False
+        super().__init__(flag_names=flag_names,
+                         **kwargs)
+        self.flag_names = flag_names
+        self.flag_name_map = [str(i) for i in range(8)]
+        for value, name in self.flag_names:
+            self.flag_name_map[value] = name
+        self.block_description = ('8 flags container<br/><details><summary>flag names (from least to most significant)</summary>'
+                                  + '<br/>'.join([f'{i}: {x}'for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>')
+
+    def from_raw_value(self, raw: bytes):
+        flags = super().from_raw_value(raw)
+        res = {}
+        for i in range(8):
+            res[self.flag_name_map[i]] = bool(flags & (1 if i == 0 else 1 << i))
+        return res
+
+    def to_raw_value(self, value) -> bytes:
+        raise NotImplementedError()
+
+
+class EnumByteField(IntegerField, ABC):
+    def __init__(self, enum_names: List[Tuple[int, str]], **kwargs):
+        kwargs['static_size'] = 1
+        kwargs['is_signed'] = False
+        super().__init__(enum_names=enum_names,
+                         **kwargs)
+        self.enum_names = enum_names
+        self.enum_name_map = [str(i) for i in range(256)]
+        for value, name in self.enum_names:
+            self.enum_name_map[value] = name
+        self.block_description = ('Enum of 256 possible values<br/><details><summary>Value names:</summary>'
+                                  + '<br/>'.join([f'{i}: {x}'for i, x in enumerate(self.enum_name_map) if x != str(i)]) + '</details>')
+
+    def from_raw_value(self, raw: bytes):
+        return self.enum_name_map[super().from_raw_value(raw)]
+
+    def to_raw_value(self, value) -> bytes:
+        raise NotImplementedError()
+

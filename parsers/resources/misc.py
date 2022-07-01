@@ -1,7 +1,7 @@
 import json
-from io import BufferedReader, SEEK_CUR
+from io import BufferedReader
 
-from buffer_utils import read_utf_bytes, read_int, read_nfs1_float32, read_byte, read_nfs1_float32_7, read_nfs1_float16
+from buffer_utils import read_utf_bytes
 from parsers.resources.base import BaseResource
 from parsers.resources.collections import ArchiveResource
 

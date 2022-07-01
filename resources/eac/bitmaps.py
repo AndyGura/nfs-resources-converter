@@ -115,7 +115,7 @@ class Bitmap8Bit(AnyBitmapResource, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayField(child=IntegerField(static_size=1, is_signed=False, ), length_label='width * height',
+        bitmap = ArrayField(child=IntegerField(static_size=1, is_signed=False), length_label='width * height',
                             description='Color indexes of bitmap pixels. The actual colors are '
                                         'in assigned to this bitmap palette')
         trailing_bytes = ArrayField(child=IntegerField(static_size=1), is_unknown=True,

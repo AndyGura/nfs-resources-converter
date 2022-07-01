@@ -1,3 +1,6 @@
+from copy import deepcopy
+
+
 class DataWrapper(dict):
     MARKER = object()
 
@@ -9,6 +12,9 @@ class DataWrapper(dict):
                 self.__setitem__(key, value[key])
         else:
             raise TypeError('expected dict')
+
+    def __deepcopy__(self, memodict={}):
+        return DataWrapper(deepcopy(dict(self)))
 
     def __setitem__(self, key, value):
         if isinstance(value, dict) and not isinstance(value, DataWrapper):

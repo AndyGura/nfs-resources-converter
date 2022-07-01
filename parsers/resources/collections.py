@@ -103,12 +103,14 @@ class MultiprocessResourceDirectory(ResourceCollection):
             path = path + '/'
         if not os.path.exists(path):
             os.makedirs(path)
-        with Pool(processes=cpu_count()) as pool:
+        with Pool(processes=cpu_count()
+                  if settings.multiprocess_processes_count == 0
+                  else settings.multiprocess_processes_count) as pool:
             results = [pool.apply_async(self._process_file, (self.read_path, path, file)) for file in self.files]
             [result.wait() for result in results]
             self.skipped_resources = [res for res in (r.get() for r in results) if res != 0]
             if self.skipped_resources:
-                self.skipped_resources.sort(key=lambda x:x[0])
+                self.skipped_resources.sort(key=lambda x: x[0])
                 with open(f'{path}/skipped.txt', 'w') as f:
                     for item in self.skipped_resources:
                         f.write("%s\t\t%s\n" % item)

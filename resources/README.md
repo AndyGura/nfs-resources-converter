@@ -1,4 +1,80 @@
 # **File specs** #
+## **Maps** ##
+### **TriMap** ###
+#### **Size**: 90664..? bytes ####
+#### **Description**: Map TRI file, represents terrain mesh, road itself, proxy object locations etc. ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x11 | - |
+| 4 | **unknowns0** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Unknown purpose |
+| 24 | **unknowns1** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 36 | **scenery_data_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 40 | **unknowns2** | 2404 | Array of 2404 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 2444 | **road_spline** | 36 * (2400) | Array of 2400 items<br/>Item type: [RoadSplinePoint](#roadsplinepoint) | Road spline is a series of points in 3D space, located at the center of road. Around this spline the track terrain mesh is built. TRI always has 2400 elements, however it uses some amount of vertices, after them records filled with zeros |
+| 88844 | **unknowns3** | 1800 | Array of 1800 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 90644 | **proxy_objects_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 90648 | **proxy_object_instances_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 90652 | **object_header_text** | 4 | UTF-8 string. Always == SJBO | - |
+| 90656 | **unknowns4** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 90664 | **proxy_objects** | 16 * (proxy_objects_count) | Array of proxy_objects_count items<br/>Item type: [ProxyObject](#proxyobject) | - |
+| 90664..? | **proxy_object_instances** | 16 * (proxy_object_instances_count) | Array of proxy_object_instances_count items<br/>Item type: [ProxyObjectInstance](#proxyobjectinstance) | - |
+| 90664..? | **terrain** | 288 * (spline_points_amount / 4) | Array of spline_points_amount / 4 items<br/>Item type: [TerrainEntry](#terrainentry) | - |
+### **RoadSplinePoint** ###
+#### **Size**: 36 bytes ####
+#### **Description**: The description of one single point of road spline. Thank you jeff-1amstudios for your OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1 ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **left_verge_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the left edge of road. After this point the grip decreases |
+| 1 | **right_verge_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the right edge of road. After this point the grip decreases |
+| 2 | **left_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
+| 3 | **right_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
+| 4 | **unknowns0** | 3 | Array of 3 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 7 | **spline_item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default<br/>2: lane_merge<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A2_A9<br/>12: left_tunnel_A9_A4<br/>13: left_tunnel_A9_A5<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>18: water_audio</details> | Modifier of this point |
+| 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
+| 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point |
+| 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
+| 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
+| 26 | **unknowns1** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 28 | **orientation_y** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
+| 30 | **slant_b** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
+| 32 | **orientation_x** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
+| 34 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+### **ProxyObject** ###
+#### **Size**: 16 bytes ####
+#### **Description**: The description of map proxy object: everything except terrain (road signs, buildings etc.) Thanks to jeff-1amstudios and his OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202 ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **flags** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>2: is_animated</details> | Different modes of proxy object |
+| 1 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: model<br/>4: bitmap<br/>6: two_sided_bitmap</details> | Type of proxy object |
+| 2 | **resource_id** | 1 | 1-byte unsigned integer | Texture/model id |
+| 3 | **resource_2_id** | 1 | 1-byte unsigned integer | Texture id of second sprite, rotated 90 degrees, in two-sided bitmap |
+| 4 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 8 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object |
+| 9 | **unknowns0** | 3 | Array of 3 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown, animation speed should be somewhere in it |
+| 12 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+### **ProxyObjectInstance** ###
+#### **Size**: 16 bytes ####
+#### **Description**: The occurrence of proxy object. For instance: exactly the same road sign used 5 times on the map. In this case file will have 1 ProxyObject for this road sign and 5 ProxyObjectInstances ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **reference_road_spline_vertex** | 4 | 4-bytes signed integer (little endian) | Sometimes has too big value, I skip those instances for now and it seems to look good. Probably should consider this value to be 16-bit integer, having some unknown 16-integer as next field. Also, why it is signed? |
+| 4 | **proxy_object_index** | 1 | 1-byte unsigned integer | Sometimes has too big value, I use object index % amount of proxies for now and it seems to look good |
+| 5 | **rotation** | 1 | EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees | Y-rotation, relative to rotation of referenced road spline vertex |
+| 6 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 10 | **position** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Position in 3D space, relative to position of referenced road spline vertex |
+### **TerrainEntry** ###
+#### **Size**: 288 bytes ####
+#### **Description**: The terrain model around 4 spline points. It has good explanation in original Aurox NFS file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **id** | 4 | UTF-8 string. Always == TRKD | - |
+| 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 12 | **unknown** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 13 | **fence** | 1 | TNFS fence type field. fence type: [lrtttttt]<br/>l - flag is add left fence<br/>r - flag is add right fence<br/>tttttt - texture id | - |
+| 14 | **texture_ids** | 10 | Array of 10 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
+| 24 | **rows** | 66 * (4) | Array of 4 items<br/>Item size: 66 bytes<br/>Item type: Array of 11 items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter | Terrain vertex positions |
 ## **Physics** ##
 ### **CarPerformanceSpec** ###
 #### **Size**: 1912 bytes ####
@@ -8,68 +84,68 @@
 
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **mass_front_axle** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
-| 4 | **mass_rear_axle** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
-| 8 | **mass** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Car mass |
-| 12 | **unknowns0** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 28 | **brake_bias** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | how much car rotates when brake? |
-| 32 | **unknowns1** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 36 | **center_of_gravity** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | probably the height of mass center in meters |
-| 40 | **max_brake_decel** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 44 | **unknowns2** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 52 | **drag** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 56 | **top_speed** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 60 | **efficiency** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 64 | **body__wheel_base** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | The distance betweeen rear and front axles in meters |
-| 68 | **burnout_div** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 72 | **body__wheel_track** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | The distance betweeen left and right wheels in meters |
-| 76 | **unknowns3** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 84 | **mps_to_rpm_factor** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio) |
+| 0 | **mass_front_axle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
+| 4 | **mass_rear_axle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
+| 8 | **mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Car mass |
+| 12 | **unknowns0** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 28 | **brake_bias** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | how much car rotates when brake? |
+| 32 | **unknowns1** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 36 | **center_of_gravity** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | probably the height of mass center in meters |
+| 40 | **max_brake_decel** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 44 | **unknowns2** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 52 | **drag** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 56 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 60 | **efficiency** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 64 | **body__wheel_base** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen rear and front axles in meters |
+| 68 | **burnout_div** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 72 | **body__wheel_track** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen left and right wheels in meters |
+| 76 | **unknowns3** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 84 | **mps_to_rpm_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio) |
 | 88 | **transmission__gears_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of drive gears + 2 (R,N?) |
-| 92 | **transmission__final_drive_ratio** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | - |
-| 96 | **roll_radius** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 100 | **unknowns4** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 104 | **transmission__gear_ratios** | 4 * (8) | Array of 8 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Only first <gear_count> values are used. First element is the reverse gear ratio, second one is unknown |
+| 92 | **transmission__final_drive_ratio** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 96 | **roll_radius** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 100 | **unknowns4** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 104 | **transmission__gear_ratios** | 4 * (8) | Array of 8 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Only first <gear_count> values are used. First element is the reverse gear ratio, second one is unknown |
 | 136 | **engine__torque_count** | 4 | 4-bytes unsigned integer (little endian) | Torques LUT (lookup table) size |
-| 140 | **front_roll_stiffness** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 144 | **rear_roll_stiffness** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 148 | **roll_axis_height** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 152 | **unknowns5** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube? |
-| 164 | **slip_angle_cutoff** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 168 | **normal_coefficient_loss** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
+| 140 | **front_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 144 | **rear_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 148 | **roll_axis_height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 152 | **unknowns5** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube? |
+| 164 | **slip_angle_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 168 | **normal_coefficient_loss** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 172 | **engine__max_rpm** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 176 | **engine__min_rpm** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 180 | **engine__torques** | 8 * (60) | Array of 60 items<br/>Item type: [EngineTorqueRecord](#enginetorquerecord) | LUT (lookup table) of engine torque depending on RPM. <engine__torque_count> first elements used |
 | 660 | **transmission__upshifts** | 4 * (5) | Array of 5 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | RPM value, when automatic gear box should upshift. 1 element per drive gear |
-| 680 | **unknowns6** | 2 * (4) | Array of 4 items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit real number (little-endian), where last 8 bits is a fractional part | Unknown purpose |
-| 688 | **unknowns7** | 4 * (7) | Array of 7 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 716 | **unknowns8** | 2 * (2) | Array of 2 items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit real number (little-endian), where last 8 bits is a fractional part | Unknown purpose |
-| 720 | **inertia_factor** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 724 | **body_roll_factor** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 728 | **body_pitch_factor** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 732 | **front_friction_factor** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 736 | **rear_fricton_factor** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 740 | **body__length** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Chassis body length in meters |
-| 744 | **body__width** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Chassis body width in meters |
-| 748 | **steering__max_auto_steer_angle** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
+| 680 | **unknowns6** | 2 * (4) | Array of 4 items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Unknown purpose |
+| 688 | **unknowns7** | 4 * (7) | Array of 7 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 716 | **unknowns8** | 2 * (2) | Array of 2 items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Unknown purpose |
+| 720 | **inertia_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 724 | **body_roll_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 728 | **body_pitch_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 732 | **front_friction_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 736 | **rear_fricton_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 740 | **body__length** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Chassis body length in meters |
+| 744 | **body__width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Chassis body width in meters |
+| 748 | **steering__max_auto_steer_angle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 752 | **steering__auto_steer_mult_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 756 | **steering__auto_steer_div_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 760 | **steering__steering_model** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 764 | **steering__auto_steer_velocities** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 780 | **steering__auto_steer_velocity_ramp** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 784 | **steering__auto_steer_velocity_attenuation** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
+| 780 | **steering__auto_steer_velocity_ramp** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 784 | **steering__auto_steer_velocity_attenuation** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 788 | **steering__auto_steer_ramp_mult_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 792 | **steering__auto_steer_ramp_div_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 796 | **lateral_accel_cutoff** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 800 | **unknowns9** | 4 * (13) | Array of 13 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
+| 796 | **lateral_accel_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 800 | **unknowns9** | 4 * (13) | Array of 13 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 852 | **engine_shifting__shift_timer** | 4 | 4-bytes unsigned integer (little endian) | Unknown exactly, but it seems to be ticks taken to shift. Tick is probably 100ms |
 | 856 | **engine_shifting__rpm_decel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 860 | **engine_shifting__rpm_accel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 864 | **engine_shifting__clutch_drop_decel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 868 | **engine_shifting__neg_torque** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 872 | **body__clearance** | 4 | EA games 32-bit real number (little-endian), where last 7 bits is a fractional part | - |
-| 876 | **body__height** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | - |
-| 880 | **center_x** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
+| 868 | **engine_shifting__neg_torque** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 872 | **body__clearance** | 4 | 32-bit real number (little-endian, signed), where last 7 bits is a fractional part | - |
+| 876 | **body__height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 880 | **center_x** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 884 | **grip_curve_front** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 1396 | **grip_curve_rear** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 1908 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents |
@@ -87,12 +163,12 @@
 #### **Description**: This block describes simpler version of car physics. It is not clear how and when is is used ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unknowns0** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown. Some values for playable cars, always zeros for non-playable |
-| 12 | **moment_of_inertia** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Not clear how to interpret |
-| 16 | **unknowns1** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Unknown purpose |
-| 28 | **power_curve** | 4 * (100) | Array of 100 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Not clear how to interpret |
-| 428 | **top_speeds** | 4 * (6) | Array of 6 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Maximum car speed (m/s) per gear |
-| 452 | **max_rpm** | 4 | EA games 32-bit real number (little-endian), where last 16 bits is a fractional part | Max engine RPM |
+| 0 | **unknowns0** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown. Some values for playable cars, always zeros for non-playable |
+| 12 | **moment_of_inertia** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
+| 16 | **unknowns1** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 28 | **power_curve** | 4 * (100) | Array of 100 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
+| 428 | **top_speeds** | 4 * (6) | Array of 6 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Maximum car speed (m/s) per gear |
+| 452 | **max_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max engine RPM |
 | 456 | **gear_count** | 4 | 4-bytes unsigned integer (little endian) | Gears amount |
 ## **Bitmaps** ##
 ### **Bitmap16Bit0565** ###

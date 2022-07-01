@@ -15,11 +15,12 @@ args = resource.parse_args()
 
 if os.path.isdir(args.file):
     for subdir, dirs, files in os.walk(args.file):
-        multiprocess_blacklisted = False
-        for bl in settings.multiprocess_directory_blacklist:
-            if subdir.endswith(bl):
-                multiprocess_blacklisted = True
-                break
+        multiprocess_blacklisted = settings.multiprocess_processes_count == 1
+        if not multiprocess_blacklisted:
+            for bl in settings.multiprocess_directory_blacklist:
+                if subdir.endswith(bl):
+                    multiprocess_blacklisted = True
+                    break
         res = ResourceDirectory() if multiprocess_blacklisted else MultiprocessResourceDirectory()
         res.read(subdir, files)
         res.save_converted(os.path.join('out', subdir).replace('\\', '/'))
