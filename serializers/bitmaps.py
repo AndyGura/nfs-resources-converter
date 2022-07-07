@@ -6,6 +6,7 @@ from parsers.resources.archives import WwwwArchive, SHPIArchive
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.basic.exceptions import SerializationException
 from resources.eac.bitmaps import AnyBitmapResource
+from resources.eac.geometries import OripGeometry
 from resources.eac.palettes import BasePalette
 from serializers import BaseFileSerializer
 
@@ -21,11 +22,11 @@ class BitmapSerializer(BaseFileSerializer):
 
 def is_tail_lights_texture_for_nfs1_car(wrapper: ReadBlockWrapper):
     from parsers.resources.archives import SHPIArchive
-    from parsers.resources.geometries import OripGeometryResource
     return ((wrapper.name in ['rsid', 'lite'])
             and isinstance(wrapper.parent, SHPIArchive)
-            and isinstance(wrapper.parent.parent, OripGeometryResource)
-            and wrapper.parent.parent.is_car)
+            and isinstance(wrapper.parent.parent, ReadBlockWrapper)
+            and issubclass(wrapper.parent.parent.block_class, OripGeometry)
+            and wrapper.parent.parent.parent.name.endswith('.CFM'))
 
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):

@@ -1,4 +1,55 @@
 # **File specs** #
+## **Geometries** ##
+### **OripGeometry** ###
+#### **Size**: 112..? bytes ####
+<details>
+<summary>Click to see block specs (31 fields)</summary>
+
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == ORIP | Resource ID |
+| 4 | **unknowns0** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 16 | **vertex_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 20 | **unknowns1** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 24 | **vertex_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 28 | **vertex_uvs_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 32 | **vertex_uvs_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 36 | **polygon_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 40 | **polygon_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 44 | **identifier** | 12 | UTF-8 string | - |
+| 56 | **texture_names_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 60 | **texture_names_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 64 | **texture_number_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 68 | **texture_number_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 72 | **unk0_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 76 | **unk0_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 80 | **polygon_vertex_map_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 84 | **unk1_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 88 | **unk1_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 92 | **label_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 96 | **label_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 100 | **unknowns2** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112 | **polygons_block** | 12 * (?) | Array of ? items<br/>Item type: [OripPolygon](#orippolygon) | - |
+| 112..? | **vertex_uvs_block** | 8 * (?) | Array of ? items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | - |
+| 112..? | **texture_names_block** | 20 * (?) | Array of ? items<br/>Item size: 20 bytes<br/>Item type:  | - |
+| 112..? | **texture_number_map_block** | 20 * (?) | Array of ? items<br/>Item size: 20 bytes<br/>Item type: Array of 20 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112..? | **unk0_block** | 28 * (?) | Array of ? items<br/>Item size: 28 bytes<br/>Item type: Array of 28 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112..? | **unk1_block** | 12 * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112..? | **labels_block** | 12 * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112..? | **vertex_block** | None * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | Mesh vertices. For cars it is 32:7 point, else 32:4 |
+| 112..? | **polygon_vertex_map_block** | 4 * (?) | Array of ? items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+</details>
+
+### **OripPolygon** ###
+#### **Size**: 12 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **polygon_type** | 1 | 1-byte unsigned integer | - |
+| 1 | **normal** | 1 | 1-byte unsigned integer | - |
+| 2 | **texture_index** | 1 | 1-byte unsigned integer | - |
+| 3 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 4 | **offset_3d** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 8 | **offset_2d** | 4 | 4-bytes unsigned integer (little endian) | - |
 ## **Maps** ##
 ### **TriMap** ###
 #### **Size**: 90664..? bytes ####

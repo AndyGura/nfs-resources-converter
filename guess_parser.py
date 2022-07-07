@@ -13,7 +13,6 @@ from parsers.resources.compressed import (
     Qfs2Archive,
     Qfs3Archive,
 )
-from parsers.resources.geometries import OripGeometryResource
 from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
@@ -26,6 +25,7 @@ from resources.eac.bitmaps import (
     Bitmap8Bit,
     Bitmap4Bit,
 )
+from resources.eac.geometries import OripGeometry
 from resources.eac.maps import TriMap
 from resources.eac.palettes import (
     PaletteReference,
@@ -59,6 +59,8 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         header_str = header_bytes.decode('utf8')
         if header_str == 'FNTF' and (not resources_to_pick or FfnFont in resources_to_pick):
             return FfnFont
+        elif header_str == 'ORIP':
+            return OripGeometry
     except UnicodeDecodeError:
         pass
     try:
@@ -110,8 +112,6 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
         header_str = header_bytes.decode('utf8')
         if header_str == 'SHPI':
             return SHPIArchive()
-        elif header_str == 'ORIP':
-            return OripGeometryResource()
         elif header_str == 'wwww':
             return WwwwArchive()
         elif header_str in ['kVGT', 'SCHl']:

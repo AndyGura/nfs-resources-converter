@@ -47,6 +47,7 @@ SERIALIZER_CLASSES = {
     'Palette24BitResource': 'PaletteSerializer',
     'Palette32BitResource': 'PaletteSerializer',
     'TriMap': 'TriMapSerializer',
+    'OripGeometry': 'OripGeometrySerializer',
 }
 
 

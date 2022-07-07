@@ -3,9 +3,9 @@ from typing import List, Dict
 
 from buffer_utils import read_int, read_utf_bytes
 from parsers.resources.collections import ArchiveResource
-from parsers.resources.geometries import OripGeometryResource
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.eac.bitmaps import AnyBitmapResource
+from resources.eac.geometries import OripGeometry
 
 
 # TODO check VET2.QFS. Why has two pictures?
@@ -46,7 +46,8 @@ class SHPIArchive(ArchiveResource):
             try:
                 print(f'READING {self.name}/{resource.name}')
                 bytes_used = resource.read(buffer, child['length'])
-                assert bytes_used == child['length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
+                assert bytes_used == child[
+                    'length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
             except BaseException as ex:
                 self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
                 continue
@@ -72,14 +73,15 @@ class WwwwArchive(ArchiveResource):
         children = sorted(children, key=lambda x: x['start_offset'])
         for i, child in enumerate(children):
             child['name'] = str(i)
-            child['length'] = children[i + 1]['start_offset'] - child['start_offset'] if i < len(children) - 1 else  length - children[-1]['start_offset']
+            child['length'] = children[i + 1]['start_offset'] - child['start_offset'] if i < len(
+                children) - 1 else length - children[-1]['start_offset']
         return children
 
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         length = super().read(buffer, length, path)
         # attach shpi to orip
         for index, geometry in enumerate(self.resources):
-            if not isinstance(geometry, OripGeometryResource):
+            if not isinstance(geometry, ReadBlockWrapper) or not issubclass(geometry.block_class, OripGeometry):
                 continue
             try:
                 next_resource = self.resources[index + 1]
@@ -93,10 +95,8 @@ class WwwwArchive(ArchiveResource):
         if (
                 self.name.upper().endswith('.CFM') and
                 len(self.resources) == 2 and
-                isinstance(self.resources[0], OripGeometryResource) and
-                isinstance(self.resources[1], OripGeometryResource) and
-                bool(self.resources[0].textures_archive) and
-                bool(self.resources[1].textures_archive)
+                bool(getattr(self.resources[0], 'textures_archive', None)) and
+                bool(getattr(self.resources[1], 'textures_archive', None))
         ):
             self.resources[0].name = 'high-poly'
             self.resources[1].name = 'low-poly'
@@ -131,7 +131,11 @@ class SoundBank(ArchiveResource):
 
     @property
     def is_car_soundbank(self):
-        return len(self.children_descriptors) == 4 and [x['start_offset'] for x in self.children_descriptors] == [552, 624, 696, 768] and ('SW.BNK' in self.name or self.name in ['TRAFFC.BNK', 'TESTBANK.BNK'])
+        return len(self.children_descriptors) == 4 and [x['start_offset'] for x in self.children_descriptors] == [552,
+                                                                                                                  624,
+                                                                                                                  696,
+                                                                                                                  768] and (
+                           'SW.BNK' in self.name or self.name in ['TRAFFC.BNK', 'TESTBANK.BNK'])
 
     def get_children_descriptors(self, buffer: BufferedReader, length: int) -> List[Dict]:
         start_offset = buffer.tell()

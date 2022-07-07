@@ -4,9 +4,13 @@ from resources.basic.array_field import ArrayField
 from resources.basic.compound_block import CompoundBlock
 from resources.basic.literal_block import LiteralResource
 from resources.basic.read_block import ReadBlock
-from resources.eac import palettes, bitmaps, fonts, car_specs, maps
+from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries
 
 EXPORT_RESOURCES = {
+    'Geometries': [
+        geometries.OripGeometry(),
+        geometries.OripPolygon(),
+    ],
     'Maps': [
         maps.TriMap(),
         maps.RoadSplinePoint(),

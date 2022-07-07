@@ -48,6 +48,36 @@ class Point3D_32(CompoundBlock):
         z = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
 
 
+class Point3D_32_4(CompoundBlock):
+    block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
+                        + RationalNumber(static_size=4, fraction_bits=4, is_signed=True).block_description \
+                        + '. The unit is meter'
+
+    def __init__(self, **kwargs):
+        kwargs['inline_description'] = True
+        super().__init__(**kwargs)
+
+    class Fields(CompoundBlock.Fields):
+        x = RationalNumber(static_size=4, fraction_bits=4, is_signed=True)
+        y = RationalNumber(static_size=4, fraction_bits=4, is_signed=True)
+        z = RationalNumber(static_size=4, fraction_bits=4, is_signed=True)
+
+
+class Point3D_32_7(CompoundBlock):
+    block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
+                        + RationalNumber(static_size=4, fraction_bits=7, is_signed=True).block_description \
+                        + '. The unit is meter'
+
+    def __init__(self, **kwargs):
+        kwargs['inline_description'] = True
+        super().__init__(**kwargs)
+
+    class Fields(CompoundBlock.Fields):
+        x = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
+        y = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
+        z = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
+
+
 class FenceType(IntegerField):
     def __init__(self, **kwargs):
         kwargs['static_size'] = 1
