@@ -1,6 +1,7 @@
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.eac.bitmaps import AnyBitmapResource
 
+
 # Mesh with one single texture
 class SubMesh:
     def __init__(self):
@@ -11,7 +12,8 @@ class SubMesh:
         self.texture_id = None
         self.scaled_uvs = set()
 
-    def to_obj(self, face_index_increment, multiply_uvws=False, textures_archive=None, mtllib=None, pivot_offset=(0, 0, 0)) -> str:
+    def to_obj(self, face_index_increment, multiply_uvws=False, textures_archive=None, mtllib=None,
+               pivot_offset=(0, 0, 0)) -> str:
         res = f'\n\no {self.name}'
         if mtllib is not None:
             res += f'\nmtllib {mtllib}'
@@ -23,7 +25,8 @@ class SubMesh:
             uvs_scaled_to_texture = False
             if self.texture_id:
                 for texture_res in textures_archive.resources:
-                    if isinstance(texture_res, ReadBlockWrapper) and isinstance(texture_res.resource, AnyBitmapResource) and texture_res.name == self.texture_id:
+                    if isinstance(texture_res, ReadBlockWrapper) and isinstance(texture_res.resource,
+                                                                                AnyBitmapResource) and texture_res.name == self.texture_id:
                         u_multiplier, v_multiplier = 1 / texture_res.resource.width, 1 / texture_res.resource.height
                         uvs_scaled_to_texture = True
                         break
@@ -48,14 +51,25 @@ class SubMesh:
             'y': 1,
             'z': 2,
         }
+
         def get_value_from_vertex_list(vertex: list[int], coordinate: str) -> int:
             value = vertex[map[coordinate[-1]]]
             if coordinate[0] == '-':
                 value = -value
             return value
+
         self.vertices = [[
             get_value_from_vertex_list(v, new_x),
             get_value_from_vertex_list(v, new_y),
             get_value_from_vertex_list(v, new_z),
         ] for v in self.vertices]
 
+    # after deleting polygons should call this function
+    def remove_orphaned_vertices(self):
+        orphans = [vi for vi in range(len(self.vertices)) if
+                   vi not in [element for sublist in self.polygons for element in sublist]]
+        self.vertices = [v for (i, v) in enumerate(self.vertices) if i not in orphans]
+        self.vertex_uvs = [v for (i, v) in enumerate(self.vertex_uvs) if i not in orphans]
+        for removed_index in orphans[::-1]:
+            for j, p in enumerate(self.polygons):
+                self.polygons[j] = [idx if idx <= removed_index else idx - 1 for idx in p]

@@ -1,12 +1,17 @@
+import json
+import math
 import os
 from collections import defaultdict
+from copy import deepcopy
 from string import Template
+from typing import Literal, List, Tuple
 
 import settings
 from parsers.resources.common.blender_scripts import run_blender
 from parsers.resources.common.meshes import SubMesh
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.basic.data_wrapper import DataWrapper
+from resources.basic.exceptions import BlockIntegrityException
 from resources.eac.bitmaps import AnyBitmapResource
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
@@ -48,8 +53,20 @@ class OripGeometrySerializer(BaseFileSerializer):
 
     blender_script = Template("""
 import bpy
+import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True)
+bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True, axis_forward='Y', axis_up='Z')
+
+dummies = json.loads('$dummies')
+for dummy in dummies:
+    o = bpy.data.objects.new( dummy['name'], None )
+    bpy.context.scene.collection.objects.link(o)
+    o.location = dummy['position']
+    for key, value in dummy.items():
+        if key in ['position', 'name']:
+            continue
+        o[key] = value
+
     """)
 
     def serialize(self, block: OripGeometry, path: str, wrapper: ReadBlockWrapper):
@@ -104,49 +121,70 @@ bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True)
                 continue
             else:
                 raise NotImplementedError(f'Unknown polygon: {polygon_type}')
-        # if is_car:
-        #     if settings.geometry__skip_car_wheel_polygons:
-        #         def is_model_nfs1_wheel(model: SubMesh) -> bool:
-        #             if model.name in ['tyr4', 'rty4']:  # TRAFFC.CFM
-        #                 return True
-        #             if model.name == 'circ':  # wheel shadow
-        #                 return True
-        #             if model.name == '\x00\x00\x00\x00':  # any other CFM
-        #                 if len(model.polygons) == 8:
-        #                     return True
-        #                 if len(model.polygons) > 8:
-        #                     # removing only wheel polygons (F512TR)
-        #                     def is_polygon_wheel(polygon):
-        #                         vertices = [model.vertices[i] for i in polygon]
-        #                         is_match = True
-        #                         wheel_key = None
-        #                         for vert in vertices:
-        #                             key = (None
-        #                                    if abs(vert[2]) < 0.1 or abs(vert[0]) < 0.1
-        #                                    else f"{'f' if vert[2] > 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
-        #                             if not key or (wheel_key is not None and key != wheel_key):
-        #                                 is_match = False
-        #                                 break
-        #                             wheel_key = key
-        #                         return is_match
-        #                     model.polygons = [p for p in model.polygons if not is_polygon_wheel(p)]
-        #                     removed_vertex_indices = [vi for vi in range(len(model.vertices)) if
-        #                                               vi not in [element for sublist in model.polygons for element in
-        #                                                          sublist]]
-        #                     model.vertices = [v for (i, v) in enumerate(model.vertices) if
-        #                                       i not in removed_vertex_indices]
-        #                     model.vertex_uvs = [v for (i, v) in enumerate(model.vertex_uvs) if
-        #                                         i not in removed_vertex_indices]
-        #                     for removed_index in removed_vertex_indices[::-1]:
-        #                         for j, p in enumerate(model.polygons):
-        #                             model.polygons[j] = [idx if idx <= removed_index else idx - 1 for idx in p]
-        #             return False
-        #
-        #         self.sub_models = {k: v for k, v in self.sub_models.items() if not is_model_nfs1_wheel(v)}
+        dummies = []
+        if is_car:
+            if settings.geometry__replace_car_wheel_with_dummies:
+                # receives wheel vertices (4 items), returns center vertex and radius
+                def get_wheel_display_info(vertices: List[List[float]]) -> Tuple[List[float], float]:
+                    center = [sum([v[i] for v in vertices])/len(vertices) for i in range(3)]
+                    distances = [math.sqrt(sum((v[i] - center[i])**2 for i in range(3))) for v in vertices]
+                    return center, (sum(distances) / len(distances)) / math.sqrt(2)
 
+                def get_wheel_polygon_key(polygon) -> Literal['fl', 'fr', 'rl', 'rr', None]:
+                    vertices = [model.vertices[i] for i in polygon]
+                    wheel_key = None
+                    for vert in vertices:
+                        key = (None
+                               if abs(vert[2]) < 0.1 or abs(vert[0]) < 0.1
+                               else f"{'f' if vert[2] > 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
+                        if not key or (wheel_key is not None and key != wheel_key):
+                            return None
+                        wheel_key = key
+                    return wheel_key
+
+                non_wheel_models = {}
+                centers = {}
+                shadow_centers = {}
+                for name, model in sub_models.items():
+                    if name not in ['tyr4', 'rty4', 'circ', '\x00\x00\x00\x00', 'tyre']:
+                        non_wheel_models[name] = model
+                        continue
+                    if len(model.polygons) > 8:
+                        # save non-wheel part of model (F512TR)
+                        model_without_wheels = deepcopy(model)
+                        model_without_wheels.polygons = [p for p in model_without_wheels.polygons if not get_wheel_polygon_key(p)]
+                        model_without_wheels.remove_orphaned_vertices()
+                        non_wheel_models[name] = model_without_wheels
+                        # remove non wheel part from current model to process
+                        model.polygons = [p for p in model.polygons if get_wheel_polygon_key(p)]
+                        model.remove_orphaned_vertices()
+                    wheel_polygons_map = { 'fl': [], 'fr': [], 'rl': [], 'rr': [] }
+                    for polygon in model.polygons:
+                        try:
+                            wheel_polygons_map[get_wheel_polygon_key(polygon)].append(polygon)
+                        except KeyError:
+                            pass
+                    for key, polygons in wheel_polygons_map.items():
+                        vertex_indices = list({ x for p in polygons for x in p })
+                        if not vertex_indices:
+                            continue
+                        assert len(vertex_indices) == 4, BlockIntegrityException('Wheel square vertices count != 4')
+                        (shadow_centers if name == 'circ' else centers)[key] = get_wheel_display_info([model.vertices[i] for i in vertex_indices])
+                if centers and not shadow_centers:
+                    # warrior car does not have shadow
+                    shadow_centers = { key: ([(p[0] - 0.3 if p[0] > 0 else p[0] + 0.3), p[1], p[2]], radius) for key, (p, radius) in centers.items() }
+                dummies = [{
+                    'name': f'wheel_{key}',
+                    'position': position,
+                    'radius': centers[key][1],
+                    'width': abs(position[0] - centers[key][0][0])
+                } for (key, (position, radius)) in shadow_centers.items()]
+                sub_models = non_wheel_models
         # not sure why, but seems like Z should be inverted in all geometries
         for sub_model in sub_models.values():
-            sub_model.change_axes(new_z='-z')
+            sub_model.change_axes(new_z='y', new_y='z')
+        for dummy in dummies:
+            dummy['position'] = [dummy['position'][0], dummy['position'][2], dummy['position'][1]]
 
         if path[-1] != '/':
             path = path + '/'
@@ -170,7 +208,9 @@ illum 1
 Ns 0.000000
 map_Kd assets/{texture.name}.png""")
         wrapper.textures_archive.save_converted(os.path.join(path, 'assets/'))
-        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj', 'is_car': is_car})
+        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
+                                                 'is_car': is_car,
+                                                 'dummies': json.dumps(dummies)})
         script += '\n' + settings.geometry__additional_exporter(f'{os.getcwd()}/{path}body',
                                                                 'car' if is_car else 'prop')
         run_blender(path=path,

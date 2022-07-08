@@ -25,7 +25,7 @@ audio__save_car_sfx_loops = False
 # 3D
 geometry__save_obj = True
 geometry__save_blend = False
-geometry__skip_car_wheel_polygons = False
+geometry__replace_car_wheel_with_dummies = True
 
 # maps export settings
 maps__save_as_chunked = False
