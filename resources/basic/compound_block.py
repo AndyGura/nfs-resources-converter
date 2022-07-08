@@ -33,6 +33,7 @@ class CompoundBlock(ReadBlock, ABC):
         self.instance_fields = [(name, deepcopy(instance)) for name, instance in self.__class__.Fields.fields]
         self.instance_fields_map = {name: res for (name, res) in self.instance_fields}
         self.persistent_data = None
+        self.initial_buffer_pointer = 0
 
     def __getattr__(self, name):
         if self.instance_fields_map.get(name):
@@ -55,10 +56,17 @@ class CompoundBlock(ReadBlock, ABC):
         return sum(f.max_size for (_, f) in self.instance_fields)
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+        self.initial_buffer_pointer = buffer.tell()
         fields = self.instance_fields
         res = dict()
         remaining_size = size
         for name, field in fields:
+            if hasattr(self, f'_before_{name}_read'):
+                getattr(self, f'_before_{name}_read')(data=res,
+                                                      buffer=buffer,
+                                                      total_size=size,
+                                                      remaining_size=remaining_size,
+                                                      parent_read_data=parent_read_data)
             start = buffer.tell()
             if remaining_size == 0:
                 if name in self.Fields.optional_fields or field.min_size == 0:
@@ -89,5 +97,3 @@ class CompoundBlock(ReadBlock, ABC):
 
     def to_raw_value(self, value: DataWrapper) -> dict:
         return dict(value)
-
-

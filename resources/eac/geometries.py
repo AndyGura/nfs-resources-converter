@@ -49,7 +49,7 @@ class OripTextureName(CompoundBlock):
 
 
 class OripGeometry(CompoundBlock):
-    block_description = ''
+    block_description = 'Geometry block for 3D model with few materials'
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='ORIP', length=4, description='Resource ID')
@@ -71,8 +71,8 @@ class OripGeometry(CompoundBlock):
         polygon_vertex_map_block_offset = IntegerField(static_size=4, is_signed=False)
         unk1_count = IntegerField(static_size=4, is_signed=False)
         unk1_block_offset = IntegerField(static_size=4, is_signed=False)
-        label_count = IntegerField(static_size=4, is_signed=False)
-        label_block_offset = IntegerField(static_size=4, is_signed=False)
+        labels_count = IntegerField(static_size=4, is_signed=False)
+        labels_block_offset = IntegerField(static_size=4, is_signed=False)
         unknowns2 = ArrayField(child=IntegerField(static_size=1), length=12, is_unknown=True)
         polygons_block = ArrayField(child=OripPolygon())
         vertex_uvs_block = ArrayField(child=OripVertexUV())
@@ -88,53 +88,41 @@ class OripGeometry(CompoundBlock):
         polygon_vertex_map_block = ArrayField(child=IntegerField(static_size=4), length_strategy="read_available")
 
     def _after_unknowns2_read(self, data, buffer, **kwargs):
-        expected_pointer = 112
-        assert data['polygon_block_offset'] == expected_pointer, \
-            BlockIntegrityException(f'Unexpected pointer to ORIP polygon block: {data["polygon_block_offset"]}')
-        expected_pointer += data['polygon_count'] * OripPolygon().size
         self.instance_fields_map['polygons_block'].length = data['polygon_count']
-
-        assert data['vertex_uvs_block_offset'] == expected_pointer, \
-            BlockIntegrityException(f'Unexpected pointer to ORIP vertex UV block: {data["vertex_uvs_block_offset"]}')
-        expected_pointer += data['vertex_uvs_count'] * OripVertexUV().size
         self.instance_fields_map['vertex_uvs_block'].length = data['vertex_uvs_count']
-
-        assert data['texture_names_block_offset'] == expected_pointer, \
-            BlockIntegrityException(
-                f'Unexpected pointer to ORIP texture names block: {data["texture_names_block_offset"]}')
-        expected_pointer += data['texture_names_count'] * 20
         self.instance_fields_map['texture_names_block'].length = data['texture_names_count']
-
-        assert data['texture_number_block_offset'] == expected_pointer, \
-            BlockIntegrityException(
-                f'Unexpected pointer to ORIP texture number block: {data["texture_number_block_offset"]}')
-        expected_pointer += data['texture_number_count'] * 20
         self.instance_fields_map['texture_number_map_block'].length = data['texture_number_count']
-
-        assert data['unk0_block_offset'] == expected_pointer, \
-            BlockIntegrityException(f'Unexpected pointer to ORIP unk0 block: {data["unk0_block_offset"]}')
-        expected_pointer += data['unk0_count'] * 28
         self.instance_fields_map['unk0_block'].length = data['unk0_count']
-
-        assert data['unk1_block_offset'] == expected_pointer, \
-            BlockIntegrityException(f'Unexpected pointer to ORIP unk1 block: {data["unk1_block_offset"]}')
-        expected_pointer += data['unk1_count'] * 12
         self.instance_fields_map['unk1_block'].length = data['unk1_count']
-
-        assert data['label_block_offset'] == expected_pointer, \
-            BlockIntegrityException(f'Unexpected pointer to ORIP label block: {data["label_block_offset"]}')
-        expected_pointer += data['label_count'] * 12
-        self.instance_fields_map['labels_block'].length = data['label_count']
-
-        assert data['vertex_block_offset'] == expected_pointer, \
-            BlockIntegrityException(f'Unexpected pointer to ORIP vertex block: {data["vertex_block_offset"]}')
-        expected_pointer += data['vertex_count'] * 12
+        self.instance_fields_map['labels_block'].length = data['labels_count']
         self.instance_fields_map['vertex_block'].length = data['vertex_count']
-
-        assert data['polygon_vertex_map_block_offset'] == expected_pointer, \
-            BlockIntegrityException(
-                f'Unexpected pointer to ORIP vertex block: {data["polygon_vertex_map_block_offset"]}')
-
         self.instance_fields_map['vertex_block'].child = (Point3D_32_7()
                                                           if buffer.name.endswith('.CFM')
                                                           else Point3D_32_4())
+
+    def _before_polygons_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['polygon_block_offset'])
+
+    def _before_vertex_uvs_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['vertex_uvs_block_offset'])
+
+    def _before_texture_names_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['texture_names_block_offset'])
+
+    def _before_texture_number_map_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['texture_number_block_offset'])
+
+    def _before_unk0_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['unk0_block_offset'])
+
+    def _before_unk1_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['unk1_block_offset'])
+
+    def _before_labels_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['labels_block_offset'])
+
+    def _before_vertex_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['vertex_block_offset'])
+
+    def _before_polygon_vertex_map_block_read(self, data, buffer, **kwargs):
+        buffer.seek(self.initial_buffer_pointer + data['polygon_vertex_map_block_offset'])

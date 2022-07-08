@@ -19,7 +19,7 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
     except KeyError:
         pass
     # new vertex creation
-    vertex = block.vertex_block[block.polygon_vertex_map_block[index_3D] % len(block.vertex_block)]
+    vertex = block.vertex_block[block.polygon_vertex_map_block[index_3D]]
     model.vertices.append([vertex.x, vertex.y, vertex.z])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
