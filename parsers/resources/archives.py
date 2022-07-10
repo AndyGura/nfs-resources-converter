@@ -1,66 +1,10 @@
 from io import BufferedReader, SEEK_CUR
 from typing import List, Dict
 
-from buffer_utils import read_int, read_utf_bytes
+from buffer_utils import read_int
 from parsers.resources.collections import ArchiveResource
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
-from resources.eac.bitmaps import AnyBitmapResource
 from resources.eac.geometries import OripGeometry
-
-
-# TODO check VET2.QFS. Why has two pictures?
-class SHPIArchive(ArchiveResource):
-
-    def get_children_descriptors(self, buffer: BufferedReader, length: int) -> List[Dict]:
-        buffer.seek(4, SEEK_CUR)
-        length = read_int(buffer)
-        instance_count = read_int(buffer)
-        self.directory_identifier = read_utf_bytes(buffer, 4)
-        children = [{'name': read_utf_bytes(buffer, 4), 'start_offset': read_int(buffer)}
-                    for i in range(0, instance_count)]
-        for child in children:
-            offset = child['start_offset']
-            try:
-                next_resource_offset = min([x['start_offset'] for x in children if x['start_offset'] > offset])
-            except ValueError:
-                next_resource_offset = length
-            child['length'] = next_resource_offset - offset
-        return children
-
-    def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
-        start_offset = buffer.tell()
-        self.resources = []
-        self.children_descriptors = self.get_children_descriptors(buffer, length)
-        for child in self.children_descriptors:
-            from guess_parser import get_resource_class
-            buffer.seek(start_offset + child['start_offset'])
-            try:
-                resource = get_resource_class(buffer)
-            except BaseException as ex:
-                self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
-                continue
-            resource.name = child['name']
-            resource.parent = self
-            if isinstance(resource, ReadBlockWrapper) and issubclass(resource.block_class, AnyBitmapResource):
-                resource.block_init_kwargs['shpi_directory_identifier'] = self.directory_identifier
-            try:
-                print(f'READING {self.name}/{resource.name}')
-                bytes_used = resource.read(buffer, child['length'])
-                assert bytes_used == child[
-                    'length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
-            except BaseException as ex:
-                self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
-                continue
-            self.resources.append(resource)
-        return length
-
-    def save_converted(self, path: str):
-        super().save_converted(path)
-        with open(f'{path}/positions.txt', 'w') as f:
-            for item in [x
-                         for x in self.resources
-                         if isinstance(x, ReadBlockWrapper) and isinstance(x.resource, AnyBitmapResource)]:
-                f.write(f"{item.name}: {item.resource.x}, {item.resource.y}\n")
 
 
 class WwwwArchive(ArchiveResource):
@@ -135,7 +79,7 @@ class SoundBank(ArchiveResource):
                                                                                                                   624,
                                                                                                                   696,
                                                                                                                   768] and (
-                           'SW.BNK' in self.name or self.name in ['TRAFFC.BNK', 'TESTBANK.BNK'])
+                       'SW.BNK' in self.name or self.name in ['TRAFFC.BNK', 'TESTBANK.BNK'])
 
     def get_children_descriptors(self, buffer: BufferedReader, length: int) -> List[Dict]:
         start_offset = buffer.tell()

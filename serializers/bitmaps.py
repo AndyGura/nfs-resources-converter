@@ -90,6 +90,9 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                 palette = self._get_palette_from_wwww(shpi.parent, shpi.parent.resources.index(shpi))
         else:
             palette = block.palette
+        if palette is None and 'ART/CONTROL/' in block.id:
+            from src.require_resource import require_resource
+            palette = require_resource('/'.join(block.id.split('/')[:-1]) + '/CENTRAL.QFS__!pal')
         if palette is None:
             raise SerializationException('Palette not found for 8bit bitmap')
         colors = []

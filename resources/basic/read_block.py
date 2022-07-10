@@ -19,6 +19,7 @@ class ReadBlock(ABC):
         }
         self.description = description
         self.is_unknown = is_unknown
+        self.id = None
         if not self.description and self.is_unknown:
             self.description = 'Unknown purpose'
 

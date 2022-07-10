@@ -2,7 +2,6 @@ from io import BufferedReader, SEEK_CUR
 
 from resources.basic.exceptions import BlockIntegrityException
 from parsers.resources.archives import (
-    SHPIArchive,
     WwwwArchive,
     SoundBank,
 )
@@ -17,6 +16,7 @@ from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
 from resources.basic.read_block import ReadBlock
+from resources.eac.archives import ShpiArchive
 from resources.eac.bitmaps import (
     Bitmap32Bit,
     Bitmap16Bit1555,
@@ -57,7 +57,9 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
-        if header_str == 'FNTF' and (not resources_to_pick or FfnFont in resources_to_pick):
+        if header_str == 'SHPI':
+            return ShpiArchive
+        elif header_str == 'FNTF' and (not resources_to_pick or FfnFont in resources_to_pick):
             return FfnFont
         elif header_str == 'ORIP':
             return OripGeometry
@@ -92,7 +94,7 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         return Bitmap16Bit1555
     elif resource_id == 0x7F and (not resources_to_pick or Bitmap24Bit in resources_to_pick):
         return Bitmap24Bit
-    return None
+    raise NotImplementedError('Don`t have parser for such resource')
 
 
 # old logic
@@ -110,9 +112,7 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
-        if header_str == 'SHPI':
-            return SHPIArchive()
-        elif header_str == 'wwww':
+        if header_str == 'wwww':
             return WwwwArchive()
         elif header_str in ['kVGT', 'SCHl']:
             return FFmpegSupportedVideo()

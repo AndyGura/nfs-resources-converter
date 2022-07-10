@@ -7,11 +7,6 @@ ffmpeg_executable = 'ffmpeg'
 # 0 means "use the amount of CPU cores"
 multiprocess_processes_count = 0
 
-multiprocess_directory_blacklist = [
-    'FRONTEND/ART/CONTROL',  # here we have SHPI archives, which use palette from neighbour file
-    'FRONTEND/GART/CONTROL',  # the same here
-]
-
 # FIXME not working with new resources approach
 save_unknown_values = False
 

@@ -28,6 +28,14 @@ class ArrayField(ReadBlock):
             return float('inf')
         return self.child.max_size * self.length
 
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+
     def __init__(self,
                  child: ReadBlock,
                  length: int = None,
@@ -40,7 +48,7 @@ class ArrayField(ReadBlock):
                          length_label=length_label,
                          **kwargs)
         self.child = child
-        self.length = length
+        self._length = length
         self.length_strategy = length_strategy
         if length_label is None:
             if self.length is None:
@@ -89,3 +97,25 @@ class ArrayField(ReadBlock):
                         raise ex
                 size -= (buffer.tell() - start)
         return res
+
+
+class ExplicitOffsetsArrayField(ArrayField):
+
+    @property
+    def length(self):
+        return None if self.offsets is None else len(self.offsets)
+
+    def __init__(self, **kwargs):
+        self.offsets = None
+        super().__init__(**kwargs)
+        self.block_description += ' with custom offset to items'
+
+    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+        res = []
+        if self.offsets is None:
+            raise BlockDefinitionException('Explicit offsets array field needs declaration of offsets')
+        for offset in self.offsets:
+            buffer.seek(offset)
+            res.append(self.child.read(buffer, size))
+        return res
+

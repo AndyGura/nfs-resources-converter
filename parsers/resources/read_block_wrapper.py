@@ -21,6 +21,7 @@ class ReadBlockWrapper(BaseResource, ABC):
     def read(self, buffer: BufferedReader, length: int, path: str = None) -> int:
         start = buffer.tell()
         self.resource = self.block_class(**self.block_init_kwargs)
+        self.resource.id = path
         self.resource.read(buffer, length)
         bytes_consumed = buffer.tell() - start
         if bytes_consumed < length:
