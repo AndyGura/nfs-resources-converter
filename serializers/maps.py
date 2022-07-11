@@ -8,7 +8,6 @@ from typing import List
 import settings
 from parsers.resources.common.blender_scripts import get_blender_save_script, run_blender
 from parsers.resources.common.meshes import SubMesh
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.basic.compound_block import CompoundBlock
 from resources.basic.data_wrapper import DataWrapper
 from resources.eac.maps import RoadSplinePoint
@@ -80,30 +79,30 @@ class TriMapSerializer(BaseFileSerializer):
         def get_fence_height(self, fence_texture_name):
             try:
                 # TODO determine where to get fence height from resource file
-                # resource = self.tri_resource.fam.resources[0]
+                # resource = self.tri_block.fam.resources[0]
                 # for path in fence_texture_name.split('/'):
                 #     resource = resource.get_resource_by_name(path)
-                if self.tri_resource.name[:3] in ['TR1', 'TR3']:
+                if self.tri_block.id.split('/')[-1][:3] in ['TR1', 'TR3']:
                     # TR1 texture height == 64; TR3: 51
                     return 1
-                elif self.tri_resource.name[:3] in ['AL1', 'TR2', 'TR6']:
+                elif self.tri_block.id.split('/')[-1][:3] in ['AL1', 'TR2', 'TR6']:
                     return 2  # TR2 95; TR6: 65; AL1: 64
-                elif self.tri_resource.name[:3] in ['TR7']:
+                elif self.tri_block.id.split('/')[-1][:3] in ['TR7']:
                     return 1.5  # TR7: 47
                 # didn't test other tracks
                 return 1
             except:
                 return 1
 
-        def __init__(self, tri_resource):
-            self.tri_resource = tri_resource
+        def __init__(self, tri_block):
+            self.tri_block = tri_block
             self.next_chunk = None
             self.matrix = None
             self.fence_texture_name = None
             self.has_left_fence = False
             self.left_fence_polygon_index = 3
             # FIXME hardcode
-            if self.tri_resource.name[:3] == 'TR3':
+            if self.tri_block.id.split('/')[-1][:3] == 'TR3':
                 self.left_fence_polygon_index = 2
             self.has_right_fence = False
             self.right_fence_polygon_index = 7
@@ -149,13 +148,13 @@ class TriMapSerializer(BaseFileSerializer):
             self.reference_points = reference_points
             self.matrix = [None] * 4
             for row_index in range(4):
-                A0 = rows[row_index][0]
+                A0 = rows[row_index][0].persistent_data
                 A0.x += reference_points[row_index].position.x
                 A0.y += reference_points[row_index].position.y
                 A0.z += reference_points[row_index].position.z
 
-                A15 = [rows[row_index][i + 1] for i in range(5)]
-                A610 = [rows[row_index][i + 6] for i in range(5)]
+                A15 = [rows[row_index][i + 1].persistent_data for i in range(5)]
+                A610 = [rows[row_index][i + 6].persistent_data for i in range(5)]
                 # Each point is relative to the previous point
                 for i in range(5):
                     for j in ['x', 'y', 'z']:
@@ -248,7 +247,7 @@ class TriMapSerializer(BaseFileSerializer):
                 # shift a bit (20cm) fence to fix z-fighting specifically on transtropolis track.
                 # It has vertical walls, intersecting with fence
                 # FIXME remove this after finding a way to render with custom z-buffer, required for NFS1 wheels
-                if self.tri_resource.name[:3] == 'TR7':
+                if self.tri_block.id.split('/')[-1][:3] == 'TR7':
                     neighbour_point = matrix[i][index + 1 if is_left else index - 1]
                     distance = math.sqrt(sum(pow(neighbour_point[c] - road_point[c], 2) for c in ['x', 'y', 'z']))
                     koef = 0.2 / distance
@@ -405,7 +404,7 @@ if $save_collisions:
         return [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
                 for i in range(max(frame_count, 1))]
 
-    def _save_mtl(self, terrain_data, path: str, wrapper):
+    def _save_mtl(self, terrain_data, path: str, name):
         with open(f'{path}terrain.mtl', 'w') as f:
             texture_names = list(set(
                 sum([x['texture_names'] for x in terrain_data], [])
@@ -419,10 +418,10 @@ if $save_collisions:
         Ks 0.000000 0.000000 0.000000
         illum 1
         Ns 0.000000
-        map_Kd ../../ETRACKFM/{wrapper.name[:3]}_001.FAM/background/{texture_name}.png""")
+        map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
 
-    def serialize(self, block: CompoundBlock, path: str, wrapper: ReadBlockWrapper):
-        super().serialize(block, path, wrapper)
+    def serialize(self, block: CompoundBlock, path: str):
+        super().serialize(block, path)
         is_opened_track = math.sqrt(
             (block.road_spline[0].position.x - block.road_spline[-1].position.x) ** 2
             + (block.road_spline[0].position.y - block.road_spline[-1].position.y) ** 2
@@ -435,17 +434,17 @@ if $save_collisions:
             res['texture_names'] = [self._get_texture_name_from_id(is_opened_track, tid) for tid in
                                     terrain_entry.texture_ids]
             road_path_index = len(terrain_data) * 4
-            res['chunk'] = self.TerrainChunk(wrapper)
+            res['chunk'] = self.TerrainChunk(block)
             res['chunk'].read_matrix(terrain_entry.rows, block.road_spline[road_path_index:road_path_index + 4])
             if terrain_entry.fence.texture_id != 0 or terrain_entry.fence.has_left_fence or terrain_entry.fence.has_right_fence:
                 fence_texture_id = terrain_entry.fence.texture_id
                 if is_opened_track:
-                    if wrapper.name == 'AL1.TRI' and fence_texture_id == 16:
+                    if block.id.endswith('AL1.TRI') and fence_texture_id == 16:
                         fence_texture_id = fence_texture_id * 3
                     res['chunk'].fence_texture_name = self._get_texture_name_from_id(is_opened_track, fence_texture_id)
                 else:
                     res['chunk'].fence_texture_name = ('0/GA00'
-                                                       if wrapper.name in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
+                                                       if block.id.split('/')[-1] in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
                                                        else '0/ga00')
                 res['chunk'].has_left_fence = terrain_entry.fence.has_left_fence
                 res['chunk'].has_right_fence = terrain_entry.fence.has_right_fence
@@ -501,7 +500,7 @@ if $save_collisions:
         if not os.path.exists(path):
             os.makedirs(path)
         save_path = os.getcwd().replace('\\', '/')
-        self._save_mtl(terrain_data, path, wrapper)
+        self._save_mtl(terrain_data, path, block.id.split('/')[-1])
         blender_script = "import bpy\nbpy.ops.wm.read_factory_settings(use_empty=True)"
         if settings.maps__save_as_chunked:
             for i, terrain_chunk in enumerate(terrain_data):

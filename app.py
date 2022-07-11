@@ -5,12 +5,11 @@ import time
 from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 
-import settings
-from guess_parser import get_resource_class
-from parsers.resources.collections import ResourceDirectory, MultiprocessResourceDirectory
-from src.require_resource import require_file
-from utils import my_import
 from tqdm import tqdm
+
+import serializers
+import settings
+from src import require_file
 
 start_time = time.time()
 
@@ -26,29 +25,22 @@ else:
     files_to_open = [str(args.file)]
 
 
-def process_file(path):
+def export_file(path):
     try:
         block = require_file(path)
-        serializer_class_name = settings.SERIALIZER_CLASSES.get(block.__class__.__name__)
-        serializer_class = None
-        if serializer_class_name:
-            try:
-                serializer_class = my_import(f'serializers.{serializer_class_name}')
-            except ImportError:
-                pass
-        if not serializer_class_name or not serializer_class:
-            raise NotImplementedError(f'Serializer for resource {block.__class__.__name__} not implemented!')
-        serializer = serializer_class()
-        serializer.serialize(block, path, None)
-        print('Serialized ' + path)
+        serializer = serializers.get_serializer(block)
+        serializer.serialize(block, f'out/{path}')
     except Exception as ex:
         return ex
 
 
-with Pool(processes=cpu_count()
-          if settings.multiprocess_processes_count == 0
-          else settings.multiprocess_processes_count) as pool:
-    results = list(tqdm((pool.apply(process_file, (f,)) for f in files_to_open), total=len(files_to_open)))
+processes = cpu_count() if settings.multiprocess_processes_count == 0 else settings.multiprocess_processes_count
+with Pool(processes=processes) as pool:
+    pbar = tqdm(total=len(files_to_open))
+    results = [pool.apply_async(export_file, (f,), callback=lambda *a: pbar.update()) for f in files_to_open]
+    results = list(result.get() for result in results)
+pbar.close()
+
 skipped_resources = [(files_to_open[i], exc) for i, exc in enumerate(results) if isinstance(exc, Exception)]
 if skipped_resources:
     skipped_map = defaultdict(lambda: list())

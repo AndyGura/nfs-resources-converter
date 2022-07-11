@@ -7,14 +7,14 @@ from serializers import BaseFileSerializer, BitmapSerializer
 
 class FfnFontSerializer(BaseFileSerializer):
 
-    def serialize(self, block: FfnFont, path: str, wrapper: ReadBlockWrapper):
-        super().serialize(block, path, wrapper)
+    def serialize(self, block: FfnFont, path: str):
+        super().serialize(block, path)
         if not os.path.exists(path):
             os.makedirs(path)
         image_serializer = BitmapSerializer()
-        image_serializer.serialize(block.bitmap, f'{path}/bitmap', wrapper=None)
+        image_serializer.serialize(block.bitmap, f'{path}/bitmap')
         with open(f'{path}/font.fnt', 'w') as file:
-            file.write(f'info face="{wrapper.name}" size=24\n')
+            file.write(f'info face="{block.id.split("/")[-1]}" size=24\n')
             file.write('common lineHeight=32\n')
             file.write(f'page id=0 file="bitmap.png"\n')
             file.write(f'chars count={block.symbols_amount}\n')

@@ -43,6 +43,8 @@ SERIALIZER_CLASSES = {
     'Palette32BitResource': 'PaletteSerializer',
     'TriMap': 'TriMapSerializer',
     'OripGeometry': 'OripGeometrySerializer',
+    'ShpiArchive': 'ShpiArchiveSerializer',
+    'WwwwArchive': 'WwwwArchiveSerializer',
 }
 
 

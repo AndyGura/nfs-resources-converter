@@ -12,8 +12,8 @@ def rec_dd():
 
 class JsonSerializer(BaseFileSerializer):
 
-    def serialize(self, block: CompoundBlock, path: str, wrapper: ReadBlockWrapper):
-        super().serialize(block, path, wrapper)
+    def serialize(self, block: CompoundBlock, path: str):
+        super().serialize(block, path)
         res = rec_dd()
         for key, value in block.persistent_data.items():
             if block.instance_fields_map[key].is_unknown:

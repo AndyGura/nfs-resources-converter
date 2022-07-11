@@ -5,8 +5,8 @@ from serializers import BaseFileSerializer
 
 class PaletteSerializer(BaseFileSerializer):
 
-    def serialize(self, block: BasePalette, path: str, wrapper: ReadBlockWrapper):
-        super().serialize(block, path, wrapper)
+    def serialize(self, block: BasePalette, path: str):
+        super().serialize(block, path)
         with open(f'{path}.pal.txt', 'w') as f:
             f.write(f'{block.__class__.__name__.replace("Resource", "")}\n')
             f.write('Palette used in bitmap serialization. Contains mapping bitmap data bytes to RGBA colors.\n')

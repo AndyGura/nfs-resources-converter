@@ -1,10 +1,7 @@
 from io import BufferedReader, SEEK_CUR
 
+from parsers.resources.archives import SoundBank
 from resources.basic.exceptions import BlockIntegrityException
-from parsers.resources.archives import (
-    WwwwArchive,
-    SoundBank,
-)
 from parsers.resources.audios import ASFAudio, EacsAudio
 from parsers.resources.base import BaseResource
 from parsers.resources.compressed import (
@@ -16,7 +13,7 @@ from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
 from resources.basic.read_block import ReadBlock
-from resources.eac.archives import ShpiArchive
+from resources.eac.archives import ShpiArchive, WwwwArchive
 from resources.eac.bitmaps import (
     Bitmap32Bit,
     Bitmap16Bit1555,
@@ -59,6 +56,8 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         header_str = header_bytes.decode('utf8')
         if header_str == 'SHPI':
             return ShpiArchive
+        elif header_str == 'wwww':
+            return WwwwArchive
         elif header_str == 'FNTF' and (not resources_to_pick or FfnFont in resources_to_pick):
             return FfnFont
         elif header_str == 'ORIP':
@@ -112,9 +111,7 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
-        if header_str == 'wwww':
-            return WwwwArchive()
-        elif header_str in ['kVGT', 'SCHl']:
+        if header_str in ['kVGT', 'SCHl']:
             return FFmpegSupportedVideo()
         elif header_str == '1SNh':
             return ASFAudio()

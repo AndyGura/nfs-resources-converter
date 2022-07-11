@@ -1,9 +1,9 @@
 from copy import deepcopy
-from functools import cached_property
+from copy import deepcopy
 from io import BufferedReader, BytesIO
 from typing import List
 
-from resources.basic.compound_block import CompoundBlockFields, CompoundBlock
+from resources.basic.compound_block import CompoundBlock
 from resources.basic.exceptions import BlockIntegrityException
 from resources.basic.read_block import ReadBlock
 
@@ -50,7 +50,7 @@ class LiteralResource(ReadBlock):
             from guess_parser import probe_block_class
             block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
             if not block_class:
-                raise BlockIntegrityException('Expectation failed for literal block: class not found')
+                raise BlockIntegrityException('Expectation failed for literal block while reading: class not found')
             for res in self.possible_resources:
                 if isinstance(res, block_class):
                     self.selected_resource = res
@@ -65,6 +65,8 @@ class LiteralResource(ReadBlock):
         return self.selected_resource.load_value(buffer, size, parent_read_data)
 
     def from_raw_value(self, raw: bytes):
+        if self.selected_resource is None:
+            raise BlockIntegrityException('Expectation failed for literal block while from_raw_value: class not found')
         return self.selected_resource.from_raw_value(raw)
 
     def to_raw_value(self, value) -> bytes:
@@ -74,7 +76,7 @@ class LiteralResource(ReadBlock):
         from guess_parser import probe_block_class
         block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
         if not block_class:
-            raise BlockIntegrityException('Expectation failed for literal block: class not found')
+            raise BlockIntegrityException('Expectation failed for literal block while _read_internal: class not found')
         selected_resource = None
         for res in self.possible_resources:
             if isinstance(res, block_class):

@@ -69,11 +69,11 @@ for dummy in dummies:
 
     """)
 
-    def serialize(self, block: OripGeometry, path: str, wrapper: ReadBlockWrapper):
-        super().serialize(block, path, wrapper)
+    def serialize(self, block: OripGeometry, path: str):
+        super().serialize(block, path)
 
         try:
-            is_car = wrapper.parent.name.endswith('.CFM')
+            is_car = block.id.endswith('.CFM')
         except:
             is_car = False
         vertices_file_indices_map = defaultdict(lambda: dict())

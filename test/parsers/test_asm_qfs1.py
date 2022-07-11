@@ -1,9 +1,8 @@
 import os
-import traceback
 import unittest
 from io import BufferedReader
 
-from parsers.resources.compressed import CompressedResource, Qfs2Archive, RefPackArchive
+from parsers.resources.compressed import CompressedResource, RefPackArchive
 from parsers.utils.asm_runner import AsmRunner
 
 
@@ -15,15 +14,15 @@ class Qfs1ASMArchive(CompressedResource, AsmRunner):
     def uncompress(self, buffer: BufferedReader, input_length: int) -> bytes:
         input_data = buffer.read(input_length)
         for i in range(input_length):
-            self.memstore(0x500 + i, int.from_bytes(input_data[i:i+1], signed=False, byteorder='little'), size=1)
+            self.memstore(0x500 + i, int.from_bytes(input_data[i:i + 1], signed=False, byteorder='little'), size=1)
 
         # set stack pointer after input length + offset for script variables
         self.esp = 0x50
         # arguments
-        self.define_variable('arg_0', 8, 4) # input ptr
+        self.define_variable('arg_0', 8, 4)  # input ptr
         self.memstore(self.esp + 0x4, 0x500, size=4)
-        self.define_variable('arg_4', 0xC, 4) # output ptr
-        self.memstore(self.esp + 0x8, 500*1024, size=4)
+        self.define_variable('arg_4', 0xC, 4)  # output ptr
+        self.memstore(self.esp + 0x8, 500 * 1024, size=4)
         self.define_variable('arg_8', 0x10, 4)
         self.memstore(self.esp + 0xC, 1, size=4)
         self.define_variable('var_4', -0x4, 4)
@@ -117,7 +116,7 @@ class Qfs1ASMArchive(CompressedResource, AsmRunner):
                         break
         end_cursor = self.edi
         self.loc_4A8326()
-        return self.asm_virtual_memory[500*1024:end_cursor]
+        return self.asm_virtual_memory[500 * 1024:end_cursor]
 
     def loc_4A822C(self):
         return self.run_block("""

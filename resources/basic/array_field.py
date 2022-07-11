@@ -1,8 +1,10 @@
+from copy import deepcopy
 from io import BufferedReader, BytesIO
 from math import floor
 from typing import List, Literal
 
 from resources.basic.atomic import AtomicReadBlock
+from resources.basic.compound_block import CompoundBlock
 from resources.basic.exceptions import EndOfBufferException, MultiReadUnavailableException, BlockDefinitionException
 from resources.basic.read_block import ReadBlock
 
@@ -114,8 +116,12 @@ class ExplicitOffsetsArrayField(ArrayField):
         res = []
         if self.offsets is None:
             raise BlockDefinitionException('Explicit offsets array field needs declaration of offsets')
-        for offset in self.offsets:
+        if isinstance(self.child, CompoundBlock):
+            child_field_instances = [deepcopy(self.child) for _ in self.offsets]
+        else:
+            child_field_instances = [self.child] * len(self.offsets)
+        for i, offset in enumerate(self.offsets):
             buffer.seek(offset)
-            res.append(self.child.read(buffer, size))
+            res.append(child_field_instances[i].read(buffer, size))
         return res
 

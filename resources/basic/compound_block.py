@@ -35,12 +35,19 @@ class CompoundBlock(ReadBlock, ABC):
         self.persistent_data = None
         self.initial_buffer_pointer = 0
 
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id = value
+        for (name, field) in self.instance_fields:
+            field.id = self._id + ('/' if '__' in self._id else '__') + name
+
     def __getattr__(self, name):
         if self.instance_fields_map.get(name):
-            if isinstance(self.instance_fields_map[name], CompoundBlock):
-                return self.instance_fields_map[name]
-            else:
-                return getattr(self.persistent_data, name, None)
+            return getattr(self.persistent_data, name, None)
         return object.__getattribute__(self, name)
 
     @cached_property
@@ -93,7 +100,10 @@ class CompoundBlock(ReadBlock, ABC):
 
     def from_raw_value(self, raw: dict):
         self.persistent_data = DataWrapper(raw)
-        return self.persistent_data
+        # need to return self, because we want shpi.children.!pal to be instance of BitmapBlock, not dict
+        clone = deepcopy(self)
+        clone.persistent_data = self.persistent_data
+        return clone
 
     def to_raw_value(self, value: DataWrapper) -> dict:
         return dict(value)

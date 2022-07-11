@@ -1,6 +1,5 @@
 import json
 import os
-import traceback
 from abc import ABC, abstractmethod
 from io import BufferedReader
 from multiprocessing import Pool, cpu_count
@@ -64,7 +63,7 @@ class ResourceDirectory(ResourceCollection):
                 except BaseException as ex:
                     self.skipped_resources.append((file, f'{ex.__class__.__name__}: {str(ex)}'))
                     continue
-        self.skipped_resources.sort(key=lambda x:x[0])
+        self.skipped_resources.sort(key=lambda x: x[0])
         return None
 
 
@@ -104,8 +103,8 @@ class MultiprocessResourceDirectory(ResourceCollection):
         if not os.path.exists(path):
             os.makedirs(path)
         with Pool(processes=cpu_count()
-                  if settings.multiprocess_processes_count == 0
-                  else settings.multiprocess_processes_count) as pool:
+        if settings.multiprocess_processes_count == 0
+        else settings.multiprocess_processes_count) as pool:
             results = [pool.apply_async(self._process_file, (self.read_path, path, file)) for file in self.files]
             [result.wait() for result in results]
             self.skipped_resources = [res for res in (r.get() for r in results) if res != 0]
@@ -140,7 +139,8 @@ class ArchiveResource(ResourceCollection):
             try:
                 print(f'READING {self.name}/{resource.name}')
                 bytes_used = resource.read(buffer, child['length'])
-                assert bytes_used == child['length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
+                assert bytes_used == child[
+                    'length'], f'Bytes used: {bytes_used}, but expected child length: {child["length"]}'
             except BaseException as ex:
                 self.skipped_resources.append((child['name'], f'{ex.__class__.__name__}: {str(ex)}'))
                 continue

@@ -1,25 +1,36 @@
 from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO
+from typing import Literal
 
 from resources.basic.exceptions import EndOfBufferException, BlockIntegrityException
 
 
 class ReadBlock(ABC):
-
     # those fields used for documentation only
     block_description = None
     description = None
     is_unknown = False
 
-    def __init__(self, description: str = '', is_unknown: bool = False, **kwargs):
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id = value
+
+    def __init__(self, description: str = '', is_unknown: bool = False,
+                 error_handling_strategy: Literal["raise", "return"] = "raise", **kwargs):
         self.instantiate_kwargs = {
             'description': description,
             'is_unknown': is_unknown,
+            'error_handling_strategy': error_handling_strategy,
             **kwargs,
         }
         self.description = description
         self.is_unknown = is_unknown
-        self.id = None
+        self.error_handling_strategy = error_handling_strategy
+        self._id = None
         if not self.description and self.is_unknown:
             self.description = 'Unknown purpose'
 
@@ -39,7 +50,7 @@ class ReadBlock(ABC):
     def max_size(self):
         return self.size
 
-    def check_length_before_reading(self, available_size: int):
+    def _check_length_before_reading(self, available_size: int):
         if self.min_size is None:
             raise BlockIntegrityException('Cannot read, own min size is unknown')
         if self.min_size > available_size:
@@ -47,9 +58,15 @@ class ReadBlock(ABC):
                                        f'min size {self.min_size}, available: {available_size}')
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        self.check_length_before_reading(size)
-        value = self.load_value(buffer, size, parent_read_data)
-        return self.from_raw_value(value)
+        try:
+            self._check_length_before_reading(size)
+            value = self.load_value(buffer, size, parent_read_data)
+            return self.from_raw_value(value)
+        except Exception as ex:
+            if self.error_handling_strategy == 'raise':
+                raise ex
+            else:
+                return ex
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         return buffer.read(self.size)
