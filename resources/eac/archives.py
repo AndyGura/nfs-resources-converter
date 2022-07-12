@@ -75,7 +75,7 @@ class ShpiArchive(CompoundBlock):
         children = ExplicitOffsetsArrayField(child=LiteralResource(
             possible_resources=[
                 Bitmap16Bit0565(error_handling_strategy='return'),
-                Bitmap4Bit(error_handling_strategy='return'),
+                # Bitmap4Bit(error_handling_strategy='return'),
                 Bitmap8Bit(error_handling_strategy='return'),
                 Bitmap32Bit(error_handling_strategy='return'),
                 Bitmap16Bit1555(error_handling_strategy='return'),
