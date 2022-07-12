@@ -85,7 +85,7 @@ class CompoundBlock(ReadBlock, ABC):
                 remaining_size -= buffer.tell() - start
                 if remaining_size < 0:
                     raise EndOfBufferException()
-            except (EndOfBufferException, BlockIntegrityException) as ex:
+            except (EndOfBufferException, BlockIntegrityException, NotImplementedError) as ex:
                 if name in self.Fields.optional_fields:
                     buffer.seek(start)
                 else:
@@ -103,6 +103,7 @@ class CompoundBlock(ReadBlock, ABC):
         # need to return self, because we want shpi.children.!pal to be instance of BitmapBlock, not dict
         clone = deepcopy(self)
         clone.persistent_data = self.persistent_data
+        clone.id = self.id
         return clone
 
     def to_raw_value(self, value: DataWrapper) -> dict:

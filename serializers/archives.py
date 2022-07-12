@@ -3,7 +3,7 @@ import os
 import serializers
 from resources.eac.archives import ShpiArchive, WwwwArchive
 from resources.eac.bitmaps import AnyBitmapResource
-from serializers import BaseFileSerializer, BitmapSerializer
+from serializers import BaseFileSerializer
 from utils import format_exception
 
 

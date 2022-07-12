@@ -86,9 +86,10 @@ class ArrayField(ReadBlock):
                 raise MultiReadUnavailableException('Supports only atomic read blocks')
         except (MultiReadUnavailableException, AttributeError) as ex:
             buffer.seek(start)
-            for _ in range(amount):
+            for i in range(amount):
                 start = buffer.tell()
                 try:
+                    self.child.id = self.id + '/' + str(i)
                     res.append(self.child.read(buffer, size))
                 except EndOfBufferException as ex:
                     if self.length_strategy == "read_available":

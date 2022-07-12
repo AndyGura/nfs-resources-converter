@@ -75,7 +75,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             raise SerializationException('Palette not found for 8bit bitmap')
         colors = []
         palette_colors = palette.colors
-        if block.id[:-4] in ['rsid', 'lite'] and '.CFM' in block.id:
+        if block.id[-4:] in ['rsid', 'lite'] and '.CFM' in block.id:
             # NFS1 car tail lights: make transparent
             palette_colors = deepcopy(palette_colors)
             palette_colors[254] = 0

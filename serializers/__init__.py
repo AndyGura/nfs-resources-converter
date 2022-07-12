@@ -1,4 +1,5 @@
 import settings
+from resources.basic.delegate_block import DelegateBlock
 from resources.basic.read_block import ReadBlock
 from utils import my_import
 from .base import BaseFileSerializer
@@ -14,9 +15,8 @@ from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer
 def get_serializer(block: ReadBlock) -> BaseFileSerializer:
     if isinstance(block, Exception):
         raise block
-    from resources.eac.archives import CompressedBlock
-    if isinstance(block, CompressedBlock): # TODO isinstance(DelegateBlock: Literal and Compressed)
-        block = block.child_block
+    if isinstance(block, DelegateBlock):
+        block = block.delegated_block
     serializer_class_name = settings.SERIALIZER_CLASSES.get(block.__class__.__name__)
     serializer_class = None
     if serializer_class_name:

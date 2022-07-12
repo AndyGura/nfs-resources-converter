@@ -4,8 +4,8 @@ from parsers.resources.compressed import RefPackArchive, Qfs2Archive, Qfs3Archiv
 from resources.basic.array_field import ArrayField, ExplicitOffsetsArrayField
 from resources.basic.atomic import IntegerField, Utf8Field
 from resources.basic.compound_block import CompoundBlock
+from resources.basic.delegate_block import DelegateBlock
 from resources.basic.literal_block import LiteralResource
-from resources.basic.read_block import ReadBlock
 from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit, Bitmap4Bit
 from resources.eac.geometries import OripGeometry
 from resources.eac.palettes import (
@@ -16,35 +16,22 @@ from resources.eac.palettes import (
 )
 
 
-class CompressedBlock(ReadBlock):
+class CompressedBlock(DelegateBlock):
     block_description = ''
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.algorithm = None
-        self.child_resource_class = None
-        self.child_block = None
-
-    def __getattr__(self, name):
-        if self.child_block and hasattr(self.child_block, name):
-            return getattr(self.child_block, name)
-        return object.__getattribute__(self, name)
+        self.delegate_block_class = None
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         uncompressed_bytes = self.algorithm(buffer, size)
         uncompressed = BytesIO(uncompressed_bytes)
-        if self.child_resource_class is None:
+        if self.delegate_block_class is None:
             from guess_parser import probe_block_class
-            self.child_resource_class = probe_block_class(uncompressed, self.id + '_UNCOMPRESSED')
-        self.child_block = self.child_resource_class()
-        self.child_block.id = self.id
-        return self.child_block.read(uncompressed, len(uncompressed_bytes))
-
-    def from_raw_value(self, raw: bytes):
-        return raw
-
-    def to_raw_value(self, value) -> bytes:
-        return value
+            self.delegate_block_class = probe_block_class(uncompressed, self.id + '_UNCOMPRESSED')
+        self.delegated_block = self.delegate_block_class()
+        return super().read(uncompressed, len(uncompressed_bytes))
 
 
 class RefPackBlock(CompressedBlock):
@@ -87,16 +74,16 @@ class ShpiArchive(CompoundBlock):
         children_descriptions = ArrayField(child=ShpiChildDescription())
         children = ExplicitOffsetsArrayField(child=LiteralResource(
             possible_resources=[
-                Bitmap16Bit0565(),
-                Bitmap4Bit(),
-                Bitmap8Bit(),
-                Bitmap32Bit(),
-                Bitmap16Bit1555(),
-                Bitmap24Bit(),
-                Palette24BitDosResource(),
-                Palette24BitResource(),
-                Palette32BitResource(),
-                Palette16BitResource(),
+                Bitmap16Bit0565(error_handling_strategy='return'),
+                Bitmap4Bit(error_handling_strategy='return'),
+                Bitmap8Bit(error_handling_strategy='return'),
+                Bitmap32Bit(error_handling_strategy='return'),
+                Bitmap16Bit1555(error_handling_strategy='return'),
+                Bitmap24Bit(error_handling_strategy='return'),
+                Palette24BitDosResource(error_handling_strategy='return'),
+                Palette24BitResource(error_handling_strategy='return'),
+                Palette32BitResource(error_handling_strategy='return'),
+                Palette16BitResource(error_handling_strategy='return'),
             ],
             error_handling_strategy='return',
         ))
@@ -115,7 +102,8 @@ class ShpiArchive(CompoundBlock):
         self.instance_fields_map['children_descriptions'].length = data['children_count']
 
     def _after_children_descriptions_read(self, data, **kwargs):
-        self.instance_fields_map['children'].offsets = [x.offset + self.initial_buffer_pointer for x in data['children_descriptions']]
+        self.instance_fields_map['children'].offsets = [x.offset + self.initial_buffer_pointer for x in
+                                                        data['children_descriptions']]
 
     def _after_children_read(self, data, **kwargs):
         for i, child in enumerate(data['children']):
@@ -131,10 +119,9 @@ class WwwwArchive(CompoundBlock):
         children_offsets = ArrayField(child=IntegerField(static_size=4, is_signed=False))
         children = ExplicitOffsetsArrayField(child=LiteralResource(
             possible_resources=[
-                OripGeometry(),
-                ShpiArchive(),
+                OripGeometry(error_handling_strategy='return'),
+                ShpiArchive(error_handling_strategy='return'),
             ],
-            error_handling_strategy='return',
         ))
 
     def __getattr__(self, name):
@@ -149,7 +136,8 @@ class WwwwArchive(CompoundBlock):
         self.instance_fields_map['children_offsets'].length = data['children_count']
 
     def _after_children_offsets_read(self, data, **kwargs):
-        self.instance_fields_map['children'].offsets = [x + self.initial_buffer_pointer for x in data['children_offsets']]
+        self.instance_fields_map['children'].offsets = [x + self.initial_buffer_pointer for x in
+                                                        data['children_offsets']]
 
 
 WwwwArchive.Fields.children.child.possible_resources.append(WwwwArchive())
