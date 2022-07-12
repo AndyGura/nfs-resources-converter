@@ -116,12 +116,13 @@ class ExplicitOffsetsArrayField(ArrayField):
         res = []
         if self.offsets is None:
             raise BlockDefinitionException('Explicit offsets array field needs declaration of offsets')
-        if isinstance(self.child, CompoundBlock):
-            child_field_instances = [deepcopy(self.child) for _ in self.offsets]
-        else:
-            child_field_instances = [self.child] * len(self.offsets)
+        child_field_instances = [deepcopy(self.child) for _ in self.offsets]
+        end_offset = buffer.tell() + size
         for i, offset in enumerate(self.offsets):
             buffer.seek(offset)
-            res.append(child_field_instances[i].read(buffer, size))
+            child_field_instances[i].id = self.id + '/' + str(i)
+            res.append(child_field_instances[i].read(buffer, min(o
+                                                                 for o in (self.offsets + [end_offset])
+                                                                 if o > offset) - offset))
         return res
 

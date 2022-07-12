@@ -54,12 +54,10 @@ class LiteralResource(ReadBlock):
             for res in self.possible_resources:
                 if isinstance(res, block_class):
                     self.selected_resource = res
+                    self.selected_resource.id = self.id
                     break
-        try:
-            self.persistent_data = super().read(buffer, size, parent_read_data)
-            return self.persistent_data
-        finally:
-            self.selected_resource = None
+        self.persistent_data = super().read(buffer, size, parent_read_data)
+        return self.selected_resource
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         return self.selected_resource.load_value(buffer, size, parent_read_data)
@@ -84,6 +82,7 @@ class LiteralResource(ReadBlock):
                 break
         result = selected_resource.read(buffer, size)
         self.selected_resource = selected_resource
+        self.selected_resource.id = self.id
         return result
 
     def _write_internal(self, buffer, value):

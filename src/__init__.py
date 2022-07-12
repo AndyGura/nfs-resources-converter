@@ -9,6 +9,12 @@ def require_resource(id: str):
     resource = require_file(file_path)
     resource_path = id.split('__')[1].split('/')
     for key in resource_path:
+        if isinstance(resource, list) and key.isdigit():
+            try:
+                resource = resource[int(key)]
+                continue
+            except KeyError:
+                return None
         try:
             resource = getattr(resource, key)
         except AttributeError:

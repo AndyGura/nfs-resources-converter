@@ -1,19 +1,15 @@
-from io import BufferedReader, SEEK_CUR
+from io import BufferedReader, SEEK_CUR, BytesIO
+from typing import Literal
 
 from parsers.resources.archives import SoundBank
-from resources.basic.exceptions import BlockIntegrityException
 from parsers.resources.audios import ASFAudio, EacsAudio
 from parsers.resources.base import BaseResource
-from parsers.resources.compressed import (
-    RefPackArchive,
-    Qfs2Archive,
-    Qfs3Archive,
-)
 from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from parsers.resources.videos import FFmpegSupportedVideo
+from resources.basic.exceptions import BlockIntegrityException
 from resources.basic.read_block import ReadBlock
-from resources.eac.archives import ShpiArchive, WwwwArchive
+from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block
 from resources.eac.bitmaps import (
     Bitmap32Bit,
     Bitmap16Bit1555,
@@ -21,6 +17,13 @@ from resources.eac.bitmaps import (
     Bitmap24Bit,
     Bitmap8Bit,
     Bitmap4Bit,
+)
+from resources.eac.car_specs import (
+    CarPerformanceSpec,
+    CarSimplifiedPerformanceSpec,
+)
+from resources.eac.fonts import (
+    FfnFont,
 )
 from resources.eac.geometries import OripGeometry
 from resources.eac.maps import TriMap
@@ -31,22 +34,15 @@ from resources.eac.palettes import (
     Palette24BitResource,
     Palette24BitDosResource,
 )
-from resources.eac.fonts import (
-    FfnFont,
-)
-
-from resources.eac.car_specs import (
-    CarPerformanceSpec,
-    CarSimplifiedPerformanceSpec,
-)
 
 
 # new logic
 # TODO optimize
-def probe_block_class(binary_file: BufferedReader, file_name: str = None, resources_to_pick=None):
+def probe_block_class(binary_file: Literal[BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):
     if file_name:
         # FIXME remove, master parser will use this block class
-        if file_name.endswith('.PBS_UNCOMPRESSED') and (not resources_to_pick or CarPerformanceSpec in resources_to_pick):
+        if file_name.endswith('.PBS_UNCOMPRESSED') and (
+                not resources_to_pick or CarPerformanceSpec in resources_to_pick):
             return CarPerformanceSpec
         elif file_name.endswith('.PDN_UNCOMPRESSED'):
             return CarSimplifiedPerformanceSpec
@@ -68,7 +64,18 @@ def probe_block_class(binary_file: BufferedReader, file_name: str = None, resour
         resource_id = header_bytes[0]
     except IndexError:
         raise BlockIntegrityException('Don`t have parser for such resource. header_bytes are missed')
-    if resource_id == 0x11 and header_bytes[1] == 0x00 and header_bytes[2] == 0x00 and header_bytes[3] == 0x00:
+    # QFS1
+    # if resource_id & 0b0001_0000:
+    if header_bytes[1] == 0xfb and (resource_id & 0b1111_1110) == 0x10:
+        return RefPackBlock
+    # AL2.QFS
+    elif header_bytes[1] == 0xfb and resource_id == 0b0100_0110:
+        return Qfs2Block
+    # AL1.QFS
+    elif header_bytes[1] == 0xfb and resource_id in [0b0011_0000, 0b0011_0010, 0b0011_0100, 0b0011_0001, 0b0011_0011,
+                                                     0b0011_0101]:
+        return Qfs3Block
+    elif resource_id == 0x11 and header_bytes[1] == 0x00 and header_bytes[2] == 0x00 and header_bytes[3] == 0x00:
         return TriMap
     elif resource_id == 0x22 and (not resources_to_pick or Palette24BitDosResource in resources_to_pick):
         return Palette24BitDosResource
@@ -125,17 +132,7 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
         resource_id = header_bytes[0]
     except IndexError:
         raise NotImplementedError('Don`t have parser for such resource. header_bytes are missed')
-    # QFS1
-    # if resource_id & 0b0001_0000:
-    if header_bytes[1] == 0xfb and (resource_id & 0b1111_1110) == 0x10:
-        return RefPackArchive()
-    # AL2.QFS
-    elif header_bytes[1] == 0xfb and resource_id == 0b0100_0110:
-        return Qfs2Archive()
-    # AL1.QFS
-    elif header_bytes[1] == 0xfb and resource_id in [0b0011_0000, 0b0011_0010, 0b0011_0100, 0b0011_0001, 0b0011_0011, 0b0011_0101]:
-        return Qfs3Archive()
-    elif resource_id == 0x0A:
+    if resource_id == 0x0A:
         # unknown resource with length == 84
         # looks like some info about sprite positioning on screen
         return BinaryResource(id=resource_id, length=84, save_binary_file=False)

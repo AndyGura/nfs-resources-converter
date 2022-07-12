@@ -14,6 +14,9 @@ from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer
 def get_serializer(block: ReadBlock) -> BaseFileSerializer:
     if isinstance(block, Exception):
         raise block
+    from resources.eac.archives import CompressedBlock
+    if isinstance(block, CompressedBlock): # TODO isinstance(DelegateBlock: Literal and Compressed)
+        block = block.child_block
     serializer_class_name = settings.SERIALIZER_CLASSES.get(block.__class__.__name__)
     serializer_class = None
     if serializer_class_name:

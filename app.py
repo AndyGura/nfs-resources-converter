@@ -10,6 +10,7 @@ from tqdm import tqdm
 import serializers
 import settings
 from src import require_file
+from utils import format_exception
 
 start_time = time.time()
 
@@ -46,7 +47,7 @@ if skipped_resources:
     skipped_map = defaultdict(lambda: list())
     for name, ex in skipped_resources:
         path, name = '/'.join(name.split('/')[:-1]), name.split('/')[-1]
-        skipped_map[path].append((name, f'{ex.__class__.__name__}: {str(ex)}'))
+        skipped_map[path].append((name, format_exception(ex)))
     for path, skipped in skipped_map.items():
         os.makedirs(f'out/{path}', exist_ok=True)
         skipped.sort(key=lambda x: x[0])
