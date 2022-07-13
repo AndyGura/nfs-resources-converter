@@ -25,7 +25,7 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
         pass
     # new vertex creation
     vertex = block.vertex_block[block.polygon_vertex_map_block[index_3D]]
-    model.vertices.append([vertex.x, vertex.y, vertex.z])
+    model.vertices.append([vertex.x, -vertex.z, vertex.y])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
     try:
@@ -55,7 +55,7 @@ class OripGeometrySerializer(BaseFileSerializer):
 import bpy
 import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True, axis_forward='Y', axis_up='Z')
+bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True)
 
 dummies = json.loads('$dummies')
 for dummy in dummies:
