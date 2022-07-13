@@ -11,7 +11,10 @@ class LiteralResource(DelegateBlock):
 
     @property
     def min_size(self):
-        return super().min_size or min(x.min_size for x in self.possible_resources)
+        try:
+            return super().min_size or min(x.min_size for x in self.possible_resources)
+        except TypeError:
+            return 0
 
     @property
     def max_size(self):
@@ -24,8 +27,8 @@ class LiteralResource(DelegateBlock):
     def __init__(self, possible_resources: List[CompoundBlock], **kwargs):
         super().__init__(possible_resources=possible_resources,
                          **kwargs)
+        # TODO no need to copy them here. Copy only delegated block
         self.possible_resources = deepcopy(possible_resources)
-        self.persistent_data = None
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         try:

@@ -2,10 +2,11 @@ from io import BufferedReader, BytesIO
 
 from parsers.resources.compressed import RefPackArchive, Qfs2Archive, Qfs3Archive
 from resources.basic.array_field import ArrayField, ExplicitOffsetsArrayField
-from resources.basic.atomic import IntegerField, Utf8Field
+from resources.basic.atomic import IntegerField, Utf8Field, BytesField
 from resources.basic.compound_block import CompoundBlock
 from resources.basic.delegate_block import DelegateBlock
 from resources.basic.literal_block import LiteralResource
+from resources.eac.audios import EacsAudio
 from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit, Bitmap4Bit
 from resources.eac.geometries import OripGeometry
 from resources.eac.palettes import (
@@ -144,3 +145,34 @@ class WwwwArchive(CompoundBlock):
 
 WwwwArchive.Fields.children.child.possible_resources.append(WwwwArchive())
 WwwwArchive.Fields.children.child.instantiate_kwargs['possible_resources'].append(WwwwArchive())
+
+
+class SoundBank(CompoundBlock):
+    block_description = ''
+
+    class Fields(CompoundBlock.Fields):
+        children_offsets = ArrayField(child=IntegerField(static_size=4, is_signed=False), length=128)
+        children = ExplicitOffsetsArrayField(child=LiteralResource(possible_resources=[
+            EacsAudio(),
+        ]))
+        wave_data = ExplicitOffsetsArrayField(child=BytesField(length_strategy="read_available"))
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError as ex:
+            if name.isdigit() and self.children and len(self.children) > int(name):
+                return self.children[int(name)]
+            raise ex
+
+    def _after_children_offsets_read(self, data, total_size, **kwargs):
+        for offset in data['children_offsets']:
+            if offset >= total_size:
+                raise Exception(f'Child cannot start at offset {offset}. Resource length: {total_size}')
+        # FIXME it is unknown what is + 40
+        self.instance_fields_map['children'].offsets = [x + self.initial_buffer_pointer + 40
+                                                        for x in data['children_offsets']
+                                                        if x > 0]
+
+    def _after_children_read(self, data, **kwargs):
+        self.instance_fields_map['wave_data'].offsets = [x.wave_data_offset + self.initial_buffer_pointer for x in data['children']]

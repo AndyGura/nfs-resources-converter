@@ -22,6 +22,6 @@ class JsonSerializer(BaseFileSerializer):
             dictionary = res
             for sub_key in key_parts[:-1]:
                 dictionary = res[sub_key]
-            dictionary[key_parts[-1]] = value
+            dictionary[key_parts[-1]] = value.persistent_data if isinstance(value, CompoundBlock) else value
         with open(f'{path}.json', 'w') as file:
             file.write(json.dumps(res, indent=4))

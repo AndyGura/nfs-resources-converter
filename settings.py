@@ -45,6 +45,7 @@ SERIALIZER_CLASSES = {
     'OripGeometry': 'OripGeometrySerializer',
     'ShpiArchive': 'ShpiArchiveSerializer',
     'WwwwArchive': 'WwwwArchiveSerializer',
+    'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',
 }
 
 

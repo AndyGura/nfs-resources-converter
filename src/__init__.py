@@ -35,7 +35,7 @@ files_cache = {}
 def require_file(path: str):
     block = files_cache.get(path)
     if block is None:
-        with open(path, 'rb') as bdata:
+        with open(path, 'rb', buffering=10*1024*1024) as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
             files_cache[path] = block

@@ -7,8 +7,8 @@ from resources.basic.read_block import ReadBlock
 from resources.utils import represent_value_as_str
 
 
-# block with static size and primitive output type
 class AtomicReadBlock(ReadBlock, ABC):
+    """block with static size, no id and primitive output type. Can be reused many times while reading resource"""
 
     @property
     def size(self):
@@ -27,6 +27,14 @@ class AtomicReadBlock(ReadBlock, ABC):
             else:
                 self.block_description = label
 
+    def __deepcopy__(self, memo):
+        return self
+
+    def _check_length_before_reading(self, available_size: int):
+        if self.min_size is None:
+            raise BlockIntegrityException('Cannot read, own min size is unknown')
+        return super()._check_length_before_reading(available_size)
+
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         value = super().read(buffer, size, parent_read_data)
         if self.required_value and value != self.required_value:
@@ -35,13 +43,14 @@ class AtomicReadBlock(ReadBlock, ABC):
         return value
 
     def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
-        if self.size != self.min_size or self.size != self.max_size:
+        self_size = self.size  # optimization
+        if self_size != self.min_size or self_size != self.max_size:
             raise MultiReadUnavailableException()
-        if self.size * length > size:
+        if self_size * length > size:
             raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
-                                       f'min size {self.size * length}, available: {size}')
-        bts = buffer.read(self.size * length)
-        return [self.from_raw_value(x) for x in [bts[i*self.size:(i + 1)*self.size] for i in range(length)]]
+                                       f'min size {self_size * length}, available: {size}')
+        bts = buffer.read(self_size * length)
+        return [self.from_raw_value(x) for x in [bts[i*self_size:(i + 1)*self_size] for i in range(length)]]
 
 
 class IntegerField(AtomicReadBlock):
@@ -59,8 +68,24 @@ class IntegerField(AtomicReadBlock):
                                            byte_order=byte_order,
                                            **kwargs)
 
+    # optimized case with unsigned 8-bit ints
+    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
+        self_size = self.size  # optimization
+        if self_size != self.min_size or self_size != self.max_size:
+            raise MultiReadUnavailableException()
+        if self_size * length > size:
+            raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
+                                       f'min size {self_size * length}, available: {size}')
+        bts = buffer.read(self_size * length)
+        # here is optimization
+        if self_size == 1 and not self.is_signed:
+            return list(bts)
+        else:
+            return [self.from_raw_value(x) for x in [bts[i*self_size:(i + 1)*self_size] for i in range(length)]]
+
     def from_raw_value(self, raw: bytes):
-        return int.from_bytes(raw.ljust(self.size, b'\0'), byteorder=self.byte_order, signed=self.is_signed)
+        self_size = self.size
+        return int.from_bytes(raw.ljust(self_size, b'\0') if self_size > 1 else raw, byteorder=self.byte_order, signed=self.is_signed)
 
     def to_raw_value(self, value) -> bytes:
         return value.to_bytes(self.size, byteorder=self.byte_order, signed=self.is_signed).ljust(self.size, b'\0')
@@ -83,6 +108,48 @@ class Utf8Field(AtomicReadBlock):
 
     def to_raw_value(self, value) -> bytes:
         return value.decode('utf-8')
+
+
+class BytesField(AtomicReadBlock):
+    # TODO maybe I can replace block_description with pure python documentation?
+    block_description = ""
+
+    def __init__(self, length: int = None,
+                 length_strategy: Literal["strict", "read_available"] = "strict",
+                 **kwargs):
+        kwargs['length'] = length
+        kwargs['length_strategy'] = length_strategy
+        super().__init__(**kwargs)
+        self.length = length
+        self.length_strategy = length_strategy
+
+    @property
+    def size(self):
+        return self.length
+
+    @property
+    def min_size(self):
+        if self.length_strategy == "strict":
+            return self.length
+        else:
+            return 0
+
+    @property
+    def max_size(self):
+        if self.length is None:
+            return float('inf')
+        return self.length
+
+    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+        if self.length is None and self.length_strategy == "read_available":
+            self.length = size
+        return super().load_value(buffer, size, parent_read_data)
+
+    def from_raw_value(self, raw: bytes):
+        return raw
+
+    def to_raw_value(self, value) -> bytes:
+        return value
 
 
 class BitFlagsField(IntegerField, ABC):

@@ -10,6 +10,7 @@ from .json import JsonSerializer
 from .maps import TriMapSerializer
 from .geometries import OripGeometrySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer
+from .videos import FfmpegSupportedVideoSerializer
 
 
 def get_serializer(block: ReadBlock) -> BaseFileSerializer:

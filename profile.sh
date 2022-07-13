@@ -1,0 +1,1 @@
+viztracer app.py $@

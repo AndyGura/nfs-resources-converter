@@ -1,7 +1,6 @@
 from resources.basic.array_field import ArrayField
 from resources.basic.atomic import IntegerField, Utf8Field
 from resources.basic.compound_block import CompoundBlock
-from resources.basic.exceptions import BlockIntegrityException
 from resources.basic.literal_block import LiteralResource
 from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4
 

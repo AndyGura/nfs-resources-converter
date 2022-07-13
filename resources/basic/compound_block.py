@@ -30,6 +30,7 @@ class CompoundBlock(ReadBlock, ABC):
         kwargs['inline_description'] = inline_description
         super().__init__(**kwargs)
         self.inline_description = inline_description
+        # TODO should not copy non-persistent fields, where we return pure value (Atomic blocks?)
         self.instance_fields = [(name, deepcopy(instance)) for name, instance in self.__class__.Fields.fields]
         self.instance_fields_map = {name: res for (name, res) in self.instance_fields}
         self.persistent_data = None
@@ -52,15 +53,24 @@ class CompoundBlock(ReadBlock, ABC):
 
     @cached_property
     def size(self):
-        return sum(f.size for (_, f) in self.instance_fields)
+        try:
+            return sum(f.size for (_, f) in self.instance_fields)
+        except TypeError:
+            return None
 
     @cached_property
     def min_size(self):
-        return sum(0 if k in self.Fields.optional_fields else f.min_size for (k, f) in self.instance_fields)
+        try:
+            return sum(0 if k in self.Fields.optional_fields else f.min_size for (k, f) in self.instance_fields)
+        except TypeError:
+            return None
 
     @cached_property
     def max_size(self):
-        return sum(f.max_size for (_, f) in self.instance_fields)
+        try:
+            return sum(f.max_size for (_, f) in self.instance_fields)
+        except TypeError:
+            return None
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         self.initial_buffer_pointer = buffer.tell()
@@ -101,6 +111,11 @@ class CompoundBlock(ReadBlock, ABC):
     def from_raw_value(self, raw: dict):
         self.persistent_data = DataWrapper(raw)
         # need to return self, because we want shpi.children.!pal to be instance of BitmapBlock, not dict
+
+        # TODO probably can remove clone here: parent reader should take care of copying instances. For instance, this
+        # class is always copying fields on __init__. Arrays should do the same, literal should copy selected block
+        # this particular thing slows down TR1.TRI file reading more than twice! 1.55 < 3.35 seconds
+
         clone = deepcopy(self)
         clone.persistent_data = self.persistent_data
         clone.id = self.id

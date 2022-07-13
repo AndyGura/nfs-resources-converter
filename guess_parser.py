@@ -1,15 +1,14 @@
 from io import BufferedReader, SEEK_CUR, BytesIO
 from typing import Literal
 
-from parsers.resources.archives import SoundBank
-from parsers.resources.audios import ASFAudio, EacsAudio
+from parsers.resources.audios import ASFAudio
 from parsers.resources.base import BaseResource
 from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
 from parsers.resources.read_block_wrapper import ReadBlockWrapper
-from parsers.resources.videos import FFmpegSupportedVideo
 from resources.basic.exceptions import BlockIntegrityException
 from resources.basic.read_block import ReadBlock
-from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block
+from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block, SoundBank
+from resources.eac.audios import EacsAudio
 from resources.eac.bitmaps import (
     Bitmap32Bit,
     Bitmap16Bit1555,
@@ -38,9 +37,13 @@ from resources.eac.palettes import (
 
 # new logic
 # TODO optimize
+from resources.eac.videos import FfmpegSupportedVideo
+
+
 def probe_block_class(binary_file: Literal[BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):
     if file_name:
-        # FIXME remove, master parser will use this block class
+        if file_name.endswith('.BNK'):
+            return SoundBank
         if file_name.endswith('.PBS_UNCOMPRESSED') and (
                 not resources_to_pick or CarPerformanceSpec in resources_to_pick):
             return CarPerformanceSpec
@@ -50,14 +53,18 @@ def probe_block_class(binary_file: Literal[BufferedReader, BytesIO], file_name: 
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
-        if header_str == 'SHPI':
+        if header_str in ['kVGT', 'SCHl'] and (not resources_to_pick or FfmpegSupportedVideo in resources_to_pick):
+            return FfmpegSupportedVideo
+        elif header_str == 'SHPI' and (not resources_to_pick or ShpiArchive in resources_to_pick):
             return ShpiArchive
-        elif header_str == 'wwww':
+        elif header_str == 'wwww' and (not resources_to_pick or WwwwArchive in resources_to_pick):
             return WwwwArchive
         elif header_str == 'FNTF' and (not resources_to_pick or FfnFont in resources_to_pick):
             return FfnFont
-        elif header_str == 'ORIP':
+        elif header_str == 'ORIP' and (not resources_to_pick or OripGeometry in resources_to_pick):
             return OripGeometry
+        elif header_str == 'EACS' and (not resources_to_pick or EacsAudio in resources_to_pick):
+            return EacsAudio
     except UnicodeDecodeError:
         pass
     try:
@@ -111,19 +118,12 @@ def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [B
             return ReadBlockWrapper(block_class=block_class)
     except Exception:
         pass
-    if file_name:
-        if file_name.endswith('.BNK'):
-            return SoundBank()
     header_bytes = binary_file.read(4)
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
-        if header_str in ['kVGT', 'SCHl']:
-            return FFmpegSupportedVideo()
-        elif header_str == '1SNh':
+        if header_str == '1SNh':
             return ASFAudio()
-        elif header_str == 'EACS':
-            return EacsAudio()
         elif file_name and header_str == '#ver' and file_name.endswith('INFO'):
             return Nfs1MapInfo()
     except UnicodeDecodeError:

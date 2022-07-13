@@ -1,22 +1,21 @@
+import json
 import subprocess
-from io import BufferedReader
+from collections import defaultdict
 
 import settings
-from parsers.resources.base import BaseResource
+from parsers.resources.read_block_wrapper import ReadBlockWrapper
+from resources.basic.compound_block import CompoundBlock
+from resources.eac.videos import FfmpegSupportedVideo
+from serializers import BaseFileSerializer
 
 
-class FFmpegSupportedVideo(BaseResource):
-    # I'm so happy it happened! ffmpeg supports codec by default
+class FfmpegSupportedVideoSerializer(BaseFileSerializer):
 
-    def read(self, buffer: BufferedReader, length: int, path=None) -> int:
-        self.path = path
-        return length
-
-    def save_converted(self, path: str):
-        super().save_converted(path)
+    def serialize(self, block: FfmpegSupportedVideo, path: str):
+        super().serialize(block, path)
         if not settings.save_media_files:
             return
-        subprocess.run([settings.ffmpeg_executable, "-y", "-i", self.path,
+        subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", block.file_path,
                         # add video on black square so we will not have transparent pixels (displays wrong in chrome)
                         '-filter_complex',
                         'color=black,format=rgb24[c];[c][0]scale2ref[c][i];[c][i]overlay=format=auto:shortest=1,setsar=1',

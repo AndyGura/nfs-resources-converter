@@ -4,7 +4,6 @@ from math import floor
 from typing import List, Literal
 
 from resources.basic.atomic import AtomicReadBlock
-from resources.basic.compound_block import CompoundBlock
 from resources.basic.exceptions import EndOfBufferException, MultiReadUnavailableException, BlockDefinitionException
 from resources.basic.read_block import ReadBlock
 
@@ -22,7 +21,12 @@ class ArrayField(ReadBlock):
     def min_size(self):
         if self.length is None:
             return 0
-        return self.child.min_size * self.length if self.length_strategy == "strict" else 0
+        if self.length_strategy == "strict":
+            if not self.child or self.child.min_size is None:
+                return None
+            return self.child.min_size * self.length
+        else:
+            return 0
 
     @property
     def max_size(self):

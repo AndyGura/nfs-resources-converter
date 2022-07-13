@@ -51,9 +51,7 @@ class ReadBlock(ABC):
         return self.size
 
     def _check_length_before_reading(self, available_size: int):
-        if self.min_size is None:
-            raise BlockIntegrityException('Cannot read, own min size is unknown')
-        if self.min_size > available_size:
+        if self.min_size is not None and self.min_size > available_size:
             raise EndOfBufferException(f'Cannot read {self.__class__.__name__}: '
                                        f'min size {self.min_size}, available: {available_size}')
 
