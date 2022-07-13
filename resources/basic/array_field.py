@@ -124,6 +124,6 @@ class ExplicitOffsetsArrayField(ArrayField):
             child_field_instances[i].id = self.id + '/' + str(i)
             res.append(child_field_instances[i].read(buffer, min(o
                                                                  for o in (self.offsets + [end_offset])
-                                                                 if o > offset) - offset))
+                                                                 if o > offset) - offset,
+                                                     parent_read_data=parent_read_data))
         return res
-

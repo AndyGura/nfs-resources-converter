@@ -7,6 +7,8 @@ from guess_parser import probe_block_class
 def require_resource(id: str):
     file_path = id.split('__')[0]
     resource = require_file(file_path)
+    if file_path == id:
+        return resource
     resource_path = id.split('__')[1].split('/')
     for key in resource_path:
         if isinstance(resource, list) and key.isdigit():
@@ -36,7 +38,7 @@ def require_file(path: str):
         with open(path, 'rb') as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
+            files_cache[path] = block
             block.id = path
             block.read(bdata, os.path.getsize(path))
-        files_cache[path] = block
     return block
