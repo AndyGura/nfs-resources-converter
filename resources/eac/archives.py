@@ -102,6 +102,8 @@ class ShpiArchive(CompoundBlock):
         self.instance_fields_map['children_descriptions'].length = data['children_count']
 
     def _after_children_descriptions_read(self, data, **kwargs):
+        for description in data['children_descriptions']:
+            description.name = description.name.replace('/', '_')
         self.instance_fields_map['children'].offsets = [x.offset + self.initial_buffer_pointer for x in
                                                         data['children_descriptions']]
 

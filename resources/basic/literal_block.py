@@ -28,13 +28,19 @@ class LiteralResource(DelegateBlock):
         self.persistent_data = None
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        if self.delegated_block is None:
-            from guess_parser import probe_block_class
-            block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
-            if not block_class:
-                raise BlockIntegrityException('Expectation failed for literal block while reading: class not found')
-            for res in self.possible_resources:
-                if isinstance(res, block_class):
-                    self.delegated_block = deepcopy(res)
-                    break
-        return super().read(buffer, size, parent_read_data)
+        try:
+            if self.delegated_block is None:
+                from guess_parser import probe_block_class
+                block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
+                if not block_class:
+                    raise BlockIntegrityException('Expectation failed for literal block while reading: class not found')
+                for res in self.possible_resources:
+                    if isinstance(res, block_class):
+                        self.delegated_block = deepcopy(res)
+                        break
+            return super().read(buffer, size, parent_read_data)
+        except Exception as ex:
+            if self.error_handling_strategy == 'return':
+                return ex
+            else:
+                raise ex

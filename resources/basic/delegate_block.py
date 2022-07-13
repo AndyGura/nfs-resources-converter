@@ -59,9 +59,15 @@ class DelegateBlock(ReadBlock):
         return self._delegated_block.load_value(buffer, size, parent_read_data)
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        if not self._delegated_block:
-            raise BlockDefinitionException('Delegated block not defined')
-        return self._delegated_block.read(buffer, size, parent_read_data)
+        try:
+            if not self._delegated_block:
+                raise BlockDefinitionException('Delegated block not defined')
+            return self._delegated_block.read(buffer, size, parent_read_data)
+        except Exception as ex:
+            if self.error_handling_strategy == 'return':
+                return ex
+            else:
+                raise ex
 
     def from_raw_value(self, raw: bytes):
         if not self._delegated_block:

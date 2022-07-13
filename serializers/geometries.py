@@ -70,8 +70,13 @@ for dummy in dummies:
     """)
 
     def serialize(self, block: OripGeometry, path: str):
-        super().serialize(block, path)
+        # shpi is always next block
+        from src import require_resource
+        textures_shpi_block = require_resource('/'.join(block.id.split('/')[:-1] + [str(int(block.id.split('/')[-1]) + 1)]))
+        if not textures_shpi_block:
+            raise BlockIntegrityException('Cannot find SHPI archive for ORIP geometry')
 
+        super().serialize(block, path)
         try:
             is_car = block.id.endswith('.CFM')
         except:
@@ -194,20 +199,22 @@ for dummy in dummies:
             f.write('mtllib material.mtl')
             face_index_increment = 1
             for sub_model in sub_models.values():
-                f.write(sub_model.to_obj(face_index_increment, True, wrapper.textures_archive))
+                f.write(sub_model.to_obj(face_index_increment, True, textures_shpi_block))
                 face_index_increment += len(sub_model.vertices)
         with open(f'{path}material.mtl', 'w') as f:
-            for texture in wrapper.textures_archive.resources:
-                if not isinstance(texture, ReadBlockWrapper) or not isinstance(texture.resource, AnyBitmapResource):
+            for texture in textures_shpi_block.children:
+                if not isinstance(texture, AnyBitmapResource):
                     continue
-                f.write(f"""\n\nnewmtl {texture.name}
+                f.write(f"""\n\nnewmtl {texture.id.split('/')[-1]}
 Ka 1.000000 1.000000 1.000000
 Kd 1.000000 1.000000 1.000000
 Ks 0.000000 0.000000 0.000000
 illum 1
 Ns 0.000000
-map_Kd assets/{texture.name}.png""")
-        wrapper.textures_archive.save_converted(os.path.join(path, 'assets/'))
+map_Kd assets/{texture.id.split('/')[-1]}.png""")
+        from serializers import ShpiArchiveSerializer
+        shpi_serializer = ShpiArchiveSerializer()
+        shpi_serializer.serialize(textures_shpi_block, os.path.join(path, 'assets/'))
         script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
                                                  'is_car': is_car,
                                                  'dummies': json.dumps(dummies)})

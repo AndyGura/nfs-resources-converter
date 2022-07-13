@@ -12,7 +12,7 @@ class SubMesh:
         self.texture_id = None
         self.scaled_uvs = set()
 
-    def to_obj(self, face_index_increment, multiply_uvws=False, textures_archive=None, mtllib=None,
+    def to_obj(self, face_index_increment, multiply_uvws=False, textures_shpi_block=None, mtllib=None,
                pivot_offset=(0, 0, 0)) -> str:
         res = f'\n\no {self.name}'
         if mtllib is not None:
@@ -24,10 +24,9 @@ class SubMesh:
         if multiply_uvws:
             uvs_scaled_to_texture = False
             if self.texture_id:
-                for texture_res in textures_archive.resources:
-                    if isinstance(texture_res, ReadBlockWrapper) and isinstance(texture_res.resource,
-                                                                                AnyBitmapResource) and texture_res.name == self.texture_id:
-                        u_multiplier, v_multiplier = 1 / texture_res.resource.width, 1 / texture_res.resource.height
+                for texture in textures_shpi_block.children:
+                    if isinstance(texture, AnyBitmapResource) and texture.id.split('/')[-1] == self.texture_id:
+                        u_multiplier, v_multiplier = 1 / texture.width, 1 / texture.height
                         uvs_scaled_to_texture = True
                         break
             if not uvs_scaled_to_texture:
