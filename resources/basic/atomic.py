@@ -141,9 +141,12 @@ class BytesField(AtomicReadBlock):
         return self.length
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        if self.length is None and self.length_strategy == "read_available":
-            self.length = size
-        return super().load_value(buffer, size, parent_read_data)
+        if self.length_strategy == "read_available":
+            if self.length is None:
+                self.length = size
+            else:
+                self.length = min(self.length, size)
+        return super().load_value(buffer, self.length, parent_read_data)
 
     def from_raw_value(self, raw: bytes):
         return raw

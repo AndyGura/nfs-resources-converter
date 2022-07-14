@@ -9,7 +9,7 @@ def require_resource(id: str):
     resource = require_file(file_path)
     if file_path == id:
         return resource
-    resource_path = id.split('__')[1].split('/')
+    resource_path = [x for x in id.split('__')[1].split('/') if x]
     for key in resource_path:
         if isinstance(resource, list) and key.isdigit():
             try:

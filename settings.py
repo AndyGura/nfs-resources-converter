@@ -46,6 +46,8 @@ SERIALIZER_CLASSES = {
     'ShpiArchive': 'ShpiArchiveSerializer',
     'WwwwArchive': 'WwwwArchiveSerializer',
     'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',
+    'SoundBank': 'SoundBankSerializer',
+    'EacsAudio': 'EacsAudioSerializer',
 }
 
 

@@ -9,8 +9,9 @@ from .fonts import FfnFontSerializer
 from .json import JsonSerializer
 from .maps import TriMapSerializer
 from .geometries import OripGeometrySerializer
-from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer
+from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
 from .videos import FfmpegSupportedVideoSerializer
+from .audios import EacsAudioSerializer
 
 
 def get_serializer(block: ReadBlock) -> BaseFileSerializer:

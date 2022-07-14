@@ -2,13 +2,16 @@ import json
 import os
 
 import settings
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.basic.read_block import ReadBlock
 
 
 class BaseFileSerializer:
 
+    def __init__(self):
+        self.current_serializing_block = None
+
     def serialize(self, block: ReadBlock, path: str):
+        self.current_serializing_block = block
         os.makedirs('/'.join(path.split('/')[:-1]), exist_ok=True)
         if settings.save_unknown_values:
             unknown_data = {}

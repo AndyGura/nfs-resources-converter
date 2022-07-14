@@ -4,7 +4,7 @@ class EndOfBufferException(Exception):
 
 
 class BlockIntegrityException(Exception):
-    def __init__(self, message='Block read went out of available size'):
+    def __init__(self, message='Block integrity exception'):
         super().__init__(message)
 
 

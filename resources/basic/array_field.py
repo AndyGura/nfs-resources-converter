@@ -114,8 +114,17 @@ class ExplicitOffsetsArrayField(ArrayField):
 
     def __init__(self, **kwargs):
         self.offsets = None
+        self.lengths = []
         super().__init__(**kwargs)
         self.block_description += ' with custom offset to items'
+
+    def get_item_length(self, item_index, end_offset):
+        try:
+            return self.lengths[item_index]
+        except IndexError:
+            pass
+        offset = self.offsets[item_index]
+        return min(o for o in (self.offsets + [end_offset]) if o > offset) - offset
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         res = []
@@ -126,8 +135,7 @@ class ExplicitOffsetsArrayField(ArrayField):
         for i, offset in enumerate(self.offsets):
             buffer.seek(offset)
             child_field_instances[i].id = self.id + '/' + str(i)
-            res.append(child_field_instances[i].read(buffer, min(o
-                                                                 for o in (self.offsets + [end_offset])
-                                                                 if o > offset) - offset,
+            res.append(child_field_instances[i].read(buffer,
+                                                     self.get_item_length(i, end_offset),
                                                      parent_read_data=parent_read_data))
         return res

@@ -1,5 +1,3 @@
-import os
-
 import serializers
 from resources.basic.exceptions import BlockIntegrityException
 from resources.eac.archives import ShpiArchive, WwwwArchive
@@ -13,7 +11,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
     def serialize(self, block: ShpiArchive, path: str):
         path += '/'
-        os.makedirs(path, exist_ok=True)
         super().serialize(block, path)
         items = [(block.children_descriptions[i].name, block.children[i]) for i in range(block.children_count)]
         skipped_resources = []
@@ -36,7 +33,6 @@ class WwwwArchiveSerializer(BaseFileSerializer):
 
     def serialize(self, block: WwwwArchive, path: str):
         path += '/'
-        os.makedirs(path, exist_ok=True)
         super().serialize(block, path)
         if block.id.endswith('.CFM') and block.children_count == 4:
             # car CFM file
@@ -58,6 +54,31 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 continue
             if isinstance(item, OripGeometry):
                 skip_next_shpi = True
+            try:
+                serializer = serializers.get_serializer(item)
+                serializer.serialize(item, f'{path}{name}')
+            except Exception as ex:
+                skipped_resources.append((name, format_exception(ex)))
+        if skipped_resources:
+            with open(f'{path}/skipped.txt', 'w') as f:
+                for item in skipped_resources:
+                    f.write("%s\t\t%s\n" % item)
+
+
+class SoundBankSerializer(BaseFileSerializer):
+
+    def serialize(self, block: WwwwArchive, path: str):
+        path += '/'
+        super().serialize(block, path)
+        if ((block.id.endswith('SW.BNK') or block.id.endswith('TRAFFC.BNK') or block.id.endswith('TESTBANK.BNK'))
+                and len(block.children) == 4):
+            # car soundbanks
+            names = ['engine_on', 'engine_off', 'honk', 'gear']
+        else:
+            names = [hex(child.wave_data_offset) for child in block.children]
+        items = [(names[i], block.children[i]) for i in range(len(block.children))]
+        skipped_resources = []
+        for name, item in [(name, item) for name, item in items]:
             try:
                 serializer = serializers.get_serializer(item)
                 serializer.serialize(item, f'{path}{name}')

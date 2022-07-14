@@ -14,3 +14,9 @@ class EacsAudio(CompoundBlock):
         repeat_loop_beginning = IntegerField(static_size=4, description='')
         repeat_loop_length = IntegerField(static_size=4, description='')
         wave_data_offset = IntegerField(static_size=4, description='')
+        wave_data = BytesField(length_strategy="read_available")
+
+    def _after_wave_data_offset_read(self, data, buffer, **kwargs):
+        # FIXME it is unknown what is + 40
+        buffer.seek(data['wave_data_offset'] + self.initial_buffer_pointer + 40)
+        self.instance_fields_map['wave_data'].length = data['wave_data_length']

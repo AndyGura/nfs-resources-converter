@@ -143,8 +143,8 @@ class WwwwArchive(CompoundBlock):
                                                         data['children_offsets']]
 
 
-WwwwArchive.Fields.children.child.possible_resources.append(WwwwArchive())
-WwwwArchive.Fields.children.child.instantiate_kwargs['possible_resources'].append(WwwwArchive())
+WwwwArchive.Fields.children.child.possible_resources.append(WwwwArchive(error_handling_strategy='return'))
+WwwwArchive.Fields.children.child.instantiate_kwargs['possible_resources'].append(WwwwArchive(error_handling_strategy='return'))
 
 
 class SoundBank(CompoundBlock):
@@ -152,9 +152,7 @@ class SoundBank(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         children_offsets = ArrayField(child=IntegerField(static_size=4, is_signed=False), length=128)
-        children = ExplicitOffsetsArrayField(child=LiteralResource(possible_resources=[
-            EacsAudio(),
-        ]))
+        children = ExplicitOffsetsArrayField(child=EacsAudio())
         wave_data = ExplicitOffsetsArrayField(child=BytesField(length_strategy="read_available"))
 
     def __getattr__(self, name):
@@ -175,4 +173,10 @@ class SoundBank(CompoundBlock):
                                                         if x > 0]
 
     def _after_children_read(self, data, **kwargs):
-        self.instance_fields_map['wave_data'].offsets = [x.wave_data_offset + self.initial_buffer_pointer for x in data['children']]
+        self.instance_fields_map['wave_data'].offsets = [x.wave_data_offset + self.initial_buffer_pointer
+                                                         for x in data['children']]
+        self.instance_fields_map['wave_data'].lengths = [x.wave_data_length for x in data['children']]
+
+    def _after_wave_data_read(self, data, **kwargs):
+        for i, child in enumerate(data['children']):
+            child.wave_data = data['wave_data'][i]
