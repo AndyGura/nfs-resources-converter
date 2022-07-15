@@ -78,7 +78,7 @@ for dummy in dummies:
 
         super().serialize(block, path)
         try:
-            is_car = block.id.endswith('.CFM')
+            is_car = '.CFM__' in block.id
         except:
             is_car = False
         vertices_file_indices_map = defaultdict(lambda: dict())

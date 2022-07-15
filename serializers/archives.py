@@ -15,6 +15,9 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         items = [(block.children_descriptions[i].name, block.children[i]) for i in range(block.children_count)]
         skipped_resources = []
         for name, item in [(name, item) for name, item in items]:
+            if isinstance(item, Exception):
+                skipped_resources.append((name, format_exception(item)))
+                continue
             try:
                 serializer = serializers.get_serializer(item)
                 serializer.serialize(item, f'{path}{name}')
