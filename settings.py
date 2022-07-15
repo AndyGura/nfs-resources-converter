@@ -48,6 +48,7 @@ SERIALIZER_CLASSES = {
     'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',
     'SoundBank': 'SoundBankSerializer',
     'EacsAudio': 'EacsAudioSerializer',
+    'AsfAudio': 'FfmpegSupportedAudioSerializer',
 }
 
 

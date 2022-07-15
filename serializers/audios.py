@@ -6,7 +6,7 @@ from wave import Wave_write
 
 import settings
 from parsers.resources.codecs import audio_ima_adpcm_codec
-from resources.eac.audios import EacsAudio
+from resources.eac.audios import EacsAudio, AsfAudio
 from serializers import BaseFileSerializer
 import json
 
@@ -65,3 +65,19 @@ class EacsAudioSerializer(BaseFileSerializer):
             except Exception as ex:
                 remove(f'{path}.wav')
                 raise ex
+
+
+class FfmpegSupportedAudioSerializer(BaseFileSerializer):
+
+    def serialize(self, block: AsfAudio, path: str):
+        super().serialize(block, path)
+        if not settings.save_media_files:
+            return
+        subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", block.file_path, f'{path}.mp3'], check=True)
+        with open(f'{path}.meta.json', 'w') as file:
+            loop_start_time_ms = 1000 * block.repeat_loop_beginning / block.sampling_rate
+            loop_end_time_ms = loop_start_time_ms + 1000 * block.repeat_loop_length / block.sampling_rate
+            file.write(json.dumps({
+                    "loop_start_time_ms": loop_start_time_ms,
+                    "loop_end_time_ms": loop_end_time_ms
+                }, indent=4))

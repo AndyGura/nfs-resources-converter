@@ -11,7 +11,7 @@ from .maps import TriMapSerializer
 from .geometries import OripGeometrySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
 from .videos import FfmpegSupportedVideoSerializer
-from .audios import EacsAudioSerializer
+from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 
 
 def get_serializer(block: ReadBlock) -> BaseFileSerializer:
