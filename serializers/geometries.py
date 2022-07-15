@@ -140,8 +140,8 @@ for dummy in dummies:
                     wheel_key = None
                     for vert in vertices:
                         key = (None
-                               if abs(vert[2]) < 0.1 or abs(vert[0]) < 0.1
-                               else f"{'f' if vert[2] > 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
+                               if abs(vert[1]) < 0.1 or abs(vert[0]) < 0.1
+                               else f"{'f' if vert[1] < 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
                         if not key or (wheel_key is not None and key != wheel_key):
                             return None
                         wheel_key = key
