@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from copy import deepcopy
 
 
@@ -29,8 +30,13 @@ class DataWrapper(dict):
         for key, value in res.items():
             if isinstance(value, DataWrapper):
                 res[key] = value.to_dict()
+            elif isinstance(value, Iterable):
+                res[key] = dict(value)
             elif isinstance(value, list):
-                res[key] = [x.to_dict() if isinstance(x, DataWrapper) else x for x in value]
+                res[key] = [x.to_dict()
+                            if isinstance(x, DataWrapper)
+                            else dict(x) if isinstance(x, Iterable) else x
+                            for x in value]
         return res
 
     __setattr__, __getattr__ = __setitem__, __getitem__

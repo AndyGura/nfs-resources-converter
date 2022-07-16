@@ -175,7 +175,8 @@ class SoundBank(CompoundBlock):
     def _after_children_read(self, data, **kwargs):
         self.instance_fields_map['wave_data'].offsets = [x.wave_data_offset + self.initial_buffer_pointer
                                                          for x in data['children']]
-        self.instance_fields_map['wave_data'].lengths = [x.wave_data_length for x in data['children']]
+        self.instance_fields_map['wave_data'].lengths = [x.wave_data_length * x.sound_resolution
+                                                         for x in data['children']]
 
     def _after_wave_data_read(self, data, **kwargs):
         for i, child in enumerate(data['children']):

@@ -115,13 +115,10 @@ class BytesField(AtomicReadBlock):
     block_description = ""
 
     def __init__(self, length: int = None,
-                 length_strategy: Literal["strict", "read_available"] = "strict",
                  **kwargs):
         kwargs['length'] = length
-        kwargs['length_strategy'] = length_strategy
         super().__init__(**kwargs)
         self.length = length
-        self.length_strategy = length_strategy
 
     @property
     def size(self):
@@ -129,24 +126,13 @@ class BytesField(AtomicReadBlock):
 
     @property
     def min_size(self):
-        if self.length_strategy == "strict":
-            return self.length
-        else:
-            return 0
+        return 0
 
     @property
     def max_size(self):
         if self.length is None:
             return float('inf')
         return self.length
-
-    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        if self.length_strategy == "read_available":
-            if self.length is None:
-                self.length = size
-            else:
-                self.length = min(self.length, size)
-        return super().load_value(buffer, self.length, parent_read_data)
 
     def from_raw_value(self, raw: bytes):
         return raw

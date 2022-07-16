@@ -67,7 +67,7 @@ class ReadBlock(ABC):
                 return ex
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        return buffer.read(self.size)
+        return buffer.read(size if self.size is None else self.size)
 
     @abstractmethod
     def from_raw_value(self, raw: bytes):

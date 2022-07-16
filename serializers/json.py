@@ -1,8 +1,9 @@
 import json
 from collections import defaultdict
+from typing import Iterable
 
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.basic.compound_block import CompoundBlock
+from resources.basic.data_wrapper import DataWrapper
 from serializers import BaseFileSerializer
 
 
@@ -22,6 +23,16 @@ class JsonSerializer(BaseFileSerializer):
             dictionary = res
             for sub_key in key_parts[:-1]:
                 dictionary = res[sub_key]
-            dictionary[key_parts[-1]] = value.persistent_data if isinstance(value, CompoundBlock) else value
+            dictionary[key_parts[-1]] = self._transform(value)
+        json_str = json.dumps(res)#, indent=4) # TODO uncomment indent after finishing big refactoring
         with open(f'{path}.json', 'w') as file:
-            file.write(json.dumps(res, indent=4))
+            file.write(json_str)
+
+    def _transform(self, item):
+        if isinstance(item, list):
+            return [self._transform(x) for x in item]
+        if isinstance(item, DataWrapper):
+            return item.to_dict()
+        if isinstance(item, Iterable):
+            return dict(item)
+        return item

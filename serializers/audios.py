@@ -17,9 +17,9 @@ class EacsAudioSerializer(BaseFileSerializer):
         super().serialize(block, path)
         if not settings.save_media_files:
             return
-        wave_bytes = block.persistent_data.wave_data
+        wave_bytes = block.wave_data
         if block.compression == 2:
-            wave_bytes = audio_ima_adpcm_codec.decode_block(block.persistent_data.wave_data, block.channels)
+            wave_bytes = audio_ima_adpcm_codec.decode_block(block.wave_data, block.channels)
         else:
             # signed
             if block.sound_resolution == 1:

@@ -78,7 +78,7 @@ class SoundBankSerializer(BaseFileSerializer):
             # car soundbanks
             names = ['engine_on', 'engine_off', 'honk', 'gear']
         else:
-            names = [hex(child.wave_data_offset) for child in block.children]
+            names = [hex(x) for x in block.children_offsets if x > 0]
         items = [(names[i], block.children[i]) for i in range(len(block.children))]
         skipped_resources = []
         for name, item in [(name, item) for name, item in items]:

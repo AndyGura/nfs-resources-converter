@@ -51,6 +51,10 @@ class CompoundBlock(ReadBlock, ABC):
             return getattr(self.persistent_data, name, None)
         return object.__getattribute__(self, name)
 
+    # override conversion of this class to dict
+    def __iter__(self):
+        yield from self.persistent_data.items() if self.persistent_data else None
+
     @cached_property
     def size(self):
         try:

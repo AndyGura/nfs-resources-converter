@@ -1,6 +1,7 @@
 from resources.basic.array_field import ArrayField
 from resources.basic.atomic import Utf8Field, IntegerField, BytesField
 from resources.basic.compound_block import CompoundBlock
+from resources.basic.detached_block import DetachedBlock
 
 
 class EacsAudio(CompoundBlock):
@@ -15,12 +16,12 @@ class EacsAudio(CompoundBlock):
         repeat_loop_beginning = IntegerField(static_size=4, description='')
         repeat_loop_length = IntegerField(static_size=4, description='')
         wave_data_offset = IntegerField(static_size=4, description='')
-        wave_data = BytesField(length_strategy="read_available")
+        wave_data = DetachedBlock(block=BytesField())
 
     def _after_wave_data_offset_read(self, data, buffer, **kwargs):
-        # FIXME it is unknown what is + 40
-        buffer.seek(data['wave_data_offset'] + self.initial_buffer_pointer + 40)
-        self.instance_fields_map['wave_data'].length = data['wave_data_length']
+        # TODO recheck this. Now initial buffer pointer commented out for preserving output audio like it was before refactoring
+        self.instance_fields_map['wave_data'].offset = data['wave_data_offset'] # + self.initial_buffer_pointer)
+        self.instance_fields_map['wave_data'].size = data['wave_data_length'] * data['sound_resolution']
 
 
 class AsfAudio(CompoundBlock):
@@ -42,4 +43,4 @@ class AsfAudio(CompoundBlock):
         repeat_loop_beginning = IntegerField(static_size=4, description='')
         repeat_loop_length = IntegerField(static_size=4, description='')
         wave_data_offset = IntegerField(static_size=4, description='')
-        wave_data = BytesField(length_strategy="read_available")
+        wave_data = BytesField()

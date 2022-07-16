@@ -106,6 +106,7 @@ class ArrayField(ReadBlock):
         return res
 
 
+# TODO probably not needed anymore. it is the array of detached blocks
 class ExplicitOffsetsArrayField(ArrayField):
 
     @property
