@@ -1,12 +1,10 @@
-from typing import Literal
-
-from parsers.resources.utils import transform_bitness
-from resources.basic.array_field import ArrayField
-from resources.basic.atomic import IntegerField
-from resources.basic.compound_block import CompoundBlock
-from resources.basic.exceptions import BlockIntegrityException
-from resources.basic.literal_block import LiteralResource
-from resources.basic.sub_byte_array_field import SubByteArrayField
+from library.read_blocks.array_field import ArrayBlock
+from library.read_blocks.atomic import IntegerField
+from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.exceptions import BlockIntegrityException
+from library.read_blocks.literal_block import LiteralBlock
+from library.read_blocks.sub_byte_array_field import SubByteArrayBlock
+from library.utils import transform_bitness
 from resources.eac import palettes
 from resources.eac.fields.colors import (
     Color16Bit1555Field,
@@ -42,14 +40,14 @@ class Bitmap16Bit0565(AnyBitmapResource, CompoundBlock):
         width = IntegerField(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerField(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayField(length=4, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerField(static_size=1), is_unknown=True)
         x = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayField(child=Color16Bit0565Field(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color16Bit0565Field(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayField(child=IntegerField(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerField(static_size=1), is_unknown=True,
                                     length_label='block_size - (16 + 2\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
 
@@ -73,12 +71,12 @@ class Bitmap4Bit(AnyBitmapResource, CompoundBlock):
         width = IntegerField(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerField(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayField(length=4, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerField(static_size=1), is_unknown=True)
         x = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = SubByteArrayField(bits_per_value=4,
+        bitmap = SubByteArrayBlock(bits_per_value=4,
                                    length_label='width * height',
                                    value_deserialize_func=lambda x: 0xFFFFFF00 | transform_bitness(x, 4),
                                    value_serialize_func=lambda x: (x & 0xFF) >> 4,
@@ -105,26 +103,26 @@ class Bitmap8Bit(AnyBitmapResource, CompoundBlock):
         width = IntegerField(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerField(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayField(length=4, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerField(static_size=1), is_unknown=True)
         x = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayField(child=IntegerField(static_size=1, is_signed=False), length_label='width * height',
+        bitmap = ArrayBlock(child=IntegerField(static_size=1, is_signed=False), length_label='width * height',
                             description='Color indexes of bitmap pixels. The actual colors are '
                                         'in assigned to this bitmap palette')
-        trailing_bytes = ArrayField(child=IntegerField(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerField(static_size=1), is_unknown=True,
                                     length_label='block_size - (16 + width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
-        palette = LiteralResource(possible_resources=[palettes.PaletteReference(),
-                                                      palettes.Palette24BitDosResource(),
-                                                      palettes.Palette24BitResource(),
-                                                      palettes.Palette32BitResource(),
-                                                      palettes.Palette16BitResource(),
-                                                      ],
-                                  description='Palette, assigned to this bitmap or reference to external palette?. '
-                                              'The exact mechanism of choosing the correct palette '
-                                              '(except embedded one) is unknown')
+        palette = LiteralBlock(possible_resources=[palettes.PaletteReference(),
+                                                   palettes.Palette24BitDosResource(),
+                                                   palettes.Palette24BitResource(),
+                                                   palettes.Palette32BitResource(),
+                                                   palettes.Palette16BitResource(),
+                                                   ],
+                               description='Palette, assigned to this bitmap or reference to external palette?. '
+                                           'The exact mechanism of choosing the correct palette '
+                                           '(except embedded one) is unknown')
 
         optional_fields = ['palette']
 
@@ -138,14 +136,14 @@ class Bitmap32Bit(AnyBitmapResource, CompoundBlock):
         width = IntegerField(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerField(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayField(length=4, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerField(static_size=1), is_unknown=True)
         x = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayField(child=Color32BitField(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color32BitField(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayField(child=IntegerField(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerField(static_size=1), is_unknown=True,
                                     length_label='block_size - (16 + 4\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
 
@@ -159,14 +157,14 @@ class Bitmap16Bit1555(AnyBitmapResource, CompoundBlock):
         width = IntegerField(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerField(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayField(length=4, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerField(static_size=1), is_unknown=True)
         x = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayField(child=Color16Bit1555Field(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color16Bit1555Field(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayField(child=IntegerField(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerField(static_size=1), is_unknown=True,
                                     length_label='block_size - (16 + 2\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
 
@@ -180,13 +178,13 @@ class Bitmap24Bit(AnyBitmapResource, CompoundBlock):
         width = IntegerField(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerField(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayField(length=4, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerField(static_size=1), is_unknown=True)
         x = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerField(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayField(child=Color24BitLittleEndianField(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color24BitLittleEndianField(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayField(child=IntegerField(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerField(static_size=1), is_unknown=True,
                                     length_label='block_size - (16 + 3\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")

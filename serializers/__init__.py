@@ -1,7 +1,7 @@
 import settings
-from resources.basic.delegate_block import DelegateBlock
-from resources.basic.read_block import ReadBlock
-from utils import my_import
+from library.read_blocks.delegate_block import DelegateBlock
+from library.read_blocks.read_block import ReadBlock
+from library.utils import my_import
 from .base import BaseFileSerializer
 from .palettes import PaletteSerializer
 from .bitmaps import BitmapSerializer, BitmapWithPaletteSerializer

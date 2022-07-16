@@ -1,7 +1,7 @@
 import re
 
-from parsers.utils.virtual_asm_flags import VirtualAsmFlags
-from parsers.utils.virtual_asm_registers import AsmRegisters
+from library.utils.virtual_asm_flags import VirtualAsmFlags
+from library.utils.virtual_asm_registers import AsmRegisters
 
 
 class AsmRunner(AsmRegisters, VirtualAsmFlags):

@@ -5,7 +5,7 @@ from string import ascii_lowercase
 from wave import Wave_write
 
 import settings
-from parsers.resources.codecs import audio_ima_adpcm_codec
+from library.utils import audio_ima_adpcm_codec
 from resources.eac.audios import EacsAudio, AsfAudio
 from serializers import BaseFileSerializer
 import json

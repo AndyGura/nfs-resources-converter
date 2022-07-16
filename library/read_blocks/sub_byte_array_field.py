@@ -2,11 +2,11 @@ from io import BufferedReader, BytesIO
 from math import floor, ceil
 from typing import Literal
 
-from resources.basic.exceptions import BlockDefinitionException
-from resources.basic.read_block import ReadBlock
+from library.read_blocks.exceptions import BlockDefinitionException
+from library.read_blocks.read_block import ReadBlock
 
 
-class SubByteArrayField(ReadBlock):
+class SubByteArrayBlock(ReadBlock):
 
     @property
     def size(self):
@@ -61,7 +61,7 @@ class SubByteArrayField(ReadBlock):
             raise BlockDefinitionException('Sub-byte array field length is unknown')
         if self.length_strategy == "read_available":
             raise NotImplementedError('Read available ot implemented for sub-byte array :(')
-        return super(SubByteArrayField, self).load_value(buffer, size, parent_read_data)
+        return super(SubByteArrayBlock, self).load_value(buffer, size, parent_read_data)
 
     def from_raw_value(self, raw: bytes):
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])

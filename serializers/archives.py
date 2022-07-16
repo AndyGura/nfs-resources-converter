@@ -1,11 +1,11 @@
 import serializers
-from parsers.resources.misc import nfs1_panorama_to_spherical
-from resources.basic.exceptions import BlockIntegrityException
+from library.read_blocks.exceptions import BlockIntegrityException
+from library.utils import format_exception
+from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
 from resources.eac.archives import ShpiArchive, WwwwArchive
 from resources.eac.bitmaps import AnyBitmapResource
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
-from utils import format_exception
 
 
 class ShpiArchiveSerializer(BaseFileSerializer):
@@ -30,7 +30,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         if '.FAM__' in block.id:
             try:
                 horz_bitmap = next(x for name, x in items if name == 'horz')
-                nfs1_panorama_to_spherical(block.id[block.id.index('.FAM')-7:block.id.index('.FAM')-4],
+                nfs1_panorama_to_spherical(block.id[block.id.index('.FAM') - 7:block.id.index('.FAM') - 4],
                                            f'{path}horz.png', f'{path}spherical.png')
             except StopIteration:
                 pass

@@ -1,6 +1,7 @@
+import os
 from io import BufferedReader, SEEK_CUR, BytesIO
 
-from resources.basic.exceptions import BlockIntegrityException
+from library.read_blocks.exceptions import BlockIntegrityException
 from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block, SoundBank
 from resources.eac.audios import EacsAudio, AsfAudio
 from resources.eac.bitmaps import (
@@ -44,7 +45,8 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = N
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
-        if file_name and header_str == '#ver' and file_name.endswith('INFO') and (not resources_to_pick or DashDeclarationFile in resources_to_pick):
+        if file_name and header_str == '#ver' and file_name.endswith('INFO') and (
+                not resources_to_pick or DashDeclarationFile in resources_to_pick):
             return DashDeclarationFile
         elif header_str == '1SNh' and (not resources_to_pick or AsfAudio in resources_to_pick):
             return AsfAudio
@@ -95,7 +97,8 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = N
         elif header_bytes[1] == 0xfb and resource_id == 0b0100_0110:
             return Qfs2Block
         # AL1.QFS
-        elif header_bytes[1] == 0xfb and resource_id in [0b0011_0000, 0b0011_0010, 0b0011_0100, 0b0011_0001, 0b0011_0011,
+        elif header_bytes[1] == 0xfb and resource_id in [0b0011_0000, 0b0011_0010, 0b0011_0100, 0b0011_0001,
+                                                         0b0011_0011,
                                                          0b0011_0101]:
             return Qfs3Block
         elif resource_id == 0x11 and header_bytes[1] == 0x00 and header_bytes[2] == 0x00 and header_bytes[3] == 0x00:
@@ -103,3 +106,44 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = N
     except IndexError:
         raise BlockIntegrityException('Don`t have parser for such resource. header_bytes are missed')
     raise NotImplementedError('Don`t have parser for such resource')
+
+
+# id example: /media/data/nfs/SIMDATA/CARFAMS/LDIABL.CFM__1/frnt
+def require_resource(id: str):
+    file_path = id.split('__')[0]
+    resource = require_file(file_path)
+    if file_path == id:
+        return resource
+    resource_path = [x for x in id.split('__')[1].split('/') if x]
+    for key in resource_path:
+        if isinstance(resource, list) and key.isdigit():
+            try:
+                resource = resource[int(key)]
+                continue
+            except KeyError:
+                return None
+        try:
+            resource = getattr(resource, key)
+        except AttributeError:
+            return None
+        if not resource:
+            return None
+    return resource
+
+
+# not shared between processes: in most cases if file requires another resource, it is in the same file, or it
+# requires one external file multiple times. It will be more time-consuming to serialize/deserialize it for sharing
+# between processes than load some file multiple times. + we avoid potential memory leaks
+files_cache = {}
+
+
+def require_file(path: str):
+    block = files_cache.get(path)
+    if block is None:
+        with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
+            block_class = probe_block_class(bdata, path)
+            block = block_class()
+            files_cache[path] = block
+            block.id = path
+            block.read(bdata, os.path.getsize(path))
+    return block

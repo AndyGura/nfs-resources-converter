@@ -1,10 +1,10 @@
 from io import BufferedReader, BytesIO
 
-from resources.basic.array_field import ArrayField, ExplicitOffsetsArrayField
-from resources.basic.atomic import IntegerField, Utf8Field, BytesField
-from resources.basic.compound_block import CompoundBlock
-from resources.basic.delegate_block import DelegateBlock
-from resources.basic.literal_block import LiteralResource
+from library.read_blocks.array_field import ArrayBlock, ExplicitOffsetsArrayBlock
+from library.read_blocks.atomic import Utf8Field, IntegerField, BytesField
+from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.delegate_block import DelegateBlock
+from library.read_blocks.literal_block import LiteralBlock
 from resources.eac.audios import EacsAudio
 from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit, Bitmap4Bit
 from resources.eac.compressions.qfs2 import Qfs2Compression
@@ -31,7 +31,7 @@ class CompressedBlock(DelegateBlock):
         uncompressed_bytes = self.algorithm(buffer, size)
         uncompressed = BytesIO(uncompressed_bytes)
         if self.delegate_block_class is None:
-            from guess_parser import probe_block_class
+            from library import probe_block_class
             self.delegate_block_class = probe_block_class(uncompressed, self.id + '_UNCOMPRESSED')
         self.delegated_block = self.delegate_block_class()
         return super().read(uncompressed, len(uncompressed_bytes))
@@ -74,8 +74,8 @@ class ShpiArchive(CompoundBlock):
         length = IntegerField(static_size=4, is_signed=False)
         children_count = IntegerField(static_size=4, is_signed=False)
         shpi_directory = Utf8Field(length=4)
-        children_descriptions = ArrayField(child=ShpiChildDescription())
-        children = ExplicitOffsetsArrayField(child=LiteralResource(
+        children_descriptions = ArrayBlock(child=ShpiChildDescription())
+        children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
             possible_resources=[
                 Bitmap16Bit0565(error_handling_strategy='return'),
                 Bitmap4Bit(error_handling_strategy='return'),
@@ -121,8 +121,8 @@ class WwwwArchive(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='wwww', length=4, description='Resource ID')
         children_count = IntegerField(static_size=4, is_signed=False)
-        children_offsets = ArrayField(child=IntegerField(static_size=4, is_signed=False))
-        children = ExplicitOffsetsArrayField(child=LiteralResource(
+        children_offsets = ArrayBlock(child=IntegerField(static_size=4, is_signed=False))
+        children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
             possible_resources=[
                 OripGeometry(error_handling_strategy='return'),
                 ShpiArchive(error_handling_strategy='return'),
@@ -154,9 +154,9 @@ class SoundBank(CompoundBlock):
     block_description = ''
 
     class Fields(CompoundBlock.Fields):
-        children_offsets = ArrayField(child=IntegerField(static_size=4, is_signed=False), length=128)
-        children = ExplicitOffsetsArrayField(child=EacsAudio())
-        wave_data = ExplicitOffsetsArrayField(child=BytesField(length_strategy="read_available"))
+        children_offsets = ArrayBlock(child=IntegerField(static_size=4, is_signed=False), length=128)
+        children = ExplicitOffsetsArrayBlock(child=EacsAudio())
+        wave_data = ExplicitOffsetsArrayBlock(child=BytesField(length_strategy="read_available"))
 
     def __getattr__(self, name):
         try:

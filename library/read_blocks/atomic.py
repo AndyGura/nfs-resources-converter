@@ -2,9 +2,9 @@ from abc import ABC
 from io import BufferedReader, BytesIO
 from typing import Literal, List, Tuple
 
-from resources.basic.exceptions import BlockIntegrityException, EndOfBufferException, MultiReadUnavailableException
-from resources.basic.read_block import ReadBlock
-from resources.utils import represent_value_as_str
+from library.read_blocks.exceptions import BlockIntegrityException, MultiReadUnavailableException, EndOfBufferException
+from library.read_blocks.read_block import ReadBlock
+from library.utils import represent_value_as_str
 
 
 class AtomicReadBlock(ReadBlock, ABC):

@@ -3,12 +3,12 @@ from io import BufferedReader, BytesIO
 from math import floor
 from typing import List, Literal
 
-from resources.basic.atomic import AtomicReadBlock
-from resources.basic.exceptions import EndOfBufferException, MultiReadUnavailableException, BlockDefinitionException
-from resources.basic.read_block import ReadBlock
+from library.read_blocks.atomic import AtomicReadBlock
+from library.read_blocks.exceptions import BlockDefinitionException, MultiReadUnavailableException, EndOfBufferException
+from library.read_blocks.read_block import ReadBlock
 
 
-class ArrayField(ReadBlock):
+class ArrayBlock(ReadBlock):
     child = None
 
     @property
@@ -107,7 +107,7 @@ class ArrayField(ReadBlock):
 
 
 # TODO probably not needed anymore. it is the array of detached blocks
-class ExplicitOffsetsArrayField(ArrayField):
+class ExplicitOffsetsArrayBlock(ArrayBlock):
 
     @property
     def length(self):

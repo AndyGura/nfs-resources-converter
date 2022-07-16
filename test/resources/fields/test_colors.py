@@ -1,7 +1,7 @@
 import unittest
 from io import BytesIO
 
-from buffer_utils import read_byte
+from library.utils import read_byte
 from resources.fields import (Color24BitDosField,
                               Color24BitLittleEndianField,
                               Color24BitBigEndianField,

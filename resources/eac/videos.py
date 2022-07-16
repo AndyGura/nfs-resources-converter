@@ -1,4 +1,4 @@
-from resources.basic.file_link import FileLink
+from library.read_blocks.file_link import FileLink
 
 
 class FfmpegSupportedVideo(FileLink):

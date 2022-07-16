@@ -2,8 +2,8 @@ import json
 from collections import defaultdict
 from typing import Iterable
 
-from resources.basic.compound_block import CompoundBlock
-from resources.basic.data_wrapper import DataWrapper
+from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.data_wrapper import DataWrapper
 from serializers import BaseFileSerializer
 
 

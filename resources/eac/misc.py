@@ -1,7 +1,7 @@
 from io import BufferedReader, BytesIO
 
-from resources.basic.atomic import Utf8Field
-from resources.basic.data_wrapper import DataWrapper
+from library.read_blocks.atomic import Utf8Field
+from library.read_blocks.data_wrapper import DataWrapper
 
 
 class DashDeclarationFile(Utf8Field):

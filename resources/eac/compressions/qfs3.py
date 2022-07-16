@@ -1,7 +1,7 @@
 from io import BufferedReader
 
-from buffer_utils import read_short, read_int
-from parsers.utils.asm_runner import AsmRunner
+from library.utils import read_short, read_int
+from library.utils.asm_runner import AsmRunner
 from resources.eac.compressions.base import BaseCompressionAlgorithm
 
 

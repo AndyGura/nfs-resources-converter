@@ -1,6 +1,6 @@
-from resources.basic.array_field import ArrayField
-from resources.basic.atomic import IntegerField, Utf8Field
-from resources.basic.compound_block import CompoundBlock
+from library.read_blocks.array_field import ArrayBlock
+from library.read_blocks.atomic import IntegerField, Utf8Field
+from library.read_blocks.compound_block import CompoundBlock
 from resources.eac.bitmaps import Bitmap4Bit
 
 
@@ -20,14 +20,14 @@ class FfnFont(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='FNTF', length=4, description='Resource ID')
         file_size = IntegerField(static_size=4, description='This file size in bytes')
-        unknowns0 = ArrayField(length=2, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns0 = ArrayBlock(length=2, child=IntegerField(static_size=1), is_unknown=True)
         symbols_amount = IntegerField(static_size=2, description='Amount of symbols, defined in this font')
-        unknowns1 = ArrayField(length=16, child=IntegerField(static_size=1), is_unknown=True)
+        unknowns1 = ArrayBlock(length=16, child=IntegerField(static_size=1), is_unknown=True)
         bitmap_data_pointer = IntegerField(static_size=2, description='Pointer to bitmap block')
-        unknowns2 = ArrayField(length=2, child=IntegerField(static_size=1), is_unknown=True)
-        definitions = ArrayField(child=SymbolDefinitionRecord(), length_label='symbols_amount',
+        unknowns2 = ArrayBlock(length=2, child=IntegerField(static_size=1), is_unknown=True)
+        definitions = ArrayBlock(child=SymbolDefinitionRecord(), length_label='symbols_amount',
                                  description='Definitions of chars in this bitmap font')
-        skip_bytes = ArrayField(length_label='up to offset bitmap_data_pointer', child=IntegerField(static_size=1, required_value=0xAD),
+        skip_bytes = ArrayBlock(length_label='up to offset bitmap_data_pointer', child=IntegerField(static_size=1, required_value=0xAD),
                                 description='4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36)')
         bitmap = Bitmap4Bit(description='Font atlas bitmap data')
 

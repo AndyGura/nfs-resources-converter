@@ -1,8 +1,8 @@
 from math import floor
 
-from resources.basic.array_field import ArrayField
-from resources.basic.atomic import BitFlagsField, IntegerField, EnumByteField, Utf8Field
-from resources.basic.compound_block import CompoundBlock
+from library.read_blocks.array_field import ArrayBlock
+from library.read_blocks.atomic import BitFlagsField, IntegerField, EnumByteField, Utf8Field
+from library.read_blocks.compound_block import CompoundBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
 from resources.eac.fields.numbers import Nfs1Angle16, RationalNumber, Nfs1Angle8
 
@@ -22,7 +22,7 @@ class RoadSplinePoint(CompoundBlock):
                                                description='The distance to invisible wall on the left')
         right_barrier_distance = RationalNumber(static_size=1, fraction_bits=3, is_signed=False,
                                                 description='The distance to invisible wall on the right')
-        unknowns0 = ArrayField(child=IntegerField(static_size=1), length=3, is_unknown=True)
+        unknowns0 = ArrayBlock(child=IntegerField(static_size=1), length=3, is_unknown=True)
         spline_item_mode = EnumByteField(enum_names=[(0, 'lane_split'),
                                                      (1, 'default'),
                                                      (2, 'lane_merge'),
@@ -39,11 +39,11 @@ class RoadSplinePoint(CompoundBlock):
         slope = Nfs1Angle16(description='Slope of the road at this point')
         slant_a = Nfs1Angle16()
         orientation = Nfs1Angle16()
-        unknowns1 = ArrayField(child=IntegerField(static_size=1), length=2, is_unknown=True)
+        unknowns1 = ArrayBlock(child=IntegerField(static_size=1), length=2, is_unknown=True)
         orientation_y = Nfs1Angle16()
         slant_b = Nfs1Angle16()
         orientation_x = Nfs1Angle16()
-        unknowns2 = ArrayField(child=IntegerField(static_size=1), length=2, is_unknown=True)
+        unknowns2 = ArrayBlock(child=IntegerField(static_size=1), length=2, is_unknown=True)
 
 
 class ProxyObject(CompoundBlock):
@@ -61,7 +61,7 @@ class ProxyObject(CompoundBlock):
                                      description='Texture id of second sprite, rotated 90 degrees, in two-sided bitmap')
         width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
         frame_count = IntegerField(static_size=1, description='Frame amount for animated object')
-        unknowns0 = ArrayField(child=IntegerField(static_size=1), length=3, is_unknown=True,
+        unknowns0 = ArrayBlock(child=IntegerField(static_size=1), length=3, is_unknown=True,
                                description='Unknown, animation speed should be somewhere in it')
         height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
 
@@ -95,9 +95,9 @@ class TerrainEntry(CompoundBlock):
         block_number = IntegerField(static_size=4, is_signed=False)
         unknown = IntegerField(static_size=1, is_unknown=True)
         fence = FenceType()
-        texture_ids = ArrayField(child=IntegerField(static_size=1), length=10,
+        texture_ids = ArrayBlock(child=IntegerField(static_size=1), length=10,
                                  description='Texture ids to be used for terrain')
-        rows = ArrayField(child=ArrayField(child=Point3D_16_7(), length=11),
+        rows = ArrayBlock(child=ArrayBlock(child=Point3D_16_7(), length=11),
                           length=4, description='Terrain vertex positions')
 
 
@@ -106,24 +106,24 @@ class TriMap(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=4, is_signed=False, required_value=0x11)
-        unknowns0 = ArrayField(child=IntegerField(static_size=1), length=8, is_unknown=True)
+        unknowns0 = ArrayBlock(child=IntegerField(static_size=1), length=8, is_unknown=True)
         position = Point3D_32(is_unknown=True)
-        unknowns1 = ArrayField(child=IntegerField(static_size=1), length=12, is_unknown=True)
+        unknowns1 = ArrayBlock(child=IntegerField(static_size=1), length=12, is_unknown=True)
         scenery_data_length = IntegerField(static_size=4, is_unknown=True)
-        unknowns2 = ArrayField(child=IntegerField(static_size=1), length=2404, is_unknown=True)
-        road_spline = ArrayField(child=RoadSplinePoint(), length=2400,
+        unknowns2 = ArrayBlock(child=IntegerField(static_size=1), length=2404, is_unknown=True)
+        road_spline = ArrayBlock(child=RoadSplinePoint(), length=2400,
                                  description="Road spline is a series of points in 3D space, located at the center of "
                                              "road. Around this spline the track terrain mesh is built. TRI always has "
                                              "2400 elements, however it uses some amount of vertices, after them "
                                              "records filled with zeros")
-        unknowns3 = ArrayField(child=IntegerField(static_size=1), length=1800, is_unknown=True)
+        unknowns3 = ArrayBlock(child=IntegerField(static_size=1), length=1800, is_unknown=True)
         proxy_objects_count = IntegerField(static_size=4, is_signed=False)
         proxy_object_instances_count = IntegerField(static_size=4, is_signed=False)
         object_header_text = Utf8Field(length=4, required_value='SJBO')
-        unknowns4 = ArrayField(child=IntegerField(static_size=1), length=8, is_unknown=True)
-        proxy_objects = ArrayField(child=ProxyObject(), length_label='proxy_objects_count')
-        proxy_object_instances = ArrayField(child=ProxyObjectInstance(), length_label='proxy_object_instances_count')
-        terrain = ArrayField(child=TerrainEntry(), length_label="spline_points_amount / 4")
+        unknowns4 = ArrayBlock(child=IntegerField(static_size=1), length=8, is_unknown=True)
+        proxy_objects = ArrayBlock(child=ProxyObject(), length_label='proxy_objects_count')
+        proxy_object_instances = ArrayBlock(child=ProxyObjectInstance(), length_label='proxy_object_instances_count')
+        terrain = ArrayBlock(child=TerrainEntry(), length_label="spline_points_amount / 4")
 
     def _after_road_spline_read(self, data, **kwargs):
         data['road_spline'] = data['road_spline'][:next(i for i, x in enumerate(data['road_spline']) if x.position.x

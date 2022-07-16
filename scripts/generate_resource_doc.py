@@ -1,9 +1,9 @@
 import os
 
-from resources.basic.array_field import ArrayField
-from resources.basic.compound_block import CompoundBlock
-from resources.basic.literal_block import LiteralResource
-from resources.basic.read_block import ReadBlock
+from library.read_blocks.array_field import ArrayBlock
+from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.literal_block import LiteralBlock
+from library.read_blocks.read_block import ReadBlock
 from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries
 
 EXPORT_RESOURCES = {
@@ -46,7 +46,7 @@ EXPORT_RESOURCES = {
 
 
 def render_range(field, min: int, max: int, render_hex: bool) -> str:
-    if field is not None and isinstance(field, ArrayField) and field.length_label is not None:
+    if field is not None and isinstance(field, ArrayBlock) and field.length_label is not None:
         if field.child.size == 1:
             return field.length_label
         return f'{field.child.size} * ({field.length_label})'
@@ -59,11 +59,11 @@ def render_range(field, min: int, max: int, render_hex: bool) -> str:
 
 
 def render_type(instance: ReadBlock) -> str:
-    if isinstance(instance, LiteralResource):
+    if isinstance(instance, LiteralBlock):
         return 'One of types:<br/>' + '<br/>'.join([render_type(x) for x in instance.possible_resources])
     if not isinstance(instance, CompoundBlock) or instance.inline_description:
         descr = instance.block_description
-        if isinstance(instance, ArrayField):
+        if isinstance(instance, ArrayBlock):
             if not isinstance(instance.child, CompoundBlock) or instance.child.inline_description:
                 size = render_range(None, instance.child.min_size, instance.child.max_size, False)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')

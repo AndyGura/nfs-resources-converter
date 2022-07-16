@@ -1,6 +1,6 @@
 import unittest
 
-from parsers.utils.asm_runner import AsmRunner
+from library.utils.asm_runner import AsmRunner
 
 
 class TestAsmRunner(unittest.TestCase):

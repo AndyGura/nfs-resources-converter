@@ -1,5 +1,12 @@
-import argparse
+import inspect
 import os
+import sys
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+
+import argparse
 import pathlib
 import time
 from collections import defaultdict
@@ -7,10 +14,10 @@ from multiprocessing import Pool, cpu_count
 
 from tqdm import tqdm
 
-import serializers
 import settings
-from src import require_file
-from utils import format_exception
+from library import require_file
+from library.utils import format_exception
+from serializers import get_serializer
 
 start_time = time.time()
 
@@ -29,7 +36,7 @@ else:
 def export_file(path):
     try:
         block = require_file(path)
-        serializer = serializers.get_serializer(block)
+        serializer = get_serializer(block)
         serializer.serialize(block, f'out/{path}')
     except Exception as ex:
         return ex

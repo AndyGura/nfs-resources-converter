@@ -4,9 +4,9 @@ from functools import cached_property
 from io import BufferedReader, BytesIO
 from typing import List, Tuple
 
-from resources.basic.data_wrapper import DataWrapper
-from resources.basic.exceptions import EndOfBufferException, BlockIntegrityException
-from resources.basic.read_block import ReadBlock
+from library.read_blocks.data_wrapper import DataWrapper
+from library.read_blocks.exceptions import EndOfBufferException, BlockIntegrityException
+from library.read_blocks.read_block import ReadBlock
 
 
 class CompoundBlockFields(ABC):

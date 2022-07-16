@@ -7,10 +7,10 @@ from string import Template
 from typing import Literal, List, Tuple
 
 import settings
-from parsers.resources.common.blender_scripts import run_blender
-from parsers.resources.common.meshes import SubMesh
-from resources.basic.data_wrapper import DataWrapper
-from resources.basic.exceptions import BlockIntegrityException
+from library.utils.blender_scripts import run_blender
+from library.utils.meshes import SubMesh
+from library.read_blocks.data_wrapper import DataWrapper
+from library.read_blocks.exceptions import BlockIntegrityException
 from resources.eac.bitmaps import AnyBitmapResource
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
@@ -70,7 +70,7 @@ for dummy in dummies:
 
     def serialize(self, block: OripGeometry, path: str):
         # shpi is always next block
-        from src import require_resource
+        from library import require_resource
         textures_shpi_block = require_resource('/'.join(block.id.split('/')[:-1] + [str(int(block.id.split('/')[-1]) + 1)]))
         if not textures_shpi_block:
             raise BlockIntegrityException('Cannot find SHPI archive for ORIP geometry')

@@ -3,7 +3,7 @@ import unittest
 from io import BufferedReader
 
 from parsers.resources.compressed import CompressedResource, RefPackArchive
-from parsers.utils.asm_runner import AsmRunner
+from library.utils.asm_runner import AsmRunner
 
 
 class Qfs1ASMArchive(CompressedResource, AsmRunner):

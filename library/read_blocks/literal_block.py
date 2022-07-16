@@ -2,12 +2,12 @@ from copy import deepcopy
 from io import BufferedReader, BytesIO
 from typing import List
 
-from resources.basic.compound_block import CompoundBlock
-from resources.basic.delegate_block import DelegateBlock
-from resources.basic.exceptions import BlockIntegrityException
+from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.delegate_block import DelegateBlock
+from library.read_blocks.exceptions import BlockIntegrityException
 
 
-class LiteralResource(DelegateBlock):
+class LiteralBlock(DelegateBlock):
 
     @property
     def min_size(self):
@@ -33,7 +33,7 @@ class LiteralResource(DelegateBlock):
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         try:
             if self.delegated_block is None:
-                from guess_parser import probe_block_class
+                from library import probe_block_class
                 block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
                 if not block_class:
                     raise BlockIntegrityException('Expectation failed for literal block while reading: class not found')

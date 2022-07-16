@@ -1,6 +1,6 @@
 import math
 
-from resources.basic.atomic import IntegerField
+from library.read_blocks.atomic import IntegerField
 
 
 class RationalNumber(IntegerField):

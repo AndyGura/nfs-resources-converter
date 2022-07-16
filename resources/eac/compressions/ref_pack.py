@@ -1,6 +1,6 @@
 from io import BufferedReader, SEEK_CUR, BytesIO
 
-from buffer_utils import read_byte
+from library.utils.buffer_utils import read_byte
 from resources.eac.compressions.base import BaseCompressionAlgorithm
 
 

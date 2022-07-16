@@ -1,5 +1,5 @@
-from resources.basic.atomic import IntegerField
-from resources.basic.compound_block import CompoundBlock
+from library.read_blocks.atomic import IntegerField
+from library.read_blocks.compound_block import CompoundBlock
 from resources.eac.fields.numbers import RationalNumber
 
 

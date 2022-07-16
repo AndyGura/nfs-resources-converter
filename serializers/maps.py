@@ -6,10 +6,10 @@ from string import Template
 from typing import List
 
 import settings
-from parsers.resources.common.blender_scripts import get_blender_save_script, run_blender
-from parsers.resources.common.meshes import SubMesh
-from resources.basic.compound_block import CompoundBlock
-from resources.basic.data_wrapper import DataWrapper
+from library.utils.blender_scripts import get_blender_save_script, run_blender
+from library.utils.meshes import SubMesh
+from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.data_wrapper import DataWrapper
 from resources.eac.maps import RoadSplinePoint
 from serializers import BaseFileSerializer
 

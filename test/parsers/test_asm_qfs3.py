@@ -1,9 +1,8 @@
 import os
 import unittest
-from io import BufferedReader
 
-from parsers.resources.compressed import CompressedResource, Qfs2Archive, Qfs3Archive
-from parsers.utils.asm_runner import AsmRunner
+from parsers.resources.compressed import Qfs3Archive
+
 
 class TestAsmQFS3Algorythm(unittest.TestCase):
 

@@ -1,6 +1,5 @@
-from parsers.resources.utils import transform_bitness
-from resources.basic.atomic import IntegerField
-from resources.utils import transform_color_bitness
+from library.read_blocks.atomic import IntegerField
+from library.utils import transform_bitness, transform_color_bitness
 
 
 class Color24BitDosField(IntegerField):

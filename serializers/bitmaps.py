@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from PIL import Image
 
-from resources.basic.exceptions import SerializationException
+from library.read_blocks.exceptions import SerializationException
 from resources.eac.archives import WwwwArchive, ShpiArchive
 from resources.eac.bitmaps import AnyBitmapResource
 from serializers import BaseFileSerializer
@@ -46,7 +46,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                 if palette:
                     break
         if not palette and not skip_parent_check and 'children' in wwww.id:
-            from src import require_resource
+            from library import require_resource
             parent = require_resource(wwww.id[:wwww.id.rindex('children')])
             return self._get_palette_from_wwww(parent, max_index=next((i for i, x in enumerate(parent.children)
                                                                        if x.id == wwww.id), -1))
@@ -65,7 +65,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯
             # autumn valley fence texture broken only in ETRACKFM and NTRACKFM
             # TODO find a generic solution to this problem
-            from src import require_resource
+            from library import require_resource
             # finding in current SHPI directory
             shpi_id = block.id[:max(block.id.rindex('__'), block.id.rindex('/'))]
             palette = self._get_palette_from_shpi(require_resource(shpi_id))
@@ -77,7 +77,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                                                             if x.id == shpi_id), -1))
             if palette is None and 'ART/CONTROL/' in block.id:
                 # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
-                from src import require_resource
+                from library import require_resource
                 palette = require_resource('/'.join(block.id.split('/')[:-1]) + '/CENTRAL.QFS__!pal')
         else:
             palette = block.palette

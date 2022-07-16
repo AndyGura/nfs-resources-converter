@@ -1,6 +1,6 @@
 from io import BufferedReader, BytesIO
 
-from resources.basic.read_block import ReadBlock
+from library.read_blocks.read_block import ReadBlock
 
 
 class FileLink(ReadBlock):

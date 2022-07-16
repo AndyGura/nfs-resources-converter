@@ -8,13 +8,11 @@ Feel free to contribute
 
 <h1>How to use converter:</h1>
 
-*Note: I use python 3.8, not sure whether it works well with another python :)*
-
-0) install python, ffmpeg, blender
+0) install python 3.9, pip, ffmpeg, blender
 1) make sure that `blender` and `ffmpeg` commands work in terminal (cmd). If not, either fix your system environment variable PATH, or reboot your system if software was just installed, or set an absolute path to executables in [settings.py](settings.py)
 2) install dependencies `pip install -r requirements.txt`
 3) put entire game directory to `games/`
-4) run `python app.py games`
+4) run `python scripts/convert_all.py games`
 5) observe output files in `out/`
 
 <h1>Supported resources</h1>

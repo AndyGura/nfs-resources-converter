@@ -1,9 +1,9 @@
 from copy import deepcopy
 from io import BufferedReader, BytesIO
 
-from resources.basic.delegate_block import DelegateBlock
-from resources.basic.exceptions import BlockDefinitionException
-from resources.basic.read_block import ReadBlock
+from library.read_blocks.delegate_block import DelegateBlock
+from library.read_blocks.exceptions import BlockDefinitionException
+from library.read_blocks.read_block import ReadBlock
 
 
 class DetachedBlock(DelegateBlock):
