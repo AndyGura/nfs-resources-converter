@@ -24,7 +24,7 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
         pass
     # new vertex creation
     vertex = block.vertex_block[block.polygon_vertex_map_block[index_3D]]
-    model.vertices.append([vertex.x, -vertex.z, vertex.y])
+    model.vertices.append([vertex.x, vertex.y, vertex.z])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
     try:
@@ -54,7 +54,7 @@ class OripGeometrySerializer(BaseFileSerializer):
 import bpy
 import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True)
+bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=True, axis_forward='Y', axis_up='Z')
 
 dummies = json.loads('$dummies')
 for dummy in dummies:
@@ -139,8 +139,8 @@ for dummy in dummies:
                     wheel_key = None
                     for vert in vertices:
                         key = (None
-                               if abs(vert[1]) < 0.1 or abs(vert[0]) < 0.1
-                               else f"{'f' if vert[1] < 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
+                               if abs(vert[2]) < 0.1 or abs(vert[0]) < 0.1
+                               else f"{'f' if vert[2] > 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
                         if not key or (wheel_key is not None and key != wheel_key):
                             return None
                         wheel_key = key

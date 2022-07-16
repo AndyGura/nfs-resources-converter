@@ -7,5 +7,5 @@ def my_import(name):
 
 
 def format_exception(ex):
-    # return f'{ex.__class__.__name__}: {str(ex)}'
-    return str(ex)
+    return f'{ex.__class__.__name__}: {str(ex)}'
+

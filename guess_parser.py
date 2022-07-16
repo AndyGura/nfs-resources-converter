@@ -1,5 +1,4 @@
 from io import BufferedReader, SEEK_CUR, BytesIO
-from typing import Literal
 
 from resources.basic.exceptions import BlockIntegrityException
 from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block, SoundBank

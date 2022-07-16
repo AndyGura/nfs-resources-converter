@@ -6,7 +6,7 @@ from resources.basic.compound_block import CompoundBlock
 from resources.basic.delegate_block import DelegateBlock
 from resources.basic.literal_block import LiteralResource
 from resources.eac.audios import EacsAudio
-from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit
+from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit, Bitmap4Bit
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
@@ -78,7 +78,7 @@ class ShpiArchive(CompoundBlock):
         children = ExplicitOffsetsArrayField(child=LiteralResource(
             possible_resources=[
                 Bitmap16Bit0565(error_handling_strategy='return'),
-                # Bitmap4Bit(error_handling_strategy='return'),
+                Bitmap4Bit(error_handling_strategy='return'),
                 Bitmap8Bit(error_handling_strategy='return'),
                 Bitmap32Bit(error_handling_strategy='return'),
                 Bitmap16Bit1555(error_handling_strategy='return'),

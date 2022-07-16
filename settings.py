@@ -5,7 +5,7 @@ ffmpeg_executable = 'ffmpeg'
 
 # amount of processes to be spawned.
 # 0 means "use the amount of CPU cores"
-multiprocess_processes_count = 0
+multiprocess_processes_count = 8
 
 # FIXME not working with new resources approach
 save_unknown_values = False

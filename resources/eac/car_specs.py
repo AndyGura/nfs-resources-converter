@@ -124,12 +124,12 @@ class CarSimplifiedPerformanceSpec(CompoundBlock):
                                is_unknown=True,
                                description='Unknown. Some values for playable cars, always zeros for non-playable')
         moment_of_inertia = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
-                                           description='Not clear how to interpret', is_unknown=True)
+                                           description='Not clear how to interpret')
         unknowns1 = ArrayField(length=3, child=RationalNumber(static_size=4, fraction_bits=16, is_signed=True),
                                is_unknown=True)
         power_curve = ArrayField(length=100, child=RationalNumber(static_size=4, fraction_bits=16, is_signed=True),
-                                 description='Not clear how to interpret', is_unknown=True)
+                                 description='Not clear how to interpret')
         top_speeds = ArrayField(length=6, child=RationalNumber(static_size=4, fraction_bits=16, is_signed=True),
-                                description='Maximum car speed (m/s) per gear', is_unknown=True)
-        max_rpm = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Max engine RPM', is_unknown=True)
-        gear_count = IntegerField(static_size=4, description='Gears amount', is_unknown=True)
+                                description='Maximum car speed (m/s) per gear')
+        max_rpm = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Max engine RPM')
+        gear_count = IntegerField(static_size=4, description='Gears amount')
