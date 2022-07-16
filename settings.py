@@ -36,6 +36,7 @@ SERIALIZER_CLASSES = {
     'Bitmap8Bit': 'BitmapWithPaletteSerializer',
     'CarPerformanceSpec': 'JsonSerializer',
     'CarSimplifiedPerformanceSpec': 'JsonSerializer',
+    'DashDeclarationFile': 'JsonSerializer',
     'FfnFont': 'FfnFontSerializer',
     'Palette16BitResource': 'PaletteSerializer',
     'Palette24BitDosResource': 'PaletteSerializer',

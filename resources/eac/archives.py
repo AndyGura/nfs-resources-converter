@@ -1,13 +1,15 @@
 from io import BufferedReader, BytesIO
 
-from parsers.resources.compressed import RefPackArchive, Qfs2Archive, Qfs3Archive
 from resources.basic.array_field import ArrayField, ExplicitOffsetsArrayField
 from resources.basic.atomic import IntegerField, Utf8Field, BytesField
 from resources.basic.compound_block import CompoundBlock
 from resources.basic.delegate_block import DelegateBlock
 from resources.basic.literal_block import LiteralResource
 from resources.eac.audios import EacsAudio
-from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit, Bitmap4Bit
+from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit
+from resources.eac.compressions.qfs2 import Qfs2Compression
+from resources.eac.compressions.qfs3 import Qfs3Compression
+from resources.eac.compressions.ref_pack import RefPackCompression
 from resources.eac.geometries import OripGeometry
 from resources.eac.palettes import (
     Palette16BitResource,
@@ -39,21 +41,21 @@ class RefPackBlock(CompressedBlock):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.algorithm = RefPackArchive().uncompress
+        self.algorithm = RefPackCompression().uncompress
 
 
 class Qfs2Block(CompressedBlock):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.algorithm = Qfs2Archive().uncompress
+        self.algorithm = Qfs2Compression().uncompress
 
 
 class Qfs3Block(CompressedBlock):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.algorithm = Qfs3Archive().uncompress
+        self.algorithm = Qfs3Compression().uncompress
 
 
 class ShpiChildDescription(CompoundBlock):
@@ -144,7 +146,8 @@ class WwwwArchive(CompoundBlock):
 
 
 WwwwArchive.Fields.children.child.possible_resources.append(WwwwArchive(error_handling_strategy='return'))
-WwwwArchive.Fields.children.child.instantiate_kwargs['possible_resources'].append(WwwwArchive(error_handling_strategy='return'))
+WwwwArchive.Fields.children.child.instantiate_kwargs['possible_resources'].append(
+    WwwwArchive(error_handling_strategy='return'))
 
 
 class SoundBank(CompoundBlock):

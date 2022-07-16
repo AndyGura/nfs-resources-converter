@@ -1,10 +1,6 @@
-import json
 import subprocess
-from collections import defaultdict
 
 import settings
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
-from resources.basic.compound_block import CompoundBlock
 from resources.eac.videos import FfmpegSupportedVideo
 from serializers import BaseFileSerializer
 

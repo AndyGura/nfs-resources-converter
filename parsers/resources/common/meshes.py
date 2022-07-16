@@ -1,4 +1,3 @@
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.eac.bitmaps import AnyBitmapResource
 
 

@@ -1,11 +1,7 @@
 from io import BufferedReader, SEEK_CUR, BytesIO
 from typing import Literal
 
-from parsers.resources.base import BaseResource
-from parsers.resources.misc import TextResource, BinaryResource, Nfs1MapInfo
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.basic.exceptions import BlockIntegrityException
-from resources.basic.read_block import ReadBlock
 from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block, SoundBank
 from resources.eac.audios import EacsAudio, AsfAudio
 from resources.eac.bitmaps import (
@@ -25,6 +21,7 @@ from resources.eac.fonts import (
 )
 from resources.eac.geometries import OripGeometry
 from resources.eac.maps import TriMap
+from resources.eac.misc import DashDeclarationFile
 from resources.eac.palettes import (
     PaletteReference,
     Palette16BitResource,
@@ -32,14 +29,10 @@ from resources.eac.palettes import (
     Palette24BitResource,
     Palette24BitDosResource,
 )
-
-
-# new logic
-# TODO optimize
 from resources.eac.videos import FfmpegSupportedVideo
 
 
-def probe_block_class(binary_file: Literal[BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):
+def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):
     if file_name:
         if file_name.endswith('.BNK'):
             return SoundBank
@@ -52,7 +45,9 @@ def probe_block_class(binary_file: Literal[BufferedReader, BytesIO], file_name: 
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
-        if header_str == '1SNh' and (not resources_to_pick or AsfAudio in resources_to_pick):
+        if file_name and header_str == '#ver' and file_name.endswith('INFO') and (not resources_to_pick or DashDeclarationFile in resources_to_pick):
+            return DashDeclarationFile
+        elif header_str == '1SNh' and (not resources_to_pick or AsfAudio in resources_to_pick):
             return AsfAudio
         elif header_str in ['kVGT', 'SCHl'] and (not resources_to_pick or FfmpegSupportedVideo in resources_to_pick):
             return FfmpegSupportedVideo
@@ -109,33 +104,3 @@ def probe_block_class(binary_file: Literal[BufferedReader, BytesIO], file_name: 
     except IndexError:
         raise BlockIntegrityException('Don`t have parser for such resource. header_bytes are missed')
     raise NotImplementedError('Don`t have parser for such resource')
-
-
-# old logic
-def get_resource_class(binary_file: BufferedReader, file_name: str = None) -> [BaseResource, ReadBlock]:
-    try:
-        block_class = probe_block_class(binary_file, file_name)
-        if block_class:
-            return ReadBlockWrapper(block_class=block_class)
-    except Exception:
-        pass
-    header_bytes = binary_file.read(4)
-    binary_file.seek(-len(header_bytes), SEEK_CUR)
-    try:
-        header_str = header_bytes.decode('utf8')
-        if file_name and header_str == '#ver' and file_name.endswith('INFO'):
-            return Nfs1MapInfo()
-    except UnicodeDecodeError:
-        pass
-    try:
-        resource_id = header_bytes[0]
-    except IndexError:
-        raise NotImplementedError('Don`t have parser for such resource. header_bytes are missed')
-    if resource_id == 0x0A:
-        # unknown resource with length == 84
-        # looks like some info about sprite positioning on screen
-        return BinaryResource(id=resource_id, length=84, save_binary_file=False)
-    elif resource_id == 0x6F:
-        return TextResource()
-    else:
-        raise NotImplementedError('Don`t have parser for such resource')

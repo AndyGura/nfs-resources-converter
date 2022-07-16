@@ -1,6 +1,5 @@
 import os
 
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.eac.fonts import FfnFont
 from serializers import BaseFileSerializer, BitmapSerializer
 

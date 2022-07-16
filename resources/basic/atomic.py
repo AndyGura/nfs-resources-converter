@@ -30,11 +30,6 @@ class AtomicReadBlock(ReadBlock, ABC):
     def __deepcopy__(self, memo):
         return self
 
-    def _check_length_before_reading(self, available_size: int):
-        if self.min_size is None:
-            raise BlockIntegrityException('Cannot read, own min size is unknown')
-        return super()._check_length_before_reading(available_size)
-
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         value = super().read(buffer, size, parent_read_data)
         if self.required_value and value != self.required_value:

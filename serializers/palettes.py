@@ -1,4 +1,3 @@
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.eac.palettes import BasePalette
 from serializers import BaseFileSerializer
 

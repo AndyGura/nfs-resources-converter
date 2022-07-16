@@ -9,7 +9,6 @@ from typing import Literal, List, Tuple
 import settings
 from parsers.resources.common.blender_scripts import run_blender
 from parsers.resources.common.meshes import SubMesh
-from parsers.resources.read_block_wrapper import ReadBlockWrapper
 from resources.basic.data_wrapper import DataWrapper
 from resources.basic.exceptions import BlockIntegrityException
 from resources.eac.bitmaps import AnyBitmapResource
