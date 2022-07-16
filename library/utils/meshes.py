@@ -1,4 +1,4 @@
-from resources.eac.bitmaps import AnyBitmapResource
+from resources.eac.bitmaps import AnyBitmapBlock
 
 
 # Mesh with one single texture
@@ -24,7 +24,7 @@ class SubMesh:
             uvs_scaled_to_texture = False
             if self.texture_id:
                 for texture in textures_shpi_block.children:
-                    if isinstance(texture, AnyBitmapResource) and texture.id.split('/')[-1] == self.texture_id:
+                    if isinstance(texture, AnyBitmapBlock) and texture.id.split('/')[-1] == self.texture_id:
                         u_multiplier, v_multiplier = 1 / texture.width, 1 / texture.height
                         uvs_scaled_to_texture = True
                         break

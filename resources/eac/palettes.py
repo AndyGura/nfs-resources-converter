@@ -77,7 +77,7 @@ class PaletteReference(CompoundBlock):
                                  'Probably a reference to palette which should be used, that\'s why named so'
 
 
-class Palette24BitDosResource(BasePalette):
+class Palette24BitDos(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x22, description='Resource ID')
         unknowns = ArrayBlock(length=15, child=IntegerField(static_size=1), is_unknown=True)
@@ -85,7 +85,7 @@ class Palette24BitDosResource(BasePalette):
                             description='Colors LUT')
 
 
-class Palette24BitResource(BasePalette):
+class Palette24Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x24, description='Resource ID')
         unknowns = ArrayBlock(length=15, child=IntegerField(static_size=1), is_unknown=True)
@@ -93,7 +93,7 @@ class Palette24BitResource(BasePalette):
                             description='Colors LUT')
 
 
-class Palette32BitResource(BasePalette):
+class Palette32Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x2A, description='Resource ID')
         unknowns = ArrayBlock(length=15, child=IntegerField(static_size=1), is_unknown=True)
@@ -103,7 +103,7 @@ class Palette32BitResource(BasePalette):
     can_use_last_color_as_transparent = False
 
 
-class Palette16BitResource(BasePalette):
+class Palette16Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x2D, description='Resource ID')
         unknowns = ArrayBlock(length=15, child=IntegerField(static_size=1), is_unknown=True)

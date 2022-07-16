@@ -12,10 +12,10 @@ from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
 from resources.eac.geometries import OripGeometry
 from resources.eac.palettes import (
-    Palette16BitResource,
-    Palette32BitResource,
-    Palette24BitResource,
-    Palette24BitDosResource,
+    Palette16Bit,
+    Palette32Bit,
+    Palette24Bit,
+    Palette24BitDos,
 )
 
 
@@ -83,10 +83,10 @@ class ShpiArchive(CompoundBlock):
                 Bitmap32Bit(error_handling_strategy='return'),
                 Bitmap16Bit1555(error_handling_strategy='return'),
                 Bitmap24Bit(error_handling_strategy='return'),
-                Palette24BitDosResource(error_handling_strategy='return'),
-                Palette24BitResource(error_handling_strategy='return'),
-                Palette32BitResource(error_handling_strategy='return'),
-                Palette16BitResource(error_handling_strategy='return'),
+                Palette24BitDos(error_handling_strategy='return'),
+                Palette24Bit(error_handling_strategy='return'),
+                Palette32Bit(error_handling_strategy='return'),
+                Palette16Bit(error_handling_strategy='return'),
             ],
             error_handling_strategy='return',
         ))

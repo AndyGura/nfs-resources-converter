@@ -11,7 +11,7 @@ from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
 from library.read_blocks.data_wrapper import DataWrapper
 from library.read_blocks.exceptions import BlockIntegrityException
-from resources.eac.bitmaps import AnyBitmapResource
+from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
 
@@ -202,7 +202,7 @@ for dummy in dummies:
                 face_index_increment += len(sub_model.vertices)
         with open(f'{path}material.mtl', 'w') as f:
             for texture in textures_shpi_block.children:
-                if not isinstance(texture, AnyBitmapResource):
+                if not isinstance(texture, AnyBitmapBlock):
                     continue
                 f.write(f"""\n\nnewmtl {texture.id.split('/')[-1]}
 Ka 1.000000 1.000000 1.000000

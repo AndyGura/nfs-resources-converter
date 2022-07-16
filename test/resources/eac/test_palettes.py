@@ -2,7 +2,7 @@ import unittest
 from io import BytesIO
 from random import random
 
-from resources.eac.palettes import Palette32BitResource
+from resources.eac.palettes import Palette32Bit
 
 
 class Palette32BitResourceTest(unittest.TestCase):
@@ -18,7 +18,7 @@ class Palette32BitResourceTest(unittest.TestCase):
             ba.append(i)
             ba.append(i)
         buffer = BytesIO(ba)
-        res = Palette32BitResource()
+        res = Palette32Bit()
         res.read(buffer, 1040)
         self.assertEqual(res.resource_id, 0x2A)
         self.assertListEqual(res.unknowns, [3 for _ in range(15)])
@@ -30,7 +30,7 @@ class Palette32BitResourceTest(unittest.TestCase):
         for i in range(15 + 4 * 256):
             ba.append(round(random()*255))
         buffer = BytesIO(ba)
-        res = Palette32BitResource()
+        res = Palette32Bit()
         res.read(buffer, len(ba))
         out_buffer = BytesIO()
         res.write(out_buffer)
@@ -45,7 +45,7 @@ class Palette32BitResourceTest(unittest.TestCase):
         for i in range(15 + 4 * 253):
             ba.append(round(random()*255))
         buffer = BytesIO(ba)
-        res = Palette32BitResource()
+        res = Palette32Bit()
         res.read(buffer, len(ba))
         out_buffer = BytesIO()
         res.write(out_buffer)
@@ -63,7 +63,7 @@ class Palette24BitDosResourceTest(unittest.TestCase):
         for i in range(15 + 3 * 256):
             ba.append(round(random()*63))
         buffer = BytesIO(ba)
-        res = Palette32BitResource()
+        res = Palette32Bit()
         res.read(buffer, len(ba))
         out_buffer = BytesIO()
         res.write(out_buffer)

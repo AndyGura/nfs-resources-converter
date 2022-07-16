@@ -1,4 +1,10 @@
+import inspect
 import os
+import sys
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
 
 from library.read_blocks.array_field import ArrayBlock
 from library.read_blocks.compound_block import CompoundBlock
@@ -37,10 +43,10 @@ EXPORT_RESOURCES = {
     ],
     'Palettes': [
         palettes.PaletteReference(),
-        palettes.Palette24BitDosResource(),
-        palettes.Palette24BitResource(),
-        palettes.Palette32BitResource(),
-        palettes.Palette16BitResource(),
+        palettes.Palette24BitDos(),
+        palettes.Palette24Bit(),
+        palettes.Palette32Bit(),
+        palettes.Palette16Bit(),
     ]
 }
 

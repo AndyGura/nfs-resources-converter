@@ -4,13 +4,13 @@ from PIL import Image
 
 from library.read_blocks.exceptions import SerializationException
 from resources.eac.archives import WwwwArchive, ShpiArchive
-from resources.eac.bitmaps import AnyBitmapResource
+from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
 
 
 class BitmapSerializer(BaseFileSerializer):
 
-    def serialize(self, block: AnyBitmapResource, path: str):
+    def serialize(self, block: AnyBitmapBlock, path: str):
         super().serialize(block, path)
         Image.frombytes('RGBA',
                         (block.width, block.height),
@@ -52,7 +52,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                                                                        if x.id == wwww.id), -1))
         return palette
 
-    def serialize(self, block: AnyBitmapResource, path: str):
+    def serialize(self, block: AnyBitmapBlock, path: str):
         super().serialize(block, path)
         if (block.palette is None
                 or block.palette.resource_id == 0x7C

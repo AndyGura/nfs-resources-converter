@@ -3,7 +3,7 @@ from library.read_blocks.exceptions import BlockIntegrityException
 from library.utils import format_exception
 from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
 from resources.eac.archives import ShpiArchive, WwwwArchive
-from resources.eac.bitmaps import AnyBitmapResource
+from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
 
@@ -25,7 +25,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             except Exception as ex:
                 skipped_resources.append((name, format_exception(ex)))
         with open(f'{path}/positions.txt', 'w') as f:
-            for name, item in [(name, item) for name, item in items if isinstance(item, AnyBitmapResource)]:
+            for name, item in [(name, item) for name, item in items if isinstance(item, AnyBitmapBlock)]:
                 f.write(f"{name}: {item.x}, {item.y}\n")
         if '.FAM__' in block.id:
             try:

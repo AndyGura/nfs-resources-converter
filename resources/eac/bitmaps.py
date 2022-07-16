@@ -14,7 +14,7 @@ from resources.eac.fields.colors import (
 )
 
 
-class AnyBitmapResource(CompoundBlock):
+class AnyBitmapBlock(CompoundBlock):
 
     def _after_height_read(self, data, total_size, parent_read_data, **kwargs):
         pixel_size = self.instance_fields_map['bitmap'].child.size
@@ -31,7 +31,7 @@ class AnyBitmapResource(CompoundBlock):
         self.instance_fields_map['bitmap'].length = data['width'] * data['height']
 
 
-class Bitmap16Bit0565(AnyBitmapResource, CompoundBlock):
+class Bitmap16Bit0565(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x78, description='Resource ID')
         block_size = IntegerField(static_size=3, is_signed=False, byte_order='little',
@@ -52,7 +52,7 @@ class Bitmap16Bit0565(AnyBitmapResource, CompoundBlock):
                                     description="Looks like aligning size to be divisible by 4")
 
 
-class Bitmap4Bit(AnyBitmapResource, CompoundBlock):
+class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -83,7 +83,7 @@ class Bitmap4Bit(AnyBitmapResource, CompoundBlock):
                                    description='Font atlas bitmap data')
 
 
-class Bitmap8Bit(AnyBitmapResource, CompoundBlock):
+class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.block_description = '8bit bitmap can be serialized to image only with palette. Basically, for every ' \
@@ -115,10 +115,10 @@ class Bitmap8Bit(AnyBitmapResource, CompoundBlock):
                                     length_label='block_size - (16 + width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
         palette = LiteralBlock(possible_resources=[palettes.PaletteReference(),
-                                                   palettes.Palette24BitDosResource(),
-                                                   palettes.Palette24BitResource(),
-                                                   palettes.Palette32BitResource(),
-                                                   palettes.Palette16BitResource(),
+                                                   palettes.Palette24BitDos(),
+                                                   palettes.Palette24Bit(),
+                                                   palettes.Palette32Bit(),
+                                                   palettes.Palette16Bit(),
                                                    ],
                                description='Palette, assigned to this bitmap or reference to external palette?. '
                                            'The exact mechanism of choosing the correct palette '
@@ -127,7 +127,7 @@ class Bitmap8Bit(AnyBitmapResource, CompoundBlock):
         optional_fields = ['palette']
 
 
-class Bitmap32Bit(AnyBitmapResource, CompoundBlock):
+class Bitmap32Bit(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x7D, description='Resource ID')
         block_size = IntegerField(static_size=3, is_signed=False, byte_order='little',
@@ -148,7 +148,7 @@ class Bitmap32Bit(AnyBitmapResource, CompoundBlock):
                                     description="Looks like aligning size to be divisible by 4")
 
 
-class Bitmap16Bit1555(AnyBitmapResource, CompoundBlock):
+class Bitmap16Bit1555(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x7E, description='Resource ID')
         block_size = IntegerField(static_size=3, is_signed=False, byte_order='little',
@@ -169,7 +169,7 @@ class Bitmap16Bit1555(AnyBitmapResource, CompoundBlock):
                                     description="Looks like aligning size to be divisible by 4")
 
 
-class Bitmap24Bit(AnyBitmapResource, CompoundBlock):
+class Bitmap24Bit(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerField(static_size=1, is_signed=False, required_value=0x7F, description='Resource ID')
         block_size = IntegerField(static_size=3, is_signed=False, byte_order='little',

@@ -24,10 +24,10 @@ from resources.eac.maps import TriMap
 from resources.eac.misc import DashDeclarationFile
 from resources.eac.palettes import (
     PaletteReference,
-    Palette16BitResource,
-    Palette32BitResource,
-    Palette24BitResource,
-    Palette24BitDosResource,
+    Palette16Bit,
+    Palette32Bit,
+    Palette24Bit,
+    Palette24BitDos,
 )
 from resources.eac.videos import FfmpegSupportedVideo
 
@@ -66,15 +66,15 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = N
         pass
     try:
         resource_id = header_bytes[0]
-        if resource_id == 0x22 and (not resources_to_pick or Palette24BitDosResource in resources_to_pick):
-            return Palette24BitDosResource
-        elif resource_id == 0x24 and (not resources_to_pick or Palette24BitResource in resources_to_pick):
-            return Palette24BitResource
+        if resource_id == 0x22 and (not resources_to_pick or Palette24BitDos in resources_to_pick):
+            return Palette24BitDos
+        elif resource_id == 0x24 and (not resources_to_pick or Palette24Bit in resources_to_pick):
+            return Palette24Bit
         # TODO 41 (0x29) 16 bit dos palette
-        elif resource_id == 0x2A and (not resources_to_pick or Palette32BitResource in resources_to_pick):
-            return Palette32BitResource
-        elif resource_id == 0x2D and (not resources_to_pick or Palette16BitResource in resources_to_pick):
-            return Palette16BitResource
+        elif resource_id == 0x2A and (not resources_to_pick or Palette32Bit in resources_to_pick):
+            return Palette32Bit
+        elif resource_id == 0x2D and (not resources_to_pick or Palette16Bit in resources_to_pick):
+            return Palette16Bit
         elif resource_id == 0x78 and (not resources_to_pick or Bitmap16Bit0565 in resources_to_pick):
             return Bitmap16Bit0565
         elif resource_id == 0x7A and (not resources_to_pick or Bitmap4Bit in resources_to_pick):
