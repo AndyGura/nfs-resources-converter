@@ -1,4 +1,5 @@
 import serializers
+from parsers.resources.misc import nfs1_panorama_to_spherical
 from resources.basic.exceptions import BlockIntegrityException
 from resources.eac.archives import ShpiArchive, WwwwArchive
 from resources.eac.bitmaps import AnyBitmapResource
@@ -26,6 +27,13 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         with open(f'{path}/positions.txt', 'w') as f:
             for name, item in [(name, item) for name, item in items if isinstance(item, AnyBitmapResource)]:
                 f.write(f"{name}: {item.x}, {item.y}\n")
+        if '.FAM__' in block.id:
+            try:
+                horz_bitmap = next(x for name, x in items if name == 'horz')
+                nfs1_panorama_to_spherical(block.id[block.id.index('.FAM')-7:block.id.index('.FAM')-4],
+                                           f'{path}horz.png', f'{path}spherical.png')
+            except StopIteration:
+                pass
         if skipped_resources:
             with open(f'{path}/skipped.txt', 'w') as f:
                 for item in skipped_resources:
