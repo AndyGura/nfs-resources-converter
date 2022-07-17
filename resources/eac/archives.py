@@ -80,6 +80,7 @@ class ShpiBlock(CompoundBlock):
         children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
         shpi_directory = Utf8Field(length=4, description='One of: "LN32", "GIMX", "WRAP". The purpose is unknown')
         children_descriptions = ArrayBlock(child=ShpiChildDescription(),
+                                           length_label='children_count',
                                            description='An array of items, each of them represents name of SHPI item '
                                                        '(image or palette) and offset to item data in file, relatively '
                                                        'to SHPI block start (where resource id string is presented)')
@@ -97,8 +98,9 @@ class ShpiBlock(CompoundBlock):
                 Palette16Bit(error_handling_strategy='return'),
             ],
             error_handling_strategy='return',
-        ), description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
-                       'are calculated: either up to next item offset, or up to the end of block')
+        ), length_label='children_count',
+            description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
+                        'are calculated: either up to next item offset, or up to the end of block')
 
     def __getattr__(self, name):
         try:
@@ -139,8 +141,9 @@ class WwwwBlock(CompoundBlock):
                 OripGeometry(error_handling_strategy='return'),
                 ShpiBlock(error_handling_strategy='return'),
             ],
-        ), description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
-                       'are calculated: either up to next item offset, or up to the end of block')
+        ), length_label='children_count',
+            description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
+                        'are calculated: either up to next item offset, or up to the end of block')
 
     def __getattr__(self, name):
         try:
