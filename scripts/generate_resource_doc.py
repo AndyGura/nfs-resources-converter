@@ -10,12 +10,18 @@ from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.literal import LiteralBlock
 from library.read_blocks.read_block import ReadBlock
-from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries
+from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries, audios, archives
 
 EXPORT_RESOURCES = {
+    'Archives': [
+        archives.ShpiBlock(),
+        archives.WwwwBlock(),
+        archives.SoundBank(),
+    ],
     'Geometries': [
         geometries.OripGeometry(),
         geometries.OripPolygon(),
+        geometries.OripTextureName(),
     ],
     'Maps': [
         maps.TriMap(),
@@ -47,6 +53,9 @@ EXPORT_RESOURCES = {
         palettes.Palette24Bit(),
         palettes.Palette32Bit(),
         palettes.Palette16Bit(),
+    ],
+    'Audio': [
+        audios.AsfAudio(),
     ]
 }
 
@@ -55,6 +64,8 @@ def render_range(field, min: int, max: int, render_hex: bool) -> str:
     if field is not None and isinstance(field, ArrayBlock) and field.length_label is not None:
         if field.child.size == 1:
             return field.length_label
+        if field.child.size is None:
+            return '?'
         return f'{field.child.size} * ({field.length_label})'
     if min == max:
         return hex(min) if render_hex else str(min)
@@ -66,7 +77,7 @@ def render_range(field, min: int, max: int, render_hex: bool) -> str:
 
 def render_type(instance: ReadBlock) -> str:
     if isinstance(instance, LiteralBlock):
-        return 'One of types:<br/>' + '<br/>'.join([render_type(x) for x in instance.possible_resources])
+        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_resources])
     if not isinstance(instance, CompoundBlock) or instance.inline_description:
         descr = instance.block_description
         if isinstance(instance, ArrayBlock):
@@ -82,7 +93,42 @@ def render_type(instance: ReadBlock) -> str:
 md_name = os.path.join(parentdir, 'resources/README.md')
 
 with open(md_name, 'w') as f:
-    f.write('# **File specs** #')
+    f.write(f"""# **File specs** #
+
+**\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
+
+**\*.AS4**, **\*.ASF**, **\*.EAS** audio + loop settings. {render_type(audios.AsfAudio())}
+
+**\*.BNK** sound bank. {render_type(archives.SoundBank())}
+
+**\*.CFM** car 3D model. {render_type(archives.WwwwBlock())} with 4 entries:
+- {render_type(geometries.OripGeometry())} high-poly 3D model
+- {render_type(archives.ShpiBlock())} textures for high-poly model
+- {render_type(geometries.OripGeometry())} low-poly 3D model
+- {render_type(archives.ShpiBlock())} textures for low-poly model
+
+**\*.FAM** track textures, props, skybox. {render_type(archives.WwwwBlock())} with 4 entries:
+- {render_type(archives.WwwwBlock())} (background) contains few {render_type(archives.ShpiBlock())} items, terrain textures
+- {render_type(archives.WwwwBlock())} (foreground) contains few {render_type(archives.ShpiBlock())} items, prop textures
+- {render_type(archives.ShpiBlock())} (skybox) contains horizon texture
+- {render_type(archives.WwwwBlock())} contains a series of consecutive {render_type(geometries.OripGeometry())} + {render_type(archives.ShpiBlock())} items, 3D props
+
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+
+**\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+
+**\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+
+**\*.TGV** video, I just use ffmpeg to convert it
+
+**\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(maps.TriMap())}
+
+
+# **Block specs** #""")
     for (heading, resources) in EXPORT_RESOURCES.items():
         f.write(f'\n## **{heading}** ##')
         for resource in resources:
@@ -103,7 +149,7 @@ with open(md_name, 'w') as f:
                         f'**{key}**{" (optional)" if key in resource.Fields.optional_fields else ""} | '
                         f'{render_range(field, field.min_size, field.max_size, False)} | '
                         f'{render_type(field)} | '
-                        f'{field.description or "-"} |')
+                        f'{field.description or ("Unknown purpose" if key in resource.Fields.unknown_fields else "-")} |')
                 offset_min += field.min_size
                 offset_max += field.max_size
             if collapse_table:

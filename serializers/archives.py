@@ -2,7 +2,7 @@ import serializers
 from library.helpers.exceptions import BlockIntegrityException
 from library.utils import format_exception
 from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
-from resources.eac.archives import ShpiArchive, WwwwArchive
+from resources.eac.archives import ShpiBlock, WwwwBlock, SoundBank
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
@@ -10,7 +10,7 @@ from serializers import BaseFileSerializer
 
 class ShpiArchiveSerializer(BaseFileSerializer):
 
-    def serialize(self, block: ShpiArchive, path: str):
+    def serialize(self, block: ShpiBlock, path: str):
         path += '/'
         super().serialize(block, path)
         items = [(block.children_descriptions[i].name, block.children[i]) for i in range(block.children_count)]
@@ -42,7 +42,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
 class WwwwArchiveSerializer(BaseFileSerializer):
 
-    def serialize(self, block: WwwwArchive, path: str):
+    def serialize(self, block: WwwwBlock, path: str):
         path += '/'
         super().serialize(block, path)
         if block.id.endswith('.CFM') and block.children_count == 4:
@@ -59,7 +59,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
         skip_next_shpi = False
         for name, item in [(name, item) for name, item in items]:
             if skip_next_shpi:
-                assert isinstance(item, ShpiArchive), \
+                assert isinstance(item, ShpiBlock), \
                     BlockIntegrityException('After ORIP geometry in wwww archive only SHPI directory expected!')
                 skip_next_shpi = False
                 continue
@@ -78,7 +78,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
 
 class SoundBankSerializer(BaseFileSerializer):
 
-    def serialize(self, block: WwwwArchive, path: str):
+    def serialize(self, block: SoundBank, path: str):
         path += '/'
         super().serialize(block, path)
         if ((block.id.endswith('SW.BNK') or block.id.endswith('TRAFFC.BNK') or block.id.endswith('TESTBANK.BNK'))

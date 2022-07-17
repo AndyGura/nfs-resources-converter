@@ -26,11 +26,11 @@ def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
             from resources.eac.videos import FfmpegSupportedVideo
             return FfmpegSupportedVideo
         elif header_str == 'SHPI':
-            from resources.eac.archives import ShpiArchive
-            return ShpiArchive
+            from resources.eac.archives import ShpiBlock
+            return ShpiBlock
         elif header_str == 'wwww':
-            from resources.eac.archives import WwwwArchive
-            return WwwwArchive
+            from resources.eac.archives import WwwwBlock
+            return WwwwBlock
         elif header_str == 'FNTF':
             from resources.eac.fonts import FfnFont
             return FfnFont

@@ -21,6 +21,14 @@ class LiteralBlock(DelegateBlock):
         return super().max_size or max(x.max_size for x in self.possible_resources)
 
     @property
+    def size(self):
+        sizes = [x.size for x in self.possible_resources]
+        # if all equal
+        if sizes.count(sizes[0]) == len(sizes):
+            return sizes[0]
+        return None
+
+    @property
     def Fields(self):
         return self.delegated_block.Fields
 

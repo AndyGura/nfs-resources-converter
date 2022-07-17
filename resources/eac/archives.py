@@ -59,22 +59,30 @@ class Qfs3Block(CompressedBlock):
 
 
 class ShpiChildDescription(CompoundBlock):
-    block_description = ''
+    block_description = '8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an ' \
+                        'unsigned integer (little-endian)'
+
+    def __init__(self, **kwargs):
+        kwargs['inline_description'] = True
+        super().__init__(**kwargs)
 
     class Fields(CompoundBlock.Fields):
         name = Utf8Field(length=4)
         offset = IntegerBlock(static_size=4, is_signed=False)
 
 
-class ShpiArchive(CompoundBlock):
-    block_description = ''
+class ShpiBlock(CompoundBlock):
+    block_description = 'A container of images and palettes for them'
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='SHPI', length=4, description='Resource ID')
-        length = IntegerBlock(static_size=4, is_signed=False)
-        children_count = IntegerBlock(static_size=4, is_signed=False)
-        shpi_directory = Utf8Field(length=4)
-        children_descriptions = ArrayBlock(child=ShpiChildDescription())
+        length = IntegerBlock(static_size=4, is_signed=False, description='The length of this SHPI block in bytes')
+        children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
+        shpi_directory = Utf8Field(length=4, description='One of: "LN32", "GIMX", "WRAP". The purpose is unknown')
+        children_descriptions = ArrayBlock(child=ShpiChildDescription(),
+                                           description='An array of items, each of them represents name of SHPI item '
+                                                       '(image or palette) and offset to item data in file, relatively '
+                                                       'to SHPI block start (where resource id string is presented)')
         children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
             possible_resources=[
                 Bitmap16Bit0565(error_handling_strategy='return'),
@@ -89,7 +97,8 @@ class ShpiArchive(CompoundBlock):
                 Palette16Bit(error_handling_strategy='return'),
             ],
             error_handling_strategy='return',
-        ))
+        ), description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
+                       'are calculated: either up to next item offset, or up to the end of block')
 
     def __getattr__(self, name):
         try:
@@ -115,19 +124,23 @@ class ShpiArchive(CompoundBlock):
             child.id = self._id + ('/' if '__' in self._id else '__') + data['children_descriptions'][i].name
 
 
-class WwwwArchive(CompoundBlock):
-    block_description = ''
+class WwwwBlock(CompoundBlock):
+    block_description = 'A block-container with various data: image archives, geometries, other wwww blocks. ' \
+                        'If has ORIP 3D model, next item is always SHPI block with textures to this 3D model'
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='wwww', length=4, description='Resource ID')
-        children_count = IntegerBlock(static_size=4, is_signed=False)
-        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False))
+        children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
+        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False),
+                                      description='An array of offsets to items data in file, relatively '
+                                                  'to wwww block start (where resource id string is presented)')
         children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
             possible_resources=[
                 OripGeometry(error_handling_strategy='return'),
-                ShpiArchive(error_handling_strategy='return'),
+                ShpiBlock(error_handling_strategy='return'),
             ],
-        ))
+        ), description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
+                       'are calculated: either up to next item offset, or up to the end of block')
 
     def __getattr__(self, name):
         try:
@@ -145,18 +158,28 @@ class WwwwArchive(CompoundBlock):
                                                         data['children_offsets']]
 
 
-WwwwArchive.Fields.children.child.possible_resources.append(WwwwArchive(error_handling_strategy='return'))
-WwwwArchive.Fields.children.child.instantiate_kwargs['possible_resources'].append(
-    WwwwArchive(error_handling_strategy='return'))
+WwwwBlock.Fields.children.child.possible_resources.append(WwwwBlock(error_handling_strategy='return'))
+WwwwBlock.Fields.children.child.instantiate_kwargs['possible_resources'].append(
+    WwwwBlock(error_handling_strategy='return'))
 
 
 class SoundBank(CompoundBlock):
-    block_description = ''
+    block_description = 'A pack of SFX samples (short audios). Used mostly for car engine sounds, crash sounds etc.'
 
     class Fields(CompoundBlock.Fields):
-        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False), length=128)
-        children = ExplicitOffsetsArrayBlock(child=EacsAudio())
-        wave_data = ExplicitOffsetsArrayBlock(child=BytesField(length_strategy="read_available"))
+        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False), length=128,
+                                      description='An array of offsets to items data in file. Zero values seem to be '
+                                                  'ignored, but for some reason the very first offset is 0 in most '
+                                                  'files. The real audio data start is shifted 40 bytes forward for '
+                                                  'some reason, so EACS is located at {offset from this array} + 40')
+        children = ExplicitOffsetsArrayBlock(child=EacsAudio(),
+                                             description='EACS blocks are here, placed at offsets from previous block. '
+                                                         'Those EACS blocks don\'t have own wave data, there are 44 '
+                                                         'bytes of unknown data instead, offsets in them are pointed '
+                                                         'to wave data of this block')
+        wave_data = ExplicitOffsetsArrayBlock(child=BytesField(length_strategy="read_available"),
+                                              description='A space, where wave data is located. Pointers are in '
+                                                          'children EACS')
 
     def __getattr__(self, name):
         try:

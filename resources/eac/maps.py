@@ -34,15 +34,20 @@ class RoadSplinePoint(CompoundBlock):
                                                      (14, 'waterfall_audio_left_channel'),
                                                      (15, 'waterfall_audio_right_channel'),
                                                      (18, 'water_audio'),
-                                                     ], description='Modifier of this point')
+                                                     ],
+                                         description='Modifier of this point. Affects terrain geometry and/or some '
+                                                     'gameplay features')
         position = Point3D_32(description='Coordinates of this point in 3D space')
-        slope = Nfs1Angle16(description='Slope of the road at this point')
-        slant_a = Nfs1Angle16()
-        orientation = Nfs1Angle16()
+        slope = Nfs1Angle16(description='Slope of the road at this point (angle if road goes up or down)')
+        slant_a = Nfs1Angle16(description='Perpendicular angle of road')
+        orientation = Nfs1Angle16(description='Rotation of road path, if view from the top')
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
-        orientation_y = Nfs1Angle16()
-        slant_b = Nfs1Angle16()
-        orientation_x = Nfs1Angle16()
+        orientation_y = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
+                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        slant_b = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
+                                          'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        orientation_x = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
+                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
         unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
         
         unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
@@ -58,14 +63,21 @@ class ProxyObject(CompoundBlock):
                               description='Different modes of proxy object')
         type = EnumByteBlock(enum_names=[(1, 'model'), (4, 'bitmap'), (6, 'two_sided_bitmap')],
                              description='Type of proxy object')
-        resource_id = IntegerBlock(static_size=1, description='Texture/model id')
+        resource_id = IntegerBlock(static_size=1,
+                                   description='Texture/model id. For 3D prop is an index of prop in the track FAM '
+                                               'file, for 2D represents texture id. How to get texture name from this '
+                                               'value explained well by Denis Auroux http://www.math.polytechnique.fr/'
+                                               'cmat/auroux/nfs/nfsspecs.txt')
         resource_2_id = IntegerBlock(static_size=1,
-                                     description='Texture id of second sprite, rotated 90 degrees, in two-sided bitmap')
-        width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
+                                     description='Texture id of second sprite, rotated 90 degrees, in two-sided bitmap.'
+                                                 ' Logic to determine texture name is the same as for resource_id. '
+                                                 'Applicable for 2D prop with type two_sided_bitmap')
+        width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
         frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
         unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3,
                                description='Unknown, animation speed should be somewhere in it')
-        height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
+        height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
+                                description='Height in meters, applicable for 2D props')
 
         unknown_fields = ['unknowns0']
 
@@ -80,10 +92,10 @@ class ProxyObjectInstance(CompoundBlock):
                                                                 'for now and it seems to look good. Probably should '
                                                                 'consider this value to be 16-bit integer, having some '
                                                                 'unknown 16-integer as next field. Also, why it is '
-                                                                'signed?')  # FIXME
+                                                                'signed?')
         proxy_object_index = IntegerBlock(static_size=1, is_signed=False,
                                           description='Sometimes has too big value, I use object index % amount of '
-                                                      'proxies for now and it seems to look good')  # FIXME
+                                                      'proxies for now and it seems to look good')
         rotation = Nfs1Angle8(description='Y-rotation, relative to rotation of referenced road spline vertex')
         flags = IntegerBlock(static_size=4)
         position = Point3D_16(description='Position in 3D space, relative to position of referenced road spline vertex')
@@ -113,7 +125,7 @@ class TriMap(CompoundBlock):
     block_description = 'Map TRI file, represents terrain mesh, road itself, proxy object locations etc.'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=4, is_signed=False, required_value=0x11)
+        resource_id = IntegerBlock(static_size=4, is_signed=False, required_value=0x11, description='Resource ID')
         unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
         position = Point3D_32()
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)

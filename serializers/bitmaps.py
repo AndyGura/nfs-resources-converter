@@ -4,7 +4,7 @@ from PIL import Image
 
 import settings
 from library.helpers.exceptions import SerializationException
-from resources.eac.archives import WwwwArchive, ShpiArchive
+from resources.eac.archives import WwwwBlock, ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
 
@@ -20,7 +20,7 @@ class BitmapSerializer(BaseFileSerializer):
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
-    def _get_palette_from_shpi(self, shpi: ShpiArchive):
+    def _get_palette_from_shpi(self, shpi: ShpiBlock):
         # some of SHPI directories have upper-cased name of palette. Happens in TNFS track FAM files
         # some of SHPI directories have 0000 as palette. Happens in NFS2SE car models, dash hud, render/pc
         for id in ['!pal', '!PAL', '0000']:
@@ -33,16 +33,16 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                 pass
         return None
 
-    def _get_palette_from_wwww(self, wwww: WwwwArchive, max_index=-1, skip_parent_check=False):
+    def _get_palette_from_wwww(self, wwww: WwwwBlock, max_index=-1, skip_parent_check=False):
         if max_index == -1:
             max_index = len(wwww.children)
         palette = None
         for i in range(max_index - 1, -1, -1):
-            if isinstance(wwww.children[i], ShpiArchive):
+            if isinstance(wwww.children[i], ShpiBlock):
                 palette = self._get_palette_from_shpi(wwww.children[i])
                 if palette:
                     break
-            elif isinstance(wwww.children[i], WwwwArchive):
+            elif isinstance(wwww.children[i], WwwwBlock):
                 palette = self._get_palette_from_wwww(wwww.children[i], skip_parent_check=True)
                 if palette:
                     break
