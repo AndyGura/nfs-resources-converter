@@ -2,7 +2,6 @@ import json
 import os
 
 import settings
-from library.helpers.json import rec_dd, resource_to_json
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
@@ -15,6 +14,7 @@ class BaseFileSerializer:
         self.current_serializing_block = None
 
     def get_unknowns_dict(self, block: CompoundBlock):
+        from library.helpers.json import rec_dd, resource_to_json
         res = rec_dd()
         has_something = False
         if isinstance(block, DelegateBlock):
