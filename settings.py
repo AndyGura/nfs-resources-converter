@@ -40,7 +40,6 @@ export_unknown_values = False
 images__save_inline_palettes = False
 
 # media
-save_media_files = True
 audio__save_car_sfx_loops = False
 
 # 3D

@@ -1,112 +1,114 @@
 import os
-from io import BufferedReader, SEEK_CUR, BytesIO
-
-from library.helpers.exceptions import BlockIntegrityException
-from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block, SoundBank
-from resources.eac.audios import EacsAudio, AsfAudio
-from resources.eac.bitmaps import (
-    Bitmap32Bit,
-    Bitmap16Bit1555,
-    Bitmap16Bit0565,
-    Bitmap24Bit,
-    Bitmap8Bit,
-    Bitmap4Bit,
-)
-from resources.eac.car_specs import (
-    CarPerformanceSpec,
-    CarSimplifiedPerformanceSpec,
-)
-from resources.eac.fonts import (
-    FfnFont,
-)
-from resources.eac.geometries import OripGeometry
-from resources.eac.maps import TriMap
-from resources.eac.misc import DashDeclarationFile
-from resources.eac.palettes import (
-    PaletteReference,
-    Palette16Bit,
-    Palette32Bit,
-    Palette24Bit,
-    Palette24BitDos,
-)
-from resources.eac.videos import FfmpegSupportedVideo
+from io import BufferedReader, BytesIO, SEEK_CUR
 
 
-
-
-def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):
+# this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
+# performance, because we spawn process per file, and it doesn't need to load all those classes every time
+def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
     if file_name:
         if file_name.endswith('.BNK'):
+            from resources.eac.archives import SoundBank
             return SoundBank
-        if file_name.endswith('.PBS_UNCOMPRESSED') and (
-                not resources_to_pick or CarPerformanceSpec in resources_to_pick):
+        if file_name.endswith('.PBS_UNCOMPRESSED'):
+            from resources.eac.car_specs import CarPerformanceSpec
             return CarPerformanceSpec
         elif file_name.endswith('.PDN_UNCOMPRESSED'):
+            from resources.eac.car_specs import CarSimplifiedPerformanceSpec
             return CarSimplifiedPerformanceSpec
-    header_bytes = binary_file.read(4)
-    binary_file.seek(-len(header_bytes), SEEK_CUR)
-    try:
-        header_str = header_bytes.decode('utf8')
-        if file_name and header_str == '#ver' and file_name.endswith('INFO') and (
-                not resources_to_pick or DashDeclarationFile in resources_to_pick):
+    if header_str:
+        if file_name and header_str == '#ver' and file_name.endswith('INFO'):
+            from resources.eac.misc import DashDeclarationFile
             return DashDeclarationFile
-        elif header_str == '1SNh' and (not resources_to_pick or AsfAudio in resources_to_pick):
+        elif header_str == '1SNh':
+            from resources.eac.audios import AsfAudio
             return AsfAudio
-        elif header_str in ['kVGT', 'SCHl'] and (not resources_to_pick or FfmpegSupportedVideo in resources_to_pick):
+        elif header_str in ['kVGT', 'SCHl']:
+            from resources.eac.videos import FfmpegSupportedVideo
             return FfmpegSupportedVideo
-        elif header_str == 'SHPI' and (not resources_to_pick or ShpiArchive in resources_to_pick):
+        elif header_str == 'SHPI':
+            from resources.eac.archives import ShpiArchive
             return ShpiArchive
-        elif header_str == 'wwww' and (not resources_to_pick or WwwwArchive in resources_to_pick):
+        elif header_str == 'wwww':
+            from resources.eac.archives import WwwwArchive
             return WwwwArchive
-        elif header_str == 'FNTF' and (not resources_to_pick or FfnFont in resources_to_pick):
+        elif header_str == 'FNTF':
+            from resources.eac.fonts import FfnFont
             return FfnFont
-        elif header_str == 'ORIP' and (not resources_to_pick or OripGeometry in resources_to_pick):
+        elif header_str == 'ORIP':
+            from resources.eac.geometries import OripGeometry
             return OripGeometry
-        elif header_str == 'EACS' and (not resources_to_pick or EacsAudio in resources_to_pick):
+        elif header_str == 'EACS':
+            from resources.eac.audios import EacsAudio
             return EacsAudio
-    except UnicodeDecodeError:
-        pass
     try:
         resource_id = header_bytes[0]
-        if resource_id == 0x22 and (not resources_to_pick or Palette24BitDos in resources_to_pick):
+        if resource_id == 0x22:
+            from resources.eac.palettes import Palette24BitDos
             return Palette24BitDos
-        elif resource_id == 0x24 and (not resources_to_pick or Palette24Bit in resources_to_pick):
+        elif resource_id == 0x24:
+            from resources.eac.palettes import Palette24Bit
             return Palette24Bit
         # TODO 41 (0x29) 16 bit dos palette
-        elif resource_id == 0x2A and (not resources_to_pick or Palette32Bit in resources_to_pick):
+        elif resource_id == 0x2A:
+            from resources.eac.palettes import Palette32Bit
             return Palette32Bit
-        elif resource_id == 0x2D and (not resources_to_pick or Palette16Bit in resources_to_pick):
+        elif resource_id == 0x2D:
+            from resources.eac.palettes import Palette16Bit
             return Palette16Bit
-        elif resource_id == 0x78 and (not resources_to_pick or Bitmap16Bit0565 in resources_to_pick):
+        elif resource_id == 0x78:
+            from resources.eac.bitmaps import Bitmap16Bit0565
             return Bitmap16Bit0565
-        elif resource_id == 0x7A and (not resources_to_pick or Bitmap4Bit in resources_to_pick):
+        elif resource_id == 0x7A:
+            from resources.eac.bitmaps import Bitmap4Bit
             return Bitmap4Bit
-        elif resource_id == 0x7B and (not resources_to_pick or Bitmap8Bit in resources_to_pick):
+        elif resource_id == 0x7B:
+            from resources.eac.bitmaps import Bitmap8Bit
             return Bitmap8Bit
-        elif resource_id == 0x7C and (not resources_to_pick or PaletteReference in resources_to_pick):
+        elif resource_id == 0x7C:
+            from resources.eac.palettes import PaletteReference
             return PaletteReference
-        elif resource_id == 0x7D and (not resources_to_pick or Bitmap32Bit in resources_to_pick):
+        elif resource_id == 0x7D:
+            from resources.eac.bitmaps import Bitmap32Bit
             return Bitmap32Bit
-        elif resource_id == 0x7E and (not resources_to_pick or Bitmap16Bit1555 in resources_to_pick):
+        elif resource_id == 0x7E:
+            from resources.eac.bitmaps import Bitmap16Bit1555
             return Bitmap16Bit1555
-        elif resource_id == 0x7F and (not resources_to_pick or Bitmap24Bit in resources_to_pick):
+        elif resource_id == 0x7F:
+            from resources.eac.bitmaps import Bitmap24Bit
             return Bitmap24Bit
         # QFS1
         # if resource_id & 0b0001_0000:
         elif header_bytes[1] == 0xfb and (resource_id & 0b1111_1110) == 0x10:
+            from resources.eac.archives import RefPackBlock
             return RefPackBlock
         # AL2.QFS
         elif header_bytes[1] == 0xfb and resource_id == 0b0100_0110:
+            from resources.eac.archives import Qfs2Block
             return Qfs2Block
         # AL1.QFS
         elif header_bytes[1] == 0xfb and resource_id in [0b0011_0000, 0b0011_0010, 0b0011_0100, 0b0011_0001,
                                                          0b0011_0011,
                                                          0b0011_0101]:
+            from resources.eac.archives import Qfs3Block
             return Qfs3Block
-        elif resource_id == 0x11 and header_bytes[1] == 0x00 and header_bytes[2] == 0x00 and header_bytes[3] == 0x00:
+        elif resource_id == 0x11:
+            from resources.eac.maps import TriMap
             return TriMap
     except IndexError:
-        raise BlockIntegrityException('Don`t have parser for such resource. header_bytes are missed')
+        pass
+    return None
+
+
+def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):
+    header_bytes = binary_file.read(4)
+    binary_file.seek(-len(header_bytes), SEEK_CUR)
+    try:
+        header_str = header_bytes.decode('utf8')
+    except UnicodeDecodeError:
+        header_str = None
+    block_class = _find_block_class(file_name, header_str, header_bytes)
+    if block_class and (not resources_to_pick or block_class in resources_to_pick):
+        return block_class
     raise NotImplementedError('Don`t have parser for such resource')
 
 

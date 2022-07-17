@@ -15,8 +15,6 @@ class EacsAudioSerializer(BaseFileSerializer):
 
     def serialize(self, block: EacsAudio, path: str):
         super().serialize(block, path)
-        if not settings.save_media_files:
-            return
         wave_bytes = block.wave_data
         if block.compression == 2:
             wave_bytes = audio_ima_adpcm_codec.decode_block(block.wave_data, block.channels)
@@ -71,8 +69,6 @@ class FfmpegSupportedAudioSerializer(BaseFileSerializer):
 
     def serialize(self, block: AsfAudio, path: str):
         super().serialize(block, path)
-        if not settings.save_media_files:
-            return
         subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", block.file_path, f'{path}.mp3'], check=True)
         with open(f'{path}.meta.json', 'w') as file:
             loop_start_time_ms = 1000 * block.repeat_loop_beginning / block.sampling_rate

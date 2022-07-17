@@ -9,8 +9,6 @@ class FfmpegSupportedVideoSerializer(BaseFileSerializer):
 
     def serialize(self, block: FfmpegSupportedVideo, path: str):
         super().serialize(block, path)
-        if not settings.save_media_files:
-            return
         subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", block.file_path,
                         # add video on black square so we will not have transparent pixels (displays wrong in chrome)
                         '-filter_complex',
