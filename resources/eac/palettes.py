@@ -69,7 +69,9 @@ class BasePalette(CompoundBlock, ABC):
 class PaletteReference(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7C, description='Resource ID')
-        unknowns = ArrayBlock(length=7, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=7, child=IntegerBlock(static_size=1))
+        
+        unknown_fields = ['unknowns']
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -80,25 +82,31 @@ class PaletteReference(CompoundBlock):
 class Palette24BitDos(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x22, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
         colors = ArrayBlock(length=256, child=Color24BitDosBlock(), length_strategy="read_available",
                             description='Colors LUT')
+
+        unknown_fields = ['unknowns']
 
 
 class Palette24Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x24, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
         colors = ArrayBlock(length=256, child=Color24BitBigEndianField(), length_strategy="read_available",
                             description='Colors LUT')
+
+        unknown_fields = ['unknowns']
 
 
 class Palette32Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x2A, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
         colors = ArrayBlock(length=256, child=Color32BitBlock(), length_strategy="read_available",
                             description='Colors LUT')
+
+        unknown_fields = ['unknowns']
 
     can_use_last_color_as_transparent = False
 
@@ -106,6 +114,8 @@ class Palette32Bit(BasePalette):
 class Palette16Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x2D, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
         colors = ArrayBlock(length=256, child=Color16Bit0565Block(), length_strategy="read_available",
                             description='Colors LUT')
+
+        unknown_fields = ['unknowns']

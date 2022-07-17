@@ -9,7 +9,6 @@ class ReadBlock(ABC):
     # those fields used for documentation only
     block_description = None
     description = None
-    is_unknown = False
 
     @property
     def id(self):
@@ -19,20 +18,15 @@ class ReadBlock(ABC):
     def id(self, value):
         self._id = value
 
-    def __init__(self, description: str = '', is_unknown: bool = False,
-                 error_handling_strategy: Literal["raise", "return"] = "raise", **kwargs):
+    def __init__(self, description: str = '', error_handling_strategy: Literal["raise", "return"] = "raise", **kwargs):
         self.instantiate_kwargs = {
             'description': description,
-            'is_unknown': is_unknown,
             'error_handling_strategy': error_handling_strategy,
             **kwargs,
         }
         self.description = description
-        self.is_unknown = is_unknown
         self.error_handling_strategy = error_handling_strategy
         self._id = None
-        if not self.description and self.is_unknown:
-            self.description = 'Unknown purpose'
 
     # we need a fast copy operation because block instance should be created for every single readable block
     def __deepcopy__(self, memo):

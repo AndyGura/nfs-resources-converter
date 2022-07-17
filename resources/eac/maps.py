@@ -22,7 +22,7 @@ class RoadSplinePoint(CompoundBlock):
                                                description='The distance to invisible wall on the left')
         right_barrier_distance = RationalNumber(static_size=1, fraction_bits=3, is_signed=False,
                                                 description='The distance to invisible wall on the right')
-        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3, is_unknown=True)
+        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3)
         spline_item_mode = EnumByteBlock(enum_names=[(0, 'lane_split'),
                                                      (1, 'default'),
                                                      (2, 'lane_merge'),
@@ -39,11 +39,13 @@ class RoadSplinePoint(CompoundBlock):
         slope = Nfs1Angle16(description='Slope of the road at this point')
         slant_a = Nfs1Angle16()
         orientation = Nfs1Angle16()
-        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2, is_unknown=True)
+        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
         orientation_y = Nfs1Angle16()
         slant_b = Nfs1Angle16()
         orientation_x = Nfs1Angle16()
-        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2, is_unknown=True)
+        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
+        
+        unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
 
 
 class ProxyObject(CompoundBlock):
@@ -61,9 +63,11 @@ class ProxyObject(CompoundBlock):
                                      description='Texture id of second sprite, rotated 90 degrees, in two-sided bitmap')
         width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
         frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
-        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3, is_unknown=True,
+        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3,
                                description='Unknown, animation speed should be somewhere in it')
         height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
+
+        unknown_fields = ['unknowns0']
 
 
 class ProxyObjectInstance(CompoundBlock):
@@ -81,8 +85,10 @@ class ProxyObjectInstance(CompoundBlock):
                                           description='Sometimes has too big value, I use object index % amount of '
                                                       'proxies for now and it seems to look good')  # FIXME
         rotation = Nfs1Angle8(description='Y-rotation, relative to rotation of referenced road spline vertex')
-        flags = IntegerBlock(static_size=4, is_unknown=True)
+        flags = IntegerBlock(static_size=4)
         position = Point3D_16(description='Position in 3D space, relative to position of referenced road spline vertex')
+
+        unknown_fields = ['flags']
 
 
 class TerrainEntry(CompoundBlock):
@@ -93,12 +99,14 @@ class TerrainEntry(CompoundBlock):
         id = Utf8Field(length=4, required_value='TRKD')
         block_length = IntegerBlock(static_size=4, is_signed=False)
         block_number = IntegerBlock(static_size=4, is_signed=False)
-        unknown = IntegerBlock(static_size=1, is_unknown=True)
+        unknown = IntegerBlock(static_size=1)
         fence = FenceType()
         texture_ids = ArrayBlock(child=IntegerBlock(static_size=1), length=10,
                                  description='Texture ids to be used for terrain')
         rows = ArrayBlock(child=ArrayBlock(child=Point3D_16_7(), length=11),
                           length=4, description='Terrain vertex positions')
+
+        unknown_fields = ['unknown']
 
 
 class TriMap(CompoundBlock):
@@ -106,24 +114,27 @@ class TriMap(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=4, is_signed=False, required_value=0x11)
-        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=8, is_unknown=True)
-        position = Point3D_32(is_unknown=True)
-        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=12, is_unknown=True)
-        scenery_data_length = IntegerBlock(static_size=4, is_unknown=True)
-        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2404, is_unknown=True)
+        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
+        position = Point3D_32()
+        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
+        scenery_data_length = IntegerBlock(static_size=4)
+        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2404)
         road_spline = ArrayBlock(child=RoadSplinePoint(), length=2400,
                                  description="Road spline is a series of points in 3D space, located at the center of "
                                              "road. Around this spline the track terrain mesh is built. TRI always has "
                                              "2400 elements, however it uses some amount of vertices, after them "
                                              "records filled with zeros")
-        unknowns3 = ArrayBlock(child=IntegerBlock(static_size=1), length=1800, is_unknown=True)
+        unknowns3 = ArrayBlock(child=IntegerBlock(static_size=1), length=1800)
         proxy_objects_count = IntegerBlock(static_size=4, is_signed=False)
         proxy_object_instances_count = IntegerBlock(static_size=4, is_signed=False)
         object_header_text = Utf8Field(length=4, required_value='SJBO')
-        unknowns4 = ArrayBlock(child=IntegerBlock(static_size=1), length=8, is_unknown=True)
+        unknowns4 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
         proxy_objects = ArrayBlock(child=ProxyObject(), length_label='proxy_objects_count')
         proxy_object_instances = ArrayBlock(child=ProxyObjectInstance(), length_label='proxy_object_instances_count')
         terrain = ArrayBlock(child=TerrainEntry(), length_label="spline_points_amount / 4")
+
+        unknown_fields = ['unknowns0', 'position', 'unknowns1', 'scenery_data_length', 'unknowns2', 'unknowns3', 
+                          'unknowns4']
 
     def _after_road_spline_read(self, data, **kwargs):
         data['road_spline'] = data['road_spline'][:next(i for i, x in enumerate(data['road_spline']) if x.position.x

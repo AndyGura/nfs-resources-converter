@@ -40,16 +40,18 @@ class Bitmap16Bit0565(AnyBitmapBlock, CompoundBlock):
         width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
         x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
         bitmap = ArrayBlock(child=Color16Bit0565Block(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 2\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
+
+        unknown_fields = ['unknowns', 'trailing_bytes']
 
 
 class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
@@ -71,7 +73,7 @@ class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
         width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
         x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
@@ -81,6 +83,8 @@ class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
                                    value_deserialize_func=lambda x: 0xFFFFFF00 | transform_bitness(x, 4),
                                    value_serialize_func=lambda x: (x & 0xFF) >> 4,
                                    description='Font atlas bitmap data')
+
+        unknown_fields = ['unknowns']
 
 
 class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
@@ -103,7 +107,7 @@ class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
         width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
         x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
@@ -111,7 +115,7 @@ class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
         bitmap = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False), length_label='width * height',
                             description='Color indexes of bitmap pixels. The actual colors are '
                                         'in assigned to this bitmap palette')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
         palette = LiteralBlock(possible_resources=[palettes.PaletteReference(),
@@ -125,6 +129,7 @@ class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
                                            '(except embedded one) is unknown')
 
         optional_fields = ['palette']
+        unknown_fields = ['unknowns', 'trailing_bytes']
 
 
 class Bitmap32Bit(AnyBitmapBlock, CompoundBlock):
@@ -136,16 +141,18 @@ class Bitmap32Bit(AnyBitmapBlock, CompoundBlock):
         width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
         x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
         bitmap = ArrayBlock(child=Color32BitBlock(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 4\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
+
+        unknown_fields = ['unknowns', 'trailing_bytes']
 
 
 class Bitmap16Bit1555(AnyBitmapBlock, CompoundBlock):
@@ -157,16 +164,18 @@ class Bitmap16Bit1555(AnyBitmapBlock, CompoundBlock):
         width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
         x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
         bitmap = ArrayBlock(child=Color16Bit1555Block(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 2\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
+
+        unknown_fields = ['unknowns', 'trailing_bytes']
 
 
 class Bitmap24Bit(AnyBitmapBlock, CompoundBlock):
@@ -178,13 +187,15 @@ class Bitmap24Bit(AnyBitmapBlock, CompoundBlock):
         width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
         height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                               description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
         x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
         bitmap = ArrayBlock(child=Color24BitLittleEndianField(), length_label='width * height',
                             description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1), is_unknown=True,
+        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 3\\*width\\*height)',
                                     description="Looks like aligning size to be divisible by 4")
+
+        unknown_fields = ['unknowns', 'trailing_bytes']

@@ -12,9 +12,11 @@ class OripPolygon(CompoundBlock):
         polygon_type = IntegerBlock(static_size=1)
         normal = IntegerBlock(static_size=1)
         texture_index = IntegerBlock(static_size=1, is_signed=False)
-        unk = IntegerBlock(static_size=1, is_unknown=True)
+        unk = IntegerBlock(static_size=1)
         offset_3d = IntegerBlock(static_size=4, is_signed=False)
         offset_2d = IntegerBlock(static_size=4, is_signed=False)
+        
+        unknown_fields = ['unk']
 
 
 class OripVertexUV(CompoundBlock):
@@ -40,11 +42,13 @@ class OripTextureName(CompoundBlock):
         super().__init__(**kwargs)
 
     class Fields(CompoundBlock.Fields):
-        type = ArrayBlock(child=IntegerBlock(static_size=1), length=4, is_unknown=True,
+        type = ArrayBlock(child=IntegerBlock(static_size=1), length=4,
                           description='Sometimes UTF8 string, but not always')
-        unknown0 = ArrayBlock(child=IntegerBlock(static_size=1), length=4, is_unknown=True)
+        unknown0 = ArrayBlock(child=IntegerBlock(static_size=1), length=4)
         file_name = Utf8Field(length=4)
-        unknown1 = ArrayBlock(child=IntegerBlock(static_size=1), length=8, is_unknown=True)
+        unknown1 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
+
+        unknown_fields = ['type', 'unknown0', 'unknown1']
 
 
 class OripGeometry(CompoundBlock):
@@ -52,9 +56,9 @@ class OripGeometry(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='ORIP', length=4, description='Resource ID')
-        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=12, is_unknown=True)
+        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
         vertex_count = IntegerBlock(static_size=4, is_signed=False)
-        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=4, is_unknown=True)
+        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=4)
         vertex_block_offset = IntegerBlock(static_size=4, is_signed=False)
         vertex_uvs_count = IntegerBlock(static_size=4, is_signed=False)
         vertex_uvs_block_offset = IntegerBlock(static_size=4, is_signed=False)
@@ -72,19 +76,21 @@ class OripGeometry(CompoundBlock):
         unk1_block_offset = IntegerBlock(static_size=4, is_signed=False)
         labels_count = IntegerBlock(static_size=4, is_signed=False)
         labels_block_offset = IntegerBlock(static_size=4, is_signed=False)
-        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=12, is_unknown=True)
+        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
         polygons_block = ArrayBlock(child=OripPolygon())
         vertex_uvs_block = ArrayBlock(child=OripVertexUV())
         texture_names_block = ArrayBlock(child=OripTextureName())
-        texture_number_map_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=20),
-                                              is_unknown=True)
-        unk0_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=28), is_unknown=True)
-        unk1_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=12), is_unknown=True)
-        labels_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=12), is_unknown=True)
+        texture_number_map_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=20))
+        unk0_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=28))
+        unk1_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=12))
+        labels_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=12))
         vertex_block = ArrayBlock(child=LiteralBlock(
             possible_resources=[Point3D_32_7(), Point3D_32_4()]),
             description='Mesh vertices. For cars it is 32:7 point, else 32:4')
         polygon_vertex_map_block = ArrayBlock(child=IntegerBlock(static_size=4), length_strategy="read_available")
+
+        unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2', 'texture_number_map_block', 'unk0_block', 'unk1_block',
+                          'labels_block']
 
     def _after_unknowns2_read(self, data, buffer, **kwargs):
         self.instance_fields_map['polygons_block'].length = data['polygon_count']

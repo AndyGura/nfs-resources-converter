@@ -1,4 +1,4 @@
-# generic
+# ======================================================= GENERIC ======================================================
 blender_executable = 'blender'
 ffmpeg_executable = 'ffmpeg'
 # example of absolute path for windows '"C:/Program Files/Blender Foundation/Blender 3.2/blender.exe"'
@@ -7,26 +7,8 @@ ffmpeg_executable = 'ffmpeg'
 # 0 means "use the amount of CPU cores"
 multiprocess_processes_count = 0
 
-# FIXME not working with new resources approach
-save_unknown_values = False
-
-# images
-images__save_inline_palettes = False
-
-# media
-save_media_files = True
-audio__save_car_sfx_loops = False
-
-# 3D
-geometry__save_obj = True
-geometry__save_blend = False
-geometry__replace_car_wheel_with_dummies = True
-
-# maps export settings
-maps__save_as_chunked = False
-maps__save_collisions = False    # this one will consume time...
-
-
+# ================================================= CONVERTING OPTIONS =================================================
+# classes map, which export blocks data to common formats
 SERIALIZER_CLASSES = {
     'Bitmap16Bit0565': 'BitmapSerializer',
     'Bitmap16Bit1555': 'BitmapSerializer',
@@ -51,6 +33,24 @@ SERIALIZER_CLASSES = {
     'EacsAudio': 'EacsAudioSerializer',
     'AsfAudio': 'FfmpegSupportedAudioSerializer',
 }
+# for debug: this option will dump all data, marked as "unknown" to json file besides the output
+export_unknown_values = False
+
+# images
+images__save_inline_palettes = False
+
+# media
+save_media_files = True
+audio__save_car_sfx_loops = False
+
+# 3D
+geometry__save_obj = True
+geometry__save_blend = False
+geometry__replace_car_wheel_with_dummies = True
+
+# maps export settings
+maps__save_as_chunked = False
+maps__save_collisions = False    # this one will consume time...
 
 
 # returned script will be executed in blender for every exported scene

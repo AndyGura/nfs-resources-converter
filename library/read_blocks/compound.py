@@ -20,6 +20,7 @@ class CompoundBlockFields(ABC):
             return cls.__fields_cache
 
     optional_fields: List[str] = []
+    unknown_fields: List[str] = []
 
 
 class CompoundBlock(ReadBlock, ABC):

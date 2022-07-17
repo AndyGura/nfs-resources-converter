@@ -20,16 +20,18 @@ class FfnFont(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='FNTF', length=4, description='Resource ID')
         file_size = IntegerBlock(static_size=4, description='This file size in bytes')
-        unknowns0 = ArrayBlock(length=2, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns0 = ArrayBlock(length=2, child=IntegerBlock(static_size=1))
         symbols_amount = IntegerBlock(static_size=2, description='Amount of symbols, defined in this font')
-        unknowns1 = ArrayBlock(length=16, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns1 = ArrayBlock(length=16, child=IntegerBlock(static_size=1))
         bitmap_data_pointer = IntegerBlock(static_size=2, description='Pointer to bitmap block')
-        unknowns2 = ArrayBlock(length=2, child=IntegerBlock(static_size=1), is_unknown=True)
+        unknowns2 = ArrayBlock(length=2, child=IntegerBlock(static_size=1))
         definitions = ArrayBlock(child=SymbolDefinitionRecord(), length_label='symbols_amount',
                                  description='Definitions of chars in this bitmap font')
         skip_bytes = ArrayBlock(length_label='up to offset bitmap_data_pointer', child=IntegerBlock(static_size=1, required_value=0xAD),
                                 description='4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36)')
         bitmap = Bitmap4Bit(description='Font atlas bitmap data')
+        
+        unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
 
     def _after_symbols_amount_read(self, data, **kwargs):
         self.instance_fields_map['definitions'].length = data['symbols_amount']
