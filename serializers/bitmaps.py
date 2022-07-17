@@ -2,6 +2,7 @@ from copy import deepcopy
 
 from PIL import Image
 
+import settings
 from library.helpers.exceptions import SerializationException
 from resources.eac.archives import WwwwArchive, ShpiArchive
 from resources.eac.bitmaps import AnyBitmapBlock
@@ -97,3 +98,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         Image.frombytes('RGBA',
                         (block.width, block.height),
                         bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{path}.png')
+        if settings.images__save_inline_palettes and block.palette and block.palette == palette:
+            from serializers import PaletteSerializer
+            palette_serializer = PaletteSerializer()
+            palette_serializer.serialize(block.palette, f'{path}_pal')

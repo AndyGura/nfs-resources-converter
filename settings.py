@@ -36,7 +36,7 @@ SERIALIZER_CLASSES = {
 # for debug: this option will dump all data, marked as "unknown" to json file besides the output
 export_unknown_values = False
 
-# images
+# save palette, which is a part of 8bit bitmap and not listed in SHPI block
 images__save_inline_palettes = False
 
 # media
