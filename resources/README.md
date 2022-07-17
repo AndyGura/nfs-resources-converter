@@ -1,4 +1,43 @@
 # **File specs** #
+
+**\*INFO** track settings with unknown purpose. Block: [DashDeclarationFile](#dashdeclarationfile)
+
+**\*.AS4** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings
+
+**\*.ASF** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings
+
+**\*.BNK** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/90) sound banks. *Some sounds are off: RX7 engine sound keeps switching left and right channel*
+
+**\*.CFM** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/90) car 3D model. *Some unknown info is skipped*
+
+**\*.DAT** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) binary configs
+
+**\*.EAS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) audio + loop settings
+
+**\*.FAM** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/80) track textures, 3D props + auto-convert horizon to approximate spherical sky texture. *FSH issues, some props couldn't be found. Skybox positioning hardcoded and tested only for ETRACKFM/\*.FAM files.*
+
+**\*.FFN** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/93) bitmap font. *Exported font works, but have hardcoded line height*
+
+**\*.FMM** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/3) something for car interior. *Parses archive header only*
+
+**\*.FSH** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/98) image archive + palettes + image position on screen. *Some textures have broken transparency or wrong palette used*
+
+**\*.INV** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) some info about elements on the screen?
+
+**\*.PBS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/45) car physics. *Decompression works, many values known*
+
+**\*.PDN** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/20) car characteristic for unknown purpose. *Decompression works, some values known*
+
+**\*.QFS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) compressed image archive
+
+**\*.RPL** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) replay files
+
+**\*.TGV** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) video
+
+**\*.TRI** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/85) tracks. *Produces track, which have enough info for conversion to another game. Some data is skipped, some props are missed due to absence in FAM file*
+
+
+# **Block specs** #
 ## **Geometries** ##
 ### **OripGeometry** ###
 #### **Size**: 112..? bytes ####
