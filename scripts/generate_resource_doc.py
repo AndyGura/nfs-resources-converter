@@ -79,8 +79,7 @@ def render_type(instance: ReadBlock) -> str:
     return f'[{name}](#{name.lower()})'
 
 
-script_path = os.path.realpath(__file__)
-md_name = script_path.replace('generate_resource_doc.py', 'resources/README.md')
+md_name = os.path.join(parentdir, 'resources/README.md')
 
 with open(md_name, 'w') as f:
     f.write('# **File specs** #')

@@ -2,15 +2,16 @@
 ## **Geometries** ##
 ### **OripGeometry** ###
 #### **Size**: 112..? bytes ####
+#### **Description**: Geometry block for 3D model with few materials ####
 <details>
 <summary>Click to see block specs (31 fields)</summary>
 
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == ORIP | Resource ID |
-| 4 | **unknowns0** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 4 | **unknowns0** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 16 | **vertex_count** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 20 | **unknowns1** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 20 | **unknowns1** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 24 | **vertex_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 28 | **vertex_uvs_count** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 32 | **vertex_uvs_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
@@ -26,16 +27,16 @@
 | 80 | **polygon_vertex_map_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 84 | **unk1_count** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 88 | **unk1_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 92 | **label_count** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 96 | **label_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 100 | **unknowns2** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 92 | **labels_count** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 96 | **labels_block_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 100 | **unknowns2** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 112 | **polygons_block** | 12 * (?) | Array of ? items<br/>Item type: [OripPolygon](#orippolygon) | - |
 | 112..? | **vertex_uvs_block** | 8 * (?) | Array of ? items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | - |
 | 112..? | **texture_names_block** | 20 * (?) | Array of ? items<br/>Item size: 20 bytes<br/>Item type:  | - |
-| 112..? | **texture_number_map_block** | 20 * (?) | Array of ? items<br/>Item size: 20 bytes<br/>Item type: Array of 20 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **unk0_block** | 28 * (?) | Array of ? items<br/>Item size: 28 bytes<br/>Item type: Array of 28 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **unk1_block** | 12 * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **labels_block** | 12 * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112..? | **texture_number_map_block** | 20 * (?) | Array of ? items<br/>Item size: 20 bytes<br/>Item type: Array of 20 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
+| 112..? | **unk0_block** | 28 * (?) | Array of ? items<br/>Item size: 28 bytes<br/>Item type: Array of 28 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
+| 112..? | **unk1_block** | 12 * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
+| 112..? | **labels_block** | 12 * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 112..? | **vertex_block** | None * (?) | Array of ? items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | Mesh vertices. For cars it is 32:7 point, else 32:4 |
 | 112..? | **polygon_vertex_map_block** | 4 * (?) | Array of ? items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
 </details>
@@ -47,7 +48,7 @@
 | 0 | **polygon_type** | 1 | 1-byte unsigned integer | - |
 | 1 | **normal** | 1 | 1-byte unsigned integer | - |
 | 2 | **texture_index** | 1 | 1-byte unsigned integer | - |
-| 3 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 3 | **unk** | 1 | 1-byte unsigned integer | - |
 | 4 | **offset_3d** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 8 | **offset_2d** | 4 | 4-bytes unsigned integer (little endian) | - |
 ## **Maps** ##
@@ -57,17 +58,17 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x11 | - |
-| 4 | **unknowns0** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Unknown purpose |
-| 24 | **unknowns1** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 36 | **scenery_data_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 40 | **unknowns2** | 2404 | Array of 2404 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 4 | **unknowns0** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
+| 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | - |
+| 24 | **unknowns1** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
+| 36 | **scenery_data_length** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 40 | **unknowns2** | 2404 | Array of 2404 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 2444 | **road_spline** | 36 * (2400) | Array of 2400 items<br/>Item type: [RoadSplinePoint](#roadsplinepoint) | Road spline is a series of points in 3D space, located at the center of road. Around this spline the track terrain mesh is built. TRI always has 2400 elements, however it uses some amount of vertices, after them records filled with zeros |
-| 88844 | **unknowns3** | 1800 | Array of 1800 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 88844 | **unknowns3** | 1800 | Array of 1800 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 90644 | **proxy_objects_count** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 90648 | **proxy_object_instances_count** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 90652 | **object_header_text** | 4 | UTF-8 string. Always == SJBO | - |
-| 90656 | **unknowns4** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 90656 | **unknowns4** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 90664 | **proxy_objects** | 16 * (proxy_objects_count) | Array of proxy_objects_count items<br/>Item type: [ProxyObject](#proxyobject) | - |
 | 90664..? | **proxy_object_instances** | 16 * (proxy_object_instances_count) | Array of proxy_object_instances_count items<br/>Item type: [ProxyObjectInstance](#proxyobjectinstance) | - |
 | 90664..? | **terrain** | 288 * (spline_points_amount / 4) | Array of spline_points_amount / 4 items<br/>Item type: [TerrainEntry](#terrainentry) | - |
@@ -80,17 +81,17 @@
 | 1 | **right_verge_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the right edge of road. After this point the grip decreases |
 | 2 | **left_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
 | 3 | **right_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
-| 4 | **unknowns0** | 3 | Array of 3 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 4 | **unknowns0** | 3 | Array of 3 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 7 | **spline_item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default<br/>2: lane_merge<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A2_A9<br/>12: left_tunnel_A9_A4<br/>13: left_tunnel_A9_A5<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>18: water_audio</details> | Modifier of this point |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point |
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
-| 26 | **unknowns1** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 26 | **unknowns1** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 28 | **orientation_y** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
 | 30 | **slant_b** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
 | 32 | **orientation_x** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | - |
-| 34 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 34 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 ### **ProxyObject** ###
 #### **Size**: 16 bytes ####
 #### **Description**: The description of map proxy object: everything except terrain (road signs, buildings etc.) Thanks to jeff-1amstudios and his OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202 ####
@@ -112,7 +113,7 @@
 | 0 | **reference_road_spline_vertex** | 4 | 4-bytes signed integer (little endian) | Sometimes has too big value, I skip those instances for now and it seems to look good. Probably should consider this value to be 16-bit integer, having some unknown 16-integer as next field. Also, why it is signed? |
 | 4 | **proxy_object_index** | 1 | 1-byte unsigned integer | Sometimes has too big value, I use object index % amount of proxies for now and it seems to look good |
 | 5 | **rotation** | 1 | EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees | Y-rotation, relative to rotation of referenced road spline vertex |
-| 6 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 6 | **flags** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 10 | **position** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Position in 3D space, relative to position of referenced road spline vertex |
 ### **TerrainEntry** ###
 #### **Size**: 288 bytes ####
@@ -122,7 +123,7 @@
 | 0 | **id** | 4 | UTF-8 string. Always == TRKD | - |
 | 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 12 | **unknown** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 12 | **unknown** | 1 | 1-byte unsigned integer | - |
 | 13 | **fence** | 1 | TNFS fence type field. fence type: [lrtttttt]<br/>l - flag is add left fence<br/>r - flag is add right fence<br/>tttttt - texture id | - |
 | 14 | **texture_ids** | 10 | Array of 10 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
 | 24 | **rows** | 66 * (4) | Array of 4 items<br/>Item size: 66 bytes<br/>Item type: Array of 11 items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter | Terrain vertex positions |
@@ -138,67 +139,67 @@
 | 0 | **mass_front_axle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
 | 4 | **mass_rear_axle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
 | 8 | **mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Car mass |
-| 12 | **unknowns0** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 12 | **unknowns0** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 28 | **brake_bias** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | how much car rotates when brake? |
-| 32 | **unknowns1** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 32 | **unknowns1** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 36 | **center_of_gravity** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | probably the height of mass center in meters |
-| 40 | **max_brake_decel** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 44 | **unknowns2** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 52 | **drag** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 56 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 60 | **efficiency** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 40 | **max_brake_decel** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 44 | **unknowns2** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 52 | **drag** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 56 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 60 | **efficiency** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 64 | **body__wheel_base** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen rear and front axles in meters |
-| 68 | **burnout_div** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 68 | **burnout_div** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 72 | **body__wheel_track** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen left and right wheels in meters |
-| 76 | **unknowns3** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 76 | **unknowns3** | 4 * (2) | Array of 2 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 84 | **mps_to_rpm_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio) |
 | 88 | **transmission__gears_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of drive gears + 2 (R,N?) |
 | 92 | **transmission__final_drive_ratio** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
-| 96 | **roll_radius** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 100 | **unknowns4** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 96 | **roll_radius** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 100 | **unknowns4** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 104 | **transmission__gear_ratios** | 4 * (8) | Array of 8 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Only first <gear_count> values are used. First element is the reverse gear ratio, second one is unknown |
 | 136 | **engine__torque_count** | 4 | 4-bytes unsigned integer (little endian) | Torques LUT (lookup table) size |
-| 140 | **front_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 144 | **rear_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 148 | **roll_axis_height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 140 | **front_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 144 | **rear_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 148 | **roll_axis_height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 152 | **unknowns5** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube? |
-| 164 | **slip_angle_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 168 | **normal_coefficient_loss** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 164 | **slip_angle_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 168 | **normal_coefficient_loss** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 172 | **engine__max_rpm** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 176 | **engine__min_rpm** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 180 | **engine__torques** | 8 * (60) | Array of 60 items<br/>Item type: [EngineTorqueRecord](#enginetorquerecord) | LUT (lookup table) of engine torque depending on RPM. <engine__torque_count> first elements used |
 | 660 | **transmission__upshifts** | 4 * (5) | Array of 5 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | RPM value, when automatic gear box should upshift. 1 element per drive gear |
-| 680 | **unknowns6** | 2 * (4) | Array of 4 items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Unknown purpose |
-| 688 | **unknowns7** | 4 * (7) | Array of 7 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 716 | **unknowns8** | 2 * (2) | Array of 2 items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Unknown purpose |
-| 720 | **inertia_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 724 | **body_roll_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 728 | **body_pitch_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 732 | **front_friction_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 736 | **rear_fricton_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 680 | **unknowns6** | 2 * (4) | Array of 4 items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | - |
+| 688 | **unknowns7** | 4 * (7) | Array of 7 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 716 | **unknowns8** | 2 * (2) | Array of 2 items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | - |
+| 720 | **inertia_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 724 | **body_roll_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 728 | **body_pitch_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 732 | **front_friction_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 736 | **rear_fricton_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 740 | **body__length** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Chassis body length in meters |
 | 744 | **body__width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Chassis body width in meters |
-| 748 | **steering__max_auto_steer_angle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 752 | **steering__auto_steer_mult_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 756 | **steering__auto_steer_div_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 760 | **steering__steering_model** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 764 | **steering__auto_steer_velocities** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 780 | **steering__auto_steer_velocity_ramp** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 784 | **steering__auto_steer_velocity_attenuation** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 788 | **steering__auto_steer_ramp_mult_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 792 | **steering__auto_steer_ramp_div_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 796 | **lateral_accel_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 800 | **unknowns9** | 4 * (13) | Array of 13 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 748 | **steering__max_auto_steer_angle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 752 | **steering__auto_steer_mult_shift** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 756 | **steering__auto_steer_div_shift** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 760 | **steering__steering_model** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 764 | **steering__auto_steer_velocities** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+| 780 | **steering__auto_steer_velocity_ramp** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 784 | **steering__auto_steer_velocity_attenuation** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 788 | **steering__auto_steer_ramp_mult_shift** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 792 | **steering__auto_steer_ramp_div_shift** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 796 | **lateral_accel_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 800 | **unknowns9** | 4 * (13) | Array of 13 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 852 | **engine_shifting__shift_timer** | 4 | 4-bytes unsigned integer (little endian) | Unknown exactly, but it seems to be ticks taken to shift. Tick is probably 100ms |
-| 856 | **engine_shifting__rpm_decel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 860 | **engine_shifting__rpm_accel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 864 | **engine_shifting__clutch_drop_decel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 868 | **engine_shifting__neg_torque** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 856 | **engine_shifting__rpm_decel** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 860 | **engine_shifting__rpm_accel** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 864 | **engine_shifting__clutch_drop_decel** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 868 | **engine_shifting__neg_torque** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 872 | **body__clearance** | 4 | 32-bit real number (little-endian, signed), where last 7 bits is a fractional part | - |
 | 876 | **body__height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
-| 880 | **center_x** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 884 | **grip_curve_front** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 1396 | **grip_curve_rear** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 880 | **center_x** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 884 | **grip_curve_front** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
+| 1396 | **grip_curve_rear** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 1908 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents |
 </details>
 
@@ -216,7 +217,7 @@
 | --- | --- | --- | --- | --- |
 | 0 | **unknowns0** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown. Some values for playable cars, always zeros for non-playable |
 | 12 | **moment_of_inertia** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
-| 16 | **unknowns1** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 16 | **unknowns1** | 4 * (3) | Array of 3 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 28 | **power_curve** | 4 * (100) | Array of 100 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
 | 428 | **top_speeds** | 4 * (6) | Array of 6 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Maximum car speed (m/s) per gear |
 | 452 | **max_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max engine RPM |
@@ -230,7 +231,7 @@
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length. For "WRAP" SHPI directory it contains some different unknown data |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | 2 * (width * height) | Array of width * height items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb | Colors of bitmap pixels |
@@ -244,7 +245,7 @@
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length. For "WRAP" SHPI directory it contains some different unknown data |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | 0..? | Array of width * height sub-byte numbers. Each number consists of 4 bits | Font atlas bitmap data |
@@ -257,7 +258,7 @@
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length. For "WRAP" SHPI directory it contains some different unknown data |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | width * height | Array of width * height items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Color indexes of bitmap pixels. The actual colors are in assigned to this bitmap palette |
@@ -271,7 +272,7 @@
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length. For "WRAP" SHPI directory it contains some different unknown data |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | 4 * (width * height) | Array of width * height items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb | Colors of bitmap pixels |
@@ -284,7 +285,7 @@
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length. For "WRAP" SHPI directory it contains some different unknown data |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | 2 * (width * height) | Array of width * height items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 1555 color, arrrrrgg_gggbbbbb | Colors of bitmap pixels |
@@ -297,7 +298,7 @@
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length. For "WRAP" SHPI directory it contains some different unknown data |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | 3 * (width * height) | Array of width * height items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit color (little-endian), rrrrrrrr_gggggggg_bbbbbbbb | Colors of bitmap pixels |
@@ -309,11 +310,11 @@
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == FNTF | Resource ID |
 | 4 | **file_size** | 4 | 4-bytes unsigned integer (little endian) | This file size in bytes |
-| 8 | **unknowns0** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns0** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 10 | **symbols_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unknowns1** | 16 | Array of 16 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 12 | **unknowns1** | 16 | Array of 16 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 28 | **bitmap_data_pointer** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
-| 30 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 30 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 32 | **definitions** | 11 * (symbols_amount) | Array of symbols_amount items<br/>Item type: [SymbolDefinitionRecord](#symboldefinitionrecord) | Definitions of chars in this bitmap font |
 | 32..? | **skip_bytes** | up to offset bitmap_data_pointer | Array of up to offset bitmap_data_pointer items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0xad | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
 | 32..? | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
@@ -336,14 +337,14 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
-| 1 | **unknowns** | 7 | Array of 7 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 1 | **unknowns** | 7 | Array of 7 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 ### **Palette24BitDos** ###
 #### **Size**: 16..784 bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x22 | Resource ID |
-| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 16 | **colors** | 3 * (0..256) | Array of 0..256 items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit dos color, 00rrrrrr_00gggggg_00bbbbbb | Colors LUT |
 ### **Palette24Bit** ###
 #### **Size**: 16..784 bytes ####
@@ -351,7 +352,7 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x24 | Resource ID |
-| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 16 | **colors** | 3 * (0..256) | Array of 0..256 items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit color (big-endian), rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
 ### **Palette32Bit** ###
 #### **Size**: 16..1040 bytes ####
@@ -359,7 +360,7 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x2a | Resource ID |
-| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 16 | **colors** | 4 * (0..256) | Array of 0..256 items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
 ### **Palette16Bit** ###
 #### **Size**: 16..528 bytes ####
@@ -367,5 +368,5 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x2d | Resource ID |
-| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 | 16 | **colors** | 2 * (0..256) | Array of 0..256 items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb | Colors LUT |
