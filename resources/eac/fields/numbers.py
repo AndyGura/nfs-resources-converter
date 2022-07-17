@@ -1,9 +1,9 @@
 import math
 
-from library.read_blocks.atomic import IntegerField
+from library.read_blocks.atomic import IntegerBlock
 
 
-class RationalNumber(IntegerField):
+class RationalNumber(IntegerBlock):
     def __init__(self, fraction_bits: int, **kwargs):
         self.fraction_bits = kwargs['fraction_bits'] = fraction_bits
         super().__init__(**kwargs)
@@ -18,7 +18,7 @@ class RationalNumber(IntegerField):
         return super().to_raw_value(math.floor(value * (1 << self.fraction_bits)))
 
 
-class Nfs1Angle8(IntegerField):
+class Nfs1Angle8(IntegerBlock):
     def __init__(self, **kwargs):
         kwargs['static_size'] = 1
         kwargs['is_signed'] = False
@@ -36,7 +36,7 @@ class Nfs1Angle8(IntegerField):
         return super().to_raw_value(math.floor(256 * value / (math.pi * 2)))
 
 
-class Nfs1Angle16(IntegerField):
+class Nfs1Angle16(IntegerBlock):
     def __init__(self, **kwargs):
         kwargs['static_size'] = 2
         kwargs['byte_order'] = "little"

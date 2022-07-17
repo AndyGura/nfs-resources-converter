@@ -4,8 +4,8 @@ from functools import cached_property
 from io import BufferedReader, BytesIO
 from typing import List, Tuple
 
-from library.read_blocks.data_wrapper import DataWrapper
-from library.read_blocks.exceptions import EndOfBufferException, BlockIntegrityException
+from library.helpers.data_wrapper import DataWrapper
+from library.helpers.exceptions import EndOfBufferException, BlockIntegrityException
 from library.read_blocks.read_block import ReadBlock
 
 

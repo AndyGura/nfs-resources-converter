@@ -2,7 +2,7 @@ from abc import ABC
 from io import BufferedReader, BytesIO
 from typing import Literal, List, Tuple
 
-from library.read_blocks.exceptions import BlockIntegrityException, MultiReadUnavailableException, EndOfBufferException
+from library.helpers.exceptions import BlockIntegrityException, MultiReadUnavailableException, EndOfBufferException
 from library.read_blocks.read_block import ReadBlock
 from library.utils import represent_value_as_str
 
@@ -45,10 +45,10 @@ class AtomicReadBlock(ReadBlock, ABC):
             raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
                                        f'min size {self_size * length}, available: {size}')
         bts = buffer.read(self_size * length)
-        return [self.from_raw_value(x) for x in [bts[i*self_size:(i + 1)*self_size] for i in range(length)]]
+        return [self.from_raw_value(x) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
 
 
-class IntegerField(AtomicReadBlock):
+class IntegerBlock(AtomicReadBlock):
 
     def __init__(self, static_size: int, is_signed: bool = False, byte_order: Literal["little", "big"] = "little",
                  **kwargs):
@@ -58,7 +58,7 @@ class IntegerField(AtomicReadBlock):
                                  f'{"un" if not self.is_signed else ""}signed integer'
         if static_size > 1:
             self.block_description += f' ({byte_order} endian)'
-        super(IntegerField, self).__init__(static_size=static_size,
+        super(IntegerBlock, self).__init__(static_size=static_size,
                                            is_signed=is_signed,
                                            byte_order=byte_order,
                                            **kwargs)
@@ -76,11 +76,12 @@ class IntegerField(AtomicReadBlock):
         if self_size == 1 and not self.is_signed:
             return list(bts)
         else:
-            return [self.from_raw_value(x) for x in [bts[i*self_size:(i + 1)*self_size] for i in range(length)]]
+            return [self.from_raw_value(x) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
 
     def from_raw_value(self, raw: bytes):
         self_size = self.size
-        return int.from_bytes(raw.ljust(self_size, b'\0') if self_size > 1 else raw, byteorder=self.byte_order, signed=self.is_signed)
+        return int.from_bytes(raw.ljust(self_size, b'\0') if self_size > 1 else raw, byteorder=self.byte_order,
+                              signed=self.is_signed)
 
     def to_raw_value(self, value) -> bytes:
         return value.to_bytes(self.size, byteorder=self.byte_order, signed=self.is_signed).ljust(self.size, b'\0')
@@ -136,7 +137,7 @@ class BytesField(AtomicReadBlock):
         return value
 
 
-class BitFlagsField(IntegerField, ABC):
+class BitFlagsBlock(IntegerBlock, ABC):
     def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
         kwargs['static_size'] = 1
         kwargs['is_signed'] = False
@@ -146,8 +147,10 @@ class BitFlagsField(IntegerField, ABC):
         self.flag_name_map = [str(i) for i in range(8)]
         for value, name in self.flag_names:
             self.flag_name_map[value] = name
-        self.block_description = ('8 flags container<br/><details><summary>flag names (from least to most significant)</summary>'
-                                  + '<br/>'.join([f'{i}: {x}'for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>')
+        self.block_description = (
+                    '8 flags container<br/><details><summary>flag names (from least to most significant)</summary>'
+                    + '<br/>'.join(
+                [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>')
 
     def from_raw_value(self, raw: bytes):
         flags = super().from_raw_value(raw)
@@ -160,7 +163,7 @@ class BitFlagsField(IntegerField, ABC):
         raise NotImplementedError()
 
 
-class EnumByteField(IntegerField, ABC):
+class EnumByteBlock(IntegerBlock, ABC):
     def __init__(self, enum_names: List[Tuple[int, str]], **kwargs):
         kwargs['static_size'] = 1
         kwargs['is_signed'] = False
@@ -171,11 +174,11 @@ class EnumByteField(IntegerField, ABC):
         for value, name in self.enum_names:
             self.enum_name_map[value] = name
         self.block_description = ('Enum of 256 possible values<br/><details><summary>Value names:</summary>'
-                                  + '<br/>'.join([f'{i}: {x}'for i, x in enumerate(self.enum_name_map) if x != str(i)]) + '</details>')
+                                  + '<br/>'.join(
+                    [f'{i}: {x}' for i, x in enumerate(self.enum_name_map) if x != str(i)]) + '</details>')
 
     def from_raw_value(self, raw: bytes):
         return self.enum_name_map[super().from_raw_value(raw)]
 
     def to_raw_value(self, value) -> bytes:
         raise NotImplementedError()
-

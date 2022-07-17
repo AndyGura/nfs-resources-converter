@@ -4,7 +4,7 @@ from math import floor
 from typing import List, Literal
 
 from library.read_blocks.atomic import AtomicReadBlock
-from library.read_blocks.exceptions import BlockDefinitionException, MultiReadUnavailableException, EndOfBufferException
+from library.helpers.exceptions import BlockDefinitionException, MultiReadUnavailableException, EndOfBufferException
 from library.read_blocks.read_block import ReadBlock
 
 

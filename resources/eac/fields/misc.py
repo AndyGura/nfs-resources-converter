@@ -1,5 +1,5 @@
-from library.read_blocks.atomic import IntegerField
-from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.atomic import IntegerBlock
+from library.read_blocks.compound import CompoundBlock
 from resources.eac.fields.numbers import RationalNumber
 
 
@@ -78,7 +78,7 @@ class Point3D_32_7(CompoundBlock):
         z = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
 
 
-class FenceType(IntegerField):
+class FenceType(IntegerBlock):
     def __init__(self, **kwargs):
         kwargs['static_size'] = 1
         kwargs['is_signed'] = False

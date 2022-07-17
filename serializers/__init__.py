@@ -1,5 +1,5 @@
 import settings
-from library.read_blocks.delegate_block import DelegateBlock
+from library.read_blocks.delegate import DelegateBlock
 from library.read_blocks.read_block import ReadBlock
 from library.utils import my_import
 from .base import BaseFileSerializer
@@ -24,8 +24,8 @@ def get_serializer(block: ReadBlock) -> BaseFileSerializer:
     if serializer_class_name:
         try:
             serializer_class = my_import(f'serializers.{serializer_class_name}')
-        except ImportError:
-            pass
+        except ImportError as ex:
+            print()
     if not serializer_class_name or not serializer_class:
         raise NotImplementedError(f'Serializer for resource {block.__class__.__name__} not implemented!')
     return serializer_class()

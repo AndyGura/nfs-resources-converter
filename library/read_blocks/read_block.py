@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO
 from typing import Literal
 
-from library.read_blocks.exceptions import EndOfBufferException
+from library.helpers.exceptions import EndOfBufferException
 
 
 class ReadBlock(ABC):

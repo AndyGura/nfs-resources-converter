@@ -8,8 +8,8 @@ from typing import List
 import settings
 from library.utils.blender_scripts import get_blender_save_script, run_blender
 from library.utils.meshes import SubMesh
-from library.read_blocks.compound_block import CompoundBlock
-from library.read_blocks.data_wrapper import DataWrapper
+from library.read_blocks.compound import CompoundBlock
+from library.helpers.data_wrapper import DataWrapper
 from resources.eac.maps import RoadSplinePoint
 from serializers import BaseFileSerializer
 

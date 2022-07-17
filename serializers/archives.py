@@ -1,5 +1,5 @@
 import serializers
-from library.read_blocks.exceptions import BlockIntegrityException
+from library.helpers.exceptions import BlockIntegrityException
 from library.utils import format_exception
 from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
 from resources.eac.archives import ShpiArchive, WwwwArchive

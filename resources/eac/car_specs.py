@@ -1,6 +1,6 @@
-from library.read_blocks.array_field import ArrayBlock
-from library.read_blocks.atomic import IntegerField
-from library.read_blocks.compound_block import CompoundBlock
+from library.read_blocks.array import ArrayBlock
+from library.read_blocks.atomic import IntegerBlock
+from library.read_blocks.compound import CompoundBlock
 from resources.eac.fields.numbers import RationalNumber
 
 
@@ -8,8 +8,8 @@ class EngineTorqueRecord(CompoundBlock):
     block_description = "Engine torque for given RPM record"
 
     class Fields(CompoundBlock.Fields):
-        rpm = IntegerField(static_size=4)
-        torque = IntegerField(static_size=4)
+        rpm = IntegerBlock(static_size=4)
+        torque = IntegerBlock(static_size=4)
 
 
 class CarPerformanceSpec(CompoundBlock):
@@ -48,7 +48,7 @@ class CarPerformanceSpec(CompoundBlock):
         mps_to_rpm_factor = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
                                            description='Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * '
                                                        'gearRatio)')
-        transmission__gears_count = IntegerField(static_size=4, description='Amount of drive gears + 2 (R,N?)')
+        transmission__gears_count = IntegerBlock(static_size=4, description='Amount of drive gears + 2 (R,N?)')
         transmission__final_drive_ratio = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
         roll_radius = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
         unknowns4 = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
@@ -56,7 +56,7 @@ class CarPerformanceSpec(CompoundBlock):
                                                child=RationalNumber(static_size=4, fraction_bits=16, is_signed=True),
                                                description="Only first <gear_count> values are used. First element is "
                                                            "the reverse gear ratio, second one is unknown")
-        engine__torque_count = IntegerField(static_size=4, description='Torques LUT (lookup table) size')
+        engine__torque_count = IntegerBlock(static_size=4, description='Torques LUT (lookup table) size')
         front_roll_stiffness = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
         rear_roll_stiffness = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
         roll_axis_height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
@@ -65,12 +65,12 @@ class CarPerformanceSpec(CompoundBlock):
                                description="those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube?")
         slip_angle_cutoff = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
         normal_coefficient_loss = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
-        engine__max_rpm = IntegerField(static_size=4)
-        engine__min_rpm = IntegerField(static_size=4)
+        engine__max_rpm = IntegerBlock(static_size=4)
+        engine__min_rpm = IntegerBlock(static_size=4)
         engine__torques = ArrayBlock(child=EngineTorqueRecord(), length=60,
                                      description="LUT (lookup table) of engine torque depending on RPM. <engine__torque_count> "
                                                  "first elements used")
-        transmission__upshifts = ArrayBlock(length=5, child=IntegerField(static_size=4),
+        transmission__upshifts = ArrayBlock(length=5, child=IntegerBlock(static_size=4),
                                             description='RPM value, when automatic gear box should upshift. 1 element '
                                                         'per drive gear')
         unknowns6 = ArrayBlock(length=4, child=RationalNumber(static_size=2, fraction_bits=8, is_signed=True), is_unknown=True)
@@ -88,32 +88,32 @@ class CarPerformanceSpec(CompoundBlock):
                                      description='Chassis body width in meters')
         steering__max_auto_steer_angle = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
                                                         is_unknown=True)
-        steering__auto_steer_mult_shift = IntegerField(static_size=4, is_unknown=True)
-        steering__auto_steer_div_shift = IntegerField(static_size=4, is_unknown=True)
-        steering__steering_model = IntegerField(static_size=4, is_unknown=True)
-        steering__auto_steer_velocities = ArrayBlock(length=4, child=IntegerField(static_size=4), is_unknown=True)
+        steering__auto_steer_mult_shift = IntegerBlock(static_size=4, is_unknown=True)
+        steering__auto_steer_div_shift = IntegerBlock(static_size=4, is_unknown=True)
+        steering__steering_model = IntegerBlock(static_size=4, is_unknown=True)
+        steering__auto_steer_velocities = ArrayBlock(length=4, child=IntegerBlock(static_size=4), is_unknown=True)
         steering__auto_steer_velocity_ramp = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
                                                             is_unknown=True)
         steering__auto_steer_velocity_attenuation = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
                                                                    is_unknown=True)
-        steering__auto_steer_ramp_mult_shift = IntegerField(static_size=4, is_unknown=True)
-        steering__auto_steer_ramp_div_shift = IntegerField(static_size=4, is_unknown=True)
+        steering__auto_steer_ramp_mult_shift = IntegerBlock(static_size=4, is_unknown=True)
+        steering__auto_steer_ramp_div_shift = IntegerBlock(static_size=4, is_unknown=True)
         lateral_accel_cutoff = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
         unknowns9 = ArrayBlock(length=13, child=RationalNumber(static_size=4, fraction_bits=16, is_signed=True),
                                is_unknown=True)
-        engine_shifting__shift_timer = IntegerField(static_size=4, is_unknown=True,
+        engine_shifting__shift_timer = IntegerBlock(static_size=4, is_unknown=True,
                                                     description='Unknown exactly, but it seems to be ticks '
                                                                 'taken to shift. Tick is probably 100ms')
-        engine_shifting__rpm_decel = IntegerField(static_size=4, is_unknown=True)
-        engine_shifting__rpm_accel = IntegerField(static_size=4, is_unknown=True)
-        engine_shifting__clutch_drop_decel = IntegerField(static_size=4, is_unknown=True)
+        engine_shifting__rpm_decel = IntegerBlock(static_size=4, is_unknown=True)
+        engine_shifting__rpm_accel = IntegerBlock(static_size=4, is_unknown=True)
+        engine_shifting__clutch_drop_decel = IntegerBlock(static_size=4, is_unknown=True)
         engine_shifting__neg_torque = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
         body__clearance = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
         body__height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
         center_x = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, is_unknown=True)
-        grip_curve_front = ArrayBlock(child=IntegerField(static_size=1), length=512, is_unknown=True)
-        grip_curve_rear = ArrayBlock(child=IntegerField(static_size=1), length=512, is_unknown=True)
-        hash = IntegerField(static_size=4, description='Check sum of this block contents', is_unknown=True)
+        grip_curve_front = ArrayBlock(child=IntegerBlock(static_size=1), length=512, is_unknown=True)
+        grip_curve_rear = ArrayBlock(child=IntegerBlock(static_size=1), length=512, is_unknown=True)
+        hash = IntegerBlock(static_size=4, description='Check sum of this block contents', is_unknown=True)
 
 
 class CarSimplifiedPerformanceSpec(CompoundBlock):
@@ -132,4 +132,4 @@ class CarSimplifiedPerformanceSpec(CompoundBlock):
         top_speeds = ArrayBlock(length=6, child=RationalNumber(static_size=4, fraction_bits=16, is_signed=True),
                                 description='Maximum car speed (m/s) per gear')
         max_rpm = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Max engine RPM')
-        gear_count = IntegerField(static_size=4, description='Gears amount')
+        gear_count = IntegerBlock(static_size=4, description='Gears amount')

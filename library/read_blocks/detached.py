@@ -1,8 +1,8 @@
 from copy import deepcopy
 from io import BufferedReader, BytesIO
 
-from library.read_blocks.delegate_block import DelegateBlock
-from library.read_blocks.exceptions import BlockDefinitionException
+from library.read_blocks.delegate import DelegateBlock
+from library.helpers.exceptions import BlockDefinitionException
 from library.read_blocks.read_block import ReadBlock
 
 

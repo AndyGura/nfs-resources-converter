@@ -6,9 +6,9 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-from library.read_blocks.array_field import ArrayBlock
-from library.read_blocks.compound_block import CompoundBlock
-from library.read_blocks.literal_block import LiteralBlock
+from library.read_blocks.array import ArrayBlock
+from library.read_blocks.compound import CompoundBlock
+from library.read_blocks.literal import LiteralBlock
 from library.read_blocks.read_block import ReadBlock
 from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries
 
@@ -77,6 +77,7 @@ def render_type(instance: ReadBlock) -> str:
         return descr
     name = instance.__class__.__name__.replace("Resource", "")
     return f'[{name}](#{name.lower()})'
+
 
 script_path = os.path.realpath(__file__)
 md_name = script_path.replace('generate_resource_doc.py', 'resources/README.md')

@@ -9,8 +9,8 @@ from typing import Literal, List, Tuple
 import settings
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
-from library.read_blocks.data_wrapper import DataWrapper
-from library.read_blocks.exceptions import BlockIntegrityException
+from library.helpers.data_wrapper import DataWrapper
+from library.helpers.exceptions import BlockIntegrityException
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer

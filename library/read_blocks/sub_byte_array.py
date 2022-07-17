@@ -2,7 +2,7 @@ from io import BufferedReader, BytesIO
 from math import floor, ceil
 from typing import Literal
 
-from library.read_blocks.exceptions import BlockDefinitionException
+from library.helpers.exceptions import BlockDefinitionException
 from library.read_blocks.read_block import ReadBlock
 
 

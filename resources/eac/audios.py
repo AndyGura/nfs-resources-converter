@@ -1,21 +1,21 @@
-from library.read_blocks.array_field import ArrayBlock
-from library.read_blocks.atomic import Utf8Field, IntegerField, BytesField
-from library.read_blocks.compound_block import CompoundBlock
-from library.read_blocks.detached_block import DetachedBlock
+from library.read_blocks.array import ArrayBlock
+from library.read_blocks.atomic import Utf8Field, IntegerBlock, BytesField
+from library.read_blocks.compound import CompoundBlock
+from library.read_blocks.detached import DetachedBlock
 
 
 class EacsAudio(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='EACS', length=4, description='Resource ID')
-        sampling_rate = IntegerField(static_size=4, description='')
-        sound_resolution = IntegerField(static_size=1, description='')
-        channels = IntegerField(static_size=1, description='')
-        compression = IntegerField(static_size=1, description='')
-        unk0 = IntegerField(static_size=1, is_unknown=True)
-        wave_data_length = IntegerField(static_size=4, description='')
-        repeat_loop_beginning = IntegerField(static_size=4, description='')
-        repeat_loop_length = IntegerField(static_size=4, description='')
-        wave_data_offset = IntegerField(static_size=4, description='')
+        sampling_rate = IntegerBlock(static_size=4, description='')
+        sound_resolution = IntegerBlock(static_size=1, description='')
+        channels = IntegerBlock(static_size=1, description='')
+        compression = IntegerBlock(static_size=1, description='')
+        unk0 = IntegerBlock(static_size=1, is_unknown=True)
+        wave_data_length = IntegerBlock(static_size=4, description='')
+        repeat_loop_beginning = IntegerBlock(static_size=4, description='')
+        repeat_loop_length = IntegerBlock(static_size=4, description='')
+        wave_data_offset = IntegerBlock(static_size=4, description='')
         wave_data = DetachedBlock(block=BytesField())
 
     def _after_wave_data_offset_read(self, data, buffer, **kwargs):
@@ -33,14 +33,14 @@ class AsfAudio(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='1SNh', length=4, description='Resource ID')
-        unknowns = ArrayBlock(length=8, child=IntegerField(static_size=1), is_unknown=True)
-        sampling_rate = IntegerField(static_size=4, description='')
-        sound_resolution = IntegerField(static_size=1, description='')
-        channels = IntegerField(static_size=1, description='')
-        compression = IntegerField(static_size=1, description='')
-        unk0 = IntegerField(static_size=1, is_unknown=True)
-        wave_data_length = IntegerField(static_size=4, description='')
-        repeat_loop_beginning = IntegerField(static_size=4, description='')
-        repeat_loop_length = IntegerField(static_size=4, description='')
-        wave_data_offset = IntegerField(static_size=4, description='')
+        unknowns = ArrayBlock(length=8, child=IntegerBlock(static_size=1), is_unknown=True)
+        sampling_rate = IntegerBlock(static_size=4, description='')
+        sound_resolution = IntegerBlock(static_size=1, description='')
+        channels = IntegerBlock(static_size=1, description='')
+        compression = IntegerBlock(static_size=1, description='')
+        unk0 = IntegerBlock(static_size=1, is_unknown=True)
+        wave_data_length = IntegerBlock(static_size=4, description='')
+        repeat_loop_beginning = IntegerBlock(static_size=4, description='')
+        repeat_loop_length = IntegerBlock(static_size=4, description='')
+        wave_data_offset = IntegerBlock(static_size=4, description='')
         wave_data = BytesField()

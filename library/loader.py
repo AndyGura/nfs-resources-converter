@@ -1,7 +1,7 @@
 import os
 from io import BufferedReader, SEEK_CUR, BytesIO
 
-from library.read_blocks.exceptions import BlockIntegrityException
+from library.helpers.exceptions import BlockIntegrityException
 from resources.eac.archives import ShpiArchive, WwwwArchive, RefPackBlock, Qfs2Block, Qfs3Block, SoundBank
 from resources.eac.audios import EacsAudio, AsfAudio
 from resources.eac.bitmaps import (
@@ -30,6 +30,8 @@ from resources.eac.palettes import (
     Palette24BitDos,
 )
 from resources.eac.videos import FfmpegSupportedVideo
+
+
 
 
 def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):

@@ -2,9 +2,9 @@ from copy import deepcopy
 from io import BufferedReader, BytesIO
 from typing import List
 
-from library.read_blocks.compound_block import CompoundBlock
-from library.read_blocks.delegate_block import DelegateBlock
-from library.read_blocks.exceptions import BlockIntegrityException
+from library.read_blocks.compound import CompoundBlock
+from library.read_blocks.delegate import DelegateBlock
+from library.helpers.exceptions import BlockIntegrityException
 
 
 class LiteralBlock(DelegateBlock):

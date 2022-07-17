@@ -1,10 +1,10 @@
 from io import BufferedReader, BytesIO
 
-from library.read_blocks.array_field import ArrayBlock, ExplicitOffsetsArrayBlock
-from library.read_blocks.atomic import Utf8Field, IntegerField, BytesField
-from library.read_blocks.compound_block import CompoundBlock
-from library.read_blocks.delegate_block import DelegateBlock
-from library.read_blocks.literal_block import LiteralBlock
+from library.read_blocks.array import ArrayBlock, ExplicitOffsetsArrayBlock
+from library.read_blocks.atomic import Utf8Field, IntegerBlock, BytesField
+from library.read_blocks.compound import CompoundBlock
+from library.read_blocks.delegate import DelegateBlock
+from library.read_blocks.literal import LiteralBlock
 from resources.eac.audios import EacsAudio
 from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit, Bitmap4Bit
 from resources.eac.compressions.qfs2 import Qfs2Compression
@@ -63,7 +63,7 @@ class ShpiChildDescription(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         name = Utf8Field(length=4)
-        offset = IntegerField(static_size=4, is_signed=False)
+        offset = IntegerBlock(static_size=4, is_signed=False)
 
 
 class ShpiArchive(CompoundBlock):
@@ -71,8 +71,8 @@ class ShpiArchive(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='SHPI', length=4, description='Resource ID')
-        length = IntegerField(static_size=4, is_signed=False)
-        children_count = IntegerField(static_size=4, is_signed=False)
+        length = IntegerBlock(static_size=4, is_signed=False)
+        children_count = IntegerBlock(static_size=4, is_signed=False)
         shpi_directory = Utf8Field(length=4)
         children_descriptions = ArrayBlock(child=ShpiChildDescription())
         children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
@@ -120,8 +120,8 @@ class WwwwArchive(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='wwww', length=4, description='Resource ID')
-        children_count = IntegerField(static_size=4, is_signed=False)
-        children_offsets = ArrayBlock(child=IntegerField(static_size=4, is_signed=False))
+        children_count = IntegerBlock(static_size=4, is_signed=False)
+        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False))
         children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
             possible_resources=[
                 OripGeometry(error_handling_strategy='return'),
@@ -154,7 +154,7 @@ class SoundBank(CompoundBlock):
     block_description = ''
 
     class Fields(CompoundBlock.Fields):
-        children_offsets = ArrayBlock(child=IntegerField(static_size=4, is_signed=False), length=128)
+        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False), length=128)
         children = ExplicitOffsetsArrayBlock(child=EacsAudio())
         wave_data = ExplicitOffsetsArrayBlock(child=BytesField(length_strategy="read_available"))
 

@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from PIL import Image
 
-from library.read_blocks.exceptions import SerializationException
+from library.helpers.exceptions import SerializationException
 from resources.eac.archives import WwwwArchive, ShpiArchive
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
