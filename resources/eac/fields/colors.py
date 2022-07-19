@@ -66,15 +66,23 @@ class Color32BitBlock(IntegerBlock):
 
 class Color16Bit0565Block(IntegerBlock):
 
+    # Tested on NFS2 tracks
+    transparent_color = 0x00_FB_00_FF
+
     def __init__(self, **kwargs):
         super().__init__(static_size=2, byte_order="little", **kwargs)
-        self.block_description = 'EA games 16-bit 0565 color, rrrrrggg_gggbbbbb'
+        self.block_description = 'EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent'
 
     def from_raw_value(self, raw: bytes):
         number = super().from_raw_value(raw)
-        return transform_color_bitness(number, 0, 5, 6, 5)
+        value = transform_color_bitness(number, 0, 5, 6, 5)
+        if value == self.transparent_color:
+            value = 0
+        return value
 
     def to_raw_value(self, value) -> bytes:
+        if (value & 0xff) < 128:
+            value = self.transparent_color
         red = (value & 0xff000000) >> 27
         green = (value & 0xff0000) >> 18
         blue = (value & 0xff00) >> 11

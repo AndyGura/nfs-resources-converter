@@ -33,7 +33,21 @@ def extract_number(value, length, right_offset=0) -> int:
     return (value & generate_bit_mask(length, right_offset)) >> right_offset
 
 
+def extract_numbers_with_bitness(color, *bitnesses):
+    offset = 0
+    res = []
+    for bitness in bitnesses[::-1]:
+        if bitness == 0:
+            res.append(0)
+            continue
+        res.append(transform_bitness(extract_number(color, bitness, offset),
+                                     bitness))
+        offset += bitness
+    return tuple(res[::-1])
+
+
 # transforms 0565, 1555 etc. colors to regular 8888
+# TODO remove, use extract_numbers_with_bitness
 def transform_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_bitness):
     alpha = transform_bitness(extract_number(color, alpha_bitness, red_bitness + green_bitness + blue_bitness),
                               alpha_bitness) if alpha_bitness else 0xFF
