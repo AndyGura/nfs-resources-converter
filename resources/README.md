@@ -16,7 +16,7 @@
 - [WwwwBlock](#wwwwblock) (background) contains few [ShpiBlock](#shpiblock) items, terrain textures
 - [WwwwBlock](#wwwwblock) (foreground) contains few [ShpiBlock](#shpiblock) items, prop textures
 - [ShpiBlock](#shpiblock) (skybox) contains horizon texture
-- [WwwwBlock](#wwwwblock) contains a series of consecutive [OripGeometry](#oripgeometry) + [ShpiBlock](#shpiblock) items, 3D props
+- [WwwwBlock](#wwwwblock) (props) contains a series of consecutive [OripGeometry](#oripgeometry) + [ShpiBlock](#shpiblock) items, 3D props
 
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
@@ -191,10 +191,10 @@
 | 10 | **position** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Position in 3D space, relative to position of referenced road spline vertex |
 ### **TerrainEntry** ###
 #### **Size**: 288 bytes ####
-#### **Description**: The terrain model around 4 spline points. It has good explanation in original Aurox NFS file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt ####
+#### **Description**: The terrain model around 4 spline points. It has good explanation in original Denis Auroux NFS file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **id** | 4 | UTF-8 string. Always == TRKD | - |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == TRKD | - |
 | 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 12 | **unknown** | 1 | 1-byte unsigned integer | Unknown purpose |
@@ -447,18 +447,34 @@
 ## **Audio** ##
 ### **AsfAudio** ###
 #### **Size**: 36..? bytes ####
-#### **Description**: An audio file, which is supported by FFMPEG and can be converted using only it ####
+#### **Description**: An audio file, which is supported by FFMPEG and can be converted using only it. Has some explanation here: https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2) . It is very similar to EACS audio, but has wave data in place, just after the header ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == 1SNh | Resource ID |
 | 4 | **unknowns** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 12 | **sampling_rate** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 16 | **sound_resolution** | 1 | 1-byte unsigned integer | - |
-| 17 | **channels** | 1 | 1-byte unsigned integer | - |
-| 18 | **compression** | 1 | 1-byte unsigned integer | - |
+| 12 | **sampling_rate** | 4 | 4-bytes unsigned integer (little endian) | Sampling rate of audio |
+| 16 | **sound_resolution** | 1 | 1-byte unsigned integer | How many bytes in one wave data entry |
+| 17 | **channels** | 1 | 1-byte unsigned integer | Channels amount. 1 is mono, 2 is stereo |
+| 18 | **compression** | 1 | 1-byte unsigned integer | If equals to 2, wave data is compressed with IMA ADPCM codec: https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)#IMA_ADPCM_Decompression_Algorithm |
 | 19 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 20 | **wave_data_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 24 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 36 | **wave_data** | 0..? |  | - |
+| 20 | **wave_data_length** | 4 | 4-bytes unsigned integer (little endian) | Amount of wave data entries. Should be multiplied by sound_resolution to calculated the size of data in bytes |
+| 24 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | When audio ends, it repeats in loop from here. Should be multiplied by sound_resolution to calculate offset in bytes |
+| 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
+| 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
+| 36 | **wave_data** | 0..? |  | Wave data is here |
+### **EacsAudio** ###
+#### **Size**: 28..? bytes ####
+#### **Description**: An audio block, almost identical to AsfAudio, but can be included in single SoundBank file with multiple other EACS blocks and has detached wave data, which is located somewhere in the SoundBank file after all EACS blocks ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == EACS | Resource ID |
+| 4 | **sampling_rate** | 4 | 4-bytes unsigned integer (little endian) | Sampling rate of audio |
+| 8 | **sound_resolution** | 1 | 1-byte unsigned integer | How many bytes in one wave data entry |
+| 9 | **channels** | 1 | 1-byte unsigned integer | Channels amount. 1 is mono, 2 is stereo |
+| 10 | **compression** | 1 | 1-byte unsigned integer | If equals to 2, wave data is compressed with IMA ADPCM codec: https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)#IMA_ADPCM_Decompression_Algorithm |
+| 11 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 12 | **wave_data_length** | 4 | 4-bytes unsigned integer (little endian) | Amount of wave data entries. Should be multiplied by sound_resolution to calculated the size of data in bytes |
+| 16 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | When audio ends, it repeats in loop from here. Should be multiplied by sound_resolution to calculate offset in bytes |
+| 20 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
+| 24 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
+| - | **wave_data** | 0..? | Detached block, located somewhere in file, knowing it's offset.Does not take place inside parent block | Wave data, located somewhere in file at wave_data_offset. if sound_resolution == 1, contains signed bytes, else - unsigned |

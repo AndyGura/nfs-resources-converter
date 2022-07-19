@@ -104,11 +104,11 @@ class ProxyObjectInstance(CompoundBlock):
 
 
 class TerrainEntry(CompoundBlock):
-    block_description = 'The terrain model around 4 spline points. It has good explanation in original Aurox NFS ' \
-                        'file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt'
+    block_description = 'The terrain model around 4 spline points. It has good explanation in original Denis Auroux ' \
+                        'NFS file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt'
 
     class Fields(CompoundBlock.Fields):
-        id = Utf8Field(length=4, required_value='TRKD')
+        resource_id = Utf8Field(length=4, required_value='TRKD')
         block_length = IntegerBlock(static_size=4, is_signed=False)
         block_number = IntegerBlock(static_size=4, is_signed=False)
         unknown = IntegerBlock(static_size=1)

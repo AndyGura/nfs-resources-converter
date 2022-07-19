@@ -15,6 +15,8 @@ class DetachedBlock(DelegateBlock):
         self.offset = None
         self._size = None
         self.delegated_block = block
+        self.block_description = 'Detached block, located somewhere in file, knowing it\'s offset.' \
+                                 'Does not take place inside parent block'
 
     @property
     def size(self):

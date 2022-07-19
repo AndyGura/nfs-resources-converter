@@ -10,6 +10,7 @@ from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.literal import LiteralBlock
 from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.detached import DetachedBlock
 from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries, audios, archives
 
 EXPORT_RESOURCES = {
@@ -56,6 +57,7 @@ EXPORT_RESOURCES = {
     ],
     'Audio': [
         audios.AsfAudio(),
+        audios.EacsAudio(),
     ]
 }
 
@@ -111,7 +113,7 @@ with open(md_name, 'w') as f:
 - {render_type(archives.WwwwBlock())} (background) contains few {render_type(archives.ShpiBlock())} items, terrain textures
 - {render_type(archives.WwwwBlock())} (foreground) contains few {render_type(archives.ShpiBlock())} items, prop textures
 - {render_type(archives.ShpiBlock())} (skybox) contains horizon texture
-- {render_type(archives.WwwwBlock())} contains a series of consecutive {render_type(geometries.OripGeometry())} + {render_type(archives.ShpiBlock())} items, 3D props
+- {render_type(archives.WwwwBlock())} (props) contains a series of consecutive {render_type(geometries.OripGeometry())} + {render_type(archives.ShpiBlock())} items, 3D props
 
 **\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
@@ -145,12 +147,13 @@ with open(md_name, 'w') as f:
             offset_min = 0
             offset_max = 0
             for key, field in resource.Fields.fields:
-                f.write(f'\n| {render_range(None, offset_min, offset_max, False)} | '
+                f.write(f'\n| {"-" if isinstance(field, DetachedBlock) else render_range(None, offset_min, offset_max, False)} | '
                         f'**{key}**{" (optional)" if key in resource.Fields.optional_fields else ""} | '
                         f'{render_range(field, field.min_size, field.max_size, False)} | '
                         f'{render_type(field)} | '
                         f'{field.description or ("Unknown purpose" if key in resource.Fields.unknown_fields else "-")} |')
-                offset_min += field.min_size
-                offset_max += field.max_size
+                if not isinstance(field, DetachedBlock):
+                    offset_min += field.min_size
+                    offset_max += field.max_size
             if collapse_table:
                 f.write('\n</details>\n')
