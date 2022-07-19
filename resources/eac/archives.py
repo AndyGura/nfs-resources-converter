@@ -134,6 +134,7 @@ class WwwwBlock(CompoundBlock):
         resource_id = Utf8Field(required_value='wwww', length=4, description='Resource ID')
         children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
         children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False),
+                                      length_label='children_count',
                                       description='An array of offsets to items data in file, relatively '
                                                   'to wwww block start (where resource id string is presented)')
         children = ExplicitOffsetsArrayBlock(child=LiteralBlock(

@@ -34,9 +34,11 @@ class EacsAudioSerializer(BaseFileSerializer):
         if settings.audio__save_car_sfx_loops:
             try:
                 # if car sound bank
-                if 'SW.BNK' in block.id or 'TRAFFC.BNK' in block.id or 'TESTBANK.BNK':
-                    # not sure why * 2. It is needed for stereo but also for car honk sample (mono)
-                    loop_wave_data = wave_bytes[block.repeat_loop_beginning * 2:(block.repeat_loop_beginning + block.repeat_loop_length) * 2] * 16
+                if 'SW.BNK' in block.id or 'TRAFFC.BNK' in block.id or 'TESTBANK.BNK' in block.id:
+                    # aligning to channels. If not do that, some samples keep changing channels every loop
+                    beginning = block.sound_resolution * int(block.repeat_loop_beginning / block.channels) * block.channels
+                    ending = block.sound_resolution * int((block.repeat_loop_beginning + block.repeat_loop_length) / block.channels) * block.channels
+                    loop_wave_data = wave_bytes[beginning:ending] * 16
             except:
                 pass
         self._save_wave_data(block, wave_bytes, path)

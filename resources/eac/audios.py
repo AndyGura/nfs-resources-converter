@@ -20,9 +20,8 @@ class EacsAudio(CompoundBlock):
 
         unknown_fields = ['unk0']
 
-    def _after_wave_data_offset_read(self, data, buffer, **kwargs):
-        # TODO recheck this. Now initial buffer pointer commented out for preserving output audio like it was before refactoring
-        self.instance_fields_map['wave_data'].offset = data['wave_data_offset']  # + self.initial_buffer_pointer)
+    def _after_wave_data_offset_read(self, data, **kwargs):
+        self.instance_fields_map['wave_data'].offset = data['wave_data_offset']
         self.instance_fields_map['wave_data'].size = data['wave_data_length'] * data['sound_resolution']
 
 

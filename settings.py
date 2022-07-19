@@ -39,17 +39,22 @@ export_unknown_values = False
 # save palette, which is a part of 8bit bitmap and not listed in SHPI block
 images__save_inline_palettes = False
 
-# media
+# for car sfx for engine, honk, additionally export long audio, where the sample repeated 16 times
 audio__save_car_sfx_loops = False
 
-# 3D
-geometry__save_obj = True
-geometry__save_blend = False
-geometry__replace_car_wheel_with_dummies = True
-
-# maps export settings
+# saves each terrain mesh chunk as separate obj/blend file and main file with road path.
+# If false builds entire map into single file
 maps__save_as_chunked = False
+# places boxes with collision, where invisible wall is located
 maps__save_collisions = False    # this one will consume time...
+
+# saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
+geometry__save_obj = False
+# saves blender scene for each 3D scene
+geometry__save_blend = True
+# removes empty polygons, representing whels and their shadow. Instead place a dummy on the position where wheel axle
+# located and set wheel width, radius as custom properties of the dummy
+geometry__replace_car_wheel_with_dummies = True
 
 
 # returned script will be executed in blender for every exported scene

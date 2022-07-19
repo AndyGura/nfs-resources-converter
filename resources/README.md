@@ -53,7 +53,7 @@
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == wwww | Resource ID |
 | 4 | **children_count** | 4 | 4-bytes unsigned integer (little endian) | An amount of items |
-| 8 | **children_offsets** | 4 * (?) | Array of ? items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file, relatively to wwww block start (where resource id string is presented) |
+| 8 | **children_offsets** | 4 * (children_count) | Array of children_count items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file, relatively to wwww block start (where resource id string is presented) |
 | 8..? | **children** | ? | Array of children_count items with custom offset to items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [OripGeometry](#oripgeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [WwwwBlock](#wwwwblock) | A part of block, where items data is located. Offsets are defined in previous block, lengths are calculated: either up to next item offset, or up to the end of block |
 ### **SoundBank** ###
 #### **Size**: 512..? bytes ####
