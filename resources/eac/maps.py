@@ -4,7 +4,7 @@ from library.read_blocks.array import ArrayBlock
 from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Field
 from library.read_blocks.compound import CompoundBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
-from resources.eac.fields.numbers import Nfs1Angle16, RationalNumber, Nfs1Angle8
+from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8
 
 
 class RoadSplinePoint(CompoundBlock):
@@ -38,15 +38,18 @@ class RoadSplinePoint(CompoundBlock):
                                          description='Modifier of this point. Affects terrain geometry and/or some '
                                                      'gameplay features')
         position = Point3D_32(description='Coordinates of this point in 3D space')
-        slope = Nfs1Angle16(description='Slope of the road at this point (angle if road goes up or down)')
-        slant_a = Nfs1Angle16(description='Perpendicular angle of road')
-        orientation = Nfs1Angle16(description='Rotation of road path, if view from the top')
+        slope = Nfs1Angle14(description='Slope of the road at this point (angle if road goes up or down)')
+        slant_a = Nfs1Angle14(description='Perpendicular angle of road')
+        orientation = Nfs1Angle14(description='Rotation of road path, if view from the top')
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
-        orientation_y = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
+        orientation_y = Nfs1Angle14(description='Not quite sure about it. Denis Auroux gives more info about this '
                                                 'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
-        slant_b = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
-                                          'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
-        orientation_x = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
+        slant_b = IntegerBlock(static_size=2, is_signed=True,
+                               description='has the same purpose as slant_a, but is a standard signed 16-bit value. '
+                                          'Its value is positive for the left, negative for the right. The '
+                                          'approximative relation between slant-A and slant-B is slant-B = -12.3 '
+                                          'slant-A (remember that slant-A is 14-bit, though)')
+        orientation_x = Nfs1Angle14(description='Not quite sure about it. Denis Auroux gives more info about this '
                                                 'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
         unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
         

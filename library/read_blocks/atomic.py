@@ -103,7 +103,7 @@ class Utf8Field(AtomicReadBlock):
         return raw.decode('utf-8')
 
     def to_raw_value(self, value) -> bytes:
-        return value.decode('utf-8')
+        return value.encode('utf-8')
 
 
 class BytesField(AtomicReadBlock):
@@ -160,7 +160,11 @@ class BitFlagsBlock(IntegerBlock, ABC):
         return res
 
     def to_raw_value(self, value) -> bytes:
-        raise NotImplementedError()
+        res = 0
+        for i in range(8):
+            if value[i]:
+                res = res | (1 << i)
+        return super().to_raw_value(res)
 
 
 class EnumByteBlock(IntegerBlock, ABC):
@@ -181,4 +185,4 @@ class EnumByteBlock(IntegerBlock, ABC):
         return self.enum_name_map[super().from_raw_value(raw)]
 
     def to_raw_value(self, value) -> bytes:
-        raise NotImplementedError()
+        return super().to_raw_value(self.enum_name_map.index(value))

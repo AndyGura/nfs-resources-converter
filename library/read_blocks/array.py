@@ -69,8 +69,13 @@ class ArrayBlock(ReadBlock):
     def from_raw_value(self, raw: List):
         return raw
 
-    def to_raw_value(self, value: List):
-        return value
+    def to_raw_value(self, value: List) -> bytes:
+        res = bytes()
+        for item in value:
+            res += self.child.to_raw_value(item)
+        if self.length and self.length > len(value) and self.length_strategy != 'read_available':
+            res += bytes([0] * (self.length - len(value)) * self.child.size)
+        return res
 
     def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         res = []

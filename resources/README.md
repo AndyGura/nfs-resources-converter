@@ -163,7 +163,7 @@
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top |
 | 26 | **unknowns1** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 28 | **orientation_y** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
-| 30 | **slant_b** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 30 | **slant_b** | 2 | 2-bytes signed integer (little endian) | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
 | 32 | **orientation_x** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
 | 34 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 ### **ProxyObject** ###
@@ -308,7 +308,7 @@
 | 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | 2 * (width * height) | Array of width * height items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb | Colors of bitmap pixels |
+| 16 | **bitmap** | 2 * (width * height) | Array of width * height items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent | Colors of bitmap pixels |
 | 16..? | **trailing_bytes** | block_size - (16 + 2\*width\*height) | Array of block_size - (16 + 2\*width\*height) items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Looks like aligning size to be divisible by 4 |
 ### **Bitmap4Bit** ###
 #### **Size**: 16..? bytes ####
@@ -443,7 +443,7 @@
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x2d | Resource ID |
 | 1 | **unknowns** | 15 | Array of 15 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 16 | **colors** | 2 * (0..256) | Array of 0..256 items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb | Colors LUT |
+| 16 | **colors** | 2 * (0..256) | Array of 0..256 items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent | Colors LUT |
 ## **Audio** ##
 ### **AsfAudio** ###
 #### **Size**: 36..? bytes ####

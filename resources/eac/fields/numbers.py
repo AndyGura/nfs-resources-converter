@@ -36,7 +36,7 @@ class Nfs1Angle8(IntegerBlock):
         return super().to_raw_value(math.floor(256 * value / (math.pi * 2)))
 
 
-class Nfs1Angle16(IntegerBlock):
+class Nfs1Angle14(IntegerBlock):
     def __init__(self, **kwargs):
         kwargs['static_size'] = 2
         kwargs['byte_order'] = "little"

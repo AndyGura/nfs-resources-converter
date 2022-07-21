@@ -2,7 +2,7 @@ from abc import ABC
 from copy import deepcopy
 from functools import cached_property
 from io import BufferedReader, BytesIO
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 from library.helpers.data_wrapper import DataWrapper
 from library.helpers.exceptions import EndOfBufferException, BlockIntegrityException
@@ -51,6 +51,13 @@ class CompoundBlock(ReadBlock, ABC):
         if self.instance_fields_map.get(name):
             return getattr(self.persistent_data, name, None)
         return object.__getattribute__(self, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if (name not in ['instantiate_kwargs', '_id', 'instance_fields', 'instance_fields_map']
+                and name not in [x for x in self.instantiate_kwargs.keys()]
+                and self.instance_fields_map.get(name)):
+            return setattr(self.persistent_data, name, value)
+        return super().__setattr__(name, value)
 
     # override conversion of this class to dict
     def __iter__(self):
@@ -126,5 +133,10 @@ class CompoundBlock(ReadBlock, ABC):
         clone.id = self.id
         return clone
 
-    def to_raw_value(self, value: DataWrapper) -> dict:
-        return dict(value)
+    def to_raw_value(self, value: DataWrapper = None) -> bytes:
+        if not value:
+            value = self.persistent_data
+        res = bytes()
+        for name, field in self.instance_fields:
+            res += field.to_raw_value(getattr(value, name))
+        return res
