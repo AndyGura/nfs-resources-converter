@@ -15,6 +15,10 @@ Feel free to contribute
 4) run `python scripts/convert_all.py games`
 5) observe output files in `out/`
 
+<h3>Run tests:</h3>
+
+`python -m unittest`
+
 <h1>Supported resources</h1>
 
 <h2>The Need For Speed</h2>
