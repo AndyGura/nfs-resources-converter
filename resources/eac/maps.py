@@ -44,17 +44,19 @@ class RoadSplinePoint(CompoundBlock):
         slant_a = Nfs1Angle14(description='Perpendicular angle of road')
         orientation = Nfs1Angle14(description='Rotation of road path, if view from the top')
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
-        orientation_y = Nfs1Angle14(description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        orientation_y = IntegerBlock(static_size=2, is_signed=True,
+                                     description='Not quite sure about it. Denis Auroux gives more info about this '
+                                                 'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
         slant_b = IntegerBlock(static_size=2, is_signed=True,
                                description='has the same purpose as slant_a, but is a standard signed 16-bit value. '
-                                          'Its value is positive for the left, negative for the right. The '
-                                          'approximative relation between slant-A and slant-B is slant-B = -12.3 '
-                                          'slant-A (remember that slant-A is 14-bit, though)')
-        orientation_x = Nfs1Angle14(description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+                                           'Its value is positive for the left, negative for the right. The '
+                                           'approximative relation between slant-A and slant-B is slant-B = -12.3 '
+                                           'slant-A (remember that slant-A is 14-bit, though)')
+        orientation_x = IntegerBlock(static_size=2, is_signed=True,
+                                     description='Not quite sure about it. Denis Auroux gives more info about this '
+                                                 'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
         unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
-        
+
         unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
 
 
@@ -150,7 +152,7 @@ class TriMap(CompoundBlock):
         proxy_object_instances = ArrayBlock(child=ProxyObjectInstance(), length_label='proxy_object_instances_count')
         terrain = ArrayBlock(child=TerrainEntry(), length_label="spline_points_amount / 4")
 
-        unknown_fields = ['unknowns0', 'position', 'unknowns1', 'scenery_data_length', 'unknowns2', 'unknowns3', 
+        unknown_fields = ['unknowns0', 'position', 'unknowns1', 'scenery_data_length', 'unknowns2', 'unknowns3',
                           'unknowns4']
 
     def _after_road_spline_read(self, data, **kwargs):

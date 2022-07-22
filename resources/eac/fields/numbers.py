@@ -53,4 +53,4 @@ class Nfs1Angle14(IntegerBlock):
             value -= math.pi * 2
         while value < 0:
             value += math.pi * 2
-        return super().to_raw_value(math.floor(0x4000 * value / (math.pi * 2)))
+        return super().to_raw_value(min(round(0x4000 * value / (math.pi * 2)), 0x3FFF))
