@@ -24,8 +24,9 @@ class RoadSplinePoint(CompoundBlock):
                                                 description='The distance to invisible wall on the right')
         unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3)
         spline_item_mode = EnumByteBlock(enum_names=[(0, 'lane_split'),
-                                                     (1, 'default'),
+                                                     (1, 'default_0'),
                                                      (2, 'lane_merge'),
+                                                     (3, 'default_1'),
                                                      (4, 'tunnel'),
                                                      (5, 'cobbled_road'),
                                                      (7, 'right_tunnel_A2_A9'),
@@ -33,6 +34,7 @@ class RoadSplinePoint(CompoundBlock):
                                                      (13, 'left_tunnel_A9_A5'),
                                                      (14, 'waterfall_audio_left_channel'),
                                                      (15, 'waterfall_audio_right_channel'),
+                                                     (17, 'transtropolis_noise_audio'),
                                                      (18, 'water_audio'),
                                                      ],
                                          description='Modifier of this point. Affects terrain geometry and/or some '
