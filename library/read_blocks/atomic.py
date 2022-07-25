@@ -162,7 +162,7 @@ class BitFlagsBlock(IntegerBlock, ABC):
     def to_raw_value(self, value) -> bytes:
         res = 0
         for i in range(8):
-            if value[i]:
+            if value[self.flag_name_map[i]]:
                 res = res | (1 << i)
         return super().to_raw_value(res)
 

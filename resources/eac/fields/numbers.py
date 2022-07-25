@@ -11,11 +11,18 @@ class RationalNumber(IntegerBlock):
                                  f'{"" if self.is_signed else "not "}signed), where last {fraction_bits} ' \
                                  f'bits is a fractional part'
 
+    @property
+    def max_value(self):
+        if self.is_signed:
+            return (1 << (8 * self.static_size - 1)) - 1
+        else:
+            return (1 << (8 * self.static_size)) - 1
+
     def from_raw_value(self, raw: bytes):
         return float(super().from_raw_value(raw) / (1 << self.fraction_bits))
 
     def to_raw_value(self, value) -> bytes:
-        return super().to_raw_value(math.floor(value * (1 << self.fraction_bits)))
+        return super().to_raw_value(min(round(value * (1 << self.fraction_bits)), self.max_value))
 
 
 class Nfs1Angle8(IntegerBlock):
@@ -33,7 +40,7 @@ class Nfs1Angle8(IntegerBlock):
             value -= math.pi * 2
         while value < 0:
             value += math.pi * 2
-        return super().to_raw_value(math.floor(256 * value / (math.pi * 2)))
+        return super().to_raw_value(min(round(256 * value / (math.pi * 2)), 0xFF))
 
 
 class Nfs1Angle14(IntegerBlock):

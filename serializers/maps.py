@@ -423,9 +423,9 @@ if $save_collisions:
     def serialize(self, block: CompoundBlock, path: str):
         super().serialize(block, path)
         is_opened_track = math.sqrt(
-            (block.road_spline[0].position.x - block.road_spline[-1].position.x) ** 2
-            + (block.road_spline[0].position.y - block.road_spline[-1].position.y) ** 2
-            + (block.road_spline[0].position.z - block.road_spline[-1].position.z) ** 2
+            (block.road_spline[0].position.x - block.road_spline[len(block.terrain)*4-1].position.x) ** 2
+            + (block.road_spline[0].position.y - block.road_spline[len(block.terrain)*4-1].position.y) ** 2
+            + (block.road_spline[0].position.z - block.road_spline[len(block.terrain)*4-1].position.z) ** 2
         ) > 100
 
         terrain_data = []
@@ -462,12 +462,12 @@ if $save_collisions:
                 [[rp.position.x + rp.left_barrier_distance * math.cos(rp.orientation + math.pi),
                   rp.position.y,
                   rp.position.z - rp.left_barrier_distance * math.sin(rp.orientation + math.pi)
-                  ] for rp in block.road_spline])
+                  ] for rp in block.road_spline[:len(block.terrain)*4]])
             right_barrier_points = self.BarrierPath(
                 [[rp.position.x + rp.right_barrier_distance * math.cos(rp.orientation),
                   rp.position.y,
                   rp.position.z - rp.right_barrier_distance * math.sin(rp.orientation)
-                  ] for rp in block.road_spline])
+                  ] for rp in block.road_spline[:len(block.terrain)*4]])
             if not is_opened_track:
                 left_barrier_points.points += [left_barrier_points.points[0]]
                 right_barrier_points.points += [right_barrier_points.points[0]]
@@ -484,7 +484,7 @@ if $save_collisions:
         for obj in block.proxy_object_instances:
             (obj.position.z, obj.position.y) = (obj.position.y, obj.position.z)
             obj.rotation = -obj.rotation
-        for spline_point in block.road_spline:
+        for spline_point in block.road_spline[:len(block.terrain)*4]:
             (spline_point.position.z, spline_point.position.y) = (spline_point.position.y, spline_point.position.z)
             spline_point.orientation = -spline_point.orientation
         if settings.maps__save_collisions:
@@ -593,17 +593,17 @@ if $save_collisions:
                           o.proxy_object_index % len(block.proxy_objects)].height,
                       'animation_interval': 250,
                       } for o in block.proxy_object_instances
-                     if len(block.road_spline) > o.reference_road_spline_vertex >= 0]),
+                     if len(block.terrain)*4 > o.reference_road_spline_vertex >= 0]),
             })
         blender_script += '\n\n\n\n' + self.blender_map_script.substitute({
             'new_file': settings.maps__save_as_chunked,
             'save_collisions': settings.maps__save_collisions,
             'road_path_points': ', '.join(
                 [f'({block.position.x}, {block.position.y}, {block.position.z})' for block in
-                 block.road_spline]),
+                 block.road_spline[:len(block.terrain)*4]]),
             'road_path_settings': json.dumps({
-                'slope': [block.slope for block in block.road_spline],
-                'slant': [block.slant_a for block in block.road_spline],
+                'slope': [block.slope for block in block.road_spline[:len(block.terrain)*4]],
+                'slant': [block.slant_a for block in block.road_spline[:len(block.terrain)*4]],
             }),
             'is_opened_track': is_opened_track,
             'left_barrier': json.dumps({
