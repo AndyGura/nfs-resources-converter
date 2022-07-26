@@ -10,4 +10,4 @@ class PaletteSerializer(BaseFileSerializer):
             f.write(f'{block.__class__.__name__.replace("Resource", "")}\n')
             f.write('Palette used in bitmap serialization. Contains mapping bitmap data bytes to RGBA colors.\n')
             for i, color in enumerate(block.colors):
-                f.write(f'\n{hex(i)}:\t#{hex(color)}')
+                f.write(f'\n{hex(i)}:\t#{hex(color.value)}')

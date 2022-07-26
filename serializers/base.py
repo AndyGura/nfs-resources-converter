@@ -19,8 +19,8 @@ class BaseFileSerializer:
         has_something = False
         if isinstance(block, DelegateBlock):
             block = block.delegated_block
-        if isinstance(block, CompoundBlock) and block.persistent_data is not None:
-            for key, value in block.persistent_data.items():
+        if isinstance(block, CompoundBlock) and block.value is not None:
+            for key, value in block.value.items():
                 if key in block.Fields.unknown_fields:
                     key_parts = key.split('__')
                     dictionary = res

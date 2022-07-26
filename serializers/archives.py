@@ -13,7 +13,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
     def serialize(self, block: ShpiBlock, path: str):
         path += '/'
         super().serialize(block, path)
-        items = [(block.children_descriptions[i].name, block.children[i]) for i in range(block.children_count)]
+        items = [(block.children_descriptions[i].name.value, block.children[i]) for i in range(block.children_count.value)]
         skipped_resources = []
         for name, item in [(name, item) for name, item in items]:
             if isinstance(item, Exception):
@@ -26,7 +26,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 skipped_resources.append((name, format_exception(ex)))
         with open(f'{path}/positions.txt', 'w') as f:
             for name, item in [(name, item) for name, item in items if isinstance(item, AnyBitmapBlock)]:
-                f.write(f"{name}: {item.x}, {item.y}\n")
+                f.write(f"{name}: {item.x.value}, {item.y.value}\n")
         if '.FAM__' in block.id:
             try:
                 horz_bitmap = next(x for name, x in items if name == 'horz')

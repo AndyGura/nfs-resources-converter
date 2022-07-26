@@ -20,12 +20,6 @@ class DelegateBlock(ReadBlock):
     def id(self):
         return self._id
 
-    @id.setter
-    def id(self, value):
-        self._id = value
-        if self.delegated_block:
-            self.delegated_block.id = self.id
-
     @property
     def delegated_block(self) -> ReadBlock:
         return self._delegated_block
@@ -33,7 +27,6 @@ class DelegateBlock(ReadBlock):
     @delegated_block.setter
     def delegated_block(self, value):
         self._delegated_block = value
-        value.id = self.id
 
     @property
     def size(self):
@@ -53,10 +46,10 @@ class DelegateBlock(ReadBlock):
                 if self._delegated_block is not None
                 else None)
 
-    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         if not self._delegated_block:
             raise BlockDefinitionException('Delegated block not defined')
-        return self._delegated_block.load_value(buffer, size, parent_read_data)
+        return self._delegated_block._load_value(buffer, size, parent_read_data)
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         try:
@@ -74,7 +67,7 @@ class DelegateBlock(ReadBlock):
             raise BlockDefinitionException('Delegated block not defined')
         return self._delegated_block.from_raw_value(raw)
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         if not self._delegated_block:
             raise BlockDefinitionException('Delegated block not defined')
-        return self._delegated_block.to_raw_value(value)
+        return self._delegated_block.to_raw_value(value, offset)

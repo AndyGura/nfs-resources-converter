@@ -31,37 +31,34 @@ class CompoundBlock(ReadBlock, ABC):
         kwargs['inline_description'] = inline_description
         super().__init__(**kwargs)
         self.inline_description = inline_description
-        # TODO should not copy non-persistent fields, where we return pure value (Atomic blocks?)
-        self.instance_fields = [(name, deepcopy(instance)) for name, instance in self.__class__.Fields.fields]
+        if self.id:
+            self.instance_fields = [(name, create_block(instance, self._id + ('/' if '__' in self._id else '__') + name))
+                                    for name, instance in self.__class__.Fields.fields]
+            self.initial_buffer_pointer = 0
+        else:
+            self.instance_fields = self.__class__.Fields.fields
         self.instance_fields_map = {name: res for (name, res) in self.instance_fields}
-        self.persistent_data = None
-        self.initial_buffer_pointer = 0
 
     @property
     def id(self):
         return self._id
 
-    @id.setter
-    def id(self, value):
-        self._id = value
-        for (name, field) in self.instance_fields:
-            field.id = self._id + ('/' if '__' in self._id else '__') + name
-
     def __getattr__(self, name):
-        if self.instance_fields_map.get(name):
-            return getattr(self.persistent_data, name, None)
+        if name not in ['value', 'instance_fields_map', 'instance_fields', 'initial_buffer_pointer'] and self.instance_fields_map.get(name) is not None:
+            return getattr(self.value, name, None)
         return object.__getattribute__(self, name)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if (name not in ['instantiate_kwargs', '_id', 'instance_fields', 'instance_fields_map']
+        if (name not in ['instantiate_kwargs', '_id', 'instance_fields', 'instance_fields_map', 'value', 'initial_buffer_pointer']
                 and name not in [x for x in self.instantiate_kwargs.keys()]
                 and self.instance_fields_map.get(name)):
-            return setattr(self.persistent_data, name, value)
-        return super().__setattr__(name, value)
+            self.value.get(name).value = value
+        else:
+            return super().__setattr__(name, value)
 
     # override conversion of this class to dict
     def __iter__(self):
-        yield from self.persistent_data.items() if self.persistent_data else None
+        yield from self.value.items() if self.value else None
 
     @cached_property
     def size(self):
@@ -84,7 +81,7 @@ class CompoundBlock(ReadBlock, ABC):
         except TypeError:
             return None
 
-    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         self.initial_buffer_pointer = buffer.tell()
         fields = self.instance_fields
         res = dict()
@@ -121,22 +118,15 @@ class CompoundBlock(ReadBlock, ABC):
         return res
 
     def from_raw_value(self, raw: dict):
-        self.persistent_data = DataWrapper(raw)
-        # need to return self, because we want shpi.children.!pal to be instance of BitmapBlock, not dict
+        return DataWrapper(raw)
 
-        # TODO probably can remove clone here: parent reader should take care of copying instances. For instance, this
-        # class is always copying fields on __init__. Arrays should do the same, literal should copy selected block
-        # this particular thing slows down TR1.TRI file reading more than twice! 1.55 < 3.35 seconds
-
-        clone = deepcopy(self)
-        clone.persistent_data = self.persistent_data
-        clone.id = self.id
-        return clone
-
-    def to_raw_value(self, value: DataWrapper = None) -> bytes:
+    def to_raw_value(self, value: DataWrapper = None, offset=0) -> bytes:
         if not value:
-            value = self.persistent_data
+            value = self.value
         res = bytes()
         for name, field in self.instance_fields:
-            res += field.to_raw_value(getattr(value, name))
+            field_value = getattr(value, name)
+            if name in self.Fields.optional_fields and field_value is None:
+                continue
+            res += field.to_raw_value(getattr(value, name), offset + len(res))
         return res

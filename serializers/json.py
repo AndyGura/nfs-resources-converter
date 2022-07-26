@@ -12,7 +12,7 @@ class JsonSerializer(BaseFileSerializer):
         if isinstance(block, DelegateBlock):
             block = block.delegated_block
         res = rec_dd()
-        for key, value in block.persistent_data.items():
+        for key, value in block.value.items():
             if isinstance(block, CompoundBlock) and key in block.Fields.unknown_fields:
                 continue
             key_parts = key.split('__')

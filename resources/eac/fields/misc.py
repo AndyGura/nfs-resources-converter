@@ -97,10 +97,10 @@ class FenceType(IntegerBlock):
             'has_right_fence': (fence_type & (0x1 << 6)) != 0,
         })
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         byte = value['texture_id'] & (0xff >> 2)
         if value['has_left_fence']:
             byte = byte | (0x1 << 7)
         if value['has_right_fence']:
             byte = byte | (0x1 << 6)
-        return super().to_raw_value(byte)
+        return super().to_raw_value(byte, offset)

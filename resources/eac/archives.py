@@ -113,17 +113,14 @@ class ShpiBlock(CompoundBlock):
             raise ex
 
     def _after_children_count_read(self, data, **kwargs):
-        self.instance_fields_map['children_descriptions'].length = data['children_count']
+        self.instance_fields_map['children_descriptions'].length = data['children_count'].value
 
     def _after_children_descriptions_read(self, data, **kwargs):
         for description in data['children_descriptions']:
-            description.name = description.name.replace('/', '_')
-        self.instance_fields_map['children'].offsets = [x.offset + self.initial_buffer_pointer for x in
+            description.name = description.name.value.replace('/', '_')
+        self.instance_fields_map['children'].offsets = [x.offset.value + self.initial_buffer_pointer for x in
                                                         data['children_descriptions']]
-
-    def _after_children_read(self, data, **kwargs):
-        for i, child in enumerate(data['children']):
-            child.id = self._id + ('/' if '__' in self._id else '__') + data['children_descriptions'][i].name
+        self.instance_fields_map['children'].custom_names = [descr.name.value for descr in data['children_descriptions'].value]
 
 
 class WwwwBlock(CompoundBlock):

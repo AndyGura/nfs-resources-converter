@@ -35,8 +35,7 @@ class LiteralBlock(DelegateBlock):
     def __init__(self, possible_resources: List[CompoundBlock], **kwargs):
         super().__init__(possible_resources=possible_resources,
                          **kwargs)
-        # TODO no need to copy them here. Copy only delegated block
-        self.possible_resources = deepcopy(possible_resources)
+        self.possible_resources = possible_resources
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         try:
@@ -47,7 +46,7 @@ class LiteralBlock(DelegateBlock):
                     raise BlockIntegrityException('Expectation failed for literal block while reading: class not found')
                 for res in self.possible_resources:
                     if isinstance(res, block_class):
-                        self.delegated_block = deepcopy(res)
+                        self.delegated_block = create_block(res, self.id)
                         break
             return super().read(buffer, size, parent_read_data)
         except Exception as ex:

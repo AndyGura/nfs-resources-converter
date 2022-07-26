@@ -2,7 +2,7 @@ from abc import ABC
 from io import BufferedReader, BytesIO
 from typing import Literal, List, Tuple
 
-from library.helpers.exceptions import BlockIntegrityException, MultiReadUnavailableException, EndOfBufferException
+from library.helpers.exceptions import BlockIntegrityException, EndOfBufferException
 from library.read_blocks.read_block import ReadBlock
 from library.utils import represent_value_as_str
 
@@ -27,25 +27,18 @@ class AtomicReadBlock(ReadBlock, ABC):
             else:
                 self.block_description = label
 
-    def __deepcopy__(self, memo):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+        super().read(buffer, size, parent_read_data)
+        if self.required_value and self.value != self.required_value:
+            raise BlockIntegrityException(f'Expected {represent_value_as_str(self.required_value)}, '
+                                          f'found {represent_value_as_str(self.value)}')
         return self
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        value = super().read(buffer, size, parent_read_data)
-        if self.required_value and value != self.required_value:
-            raise BlockIntegrityException(f'Expected {represent_value_as_str(self.required_value)}, '
-                                          f'found {represent_value_as_str(value)}')
-        return value
+    def persist_state(self) -> dict:
+        return None
 
-    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
-        self_size = self.size  # optimization
-        if self_size != self.min_size or self_size != self.max_size:
-            raise MultiReadUnavailableException()
-        if self_size * length > size:
-            raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
-                                       f'min size {self_size * length}, available: {size}')
-        bts = buffer.read(self_size * length)
-        return [self.from_raw_value(x) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
+    def apply_state(self, state: dict) -> None:
+        pass
 
 
 class IntegerBlock(AtomicReadBlock):
@@ -63,27 +56,12 @@ class IntegerBlock(AtomicReadBlock):
                                            byte_order=byte_order,
                                            **kwargs)
 
-    # optimized case with unsigned 8-bit ints
-    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
-        self_size = self.size  # optimization
-        if self_size != self.min_size or self_size != self.max_size:
-            raise MultiReadUnavailableException()
-        if self_size * length > size:
-            raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
-                                       f'min size {self_size * length}, available: {size}')
-        bts = buffer.read(self_size * length)
-        # here is optimization
-        if self_size == 1 and not self.is_signed:
-            return list(bts)
-        else:
-            return [self.from_raw_value(x) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
-
     def from_raw_value(self, raw: bytes):
         self_size = self.size
         return int.from_bytes(raw.ljust(self_size, b'\0') if self_size > 1 else raw, byteorder=self.byte_order,
                               signed=self.is_signed)
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         return value.to_bytes(self.size, byteorder=self.byte_order, signed=self.is_signed).ljust(self.size, b'\0')
 
 
@@ -102,7 +80,7 @@ class Utf8Field(AtomicReadBlock):
     def from_raw_value(self, raw: bytes):
         return raw.decode('utf-8')
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         return value.encode('utf-8')
 
 
@@ -133,7 +111,7 @@ class BytesField(AtomicReadBlock):
     def from_raw_value(self, raw: bytes):
         return raw
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         return value
 
 
@@ -159,12 +137,12 @@ class BitFlagsBlock(IntegerBlock, ABC):
             res[self.flag_name_map[i]] = bool(flags & (1 if i == 0 else 1 << i))
         return res
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         res = 0
         for i in range(8):
             if value[self.flag_name_map[i]]:
                 res = res | (1 << i)
-        return super().to_raw_value(res)
+        return super().to_raw_value(res, offset)
 
 
 class EnumByteBlock(IntegerBlock, ABC):
@@ -184,5 +162,5 @@ class EnumByteBlock(IntegerBlock, ABC):
     def from_raw_value(self, raw: bytes):
         return self.enum_name_map[super().from_raw_value(raw)]
 
-    def to_raw_value(self, value) -> bytes:
-        return super().to_raw_value(self.enum_name_map.index(value))
+    def to_raw_value(self, value, offset=0) -> bytes:
+        return super().to_raw_value(self.enum_name_map.index(value), offset)

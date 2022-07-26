@@ -21,8 +21,8 @@ class RationalNumber(IntegerBlock):
     def from_raw_value(self, raw: bytes):
         return float(super().from_raw_value(raw) / (1 << self.fraction_bits))
 
-    def to_raw_value(self, value) -> bytes:
-        return super().to_raw_value(min(round(value * (1 << self.fraction_bits)), self.max_value))
+    def to_raw_value(self, value, offset=0) -> bytes:
+        return super().to_raw_value(min(round(value * (1 << self.fraction_bits)), self.max_value), offset)
 
 
 class Nfs1Angle8(IntegerBlock):
@@ -35,12 +35,12 @@ class Nfs1Angle8(IntegerBlock):
     def from_raw_value(self, raw: bytes):
         return float((super().from_raw_value(raw) / 256) * (math.pi * 2))
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         while value >= 2 * math.pi:
             value -= math.pi * 2
         while value < 0:
             value += math.pi * 2
-        return super().to_raw_value(min(round(256 * value / (math.pi * 2)), 0xFF))
+        return super().to_raw_value(min(round(256 * value / (math.pi * 2)), 0xFF), offset)
 
 
 class Nfs1Angle14(IntegerBlock):
@@ -55,9 +55,9 @@ class Nfs1Angle14(IntegerBlock):
     def from_raw_value(self, raw: bytes):
         return float(((super().from_raw_value(raw) & 0x3FFF) / 0x4000) * (math.pi * 2))
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         while value >= 2 * math.pi:
             value -= math.pi * 2
         while value < 0:
             value += math.pi * 2
-        return super().to_raw_value(min(round(0x4000 * value / (math.pi * 2)), 0x3FFF))
+        return super().to_raw_value(min(round(0x4000 * value / (math.pi * 2)), 0x3FFF), offset)

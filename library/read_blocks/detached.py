@@ -1,15 +1,14 @@
-from copy import deepcopy
 from io import BufferedReader, BytesIO
 
-from library.read_blocks.delegate import DelegateBlock
 from library.helpers.exceptions import BlockDefinitionException
+from library.read_blocks.delegate import DelegateBlock
 from library.read_blocks.read_block import ReadBlock
 
 
 class DetachedBlock(DelegateBlock):
 
     def __init__(self, block: ReadBlock, **kwargs):
-        self.block = deepcopy(block)
+        self.block = block
         kwargs['block'] = block
         super().__init__(**kwargs)
         self.offset = None

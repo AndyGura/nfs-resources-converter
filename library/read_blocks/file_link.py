@@ -13,11 +13,11 @@ class FileLink(ReadBlock):
     def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         pass
 
-    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         pass
 
     def from_raw_value(self, raw: bytes):
         pass
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         pass

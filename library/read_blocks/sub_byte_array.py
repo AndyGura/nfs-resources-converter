@@ -6,7 +6,7 @@ from library.helpers.exceptions import BlockDefinitionException
 from library.read_blocks.read_block import ReadBlock
 
 
-class SubByteArrayBlock(ReadBlock):
+class SubByteArrayBlock(ReadBlock, list):
 
     @property
     def size(self):
@@ -26,6 +26,16 @@ class SubByteArrayBlock(ReadBlock):
             return float('inf')
         return self.size
 
+    @property
+    def value(self):
+        return self
+
+    @value.setter
+    def value(self, value):
+        self.clear()
+        for x in value or []:
+            self.append(x)
+
     def __init__(self,
                  bits_per_value: int,
                  length: int = None,
@@ -38,7 +48,7 @@ class SubByteArrayBlock(ReadBlock):
                          length=length,
                          length_strategy=length_strategy,
                          length_label=length_label,
-                         value_deserialize_func=value_deserialize_func,
+                         value_deserialize_func=value_deserialize_func,  # TODO remove, add child class
                          value_serialize_func=value_serialize_func,
                          **kwargs)
         self.bits_per_value = bits_per_value
@@ -56,12 +66,12 @@ class SubByteArrayBlock(ReadBlock):
         self.length_label = length_label
         self.block_description = f'Array of {length_label} sub-byte numbers. Each number consists of {bits_per_value} bits'
 
-    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
         if self.length is None and self.length_strategy != "read_available":
             raise BlockDefinitionException('Sub-byte array field length is unknown')
         if self.length_strategy == "read_available":
             raise NotImplementedError('Read available ot implemented for sub-byte array :(')
-        return super(SubByteArrayBlock, self).load_value(buffer, size, parent_read_data)
+        return super(SubByteArrayBlock, self)._load_value(buffer, size, parent_read_data)
 
     def from_raw_value(self, raw: bytes):
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])
@@ -69,5 +79,5 @@ class SubByteArrayBlock(ReadBlock):
                   for i in range(floor(len(bitstring) / self.bits_per_value))]
         return [self.value_deserialize_func(x) for x in values]
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         pass

@@ -14,7 +14,7 @@ class BitmapSerializer(BaseFileSerializer):
     def serialize(self, block: AnyBitmapBlock, path: str):
         super().serialize(block, path)
         Image.frombytes('RGBA',
-                        (block.width, block.height),
+                        (block.width.value, block.height.value),
                         bytes().join([c.to_bytes(4, 'big') for c in block.bitmap])).save(f'{path}.png')
 
 
@@ -23,9 +23,9 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
     def _get_palette_from_shpi(self, shpi: ShpiBlock):
         # some of SHPI directories have upper-cased name of palette. Happens in TNFS track FAM files
         # some of SHPI directories have 0000 as palette. Happens in NFS2SE car models, dash hud, render/pc
-        for id in ['!pal', '!PAL', '0000']:
+        for name in ['!pal', '!PAL', '0000']:
             try:
-                palette = getattr(shpi, id)
+                palette = getattr(shpi.children, name)
                 from resources.eac.palettes import BasePalette
                 if palette and isinstance(palette, BasePalette):
                     return palette
@@ -56,7 +56,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
     def serialize(self, block: AnyBitmapBlock, path: str):
         super().serialize(block, path)
         if (block.palette is None
-                or block.palette.resource_id == 0x7C
+                or block.palette.resource_id.value == 0x7C
                 or (block.id.endswith('ga00') and 'TR2_001.FAM' in block.id)):
             # need to find the palette, it is a tricky part
             # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
@@ -68,7 +68,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             # TODO find a generic solution to this problem
             from library import require_resource
             # finding in current SHPI directory
-            shpi_id = block.id[:max(block.id.rindex('__'), block.id.rindex('/'))]
+            shpi_id = block.id[:max(block.id.rfind('__children'), block.id.rfind('/children'))]
             palette = self._get_palette_from_shpi(require_resource(shpi_id))
             # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette, use previous available !pal. 7C bitmap resource data seems to not change as well :(
             if not palette and '.FAM' in block.id:
@@ -79,24 +79,25 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             if palette is None and 'ART/CONTROL/' in block.id:
                 # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
                 from library import require_resource
-                palette = require_resource('/'.join(block.id.split('/')[:-1]) + '/CENTRAL.QFS__!pal')
+                palette = require_resource('/'.join(block.id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS__children/!pal')
         else:
             palette = block.palette
         if palette is None:
             raise SerializationException('Palette not found for 8bit bitmap')
         colors = []
-        palette_colors = palette.colors
+        palette_colors = [c.value for c in palette.colors]
+        if palette.value.is_last_color_transparent:
+            palette_colors[255] = 0
         if block.id[-4:] in ['rsid', 'lite'] and '.CFM' in block.id:
             # NFS1 car tail lights: make transparent
-            palette_colors = deepcopy(palette_colors)
             palette_colors[254] = 0
         for index in block.bitmap:
             try:
-                colors.append(palette_colors[index])
+                colors.append(palette_colors[index.value])
             except IndexError:
                 colors.append(0)
         Image.frombytes('RGBA',
-                        (block.width, block.height),
+                        (block.width.value, block.height.value),
                         bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{path}.png')
         if settings.images__save_inline_palettes and block.palette and block.palette == palette:
             from serializers import PaletteSerializer

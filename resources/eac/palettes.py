@@ -56,8 +56,8 @@ class BasePalette(CompoundBlock, ABC):
     def from_raw_value(self, raw: dict):
         res = super().from_raw_value(raw)
         try:
-            if self.can_use_last_color_as_transparent and is_last_color_transparent(res.colors[255]):
-                res.colors[255] = 0
+            if self.can_use_last_color_as_transparent and is_last_color_transparent(res.colors[255].value):
+                res.is_last_color_transparent = True
         except IndexError:
             pass
         return res

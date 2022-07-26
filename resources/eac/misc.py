@@ -8,12 +8,7 @@ class DashDeclarationFile(Utf8Field):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.persistent_data = None
-
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        res = super().read(buffer, size, parent_read_data)
-        self.persistent_data = res
-        return res
+        self.value = None
 
     def from_raw_value(self, raw: bytes):
         text = super().from_raw_value(raw)
@@ -47,5 +42,5 @@ class DashDeclarationFile(Utf8Field):
                 dictionary[current_key] = value if not current_key_ended else [value]
         return DataWrapper(dictionary)
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, value, offset=0) -> bytes:
         raise NotImplementedError

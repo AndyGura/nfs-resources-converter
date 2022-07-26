@@ -148,13 +148,13 @@ class TriMapSerializer(BaseFileSerializer):
             self.reference_points = reference_points
             self.matrix = [None] * 4
             for row_index in range(4):
-                A0 = rows[row_index][0].persistent_data
+                A0 = rows[row_index][0].value
                 A0.x += reference_points[row_index].position.x
                 A0.y += reference_points[row_index].position.y
                 A0.z += reference_points[row_index].position.z
 
-                A15 = [rows[row_index][i + 1].persistent_data for i in range(5)]
-                A610 = [rows[row_index][i + 6].persistent_data for i in range(5)]
+                A15 = [rows[row_index][i + 1].value for i in range(5)]
+                A610 = [rows[row_index][i + 6].value for i in range(5)]
                 # Each point is relative to the previous point
                 for i in range(5):
                     for j in ['x', 'y', 'z']:
