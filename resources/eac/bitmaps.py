@@ -49,7 +49,7 @@ class Bitmap16Bit0565(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color16Bit0565Block(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color16Bit0565Block(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 2\\*width\\*height)',
@@ -88,6 +88,7 @@ class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
                                    length_label='width * height',
                                    value_deserialize_func=lambda x: 0xFFFFFF00 | transform_bitness(x, 4),
                                    value_serialize_func=lambda x: (x & 0xFF) >> 4,
+                                   children_simplified=True,
                                    description='Font atlas bitmap data')
 
         unknown_fields = ['unknowns']
@@ -118,7 +119,7 @@ class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False), length_label='width * height',
+        bitmap = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False, simplified=True), length_label='width * height',
                             description='Color indexes of bitmap pixels. The actual colors are '
                                         'in assigned to this bitmap palette')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
@@ -152,7 +153,7 @@ class Bitmap32Bit(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color32BitBlock(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color32BitBlock(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 4\\*width\\*height)',
@@ -175,7 +176,7 @@ class Bitmap16Bit1555(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color16Bit1555Block(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color16Bit1555Block(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 2\\*width\\*height)',
@@ -198,7 +199,7 @@ class Bitmap24Bit(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color24BitLittleEndianField(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color24BitLittleEndianField(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 3\\*width\\*height)',

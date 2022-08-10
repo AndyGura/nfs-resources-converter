@@ -2,7 +2,7 @@ from abc import ABC
 from io import BufferedReader, BytesIO
 from typing import Literal, List, Tuple
 
-from library.helpers.exceptions import BlockIntegrityException, MultiReadUnavailableException, EndOfBufferException
+from library.helpers.exceptions import BlockIntegrityException, EndOfBufferException
 from library.read_blocks.read_block import ReadBlock
 from library.read_data import ReadData
 from library.utils import represent_value_as_str
@@ -41,7 +41,7 @@ class AtomicReadBlock(ReadBlock, ABC):
             raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
                                        f'min size {self_size * length}, available: {size}')
         bts = buffer.read(self_size * length)
-        return [ReadData(self.from_raw_value(x, states[i]), self, states[i]) for x, i in [(bts[i * self_size:(i + 1) * self_size], i) for i in range(length)]]
+        return [self.wrap_result(self.from_raw_value(x, states[i]), states[i]) for x, i in [(bts[i * self_size:(i + 1) * self_size], i) for i in range(length)]]
 
 
 class IntegerBlock(AtomicReadBlock):

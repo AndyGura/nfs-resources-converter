@@ -30,6 +30,7 @@ class SubByteArrayBlock(ReadBlock):
                  length: int = None,
                  length_strategy: Literal["strict", "read_available"] = "strict",
                  length_label: str = None,
+                 children_simplified: bool = False,
                  value_deserialize_func: callable = lambda x: x,
                  value_serialize_func: callable = lambda x: x,
                  **kwargs):
@@ -37,6 +38,7 @@ class SubByteArrayBlock(ReadBlock):
         self.bits_per_value = bits_per_value
         self.length = length
         self.length_strategy = length_strategy
+        self.children_simplified = children_simplified
         self.value_deserialize_func = value_deserialize_func
         self.value_serialize_func = value_serialize_func
         if length_label is None:
@@ -61,7 +63,10 @@ class SubByteArrayBlock(ReadBlock):
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])
         values = [int(bitstring[i * self.bits_per_value:(i + 1) * self.bits_per_value], 2)
                   for i in range(floor(len(bitstring) / self.bits_per_value))]
-        return [ReadData(value=self.value_deserialize_func(x), block=None, block_state=state) for x in values]
+        if self.children_simplified:
+            return [self.value_deserialize_func(x) for x in values]
+        else:
+            return [ReadData(value=self.value_deserialize_func(x), block=None, block_state=state) for x in values]
 
     def to_raw_value(self, data, state) -> bytes:
         pass

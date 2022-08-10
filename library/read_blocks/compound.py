@@ -95,7 +95,7 @@ class CompoundBlock(ReadBlock, ABC):
                     raise EndOfBufferException()
             except (EndOfBufferException, BlockIntegrityException, NotImplementedError) as ex:
                 if name in self.Fields.optional_fields:
-                    res[name] = ReadData(value=None, block=field, block_state=state[name])
+                    field.wrap_result(None, block_state=state[name])
                     buffer.seek(start)
                 else:
                     raise ex

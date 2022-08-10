@@ -1,7 +1,6 @@
 import traceback
 from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO, BufferedWriter
-from logging import error
 from typing import Literal
 
 import settings
@@ -29,9 +28,10 @@ class ReadBlock(ABC):
     block_description = None
     description = None
 
-    def __init__(self, description: str = '', error_handling_strategy: Literal["raise", "return"] = "raise"):
+    def __init__(self, description: str = '', error_handling_strategy: Literal["raise", "return"] = "raise", simplified: bool = False):
         self.description = description
         self.error_handling_strategy = error_handling_strategy
+        self.simplified = simplified
 
     def get_size(self, state):
         return None
@@ -48,11 +48,17 @@ class ReadBlock(ABC):
             raise EndOfBufferException(f'Cannot read {self.__class__.__name__}: '
                                        f'min size {min_size}, available: {available_size}')
 
+    def wrap_result(self, value, block_state=None):
+        if self.simplified:
+            return value
+        else:
+            return ReadData(value=value, block=self, block_state=block_state)
+
     def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None) -> ReadData:
         try:
             self._check_length_before_reading(size, state)
             value = self._load_value(buffer, size, state, parent_read_data)
-            return ReadData(value=self.from_raw_value(value, state), block=self, block_state=state)
+            return self.wrap_result(value=self.from_raw_value(value, state), block_state=state)
         except Exception as ex:
             if settings.print_errors:
                 traceback.print_exc()

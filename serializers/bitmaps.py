@@ -13,7 +13,7 @@ class BitmapSerializer(BaseFileSerializer):
         super().serialize(data, path)
         Image.frombytes('RGBA',
                         (data.width.value, data.height.value),
-                        bytes().join([c.value.to_bytes(4, 'big') for c in data.bitmap])).save(f'{path}.png')
+                        bytes().join([c.to_bytes(4, 'big') for c in data.bitmap])).save(f'{path}.png')
 
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
@@ -93,7 +93,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             palette_colors[254] = 0
         for index in data.bitmap:
             try:
-                colors.append(palette_colors[index.value])
+                colors.append(palette_colors[index])
             except IndexError:
                 colors.append(0)
         Image.frombytes('RGBA',
