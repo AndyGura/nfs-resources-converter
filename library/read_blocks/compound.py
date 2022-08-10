@@ -1,7 +1,6 @@
 from abc import ABC
-from functools import cached_property
 from io import BufferedReader, BytesIO
-from typing import List, Tuple, Any
+from typing import List, Tuple
 
 from library.helpers.data_wrapper import DataWrapper
 from library.helpers.exceptions import EndOfBufferException, BlockIntegrityException

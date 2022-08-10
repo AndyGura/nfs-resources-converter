@@ -35,16 +35,13 @@ class AtomicReadBlock(ReadBlock, ABC):
                                           f'found {represent_value_as_str(data.value)}')
         return data
 
-    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
-        raise MultiReadUnavailableException()  # FIXME disabled
-        # self_size = self.size  # optimization
-        # if self_size != self.min_size or self_size != self.max_size:
-        #     raise MultiReadUnavailableException()
-        # if self_size * length > size:
-        #     raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
-        #                                f'min size {self_size * length}, available: {size}')
-        # bts = buffer.read(self_size * length)
-        # return [self.from_raw_value(x) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
+    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int, parent_read_data: dict = None):
+        self_size = self.static_size
+        if self_size * length > size:
+            raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
+                                       f'min size {self_size * length}, available: {size}')
+        bts = buffer.read(self_size * length)
+        return [ReadData(self.from_raw_value(x, states[i]), self, states[i]) for x, i in [(bts[i * self_size:(i + 1) * self_size], i) for i in range(length)]]
 
 
 class IntegerBlock(AtomicReadBlock):
@@ -62,22 +59,6 @@ class IntegerBlock(AtomicReadBlock):
         if static_size > 1:
             self.block_description += f' ({byte_order} endian)'
         super(IntegerBlock, self).__init__(static_size=static_size, **kwargs)
-
-    # optimized case with unsigned 8-bit ints
-    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, length: int, parent_read_data: dict = None):
-        raise MultiReadUnavailableException()  # FIXME disabled
-        # self_size = self.size  # optimization
-        # if self_size != self.min_size or self_size != self.max_size:
-        #     raise MultiReadUnavailableException()
-        # if self_size * length > size:
-        #     raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
-        #                                f'min size {self_size * length}, available: {size}')
-        # bts = buffer.read(self_size * length)
-        # # here is optimization
-        # if self_size == 1 and not self.is_signed:
-        #     return list(bts)
-        # else:
-        #     return [self.from_raw_value(x) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
 
     def from_raw_value(self, raw: bytes, state: dict):
         return int.from_bytes(raw.ljust(self.static_size, b'\0') if self.static_size > 1 else raw, byteorder=self.byte_order,

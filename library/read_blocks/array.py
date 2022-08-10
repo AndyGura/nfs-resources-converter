@@ -2,8 +2,11 @@ from io import BufferedReader, BytesIO
 from math import floor
 from typing import List, Literal
 
-from library.helpers.exceptions import BlockDefinitionException, MultiReadUnavailableException, EndOfBufferException, \
-    SerializationException
+from library.helpers.exceptions import (BlockDefinitionException,
+                                        MultiReadUnavailableException,
+                                        EndOfBufferException,
+                                        SerializationException,
+                                        )
 from library.helpers.id import join_id
 from library.read_blocks.atomic import AtomicReadBlock
 from library.read_blocks.read_block import ReadBlock
@@ -16,6 +19,8 @@ class ArrayBlock(ReadBlock):
         length = self.get_length(state)
         if length is None:
             return None
+        if isinstance(self.child, AtomicReadBlock):
+            return self.child.static_size * length
         return sum(self.child.get_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
 
     def get_min_size(self, state):
@@ -23,6 +28,8 @@ class ArrayBlock(ReadBlock):
         if length is None:
             return 0
         if self.length_strategy == "strict":
+            if isinstance(self.child, AtomicReadBlock):
+                return self.child.static_size * length
             try:
                 return sum(self.child.get_min_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
             except TypeError:
@@ -34,6 +41,8 @@ class ArrayBlock(ReadBlock):
         length = self.get_length(state)
         if length is None:
             return float('inf')
+        if isinstance(self.child, AtomicReadBlock):
+            return self.child.static_size * length
         return sum(self.child.get_max_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
 
     def get_length(self, state):
@@ -97,13 +106,14 @@ class ArrayBlock(ReadBlock):
                         break
                     calculated_amount += 1
                 amount = calculated_amount
+        id_prefix = join_id(state.get('id'), '')
         if not state.get('children_states'):
-            state['children_states'] = { str(i): {'id': join_id(state.get('id'), str(i)),
-                                                  **state.get('common_children_states', {})} for i in range(amount) }
+            common_states = state.get('common_children_states', {})
+            state['children_states'] = {str(i): {'id': id_prefix + str(i), **common_states} for i in range(amount)}
         start = buffer.tell()
         try:
             if isinstance(self.child, AtomicReadBlock):
-                res = self.child.read_multiple(buffer, size, amount, parent_read_data)
+                res = self.child.read_multiple(buffer, size, [x for x in state['children_states'].values()], amount, parent_read_data)
                 size -= (buffer.tell() - start)
             else:
                 raise MultiReadUnavailableException('Supports only atomic read blocks')
@@ -113,7 +123,7 @@ class ArrayBlock(ReadBlock):
                 start = buffer.tell()
                 try:
                     if not state['children_states'][str(i)]:
-                        state['children_states'][str(i)] = {'id': join_id(state.get('id'), str(i))}
+                        state['children_states'][str(i)] = {'id': id_prefix + str(i)}
                     res.append(self.child.read(buffer, size, {
                         **state.get('common_children_states', {}),
                         **state['children_states'][str(i)]
