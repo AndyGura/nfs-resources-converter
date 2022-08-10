@@ -107,13 +107,13 @@ class ArrayBlock(ReadBlock):
                     calculated_amount += 1
                 amount = calculated_amount
         id_prefix = join_id(state.get('id'), '')
-        if not state.get('children_states'):
+        if not self.child.simplified and not state.get('children_states'):
             common_states = state.get('common_children_states', {})
             state['children_states'] = {str(i): {'id': id_prefix + str(i), **common_states} for i in range(amount)}
         start = buffer.tell()
         try:
             if isinstance(self.child, AtomicReadBlock):
-                res = self.child.read_multiple(buffer, size, [x for x in state['children_states'].values()], amount, parent_read_data)
+                res = self.child.read_multiple(buffer, size, [x for x in state.get('children_states', {}).values()], amount, parent_read_data)
                 size -= (buffer.tell() - start)
             else:
                 raise MultiReadUnavailableException('Supports only atomic read blocks')
@@ -122,12 +122,12 @@ class ArrayBlock(ReadBlock):
             for i in range(amount):
                 start = buffer.tell()
                 try:
-                    if not state['children_states'][str(i)]:
+                    if not self.child.simplified and not state['children_states'][str(i)]:
                         state['children_states'][str(i)] = {'id': id_prefix + str(i)}
                     res.append(self.child.read(buffer, size, {
                         **state.get('common_children_states', {}),
                         **state['children_states'][str(i)]
-                    }))
+                    } if not self.child.simplified else None))
                 except EndOfBufferException as ex:
                     if self.length_strategy == "read_available":
                         # assume this array is finished

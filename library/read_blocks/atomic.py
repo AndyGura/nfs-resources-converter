@@ -35,13 +35,21 @@ class AtomicReadBlock(ReadBlock, ABC):
                                           f'found {represent_value_as_str(data.value)}')
         return data
 
-    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int, parent_read_data: dict = None):
+    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int,
+                      parent_read_data: dict = None):
         self_size = self.static_size
         if self_size * length > size:
             raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
                                        f'min size {self_size * length}, available: {size}')
         bts = buffer.read(self_size * length)
-        return [self.wrap_result(self.from_raw_value(x, states[i]), states[i]) for x, i in [(bts[i * self_size:(i + 1) * self_size], i) for i in range(length)]]
+        if self.simplified:
+            return [self.from_raw_value(x, None) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
+        return [self.wrap_result(self.from_raw_value(x, state), state)
+                for x, i, state in [(bts[i * self_size:(i + 1) * self_size],
+                                     i,
+                                     states[i] if len(states) > i else None)
+                                    for i in range(length)
+                                    ]]
 
 
 class IntegerBlock(AtomicReadBlock):
@@ -60,12 +68,24 @@ class IntegerBlock(AtomicReadBlock):
             self.block_description += f' ({byte_order} endian)'
         super(IntegerBlock, self).__init__(static_size=static_size, **kwargs)
 
+    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int,
+                      parent_read_data: dict = None):
+        # insane speedup in this case (we check class name to not avoid from_raw_value in subclasses)
+        if self.simplified and self.static_size == 1 and not self.is_signed and self.__class__.__name__ == 'IntegerBlock':
+            if length > size:
+                raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
+                                           f'min size {length}, available: {size}')
+            return list(buffer.read(length))
+        return super().read_multiple(buffer, size, states, length, parent_read_data)
+
     def from_raw_value(self, raw: bytes, state: dict):
-        return int.from_bytes(raw.ljust(self.static_size, b'\0') if self.static_size > 1 else raw, byteorder=self.byte_order,
+        return int.from_bytes(raw.ljust(self.static_size, b'\0') if self.static_size > 1 else raw,
+                              byteorder=self.byte_order,
                               signed=self.is_signed)
 
     def to_raw_value(self, data: ReadData, state) -> bytes:
-        return data.value.to_bytes(self.static_size, byteorder=self.byte_order, signed=self.is_signed).ljust(self.static_size, b'\0')
+        return data.value.to_bytes(self.static_size, byteorder=self.byte_order, signed=self.is_signed).ljust(
+            self.static_size, b'\0')
 
 
 class Utf8Field(AtomicReadBlock):
@@ -124,9 +144,9 @@ class BitFlagsBlock(IntegerBlock, ABC):
         for value, name in self.flag_names:
             self.flag_name_map[value] = name
         self.block_description = (
-                    '8 flags container<br/><details><summary>flag names (from least to most significant)</summary>'
-                    + '<br/>'.join(
-                [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>')
+                '8 flags container<br/><details><summary>flag names (from least to most significant)</summary>'
+                + '<br/>'.join(
+            [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>')
 
     def from_raw_value(self, raw: bytes, state: dict):
         flags = super().from_raw_value(raw, state)
