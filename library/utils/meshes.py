@@ -24,8 +24,8 @@ class SubMesh:
             uvs_scaled_to_texture = False
             if self.texture_id:
                 for texture in textures_shpi_block.children:
-                    if isinstance(texture, AnyBitmapBlock) and texture.id.split('/')[-1] == self.texture_id:
-                        u_multiplier, v_multiplier = 1 / texture.width, 1 / texture.height
+                    if isinstance(texture.block, AnyBitmapBlock) and texture.id.split('/')[-1] == self.texture_id:
+                        u_multiplier, v_multiplier = 1 / texture.width.value, 1 / texture.height.value
                         uvs_scaled_to_texture = True
                         break
             if not uvs_scaled_to_texture and self.vertex_uvs:

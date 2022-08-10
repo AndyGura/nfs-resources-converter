@@ -62,6 +62,9 @@ class WwwwArchiveSerializer(BaseFileSerializer):
         # after orip skip shpi block. It will be exported by orip serializer
         skip_next_shpi = False
         for name, item in [(name, item) for name, item in items]:
+            if isinstance(item, Exception):
+                skipped_resources.append((name, format_exception(item)))
+                continue
             if skip_next_shpi:
                 assert isinstance(item.block, ShpiBlock), \
                     BlockIntegrityException('After ORIP geometry in wwww archive only SHPI directory expected!')
