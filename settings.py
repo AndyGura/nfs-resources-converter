@@ -7,6 +7,8 @@ ffmpeg_executable = 'ffmpeg'
 # 0 means "use the amount of CPU cores"
 multiprocess_processes_count = 0
 
+print_errors = False
+
 # ================================================= CONVERTING OPTIONS =================================================
 # classes map, which export blocks data to common formats
 SERIALIZER_CLASSES = {
@@ -49,9 +51,9 @@ maps__save_as_chunked = False
 maps__save_collisions = False    # this one will consume time...
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
-geometry__save_obj = False
+geometry__save_obj = True
 # saves blender scene for each 3D scene
-geometry__save_blend = True
+geometry__save_blend = False
 # removes empty polygons, representing whels and their shadow. Instead place a dummy on the position where wheel axle
 # located and set wheel width, radius as custom properties of the dummy
 geometry__replace_car_wheel_with_dummies = True

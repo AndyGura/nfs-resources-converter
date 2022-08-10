@@ -1,6 +1,7 @@
 import traceback
 
 import serializers
+import settings
 from library.helpers.exceptions import BlockIntegrityException
 from library.read_data import ReadData
 from library.utils import format_exception
@@ -26,7 +27,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item.block)
                 serializer.serialize(item, f'{path}{name}')
             except Exception as ex:
-                traceback.print_exc()
+                if settings.print_errors:
+                    traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         with open(f'{path}/positions.txt', 'w') as f:
             for name, item in [(name, item) for name, item in items if isinstance(item, ReadData) and isinstance(item.block, AnyBitmapBlock)]:
@@ -76,7 +78,8 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item.block)
                 serializer.serialize(item, f'{path}{name}')
             except Exception as ex:
-                traceback.print_exc()
+                if settings.print_errors:
+                    traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
             with open(f'{path}/skipped.txt', 'w') as f:
@@ -102,7 +105,8 @@ class SoundBankSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item.block)
                 serializer.serialize(item, f'{path}{name}')
             except Exception as ex:
-                traceback.print_exc()
+                if settings.print_errors:
+                    traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
             with open(f'{path}/skipped.txt', 'w') as f:

@@ -4,6 +4,7 @@ from io import BufferedReader, BytesIO, BufferedWriter
 from logging import error
 from typing import Literal
 
+import settings
 from library.helpers.exceptions import EndOfBufferException
 
 # TODO
@@ -53,7 +54,8 @@ class ReadBlock(ABC):
             value = self._load_value(buffer, size, state, parent_read_data)
             return ReadData(value=self.from_raw_value(value, state), block=self, block_state=state)
         except Exception as ex:
-            traceback.print_exc()
+            if settings.print_errors:
+                traceback.print_exc()
             if self.error_handling_strategy == 'raise':
                 raise ex
             else:

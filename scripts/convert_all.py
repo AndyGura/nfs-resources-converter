@@ -40,7 +40,8 @@ def export_file(path):
         serializer = get_serializer(data.block)
         serializer.serialize(data, f'out/{path}')
     except Exception as ex:
-        traceback.print_exc()
+        if settings.print_errors:
+            traceback.print_exc()
         return ex
 
 
