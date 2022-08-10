@@ -6,6 +6,7 @@ from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
 from library.read_blocks.read_block import ReadBlock
+from library.read_data import ReadData
 
 
 class BaseFileSerializer:
@@ -13,12 +14,11 @@ class BaseFileSerializer:
     def __init__(self):
         self.current_serializing_block = None
 
+    # TODO it is broken, fix
     def get_unknowns_dict(self, block: CompoundBlock):
         from library.helpers.json import rec_dd, resource_to_json
         res = rec_dd()
         has_something = False
-        if isinstance(block, DelegateBlock):
-            block = block.delegated_block
         if isinstance(block, CompoundBlock) and block.persistent_data is not None:
             for key, value in block.persistent_data.items():
                 if key in block.Fields.unknown_fields:
@@ -41,13 +41,14 @@ class BaseFileSerializer:
                         has_something = True
         return res if has_something else None
 
-    def serialize(self, block: ReadBlock, path: str):
-        self.current_serializing_block = block
+    def serialize(self, data: ReadData, path: str):
+        self.current_serializing_block = data
         os.makedirs('/'.join(path.split('/')[:-1]), exist_ok=True)
+        block = data.block
         if isinstance(block, DelegateBlock):
             block = block.delegated_block
         if settings.export_unknown_values and isinstance(block, CompoundBlock):
-            unknowns = self.get_unknowns_dict(block)
+            unknowns = self.get_unknowns_dict(data.value)
             if unknowns:
                 with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
                     file.write(json.dumps(unknowns, indent=4))

@@ -1,22 +1,11 @@
-from io import BufferedReader, BytesIO
-
-from library.read_blocks.atomic import Utf8Field
 from library.helpers.data_wrapper import DataWrapper
+from library.read_blocks.atomic import Utf8Field
 
 
 class DashDeclarationFile(Utf8Field):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.persistent_data = None
-
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        res = super().read(buffer, size, parent_read_data)
-        self.persistent_data = res
-        return res
-
-    def from_raw_value(self, raw: bytes):
-        text = super().from_raw_value(raw)
+    def from_raw_value(self, raw: bytes, state: dict):
+        text = super().from_raw_value(raw, state)
         dictionary = {}
         values = text.split('\n')
         current_key = None
@@ -47,5 +36,5 @@ class DashDeclarationFile(Utf8Field):
                 dictionary[current_key] = value if not current_key_ended else [value]
         return DataWrapper(dictionary)
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, data, state) -> bytes:
         raise NotImplementedError

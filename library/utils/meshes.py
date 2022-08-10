@@ -28,7 +28,7 @@ class SubMesh:
                         u_multiplier, v_multiplier = 1 / texture.width, 1 / texture.height
                         uvs_scaled_to_texture = True
                         break
-            if not uvs_scaled_to_texture:
+            if not uvs_scaled_to_texture and self.vertex_uvs:
                 u_multiplier = 1 / max([x[0] for x in self.vertex_uvs])
                 v_multiplier = 1 / max([x[1] for x in self.vertex_uvs])
         uvs = [[

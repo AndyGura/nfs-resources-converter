@@ -33,9 +33,13 @@ class FfnFont(CompoundBlock):
         
         unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
 
-    def _after_symbols_amount_read(self, data, **kwargs):
-        self.instance_fields_map['definitions'].length = data['symbols_amount']
+    def _after_symbols_amount_read(self, data, state, **kwargs):
+        if not state.get('definitions'):
+            state['definitions'] = {}
+        state['definitions']['length'] = data['symbols_amount'].value
 
-    def _after_definitions_read(self, data, total_size, buffer, **kwargs):
-        self.instance_fields_map['skip_bytes'].length = data['bitmap_data_pointer'] - buffer.tell()
+    def _after_definitions_read(self, data, state, buffer, **kwargs):
+        if not state.get('skip_bytes'):
+            state['skip_bytes'] = {}
+        state['skip_bytes']['length'] = data['bitmap_data_pointer'].value - buffer.tell()
 

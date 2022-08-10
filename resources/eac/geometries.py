@@ -32,7 +32,7 @@ class OripPolygon(CompoundBlock):
                                  description="The same as offset_3d, also points to polygon_vertex_map_block, but used "
                                              "for texture coordinates. Look at polygon_vertex_map_block description "
                                              "for more info")
-        
+
         unknown_fields = ['unk']
 
 
@@ -43,8 +43,8 @@ class OripVertexUV(CompoundBlock):
                           'texture with different size'
 
     def __init__(self, **kwargs):
-        kwargs['inline_description'] = True
-        super().__init__(**kwargs)
+        super().__init__(inline_description=True,
+                         **kwargs)
 
     class Fields(CompoundBlock.Fields):
         u = IntegerBlock(static_size=4, is_signed=True)
@@ -131,42 +131,60 @@ class OripGeometry(CompoundBlock):
         unknown_fields = ['unknowns0', 'unknowns1', 'identifier', 'unknowns2', 'texture_number_map_block', 'unk0_block',
                           'unk1_block', 'labels_block']
 
-    def _after_unknowns2_read(self, data, buffer, **kwargs):
-        self.instance_fields_map['polygons_block'].length = data['polygon_count']
-        self.instance_fields_map['vertex_uvs_block'].length = data['vertex_uvs_count']
-        self.instance_fields_map['texture_names_block'].length = data['texture_names_count']
-        self.instance_fields_map['texture_number_map_block'].length = data['texture_number_count']
-        self.instance_fields_map['unk0_block'].length = data['unk0_count']
-        self.instance_fields_map['unk1_block'].length = data['unk1_count']
-        self.instance_fields_map['labels_block'].length = data['labels_count']
-        self.instance_fields_map['vertex_block'].length = data['vertex_count']
-        self.instance_fields_map['vertex_block'].child = (Point3D_32_7()
-                                                          if buffer.name.endswith('.CFM')
-                                                          else Point3D_32_4())
+    def _after_unknowns2_read(self, data, buffer, state, **kwargs):
+        if not state.get('polygons_block'):
+            state['polygons_block'] = {}
+        state['polygons_block']['length'] = data['polygon_count'].value
+        if not state.get('vertex_uvs_block'):
+            state['vertex_uvs_block'] = {}
+        state['vertex_uvs_block']['length'] = data['vertex_uvs_count'].value
+        if not state.get('texture_names_block'):
+            state['texture_names_block'] = {}
+        state['texture_names_block']['length'] = data['texture_names_count'].value
+        if not state.get('texture_number_map_block'):
+            state['texture_number_map_block'] = {}
+        state['texture_number_map_block']['length'] = data['texture_number_count'].value
+        if not state.get('unk0_block'):
+            state['unk0_block'] = {}
+        state['unk0_block']['length'] = data['unk0_count'].value
+        if not state.get('unk1_block'):
+            state['unk1_block'] = {}
+        state['unk1_block']['length'] = data['unk1_count'].value
+        if not state.get('labels_block'):
+            state['labels_block'] = {}
+        state['labels_block']['length'] = data['labels_count'].value
+        if not state.get('vertex_block'):
+            state['vertex_block'] = {}
+        state['vertex_block']['length'] = data['vertex_count'].value
+        if not state['vertex_block'].get('common_children_states'):
+            state['vertex_block']['common_children_states'] = {}
+        state['vertex_block']['common_children_states']['delegated_block'] = (Point3D_32_7()
+                                                                              if buffer.name.endswith('.CFM')
+                                                                              else Point3D_32_4())
 
-    def _before_polygons_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['polygon_block_offset'])
+    def _before_polygons_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['polygon_block_offset'].value)
 
-    def _before_vertex_uvs_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['vertex_uvs_block_offset'])
+    def _before_vertex_uvs_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['vertex_uvs_block_offset'].value)
 
-    def _before_texture_names_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['texture_names_block_offset'])
+    def _before_texture_names_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['texture_names_block_offset'].value)
 
-    def _before_texture_number_map_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['texture_number_block_offset'])
+    def _before_texture_number_map_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['texture_number_block_offset'].value)
 
-    def _before_unk0_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['unk0_block_offset'])
+    def _before_unk0_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['unk0_block_offset'].value)
 
-    def _before_unk1_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['unk1_block_offset'])
+    def _before_unk1_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['unk1_block_offset'].value)
 
-    def _before_labels_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['labels_block_offset'])
+    def _before_labels_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['labels_block_offset'].value)
 
-    def _before_vertex_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['vertex_block_offset'])
+    def _before_vertex_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['vertex_block_offset'].value)
 
-    def _before_polygon_vertex_map_block_read(self, data, buffer, **kwargs):
-        buffer.seek(self.initial_buffer_pointer + data['polygon_vertex_map_block_offset'])
+    def _before_polygon_vertex_map_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['polygon_vertex_map_block_offset'].value)

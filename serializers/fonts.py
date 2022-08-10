@@ -1,25 +1,25 @@
 import os
 
-from resources.eac.fonts import FfnFont
+from library.read_data import ReadData
 from serializers import BaseFileSerializer, BitmapSerializer
 
 
 class FfnFontSerializer(BaseFileSerializer):
 
-    def serialize(self, block: FfnFont, path: str):
-        super().serialize(block, path)
+    def serialize(self, data: ReadData, path: str):
+        super().serialize(data, path)
         if not os.path.exists(path):
             os.makedirs(path)
         image_serializer = BitmapSerializer()
-        image_serializer.serialize(block.bitmap, f'{path}/bitmap')
+        image_serializer.serialize(data.bitmap, f'{path}/bitmap')
         with open(f'{path}/font.fnt', 'w') as file:
-            file.write(f'info face="{block.id.split("/")[-1]}" size=24\n')
+            file.write(f'info face="{data.id.split("/")[-1]}" size=24\n')
             file.write('common lineHeight=32\n')
             file.write(f'page id=0 file="bitmap.png"\n')
-            file.write(f'chars count={block.symbols_amount}\n')
-            for symbol in block.definitions:
-                file.write(f'char id={symbol.code}    x={symbol.glyph_x}     y={symbol.glyph_y}     '
-                           f'width={symbol.glyph_width}    height={symbol.glyph_height}   '
-                           f'xoffset={symbol.x_offset}     yoffset={symbol.y_offset}     '
-                           f'xadvance={symbol.x_advance}    page=0  chnl=0\n')
+            file.write(f'chars count={data.symbols_amount.value}\n')
+            for symbol in data.definitions:
+                file.write(f'char id={symbol.code.value}    x={symbol.glyph_x.value}     y={symbol.glyph_y.value}     '
+                           f'width={symbol.glyph_width.value}    height={symbol.glyph_height.value}   '
+                           f'xoffset={symbol.x_offset.value}     yoffset={symbol.y_offset.value}     '
+                           f'xadvance={symbol.x_advance.value}    page=0  chnl=0\n')
 

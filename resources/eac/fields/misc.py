@@ -89,18 +89,18 @@ class FenceType(IntegerBlock):
                                  '<br/>r - flag is add right fence' \
                                  '<br/>tttttt - texture id'
 
-    def from_raw_value(self, raw: bytes):
-        fence_type = super().from_raw_value(raw)
+    def from_raw_value(self, raw: bytes, state: dict):
+        fence_type = super().from_raw_value(raw, state)
         return DataWrapper({
             'texture_id': fence_type & (0xff >> 2),
             'has_left_fence': (fence_type & (0x1 << 7)) != 0,
             'has_right_fence': (fence_type & (0x1 << 6)) != 0,
         })
 
-    def to_raw_value(self, value) -> bytes:
-        byte = value['texture_id'] & (0xff >> 2)
-        if value['has_left_fence']:
+    def to_raw_value(self, data, state) -> bytes:
+        byte = data['texture_id'] & (0xff >> 2)
+        if data['has_left_fence']:
             byte = byte | (0x1 << 7)
-        if value['has_right_fence']:
+        if data['has_right_fence']:
             byte = byte | (0x1 << 6)
         return super().to_raw_value(byte)

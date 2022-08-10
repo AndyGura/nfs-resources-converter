@@ -4,6 +4,7 @@ from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Field
 from library.read_blocks.compound import CompoundBlock
+from library.read_data import ReadData
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8
 
@@ -156,7 +157,7 @@ class TriMap(CompoundBlock):
         unknown_fields = ['unknowns0', 'position', 'unknowns1', 'scenery_data_length', 'unknowns2', 'unknowns3',
                           'unknowns4']
 
-    def _after_road_spline_read(self, data, **kwargs):
+    def _after_road_spline_read(self, data, state, **kwargs):
         try:
             road_spline_length = next(i for i, x in enumerate(data['road_spline']) if x.position.x
                                       == x.position.y
@@ -168,13 +169,19 @@ class TriMap(CompoundBlock):
                                       == 0)
         except StopIteration:
             road_spline_length = len(data['road_spline'])
-        self.instance_fields_map['terrain'].length = floor(road_spline_length / 4)
+        if not state.get('terrain'):
+            state['terrain'] = {}
+        state['terrain']['length'] = floor(road_spline_length / 4)
 
-    def _after_proxy_object_instances_count_read(self, data, **kwargs):
-        self.instance_fields_map['proxy_objects'].length = data['proxy_objects_count']
-        self.instance_fields_map['proxy_object_instances'].length = data['proxy_object_instances_count']
+    def _after_proxy_object_instances_count_read(self, data, state, **kwargs):
+        if not state.get('proxy_objects'):
+            state['proxy_objects'] = {}
+        state['proxy_objects']['length'] = data['proxy_objects_count'].value
+        if not state.get('proxy_object_instances'):
+            state['proxy_object_instances'] = {}
+        state['proxy_object_instances']['length'] = data['proxy_object_instances_count'].value
 
-    def to_raw_value(self, value: DataWrapper = None) -> bytes:
-        return super().to_raw_value(value)
+    def to_raw_value(self, data: ReadData, state: dict = None) -> bytes:
+        return super().to_raw_value(data, state)
 
 

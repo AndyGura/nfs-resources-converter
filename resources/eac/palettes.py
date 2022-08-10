@@ -53,11 +53,12 @@ class BasePalette(CompoundBlock, ABC):
         self.block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, ' \
                                  'meaning the index of color in LUT of assigned palette'
 
-    def from_raw_value(self, raw: dict):
-        res = super().from_raw_value(raw)
+    def from_raw_value(self, raw: dict, state: dict):
+        res = super().from_raw_value(raw, state)
+        res.last_color_transparent = False
         try:
             if self.can_use_last_color_as_transparent and is_last_color_transparent(res.colors[255]):
-                res.colors[255] = 0
+                res.last_color_transparent = True
         except IndexError:
             pass
         return res

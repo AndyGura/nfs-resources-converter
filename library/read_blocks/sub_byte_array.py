@@ -4,27 +4,26 @@ from typing import Literal
 
 from library.helpers.exceptions import BlockDefinitionException
 from library.read_blocks.read_block import ReadBlock
+from library.read_data import ReadData
 
 
 class SubByteArrayBlock(ReadBlock):
 
-    @property
-    def size(self):
-        if self.length is None:
+    def get_size(self, state):
+        length = self.length
+        if length is None:
+            length = state.get('length')
+        if length is None:
             return None
-        return ceil(self.bits_per_value * self.length / 8)
+        return ceil(self.bits_per_value * length / 8)
 
-    @property
-    def min_size(self):
-        if self.length is None:
-            return 0
-        return self.size if self.length_strategy == "strict" else 0
+    def get_min_size(self, state):
+        return self.get_size(state) if self.length_strategy == "strict" else 0
 
-    @property
-    def max_size(self):
-        if self.length is None:
+    def get_max_size(self, state):
+        if self.length is None and state.get('length') is None:
             return float('inf')
-        return self.size
+        return self.get_size(state)
 
     def __init__(self,
                  bits_per_value: int,
@@ -34,13 +33,7 @@ class SubByteArrayBlock(ReadBlock):
                  value_deserialize_func: callable = lambda x: x,
                  value_serialize_func: callable = lambda x: x,
                  **kwargs):
-        super().__init__(bits_per_value=bits_per_value,
-                         length=length,
-                         length_strategy=length_strategy,
-                         length_label=length_label,
-                         value_deserialize_func=value_deserialize_func,
-                         value_serialize_func=value_serialize_func,
-                         **kwargs)
+        super().__init__(**kwargs)
         self.bits_per_value = bits_per_value
         self.length = length
         self.length_strategy = length_strategy
@@ -56,18 +49,19 @@ class SubByteArrayBlock(ReadBlock):
         self.length_label = length_label
         self.block_description = f'Array of {length_label} sub-byte numbers. Each number consists of {bits_per_value} bits'
 
-    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
-        if self.length is None and self.length_strategy != "read_available":
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state, parent_read_data: dict = None):
+        length = self.length or state.get('length')
+        if length is None and self.length_strategy != "read_available":
             raise BlockDefinitionException('Sub-byte array field length is unknown')
         if self.length_strategy == "read_available":
             raise NotImplementedError('Read available ot implemented for sub-byte array :(')
-        return super(SubByteArrayBlock, self).load_value(buffer, size, parent_read_data)
+        return super(SubByteArrayBlock, self)._load_value(buffer, size, state, parent_read_data)
 
-    def from_raw_value(self, raw: bytes):
+    def from_raw_value(self, raw: bytes, state: dict):
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])
         values = [int(bitstring[i * self.bits_per_value:(i + 1) * self.bits_per_value], 2)
                   for i in range(floor(len(bitstring) / self.bits_per_value))]
-        return [self.value_deserialize_func(x) for x in values]
+        return [ReadData(value=self.value_deserialize_func(x), block=None, block_state=state) for x in values]
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, data, state) -> bytes:
         pass

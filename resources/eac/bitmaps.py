@@ -16,10 +16,10 @@ from resources.eac.fields.colors import (
 
 class AnyBitmapBlock(CompoundBlock):
 
-    def _after_height_read(self, data, total_size, parent_read_data, **kwargs):
-        pixel_size = self.instance_fields_map['bitmap'].child.size
-        block_size = data['block_size']
-        expected_block_size = pixel_size * data['width'] * data['height'] + 16
+    def _after_height_read(self, data, total_size, parent_read_data, state, **kwargs):
+        pixel_size = self.instance_fields_map['bitmap'].child.static_size
+        block_size = data['block_size'].value
+        expected_block_size = pixel_size * data['width'].value * data['height'].value + 16
         if (parent_read_data and parent_read_data.get('shpi_directory') == 'WRAP') or block_size == 0:
             # TODO in WRAP directory there is no block size. What's there instead?
             # some NFS2 resources have block size equal to 0
@@ -27,8 +27,12 @@ class AnyBitmapBlock(CompoundBlock):
         if block_size > total_size:
             raise BlockIntegrityException(f'Too big bitmap block size {block_size}, available: '
                                           f'{total_size}. Expected block size {expected_block_size}')
-        self.instance_fields_map['trailing_bytes'].length = block_size - expected_block_size
-        self.instance_fields_map['bitmap'].length = data['width'] * data['height']
+        if not state.get('trailing_bytes'):
+            state['trailing_bytes'] = {}
+        state['trailing_bytes']['length'] = block_size - expected_block_size
+        if not state.get('bitmap'):
+            state['bitmap'] = {}
+        state['bitmap']['length'] = data['width'].value * data['height'].value
 
 
 class Bitmap16Bit0565(AnyBitmapBlock, CompoundBlock):
@@ -62,8 +66,10 @@ class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
                                  'SHPI directories as some small sprites, like "dot". Seems to be always used as ' \
                                  'alpha channel, so we save it as white image with alpha mask'
 
-    def _after_height_read(self, data, total_size, **kwargs):
-        self.instance_fields_map['bitmap'].length = data['width'] * data['height']
+    def _after_height_read(self, data, total_size, state, **kwargs):
+        if not state.get('bitmap'):
+            state['bitmap'] = {}
+        state['bitmap']['length'] = data['width'].value * data['height'].value
 
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7A, description='Resource ID')

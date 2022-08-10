@@ -25,7 +25,7 @@ def get_serializer(block: ReadBlock) -> BaseFileSerializer:
         try:
             serializer_class = my_import(f'serializers.{serializer_class_name}')
         except ImportError as ex:
-            print()
+            pass
     if not serializer_class_name or not serializer_class:
         raise NotImplementedError(f'Serializer for resource {block.__class__.__name__} not implemented!')
     return serializer_class()
