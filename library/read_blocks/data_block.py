@@ -5,21 +5,7 @@ from typing import Literal
 
 import settings
 from library.helpers.exceptions import EndOfBufferException
-# ----- new size: number or ranges
-# ----- @cachedproperty parent, get from factory cache by id
-# ----- optimize again
-# ----- document blocks
-# ----- link to offsets in explicit offsets block so can modify them automatically on editing
 from library.read_data import ReadData
-
-
-# TODO
-# ----- Utilize read data class
-# ----- write/flush new API
-# ----- completely remove copying fields
-# ----- remove instantiate_kwargs
-# ----- memory usage
-# ----- rename "read-block" to "data-block" in all classes
 
 
 class DataBlock(ABC):
