@@ -16,6 +16,18 @@ class DetachedBlock(DelegateBlock):
     def get_size(self, state):
         return state.get('size')
 
+    def get_min_size(self, state):
+        min_size = super(DetachedBlock, self).get_min_size(state)
+        if min_size is None:
+            return 0
+        return min_size
+
+    def get_max_size(self, state):
+        max_size = super(DetachedBlock, self).get_max_size(state)
+        if max_size is None:
+            return float('inf')
+        return max_size
+
     def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
         if state['offset'] is None:
             raise BlockDefinitionException('Unknown offset of detached block')

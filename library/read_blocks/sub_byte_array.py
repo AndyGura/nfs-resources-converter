@@ -18,6 +18,8 @@ class SubByteArrayBlock(DataBlock):
         return ceil(self.bits_per_value * length / 8)
 
     def get_min_size(self, state):
+        if self.length is None and state.get('length') is None:
+            return 0
         return self.get_size(state) if self.length_strategy == "strict" else 0
 
     def get_max_size(self, state):

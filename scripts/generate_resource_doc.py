@@ -64,11 +64,11 @@ EXPORT_RESOURCES = {
 
 def render_range(field, min: int, max: int, render_hex: bool) -> str:
     if field is not None and isinstance(field, ArrayBlock) and field.length_label is not None:
-        if field.child.size == 1:
+        if field.child.get_size({}) == 1:
             return field.length_label
-        if field.child.size is None:
+        if field.child.get_size({}) is None:
             return '?'
-        return f'{field.child.size} * ({field.length_label})'
+        return f'{field.child.get_size({})} * ({field.length_label})'
     if min == max:
         return hex(min) if render_hex else str(min)
     label = f'{hex(min) if render_hex else str(min)}..{hex(max) if render_hex else str(max)}'.replace('inf', '?')
@@ -84,7 +84,7 @@ def render_type(instance: DataBlock) -> str:
         descr = instance.block_description
         if isinstance(instance, ArrayBlock):
             if not isinstance(instance.child, CompoundBlock) or instance.child.inline_description:
-                size = render_range(None, instance.child.min_size, instance.child.max_size, False)
+                size = render_range(None, instance.child.get_min_size({}), instance.child.get_max_size({}), False)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
             descr += f'<br/>Item type: {render_type(instance.child)}'
         return descr
@@ -136,7 +136,7 @@ with open(md_name, 'w') as f:
         for resource in resources:
             collapse_table = len(resource.Fields.fields) > 16
             f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
-            f.write(f'\n#### **Size**: {render_range(None, resource.min_size, resource.max_size, False)} bytes ####')
+            f.write(f'\n#### **Size**: {render_range(None, resource.get_min_size({}), resource.get_max_size({}), False)} bytes ####')
             if resource.block_description:
                 f.write(f'\n#### **Description**: {resource.block_description} ####')
             if collapse_table:
@@ -149,11 +149,11 @@ with open(md_name, 'w') as f:
             for key, field in resource.Fields.fields:
                 f.write(f'\n| {"-" if isinstance(field, DetachedBlock) else render_range(None, offset_min, offset_max, False)} | '
                         f'**{key}**{" (optional)" if key in resource.Fields.optional_fields else ""} | '
-                        f'{render_range(field, field.min_size, field.max_size, False)} | '
+                        f'{render_range(field, field.get_min_size({}), field.get_max_size({}), False)} | '
                         f'{render_type(field)} | '
                         f'{field.description or ("Unknown purpose" if key in resource.Fields.unknown_fields else "-")} |')
                 if not isinstance(field, DetachedBlock):
-                    offset_min += field.min_size
-                    offset_max += field.max_size
+                    offset_min += field.get_min_size({}) or 0
+                    offset_max += field.get_max_size({}) or float('inf')
             if collapse_table:
                 f.write('\n</details>\n')

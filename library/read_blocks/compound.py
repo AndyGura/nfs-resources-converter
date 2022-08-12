@@ -45,7 +45,7 @@ class CompoundBlock(DataBlock, ABC):
 
     def get_size(self, state):
         try:
-            return sum(f.size for (_, f) in self.instance_fields)
+            return sum(f.get_size(state.get(k, {})) for (k, f) in self.instance_fields)
         except TypeError:
             return None
 
@@ -60,7 +60,7 @@ class CompoundBlock(DataBlock, ABC):
 
     def get_max_size(self, state):
         try:
-            return sum(f.max_size for (_, f) in self.instance_fields)
+            return sum(f.get_max_size(state.get(k, {})) for (k, f) in self.instance_fields)
         except TypeError:
             return None
 
