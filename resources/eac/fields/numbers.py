@@ -1,6 +1,7 @@
 import math
 
 from library.read_blocks.atomic import IntegerBlock
+from library.read_data import ReadData
 
 
 class RationalNumber(IntegerBlock):
@@ -21,8 +22,10 @@ class RationalNumber(IntegerBlock):
     def from_raw_value(self, raw: bytes, state: dict):
         return float(super().from_raw_value(raw, state) / (1 << self.fraction_bits))
 
-    def to_raw_value(self, data, state) -> bytes:
-        return super().to_raw_value(min(round(data * (1 << self.fraction_bits)), self.max_value))
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        value = min(round(value * (1 << self.fraction_bits)), self.max_value)
+        return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 
 class Nfs1Angle8(IntegerBlock):
@@ -35,12 +38,14 @@ class Nfs1Angle8(IntegerBlock):
     def from_raw_value(self, raw: bytes, state: dict):
         return float((super().from_raw_value(raw, state) / 256) * (math.pi * 2))
 
-    def to_raw_value(self, data, state) -> bytes:
-        while data >= 2 * math.pi:
-            data -= math.pi * 2
-        while data < 0:
-            data += math.pi * 2
-        return super().to_raw_value(min(round(256 * data / (math.pi * 2)), 0xFF))
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        while value >= 2 * math.pi:
+            value -= math.pi * 2
+        while value < 0:
+            value += math.pi * 2
+        value = min(round(256 * value / (math.pi * 2)), 0xFF)
+        return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 
 class Nfs1Angle14(IntegerBlock):
@@ -55,9 +60,11 @@ class Nfs1Angle14(IntegerBlock):
     def from_raw_value(self, raw: bytes, state: dict):
         return float(((super().from_raw_value(raw, state) & 0x3FFF) / 0x4000) * (math.pi * 2))
 
-    def to_raw_value(self, data, state) -> bytes:
-        while data >= 2 * math.pi:
-            data -= math.pi * 2
-        while data < 0:
-            data += math.pi * 2
-        return super().to_raw_value(min(round(0x4000 * data / (math.pi * 2)), 0x3FFF))
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        while value >= 2 * math.pi:
+            value -= math.pi * 2
+        while value < 0:
+            value += math.pi * 2
+        value = min(round(0x4000 * data.value / (math.pi * 2)), 0x3FFF)
+        return super().to_raw_value(self.wrap_result(value, data.block_state))

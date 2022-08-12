@@ -43,4 +43,4 @@ class ReadData:
         self.block.write(buffer, self)
 
     def to_bytes(self):
-        return self.block.to_raw_value(self.value, self.block_state)
+        return self.block.to_raw_value(self)

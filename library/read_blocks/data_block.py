@@ -5,6 +5,13 @@ from typing import Literal
 
 import settings
 from library.helpers.exceptions import EndOfBufferException
+# ----- new size: number or ranges
+# ----- @cachedproperty parent, get from factory cache by id
+# ----- optimize again
+# ----- document blocks
+# ----- link to offsets in explicit offsets block so can modify them automatically on editing
+from library.read_data import ReadData
+
 
 # TODO
 # ----- Utilize read data class
@@ -12,15 +19,7 @@ from library.helpers.exceptions import EndOfBufferException
 # ----- completely remove copying fields
 # ----- remove instantiate_kwargs
 # ----- memory usage
-
 # ----- rename "read-block" to "data-block" in all classes
-
-# ----- new size: number or ranges
-# ----- @cachedproperty parent, get from factory cache by id
-# ----- optimize again
-# ----- document blocks
-# ----- link to offsets in explicit offsets block so can modify them automatically on editing
-from library.read_data import ReadData
 
 
 class DataBlock(ABC):
@@ -77,6 +76,15 @@ class DataBlock(ABC):
         else:
             return ReadData(value=value, block=self, block_state=block_state)
 
+    def unwrap_result(self, data: ReadData):
+        """
+         Unwraps value from final result form
+         """
+        if self.simplified:
+            return data
+        else:
+            return data.value
+
     def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict) -> ReadData:
         try:
             min_size = self.get_min_size(state)
@@ -108,5 +116,5 @@ class DataBlock(ABC):
         buffer.write(raw)
 
     @abstractmethod
-    def to_raw_value(self, data: ReadData, state: dict = None, offset=0) -> bytes:  # TODO offset to state?
+    def to_raw_value(self, data: ReadData, offset=0) -> bytes:  # TODO offset to state?
         pass

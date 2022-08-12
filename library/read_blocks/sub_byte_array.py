@@ -70,5 +70,5 @@ class SubByteArrayBlock(DataBlock):
         else:
             return [ReadData(value=self.value_deserialize_func(x), block=None, block_state=state) for x in values]
 
-    def to_raw_value(self, data, state) -> bytes:
-        pass
+    def to_raw_value(self, data: ReadData) -> bytes:
+        raise NotImplementedError

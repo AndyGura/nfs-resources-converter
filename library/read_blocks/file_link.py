@@ -1,6 +1,7 @@
 from io import BufferedReader, BytesIO
 
 from library.read_blocks.data_block import DataBlock
+from library.read_data import ReadData
 
 
 class FileLink(DataBlock):
@@ -15,5 +16,5 @@ class FileLink(DataBlock):
     def from_raw_value(self, raw: bytes, state: dict):
         pass
 
-    def to_raw_value(self, data, state) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         pass

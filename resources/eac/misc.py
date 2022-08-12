@@ -1,5 +1,6 @@
 from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.atomic import Utf8Field
+from library.read_data import ReadData
 
 
 class DashDeclarationFile(Utf8Field):
@@ -36,5 +37,5 @@ class DashDeclarationFile(Utf8Field):
                 dictionary[current_key] = value if not current_key_ended else [value]
         return DataWrapper(dictionary)
 
-    def to_raw_value(self, data, state) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         raise NotImplementedError

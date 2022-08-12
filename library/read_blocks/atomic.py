@@ -81,8 +81,9 @@ class IntegerBlock(AtomicDataBlock):
                               byteorder=self.byte_order,
                               signed=self.is_signed)
 
-    def to_raw_value(self, data: ReadData, state) -> bytes:
-        return data.value.to_bytes(self.static_size, byteorder=self.byte_order, signed=self.is_signed).ljust(
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        return value.to_bytes(self.static_size, byteorder=self.byte_order, signed=self.is_signed).ljust(
             self.static_size, b'\0')
 
 
@@ -99,8 +100,9 @@ class Utf8Field(AtomicDataBlock):
     def from_raw_value(self, raw: bytes, state: dict):
         return raw.decode('utf-8')
 
-    def to_raw_value(self, data, state) -> bytes:
-        return data.encode('utf-8')
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        return value.encode('utf-8')
 
 
 class BytesField(AtomicDataBlock):
@@ -128,8 +130,8 @@ class BytesField(AtomicDataBlock):
     def from_raw_value(self, raw: bytes, state: dict):
         return raw
 
-    def to_raw_value(self, data, state) -> bytes:
-        return data
+    def to_raw_value(self, data: ReadData) -> bytes:
+        return self.unwrap_result(data)
 
 
 class BitFlagsBlock(IntegerBlock, ABC):
@@ -153,12 +155,12 @@ class BitFlagsBlock(IntegerBlock, ABC):
             res[self.flag_name_map[i]] = bool(flags & (1 if i == 0 else 1 << i))
         return res
 
-    def to_raw_value(self, data, state) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         res = 0
         for i in range(8):
             if data[self.flag_name_map[i]]:
                 res = res | (1 << i)
-        return super().to_raw_value(res)
+        return super().to_raw_value(self.wrap_result(res, data.block_state))
 
 
 class EnumByteBlock(IntegerBlock, ABC):
@@ -177,5 +179,6 @@ class EnumByteBlock(IntegerBlock, ABC):
     def from_raw_value(self, raw: bytes, state: dict):
         return self.enum_name_map[super().from_raw_value(raw, state)]
 
-    def to_raw_value(self, data, state) -> bytes:
-        return super().to_raw_value(self.enum_name_map.index(data))
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        return super().to_raw_value(self.wrap_result(self.enum_name_map.index(value), data.block_state))

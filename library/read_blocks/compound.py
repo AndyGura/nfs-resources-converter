@@ -110,8 +110,18 @@ class CompoundBlock(DataBlock, ABC):
     def from_raw_value(self, raw: dict, state: dict) -> dict:
         return DataWrapper(raw)
 
-    def to_raw_value(self, data: ReadData, state: dict = None) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         res = bytes()
         for name, field in self.instance_fields:
-            res += field.to_raw_value(getattr(data, name), getattr(data, name).block_state)
+            value = getattr(data, name, None)
+            if value is None:
+                if name not in self.Fields.optional_fields:
+                    from library.read_blocks.array import ArrayBlock
+                    if isinstance(field, ArrayBlock):
+                        value = field.wrap_result([], {})
+                    else:
+                        raise BlockIntegrityException(f'Data for non-optional field {name} is missed')
+                else:
+                    continue
+            res += field.to_raw_value(value)
         return res

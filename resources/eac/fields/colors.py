@@ -15,12 +15,13 @@ class Color24BitDosBlock(IntegerBlock):
         blue = transform_bitness(number & 0xFF, 6)
         return red << 24 | green << 16 | blue << 8 | 255
 
-    def to_raw_value(self, data: ReadData, state) -> bytes:
-        red = (data.value & 0xff000000) >> 26
-        green = (data.value & 0xff0000) >> 18
-        blue = (data.value & 0xff00) >> 10
-        data.value = red << 16 | green << 8 | blue
-        return super().to_raw_value(data, state)
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        red = (value & 0xff000000) >> 26
+        green = (value & 0xff0000) >> 18
+        blue = (value & 0xff00) >> 10
+        value = red << 16 | green << 8 | blue
+        return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 
 class Color24BitBlock(IntegerBlock):
@@ -32,9 +33,8 @@ class Color24BitBlock(IntegerBlock):
         number = super().from_raw_value(raw, state)
         return number << 8 | 0xFF
 
-    def to_raw_value(self, data: ReadData, state) -> bytes:
-        data.value = data.value >> 8
-        return super().to_raw_value(data, state)
+    def to_raw_value(self, data: ReadData) -> bytes:
+        return super().to_raw_value(self.wrap_result(self.unwrap_result(data) >> 8, data.block_state))
 
 
 class Color24BitBigEndianField(Color24BitBlock):
@@ -60,10 +60,11 @@ class Color32BitBlock(IntegerBlock):
         # ARGB => RGBA
         return (number & 0x00_ff_ff_ff) << 8 | (number & 0xff_00_00_00) >> 24
 
-    def to_raw_value(self, data: ReadData, state) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         # RGBA => ARGB
-        data.value = (data.value & 0xff_ff_ff_00) >> 8 | (data.value & 0xff) << 24
-        return super().to_raw_value(data, state)
+        value = self.unwrap_result(data)
+        value = (value & 0xff_ff_ff_00) >> 8 | (value & 0xff) << 24
+        return super().to_raw_value(self.wrap_result(value))
 
 
 class Color16Bit0565Block(IntegerBlock):
@@ -82,14 +83,15 @@ class Color16Bit0565Block(IntegerBlock):
             value = 0
         return value
 
-    def to_raw_value(self, data: ReadData, state) -> bytes:
-        if (data.value & 0xff) < 128:
-            data = self.transparent_color
-        red = (data.value & 0xff000000) >> 27
-        green = (data.value & 0xff0000) >> 18
-        blue = (data.value & 0xff00) >> 11
-        data.value = red << 11 | green << 5 | blue
-        return super().to_raw_value(data, state)
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        if (value & 0xff) < 128:
+            value = self.transparent_color
+        red = (value & 0xff000000) >> 27
+        green = (value & 0xff0000) >> 18
+        blue = (value & 0xff00) >> 11
+        value = red << 11 | green << 5 | blue
+        return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 
 class Color16Bit1555Block(IntegerBlock):
@@ -101,10 +103,11 @@ class Color16Bit1555Block(IntegerBlock):
         number = super().from_raw_value(raw, state)
         return transform_color_bitness(number, 1, 5, 5, 5)
 
-    def to_raw_value(self, data: ReadData, state) -> bytes:
-        red = (data.value & 0xff000000) >> 27
-        green = (data.value & 0xff0000) >> 18
-        blue = (data.value & 0xff00) >> 11
-        alpha = data.value & 0xff >> 7
-        data.value = alpha << 15 | red << 10 | green << 5 | blue
-        return super().to_raw_value(data, state)
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        red = (value & 0xff000000) >> 27
+        green = (value & 0xff0000) >> 18
+        blue = (value & 0xff00) >> 11
+        alpha = value & 0xff >> 7
+        value = alpha << 15 | red << 10 | green << 5 | blue
+        return super().to_raw_value(self.wrap_result(value, data.block_state))

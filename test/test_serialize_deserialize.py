@@ -7,7 +7,7 @@ class TestSerializeDeserialize(unittest.TestCase):
 
     def test_tri_should_remain_the_same(self):
         tri_map = require_file('test/samples/AL1.TRI')
-        output = tri_map.to_raw_value()
+        output = tri_map.to_bytes()
         with open('test/samples/AL1.TRI', 'rb') as bdata:
             original = bdata.read()
             self.assertEqual(len(original), len(output))
@@ -25,7 +25,7 @@ class TestSerializeDeserialize(unittest.TestCase):
 
     def test_cfm_should_remain_the_same(self):
         car_fam = require_file('test/samples/LDIABL.CFM')
-        output = car_fam.to_raw_value()
+        output = car_fam.to_bytes()
         with open('test/samples/LDIABL.CFM', 'rb') as bdata:
             original = bdata.read()
             # self.assertEqual(len(original), len(output))

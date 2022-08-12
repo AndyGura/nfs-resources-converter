@@ -2,6 +2,7 @@ from io import BufferedReader, BytesIO
 
 from library.helpers.exceptions import BlockDefinitionException
 from library.read_blocks.data_block import DataBlock
+from library.read_data import ReadData
 
 
 class DelegateBlock(DataBlock):
@@ -52,8 +53,8 @@ class DelegateBlock(DataBlock):
             raise BlockDefinitionException('Delegated block not defined')
         return delegated_block.from_raw_value(raw)
 
-    def to_raw_value(self, data, state) -> bytes:
-        delegated_block = state.get('delegated_block')
+    def to_raw_value(self, data: ReadData) -> bytes:
+        delegated_block = data.block_state.get('delegated_block')
         if not delegated_block:
             raise BlockDefinitionException('Delegated block not defined')
         return delegated_block.to_raw_value(data)

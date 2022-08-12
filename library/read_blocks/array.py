@@ -10,6 +10,7 @@ from library.helpers.exceptions import (BlockDefinitionException,
 from library.helpers.id import join_id
 from library.read_blocks.atomic import AtomicDataBlock
 from library.read_blocks.data_block import DataBlock
+from library.read_data import ReadData
 
 
 class ArrayBlock(DataBlock):
@@ -72,14 +73,12 @@ class ArrayBlock(DataBlock):
     def from_raw_value(self, raw: List, state: dict):
         return raw
 
-    def to_raw_value(self, data: List, state) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         res = bytes()
         for item in data:
             if isinstance(item, Exception):
                 raise SerializationException('Cannot serialize block with errors')
-            res += self.child.to_raw_value(item, item.block_state)
-        if self.length and self.length > len(data) and self.length_strategy != 'read_available':
-            res += bytes([0] * (self.length - len(data)) * self.child.size)
+            res += self.child.to_raw_value(item)
         return res
 
     def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):

@@ -181,7 +181,4 @@ class TriMap(CompoundBlock):
             state['proxy_object_instances'] = {}
         state['proxy_object_instances']['length'] = data['proxy_object_instances_count'].value
 
-    def to_raw_value(self, data: ReadData, state: dict = None) -> bytes:
-        return super().to_raw_value(data, state)
-
 
