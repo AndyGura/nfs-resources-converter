@@ -35,7 +35,7 @@ class LiteralBlock(DelegateBlock):
         super().__init__(**kwargs)
         self.possible_resources = possible_resources
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
         delegated_block = state.get('delegated_block')
         try:
             if delegated_block is None:
@@ -47,7 +47,7 @@ class LiteralBlock(DelegateBlock):
                     if isinstance(res, block_class):
                         state['delegated_block'] = res
                         break
-            return super().read(buffer, size, state, parent_read_data)
+            return super().read(buffer, size, state)
         except Exception as ex:
             if self.error_handling_strategy == 'return':
                 return ex

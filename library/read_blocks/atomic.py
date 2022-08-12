@@ -9,7 +9,7 @@ from library.utils import represent_value_as_str
 
 
 class AtomicReadBlock(ReadBlock, ABC):
-    """block with static size, no id and primitive output type. Can be reused many times while reading resource"""
+    """Block with static size"""
 
     def get_size(self, state):
         return self.static_size
@@ -28,15 +28,14 @@ class AtomicReadBlock(ReadBlock, ABC):
     def __deepcopy__(self, memo):
         return self
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None):
-        data = super().read(buffer, size, state, parent_read_data)
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
+        data = super().read(buffer, size, state)
         if self.required_value and data.value != self.required_value:
             raise BlockIntegrityException(f'Expected {represent_value_as_str(self.required_value)}, '
                                           f'found {represent_value_as_str(data.value)}')
         return data
 
-    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int,
-                      parent_read_data: dict = None):
+    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int):
         self_size = self.static_size
         if self_size * length > size:
             raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
@@ -68,15 +67,14 @@ class IntegerBlock(AtomicReadBlock):
             self.block_description += f' ({byte_order} endian)'
         super(IntegerBlock, self).__init__(static_size=static_size, **kwargs)
 
-    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int,
-                      parent_read_data: dict = None):
+    def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int):
         # insane speedup in this case (we check class name to not avoid from_raw_value in subclasses)
         if self.simplified and self.static_size == 1 and not self.is_signed and self.__class__.__name__ == 'IntegerBlock':
             if length > size:
                 raise EndOfBufferException(f'Cannot read multiple {self.__class__.__name__}: '
                                            f'min size {length}, available: {size}')
             return list(buffer.read(length))
-        return super().read_multiple(buffer, size, states, length, parent_read_data)
+        return super().read_multiple(buffer, size, states, length)
 
     def from_raw_value(self, raw: bytes, state: dict):
         return int.from_bytes(raw.ljust(self.static_size, b'\0') if self.static_size > 1 else raw,

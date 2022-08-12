@@ -82,7 +82,7 @@ class ArrayBlock(ReadBlock):
             res += bytes([0] * (self.length - len(data)) * self.child.size)
         return res
 
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
         res = []
         amount = self.get_length(state)
         if amount is None and self.length_strategy != "read_available":
@@ -113,7 +113,7 @@ class ArrayBlock(ReadBlock):
         start = buffer.tell()
         try:
             if isinstance(self.child, AtomicReadBlock):
-                res = self.child.read_multiple(buffer, size, [x for x in state.get('children_states', {}).values()], amount, parent_read_data)
+                res = self.child.read_multiple(buffer, size, [x for x in state.get('children_states', {}).values()], amount)
                 size -= (buffer.tell() - start)
             else:
                 raise MultiReadUnavailableException('Supports only atomic read blocks')
@@ -160,7 +160,7 @@ class ExplicitOffsetsArrayBlock(ArrayBlock):
         offset = state['offsets'][item_index]
         return min(o for o in (state['offsets'] + [end_offset]) if o > offset) - offset
 
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
         res = []
         if state.get('offsets') is None:
             raise BlockDefinitionException('Explicit offsets array field needs declaration of offsets')
@@ -173,6 +173,10 @@ class ExplicitOffsetsArrayBlock(ArrayBlock):
                 child_state = state.get('children_states', [])[i]
             except IndexError:
                 child_state = {}
-            child_state['id'] = join_id(state.get('id'), (str(i) if not custom_names else custom_names[i]))
-            res.append(self.child.read(buffer, self.get_item_length(state, i, end_offset), child_state, parent_read_data=parent_read_data))
+            child_state = {
+                **state.get('common_children_states', {}),
+                **child_state,
+                'id': join_id(state.get('id'), (str(i) if not custom_names else custom_names[i])),
+            }
+            res.append(self.child.read(buffer, self.get_item_length(state, i, end_offset), child_state))
         return res

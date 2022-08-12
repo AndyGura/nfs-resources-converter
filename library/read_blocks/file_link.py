@@ -6,10 +6,10 @@ from library.read_blocks.read_block import ReadBlock
 class FileLink(ReadBlock):
     """Not really a read block, because it's not reading the file, just preserving file name"""
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state, parent_read_data: dict = None):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
         return self.wrap_result(value=state.get('id'), block_state=state)
 
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int):
         pass
 
     def from_raw_value(self, raw: bytes, state: dict):

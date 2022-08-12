@@ -28,18 +28,18 @@ class DelegateBlock(ReadBlock):
                 if delegated_block is not None
                 else None)
 
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
         delegated_block = state.get('delegated_block')
         if not delegated_block:
             raise BlockDefinitionException('Delegated block not defined')
-        return delegated_block._load_value(buffer, size, state, parent_read_data)
+        return delegated_block._load_value(buffer, size, state)
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
         delegated_block = state.get('delegated_block')
         try:
             if not delegated_block:
                 raise BlockDefinitionException('Delegated block not defined')
-            return delegated_block.read(buffer, size, state, parent_read_data)
+            return delegated_block.read(buffer, size, state)
         except Exception as ex:
             if self.error_handling_strategy == 'return':
                 return ex

@@ -24,40 +24,66 @@ from library.read_data import ReadData
 
 
 class ReadBlock(ABC):
-    # those fields used for documentation only
+    """A base abstract class for data block."""
     block_description = None
-    description = None
 
-    def __init__(self, description: str = '', error_handling_strategy: Literal["raise", "return"] = "raise", simplified: bool = False):
+    def __init__(self, description: str = '', error_handling_strategy: Literal["raise", "return"] = "raise",
+                 simplified: bool = False):
+        """
+         :param description: The description of this block's data, when used as subblock
+         :type description: str
+         :param error_handling_strategy: What to do with errors, if happen during reading: raise or return as result
+         :type error_handling_strategy: Literal["raise", "return"], defaults to "raise"
+         :param simplified: If true, pure value returned, else wrapped to ReadData class instance
+         :type simplified: bool, defaults to False
+         """
         self.description = description
         self.error_handling_strategy = error_handling_strategy
         self.simplified = simplified
 
-    def get_size(self, state):
+    def get_size(self, state) -> Literal[int, None]:
+        """
+         Gets size of block in bytes, according to state. Can return None if unknown
+         :param state: The state of read block
+         :type state: dict
+         :rtype int
+         """
         return None
 
-    def get_min_size(self, state):
+    def get_min_size(self, state) -> Literal[int, None]:
+        """
+         Gets minimum size of block in bytes, according to state. Can return None if unknown
+         :param state: The state of read block
+         :type state: dict
+         :rtype int
+         """
         return self.get_size(state)
 
-    def get_max_size(self, state):
+    def get_max_size(self, state) -> Literal[int, None]:
+        """
+         Gets maxumum size of block in bytes, according to state. Can return None if unknown
+         :param state: The state of read block
+         :type state: dict
+         :rtype int
+         """
         return self.get_size(state)
-
-    def _check_length_before_reading(self, available_size: int, state: dict):
-        min_size = self.get_min_size(state)
-        if min_size is not None and min_size > available_size:
-            raise EndOfBufferException(f'Cannot read {self.__class__.__name__}: '
-                                       f'min size {min_size}, available: {available_size}')
 
     def wrap_result(self, value, block_state=None):
+        """
+         Wraps result into final form
+         """
         if self.simplified:
             return value
         else:
             return ReadData(value=value, block=self, block_state=block_state)
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None) -> ReadData:
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict) -> ReadData:
         try:
-            self._check_length_before_reading(size, state)
-            value = self._load_value(buffer, size, state, parent_read_data)
+            min_size = self.get_min_size(state)
+            if min_size is not None and min_size > size:
+                raise EndOfBufferException(f'Cannot read {self.__class__.__name__}: '
+                                           f'min size {min_size}, available: {size}')
+            value = self._load_value(buffer, size, state)
             return self.wrap_result(value=self.from_raw_value(value, state), block_state=state)
         except Exception as ex:
             if settings.print_errors:
@@ -67,8 +93,7 @@ class ReadBlock(ABC):
             else:
                 return ex
 
-    # TODO remove parent_read_data. Used only by AnyBitmapBlock, checking SHPI directory
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None) -> bytes:
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict) -> bytes:
         self_size = self.get_size(state)
         return buffer.read(size if self_size is None else self_size)
 

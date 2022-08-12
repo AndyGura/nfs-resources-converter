@@ -16,7 +16,7 @@ class DetachedBlock(DelegateBlock):
     def get_size(self, state):
         return state.get('size')
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state, parent_read_data: dict = None):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
         if state['offset'] is None:
             raise BlockDefinitionException('Unknown offset of detached block')
         if self.get_size(state) is None:
@@ -25,6 +25,6 @@ class DetachedBlock(DelegateBlock):
         buffer.seek(state['offset'])
         if not state.get('delegated_block'):
             state['delegated_block'] = self.delegated_block
-        res = super().read(buffer, self.get_size(state), state, parent_read_data)
+        res = super().read(buffer, self.get_size(state), state)
         buffer.seek(ptr)
         return res

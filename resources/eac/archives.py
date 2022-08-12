@@ -26,7 +26,7 @@ class CompressedBlock(DelegateBlock):
         super().__init__(**kwargs)
         self.algorithm = None
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state, parent_read_data: dict = None):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
         uncompressed_bytes = self.algorithm(buffer, size)
         uncompressed = BytesIO(uncompressed_bytes)
         delegated_block = state.get('delegated_block')
@@ -115,6 +115,9 @@ class ShpiBlock(CompoundBlock):
         state['children']['offsets'] = [x.offset.value + initial_buffer_pointer for x in
                                         data['children_descriptions'].value]
         state['children']['custom_names'] = [descr.name.value for descr in data['children_descriptions'].value]
+        if not state['children'].get('common_children_states'):
+            state['children']['common_children_states'] = {}
+        state['children']['common_children_states']['shpi_directory'] = data['shpi_directory'].value
 
 
 class WwwwBlock(CompoundBlock):

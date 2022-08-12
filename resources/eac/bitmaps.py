@@ -16,11 +16,11 @@ from resources.eac.fields.colors import (
 
 class AnyBitmapBlock(CompoundBlock):
 
-    def _after_height_read(self, data, total_size, parent_read_data, state, **kwargs):
+    def _after_height_read(self, data, total_size, state, **kwargs):
         pixel_size = self.instance_fields_map['bitmap'].child.static_size
         block_size = data['block_size'].value
         expected_block_size = pixel_size * data['width'].value * data['height'].value + 16
-        if (parent_read_data and parent_read_data.get('shpi_directory') == 'WRAP') or block_size == 0:
+        if (state.get('shpi_directory') == 'WRAP') or block_size == 0:
             # TODO in WRAP directory there is no block size. What's there instead?
             # some NFS2 resources have block size equal to 0
             block_size = expected_block_size

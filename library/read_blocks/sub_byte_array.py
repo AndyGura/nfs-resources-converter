@@ -51,13 +51,13 @@ class SubByteArrayBlock(ReadBlock):
         self.length_label = length_label
         self.block_description = f'Array of {length_label} sub-byte numbers. Each number consists of {bits_per_value} bits'
 
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state):
         length = self.length or state.get('length')
         if length is None and self.length_strategy != "read_available":
             raise BlockDefinitionException('Sub-byte array field length is unknown')
         if self.length_strategy == "read_available":
             raise NotImplementedError('Read available ot implemented for sub-byte array :(')
-        return super(SubByteArrayBlock, self)._load_value(buffer, size, state, parent_read_data)
+        return super(SubByteArrayBlock, self)._load_value(buffer, size, state)
 
     def from_raw_value(self, raw: bytes, state: dict):
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])

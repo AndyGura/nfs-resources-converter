@@ -64,7 +64,7 @@ class CompoundBlock(ReadBlock, ABC):
         except TypeError:
             return None
 
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
         initial_buffer_pointer = buffer.tell()
         fields = self.instance_fields
         res = dict()
@@ -80,7 +80,6 @@ class CompoundBlock(ReadBlock, ABC):
                                                       total_size=size,
                                                       remaining_size=remaining_size,
                                                       initial_buffer_pointer=initial_buffer_pointer,
-                                                      parent_read_data=parent_read_data,
                                                       state=state)
             start = buffer.tell()
             if remaining_size == 0:
@@ -89,7 +88,7 @@ class CompoundBlock(ReadBlock, ABC):
                 else:
                     raise EndOfBufferException()
             try:
-                res[name] = field.read(buffer, remaining_size, state[name], parent_read_data=res)
+                res[name] = field.read(buffer, remaining_size, state[name])
                 remaining_size -= buffer.tell() - start
                 if remaining_size < 0:
                     raise EndOfBufferException()
@@ -105,7 +104,6 @@ class CompoundBlock(ReadBlock, ABC):
                                                      total_size=size,
                                                      remaining_size=remaining_size,
                                                      initial_buffer_pointer=initial_buffer_pointer,
-                                                     parent_read_data=parent_read_data,
                                                      state=state)
         return res
 
