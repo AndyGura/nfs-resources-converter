@@ -23,7 +23,7 @@ from library.helpers.exceptions import EndOfBufferException
 from library.read_data import ReadData
 
 
-class ReadBlock(ABC):
+class DataBlock(ABC):
     """A base abstract class for data block."""
     block_description = None
 
@@ -44,7 +44,7 @@ class ReadBlock(ABC):
     def get_size(self, state) -> Literal[int, None]:
         """
          Gets size of block in bytes, according to state. Can return None if unknown
-         :param state: The state of read block
+         :param state: The state of data block
          :type state: dict
          :rtype int
          """
@@ -53,7 +53,7 @@ class ReadBlock(ABC):
     def get_min_size(self, state) -> Literal[int, None]:
         """
          Gets minimum size of block in bytes, according to state. Can return None if unknown
-         :param state: The state of read block
+         :param state: The state of data block
          :type state: dict
          :rtype int
          """
@@ -62,7 +62,7 @@ class ReadBlock(ABC):
     def get_max_size(self, state) -> Literal[int, None]:
         """
          Gets maxumum size of block in bytes, according to state. Can return None if unknown
-         :param state: The state of read block
+         :param state: The state of data block
          :type state: dict
          :rtype int
          """

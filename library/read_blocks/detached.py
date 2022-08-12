@@ -2,12 +2,12 @@ from io import BufferedReader, BytesIO
 
 from library.helpers.exceptions import BlockDefinitionException
 from library.read_blocks.delegate import DelegateBlock
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 
 
 class DetachedBlock(DelegateBlock):
 
-    def __init__(self, block: ReadBlock, **kwargs):
+    def __init__(self, block: DataBlock, **kwargs):
         super().__init__(**kwargs)
         self.delegated_block = block
         self.block_description = 'Detached block, located somewhere in file, knowing it\'s offset.' \

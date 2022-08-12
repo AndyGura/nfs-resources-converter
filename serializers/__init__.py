@@ -1,6 +1,6 @@
 import settings
 from library.read_blocks.delegate import DelegateBlock
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 from library.utils import my_import
 from .base import BaseFileSerializer
 from .palettes import PaletteSerializer
@@ -14,7 +14,7 @@ from .videos import FfmpegSupportedVideoSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 
 
-def get_serializer(block: ReadBlock) -> BaseFileSerializer:
+def get_serializer(block: DataBlock) -> BaseFileSerializer:
     if isinstance(block, Exception):
         raise block
     if isinstance(block, DelegateBlock):

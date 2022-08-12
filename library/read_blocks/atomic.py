@@ -3,12 +3,12 @@ from io import BufferedReader, BytesIO
 from typing import Literal, List, Tuple
 
 from library.helpers.exceptions import BlockIntegrityException, EndOfBufferException
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 from library.read_data import ReadData
 from library.utils import represent_value_as_str
 
 
-class AtomicReadBlock(ReadBlock, ABC):
+class AtomicDataBlock(DataBlock, ABC):
     """Block with static size"""
 
     def get_size(self, state):
@@ -51,7 +51,7 @@ class AtomicReadBlock(ReadBlock, ABC):
                                     ]]
 
 
-class IntegerBlock(AtomicReadBlock):
+class IntegerBlock(AtomicDataBlock):
 
     @property
     def size(self):
@@ -86,7 +86,7 @@ class IntegerBlock(AtomicReadBlock):
             self.static_size, b'\0')
 
 
-class Utf8Field(AtomicReadBlock):
+class Utf8Field(AtomicDataBlock):
 
     def __init__(self, length: int = None, **kwargs):
         super().__init__(**kwargs)
@@ -103,7 +103,7 @@ class Utf8Field(AtomicReadBlock):
         return data.encode('utf-8')
 
 
-class BytesField(AtomicReadBlock):
+class BytesField(AtomicDataBlock):
     block_description = ""
 
     def __init__(self,

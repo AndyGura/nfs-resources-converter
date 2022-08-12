@@ -1,10 +1,10 @@
 from io import BufferedReader, BytesIO
 
 from library.helpers.exceptions import BlockDefinitionException
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 
 
-class DelegateBlock(ReadBlock):
+class DelegateBlock(DataBlock):
     """A block class, which uses functionality of another block class. Block class is initially unknown when defining block"""
 
     def __init__(self, **kwargs):

@@ -3,11 +3,11 @@ from math import floor, ceil
 from typing import Literal
 
 from library.helpers.exceptions import BlockDefinitionException
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 from library.read_data import ReadData
 
 
-class SubByteArrayBlock(ReadBlock):
+class SubByteArrayBlock(DataBlock):
 
     def get_size(self, state):
         length = self.length

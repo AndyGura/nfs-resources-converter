@@ -5,25 +5,25 @@ from typing import List, Tuple
 from library.helpers.data_wrapper import DataWrapper
 from library.helpers.exceptions import EndOfBufferException, BlockIntegrityException
 from library.helpers.id import join_id
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 from library.read_data import ReadData
 
 
 class CompoundBlockFields(ABC):
     @classmethod
     @property
-    def fields(cls) -> List[Tuple[str, ReadBlock]]:
+    def fields(cls) -> List[Tuple[str, DataBlock]]:
         try:
             return cls.__fields_cache
         except AttributeError:
-            cls.__fields_cache = [(key, value) for (key, value) in cls.__dict__.items() if isinstance(value, ReadBlock)]
+            cls.__fields_cache = [(key, value) for (key, value) in cls.__dict__.items() if isinstance(value, DataBlock)]
             return cls.__fields_cache
 
     optional_fields: List[str] = []
     unknown_fields: List[str] = []
 
 
-class CompoundBlock(ReadBlock, ABC):
+class CompoundBlock(DataBlock, ABC):
     class Fields(CompoundBlockFields):
         pass
 

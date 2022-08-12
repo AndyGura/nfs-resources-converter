@@ -9,7 +9,7 @@ sys.path.insert(0, parentdir)
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.literal import LiteralBlock
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 from library.read_blocks.detached import DetachedBlock
 from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries, audios, archives
 
@@ -77,7 +77,7 @@ def render_range(field, min: int, max: int, render_hex: bool) -> str:
     return label
 
 
-def render_type(instance: ReadBlock) -> str:
+def render_type(instance: DataBlock) -> str:
     if isinstance(instance, LiteralBlock):
         return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_resources])
     if not isinstance(instance, CompoundBlock) or instance.inline_description:

@@ -1,10 +1,10 @@
 from io import BufferedReader, BytesIO
 
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 
 
-class FileLink(ReadBlock):
-    """Not really a read block, because it's not reading the file, just preserving file name"""
+class FileLink(DataBlock):
+    """Not really a data block, because it's not reading the file, just preserving file name"""
 
     def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
         return self.wrap_result(value=state.get('id'), block_state=state)

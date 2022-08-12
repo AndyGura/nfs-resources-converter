@@ -462,14 +462,14 @@ if $save_collisions:
 
         if settings.maps__save_collisions:
             left_barrier_points = self.BarrierPath(
-                [[rp.position.x + rp.left_barrier_distance * math.cos(rp.orientation + math.pi),
-                  rp.position.y,
-                  rp.position.z - rp.left_barrier_distance * math.sin(rp.orientation + math.pi)
+                [[rp.position.x.value + rp.left_barrier_distance.value * math.cos(rp.orientation.value + math.pi),
+                  rp.position.y.value,
+                  rp.position.z.value - rp.left_barrier_distance.value * math.sin(rp.orientation.value + math.pi)
                   ] for rp in data.road_spline[:len(data.terrain) * 4]])
             right_barrier_points = self.BarrierPath(
-                [[rp.position.x + rp.right_barrier_distance * math.cos(rp.orientation),
-                  rp.position.y,
-                  rp.position.z - rp.right_barrier_distance * math.sin(rp.orientation)
+                [[rp.position.x.value + rp.right_barrier_distance.value * math.cos(rp.orientation.value),
+                  rp.position.y.value,
+                  rp.position.z.value - rp.right_barrier_distance.value * math.sin(rp.orientation.value)
                   ] for rp in data.road_spline[:len(data.terrain) * 4]])
             if not is_opened_track:
                 left_barrier_points.points += [left_barrier_points.points[0]]
@@ -511,9 +511,9 @@ if $save_collisions:
                     face_index_increment = 1
                     for sub_model in terrain_chunk['meshes']:
                         f.write(sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=(
-                            data.road_spline[i * 4].position.x,
-                            data.road_spline[i * 4].position.y,
-                            data.road_spline[i * 4].position.z,
+                            data.road_spline[i * 4].position.x.value,
+                            data.road_spline[i * 4].position.y.value,
+                            data.road_spline[i * 4].position.z.value,
                         )))
                         face_index_increment = face_index_increment + len(sub_model.vertices)
                 blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
@@ -521,41 +521,41 @@ if $save_collisions:
                     'save_collisions': settings.maps__save_collisions,
                     'obj_name': f'terrain_chunk_{i}.obj',
                     'proxy_objects_json': json.dumps(
-                        [{'x': o.position.x + data.road_spline[
-                            o.reference_road_spline_vertex].position.x - data.road_spline[i * 4].position.x,
-                          'y': o.position.y + data.road_spline[
-                              o.reference_road_spline_vertex].position.y - data.road_spline[
-                                   i * 4].position.y,
-                          'z': o.position.z + data.road_spline[
-                              o.reference_road_spline_vertex].position.z - data.road_spline[
-                                   i * 4].position.z,
-                          'rotation_z': o.rotation + data.road_spline[
-                              o.reference_road_spline_vertex].orientation,
+                        [{'x': o.position.x.value + data.road_spline[
+                            o.reference_road_spline_vertex.value].position.x.value - data.road_spline[i * 4].position.x.value,
+                          'y': o.position.y.value + data.road_spline[
+                              o.reference_road_spline_vertex.value].position.y.value - data.road_spline[
+                                   i * 4].position.y.value,
+                          'z': o.position.z.value + data.road_spline[
+                              o.reference_road_spline_vertex.value].position.z.value - data.road_spline[
+                                   i * 4].position.z.value,
+                          'rotation_z': o.rotation.value + data.road_spline[
+                              o.reference_road_spline_vertex.value].orientation.value,
                           'type': data.proxy_objects[
-                              o.proxy_object_index % len(data.proxy_objects)].type,
+                              o.proxy_object_index.value % len(data.proxy_objects)].type.value,
                           'model_ref_id': data.proxy_objects[
-                              o.proxy_object_index % len(
-                                  data.proxy_objects)].resource_id,
+                              o.proxy_object_index.value % len(
+                                  data.proxy_objects)].resource_id.value,
                           'texture': ';'.join(self._texture_ids(data.proxy_objects[
-                                                                    o.proxy_object_index % len(
-                                                                        data.proxy_objects)].resource_id,
+                                                                    o.proxy_object_index.value % len(
+                                                                        data.proxy_objects)].resource_id.value,
                                                                 data.proxy_objects[
-                                                                    o.proxy_object_index % len(
-                                                                        data.proxy_objects)].frame_count,
+                                                                    o.proxy_object_index.value % len(
+                                                                        data.proxy_objects)].frame_count.value,
                                                                 is_opened_track)),
                           'back_texture': ';'.join(self._texture_ids(
-                              data.proxy_objects[o.proxy_object_index % len(
-                                  data.proxy_objects)].resource_2_id,
-                              data.proxy_objects[o.proxy_object_index % len(
-                                  data.proxy_objects)].frame_count, is_opened_track)),
+                              data.proxy_objects[o.proxy_object_index.value % len(
+                                  data.proxy_objects)].resource_2_id.value,
+                              data.proxy_objects[o.proxy_object_index.value % len(
+                                  data.proxy_objects)].frame_count.value, is_opened_track)),
                           'width': data.proxy_objects[
-                              o.proxy_object_index % len(data.proxy_objects)].width,
+                              o.proxy_object_index.value % len(data.proxy_objects)].width.value,
                           'height': data.proxy_objects[
-                              o.proxy_object_index % len(data.proxy_objects)].height,
+                              o.proxy_object_index.value % len(data.proxy_objects)].height.value,
                           'animation_interval': 250,
                           }
                          for o in data.proxy_object_instances
-                         if (i + 1) * 4 > o.reference_road_spline_vertex >= i * 4]),
+                         if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
                 })
                 if settings.geometry__save_blend:
                     blender_script += get_blender_save_script(out_blend_name=f'{save_path}/{path}terrain_chunk_{i}')

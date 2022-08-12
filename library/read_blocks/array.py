@@ -8,18 +8,18 @@ from library.helpers.exceptions import (BlockDefinitionException,
                                         SerializationException,
                                         )
 from library.helpers.id import join_id
-from library.read_blocks.atomic import AtomicReadBlock
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.atomic import AtomicDataBlock
+from library.read_blocks.data_block import DataBlock
 
 
-class ArrayBlock(ReadBlock):
+class ArrayBlock(DataBlock):
     child = None
 
     def get_size(self, state):
         length = self.get_length(state)
         if length is None:
             return None
-        if isinstance(self.child, AtomicReadBlock):
+        if isinstance(self.child, AtomicDataBlock):
             return self.child.static_size * length
         return sum(self.child.get_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
 
@@ -28,7 +28,7 @@ class ArrayBlock(ReadBlock):
         if length is None:
             return 0
         if self.length_strategy == "strict":
-            if isinstance(self.child, AtomicReadBlock):
+            if isinstance(self.child, AtomicDataBlock):
                 return self.child.static_size * length
             try:
                 return sum(self.child.get_min_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
@@ -41,7 +41,7 @@ class ArrayBlock(ReadBlock):
         length = self.get_length(state)
         if length is None:
             return float('inf')
-        if isinstance(self.child, AtomicReadBlock):
+        if isinstance(self.child, AtomicDataBlock):
             return self.child.static_size * length
         return sum(self.child.get_max_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
 
@@ -49,7 +49,7 @@ class ArrayBlock(ReadBlock):
         return self._length if self._length is not None else state.get('length')
 
     def __init__(self,
-                 child: ReadBlock,
+                 child: DataBlock,
                  length: int = None,
                  length_strategy: Literal["strict", "read_available"] = "strict",
                  length_label: str = None,
@@ -88,7 +88,7 @@ class ArrayBlock(ReadBlock):
         if amount is None and self.length_strategy != "read_available":
             raise BlockDefinitionException('Array field length is unknown')
         if self.length_strategy == "read_available":
-            if isinstance(self.child, AtomicReadBlock):
+            if isinstance(self.child, AtomicDataBlock):
                 amount = (min(amount, floor(size / self.child.static_size))
                           if amount is not None
                           else floor(size / self.child.static_size))
@@ -112,11 +112,11 @@ class ArrayBlock(ReadBlock):
             state['children_states'] = {str(i): {'id': id_prefix + str(i), **common_states} for i in range(amount)}
         start = buffer.tell()
         try:
-            if isinstance(self.child, AtomicReadBlock):
+            if isinstance(self.child, AtomicDataBlock):
                 res = self.child.read_multiple(buffer, size, [x for x in state.get('children_states', {}).values()], amount)
                 size -= (buffer.tell() - start)
             else:
-                raise MultiReadUnavailableException('Supports only atomic read blocks')
+                raise MultiReadUnavailableException('Supports only atomic data blocks')
         except (MultiReadUnavailableException, AttributeError) as ex:
             buffer.seek(start)
             for i in range(amount):
