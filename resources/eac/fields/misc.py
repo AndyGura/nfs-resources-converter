@@ -1,6 +1,7 @@
 from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.atomic import IntegerBlock
 from library.read_blocks.compound import CompoundBlock
+from library.read_data import ReadData
 from resources.eac.fields.numbers import RationalNumber
 
 
@@ -97,7 +98,7 @@ class FenceType(IntegerBlock):
             'has_right_fence': (fence_type & (0x1 << 6)) != 0,
         })
 
-    def to_raw_value(self, data) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         value = self.unwrap_result(data)
         byte = value['texture_id'] & (0xff >> 2)
         if value['has_left_fence']:

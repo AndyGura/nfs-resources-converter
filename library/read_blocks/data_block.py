@@ -102,5 +102,5 @@ class DataBlock(ABC):
         buffer.write(raw)
 
     @abstractmethod
-    def to_raw_value(self, data: ReadData, offset=0) -> bytes:  # TODO offset to state?
+    def to_raw_value(self, data: ReadData) -> bytes:
         pass
