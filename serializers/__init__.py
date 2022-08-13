@@ -1,6 +1,6 @@
 import settings
 from library.read_blocks.delegate import DelegateBlock
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
 from library.utils import my_import
 from .base import BaseFileSerializer
 from .palettes import PaletteSerializer
@@ -14,7 +14,7 @@ from .videos import FfmpegSupportedVideoSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 
 
-def get_serializer(block: ReadBlock) -> BaseFileSerializer:
+def get_serializer(block: DataBlock) -> BaseFileSerializer:
     if isinstance(block, Exception):
         raise block
     if isinstance(block, DelegateBlock):
@@ -25,7 +25,7 @@ def get_serializer(block: ReadBlock) -> BaseFileSerializer:
         try:
             serializer_class = my_import(f'serializers.{serializer_class_name}')
         except ImportError as ex:
-            print()
+            pass
     if not serializer_class_name or not serializer_class:
         raise NotImplementedError(f'Serializer for resource {block.__class__.__name__} not implemented!')
     return serializer_class()

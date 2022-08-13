@@ -1,6 +1,7 @@
 import inspect
 import os
 import sys
+import traceback
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -35,10 +36,12 @@ else:
 
 def export_file(path):
     try:
-        block = require_file(path)
-        serializer = get_serializer(block)
-        serializer.serialize(block, f'out/{path}')
+        data = require_file(path)
+        serializer = get_serializer(data.block)
+        serializer.serialize(data, f'out/{path}')
     except Exception as ex:
+        if settings.print_errors:
+            traceback.print_exc()
         return ex
 
 

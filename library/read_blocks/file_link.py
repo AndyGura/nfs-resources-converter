@@ -1,23 +1,20 @@
 from io import BufferedReader, BytesIO
 
-from library.read_blocks.read_block import ReadBlock
+from library.read_blocks.data_block import DataBlock
+from library.read_data import ReadData
 
 
-class FileLink(ReadBlock):
-    """Not really a read block, because it's not reading the file, just preserving file name"""
+class FileLink(DataBlock):
+    """Not really a data block, because it's not reading the file, just preserving file name"""
 
-    @property
-    def file_path(self):
-        return self.id
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
+        return self.wrap_result(value=state.get('id'), block_state=state)
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int):
         pass
 
-    def load_value(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def from_raw_value(self, raw: bytes, state: dict):
         pass
 
-    def from_raw_value(self, raw: bytes):
-        pass
-
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
         pass

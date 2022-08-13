@@ -7,6 +7,8 @@ ffmpeg_executable = 'ffmpeg'
 # 0 means "use the amount of CPU cores"
 multiprocess_processes_count = 0
 
+print_errors = False
+
 # ================================================= CONVERTING OPTIONS =================================================
 # classes map, which export blocks data to common formats
 SERIALIZER_CLASSES = {

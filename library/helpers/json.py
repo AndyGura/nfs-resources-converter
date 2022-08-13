@@ -9,6 +9,9 @@ def rec_dd():
 
 
 def resource_to_json(item):
+    from library.read_data import ReadData
+    if isinstance(item, ReadData):
+        item = item.value
     if isinstance(item, list):
         return [resource_to_json(x) for x in item]
     if isinstance(item, DataWrapper):

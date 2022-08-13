@@ -37,19 +37,17 @@ class EacsAudio(CompoundBlock):
 
         unknown_fields = ['unk0']
 
-    def _after_wave_data_offset_read(self, data, **kwargs):
-        self.instance_fields_map['wave_data'].offset = data['wave_data_offset']
-        self.instance_fields_map['wave_data'].size = data['wave_data_length'] * data['sound_resolution']
+    def _after_wave_data_offset_read(self, data, state, **kwargs):
+        if not state.get('wave_data'):
+            state['wave_data'] = {}
+        state['wave_data']['offset'] = data['wave_data_offset'].value
+        state['wave_data']['size'] = data['wave_data_length'].value * data['sound_resolution'].value
 
 
 class AsfAudio(CompoundBlock):
     block_description = 'An audio file, which is supported by FFMPEG and can be converted using only it. Has some ' \
                         'explanation here: https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2) . It is ' \
                         'very similar to EACS audio, but has wave data in place, just after the header'
-
-    @property
-    def file_path(self):
-        return self.id
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Field(required_value='1SNh', length=4, description='Resource ID')

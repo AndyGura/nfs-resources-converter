@@ -7,10 +7,12 @@ from string import Template
 from typing import Literal, List, Tuple
 
 import settings
+from library.read_data import ReadData
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
 from library.helpers.data_wrapper import DataWrapper
 from library.helpers.exceptions import BlockIntegrityException
+from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
@@ -23,12 +25,15 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
     except KeyError:
         pass
     # new vertex creation
-    vertex = block.vertex_block[block.polygon_vertex_map_block[index_3D]]
-    model.vertices.append([vertex.x, vertex.y, vertex.z])
+    vertex = block.vertex_block[block.polygon_vertex_map_block[index_3D].value]
+    model.vertices.append([vertex.x.value, vertex.y.value, vertex.z.value])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
     try:
-        uv = block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D]]
+        uv = DataWrapper({
+            'u': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].u.value,
+            'v': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].v.value,
+        })
     except IndexError:
         model.scaled_uvs.add(len(model.vertex_uvs))
         uv = DataWrapper({
@@ -68,57 +73,57 @@ for dummy in dummies:
 
     """)
 
-    def serialize(self, block: OripGeometry, path: str):
+    def serialize(self, data: ReadData[OripGeometry], path: str):
         # shpi is always next block
         from library import require_resource
-        textures_shpi_block = require_resource('/'.join(block.id.split('/')[:-1] + [str(int(block.id.split('/')[-1]) + 1)]))
-        if not textures_shpi_block:
+        textures_shpi_block = require_resource('/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))
+        if not textures_shpi_block or not isinstance(textures_shpi_block.block, ShpiBlock):
             raise BlockIntegrityException('Cannot find SHPI archive for ORIP geometry')
 
-        super().serialize(block, path)
+        super().serialize(data, path)
         try:
-            is_car = '.CFM__' in block.id
+            is_car = '.CFM__' in data.block_state['id']
         except:
             is_car = False
         vertices_file_indices_map = defaultdict(lambda: dict())
         sub_models = defaultdict(SubMesh)
 
-        for polygon in block.polygons_block:
-            polygon_type = polygon.polygon_type
-            normal = polygon.normal
-            texture_id = block.texture_names_block[polygon.texture_index].file_name
+        for polygon in data.polygons_block:
+            polygon_type = polygon.polygon_type.value
+            normal = polygon.normal.value
+            texture_id = data.texture_names_block[polygon.texture_index.value].file_name.value
             sub_model = sub_models[texture_id]
             if not sub_model.name:
                 sub_model.name = texture_id
                 sub_model.texture_id = texture_id
-            offset_3D = polygon.offset_3d
-            offset_2D = polygon.offset_2d
+            offset_3D = polygon.offset_3d.value
+            offset_2D = polygon.offset_2d.value
             is_triangle = (polygon_type & (0xff >> 5)) == 3
             is_quad = (polygon_type & (0xff >> 5)) == 4
             if is_triangle:
                 if normal in [17, 19]:
                     # two sided polygon
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2)
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
                 elif normal in [18, 2, 3, 48, 50]:
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=True)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=True)
                 elif normal in [0, 1, 16]:
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
                 else:
                     raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
             elif is_quad:
                 if normal in [17, 19]:
                     # two sided polygon
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3)
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3)
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
                 elif normal in [18, 2, 3, 48, 50, 10, 6]:  # 10, 6 are unknown. Placed here for testing and looks good
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3, flip_texture=True)
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3, flip_texture=True)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3, flip_texture=True)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3, flip_texture=True)
                 elif normal in [0, 1, 16]:
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
-                    _setup_polygon(sub_model, block, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
                 else:
                     raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
             elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon
@@ -202,7 +207,7 @@ for dummy in dummies:
                 face_index_increment += len(sub_model.vertices)
         with open(f'{path}material.mtl', 'w') as f:
             for texture in textures_shpi_block.children:
-                if not isinstance(texture, AnyBitmapBlock):
+                if not isinstance(texture, ReadData) or not isinstance(texture.block, AnyBitmapBlock):
                     continue
                 f.write(f"""\n\nnewmtl {texture.id.split('/')[-1]}
 Ka 1.000000 1.000000 1.000000

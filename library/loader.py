@@ -1,4 +1,5 @@
 import os
+import weakref
 from io import BufferedReader, BytesIO, SEEK_CUR
 
 
@@ -120,7 +121,7 @@ def require_resource(id: str):
         return resource
     resource_path = [x for x in id.split('__')[1].split('/') if x]
     for key in resource_path:
-        if isinstance(resource, list) and key.isdigit():
+        if isinstance(resource.value, list) and key.isdigit():
             try:
                 resource = resource[int(key)]
                 continue
@@ -142,12 +143,14 @@ files_cache = {}
 
 
 def require_file(path: str):
-    block = files_cache.get(path)
-    if block is None:
+    ref = files_cache.get(path)
+    data = (ref()
+            if ref is not None
+            else None)
+    if data is None:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
-            files_cache[path] = block
-            block.id = path
-            block.read(bdata, os.path.getsize(path))
-    return block
+            data = block.read(bdata, os.path.getsize(path), {'id': path})
+            files_cache[path] = weakref.ref(data)
+    return data

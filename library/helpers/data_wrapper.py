@@ -5,6 +5,14 @@ from copy import deepcopy
 class DataWrapper(dict):
     MARKER = object()
 
+    @staticmethod
+    def wrap(value):
+        if isinstance(value, list):
+            return [DataWrapper.wrap(x) for x in value]
+        elif isinstance(value, dict):
+            return DataWrapper(value)
+        return value
+
     def __init__(self, value: dict = None):
         if value is None:
             pass
@@ -26,17 +34,22 @@ class DataWrapper(dict):
         return self.get(key, None)
 
     def to_dict(self):
-        res = dict(self)
-        for key, value in res.items():
+        res = dict()
+        for key, value in self.items():
+            from library.read_data import ReadData
+            if isinstance(value, ReadData):
+                value = value.value
             if isinstance(value, DataWrapper):
                 res[key] = value.to_dict()
-            elif isinstance(value, Iterable):
-                res[key] = dict(value)
             elif isinstance(value, list):
                 res[key] = [x.to_dict()
                             if isinstance(x, DataWrapper)
                             else dict(x) if isinstance(x, Iterable) else x
-                            for x in value]
+                            for x in [v if not isinstance(v, ReadData) else v.value for v in value]]
+            elif isinstance(value, Iterable) and not isinstance(value, str):
+                res[key] = dict(value)
+            else:
+                res[key] = value
         return res
 
     __setattr__, __getattr__ = __setitem__, __getitem__

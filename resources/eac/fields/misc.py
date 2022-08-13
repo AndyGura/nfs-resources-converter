@@ -1,6 +1,7 @@
 from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.atomic import IntegerBlock
 from library.read_blocks.compound import CompoundBlock
+from library.read_data import ReadData
 from resources.eac.fields.numbers import RationalNumber
 
 
@@ -89,18 +90,19 @@ class FenceType(IntegerBlock):
                                  '<br/>r - flag is add right fence' \
                                  '<br/>tttttt - texture id'
 
-    def from_raw_value(self, raw: bytes):
-        fence_type = super().from_raw_value(raw)
+    def from_raw_value(self, raw: bytes, state: dict):
+        fence_type = super().from_raw_value(raw, state)
         return DataWrapper({
             'texture_id': fence_type & (0xff >> 2),
             'has_left_fence': (fence_type & (0x1 << 7)) != 0,
             'has_right_fence': (fence_type & (0x1 << 6)) != 0,
         })
 
-    def to_raw_value(self, value) -> bytes:
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
         byte = value['texture_id'] & (0xff >> 2)
         if value['has_left_fence']:
             byte = byte | (0x1 << 7)
         if value['has_right_fence']:
             byte = byte | (0x1 << 6)
-        return super().to_raw_value(byte)
+        return super().to_raw_value(self.wrap_result(byte, data.block_state))

@@ -16,19 +16,23 @@ from resources.eac.fields.colors import (
 
 class AnyBitmapBlock(CompoundBlock):
 
-    def _after_height_read(self, data, total_size, parent_read_data, **kwargs):
-        pixel_size = self.instance_fields_map['bitmap'].child.size
-        block_size = data['block_size']
-        expected_block_size = pixel_size * data['width'] * data['height'] + 16
-        if (parent_read_data and parent_read_data.get('shpi_directory') == 'WRAP') or block_size == 0:
+    def _after_height_read(self, data, total_size, state, **kwargs):
+        pixel_size = self.instance_fields_map['bitmap'].child.static_size
+        block_size = data['block_size'].value
+        expected_block_size = pixel_size * data['width'].value * data['height'].value + 16
+        if (state.get('shpi_directory') == 'WRAP') or block_size == 0:
             # TODO in WRAP directory there is no block size. What's there instead?
             # some NFS2 resources have block size equal to 0
             block_size = expected_block_size
         if block_size > total_size:
             raise BlockIntegrityException(f'Too big bitmap block size {block_size}, available: '
                                           f'{total_size}. Expected block size {expected_block_size}')
-        self.instance_fields_map['trailing_bytes'].length = block_size - expected_block_size
-        self.instance_fields_map['bitmap'].length = data['width'] * data['height']
+        if not state.get('trailing_bytes'):
+            state['trailing_bytes'] = {}
+        state['trailing_bytes']['length'] = block_size - expected_block_size
+        if not state.get('bitmap'):
+            state['bitmap'] = {}
+        state['bitmap']['length'] = data['width'].value * data['height'].value
 
 
 class Bitmap16Bit0565(AnyBitmapBlock, CompoundBlock):
@@ -45,7 +49,7 @@ class Bitmap16Bit0565(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color16Bit0565Block(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color16Bit0565Block(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 2\\*width\\*height)',
@@ -62,8 +66,10 @@ class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
                                  'SHPI directories as some small sprites, like "dot". Seems to be always used as ' \
                                  'alpha channel, so we save it as white image with alpha mask'
 
-    def _after_height_read(self, data, total_size, **kwargs):
-        self.instance_fields_map['bitmap'].length = data['width'] * data['height']
+    def _after_height_read(self, data, total_size, state, **kwargs):
+        if not state.get('bitmap'):
+            state['bitmap'] = {}
+        state['bitmap']['length'] = data['width'].value * data['height'].value
 
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7A, description='Resource ID')
@@ -82,6 +88,7 @@ class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
                                    length_label='width * height',
                                    value_deserialize_func=lambda x: 0xFFFFFF00 | transform_bitness(x, 4),
                                    value_serialize_func=lambda x: (x & 0xFF) >> 4,
+                                   children_simplified=True,
                                    description='Font atlas bitmap data')
 
         unknown_fields = ['unknowns']
@@ -112,7 +119,7 @@ class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False), length_label='width * height',
+        bitmap = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False, simplified=True), length_label='width * height',
                             description='Color indexes of bitmap pixels. The actual colors are '
                                         'in assigned to this bitmap palette')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
@@ -146,7 +153,7 @@ class Bitmap32Bit(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color32BitBlock(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color32BitBlock(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 4\\*width\\*height)',
@@ -169,7 +176,7 @@ class Bitmap16Bit1555(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color16Bit1555Block(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color16Bit1555Block(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 2\\*width\\*height)',
@@ -192,7 +199,7 @@ class Bitmap24Bit(AnyBitmapBlock, CompoundBlock):
                          description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
         y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
                          description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color24BitLittleEndianField(), length_label='width * height',
+        bitmap = ArrayBlock(child=Color24BitLittleEndianField(simplified=True), length_label='width * height',
                             description='Colors of bitmap pixels')
         trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
                                     length_label='block_size - (16 + 3\\*width\\*height)',

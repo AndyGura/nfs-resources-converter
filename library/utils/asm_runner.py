@@ -284,7 +284,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
                 if op2value == 1:
                     self.OF = self.get_msb(op1value,  sizes[0]) ^ self.CF
             self.set_value(args[0], op1value)
-            #Mnemonic        Condition tested  Description
+        # Mnemonic        Condition tested  Description
         # jo              OF = 1            overflow
         # jno             OF = 0            not overflow
         # jc, jb, jnae    CF = 1            carry / below / not above nor equal

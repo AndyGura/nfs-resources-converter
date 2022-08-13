@@ -25,16 +25,15 @@ class CompressedBlock(DelegateBlock):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.algorithm = None
-        self.delegate_block_class = None
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, parent_read_data: dict = None):
+    def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
         uncompressed_bytes = self.algorithm(buffer, size)
         uncompressed = BytesIO(uncompressed_bytes)
-        if self.delegate_block_class is None:
+        delegated_block = state.get('delegated_block')
+        if delegated_block is None:
             from library import probe_block_class
-            self.delegate_block_class = probe_block_class(uncompressed, self.id + '_UNCOMPRESSED')
-        self.delegated_block = self.delegate_block_class()
-        return super().read(uncompressed, len(uncompressed_bytes))
+            state['delegated_block'] = probe_block_class(uncompressed, state.get('id') + '_UNCOMPRESSED')()
+        return super().read(uncompressed, len(uncompressed_bytes), state)
 
 
 class RefPackBlock(CompressedBlock):
@@ -102,28 +101,23 @@ class ShpiBlock(CompoundBlock):
             description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
                         'are calculated: either up to next item offset, or up to the end of block')
 
-    def __getattr__(self, name):
-        try:
-            return super().__getattr__(name)
-        except AttributeError as ex:
-            if self.children_descriptions:
-                for i, item_name in enumerate(x.name for x in self.children_descriptions):
-                    if item_name == name:
-                        return self.children[i]
-            raise ex
+    def _after_children_count_read(self, data, state, **kwargs):
+        if not state.get('children_descriptions'):
+            state['children_descriptions'] = {}
+        state['children_descriptions']['length'] = data['children_count'].value
 
-    def _after_children_count_read(self, data, **kwargs):
-        self.instance_fields_map['children_descriptions'].length = data['children_count']
-
-    def _after_children_descriptions_read(self, data, **kwargs):
-        for description in data['children_descriptions']:
-            description.name = description.name.replace('/', '_')
-        self.instance_fields_map['children'].offsets = [x.offset + self.initial_buffer_pointer for x in
-                                                        data['children_descriptions']]
-
-    def _after_children_read(self, data, **kwargs):
-        for i, child in enumerate(data['children']):
-            child.id = self._id + ('/' if '__' in self._id else '__') + data['children_descriptions'][i].name
+    def _after_children_descriptions_read(self, data, initial_buffer_pointer, state, **kwargs):
+        # FIXME we do not support / in part of id since it will be considered as sub resource
+        for description in data['children_descriptions'].value:
+            description.name.value = description.name.value.replace('/', '_')
+        if not state.get('children'):
+            state['children'] = {}
+        state['children']['offsets'] = [x.offset.value + initial_buffer_pointer for x in
+                                        data['children_descriptions'].value]
+        state['children']['custom_names'] = [descr.name.value for descr in data['children_descriptions'].value]
+        if not state['children'].get('common_children_states'):
+            state['children']['common_children_states'] = {}
+        state['children']['common_children_states']['shpi_directory'] = data['shpi_directory'].value
 
 
 class WwwwBlock(CompoundBlock):
@@ -154,17 +148,19 @@ class WwwwBlock(CompoundBlock):
                 return self.children[int(name)]
             raise ex
 
-    def _after_children_count_read(self, data, **kwargs):
-        self.instance_fields_map['children_offsets'].length = data['children_count']
+    def _after_children_count_read(self, data, state, **kwargs):
+        if not state.get('children_offsets'):
+            state['children_offsets'] = {}
+        state['children_offsets']['length'] = data['children_count'].value
 
-    def _after_children_offsets_read(self, data, **kwargs):
-        self.instance_fields_map['children'].offsets = [x + self.initial_buffer_pointer for x in
-                                                        data['children_offsets']]
+    def _after_children_offsets_read(self, data, state, initial_buffer_pointer, **kwargs):
+        if not state.get('children'):
+            state['children'] = {}
+        state['children']['offsets'] = [x.value + initial_buffer_pointer for x in
+                                        data['children_offsets'].value]
 
 
 WwwwBlock.Fields.children.child.possible_resources.append(WwwwBlock(error_handling_strategy='return'))
-WwwwBlock.Fields.children.child.instantiate_kwargs['possible_resources'].append(
-    WwwwBlock(error_handling_strategy='return'))
 
 
 class SoundBank(CompoundBlock):
@@ -193,21 +189,25 @@ class SoundBank(CompoundBlock):
                 return self.children[int(name)]
             raise ex
 
-    def _after_children_offsets_read(self, data, total_size, **kwargs):
+    def _after_children_offsets_read(self, data, total_size, state, initial_buffer_pointer, **kwargs):
         for offset in data['children_offsets']:
-            if offset >= total_size:
-                raise Exception(f'Child cannot start at offset {offset}. Resource length: {total_size}')
+            if offset.value >= total_size:
+                raise Exception(f'Child cannot start at offset {offset.value}. Resource length: {total_size}')
         # FIXME it is unknown what is + 40
-        self.instance_fields_map['children'].offsets = [x + self.initial_buffer_pointer + 40
-                                                        for x in data['children_offsets']
-                                                        if x > 0]
+        if not state.get('children'):
+            state['children'] = {}
+        state['children']['offsets'] = [x.value + initial_buffer_pointer + 40
+                                        for x in data['children_offsets']
+                                        if x.value > 0]
 
-    def _after_children_read(self, data, **kwargs):
-        self.instance_fields_map['wave_data'].offsets = [x.wave_data_offset + self.initial_buffer_pointer
-                                                         for x in data['children']]
-        self.instance_fields_map['wave_data'].lengths = [x.wave_data_length * x.sound_resolution
-                                                         for x in data['children']]
+    def _after_children_read(self, data, initial_buffer_pointer, state, **kwargs):
+        if not state.get('wave_data'):
+            state['wave_data'] = {}
+        state['wave_data']['offsets'] = [x.wave_data_offset.value + initial_buffer_pointer
+                                         for x in data['children']]
+        state['wave_data']['lengths'] = [x.wave_data_length.value * x.sound_resolution.value
+                                         for x in data['children']]
 
     def _after_wave_data_read(self, data, **kwargs):
         for i, child in enumerate(data['children']):
-            child.wave_data = data['wave_data'][i]
+            child.value['wave_data'] = data['wave_data'][i]
