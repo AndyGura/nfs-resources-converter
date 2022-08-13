@@ -51,9 +51,9 @@ maps__save_as_chunked = False
 maps__save_collisions = False    # this one will consume time...
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
-geometry__save_obj = True
+geometry__save_obj = False
 # saves blender scene for each 3D scene
-geometry__save_blend = False
+geometry__save_blend = True
 # removes empty polygons, representing whels and their shadow. Instead place a dummy on the position where wheel axle
 # located and set wheel width, radius as custom properties of the dummy
 geometry__replace_car_wheel_with_dummies = True
