@@ -5,12 +5,11 @@ import pathlib
 import sys
 from math import cos, sin, pi
 
-from library.read_data import ReadData
-
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
+from library.read_data import ReadData
 from library import require_file
 
 resource = argparse.ArgumentParser()
