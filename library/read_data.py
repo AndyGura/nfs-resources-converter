@@ -1,8 +1,11 @@
 from io import BufferedWriter
+from typing import TypeVar, Generic
+
+T = TypeVar('T')
 
 
-class ReadData:
-    def __init__(self, value, block, block_state: dict):
+class ReadData(Generic[T]):
+    def __init__(self, value, block: T, block_state: dict):
         self.value = value
         self.block = block
         self.block_state = block_state

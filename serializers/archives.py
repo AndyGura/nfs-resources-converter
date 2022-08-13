@@ -14,7 +14,7 @@ from serializers import BaseFileSerializer
 
 class ShpiArchiveSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[ShpiBlock], path: str):
         path += '/'
         super().serialize(data, path)
         items = [(data.children_descriptions[i].name.value, data.children[i]) for i in range(data.children_count.value)]

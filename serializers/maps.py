@@ -12,7 +12,7 @@ from library.utils.blender_scripts import get_blender_save_script, run_blender
 from library.utils.meshes import SubMesh
 from library.read_blocks.compound import CompoundBlock
 from library.helpers.data_wrapper import DataWrapper
-from resources.eac.maps import RoadSplinePoint
+from resources.eac.maps import RoadSplinePoint, TriMap
 from serializers import BaseFileSerializer
 
 
@@ -422,7 +422,7 @@ if $save_collisions:
         Ns 0.000000
         map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[TriMap], path: str):
         super().serialize(data, path)
         is_opened_track = math.sqrt(
             (data.road_spline[0].position.x.value - data.road_spline[len(data.terrain) * 4 - 1].position.x.value) ** 2

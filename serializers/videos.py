@@ -8,7 +8,7 @@ from serializers import BaseFileSerializer
 
 class FfmpegSupportedVideoSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[FfmpegSupportedVideo], path: str):
         super().serialize(data, path)
         subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", data.value,
                         # add video on black square so we will not have transparent pixels (displays wrong in chrome)

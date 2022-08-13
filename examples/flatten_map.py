@@ -5,6 +5,8 @@ import pathlib
 import sys
 from math import cos, sin, pi
 
+from resources.eac.maps import TriMap
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
@@ -15,7 +17,7 @@ from library import require_file
 resource = argparse.ArgumentParser()
 resource.add_argument('file', type=pathlib.Path)
 args = resource.parse_args()
-tri_map: ReadData = require_file(str(args.file))
+tri_map: ReadData[TriMap] = require_file(str(args.file))
 for i, terrain_chunk in enumerate(tri_map.terrain):
     for j in range(4):
         terrain_chunk.rows[j][0].y.value = 0.0

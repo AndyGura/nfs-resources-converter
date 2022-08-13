@@ -14,7 +14,7 @@ import json
 
 class EacsAudioSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[EacsAudio], path: str):
         super().serialize(data, path)
         wave_bytes = data.wave_data.value
         if data.compression == 2:
@@ -70,7 +70,7 @@ class EacsAudioSerializer(BaseFileSerializer):
 
 class FfmpegSupportedAudioSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[AsfAudio], path: str):
         super().serialize(data, path)
         subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", data.id, f'{path}.mp3'], check=True)
         with open(f'{path}.meta.json', 'w') as file:

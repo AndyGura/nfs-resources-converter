@@ -73,7 +73,7 @@ for dummy in dummies:
 
     """)
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[OripGeometry], path: str):
         # shpi is always next block
         from library import require_resource
         textures_shpi_block = require_resource('/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))

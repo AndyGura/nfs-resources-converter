@@ -1,10 +1,11 @@
 from library.read_data import ReadData
+from resources.eac.palettes import BasePalette
 from serializers import BaseFileSerializer
 
 
 class PaletteSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[BasePalette], path: str):
         super().serialize(data, path)
         with open(f'{path}.pal.txt', 'w') as f:
             f.write(f'{data.block.__class__.__name__}\n')

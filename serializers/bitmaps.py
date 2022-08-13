@@ -4,12 +4,13 @@ import settings
 from library.helpers.exceptions import SerializationException
 from library.read_data import ReadData
 from resources.eac.archives import WwwwBlock, ShpiBlock
+from resources.eac.bitmaps import AnyBitmapBlock, Bitmap8Bit
 from serializers import BaseFileSerializer
 
 
 class BitmapSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[AnyBitmapBlock], path: str):
         super().serialize(data, path)
         Image.frombytes('RGBA',
                         (data.width.value, data.height.value),
@@ -18,12 +19,13 @@ class BitmapSerializer(BaseFileSerializer):
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
-    def _get_palette_from_shpi(self, shpi: ReadData):
+    def _get_palette_from_shpi(self, shpi: ReadData[ShpiBlock]):
         # some of SHPI directories have upper-cased name of palette. Happens in TNFS track FAM files
         # some of SHPI directories have 0000 as palette. Happens in NFS2SE car models, dash hud, render/pc
         for id in ['!pal', '!PAL', '0000']:
             try:
-                palette = next(x for x in shpi.children if isinstance(x, ReadData) and x.block_state['id'].endswith('/' + id))
+                palette = next(
+                    x for x in shpi.children if isinstance(x, ReadData) and x.block_state['id'].endswith('/' + id))
                 from resources.eac.palettes import BasePalette
                 if palette and isinstance(palette.block, BasePalette):
                     return palette
@@ -31,7 +33,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                 pass
         return None
 
-    def _get_palette_from_wwww(self, wwww: WwwwBlock, max_index=-1, skip_parent_check=False):
+    def _get_palette_from_wwww(self, wwww: ReadData[WwwwBlock], max_index=-1, skip_parent_check=False):
         if max_index == -1:
             max_index = len(wwww.children)
         palette = None
@@ -51,7 +53,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                                                                        if x.id == wwww.id), -1))
         return palette
 
-    def serialize(self, data: ReadData, path: str):
+    def serialize(self, data: ReadData[Bitmap8Bit], path: str):
         super().serialize(data, path)
         if (data.value.get('palette') is None
                 or data.value.get('palette').value is None
