@@ -17,6 +17,8 @@ import { MatInputModule } from '@angular/material/input';
 import { ArrayBlockUiComponent } from './components/editor/array.block-ui/array.block-ui.component';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
+import { PaletteComponent } from './components/editor/palette/palette.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @NgModule({
   declarations: [
@@ -27,7 +29,8 @@ import { MatDividerModule } from '@angular/material/divider';
     CompoundBlockUiComponent,
     StringBlockUiComponent,
     IntegerBlockUiComponent,
-    ArrayBlockUiComponent
+    ArrayBlockUiComponent,
+    PaletteComponent
   ],
   imports: [
     BrowserModule,
@@ -38,6 +41,7 @@ import { MatDividerModule } from '@angular/material/divider';
     MatInputModule,
     MatExpansionModule,
     MatDividerModule,
+    MatTooltipModule,
   ],
   providers: [EelDelegateService],
   bootstrap: [AppComponent]
