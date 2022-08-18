@@ -1,0 +1,20 @@
+:host {
+  width: 100%;
+  padding-bottom: 1.34375em; // as .mat-form-field-wrapper
+}
+
+.divider {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  align-items: center;
+}
+
+::ng-deep {
+  .mat-expansion-panel-body {
+    display: flex;
+    justify-content: space-evenly;
+    column-gap: 1rem;
+    flex-wrap: wrap;
+  }
+}

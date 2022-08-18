@@ -87,7 +87,7 @@ class IntegerBlock(AtomicDataBlock):
             self.static_size, b'\0')
 
 
-class Utf8Field(AtomicDataBlock):
+class Utf8Block(AtomicDataBlock):
 
     def __init__(self, length: int = None, **kwargs):
         self.length = length

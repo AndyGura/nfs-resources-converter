@@ -1,1 +1,7 @@
-<app-editor [resourceData]="resourceData$ | async"></app-editor>
+<mat-toolbar color="primary">
+    <span>{{(resourceData$ | async)?.block_state?.id}}</span>
+    <span class="flex-spacer"></span>
+</mat-toolbar>
+<div id="content-wrapper">
+    <app-editor [resourceData]="resourceData$ | async"></app-editor>
+</div>

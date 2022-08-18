@@ -19,6 +19,8 @@ args = resource.parse_args()
 
 eel.init('frontend/dist/gui')
 
+current_file = None
+
 
 def serialize(data: ReadData) -> dict:
     if not isinstance(data, ReadData):
@@ -28,8 +30,8 @@ def serialize(data: ReadData) -> dict:
 
 @eel.expose
 def open_file(path: str):
-    resource = require_file(path)
-    return serialize(resource)
+    current_file = require_file(path)
+    return serialize(current_file)
 
 
 @eel.expose

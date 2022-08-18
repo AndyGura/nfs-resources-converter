@@ -1,7 +1,7 @@
 from io import BufferedReader, BytesIO
 
 from library.read_blocks.array import ArrayBlock, ExplicitOffsetsArrayBlock
-from library.read_blocks.atomic import Utf8Field, IntegerBlock, BytesField
+from library.read_blocks.atomic import Utf8Block, IntegerBlock, BytesField
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
 from library.read_blocks.literal import LiteralBlock
@@ -66,7 +66,7 @@ class ShpiChildDescription(CompoundBlock):
         super().__init__(**kwargs)
 
     class Fields(CompoundBlock.Fields):
-        name = Utf8Field(length=4)
+        name = Utf8Block(length=4)
         offset = IntegerBlock(static_size=4, is_signed=False)
 
 
@@ -74,10 +74,10 @@ class ShpiBlock(CompoundBlock):
     block_description = 'A container of images and palettes for them'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Field(required_value='SHPI', length=4, description='Resource ID')
+        resource_id = Utf8Block(required_value='SHPI', length=4, description='Resource ID')
         length = IntegerBlock(static_size=4, is_signed=False, description='The length of this SHPI block in bytes')
         children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
-        shpi_directory = Utf8Field(length=4, description='One of: "LN32", "GIMX", "WRAP". The purpose is unknown')
+        shpi_directory = Utf8Block(length=4, description='One of: "LN32", "GIMX", "WRAP". The purpose is unknown')
         children_descriptions = ArrayBlock(child=ShpiChildDescription(),
                                            length_label='children_count',
                                            description='An array of items, each of them represents name of SHPI item '
@@ -125,7 +125,7 @@ class WwwwBlock(CompoundBlock):
                         'If has ORIP 3D model, next item is always SHPI block with textures to this 3D model'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Field(required_value='wwww', length=4, description='Resource ID')
+        resource_id = Utf8Block(required_value='wwww', length=4, description='Resource ID')
         children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
         children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False),
                                       length_label='children_count',

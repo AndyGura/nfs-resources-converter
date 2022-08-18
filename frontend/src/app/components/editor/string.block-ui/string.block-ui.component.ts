@@ -2,17 +2,16 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { GuiComponentInterface } from '../gui-component.interface';
 
 @Component({
-  selector: 'app-fallback.block-ui',
-  templateUrl: './fallback.block-ui.component.html',
-  styleUrls: ['./fallback.block-ui.component.scss'],
+  selector: 'app-string.block-ui',
+  templateUrl: './string.block-ui.component.html',
+  styleUrls: ['./string.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FallbackBlockUiComponent implements GuiComponentInterface {
+export class StringBlockUiComponent implements GuiComponentInterface {
 
   resourceData: ReadData | null = null;
   name: string = '';
 
-  constructor() {
-  }
+  constructor() { }
 
 }

@@ -7,17 +7,37 @@ import { EelDelegateService } from './services/eel-delegate.service';
 import { EditorComponent } from './components/editor/editor.component';
 import { FallbackBlockUiComponent } from './components/editor/fallback.block-ui/fallback.block-ui.component';
 import { DataBlockUIDirective } from './components/editor/data-block-ui.directive';
+import { CompoundBlockUiComponent } from './components/editor/compound.block-ui/compound.block-ui.component';
+import { StringBlockUiComponent } from './components/editor/string.block-ui/string.block-ui.component';
+import { IntegerBlockUiComponent } from './components/editor/integer.block-ui/integer.block-ui.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { ArrayBlockUiComponent } from './components/editor/array.block-ui/array.block-ui.component';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatDividerModule } from '@angular/material/divider';
 
 @NgModule({
   declarations: [
     AppComponent,
     EditorComponent,
     FallbackBlockUiComponent,
-    DataBlockUIDirective
+    DataBlockUIDirective,
+    CompoundBlockUiComponent,
+    StringBlockUiComponent,
+    IntegerBlockUiComponent,
+    ArrayBlockUiComponent
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
+    BrowserAnimationsModule,
+    MatToolbarModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatExpansionModule,
+    MatDividerModule,
   ],
   providers: [EelDelegateService],
   bootstrap: [AppComponent]

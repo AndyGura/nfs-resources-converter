@@ -1,0 +1,6 @@
+<mat-form-field appearance="fill">
+    <mat-label>{{ name }}</mat-label>
+    <input matInput type="text"
+           [disabled]="!!resourceData?.block?.required_value"
+           [value]="resourceData?.value">
+</mat-form-field>

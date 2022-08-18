@@ -47,10 +47,6 @@ class ReadData(Generic[T]):
 
     def to_bytes(self):
         return self.block.to_raw_value(self)
-
-    def serialize(self):
-        return
-
     def serialize(self):
         from library.helpers.data_wrapper import DataWrapper
         if isinstance(self.value, DataWrapper):
@@ -62,7 +58,14 @@ class ReadData(Generic[T]):
         return {
             'block_class_mro': '__'.join(
                 [x.__name__ for x in self.block.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
-            'block': self.block.__dict__,
+            'block': ReadData._serialize_block(block=self.block),
             'block_state': self.block_state,
             'value': value
         }
+
+    @staticmethod
+    def _serialize_block(block):
+        from library.read_blocks.data_block import DataBlock
+        return {k: v if not isinstance(v, DataBlock) else ReadData._serialize_block(v)
+                for (k, v) in block.__dict__.items()}
+
