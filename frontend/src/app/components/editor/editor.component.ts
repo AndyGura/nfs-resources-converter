@@ -7,7 +7,8 @@ import { CompoundBlockUiComponent } from './compound.block-ui/compound.block-ui.
 import { IntegerBlockUiComponent } from './integer.block-ui/integer.block-ui.component';
 import { StringBlockUiComponent } from './string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './array.block-ui/array.block-ui.component';
-import { PaletteComponent } from './palette/palette.component';
+import { BitmapBlockUiComponent } from './bitmap.block-ui/bitmap.block-ui.component';
+import { PaletteBlockUiComponent } from './palette.block-ui/palette.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -26,7 +27,8 @@ export class EditorComponent {
     // TODO BytesField
     // TODO SubByteArrayBlock
     // NFS1 blocks
-    'BasePalette': PaletteComponent,
+    'BasePalette': PaletteBlockUiComponent,
+    'AnyBitmapBlock': BitmapBlockUiComponent,
   }
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

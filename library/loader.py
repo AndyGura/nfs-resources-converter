@@ -121,12 +121,16 @@ def require_resource(id: str):
         return resource
     resource_path = [x for x in id.split('__')[1].split('/') if x]
     for key in resource_path:
-        if isinstance(resource.value, list) and key.isdigit():
-            try:
-                resource = resource[int(key)]
-                continue
-            except KeyError:
-                return None
+        if isinstance(resource.value, list):
+            if key in resource.block_state.get('custom_names', []):
+                return resource.value[resource.block_state.get('custom_names', []).index(key)]
+            if key.isdigit():
+                try:
+                    resource = resource[int(key)]
+                    continue
+                except KeyError:
+                    pass
+            return None
         try:
             resource = getattr(resource, key)
         except AttributeError:
@@ -143,14 +147,11 @@ files_cache = {}
 
 
 def require_file(path: str):
-    ref = files_cache.get(path)
-    data = (ref()
-            if ref is not None
-            else None)
+    data = files_cache.get(path)
     if data is None:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
             data = block.read(bdata, os.path.getsize(path), {'id': path})
-            files_cache[path] = weakref.ref(data)
+            files_cache[path] = data
     return data

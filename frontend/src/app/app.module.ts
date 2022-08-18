@@ -17,8 +17,9 @@ import { MatInputModule } from '@angular/material/input';
 import { ArrayBlockUiComponent } from './components/editor/array.block-ui/array.block-ui.component';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
-import { PaletteComponent } from './components/editor/palette/palette.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { BitmapBlockUiComponent } from './components/editor/bitmap.block-ui/bitmap.block-ui.component';
+import { PaletteBlockUiComponent } from './components/editor/palette.block-ui/palette.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -30,7 +31,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     StringBlockUiComponent,
     IntegerBlockUiComponent,
     ArrayBlockUiComponent,
-    PaletteComponent
+    BitmapBlockUiComponent,
+    PaletteBlockUiComponent,
   ],
   imports: [
     BrowserModule,

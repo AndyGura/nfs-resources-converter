@@ -32,4 +32,8 @@ export class EelDelegateService {
     const res: ReadData = await eel['open_file'](path)();
     this.openedResource$.next(res);
   }
+
+  public async determine8BitBitmapPalette(bitmapId: string): Promise<ReadData | null> {
+    return eel['determine_8_bit_bitmap_palette'](bitmapId)();
+  }
 }
