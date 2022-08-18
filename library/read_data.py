@@ -47,3 +47,22 @@ class ReadData(Generic[T]):
 
     def to_bytes(self):
         return self.block.to_raw_value(self)
+
+    def serialize(self):
+        return
+
+    def serialize(self):
+        from library.helpers.data_wrapper import DataWrapper
+        if isinstance(self.value, DataWrapper):
+            value = self.value.to_dict(serialize_block=True)
+        elif isinstance(self.value, list) and len(self.value) > 0 and isinstance(self.value[0], ReadData):
+            value = [x.serialize() for x in self.value]
+        else:
+            value = self.value
+        return {
+            'block_class_mro': '__'.join(
+                [x.__name__ for x in self.block.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
+            'block': self.block.__dict__,
+            'block_state': self.block_state,
+            'value': value
+        }
