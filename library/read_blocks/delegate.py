@@ -51,7 +51,4 @@ class DelegateBlock(DataBlock):
         return delegated_block.from_raw_value(raw)
 
     def to_raw_value(self, data: ReadData) -> bytes:
-        delegated_block = data.block_state.get('delegated_block')
-        if not delegated_block:
-            raise BlockDefinitionException('Delegated block not defined')
-        return delegated_block.to_raw_value(data)
+        return data.block.to_raw_value(data)

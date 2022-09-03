@@ -43,6 +43,7 @@ class OripVertexUV(CompoundBlock):
                           'texture with different size'
 
     def __init__(self, **kwargs):
+        kwargs.pop('inline_description', None)
         super().__init__(inline_description=True,
                          **kwargs)
 

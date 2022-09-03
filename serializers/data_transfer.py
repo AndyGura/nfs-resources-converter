@@ -27,10 +27,15 @@ class DataTransferSerializer(ResourceSerializer):
     @staticmethod
     def _deserialize_block_value(value):
         if isinstance(value, dict):
-            value = DataWrapper({k: DataTransferSerializer._deserialize_block_value(
+            return DataWrapper({k: DataTransferSerializer._deserialize_block_value(
                 v) if not DataTransferSerializer._is_serialized_read_data(
                 v) else DataTransferSerializer._deserialize_read_data(v)
-                                 for k, v in value.items()})
+                                for k, v in value.items()})
+        elif isinstance(value, list):
+            return [DataTransferSerializer._deserialize_block_value(
+                x) if not DataTransferSerializer._is_serialized_read_data(
+                x) else DataTransferSerializer._deserialize_read_data(x)
+                    for x in value]
         return value
 
     @staticmethod

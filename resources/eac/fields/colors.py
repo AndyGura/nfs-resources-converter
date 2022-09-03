@@ -5,6 +5,8 @@ from library.utils import transform_bitness, transform_color_bitness
 
 class Color24BitDosBlock(IntegerBlock):
     def __init__(self, **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('byte_order', None)
         super().__init__(static_size=3, byte_order="big", **kwargs)
         self.block_description = 'EA games 24-bit dos color, 00rrrrrr_00gggggg_00bbbbbb'
 
@@ -26,6 +28,7 @@ class Color24BitDosBlock(IntegerBlock):
 
 class Color24BitBlock(IntegerBlock):
     def __init__(self, **kwargs):
+        kwargs.pop('static_size', None)
         super().__init__(static_size=3, **kwargs)
         self.block_description = f'EA games 24-bit color ({self.byte_order}-endian), rrrrrrrr_gggggggg_bbbbbbbb'
 
@@ -39,16 +42,20 @@ class Color24BitBlock(IntegerBlock):
 
 class Color24BitBigEndianField(Color24BitBlock):
     def __init__(self, **kwargs):
+        kwargs.pop('byte_order', None)
         super().__init__(byte_order="big", **kwargs)
 
 
 class Color24BitLittleEndianField(Color24BitBlock):
     def __init__(self, **kwargs):
+        kwargs.pop('byte_order', None)
         super().__init__(byte_order="little", **kwargs)
 
 
 class Color32BitBlock(IntegerBlock):
     def __init__(self, **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('byte_order', None)
         super().__init__(static_size=4, byte_order="little", **kwargs)
         self.block_description = 'EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb'
 
@@ -73,6 +80,8 @@ class Color16Bit0565Block(IntegerBlock):
     transparent_color = 0x00_FB_00_FF
 
     def __init__(self, **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('byte_order', None)
         super().__init__(static_size=2, byte_order="little", **kwargs)
         self.block_description = 'EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent'
 
@@ -96,6 +105,8 @@ class Color16Bit0565Block(IntegerBlock):
 
 class Color16Bit1555Block(IntegerBlock):
     def __init__(self, **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('byte_order', None)
         super().__init__(static_size=2, byte_order="little", **kwargs)
         self.block_description = 'EA games 16-bit 1555 color, arrrrrgg_gggbbbbb'
 

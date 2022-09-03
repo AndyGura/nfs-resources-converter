@@ -62,6 +62,7 @@ class ShpiChildDescription(CompoundBlock):
                         'unsigned integer (little-endian)'
 
     def __init__(self, **kwargs):
+        kwargs.pop('inline_description', None)
         super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):

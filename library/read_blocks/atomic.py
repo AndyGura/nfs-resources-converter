@@ -138,6 +138,8 @@ class BytesField(AtomicDataBlock):
 
 class BitFlagsBlock(IntegerBlock, ABC):
     def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('is_signed', None)
         super().__init__(static_size=1,
                          is_signed=False,
                          **kwargs)
@@ -167,6 +169,8 @@ class BitFlagsBlock(IntegerBlock, ABC):
 
 class EnumByteBlock(IntegerBlock, ABC):
     def __init__(self, enum_names: List[Tuple[int, str]], **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('is_signed', None)
         super().__init__(static_size=1,
                          is_signed=False,
                          **kwargs)
