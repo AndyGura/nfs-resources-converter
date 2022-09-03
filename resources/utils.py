@@ -34,7 +34,7 @@ def _get_palette_from_wwww(wwww: ReadData[WwwwBlock], max_index=-1, skip_parent_
                 break
     if not palette and not skip_parent_check and 'children' in wwww.id:
         from library import require_resource
-        parent = require_resource(wwww.id[:wwww.id.rindex('children')])
+        parent, _ = require_resource(wwww.id[:wwww.id.rindex('children')])
         return _get_palette_from_wwww(parent, max_index=next((i for i, x in enumerate(parent.children)
                                                                    if x.id == wwww.id), -1))
     return palette
@@ -56,17 +56,17 @@ def determine_palette_for_8_bit_bitmap(bitmap: ReadData[Bitmap8Bit]) -> ReadData
         from library import require_resource
         # finding in current SHPI directory
         shpi_id = bitmap.id[:max(bitmap.id.rfind('__children'), bitmap.id.rfind('/children'))]
-        palette = _get_palette_from_shpi(require_resource(shpi_id))
+        palette = _get_palette_from_shpi(require_resource(shpi_id)[0])
         # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette, use previous available !pal. 7C bitmap resource data seems to not change as well :(
         if not palette and '.FAM' in bitmap.id:
-            shpi_parent_wwww = require_resource(shpi_id[:shpi_id.rindex('children')])
+            shpi_parent_wwww, _ = require_resource(shpi_id[:shpi_id.rindex('children')])
             palette = _get_palette_from_wwww(shpi_parent_wwww,
                                                   next((i for i, x in enumerate(shpi_parent_wwww.children)
                                                         if x.id == shpi_id), -1))
         if palette is None and 'ART/CONTROL/' in bitmap.id:
             # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
             from library import require_resource
-            shpi = require_resource('/'.join(bitmap.id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS')
+            shpi, _ = require_resource('/'.join(bitmap.id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS')
             palette = _get_palette_from_shpi(shpi)
     else:
         palette = bitmap.palette

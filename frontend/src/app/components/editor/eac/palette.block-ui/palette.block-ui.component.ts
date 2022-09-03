@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { GuiComponentInterface } from '../gui-component.interface';
+import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
   selector: 'app-palette.block-ui',
@@ -14,4 +14,9 @@ export class PaletteBlockUiComponent implements GuiComponentInterface {
 
   constructor() { }
 
+  lpad(str: string, padString: string, length: number) {
+    while (str.length < length)
+      str = padString + str;
+    return str;
+  }
 }

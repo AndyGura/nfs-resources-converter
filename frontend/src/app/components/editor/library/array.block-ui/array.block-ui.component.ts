@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { GuiComponentInterface } from '../gui-component.interface';
+import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
   selector: 'app-array.block-ui',
@@ -8,9 +8,17 @@ import { GuiComponentInterface } from '../gui-component.interface';
 })
 export class ArrayBlockUiComponent implements GuiComponentInterface {
 
-  resourceData: ReadData | null = null;
+  private _resourceData: ReadData | null = null;
+  get resourceData(): ReadData | null {
+    return this._resourceData;
+  }
+  set resourceData(value: ReadData | null) {
+    this._resourceData = value;
+    this.showAsCollapsable = this._resourceData?.value?.length > 5
+  }
   name: string = '';
 
+  showAsCollapsable: boolean = false;
   renderContents: boolean = false;
   contentsTimeout: number | undefined;
 

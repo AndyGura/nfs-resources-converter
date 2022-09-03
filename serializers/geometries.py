@@ -76,7 +76,7 @@ for dummy in dummies:
     def serialize(self, data: ReadData[OripGeometry], path: str):
         # shpi is always next block
         from library import require_resource
-        textures_shpi_block = require_resource('/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))
+        textures_shpi_block, _ = require_resource('/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))
         if not textures_shpi_block or not isinstance(textures_shpi_block.block, ShpiBlock):
             raise BlockIntegrityException('Cannot find SHPI archive for ORIP geometry')
 

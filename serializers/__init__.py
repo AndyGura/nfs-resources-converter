@@ -12,6 +12,7 @@ from .geometries import OripGeometrySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
 from .videos import FfmpegSupportedVideoSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
+from .data_transfer import DataTransferSerializer
 
 
 def get_serializer(block: DataBlock) -> BaseFileSerializer:

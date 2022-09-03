@@ -1,15 +1,25 @@
 import json
 import os
+from abc import ABC, abstractmethod
+from typing import Dict
 
 import settings
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
-from library.read_blocks.data_block import DataBlock
 from library.read_data import ReadData
 
 
-class BaseFileSerializer:
+class ResourceSerializer(ABC):
+    @abstractmethod
+    def serialize(self, data: ReadData) -> Dict:
+        raise NotImplementedError
+
+    def deserialize(self, data: Dict) -> ReadData:
+        raise NotImplementedError
+
+
+class BaseFileSerializer(ResourceSerializer):
 
     def get_unknowns_dict(self, data: ReadData):
         if not isinstance(data, ReadData):
@@ -52,5 +62,5 @@ class BaseFileSerializer:
                 with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
                     file.write(json.dumps(unknowns, indent=4))
 
-    def deserialize(self, path: str, block: DataBlock):
+    def deserialize(self, path: str, resource: ReadData) -> None:
         raise NotImplementedError

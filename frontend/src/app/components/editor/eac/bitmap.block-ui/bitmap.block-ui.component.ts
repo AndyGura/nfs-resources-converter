@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
-import { GuiComponentInterface } from '../gui-component.interface';
-import { intArrayToBitmap } from '../../../utils/int-array-to-bitmap';
-import { EelDelegateService } from '../../../services/eel-delegate.service';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone } from '@angular/core';
+import { GuiComponentInterface } from '../../gui-component.interface';
+import { EelDelegateService } from '../../../../services/eel-delegate.service';
+import { intArrayToBitmap } from '../../../../utils/int-array-to-bitmap';
 
 @Component({
   selector: 'app-bitmap.block-ui',
@@ -24,6 +24,7 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
 
   imageSource: string | undefined;
   name: string = '';
+  hasSerializedFile: boolean = false;
 
   constructor(
     private readonly eelDelegate: EelDelegateService,
@@ -44,6 +45,22 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
     this.imageSource = intArrayToBitmap(pixels,
       this.resourceData?.value?.width?.value,
       this.resourceData?.value?.height?.value);
+    this.cdr.markForCheck();
+  }
+
+  async openResourceInSystem(): Promise<void> {
+    if (!this.resourceData) {
+      console.error('Cannot open. Resource data is empty')
+      return;
+    }
+    await this.eelDelegate.serializeResource(this.resourceData.block_state.id);
+    this.hasSerializedFile = true;
+    this.cdr.markForCheck();
+  }
+
+  async pullResource(): Promise<void> {
+    await this.eelDelegate.deserializeResource(this.resourceData?.block_state.id);
+    this.hasSerializedFile = false;
     this.cdr.markForCheck();
   }
 

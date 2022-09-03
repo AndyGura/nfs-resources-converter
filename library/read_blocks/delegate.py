@@ -8,9 +8,6 @@ from library.read_data import ReadData
 class DelegateBlock(DataBlock):
     """A block class, which uses functionality of another block class. Block class is initially unknown when defining block"""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def get_size(self, state):
         delegated_block = state.get('delegated_block')
         return (delegated_block.size

@@ -33,12 +33,12 @@ class DataWrapper(dict):
     def __getitem__(self, key):
         return self.get(key, None)
 
-    def to_dict(self, serialize_block=False):
+    def to_dict(self):
         res = dict()
         for key, value in self.items():
             from library.read_data import ReadData
             if isinstance(value, ReadData):
-                value = value.value if not serialize_block else value.serialize()
+                value = value.value
             if isinstance(value, DataWrapper):
                 res[key] = value.to_dict()
             elif isinstance(value, list):

@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, ComponentRef, Input, Type, ViewChild } from '@angular/core';
 import { EelDelegateService } from '../../services/eel-delegate.service';
 import { DataBlockUIDirective } from './data-block-ui.directive';
-import { FallbackBlockUiComponent } from './fallback.block-ui/fallback.block-ui.component';
+import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { GuiComponentInterface } from './gui-component.interface';
-import { CompoundBlockUiComponent } from './compound.block-ui/compound.block-ui.component';
-import { IntegerBlockUiComponent } from './integer.block-ui/integer.block-ui.component';
-import { StringBlockUiComponent } from './string.block-ui/string.block-ui.component';
-import { ArrayBlockUiComponent } from './array.block-ui/array.block-ui.component';
-import { BitmapBlockUiComponent } from './bitmap.block-ui/bitmap.block-ui.component';
-import { PaletteBlockUiComponent } from './palette.block-ui/palette.block-ui.component';
+import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
+import { IntegerBlockUiComponent } from './library/integer.block-ui/integer.block-ui.component';
+import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
+import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
+import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
+import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 
 @Component({
   selector: 'app-editor',

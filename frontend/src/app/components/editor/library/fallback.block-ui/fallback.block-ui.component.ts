@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { GuiComponentInterface } from '../gui-component.interface';
+import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
   selector: 'app-fallback.block-ui',

@@ -1,0 +1,6 @@
+<img *ngIf="imageSource" [src]="imageSource">
+<app-editor *ngIf="resourceData?.value?.palette && resourceData?.value?.palette?.value?.resource_id?.value != 124" [resourceData]="resourceData?.value?.palette"></app-editor>
+<div id="actions">
+    <button mat-raised-button color="primary" (click)="openResourceInSystem()">Open with system app</button>
+    <button mat-raised-button color="primary" *ngIf="hasSerializedFile" (click)="pullResource()">Pull updated file</button>
+</div>
