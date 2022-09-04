@@ -24,6 +24,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
+import { BinaryBlockUiComponent } from './components/editor/library/binary.block-ui/binary.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -37,6 +38,7 @@ import { FormsModule } from '@angular/forms';
     ArrayBlockUiComponent,
     BitmapBlockUiComponent,
     PaletteBlockUiComponent,
+    BinaryBlockUiComponent,
   ],
   imports: [
     BrowserModule,

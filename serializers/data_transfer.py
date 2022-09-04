@@ -57,6 +57,8 @@ class DataTransferSerializer(ResourceSerializer):
             value = { k: self.serialize(v) for k, v in data.value.items() }
         elif isinstance(data.value, list):
             value = [self.serialize(x) for x in data.value]
+        elif isinstance(data.value, bytes):
+            value = list(data.value)
         else:
             value = data.value
         return {

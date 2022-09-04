@@ -9,6 +9,7 @@ import { StringBlockUiComponent } from './library/string.block-ui/string.block-u
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
+import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -24,7 +25,7 @@ export class EditorComponent {
     'ArrayBlock': ArrayBlockUiComponent,
     'IntegerBlock': IntegerBlockUiComponent,
     'Utf8Block': StringBlockUiComponent,
-    // TODO BytesField
+    'BytesField': BinaryBlockUiComponent,
     // TODO SubByteArrayBlock
     // NFS1 blocks
     'BasePalette': PaletteBlockUiComponent,
