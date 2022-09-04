@@ -1,3 +1,10 @@
+<div *ngIf="resourceData" class="number-matrix">
+    Unknowns:
+    <ng-container *ngFor="let number of [].constructor(resourceData.value.unknowns.value.length); let i = index">
+        <input matInput type="number"
+               [(ngModel)]="resourceData.value.unknowns.value[i].value">
+    </ng-container>
+</div>
 <img *ngIf="imageSource" [src]="imageSource">
 <app-editor *ngIf="resourceData?.value?.palette && resourceData?.value?.palette?.value?.resource_id?.value != 124" [resourceData]="resourceData?.value?.palette"></app-editor>
 <div id="actions">

@@ -8,6 +8,7 @@ from typing import Dict
 
 import eel
 
+from library.loader import clear_file_cache
 from library.utils.start_file import start_file
 from serializers import get_serializer, DataTransferSerializer
 
@@ -47,6 +48,7 @@ def save_file(path: str, file_data: Dict):
     f = open(path, 'wb')
     f.write(bts)
     f.close()
+    clear_file_cache(path)
 
 
 @eel.expose

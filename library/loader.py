@@ -154,6 +154,9 @@ def require_resource(id: str) -> Tuple:
 files_cache = {}
 
 
+def clear_file_cache(path: str):
+    del files_cache[path]
+
 def require_file(path: str):
     data = files_cache.get(path)
     if data is None:

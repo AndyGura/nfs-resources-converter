@@ -83,3 +83,12 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                                                                  }),
                                           }))
         # TODO if single image in SHPI, should change this SHPI !pal resource probably
+        # from library import require_resource
+        # shpi, _ = require_resource(resource.id[:max(resource.id.rfind('__children'), resource.id.rfind('/children'))])
+        # palette = next(x for x in shpi.children if x.id[-4:] in ['!pal', '!PAL'])
+        # if len(palette_colors) < 256:
+        #     palette_colors += [0] * (256 - len(palette_colors))
+        # palette.value.colors.value = [ReadData(value=x,
+        #                                        block_state={'id': resource.id + '/palette/colors/' + str(i)},
+        #                                        block=palette.block.instance_fields_map['colors'].child,
+        #                                        ) for i, x in enumerate(palette_colors)]
