@@ -1,10 +1,12 @@
 import os
-import weakref
 from io import BufferedReader, BytesIO, SEEK_CUR
 
 
 # this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
 # performance, because we spawn process per file, and it doesn't need to load all those classes every time
+from typing import Tuple
+
+
 def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
     if file_name:
         if file_name.endswith('.BNK'):
@@ -17,7 +19,10 @@ def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
             from resources.eac.car_specs import CarSimplifiedPerformanceSpec
             return CarSimplifiedPerformanceSpec
     if header_str:
-        if file_name and header_str == '#ver' and file_name.endswith('INFO'):
+        if header_str == 'TSTR':
+            from resources.test_resource import TestResource
+            return TestResource
+        elif file_name and header_str == '#ver' and file_name.endswith('INFO'):
             from resources.eac.misc import DashDeclarationFile
             return DashDeclarationFile
         elif header_str == '1SNh':
@@ -114,26 +119,33 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = N
 
 
 # id example: /media/data/nfs/SIMDATA/CARFAMS/LDIABL.CFM__1/frnt
-def require_resource(id: str):
+def require_resource(id: str) -> Tuple:
     file_path = id.split('__')[0]
-    resource = require_file(file_path)
+    file_resource = require_file(file_path)
+    if not file_resource:
+        return None, None
     if file_path == id:
-        return resource
+        return file_resource, file_resource
     resource_path = [x for x in id.split('__')[1].split('/') if x]
+    resource = file_resource
     for key in resource_path:
-        if isinstance(resource.value, list) and key.isdigit():
-            try:
-                resource = resource[int(key)]
-                continue
-            except KeyError:
-                return None
+        if isinstance(resource.value, list):
+            if key in resource.block_state.get('custom_names', []):
+                return resource.value[resource.block_state.get('custom_names', []).index(key)], file_resource
+            if key.isdigit():
+                try:
+                    resource = resource[int(key)]
+                    continue
+                except KeyError:
+                    pass
+            return None, file_resource
         try:
             resource = getattr(resource, key)
         except AttributeError:
-            return None
+            return None, file_resource
         if not resource:
-            return None
-    return resource
+            return None, file_resource
+    return resource, file_resource
 
 
 # not shared between processes: in most cases if file requires another resource, it is in the same file, or it
@@ -142,15 +154,15 @@ def require_resource(id: str):
 files_cache = {}
 
 
+def clear_file_cache(path: str):
+    del files_cache[path]
+
 def require_file(path: str):
-    ref = files_cache.get(path)
-    data = (ref()
-            if ref is not None
-            else None)
+    data = files_cache.get(path)
     if data is None:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
             data = block.read(bdata, os.path.getsize(path), {'id': path})
-            files_cache[path] = weakref.ref(data)
+            files_cache[path] = data
     return data

@@ -1,9 +1,9 @@
 from library.helpers.data_wrapper import DataWrapper
-from library.read_blocks.atomic import Utf8Field
+from library.read_blocks.atomic import Utf8Block
 from library.read_data import ReadData
 
 
-class DashDeclarationFile(Utf8Field):
+class DashDeclarationFile(Utf8Block):
 
     def from_raw_value(self, raw: bytes, state: dict):
         text = super().from_raw_value(raw, state)

@@ -1,0 +1,41 @@
+<mat-expansion-panel
+        *ngIf="showAsCollapsable"
+        (opened)="onContentsTrigger(true)"
+        (closed)="onContentsTrigger(false)">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            {{ name }}
+        </mat-panel-title>
+        <mat-panel-description *ngIf="(resourceData?.value || []).length > 0">
+            Click to view items (<b>{{(resourceData?.value || []).length}}</b>)
+        </mat-panel-description>
+        <mat-panel-description *ngIf="(resourceData?.value || []).length == 0">
+            Empty array
+        </mat-panel-description>
+    </mat-expansion-panel-header>
+    <ng-template [ngTemplateOutlet]="contents"></ng-template>
+</mat-expansion-panel>
+<ng-container *ngIf="!showAsCollapsable">
+    <h2>{{ name }}</h2>
+    <div class="mat-expansion-panel-body">
+        <ng-template [ngTemplateOutlet]="contents"></ng-template>
+    </div>
+</ng-container>
+
+<ng-template #contents>
+    <ng-container *ngIf="(renderContents || !showAsCollapsable) && !resourceData?.block?.child?.simplified">
+        <ng-container *ngFor="let data of (resourceData?.value || []), let i = index">
+            <div class="divider" *ngIf="data?.block_class_mro?.indexOf('Atomic') == -1">
+                <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
+                <span style="padding: 20px; font-weight: 500;">{{ data.block_state?.id.split('__')[1] || i }}</span>
+                <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
+            </div>
+            <app-editor [resourceData]="data"
+                        [name]="i.toString()"></app-editor>
+        </ng-container>
+        <p *ngIf="(resourceData?.value || []).length == 0">Empty array</p>
+    </ng-container>
+    <ng-container *ngIf="(renderContents || !showAsCollapsable) && resourceData?.block?.child?.simplified">
+        <p style="word-break: break-word; max-width: 100%;">[{{ (resourceData?.value || []).join(', ') }}]</p>
+    </ng-container>
+</ng-template>

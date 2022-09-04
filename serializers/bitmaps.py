@@ -1,10 +1,12 @@
 from PIL import Image
 
 import settings
+from library.helpers.data_wrapper import DataWrapper
 from library.helpers.exceptions import SerializationException
 from library.read_data import ReadData
-from resources.eac.archives import WwwwBlock, ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock, Bitmap8Bit
+from resources.eac.palettes import Palette24BitDos
+from resources.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
 
 
@@ -19,71 +21,9 @@ class BitmapSerializer(BaseFileSerializer):
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
-    def _get_palette_from_shpi(self, shpi: ReadData[ShpiBlock]):
-        # some of SHPI directories have upper-cased name of palette. Happens in TNFS track FAM files
-        # some of SHPI directories have 0000 as palette. Happens in NFS2SE car models, dash hud, render/pc
-        for id in ['!pal', '!PAL', '0000']:
-            try:
-                palette = next(
-                    x for x in shpi.children if isinstance(x, ReadData) and x.block_state['id'].endswith('/' + id))
-                from resources.eac.palettes import BasePalette
-                if palette and isinstance(palette.block, BasePalette):
-                    return palette
-            except StopIteration:
-                pass
-        return None
-
-    def _get_palette_from_wwww(self, wwww: ReadData[WwwwBlock], max_index=-1, skip_parent_check=False):
-        if max_index == -1:
-            max_index = len(wwww.children)
-        palette = None
-        for i in range(max_index - 1, -1, -1):
-            if isinstance(wwww.children[i], ReadData) and isinstance(wwww.children[i].block, ShpiBlock):
-                palette = self._get_palette_from_shpi(wwww.children[i])
-                if palette:
-                    break
-            elif isinstance(wwww.children[i], ReadData) and isinstance(wwww.children[i].block, WwwwBlock):
-                palette = self._get_palette_from_wwww(wwww.children[i], skip_parent_check=True)
-                if palette:
-                    break
-        if not palette and not skip_parent_check and 'children' in wwww.id:
-            from library import require_resource
-            parent = require_resource(wwww.id[:wwww.id.rindex('children')])
-            return self._get_palette_from_wwww(parent, max_index=next((i for i, x in enumerate(parent.children)
-                                                                       if x.id == wwww.id), -1))
-        return palette
-
     def serialize(self, data: ReadData[Bitmap8Bit], path: str):
         super().serialize(data, path)
-        if (data.value.get('palette') is None
-                or data.value.get('palette').value is None
-                or data.get('palette').value.resource_id.value == 0x7C
-                or (data.block_state['id'].endswith('ga00') and 'TR2_001.FAM' in data.block_state['id'])):
-            # need to find the palette, it is a tricky part
-            # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
-            # sometimes better, sometime worse, the difference is not much noticeable.
-            # In case of Autumn Valley fence texture, it totally breaks the picture.
-            # If ignore inline palettes in LN32 SHPI, DASH FSH will be broken ¯\_(ツ)_/¯
-            # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯
-            # autumn valley fence texture broken only in ETRACKFM and NTRACKFM
-            # TODO find a generic solution to this problem
-            from library import require_resource
-            # finding in current SHPI directory
-            shpi_id = data.id[:max(data.id.rfind('__children'), data.id.rfind('/children'))]
-            palette = self._get_palette_from_shpi(require_resource(shpi_id))
-            # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette, use previous available !pal. 7C bitmap resource data seems to not change as well :(
-            if not palette and '.FAM' in data.id:
-                shpi_parent_wwww = require_resource(shpi_id[:shpi_id.rindex('children')])
-                palette = self._get_palette_from_wwww(shpi_parent_wwww,
-                                                      next((i for i, x in enumerate(shpi_parent_wwww.children)
-                                                            if x.id == shpi_id), -1))
-            if palette is None and 'ART/CONTROL/' in data.id:
-                # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
-                from library import require_resource
-                shpi = require_resource('/'.join(data.id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS')
-                palette = self._get_palette_from_shpi(shpi)
-        else:
-            palette = data.palette
+        palette = determine_palette_for_8_bit_bitmap(data)
         if palette is None:
             raise SerializationException('Palette not found for 8bit bitmap')
         colors = []
@@ -105,3 +45,50 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             from serializers import PaletteSerializer
             palette_serializer = PaletteSerializer()
             palette_serializer.serialize(data.palette, f'{path}_pal')
+
+    def deserialize(self, path: str, resource: ReadData[Bitmap8Bit]) -> None:
+        source = Image.open(path + '.png')
+        im = Image.new("RGB", source.size, (255, 0, 255))
+        im.paste(source, mask=source.split()[3])
+        im = im.quantize(255)
+        palette_colors = [(r << 24) | (g << 16) | (b << 8) | 0xff for (r, g, b) in im.palette.colors.keys()]
+        # TODO handle transparency
+        # if 0xFF00FF00 in palette_colors:
+        #     # make it last
+        #     palette_colors.remove(0xFF00FF00)
+        #     palette_colors += [0xFF00FF00]
+        resource.value.block_size.value = 16 + im.width * im.height
+        resource.value.width.value = im.width
+        resource.value.height.value = im.height
+        resource.value.bitmap.value = list(im.getdata())
+        resource.value.trailing_bytes.value = []
+        # TODO wow, it's so complicated... Need a way to construct a new resource easily
+        block = Palette24BitDos()
+        resource.value.palette = ReadData(block=block,
+                                          block_state={'id': resource.id + '/palette'},
+                                          value=DataWrapper({
+                                              'resource_id': ReadData(value=0x22,
+                                                                      block=block.instance_fields_map['resource_id'],
+                                                                      block_state={ 'id': resource.id + '/palette/resource_id' }),
+                                              'unknowns': ReadData(value=[0] * 15,
+                                                                   block=block.instance_fields_map['unknowns'],
+                                                                   block_state={ 'id': resource.id + '/palette/unknowns' }),
+                                              'colors': ReadData(value=[ReadData(value=x,
+                                                                                 block_state={ 'id': resource.id + '/palette/colors/' + str(i) },
+                                                                                 block=block.instance_fields_map['colors'].child,
+                                                                                 ) for i, x in enumerate(palette_colors)],
+                                                                 block=block.instance_fields_map['colors'],
+                                                                 block_state={
+                                                                     'id': resource.id + '/palette/colors'
+                                                                 }),
+                                          }))
+        # TODO if single image in SHPI, should change this SHPI !pal resource probably
+        # from library import require_resource
+        # shpi, _ = require_resource(resource.id[:max(resource.id.rfind('__children'), resource.id.rfind('/children'))])
+        # palette = next(x for x in shpi.children if x.id[-4:] in ['!pal', '!PAL'])
+        # if len(palette_colors) < 256:
+        #     palette_colors += [0] * (256 - len(palette_colors))
+        # palette.value.colors.value = [ReadData(value=x,
+        #                                        block_state={'id': resource.id + '/palette/colors/' + str(i)},
+        #                                        block=palette.block.instance_fields_map['colors'].child,
+        #                                        ) for i, x in enumerate(palette_colors)]

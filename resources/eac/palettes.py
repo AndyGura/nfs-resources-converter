@@ -70,7 +70,7 @@ class BasePalette(CompoundBlock, ABC):
 class PaletteReference(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7C, description='Resource ID')
-        unknowns = ArrayBlock(length=7, child=IntegerBlock(static_size=1))
+        unknowns = ArrayBlock(length=7, child=IntegerBlock(static_size=1, simplified=True))
         
         unknown_fields = ['unknowns']
 
@@ -83,7 +83,7 @@ class PaletteReference(CompoundBlock):
 class Palette24BitDos(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x22, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
         colors = ArrayBlock(length=256, child=Color24BitDosBlock(), length_strategy="read_available",
                             description='Colors LUT')
 
@@ -93,7 +93,7 @@ class Palette24BitDos(BasePalette):
 class Palette24Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x24, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
         colors = ArrayBlock(length=256, child=Color24BitBigEndianField(), length_strategy="read_available",
                             description='Colors LUT')
 
@@ -103,7 +103,7 @@ class Palette24Bit(BasePalette):
 class Palette32Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x2A, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
         colors = ArrayBlock(length=256, child=Color32BitBlock(), length_strategy="read_available",
                             description='Colors LUT')
 
@@ -115,7 +115,7 @@ class Palette32Bit(BasePalette):
 class Palette16Bit(BasePalette):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x2D, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1))
+        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
         colors = ArrayBlock(length=256, child=Color16Bit0565Block(), length_strategy="read_available",
                             description='Colors LUT')
 

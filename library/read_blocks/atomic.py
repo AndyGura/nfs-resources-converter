@@ -87,12 +87,14 @@ class IntegerBlock(AtomicDataBlock):
             self.static_size, b'\0')
 
 
-class Utf8Field(AtomicDataBlock):
+class Utf8Block(AtomicDataBlock):
 
     def __init__(self, length: int = None, **kwargs):
+        if kwargs.get('required_value'):
+            length = len(kwargs['required_value'])
+        super().__init__(**kwargs)
         self.length = length
         self.block_description = 'UTF-8 string'
-        super().__init__(**kwargs)
 
     def get_size(self, state):
         return self.length
@@ -136,6 +138,8 @@ class BytesField(AtomicDataBlock):
 
 class BitFlagsBlock(IntegerBlock, ABC):
     def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('is_signed', None)
         super().__init__(static_size=1,
                          is_signed=False,
                          **kwargs)
@@ -165,6 +169,8 @@ class BitFlagsBlock(IntegerBlock, ABC):
 
 class EnumByteBlock(IntegerBlock, ABC):
     def __init__(self, enum_names: List[Tuple[int, str]], **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('is_signed', None)
         super().__init__(static_size=1,
                          is_signed=False,
                          **kwargs)

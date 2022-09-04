@@ -47,3 +47,4 @@ class ReadData(Generic[T]):
 
     def to_bytes(self):
         return self.block.to_raw_value(self)
+

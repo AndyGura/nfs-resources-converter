@@ -1,0 +1,6 @@
+<mat-form-field appearance="fill" *ngIf="resourceData">
+    <mat-label>{{ name }}</mat-label>
+    <input matInput type="number"
+           [disabled]="!!resourceData.block?.required_value"
+           [(ngModel)]="resourceData.value">
+</mat-form-field>

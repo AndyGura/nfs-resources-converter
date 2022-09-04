@@ -11,8 +11,8 @@ class Point3D_16(CompoundBlock):
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
-        kwargs['inline_description'] = True
-        super().__init__(**kwargs)
+        kwargs.pop('inline_description', None)
+        super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
         x = RationalNumber(static_size=2, fraction_bits=8, is_signed=True)
@@ -26,8 +26,8 @@ class Point3D_16_7(CompoundBlock):
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
-        kwargs['inline_description'] = True
-        super().__init__(**kwargs)
+        kwargs.pop('inline_description', None)
+        super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
         x = RationalNumber(static_size=2, fraction_bits=7, is_signed=True)
@@ -41,8 +41,8 @@ class Point3D_32(CompoundBlock):
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
-        kwargs['inline_description'] = True
-        super().__init__(**kwargs)
+        kwargs.pop('inline_description', None)
+        super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
         x = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
@@ -56,8 +56,8 @@ class Point3D_32_4(CompoundBlock):
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
-        kwargs['inline_description'] = True
-        super().__init__(**kwargs)
+        kwargs.pop('inline_description', None)
+        super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
         x = RationalNumber(static_size=4, fraction_bits=4, is_signed=True)
@@ -71,8 +71,8 @@ class Point3D_32_7(CompoundBlock):
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
-        kwargs['inline_description'] = True
-        super().__init__(**kwargs)
+        kwargs.pop('inline_description', None)
+        super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
         x = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
@@ -82,9 +82,9 @@ class Point3D_32_7(CompoundBlock):
 
 class FenceType(IntegerBlock):
     def __init__(self, **kwargs):
-        kwargs['static_size'] = 1
-        kwargs['is_signed'] = False
-        super().__init__(**kwargs)
+        kwargs.pop('static_size', None)
+        kwargs.pop('is_signed', None)
+        super().__init__(static_size=1, is_signed=False, **kwargs)
         self.block_description = 'TNFS fence type field. fence type: [lrtttttt]' \
                                  '<br/>l - flag is add left fence' \
                                  '<br/>r - flag is add right fence' \

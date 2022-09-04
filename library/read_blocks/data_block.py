@@ -1,7 +1,7 @@
 import traceback
 from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO, BufferedWriter
-from typing import Literal
+from typing import Literal, Dict
 
 import settings
 from library.helpers.exceptions import EndOfBufferException
@@ -13,7 +13,7 @@ class DataBlock(ABC):
     block_description = None
 
     def __init__(self, description: str = '', error_handling_strategy: Literal["raise", "return"] = "raise",
-                 simplified: bool = False):
+                 simplified: bool = False, **kwargs):
         """
          :param description: The description of this block's data, when used as subblock
          :type description: str
@@ -25,6 +25,7 @@ class DataBlock(ABC):
         self.description = description
         self.error_handling_strategy = error_handling_strategy
         self.simplified = simplified
+        self.__dict__.update(kwargs)
 
     def get_size(self, state) -> Literal[int, None]:
         """

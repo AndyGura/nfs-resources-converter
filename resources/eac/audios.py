@@ -1,5 +1,5 @@
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import Utf8Field, IntegerBlock, BytesField
+from library.read_blocks.atomic import Utf8Block, IntegerBlock, BytesField
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.detached import DetachedBlock
 
@@ -10,7 +10,7 @@ class EacsAudio(CompoundBlock):
                         'the SoundBank file after all EACS blocks'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Field(required_value='EACS', length=4, description='Resource ID')
+        resource_id = Utf8Block(required_value='EACS', length=4, description='Resource ID')
         sampling_rate = IntegerBlock(static_size=4, description='Sampling rate of audio')
         sound_resolution = IntegerBlock(static_size=1, description='How many bytes in one wave data entry')
         channels = IntegerBlock(static_size=1, description='Channels amount. 1 is mono, 2 is stereo')
@@ -50,7 +50,7 @@ class AsfAudio(CompoundBlock):
                         'very similar to EACS audio, but has wave data in place, just after the header'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Field(required_value='1SNh', length=4, description='Resource ID')
+        resource_id = Utf8Block(required_value='1SNh', length=4, description='Resource ID')
         unknowns = ArrayBlock(length=8, child=IntegerBlock(static_size=1))
         sampling_rate = IntegerBlock(static_size=4, description='Sampling rate of audio')
         sound_resolution = IntegerBlock(static_size=1, description='How many bytes in one wave data entry')

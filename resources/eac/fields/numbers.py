@@ -30,9 +30,9 @@ class RationalNumber(IntegerBlock):
 
 class Nfs1Angle8(IntegerBlock):
     def __init__(self, **kwargs):
-        kwargs['static_size'] = 1
-        kwargs['is_signed'] = False
-        super().__init__(**kwargs)
+        kwargs.pop('static_size', None)
+        kwargs.pop('is_signed', None)
+        super().__init__(static_size=1, is_signed=False, **kwargs)
         self.block_description = 'EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees'
 
     def from_raw_value(self, raw: bytes, state: dict):
@@ -50,10 +50,10 @@ class Nfs1Angle8(IntegerBlock):
 
 class Nfs1Angle14(IntegerBlock):
     def __init__(self, **kwargs):
-        kwargs['static_size'] = 2
-        kwargs['byte_order'] = "little"
-        kwargs['is_signed'] = True
-        super().__init__(**kwargs)
+        kwargs.pop('static_size', None)
+        kwargs.pop('byte_order', None)
+        kwargs.pop('is_signed', None)
+        super().__init__(static_size=2, byte_order='little', is_signed=True, **kwargs)
         self.block_description = 'EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown' \
                                  ' data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees'
 

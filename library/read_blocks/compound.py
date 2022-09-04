@@ -28,9 +28,9 @@ class CompoundBlock(DataBlock, ABC):
         pass
 
     def __init__(self, inline_description=False, **kwargs):
+        super().__init__(**kwargs)
         self.instance_fields = [(name, instance) for name, instance in self.__class__.Fields.fields]
         self.instance_fields_map = {name: res for (name, res) in self.instance_fields}
-        super().__init__(**kwargs)
         self.inline_description = inline_description
 
     @property

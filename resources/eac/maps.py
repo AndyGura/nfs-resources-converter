@@ -2,7 +2,7 @@ from math import floor
 
 from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Field
+from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
@@ -117,7 +117,7 @@ class TerrainEntry(CompoundBlock):
                         'NFS file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Field(length=4, required_value='TRKD')
+        resource_id = Utf8Block(length=4, required_value='TRKD')
         block_length = IntegerBlock(static_size=4, is_signed=False)
         block_number = IntegerBlock(static_size=4, is_signed=False)
         unknown = IntegerBlock(static_size=1)
@@ -139,16 +139,16 @@ class TriMap(CompoundBlock):
         position = Point3D_32()
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
         scenery_data_length = IntegerBlock(static_size=4)
-        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2404)
+        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1, simplified=True), length=2404)
         road_spline = ArrayBlock(child=RoadSplinePoint(), length=2400,
                                  description="Road spline is a series of points in 3D space, located at the center of "
                                              "road. Around this spline the track terrain mesh is built. TRI always has "
                                              "2400 elements, however it uses some amount of vertices, after them "
                                              "records filled with zeros")
-        unknowns3 = ArrayBlock(child=IntegerBlock(static_size=1), length=1800)
+        unknowns3 = ArrayBlock(child=IntegerBlock(static_size=1, simplified=True), length=1800)
         proxy_objects_count = IntegerBlock(static_size=4, is_signed=False)
         proxy_object_instances_count = IntegerBlock(static_size=4, is_signed=False)
-        object_header_text = Utf8Field(length=4, required_value='SJBO')
+        object_header_text = Utf8Block(length=4, required_value='SJBO')
         unknowns4 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
         proxy_objects = ArrayBlock(child=ProxyObject(), length_label='proxy_objects_count')
         proxy_object_instances = ArrayBlock(child=ProxyObjectInstance(), length_label='proxy_object_instances_count')

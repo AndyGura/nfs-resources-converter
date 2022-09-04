@@ -1,5 +1,5 @@
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import IntegerBlock, Utf8Field
+from library.read_blocks.atomic import IntegerBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
 from resources.eac.bitmaps import Bitmap4Bit
 
@@ -18,7 +18,7 @@ class SymbolDefinitionRecord(CompoundBlock):
 
 class FfnFont(CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Field(required_value='FNTF', length=4, description='Resource ID')
+        resource_id = Utf8Block(required_value='FNTF', length=4, description='Resource ID')
         file_size = IntegerBlock(static_size=4, description='This file size in bytes')
         unknowns0 = ArrayBlock(length=2, child=IntegerBlock(static_size=1))
         symbols_amount = IntegerBlock(static_size=2, description='Amount of symbols, defined in this font')

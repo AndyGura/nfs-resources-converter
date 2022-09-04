@@ -1,5 +1,5 @@
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import IntegerBlock, Utf8Field
+from library.read_blocks.atomic import IntegerBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.literal import LiteralBlock
 from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4
@@ -43,6 +43,7 @@ class OripVertexUV(CompoundBlock):
                           'texture with different size'
 
     def __init__(self, **kwargs):
+        kwargs.pop('inline_description', None)
         super().__init__(inline_description=True,
                          **kwargs)
 
@@ -58,7 +59,7 @@ class OripTextureName(CompoundBlock):
         type = ArrayBlock(child=IntegerBlock(static_size=1), length=4,
                           description='Sometimes UTF8 string, but not always. Unknown purpose')
         unknown0 = ArrayBlock(child=IntegerBlock(static_size=1), length=4)
-        file_name = Utf8Field(length=4, description="Name of bitmap in SHPI block")
+        file_name = Utf8Block(length=4, description="Name of bitmap in SHPI block")
         unknown1 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
 
         unknown_fields = ['type', 'unknown0', 'unknown1']
@@ -70,7 +71,7 @@ class OripGeometry(CompoundBlock):
                         ' aligned, so it has explicitly defined offsets to some blocks'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Field(required_value='ORIP', length=4, description='Resource ID')
+        resource_id = Utf8Block(required_value='ORIP', length=4, description='Resource ID')
         unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
         vertex_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of vertices')
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=4)
@@ -81,7 +82,7 @@ class OripGeometry(CompoundBlock):
                                                description='An offset to vertex_uvs_block')
         polygon_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of polygons')
         polygon_block_offset = IntegerBlock(static_size=4, is_signed=False, description='An offset to polygons block')
-        identifier = Utf8Field(length=12, description='Some ID of geometry, don\'t know the purpose')
+        identifier = Utf8Block(length=12, description='Some ID of geometry, don\'t know the purpose')
         texture_names_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of texture names')
         texture_names_block_offset = IntegerBlock(static_size=4, is_signed=False,
                                                   description='An offset to texture names block')

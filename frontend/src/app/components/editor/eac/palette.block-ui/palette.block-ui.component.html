@@ -1,0 +1,13 @@
+<h1>{{ (resourceData?.block_class_mro || '').split('__')[0] }}</h1>
+<div *ngIf="resourceData" class="number-matrix">
+    Unknowns:
+    <ng-container *ngFor="let number of [].constructor(resourceData.value.unknowns.value.length); let i = index">
+        <input matInput type="number"
+               [(ngModel)]="resourceData.value.unknowns.value[i]">
+    </ng-container>
+</div>
+<div id="colors-container">
+    <div *ngFor="let color of resourceData?.value.colors.value; let i = index" class="color-box"
+         [ngStyle]="{'background-color': '#' + lpad(color.value.toString(16), '0', 8) }"
+         [matTooltip]="i + ': #' + color.value.toString(16)"></div>
+</div>
