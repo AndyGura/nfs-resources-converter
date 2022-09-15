@@ -92,9 +92,9 @@ class Utf8Block(AtomicDataBlock):
     def __init__(self, length: int = None, **kwargs):
         if kwargs.get('required_value'):
             length = len(kwargs['required_value'])
+        self.block_description = 'UTF-8 string'
         super().__init__(**kwargs)
         self.length = length
-        self.block_description = 'UTF-8 string'
 
     def get_size(self, state):
         return self.length

@@ -19,6 +19,14 @@ Feel free to contribute
 
 `python -m unittest`
 
+<h3>Fun scripts:</h3>
+
+**WARNING**: those scripts not properly tested and can potentionally damage your files!
+
+`python examples/flatten_map.py <your_track_file_name>.TRI` - makes open track fully flat! I use it for testing car acceleration/deceleration dynamics
+
+`python examples/reverse_map.py <your_track_file_name>.TRI` - makes track go backwards. Tested only with Rusty Springs
+
 <h1>Supported resources</h1>
 
 <h2>The Need For Speed</h2>

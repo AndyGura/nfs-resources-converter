@@ -53,7 +53,7 @@ class Nfs1Angle14(IntegerBlock):
         kwargs.pop('static_size', None)
         kwargs.pop('byte_order', None)
         kwargs.pop('is_signed', None)
-        super().__init__(static_size=2, byte_order='little', is_signed=True, **kwargs)
+        super().__init__(static_size=2, byte_order='little', is_signed=False, **kwargs)
         self.block_description = 'EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown' \
                                  ' data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees'
 
@@ -66,5 +66,27 @@ class Nfs1Angle14(IntegerBlock):
             value -= math.pi * 2
         while value < 0:
             value += math.pi * 2
-        value = min(round(0x4000 * data.value / (math.pi * 2)), 0x3FFF)
+        value = min(round(0x4000 * value / (math.pi * 2)), 0x3FFF)
+        return super().to_raw_value(self.wrap_result(value, data.block_state))
+
+
+class Nfs1Angle16(IntegerBlock):
+    def __init__(self, **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('byte_order', None)
+        kwargs.pop('is_signed', None)
+        super().__init__(static_size=2, byte_order='little', is_signed=False, **kwargs)
+        self.block_description = 'EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) ' \
+                                 'means 360 degrees'
+
+    def from_raw_value(self, raw: bytes, state: dict):
+        return float((super().from_raw_value(raw, state) / 0x10000) * (math.pi * 2))
+
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = self.unwrap_result(data)
+        while value >= 2 * math.pi:
+            value -= math.pi * 2
+        while value < 0:
+            value += math.pi * 2
+        value = min(round(0x10000 * value / (math.pi * 2)), 0xFFFF)
         return super().to_raw_value(self.wrap_result(value, data.block_state))

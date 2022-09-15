@@ -1,12 +1,10 @@
 from math import floor
 
-from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
-from library.read_data import ReadData
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
-from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8
+from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16
 
 
 class RoadSplinePoint(CompoundBlock):
@@ -46,17 +44,14 @@ class RoadSplinePoint(CompoundBlock):
         slant_a = Nfs1Angle14(description='Perpendicular angle of road')
         orientation = Nfs1Angle14(description='Rotation of road path, if view from the top')
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
-        orientation_y = IntegerBlock(static_size=2, is_signed=True,
-                                     description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                 'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
-        slant_b = IntegerBlock(static_size=2, is_signed=True,
-                               description='has the same purpose as slant_a, but is a standard signed 16-bit value. '
-                                           'Its value is positive for the left, negative for the right. The '
-                                           'approximative relation between slant-A and slant-B is slant-B = -12.3 '
-                                           'slant-A (remember that slant-A is 14-bit, though)')
-        orientation_x = IntegerBlock(static_size=2, is_signed=True,
-                                     description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                 'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        orientation_y = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
+                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        slant_b = Nfs1Angle16(description='has the same purpose as slant_a, but is a standard signed 16-bit value. '
+                                          'Its value is positive for the left, negative for the right. The '
+                                          'approximative relation between slant-A and slant-B is slant-B = -12.3 '
+                                          'slant-A (remember that slant-A is 14-bit, though)')
+        orientation_x = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
+                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
         unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
 
         unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
@@ -180,5 +175,3 @@ class TriMap(CompoundBlock):
         if not state.get('proxy_object_instances'):
             state['proxy_object_instances'] = {}
         state['proxy_object_instances']['length'] = data['proxy_object_instances_count'].value
-
-

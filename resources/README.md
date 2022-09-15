@@ -162,9 +162,9 @@
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top |
 | 26 | **unknowns1** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 28 | **orientation_y** | 2 | 2-bytes signed integer (little endian) | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
-| 30 | **slant_b** | 2 | 2-bytes signed integer (little endian) | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
-| 32 | **orientation_x** | 2 | 2-bytes signed integer (little endian) | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 28 | **orientation_y** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 30 | **slant_b** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
+| 32 | **orientation_x** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
 | 34 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 ### **ProxyObject** ###
 #### **Size**: 16 bytes ####
