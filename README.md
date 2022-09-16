@@ -15,17 +15,22 @@ Feel free to contribute
 4) run `python scripts/convert_all.py games`
 5) observe output files in `out/`
 
-<h3>Run tests:</h3>
+<h3>Experimental features:</h3>
+**WARNING**: those scripts not properly tested and can (read "will") damage your files!
 
-`python -m unittest`
-
-<h3>Fun scripts:</h3>
-
-**WARNING**: those scripts not properly tested and can potentionally damage your files!
+<h4>Saving files</h4>
+Except reading, the converter is able to save some files back again, even with modified content. Example scripts:
 
 `python examples/flatten_map.py <your_track_file_name>.TRI` - makes open track fully flat! I use it for testing car acceleration/deceleration dynamics
 
 `python examples/reverse_map.py <your_track_file_name>.TRI` - makes track go backwards. Tested only with Rusty Springs
+
+<h4>GUI Editor</h4>
+`python scripts/gui_editor.py <you_file_path>` will open generic editor, where most of the values can be edited and file can be saved back. Works well in rare cases
+
+<h3>Run tests:</h3>
+
+`python -m unittest`
 
 <h1>Supported resources</h1>
 
