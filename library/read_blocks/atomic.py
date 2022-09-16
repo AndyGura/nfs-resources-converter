@@ -1,6 +1,6 @@
 from abc import ABC
 from io import BufferedReader, BytesIO
-from typing import Literal, List, Tuple
+from typing import Literal, List, Tuple, Dict
 
 from library.helpers.exceptions import BlockIntegrityException, EndOfBufferException
 from library.read_blocks.data_block import DataBlock
@@ -42,7 +42,8 @@ class AtomicDataBlock(DataBlock, ABC):
                                        f'min size {self_size * length}, available: {size}')
         bts = buffer.read(self_size * length)
         if self.simplified:
-            return [self.from_raw_value(x, None) for x in [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
+            return [self.from_raw_value(x, None) for x in
+                    [bts[i * self_size:(i + 1) * self_size] for i in range(length)]]
         return [self.wrap_result(self.from_raw_value(x, state), state)
                 for x, i, state in [(bts[i * self_size:(i + 1) * self_size],
                                      i,
@@ -66,6 +67,26 @@ class IntegerBlock(AtomicDataBlock):
         if static_size > 1:
             self.block_description += f' ({byte_order} endian)'
         super(IntegerBlock, self).__init__(static_size=static_size, **kwargs)
+
+    def get_editor_validators(self, state) -> Dict:
+        return {
+            **super().get_editor_validators(state),
+            'min_value': self.from_raw_value(
+                (-(1 << (self.static_size * 8 - 1))).to_bytes(self.static_size, byteorder=self.byte_order, signed=True)
+                if self.is_signed
+                else (b'\0' * self.static_size),
+                state
+            ),
+            'max_value': self.from_raw_value((
+                ((1 << (self.static_size * 8 - 1)) if self.is_signed else (1 << (self.static_size * 8))) - 1
+              ).to_bytes(self.static_size, byteorder=self.byte_order, signed=self.is_signed),
+              state
+            ),
+            'value_interval': self.from_raw_value(
+                (1).to_bytes(self.static_size, byteorder=self.byte_order, signed=self.is_signed),
+                state
+            ),
+        }
 
     def read_multiple(self, buffer: [BufferedReader, BytesIO], size: int, states: List[dict], length: int):
         # insane speedup in this case (we check class name to not avoid from_raw_value in subclasses)

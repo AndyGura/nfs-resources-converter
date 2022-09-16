@@ -47,12 +47,21 @@ class DataBlock(ABC):
 
     def get_max_size(self, state) -> Literal[int, None]:
         """
-         Gets maxumum size of block in bytes, according to state. Can return None if unknown
+         Gets maximum size of block in bytes, according to state. Can return None if unknown
          :param state: The state of data block
          :type state: dict
          :rtype int
          """
         return self.get_size(state)
+
+    def get_editor_validators(self, state) -> Dict:
+        """
+         Gets validators for GUI editor
+         :param state: The state of data block
+         :type state: dict
+         :rtype dict
+         """
+        return {}
 
     def wrap_result(self, value, block_state=None):
         """

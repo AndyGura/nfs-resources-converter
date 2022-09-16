@@ -67,6 +67,7 @@ class DataTransferSerializer(ResourceSerializer):
                 [x.__name__ for x in data.block.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
             'block': DataTransferSerializer._serialize_block(block=data.block),
             'block_state': data.block_state,
+            'editor_validators': data.block.get_editor_validators(data.block_state),
             'value': value
         }
 

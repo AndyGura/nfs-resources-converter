@@ -1,6 +1,9 @@
 <mat-form-field appearance="fill" *ngIf="resourceData">
     <mat-label>{{ name }}</mat-label>
     <input matInput type="number"
+           [max]="resourceData.editor_validators.max_value"
+           [min]="resourceData.editor_validators.min_value"
+           [step]="resourceData.editor_validators.value_interval"
            [disabled]="!!resourceData.block?.required_value"
            [(ngModel)]="resourceData.value">
 </mat-form-field>
