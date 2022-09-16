@@ -5,12 +5,11 @@ import os
 import pathlib
 import sys
 
-from resources.eac.maps import TriMap
-
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
+from resources.eac.maps import TriMap
 from library.read_data import ReadData
 from library import require_file
 

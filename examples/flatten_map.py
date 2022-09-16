@@ -5,14 +5,13 @@ import pathlib
 import sys
 from math import cos, sin, pi
 
-from resources.eac.maps import TriMap
-
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 from library.read_data import ReadData
 from library import require_file
+from resources.eac.maps import TriMap
 
 resource = argparse.ArgumentParser()
 resource.add_argument('file', type=pathlib.Path)
