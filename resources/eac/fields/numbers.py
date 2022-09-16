@@ -28,7 +28,16 @@ class RationalNumber(IntegerBlock):
         return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 
-class Nfs1Angle8(IntegerBlock):
+class AngleBlock:
+    def wrap_angle(self, value):
+        while value >= 2 * math.pi:
+            value -= math.pi * 2
+        while value < 0:
+            value += math.pi * 2
+        return value
+
+
+class Nfs1Angle8(AngleBlock, IntegerBlock):
     def __init__(self, **kwargs):
         kwargs.pop('static_size', None)
         kwargs.pop('is_signed', None)
@@ -39,16 +48,12 @@ class Nfs1Angle8(IntegerBlock):
         return float((super().from_raw_value(raw, state) / 256) * (math.pi * 2))
 
     def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
-        while value >= 2 * math.pi:
-            value -= math.pi * 2
-        while value < 0:
-            value += math.pi * 2
+        value = self.wrap_angle(self.unwrap_result(data))
         value = min(round(256 * value / (math.pi * 2)), 0xFF)
         return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 
-class Nfs1Angle14(IntegerBlock):
+class Nfs1Angle14(AngleBlock, IntegerBlock):
     def __init__(self, **kwargs):
         kwargs.pop('static_size', None)
         kwargs.pop('byte_order', None)
@@ -61,16 +66,12 @@ class Nfs1Angle14(IntegerBlock):
         return float(((super().from_raw_value(raw, state) & 0x3FFF) / 0x4000) * (math.pi * 2))
 
     def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
-        while value >= 2 * math.pi:
-            value -= math.pi * 2
-        while value < 0:
-            value += math.pi * 2
+        value = self.wrap_angle(self.unwrap_result(data))
         value = min(round(0x4000 * value / (math.pi * 2)), 0x3FFF)
         return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 
-class Nfs1Angle16(IntegerBlock):
+class Nfs1Angle16(AngleBlock, IntegerBlock):
     def __init__(self, **kwargs):
         kwargs.pop('static_size', None)
         kwargs.pop('byte_order', None)
@@ -83,10 +84,6 @@ class Nfs1Angle16(IntegerBlock):
         return float((super().from_raw_value(raw, state) / 0x10000) * (math.pi * 2))
 
     def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
-        while value >= 2 * math.pi:
-            value -= math.pi * 2
-        while value < 0:
-            value += math.pi * 2
+        value = self.wrap_angle(self.unwrap_result(data))
         value = min(round(0x10000 * value / (math.pi * 2)), 0xFFFF)
         return super().to_raw_value(self.wrap_result(value, data.block_state))

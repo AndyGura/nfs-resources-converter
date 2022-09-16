@@ -25,6 +25,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { BinaryBlockUiComponent } from './components/editor/library/binary.block-ui/binary.block-ui.component';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { AngleBlockUiComponent } from './components/editor/library/angle.block-ui/angle.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -39,6 +41,7 @@ import { BinaryBlockUiComponent } from './components/editor/library/binary.block
     BitmapBlockUiComponent,
     PaletteBlockUiComponent,
     BinaryBlockUiComponent,
+    AngleBlockUiComponent,
   ],
   imports: [
     BrowserModule,
@@ -54,6 +57,7 @@ import { BinaryBlockUiComponent } from './components/editor/library/binary.block
     MatTooltipModule,
     MatButtonModule,
     MatIconModule,
+    MatPaginatorModule,
   ],
   providers: [EelDelegateService],
   bootstrap: [AppComponent]

@@ -24,7 +24,7 @@
 
 <ng-template #contents>
     <ng-container *ngIf="(renderContents || !showAsCollapsable) && !resourceData?.block?.child?.simplified">
-        <ng-container *ngFor="let data of (resourceData?.value || []), let i = index">
+        <ng-container *ngFor="let data of this.renderItems, let i = index">
             <div class="divider" *ngIf="data?.block_class_mro?.indexOf('Atomic') == -1">
                 <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
                 <span style="padding: 20px; font-weight: 500;">{{ data.block_state?.id.split('__')[1] || i }}</span>
@@ -33,6 +33,15 @@
             <app-editor [resourceData]="data"
                         [name]="i.toString()"></app-editor>
         </ng-container>
+        <mat-paginator *ngIf="(resourceData?.value || []).length > 0"
+                       [ngClass]="{ 'hidden': (resourceData?.value || []).length <= minPageSize }"
+                       [length]="(resourceData?.value || []).length"
+                       [pageSize]="pageSize"
+                       [pageIndex]="pageIndex"
+                       [pageSizeOptions]="pageSizeOptions"
+                       (page)="renderPage($event.pageIndex, $event.pageSize)"
+                       aria-label="Select page">
+        </mat-paginator>
         <p *ngIf="(resourceData?.value || []).length == 0">Empty array</p>
     </ng-container>
     <ng-container *ngIf="(renderContents || !showAsCollapsable) && resourceData?.block?.child?.simplified">

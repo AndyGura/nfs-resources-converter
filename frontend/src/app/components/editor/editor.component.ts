@@ -10,6 +10,7 @@ import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.c
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
+import { AngleBlockUiComponent } from './library/angle.block-ui/angle.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -24,6 +25,7 @@ export class EditorComponent {
     'CompoundBlock': CompoundBlockUiComponent,
     'ArrayBlock': ArrayBlockUiComponent,
     'IntegerBlock': IntegerBlockUiComponent,
+    'AngleBlock': AngleBlockUiComponent,
     'Utf8Block': StringBlockUiComponent,
     'BytesField': BinaryBlockUiComponent,
     // TODO SubByteArrayBlock

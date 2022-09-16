@@ -1,0 +1,51 @@
+:host {
+  display: flex;
+  padding-bottom: 1.34375em;
+}
+
+#name-span {
+  font-weight: 500;
+}
+
+.circle-container {
+  width: 52px;
+  height: 52px;
+  background: rgba(0,0,0,.04);
+  border: 1px solid rgba(0,0,0,.6);
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+
+  .ui-anglepicker-pointer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    margin: -2px 0 0 -2px;
+    transform-origin: 2px 2px;
+
+    .ui-anglepicker-dot {
+      height: 4px;
+      width: 4px;
+      position: absolute;
+      background: #838383;
+      -moz-border-radius: 50%;
+      -webkit-border-radius: 50%;
+      border-radius: 50%;
+    }
+
+    .ui-anglepicker-line {
+      margin-top: 1.5px;
+      margin-right: -2px;
+      height: 1px;
+      background: #838383;
+    }
+  }
+}
+
+#labels {
+  display: flex;
+  flex-direction: column;
+  margin-left: 1rem;
+  min-width: 6rem;
+}

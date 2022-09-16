@@ -1,0 +1,12 @@
+<div #picker class="circle-container">
+    <div class="ui-anglepicker-pointer" [ngStyle]="{ 'transform': 'rotate(' + (resourceData?.value || 0) + 'rad)'}">
+        <div class="ui-anglepicker-dot"></div>
+        <div class="ui-anglepicker-line"></div>
+    </div>
+</div>
+<div id="labels">
+    <mat-label id="name-span">{{ name }}</mat-label>
+    <mat-label>{{ (resourceData?.value * 180 / pi || 0) | number: '1.2-2'}} deg</mat-label>
+    <mat-label>{{ (resourceData?.value || 0) | number: '1.2-2' }} rad</mat-label>
+</div>
+
