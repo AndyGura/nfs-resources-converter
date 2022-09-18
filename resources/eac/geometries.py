@@ -65,6 +65,38 @@ class OripTextureName(CompoundBlock):
         unknown_fields = ['type', 'unknown0', 'unknown1']
 
 
+class RenderOrderBlock(CompoundBlock):
+    block_description = ''
+
+    class Fields(CompoundBlock.Fields):
+        identifier = Utf8Block(length=8, description="identifier ('NON-SORT', 'inside', 'surface', 'outside')")
+        unk0 = IntegerBlock(static_size=4, is_signed=False, description="0x8 for 'NON-SORT' or 0x1 for the others")
+        polygons_amount = IntegerBlock(static_size=4, is_signed=False,
+                                       description="Polygons amount (3DO). For TNFSSE sometimes too big value")
+        polygon_sum = IntegerBlock(static_size=4, is_signed=False,
+                                   description="0 for 'NON-SORT'; block’s 10 size for 'inside'; equals block’s 10 size "
+                                               "+ number of polygons from ‘inside’ = XXX for 'surface'; equals XXX + "
+                                               "number of polygons from 'surface' for 'outside'; (Description for 3DO "
+                                               "orip file, TNFSSE version has only 9 blocks!)")
+        unk1 = IntegerBlock(static_size=4, is_signed=False)
+        unk2 = IntegerBlock(static_size=4, is_signed=False)
+
+
+# 3DO only http://3dodev.com/documentation/file_formats/games/nfs
+# UTF-8 decoding error for TNFSSE cars
+# class OripLabelItem(CompoundBlock):
+#     block_description = 'Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on ' \
+#                         'drifting, accelerating and braking in the place where texture is shown.'
+#
+#     class Fields(CompoundBlock.Fields):
+#         identifier = Utf8Block(length=8, description="identifier (rt_rear, rt_frnt, bklr, lt_rear, lt_frnt, bkll)")
+#         texture_index = IntegerBlock(static_size=2, is_signed=False,
+#                                      description="3DO version ORIP description: 'Texture indexes referenced from "
+#                                                  "records in block 10 and block 11th. Texture index shows that wheel "
+#                                                  "or back light will be displayed on the polygon number defined in "
+#                                                  "block 10.' - the issue is that TNFSSE orip files consist of 9 blocks")
+
+
 class OripGeometry(CompoundBlock):
     block_description = 'Geometry block for 3D model with few materials. The structure is fuzzy and hard to ' \
                         'understand ¯\\\\_(ツ)_/¯. Offsets here can drift, data is not properly' \
@@ -72,9 +104,12 @@ class OripGeometry(CompoundBlock):
 
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Block(required_value='ORIP', length=4, description='Resource ID')
-        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
+        block_size = IntegerBlock(static_size=4, is_signed=False, description='Total ORIP block size')
+        unk0 = IntegerBlock(static_size=4, is_signed=False, required_value=0x02BC,
+                            description='Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type?')
+        unk1 = IntegerBlock(static_size=4, is_signed=False, required_value=0)
         vertex_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of vertices')
-        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=4)
+        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=4)
         vertex_block_offset = IntegerBlock(static_size=4, is_signed=False, description='An offset to vertex_block')
         vertex_uvs_count = IntegerBlock(static_size=4, is_signed=False,
                                         description='Amount of vertex UV-s (texture coordinates)')
@@ -89,15 +124,15 @@ class OripGeometry(CompoundBlock):
         texture_number_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of texture numbers')
         texture_number_block_offset = IntegerBlock(static_size=4, is_signed=False,
                                                    description='An offset to texture numbers block')
-        unk0_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of items in unk0 block')
-        unk0_block_offset = IntegerBlock(static_size=4, is_signed=False, description='Offset of unk0 block')
+        render_order_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of items in render_order block')
+        render_order_block_offset = IntegerBlock(static_size=4, is_signed=False, description='Offset of render_order block')
         polygon_vertex_map_block_offset = IntegerBlock(static_size=4, is_signed=False,
                                                        description='Offset of polygon_vertex_map block')
-        unk1_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of items in unk1 block')
-        unk1_block_offset = IntegerBlock(static_size=4, is_signed=False, description='Offset of unk1 block')
+        unk0_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of items in unk1 block')
+        unk0_block_offset = IntegerBlock(static_size=4, is_signed=False, description='Offset of unk1 block')
         labels_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of items in labels block')
         labels_block_offset = IntegerBlock(static_size=4, is_signed=False, description='Offset of labels block')
-        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
+        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
         polygons_block = ArrayBlock(child=OripPolygon(), length_label="polygon_count",
                                     description='A block with polygons of the geometry. Probably should be a start '
                                                 'point when building model from this file')
@@ -109,12 +144,15 @@ class OripGeometry(CompoundBlock):
                                                      'located in polygon item')
         texture_number_map_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=20),
                                               length_label="texture_number_count")
-        unk0_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=28),
-                                length_label="unk0_count")
-        unk1_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=12),
+        render_order_block = ArrayBlock(child=RenderOrderBlock(), length_label="render_order_count",
+                                        description='Render order. The exact mechanism how it works is unknown')
+        unk0_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=12),
                                 length_label="unk1_count")
         labels_block = ArrayBlock(child=ArrayBlock(child=IntegerBlock(static_size=1), length=12),
-                                  length_label="labels_count")
+                                  length_label="labels_count",
+                                  description='Format and purpose is unknown. 3DO spec available here: http://3dodev.'
+                                              'com/documentation/file_formats/games/nfs , but do not work for TNFSSE: '
+                                              'UTF-8 decode error')
         vertex_block = ArrayBlock(child=LiteralBlock(
             possible_resources=[Point3D_32_7(), Point3D_32_4()]),
             length_label="vertex_count",
@@ -129,10 +167,10 @@ class OripGeometry(CompoundBlock):
                                                           " a lookup to this table, and value from here is an index of "
                                                           "item in vertex_uvs_block")
 
-        unknown_fields = ['unknowns0', 'unknowns1', 'identifier', 'unknowns2', 'texture_number_map_block', 'unk0_block',
-                          'unk1_block', 'labels_block']
+        unknown_fields = ['unk0', 'unk1', 'unknowns0', 'identifier', 'unknowns1', 'texture_number_map_block', 'unk0_block',
+                          'labels_block']
 
-    def _after_unknowns2_read(self, data, buffer, state, **kwargs):
+    def _after_unknowns1_read(self, data, buffer, state, **kwargs):
         if not state.get('polygons_block'):
             state['polygons_block'] = {}
         state['polygons_block']['length'] = data['polygon_count'].value
@@ -145,12 +183,12 @@ class OripGeometry(CompoundBlock):
         if not state.get('texture_number_map_block'):
             state['texture_number_map_block'] = {}
         state['texture_number_map_block']['length'] = data['texture_number_count'].value
+        if not state.get('render_order_block'):
+            state['render_order_block'] = {}
+        state['render_order_block']['length'] = data['render_order_count'].value
         if not state.get('unk0_block'):
             state['unk0_block'] = {}
         state['unk0_block']['length'] = data['unk0_count'].value
-        if not state.get('unk1_block'):
-            state['unk1_block'] = {}
-        state['unk1_block']['length'] = data['unk1_count'].value
         if not state.get('labels_block'):
             state['labels_block'] = {}
         state['labels_block']['length'] = data['labels_count'].value
@@ -175,11 +213,11 @@ class OripGeometry(CompoundBlock):
     def _before_texture_number_map_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
         buffer.seek(initial_buffer_pointer + data['texture_number_block_offset'].value)
 
+    def _before_render_order_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
+        buffer.seek(initial_buffer_pointer + data['render_order_block_offset'].value)
+
     def _before_unk0_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
         buffer.seek(initial_buffer_pointer + data['unk0_block_offset'].value)
-
-    def _before_unk1_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
-        buffer.seek(initial_buffer_pointer + data['unk1_block_offset'].value)
 
     def _before_labels_block_read(self, data, buffer, initial_buffer_pointer, **kwargs):
         buffer.seek(initial_buffer_pointer + data['labels_block_offset'].value)

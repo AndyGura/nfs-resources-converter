@@ -23,6 +23,7 @@ EXPORT_RESOURCES = {
         geometries.OripGeometry(),
         geometries.OripPolygon(),
         geometries.OripTextureName(),
+        geometries.RenderOrderBlock(),
     ],
     'Maps': [
         maps.TriMap(),

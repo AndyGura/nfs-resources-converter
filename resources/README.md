@@ -68,14 +68,16 @@
 #### **Size**: 112..? bytes ####
 #### **Description**: Geometry block for 3D model with few materials. The structure is fuzzy and hard to understand ¯\\_(ツ)_/¯. Offsets here can drift, data is not properly aligned, so it has explicitly defined offsets to some blocks ####
 <details>
-<summary>Click to see block specs (31 fields)</summary>
+<summary>Click to see block specs (33 fields)</summary>
 
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == ORIP | Resource ID |
-| 4 | **unknowns0** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Total ORIP block size |
+| 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian). Always == 0x2bc | Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type? |
+| 12 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 16 | **vertex_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices |
-| 20 | **unknowns1** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 20 | **unknowns0** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 24 | **vertex_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_block |
 | 28 | **vertex_uvs_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex UV-s (texture coordinates) |
 | 32 | **vertex_uvs_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_uvs_block |
@@ -86,21 +88,21 @@
 | 60 | **texture_names_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture names block |
 | 64 | **texture_number_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of texture numbers |
 | 68 | **texture_number_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture numbers block |
-| 72 | **unk0_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in unk0 block |
-| 76 | **unk0_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of unk0 block |
+| 72 | **render_order_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in render_order block |
+| 76 | **render_order_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block |
 | 80 | **polygon_vertex_map_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of polygon_vertex_map block |
-| 84 | **unk1_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in unk1 block |
-| 88 | **unk1_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of unk1 block |
+| 84 | **unk0_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in unk1 block |
+| 88 | **unk0_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of unk1 block |
 | 92 | **labels_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels block |
 | 96 | **labels_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block |
-| 100 | **unknowns2** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 100 | **unknowns1** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 112 | **polygons_block** | 12 * (polygon_count) | Array of polygon_count items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
 | 112..? | **vertex_uvs_block** | 8 * (vertex_uvs_count) | Array of vertex_uvs_count items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in polygon_vertex_map_block |
 | 112..? | **texture_names_block** | 20 * (texture_names_count) | Array of texture_names_count items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
 | 112..? | **texture_number_map_block** | 20 * (texture_number_count) | Array of texture_number_count items<br/>Item size: 20 bytes<br/>Item type: Array of 20 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **unk0_block** | 28 * (unk0_count) | Array of unk0_count items<br/>Item size: 28 bytes<br/>Item type: Array of 28 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **unk1_block** | 12 * (unk1_count) | Array of unk1_count items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **labels_block** | 12 * (labels_count) | Array of labels_count items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112..? | **render_order_block** | 28 * (render_order_count) | Array of render_order_count items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
+| 112..? | **unk0_block** | 12 * (unk1_count) | Array of unk1_count items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 112..? | **labels_block** | 12 * (labels_count) | Array of labels_count items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Format and purpose is unknown. 3DO spec available here: http://3dodev.com/documentation/file_formats/games/nfs , but do not work for TNFSSE: UTF-8 decode error |
 | 112..? | **vertex_block** | 12 * (vertex_count) | Array of vertex_count items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices in 3D space. For cars it consists of 32:7 points, else 32:4 |
 | 112..? | **polygon_vertex_map_block** | 4 * ((up to end of block)) | Array of (up to end of block) items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertex_block or vertex_uvs_block. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertex_block. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs_block |
 </details>
@@ -125,6 +127,16 @@
 | 4 | **unknown0** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 8 | **file_name** | 4 | UTF-8 string | Name of bitmap in SHPI block |
 | 12 | **unknown1** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+### **RenderOrderBlock** ###
+#### **Size**: 28 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **identifier** | 8 | UTF-8 string | identifier ('NON-SORT', 'inside', 'surface', 'outside') |
+| 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | 0x8 for 'NON-SORT' or 0x1 for the others |
+| 12 | **polygons_amount** | 4 | 4-bytes unsigned integer (little endian) | Polygons amount (3DO). For TNFSSE sometimes too big value |
+| 16 | **polygon_sum** | 4 | 4-bytes unsigned integer (little endian) | 0 for 'NON-SORT'; block’s 10 size for 'inside'; equals block’s 10 size + number of polygons from ‘inside’ = XXX for 'surface'; equals XXX + number of polygons from 'surface' for 'outside'; (Description for 3DO orip file, TNFSSE version has only 9 blocks!) |
+| 20 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 24 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | - |
 ## **Maps** ##
 ### **TriMap** ###
 #### **Size**: 90664..? bytes ####
