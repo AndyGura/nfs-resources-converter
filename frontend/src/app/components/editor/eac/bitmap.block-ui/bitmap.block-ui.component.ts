@@ -36,8 +36,8 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
     if (this.resourceData?.block_class_mro?.startsWith('Bitmap8Bit')) {
       const palette = await this.eelDelegate.determine8BitBitmapPalette(this.resourceData?.block_state?.id);
       // TODO link to palette if in the same file: when adding editing tool, bitmap should be updated
-      if (palette) {
-        pixels = pixels.map((x: number) => palette?.value?.colors?.value[x].value);
+      if (palette && (palette as any).block_class_mro) {
+        pixels = pixels.map((x: number) => (palette as any).value?.colors?.value[x].value);
       } else {
         pixels = pixels.map((x: number) => (x << 24) | (x << 16) | (x << 8) | x);
       }

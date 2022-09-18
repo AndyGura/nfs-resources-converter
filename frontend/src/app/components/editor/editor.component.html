@@ -1,4 +1,5 @@
 <div *ngIf="!resourceData">
     Loading...
 </div>
+<span *ngIf="error" class="mat-error">{{error.error_class}}: {{error.error_text}}</span>
 <ng-template dataBlockUI></ng-template>

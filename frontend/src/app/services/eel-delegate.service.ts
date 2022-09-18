@@ -8,7 +8,7 @@ declare const eel: { expose: (func: Function, alias: string) => void } & { [key:
 })
 export class EelDelegateService {
 
-  public readonly openedResource$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  public readonly openedResource$: BehaviorSubject<ReadData | ReadError | null> = new BehaviorSubject<ReadData | ReadError | null>(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   constructor(
@@ -30,7 +30,7 @@ export class EelDelegateService {
   }
 
   public async openFile(path: string) {
-    const res: ReadData = await eel['open_file'](path)();
+    const res: ReadData | ReadError = await eel['open_file'](path)();
     this.openedResource$.next(res);
     this.openedResourcePath$.next(path);
   }
@@ -47,7 +47,7 @@ export class EelDelegateService {
     this.openedResource$.next(await eel['deserialize_resource'](id)());
   }
 
-  public async determine8BitBitmapPalette(bitmapId: string): Promise<ReadData | null> {
+  public async determine8BitBitmapPalette(bitmapId: string): Promise<ReadData | ReadError | null> {
     return eel['determine_8_bit_bitmap_palette'](bitmapId)();
   }
 }

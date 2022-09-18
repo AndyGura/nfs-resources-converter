@@ -49,6 +49,11 @@ class DataTransferSerializer(ResourceSerializer):
 
     def serialize(self, data: ReadData) -> Dict:
         if not isinstance(data, ReadData):
+            if isinstance(data, Exception):
+                return {
+                    'error_class': data.__class__.__name__,
+                    'error_text': str(data),
+                }
             try:
                 return data.__dict__
             except AttributeError:

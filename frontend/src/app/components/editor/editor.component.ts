@@ -50,28 +50,37 @@ export class EditorComponent {
       }
   };
 
-  private _resourceData: ReadData | null = null;
-  get resourceData(): ReadData | null {
+  private _resourceData: ReadData | ReadError | null = null;
+  get resourceData(): ReadData | ReadError | null {
     return this._resourceData;
   }
+  get error(): ReadError | null {
+    if ((this._resourceData as any)?.error_class) {
+      return this._resourceData as ReadError;
+    }
+    return null;
+  }
   @Input()
-  public set resourceData(value: ReadData | null) {
+  public set resourceData(value: ReadData | ReadError | null) {
     this._resourceData = value;
     this.dataBlockUiHost.viewContainerRef.clear();
     if (this._resourceData) {
-      let component: Type<GuiComponentInterface> | undefined;
-      for (const className of this._resourceData.block_class_mro.split('__')) {
+      if ((this._resourceData as any).block_class_mro) {
+        const readData = this._resourceData as ReadData;
+        let component: Type<GuiComponentInterface> | undefined;
+        for (const className of readData.block_class_mro.split('__')) {
           component = EditorComponent.DATA_BLOCK_COMPONENTS_MAP[className];
           if (component) {
             break;
           }
+        }
+        if (!component) {
+          throw new Error('Cannot find GUI component for block MRO ' + readData.block_class_mro);
+        }
+        this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
+        this._component.instance.resourceData = readData;
+        this._component.instance.name = this._name;
       }
-      if (!component) {
-        throw new Error('Cannot find GUI component for block MRO ' + this._resourceData.block_class_mro);
-      }
-      this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
-      this._component.instance.resourceData = this.resourceData;
-      this._component.instance.name = this._name;
     }
   };
 
