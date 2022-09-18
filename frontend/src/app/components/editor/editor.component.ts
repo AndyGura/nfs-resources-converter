@@ -11,6 +11,8 @@ import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.co
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { AngleBlockUiComponent } from './library/angle.block-ui/angle.block-ui.component';
+import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
+import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -32,6 +34,8 @@ export class EditorComponent {
     // NFS1 blocks
     'BasePalette': PaletteBlockUiComponent,
     'AnyBitmapBlock': BitmapBlockUiComponent,
+    'ShpiBlock': ShpiBlockUiComponent,
+    'WwwwBlock': WwwwBlockUiComponent,
   }
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

@@ -27,6 +27,12 @@ import { FormsModule } from '@angular/forms';
 import { BinaryBlockUiComponent } from './components/editor/library/binary.block-ui/binary.block-ui.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { AngleBlockUiComponent } from './components/editor/library/angle.block-ui/angle.block-ui.component';
+import { SidenavResListComponent } from './components/editor/common/sidenav-res-list/sidenav-res-list.component';
+import { ShpiBlockUiComponent } from './components/editor/eac/shpi.block-ui/shpi.block-ui.component';
+import { MatListModule } from '@angular/material/list';
+import { WwwwBlockUiComponent } from './components/editor/eac/wwww.block-ui/wwww.block-ui.component';
+import { MatCardModule } from '@angular/material/card';
+import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 
 @NgModule({
   declarations: [
@@ -42,6 +48,9 @@ import { AngleBlockUiComponent } from './components/editor/library/angle.block-u
     PaletteBlockUiComponent,
     BinaryBlockUiComponent,
     AngleBlockUiComponent,
+    SidenavResListComponent,
+    ShpiBlockUiComponent,
+    WwwwBlockUiComponent,
   ],
   imports: [
     BrowserModule,
@@ -58,8 +67,10 @@ import { AngleBlockUiComponent } from './components/editor/library/angle.block-u
     MatButtonModule,
     MatIconModule,
     MatPaginatorModule,
+    MatListModule,
+    MatCardModule,
   ],
-  providers: [EelDelegateService],
+  providers: [EelDelegateService,NgxDeepEqualsPureService],
   bootstrap: [AppComponent]
 })
 export class AppModule {

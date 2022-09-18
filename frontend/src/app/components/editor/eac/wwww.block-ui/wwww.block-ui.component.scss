@@ -1,0 +1,16 @@
+:host {
+  display: flex;
+  flex-direction: column;
+
+  #top-bar {
+    flex-grow: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 2rem;
+  }
+
+  app-sidenav-res-list {
+    height: calc(100% - 4rem);
+  }
+}
