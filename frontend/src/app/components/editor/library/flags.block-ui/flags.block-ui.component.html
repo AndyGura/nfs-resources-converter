@@ -1,0 +1,10 @@
+<ng-container *ngIf="resourceData">
+    <mat-label>{{ name }}</mat-label>
+    <mat-selection-list (selectionChange)="onSelection($event)">
+        <mat-list-option *ngFor="let flag of (resourceData.value | keyvalue)"
+                         [value]="flag.key"
+                         [selected]="resourceData.value[$any(flag.key)]">
+            {{flag.key}}
+        </mat-list-option>
+    </mat-selection-list>
+</ng-container>

@@ -33,6 +33,9 @@ import { MatListModule } from '@angular/material/list';
 import { WwwwBlockUiComponent } from './components/editor/eac/wwww.block-ui/wwww.block-ui.component';
 import { MatCardModule } from '@angular/material/card';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
+import { EnumBlockUiComponent } from './components/editor/library/enum.block-ui/enum.block-ui.component';
+import { MatSelectModule } from '@angular/material/select';
+import { FlagsBlockUiComponent } from './components/editor/library/flags.block-ui/flags.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -51,6 +54,8 @@ import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
     SidenavResListComponent,
     ShpiBlockUiComponent,
     WwwwBlockUiComponent,
+    EnumBlockUiComponent,
+    FlagsBlockUiComponent,
   ],
   imports: [
     BrowserModule,
@@ -69,6 +74,7 @@ import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
     MatPaginatorModule,
     MatListModule,
     MatCardModule,
+    MatSelectModule,
   ],
   providers: [EelDelegateService,NgxDeepEqualsPureService],
   bootstrap: [AppComponent]

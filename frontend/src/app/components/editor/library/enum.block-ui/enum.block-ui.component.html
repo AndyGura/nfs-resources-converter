@@ -1,0 +1,8 @@
+<mat-form-field *ngIf="resourceData" appearance="fill">
+    <mat-label>{{ name }}</mat-label>
+    <mat-select [(value)]="resourceData.value">
+        <mat-option *ngFor="let enumValue of resourceData.block.enum_names" [value]="enumValue[1]">
+            {{enumValue[1]}}
+        </mat-option>
+    </mat-select>
+</mat-form-field>

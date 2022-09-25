@@ -8,16 +8,16 @@ from typing import Dict
 
 import eel
 
-from library.loader import clear_file_cache
-from library.utils.start_file import start_file
-from serializers import get_serializer, DataTransferSerializer
-
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 from resources.utils import determine_palette_for_8_bit_bitmap
 from library import require_file, require_resource
+
+from library.loader import clear_file_cache
+from library.utils.start_file import start_file
+from serializers import get_serializer, DataTransferSerializer
 
 resource = argparse.ArgumentParser()
 resource.add_argument('file', type=pathlib.Path)
@@ -37,7 +37,10 @@ def on_angular_ready():
 
 @eel.expose
 def open_file(path: str):
-    current_file = require_file(path)
+    try:
+        current_file = require_file(path)
+    except Exception as ex:
+        current_file = ex
     return DataTransferSerializer().serialize(current_file)
 
 

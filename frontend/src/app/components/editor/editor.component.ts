@@ -13,6 +13,8 @@ import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-u
 import { AngleBlockUiComponent } from './library/angle.block-ui/angle.block-ui.component';
 import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
+import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
+import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -30,6 +32,8 @@ export class EditorComponent {
     'AngleBlock': AngleBlockUiComponent,
     'Utf8Block': StringBlockUiComponent,
     'BytesField': BinaryBlockUiComponent,
+    'EnumByteBlock': EnumBlockUiComponent,
+    'BitFlagsBlock': FlagsBlockUiComponent,
     // TODO SubByteArrayBlock
     // NFS1 blocks
     'BasePalette': PaletteBlockUiComponent,
