@@ -15,20 +15,27 @@ Feel free to contribute
 4) run `python scripts/convert_all.py games`
 5) observe output files in `out/`
 
-<h3>Experimental features:</h3>
+<h2>Experimental features:</h2>
 **WARNING**: those scripts not properly tested and can (read "will") damage your files!
 
-<h4>Saving files</h4>
-Except reading, the converter is able to save some files back again, even with modified content. Example scripts:
+<h3>Saving files</h3>
+Except reading, the converter is able to save some files back again, even with modified content. Can be done via code (look examples/ directory) or via GUI
 
-`python examples/flatten_map.py <your_track_file_name>.TRI` - makes open track fully flat! I use it for testing car acceleration/deceleration dynamics
+<h3>Flatten track</h3>
+Makes open track fully flat! I use it for testing car acceleration/deceleration dynamics
 
-`python examples/reverse_map.py <your_track_file_name>.TRI` - makes track go backwards. Tested only with Rusty Springs
+`python examples/flatten_map.py <your_track_file_name>.TRI`
 
-<h4>GUI Editor</h4>
+<h3>Reverse track</h3>
+
+Makes track go backwards. They have a bunch of issues and glitches for now. All reversed NFSSE tracks can be found [here](https://drive.google.com/drive/folders/10nhqRrZ2Vvm6yYrIEfxjlNsltoewNTrS?usp=sharing)
+
+`python examples/reverse_map.py <your_track_file_name>.TRI`
+
+<h3>GUI Editor</h3>
 `python scripts/gui_editor.py <you_file_path>` will open generic editor, where most of the values can be edited and file can be saved back. Works well in rare cases
 
-<h3>Run tests:</h3>
+<h2>Run tests:</h2>
 
 `python -m unittest`
 
