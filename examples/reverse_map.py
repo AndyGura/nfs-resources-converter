@@ -13,10 +13,12 @@ from resources.eac.maps import TriMap
 from library.read_data import ReadData
 from library import require_file
 
-# FIXME slants are wrong (CL2)
+# FIXME slants are wrong (CL2). on AL2 looks inversed
 # FIXME lane merge/split are broken. Is it possible to fix?
 # FIXME tunnel walls are broken. Is it possible to fix?
 # FIXME preserve 3D effect from two sided bitmaps (add math.pi to rotation, move base, switch side of side bitmap)
+# FIXME opponents have totally broken positioning on open tracks
+# FIXME AI speed inadequate
 
 resource = argparse.ArgumentParser()
 resource.add_argument('file', type=pathlib.Path)
