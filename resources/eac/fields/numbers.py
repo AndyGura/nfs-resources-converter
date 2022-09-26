@@ -19,12 +19,19 @@ class RationalNumber(IntegerBlock):
         else:
             return (1 << (8 * self.static_size)) - 1
 
+    @property
+    def min_value(self):
+        if self.is_signed:
+            return -(1 << (8 * self.static_size - 1))
+        else:
+            return 0
+
     def from_raw_value(self, raw: bytes, state: dict):
         return float(super().from_raw_value(raw, state) / (1 << self.fraction_bits))
 
     def to_raw_value(self, data: ReadData) -> bytes:
         value = self.unwrap_result(data)
-        value = min(round(value * (1 << self.fraction_bits)), self.max_value)
+        value = max(min(round(value * (1 << self.fraction_bits)), self.max_value), self.min_value)
         return super().to_raw_value(self.wrap_result(value, data.block_state))
 
 

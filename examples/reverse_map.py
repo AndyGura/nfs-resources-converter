@@ -13,6 +13,11 @@ from resources.eac.maps import TriMap
 from library.read_data import ReadData
 from library import require_file
 
+# FIXME slants are wrong (CL2)
+# FIXME lane merge/split are broken. Is it possible to fix?
+# FIXME tunnel walls are broken. Is it possible to fix?
+# FIXME preserve 3D effect from two sided bitmaps (add math.pi to rotation, move base, switch side of side bitmap)
+
 resource = argparse.ArgumentParser()
 resource.add_argument('file', type=pathlib.Path)
 args = resource.parse_args()
@@ -34,7 +39,8 @@ pre_last_position = tri_map.road_spline[road_spline_length - 2].position
 y_angle_to_rotate = math.pi - math.atan2(last_position.x.value - pre_last_position.x.value,
                                          last_position.z.value - pre_last_position.z.value)
 
-for vertex in tri_map.road_spline[:road_spline_length]:
+lane_effects = []
+for i, vertex in enumerate(tri_map.road_spline[:road_spline_length]):
     # translate so finish == 0, 0, 0
     vertex.position.x.value -= last_position.x.value
     vertex.position.y.value -= last_position.y.value
@@ -53,17 +59,23 @@ for vertex in tri_map.road_spline[:road_spline_length]:
     vertex.slant_a.value = -vertex.slant_a.value
     vertex.slant_b.value = -vertex.slant_b.value
 
-    # TODO maybe minus here, tested with 180 degrees turn
     vertex.orientation.value += math.pi + y_angle_to_rotate
 
     if vertex.spline_item_mode.value == 'lane_split':
         vertex.spline_item_mode.value = 'lane_merge'
+        lane_effects.append(i)
     elif vertex.spline_item_mode.value == 'lane_merge':
         vertex.spline_item_mode.value = 'lane_split'
+        # lane_effects.append(i)
+
+for index in lane_effects:
+    tri_map.road_spline[index].spline_item_mode.value, tri_map.road_spline[index - 1].spline_item_mode.value = (
+        tri_map.road_spline[index - 1].spline_item_mode.value, tri_map.road_spline[index].spline_item_mode.value)
 
 for chunk in tri_map.terrain:
     (chunk.fence.value.has_left_fence, chunk.fence.value.has_right_fence) = (
     chunk.fence.value.has_right_fence, chunk.fence.value.has_left_fence)
+    chunk.texture_ids.value = chunk.texture_ids.value[5:] + chunk.texture_ids.value[:5]
     chunk.rows.value = chunk.rows.value[::-1]
     for i in range(4):
         chunk.rows[i].value = [chunk.rows[i].value[0]] + chunk.rows[i].value[6:] + chunk.rows[i].value[1:6]
@@ -76,7 +88,7 @@ for chunk in tri_map.terrain:
 amount_of_instances = [x.reference_road_spline_vertex.value for x in tri_map.proxy_object_instances].index(-1)
 for proxy_inst in tri_map.proxy_object_instances[:amount_of_instances]:
     proxy_inst.reference_road_spline_vertex.value = road_spline_length - 1 - proxy_inst.reference_road_spline_vertex.value
-    proxy_inst.rotation.value += y_angle_to_rotate  # TODO maybe minus here, tested with 180 degrees turn
+    proxy_inst.rotation.value += math.pi
     proxy_inst.position.z.value, proxy_inst.position.x.value = rotate_point((0, 0),
                                                                             (proxy_inst.position.z.value,
                                                                              proxy_inst.position.x.value),
@@ -89,6 +101,7 @@ tri_map.proxy_object_instances.value = (tri_map.proxy_object_instances.value[:am
                                         + tri_map.proxy_object_instances.value[amount_of_instances:])
 
 updated_tri = tri_map.to_bytes()
-f = open(str(args.file)[:-4] + '_REVERSED.TRI', 'wb')
+os.makedirs('/'.join(str(args.file).split('/')[:-1]) + '/reversed', exist_ok=True)
+f = open('/'.join(str(args.file).split('/')[:-1]) + '/reversed/' + str(args.file).split('/')[-1], 'wb')
 f.write(updated_tri)
 f.close()
