@@ -87,3 +87,19 @@ class Nfs1Angle16(AngleBlock, IntegerBlock):
         value = self.wrap_angle(self.unwrap_result(data))
         value = min(round(0x10000 * value / (math.pi * 2)), 0xFFFF)
         return super().to_raw_value(self.wrap_result(value, data.block_state))
+
+
+class Nfs1Interval(IntegerBlock):
+    def __init__(self, **kwargs):
+        kwargs.pop('static_size', None)
+        kwargs.pop('byte_order', None)
+        kwargs.pop('is_signed', None)
+        super().__init__(static_size=1, byte_order='little', is_signed=False, **kwargs)
+        self.block_description = 'EA games time interval field: 0 = 0ms, 256 = 4000ms (4 seconds). Max value (255) is 3984.375ms'
+
+    def from_raw_value(self, raw: bytes, state: dict):
+        return float(super().from_raw_value(raw, state)) * 15.625
+
+    def to_raw_value(self, data: ReadData) -> bytes:
+        value = round(self.unwrap_result(data) / 15.625)
+        return super().to_raw_value(self.wrap_result(value, data.block_state))

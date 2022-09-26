@@ -144,20 +144,25 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x11 | Resource ID |
-| 4 | **unknowns0** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 4 | **num_segments** | 2 | 2-bytes unsigned integer (little endian) | 0 for open tracks, num segments for closed |
+| 6 | **terrain_length** | 2 | 2-bytes unsigned integer (little endian) | number of terrain chunks (max 600) |
+| 8 | **unk0** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 10 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x6 | Unknown purpose |
 | 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Unknown purpose |
-| 24 | **unknowns1** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 36 | **scenery_data_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 40 | **unknowns2** | 2404 | Array of 2404 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 24 | **unknowns0** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 36 | **terrain_block_size** | 4 | 4-bytes unsigned integer (little endian) | Size of terrain array in bytes (terrain_length * 0x120) |
+| 40 | **railing_texture_id** | 4 | 4-bytes unsigned integer (little endian) | Do not know what is "railing". Doesn't look like a fence texture id, tested in TR1_001.FAM |
+| 44 | **lookup_table** | 2400 | Array of 2400 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Pretty useless data, the same in every file. Looks like a space needed by the original NFS engine |
 | 2444 | **road_spline** | 36 * (2400) | Array of 2400 items<br/>Item type: [RoadSplinePoint](#roadsplinepoint) | Road spline is a series of points in 3D space, located at the center of road. Around this spline the track terrain mesh is built. TRI always has 2400 elements, however it uses some amount of vertices, after them records filled with zeros |
-| 88844 | **unknowns3** | 1800 | Array of 1800 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 88844 | **ai_info** | 3 * (600) | Array of 600 items<br/>Item type: [AIEntry](#aientry) | - |
 | 90644 | **proxy_objects_count** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 90648 | **proxy_object_instances_count** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 90652 | **object_header_text** | 4 | UTF-8 string. Always == SJBO | - |
-| 90656 | **unknowns4** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 90656 | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x428c | Unknown purpose |
+| 90660 | **unk3** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 90664 | **proxy_objects** | 16 * (proxy_objects_count) | Array of proxy_objects_count items<br/>Item type: [ProxyObject](#proxyobject) | - |
 | 90664..? | **proxy_object_instances** | 16 * (proxy_object_instances_count) | Array of proxy_object_instances_count items<br/>Item type: [ProxyObjectInstance](#proxyobjectinstance) | - |
-| 90664..? | **terrain** | 288 * (spline_points_amount / 4) | Array of spline_points_amount / 4 items<br/>Item type: [TerrainEntry](#terrainentry) | - |
+| 90664..? | **terrain** | 288 * (terrain_length) | Array of terrain_length items<br/>Item type: [TerrainEntry](#terrainentry) | - |
 ### **RoadSplinePoint** ###
 #### **Size**: 36 bytes ####
 #### **Description**: The description of one single point of road spline. Thank you jeff-1amstudios for your OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1 ####
@@ -184,13 +189,8 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **flags** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>2: is_animated</details> | Different modes of proxy object |
-| 1 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: model<br/>4: bitmap<br/>6: two_sided_bitmap</details> | Type of proxy object |
-| 2 | **resource_id** | 1 | 1-byte unsigned integer | Texture/model id. For 3D prop is an index of prop in the track FAM file, for 2D represents texture id. How to get texture name from this value explained well by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
-| 3 | **resource_2_id** | 1 | 1-byte unsigned integer | Texture id of second sprite, rotated 90 degrees, in two-sided bitmap. Logic to determine texture name is the same as for resource_id. Applicable for 2D prop with type two_sided_bitmap |
-| 4 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
-| 8 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object |
-| 9 | **unknowns0** | 3 | Array of 3 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown, animation speed should be somewhere in it |
-| 12 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters, applicable for 2D props |
+| 1 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: unk<br/>1: model<br/>4: bitmap<br/>6: two_sided_bitmap</details> | Type of proxy object |
+| 2 | **proxy_object_data** | 14 | One of types:<br/>- [ModelProxyObjectData](#modelproxyobjectdata)<br/>- [BitmapProxyObjectData](#bitmapproxyobjectdata)<br/>- [TwoSidedBitmapProxyObjectData](#twosidedbitmapproxyobjectdata)<br/>- [UnknownProxyObjectData](#unknownproxyobjectdata) | Settings of the prop. Block class picked according to <type> |
 ### **ProxyObjectInstance** ###
 #### **Size**: 16 bytes ####
 #### **Description**: The occurrence of proxy object. For instance: exactly the same road sign used 5 times on the map. In this case file will have 1 ProxyObject for this road sign and 5 ProxyObjectInstances ####
@@ -208,11 +208,54 @@
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == TRKD | - |
 | 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 12 | **unknown** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
+| 12 | **unknown** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 13 | **fence** | 1 | TNFS fence type field. fence type: [lrtttttt]<br/>l - flag is add left fence<br/>r - flag is add right fence<br/>tttttt - texture id | - |
 | 14 | **texture_ids** | 10 | Array of 10 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
 | 24 | **rows** | 66 * (4) | Array of 4 items<br/>Item size: 66 bytes<br/>Item type: Array of 11 items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter | Terrain vertex positions |
+### **AIEntry** ###
+#### **Size**: 3 bytes ####
+#### **Description**: The record describing AI behavior at given terrain chunk ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **ai_speed** | 1 | 1-byte unsigned integer | Speed (m/h ?? ) of AI racer |
+| 1 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 2 | **traffic_speed** | 1 | 1-byte unsigned integer | Speed (m/h ?? ) of traffic car |
+### **ModelProxyObjectData** ###
+#### **Size**: 14 bytes ####
+#### **Description**: The proxy object settings if it is a 3D model ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer | An index of prop in the track FAM file |
+| 1 | **unknowns** | 13 | Array of 13 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+### **BitmapProxyObjectData** ###
+#### **Size**: 14 bytes ####
+#### **Description**: The proxy object settings if it is a bitmap ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value explained well by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 1 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
+| 6 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object |
+| 7 | **animation_interval** | 1 | EA games time interval field: 0 = 0ms, 256 = 4000ms (4 seconds). Max value (255) is 3984.375ms | Interval between animation frames |
+| 8 | **unk1** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 9 | **unk2** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 10 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters |
+### **TwoSidedBitmapProxyObjectData** ###
+#### **Size**: 14 bytes ####
+#### **Description**: The proxy object settings if it is a two-sided bitmap (fake 3D model) ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value explained well by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 1 | **resource_2_id** | 1 | 1-byte unsigned integer | Texture id of second sprite, rotated 90 degrees. Logic to determine texture name is the same as for resource_id |
+| 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
+| 6 | **width_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters of second bitmap |
+| 10 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters |
+### **UnknownProxyObjectData** ###
+#### **Size**: 14 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unknowns** | 14 | Array of 14 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 ## **Physics** ##
 ### **CarPerformanceSpec** ###
 #### **Size**: 1912 bytes ####

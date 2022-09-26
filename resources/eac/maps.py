@@ -1,10 +1,10 @@
-from math import floor
-
+from library.helpers.exceptions import BlockIntegrityException
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
+from library.read_blocks.literal import LiteralBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
-from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16
+from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1Interval
 
 
 class RoadSplinePoint(CompoundBlock):
@@ -57,6 +57,60 @@ class RoadSplinePoint(CompoundBlock):
         unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
 
 
+class ModelProxyObjectData(CompoundBlock):
+    block_description = 'The proxy object settings if it is a 3D model'
+
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerBlock(static_size=1,
+                                   description='An index of prop in the track FAM file')
+        unknowns = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False), length=13)
+
+        unknown_fields = ['unknowns']
+
+
+class BitmapProxyObjectData(CompoundBlock):
+    block_description = 'The proxy object settings if it is a bitmap'
+
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerBlock(static_size=1,
+                                   description='Represents texture id. How to get texture name from this value '
+                                               'explained well by Denis Auroux http://www.math.polytechnique.fr/'
+                                               'cmat/auroux/nfs/nfsspecs.txt')
+        unk0 = IntegerBlock(static_size=1, is_signed=False)
+        width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
+        frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
+        animation_interval = Nfs1Interval(description='Interval between animation frames')
+        unk1 = IntegerBlock(static_size=1, is_signed=False)
+        unk2 = IntegerBlock(static_size=1, is_signed=False)
+        height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Height in meters')
+
+        unknown_fields = ['unk0', 'unk1', 'unk2']
+
+
+class TwoSidedBitmapProxyObjectData(CompoundBlock):
+    block_description = 'The proxy object settings if it is a two-sided bitmap (fake 3D model)'
+
+    class Fields(CompoundBlock.Fields):
+        resource_id = IntegerBlock(static_size=1,
+                                   description='Represents texture id. How to get texture name from this value '
+                                               'explained well by Denis Auroux http://www.math.polytechnique.fr/'
+                                               'cmat/auroux/nfs/nfsspecs.txt')
+        resource_2_id = IntegerBlock(static_size=1,
+                                     description='Texture id of second sprite, rotated 90 degrees. Logic to determine '
+                                                 'texture name is the same as for resource_id')
+        width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
+        width_2 = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
+                                 description='Width in meters of second bitmap')
+        height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Height in meters')
+
+
+class UnknownProxyObjectData(CompoundBlock):
+    class Fields(CompoundBlock.Fields):
+        unknowns = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False), length=14)
+
+        unknown_fields = ['unknowns']
+
+
 class ProxyObject(CompoundBlock):
     block_description = 'The description of map proxy object: everything except terrain (road signs, buildings etc.) ' \
                         'Thanks to jeff-1amstudios and his OpenNFS1 project: https://github.com/jeff-1amstudios/' \
@@ -65,25 +119,27 @@ class ProxyObject(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         flags = BitFlagsBlock(flag_names=[(2, 'is_animated')],
                               description='Different modes of proxy object')
-        type = EnumByteBlock(enum_names=[(1, 'model'), (4, 'bitmap'), (6, 'two_sided_bitmap')],
+        type = EnumByteBlock(enum_names=[(0, 'unk'), (1, 'model'), (4, 'bitmap'), (6, 'two_sided_bitmap')],
                              description='Type of proxy object')
-        resource_id = IntegerBlock(static_size=1,
-                                   description='Texture/model id. For 3D prop is an index of prop in the track FAM '
-                                               'file, for 2D represents texture id. How to get texture name from this '
-                                               'value explained well by Denis Auroux http://www.math.polytechnique.fr/'
-                                               'cmat/auroux/nfs/nfsspecs.txt')
-        resource_2_id = IntegerBlock(static_size=1,
-                                     description='Texture id of second sprite, rotated 90 degrees, in two-sided bitmap.'
-                                                 ' Logic to determine texture name is the same as for resource_id. '
-                                                 'Applicable for 2D prop with type two_sided_bitmap')
-        width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
-        frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
-        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3,
-                               description='Unknown, animation speed should be somewhere in it')
-        height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
-                                description='Height in meters, applicable for 2D props')
+        proxy_object_data = LiteralBlock(possible_resources=[ModelProxyObjectData(),
+                                                             BitmapProxyObjectData(),
+                                                             TwoSidedBitmapProxyObjectData(),
+                                                             UnknownProxyObjectData()],
+                                         description='Settings of the prop. Block class picked according to <type>')
 
-        unknown_fields = ['unknowns0']
+    def _after_type_read(self, data, state, **kwargs):
+        if not state.get('proxy_object_data'):
+            state['proxy_object_data'] = {}
+        if data['type'].value == 'model':
+            state['proxy_object_data']['delegated_block'] = ModelProxyObjectData()
+        elif data['type'].value == 'bitmap':
+            state['proxy_object_data']['delegated_block'] = BitmapProxyObjectData()
+        elif data['type'].value == 'two_sided_bitmap':
+            state['proxy_object_data']['delegated_block'] = TwoSidedBitmapProxyObjectData()
+        elif data['type'].value == 'unk':
+            state['proxy_object_data']['delegated_block'] = UnknownProxyObjectData()
+        else:
+            raise BlockIntegrityException(f"Unknown proxy object type: {data['type'].value}")
 
 
 class ProxyObjectInstance(CompoundBlock):
@@ -114,8 +170,8 @@ class TerrainEntry(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Block(length=4, required_value='TRKD')
         block_length = IntegerBlock(static_size=4, is_signed=False)
-        block_number = IntegerBlock(static_size=4, is_signed=False)
-        unknown = IntegerBlock(static_size=1)
+        block_number = IntegerBlock(static_size=4, is_signed=False, required_value=0)
+        unknown = IntegerBlock(static_size=1, required_value=0)
         fence = FenceType()
         texture_ids = ArrayBlock(child=IntegerBlock(static_size=1), length=10,
                                  description='Texture ids to be used for terrain')
@@ -125,48 +181,58 @@ class TerrainEntry(CompoundBlock):
         unknown_fields = ['unknown']
 
 
+class AIEntry(CompoundBlock):
+    block_description = 'The record describing AI behavior at given terrain chunk'
+
+    class Fields(CompoundBlock.Fields):
+        ai_speed = IntegerBlock(static_size=1, is_signed=False, description='Speed (m/h ?? ) of AI racer')
+        unk = IntegerBlock(static_size=1, is_signed=False)
+        traffic_speed = IntegerBlock(static_size=1, is_signed=False, description='Speed (m/h ?? ) of traffic car')
+
+        unknown_fields = ['unk']
+
+
 class TriMap(CompoundBlock):
     block_description = 'Map TRI file, represents terrain mesh, road itself, proxy object locations etc.'
 
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=4, is_signed=False, required_value=0x11, description='Resource ID')
-        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
+        num_segments = IntegerBlock(static_size=2, is_signed=False,
+                                    description='0 for open tracks, num segments for closed')
+        terrain_length = IntegerBlock(static_size=2, is_signed=False, description='number of terrain chunks (max 600)')
+        unk0 = IntegerBlock(static_size=2, is_signed=False, required_value=0)
+        unk1 = IntegerBlock(static_size=2, is_signed=False, required_value=6)
         position = Point3D_32()
-        unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=12)
-        scenery_data_length = IntegerBlock(static_size=4)
-        unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1, simplified=True), length=2404)
+        unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1, required_value=0), length=12)
+        terrain_block_size = IntegerBlock(static_size=4,
+                                          description='Size of terrain array in bytes (terrain_length * 0x120)')
+        railing_texture_id = IntegerBlock(static_size=4, is_signed=False,
+                                          description='Do not know what is "railing". Doesn\'t look like a fence '
+                                                      'texture id, tested in TR1_001.FAM')
+        lookup_table = ArrayBlock(child=IntegerBlock(static_size=1, simplified=True), length=2400,
+                                  description='Pretty useless data, the same in every file. Looks like a space needed '
+                                              'by the original NFS engine')
         road_spline = ArrayBlock(child=RoadSplinePoint(), length=2400,
                                  description="Road spline is a series of points in 3D space, located at the center of "
                                              "road. Around this spline the track terrain mesh is built. TRI always has "
                                              "2400 elements, however it uses some amount of vertices, after them "
                                              "records filled with zeros")
-        unknowns3 = ArrayBlock(child=IntegerBlock(static_size=1, simplified=True), length=1800)
+        ai_info = ArrayBlock(child=AIEntry(), length=600)
         proxy_objects_count = IntegerBlock(static_size=4, is_signed=False)
         proxy_object_instances_count = IntegerBlock(static_size=4, is_signed=False)
         object_header_text = Utf8Block(length=4, required_value='SJBO')
-        unknowns4 = ArrayBlock(child=IntegerBlock(static_size=1), length=8)
+        unk2 = IntegerBlock(static_size=4, is_signed=False, required_value=0x428c)
+        unk3 = IntegerBlock(static_size=4, is_signed=False, required_value=0)
         proxy_objects = ArrayBlock(child=ProxyObject(), length_label='proxy_objects_count')
         proxy_object_instances = ArrayBlock(child=ProxyObjectInstance(), length_label='proxy_object_instances_count')
-        terrain = ArrayBlock(child=TerrainEntry(), length_label="spline_points_amount / 4")
+        terrain = ArrayBlock(child=TerrainEntry(), length_label="terrain_length")
 
-        unknown_fields = ['unknowns0', 'position', 'unknowns1', 'scenery_data_length', 'unknowns2', 'unknowns3',
-                          'unknowns4']
+        unknown_fields = ['unk0', 'unk1', 'unknowns0', 'railing_texture_id', 'position', 'unk2', 'unk3']
 
-    def _after_road_spline_read(self, data, state, **kwargs):
-        try:
-            road_spline_length = next(i for i, x in enumerate(data['road_spline']) if x.position.x
-                                      == x.position.y
-                                      == x.position.z
-                                      == x.left_verge_distance
-                                      == x.right_verge_distance
-                                      == x.left_barrier_distance
-                                      == x.right_barrier_distance
-                                      == 0)
-        except StopIteration:
-            road_spline_length = len(data['road_spline'])
+    def _after_terrain_length_read(self, data, state, **kwargs):
         if not state.get('terrain'):
             state['terrain'] = {}
-        state['terrain']['length'] = floor(road_spline_length / 4)
+        state['terrain']['length'] = data['terrain_length'].value
 
     def _after_proxy_object_instances_count_read(self, data, state, **kwargs):
         if not state.get('proxy_objects'):

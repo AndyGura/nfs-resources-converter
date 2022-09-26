@@ -3,15 +3,14 @@ import math
 import os
 from copy import deepcopy
 from string import Template
-from typing import List
+from typing import List, Dict
 
 import settings
+from library.helpers.data_wrapper import DataWrapper
 from library.helpers.json import resource_to_json
 from library.read_data import ReadData
 from library.utils.blender_scripts import get_blender_save_script, run_blender
 from library.utils.meshes import SubMesh
-from library.read_blocks.compound import CompoundBlock
-from library.helpers.data_wrapper import DataWrapper
 from resources.eac.maps import RoadSplinePoint, TriMap
 from serializers import BaseFileSerializer
 
@@ -363,15 +362,11 @@ for index, proxy_obj in enumerate(proxy_objects):
     o.location = (proxy_obj['x'], proxy_obj['y'], proxy_obj['z'])
     o.rotation_quaternion = Euler((0, 0, proxy_obj['rotation_z']), 'XYZ').to_quaternion()
     o['is_prop'] = True
-    o['type'] = proxy_obj['type']
-    if 'model_ref_id' in proxy_obj:
-        o['model_ref_id'] = proxy_obj['model_ref_id']
-    if 'texture' in proxy_obj:
-        o['texture'] = proxy_obj['texture']
-    if 'back_texture' in proxy_obj:
-        o['back_texture'] = proxy_obj['back_texture']
-    o['width'] = proxy_obj['width']
-    o['height'] = proxy_obj['height']
+    for k, v in proxy_obj.items():
+        if k in ['x', 'y', 'z', 'rotation_z']:
+            continue
+        o[k] = v
+    
     
 def find_terrain_chunks():
     import re
@@ -406,6 +401,46 @@ if $save_collisions:
         return [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
                 for i in range(max(frame_count, 1))]
 
+    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track) -> Dict:
+        proxy_definition = data.proxy_objects[instance.proxy_object_index.value % len(data.proxy_objects)]
+        road_spline_vertex = data.road_spline[instance.reference_road_spline_vertex.value]
+        res = {
+            'x': instance.position.x.value + road_spline_vertex.position.x.value,
+            'y': instance.position.y.value + road_spline_vertex.position.y.value,
+            'z': instance.position.z.value + road_spline_vertex.position.z.value,
+            'rotation_z': instance.rotation.value + road_spline_vertex.orientation.value,
+            'type': proxy_definition.type.value
+        }
+        if res['type'] == 'model':
+            res = {
+                **res,
+                'model_ref_id': proxy_definition.proxy_object_data.resource_id.value
+            }
+        elif res['type'] == 'bitmap':
+            res = {
+                **res,
+                'texture': ';'.join(self._texture_ids(
+                    proxy_definition.proxy_object_data.resource_id.value,
+                    proxy_definition.proxy_object_data.frame_count.value, is_opened_track)),
+                'width': proxy_definition.proxy_object_data.width.value,
+                'height': proxy_definition.proxy_object_data.height.value,
+                'animation_interval': proxy_definition.proxy_object_data.animation_interval.value
+            }
+        elif res['type'] == 'two_sided_bitmap':
+            res = {
+                **res,
+                'texture': ';'.join(
+                    self._texture_ids(proxy_definition.proxy_object_data.resource_id.value, 1,
+                                      is_opened_track)),
+                'back_texture': ';'.join(
+                    self._texture_ids(proxy_definition.proxy_object_data.resource_2_id.value, 1,
+                                      is_opened_track)),
+                'width': proxy_definition.proxy_object_data.width.value,
+                'back_width': proxy_definition.proxy_object_data.width_2.value,
+                'height': proxy_definition.proxy_object_data.height.value
+            }
+        return res
+
     def _save_mtl(self, terrain_data, path: str, name):
         with open(f'{path}terrain.mtl', 'w') as f:
             texture_names = list(set(
@@ -438,7 +473,8 @@ if $save_collisions:
             road_path_index = len(terrain_data) * 4
             res['chunk'] = self.TerrainChunk(data)
             res['chunk'].read_matrix(DataWrapper.wrap(resource_to_json(terrain_entry.rows)),
-                                     DataWrapper.wrap(resource_to_json(data.road_spline[road_path_index:road_path_index + 4])))
+                                     DataWrapper.wrap(
+                                         resource_to_json(data.road_spline[road_path_index:road_path_index + 4])))
             if terrain_entry.fence.texture_id != 0 or terrain_entry.fence.has_left_fence or terrain_entry.fence.has_right_fence:
                 fence_texture_id = terrain_entry.fence.texture_id
                 if is_opened_track:
@@ -521,39 +557,7 @@ if $save_collisions:
                     'save_collisions': settings.maps__save_collisions,
                     'obj_name': f'terrain_chunk_{i}.obj',
                     'proxy_objects_json': json.dumps(
-                        [{'x': o.position.x.value + data.road_spline[
-                            o.reference_road_spline_vertex.value].position.x.value - data.road_spline[i * 4].position.x.value,
-                          'y': o.position.y.value + data.road_spline[
-                              o.reference_road_spline_vertex.value].position.y.value - data.road_spline[
-                                   i * 4].position.y.value,
-                          'z': o.position.z.value + data.road_spline[
-                              o.reference_road_spline_vertex.value].position.z.value - data.road_spline[
-                                   i * 4].position.z.value,
-                          'rotation_z': o.rotation.value + data.road_spline[
-                              o.reference_road_spline_vertex.value].orientation.value,
-                          'type': data.proxy_objects[
-                              o.proxy_object_index.value % len(data.proxy_objects)].type.value,
-                          'model_ref_id': data.proxy_objects[
-                              o.proxy_object_index.value % len(
-                                  data.proxy_objects)].resource_id.value,
-                          'texture': ';'.join(self._texture_ids(data.proxy_objects[
-                                                                    o.proxy_object_index.value % len(
-                                                                        data.proxy_objects)].resource_id.value,
-                                                                data.proxy_objects[
-                                                                    o.proxy_object_index.value % len(
-                                                                        data.proxy_objects)].frame_count.value,
-                                                                is_opened_track)),
-                          'back_texture': ';'.join(self._texture_ids(
-                              data.proxy_objects[o.proxy_object_index.value % len(
-                                  data.proxy_objects)].resource_2_id.value,
-                              data.proxy_objects[o.proxy_object_index.value % len(
-                                  data.proxy_objects)].frame_count.value, is_opened_track)),
-                          'width': data.proxy_objects[
-                              o.proxy_object_index.value % len(data.proxy_objects)].width.value,
-                          'height': data.proxy_objects[
-                              o.proxy_object_index.value % len(data.proxy_objects)].height.value,
-                          'animation_interval': 250,
-                          }
+                        [self._proxy_object_instance_json(data, o, is_opened_track)
                          for o in data.proxy_object_instances
                          if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
                 })
@@ -568,34 +572,14 @@ if $save_collisions:
                     for sub_model in terrain_chunk['meshes']:
                         f.write(sub_model.to_obj(face_index_increment, mtllib='terrain.mtl'))
                         face_index_increment = face_index_increment + len(sub_model.vertices)
+
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,
                 'save_collisions': settings.maps__save_collisions,
                 'obj_name': 'terrain.obj',
                 'proxy_objects_json': json.dumps(
-                    [{'x': o.position.x.value + data.road_spline[o.reference_road_spline_vertex.value].position.x.value,
-                      'y': o.position.y.value + data.road_spline[o.reference_road_spline_vertex.value].position.y.value,
-                      'z': o.position.z.value + data.road_spline[o.reference_road_spline_vertex.value].position.z.value,
-                      'rotation_z': o.rotation.value + data.road_spline[o.reference_road_spline_vertex.value].orientation.value,
-                      'type': data.proxy_objects[o.proxy_object_index.value % len(data.proxy_objects)].type.value,
-                      'model_ref_id': data.proxy_objects[
-                          o.proxy_object_index.value % len(data.proxy_objects)].resource_id.value,
-                      'texture': ';'.join(self._texture_ids(
-                          data.proxy_objects[
-                              o.proxy_object_index.value % len(data.proxy_objects)].resource_id.value,
-                          data.proxy_objects[
-                              o.proxy_object_index.value % len(data.proxy_objects)].frame_count.value, is_opened_track)),
-                      'back_texture': ';'.join(self._texture_ids(
-                          data.proxy_objects[
-                              o.proxy_object_index.value % len(data.proxy_objects)].resource_2_id.value,
-                          data.proxy_objects[
-                              o.proxy_object_index.value % len(data.proxy_objects)].frame_count.value, is_opened_track)),
-                      'width': data.proxy_objects[
-                          o.proxy_object_index.value % len(data.proxy_objects)].width.value,
-                      'height': data.proxy_objects[
-                          o.proxy_object_index.value % len(data.proxy_objects)].height.value,
-                      'animation_interval': 250,
-                      } for o in data.proxy_object_instances
+                    [self._proxy_object_instance_json(data, o, is_opened_track)
+                     for o in data.proxy_object_instances
                      if len(data.terrain) * 4 > o.reference_road_spline_vertex.value >= 0]),
             })
         blender_script += '\n\n\n\n' + self.blender_map_script.substitute({

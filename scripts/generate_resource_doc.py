@@ -31,6 +31,11 @@ EXPORT_RESOURCES = {
         maps.ProxyObject(),
         maps.ProxyObjectInstance(),
         maps.TerrainEntry(),
+        maps.AIEntry(),
+        maps.ModelProxyObjectData(),
+        maps.BitmapProxyObjectData(),
+        maps.TwoSidedBitmapProxyObjectData(),
+        maps.UnknownProxyObjectData(),
     ],
     'Physics': [
         car_specs.CarPerformanceSpec(),
@@ -135,7 +140,7 @@ with open(md_name, 'w') as f:
     for (heading, resources) in EXPORT_RESOURCES.items():
         f.write(f'\n## **{heading}** ##')
         for resource in resources:
-            collapse_table = len(resource.Fields.fields) > 16
+            collapse_table = len(resource.Fields.fields) > 20
             f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
             f.write(f'\n#### **Size**: {render_range(None, resource.get_min_size({}), resource.get_max_size({}), False)} bytes ####')
             if resource.block_description:
