@@ -16,6 +16,7 @@ Feel free to contribute
 5) observe output files in `out/`
 
 <h2>Experimental features:</h2>
+
 **WARNING**: those scripts not properly tested and can (read "will") damage your files!
 
 <h3>Saving files</h3>
@@ -33,7 +34,10 @@ Makes track go backwards. They have a bunch of issues and glitches for now. All 
 `python examples/reverse_map.py <your_track_file_name>.TRI`
 
 <h3>GUI Editor</h3>
-`python scripts/gui_editor.py <you_file_path>` will open generic editor, where most of the values can be edited and file can be saved back. Works well in rare cases
+
+There is a generic editor, where most of the values can be edited and file can be saved back
+
+`python scripts/gui_editor.py <you_file_path>`
 
 <h2>Run tests:</h2>
 
