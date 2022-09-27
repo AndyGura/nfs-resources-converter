@@ -312,6 +312,11 @@ for i in range(int(len(coords) / 4)):
     elif (i == int(len(coords) / 4) - 1) and not $is_opened_track:
         o['children'] = ['chunk_0']
 
+player_start_position = json.loads('$player_start')
+o = bpy.data.objects.new( "player_start", None )
+bpy.context.collection.objects.link(o)
+o.location = [player_start_position['x'], player_start_position['y'], player_start_position['z']]
+
    
 # barriers collisions
 if $save_collisions:
@@ -401,9 +406,10 @@ if $save_collisions:
         return [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
                 for i in range(max(frame_count, 1))]
 
-    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track) -> Dict:
+    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track, use_local_coordinates) -> Dict:
         proxy_definition = data.proxy_objects[instance.proxy_object_index.value % len(data.proxy_objects)]
-        road_spline_vertex = data.road_spline[instance.reference_road_spline_vertex.value]
+        spline_index = instance.reference_road_spline_vertex.value
+        road_spline_vertex = data.road_spline[spline_index]
         res = {
             'x': instance.position.x.value + road_spline_vertex.position.x.value,
             'y': instance.position.y.value + road_spline_vertex.position.y.value,
@@ -411,6 +417,9 @@ if $save_collisions:
             'rotation_z': instance.rotation.value + road_spline_vertex.orientation.value,
             'type': proxy_definition.type.value
         }
+        if use_local_coordinates:
+            for axis in ['x', 'y', 'z']:
+                res[axis] -= getattr(data.road_spline[spline_index - (spline_index % 4)].position, axis).value
         if res['type'] == 'model':
             res = {
                 **res,
@@ -557,7 +566,7 @@ if $save_collisions:
                     'save_collisions': settings.maps__save_collisions,
                     'obj_name': f'terrain_chunk_{i}.obj',
                     'proxy_objects_json': json.dumps(
-                        [self._proxy_object_instance_json(data, o, is_opened_track)
+                        [self._proxy_object_instance_json(data, o, is_opened_track, True)
                          for o in data.proxy_object_instances
                          if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
                 })
@@ -578,7 +587,7 @@ if $save_collisions:
                 'save_collisions': settings.maps__save_collisions,
                 'obj_name': 'terrain.obj',
                 'proxy_objects_json': json.dumps(
-                    [self._proxy_object_instance_json(data, o, is_opened_track)
+                    [self._proxy_object_instance_json(data, o, is_opened_track, False)
                      for o in data.proxy_object_instances
                      if len(data.terrain) * 4 > o.reference_road_spline_vertex.value >= 0]),
             })
@@ -591,6 +600,13 @@ if $save_collisions:
             'road_path_settings': json.dumps({
                 'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
                 'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
+            }),
+            # FIXME x differs from track to track. Probably x-offset defined somewhere in TRI.
+            # For instance on CY1 it should be negative
+            'player_start': json.dumps({
+                'x': data.road_spline[18].position.x.value + 2.5,
+                'y': data.road_spline[18].position.y.value,
+                'z': data.road_spline[18].position.z.value,
             }),
             'is_opened_track': is_opened_track,
             'left_barrier': json.dumps({
