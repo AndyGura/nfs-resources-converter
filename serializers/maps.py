@@ -601,11 +601,15 @@ if $save_collisions:
                 'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
                 'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
             }),
-            # FIXME x differs from track to track. Probably x-offset defined somewhere in TRI.
-            # For instance on CY1 it should be negative
+            # AL1, CL1, CY1, BS, VR - looks ok
+            # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
+            # TODO add X rotation (VR)
             'player_start': json.dumps({
-                'x': data.road_spline[18].position.x.value + 2.5,
-                'y': data.road_spline[18].position.y.value,
+                # 0.8 is an approximate average car half width
+                'x': max(data.road_spline[18].position.x.value - data.road_spline[18].left_barrier_distance.value + 0.8,
+                         min(data.road_spline[18].position.x.value + data.road_spline[18].right_barrier_distance.value - 0.8,
+                             2.5)),
+                'y': max(data.road_spline[18].position.y.value, 0),
                 'z': data.road_spline[18].position.z.value,
             }),
             'is_opened_track': is_opened_track,
