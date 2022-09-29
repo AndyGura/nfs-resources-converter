@@ -272,6 +272,7 @@ class TriMapSerializer(BaseFileSerializer):
 import bpy
 import math
 import json
+from mathutils import Euler
 if $new_file:
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
@@ -316,6 +317,8 @@ player_start_position = json.loads('$player_start')
 o = bpy.data.objects.new( "player_start", None )
 bpy.context.collection.objects.link(o)
 o.location = [player_start_position['x'], player_start_position['y'], player_start_position['z']]
+o.rotation_mode = 'QUATERNION'
+o.rotation_quaternion = Euler((player_start_position['rotation_x'], 0, 0), 'XYZ').to_quaternion()
 
    
 # barriers collisions
@@ -365,6 +368,7 @@ for index, proxy_obj in enumerate(proxy_objects):
     o = bpy.data.objects.new( f"proxy_{index}", None )
     bpy.context.collection.objects.link(o)
     o.location = (proxy_obj['x'], proxy_obj['y'], proxy_obj['z'])
+    o.rotation_mode = 'QUATERNION'
     o.rotation_quaternion = Euler((0, 0, proxy_obj['rotation_z']), 'XYZ').to_quaternion()
     o['is_prop'] = True
     for k, v in proxy_obj.items():
@@ -603,7 +607,6 @@ if $save_collisions:
             }),
             # AL1, CL1, CY1, BS, VR - looks ok
             # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
-            # TODO add X rotation (VR)
             'player_start': json.dumps({
                 # 0.8 is an approximate average car half width
                 'x': max(data.road_spline[18].position.x.value - data.road_spline[18].left_barrier_distance.value + 0.8,
@@ -611,6 +614,7 @@ if $save_collisions:
                              2.5)),
                 'y': max(data.road_spline[18].position.y.value, 0),
                 'z': data.road_spline[18].position.z.value,
+                'rotation_x': data.road_spline[18].slope.value,
             }),
             'is_opened_track': is_opened_track,
             'left_barrier': json.dumps({
