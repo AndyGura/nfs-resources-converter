@@ -2,5 +2,6 @@
     <mat-label>{{ name }}</mat-label>
     <input matInput type="text"
            [disabled]="!!resourceData.block?.required_value"
-           [(ngModel)]="resourceData.value">
+           [(ngModel)]="resourceData.value"
+           (change)="changed.emit()">
 </mat-form-field>

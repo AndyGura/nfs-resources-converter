@@ -1,10 +1,10 @@
 <mat-toolbar color="primary">
-    <span>{{(resourceData$ | async)?.block_state?.id}}</span>
+    <span>{{(mainService.resourceData$ | async)?.block_state?.id}}{{Object.keys(mainService.changedDataBlocks).length > 0 ? '*' : ''}}</span>
     <span class="flex-spacer"></span>
     <button mat-icon-button (click)="saveResource()">
         <mat-icon fontIcon="save"></mat-icon>
     </button>
 </mat-toolbar>
 <div id="content-wrapper">
-    <app-editor [resourceData]="resourceData$ | async"></app-editor>
+    <app-editor [resourceData]="mainService.resourceData$ | async"></app-editor>
 </div>

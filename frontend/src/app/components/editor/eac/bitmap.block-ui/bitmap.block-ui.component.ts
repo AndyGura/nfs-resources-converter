@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, NgZone, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { intArrayToBitmap } from '../../../../utils/int-array-to-bitmap';
@@ -21,9 +21,11 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
       this.updateImageSource().then();
     }
   }
+  name: string = '';
+
+  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   imageSource: string | undefined;
-  name: string = '';
   hasSerializedFile: boolean = false;
 
   constructor(

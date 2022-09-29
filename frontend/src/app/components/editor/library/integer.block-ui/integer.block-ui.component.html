@@ -5,5 +5,6 @@
            [min]="resourceData.editor_validators.min_value"
            [step]="resourceData.editor_validators.value_interval"
            [disabled]="!!resourceData.block?.required_value"
-           [(ngModel)]="resourceData.value">
+           [(ngModel)]="resourceData.value"
+           (change)="changed.emit()">
 </mat-form-field>

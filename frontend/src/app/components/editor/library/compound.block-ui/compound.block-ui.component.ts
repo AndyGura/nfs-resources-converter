@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
@@ -11,6 +11,8 @@ export class CompoundBlockUiComponent implements GuiComponentInterface {
 
   resourceData: ReadData | null = null;
   name: string = '';
+
+  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   constructor() { }
 

@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { EelDelegateService } from './services/eel-delegate.service';
-import { BehaviorSubject } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MainService } from './services/main.service';
 
 @Component({
   selector: 'app-root',
@@ -9,33 +9,25 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements OnInit {
-  resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  resourceError$: BehaviorSubject<ReadError | null> = new BehaviorSubject<ReadError | null>(null);
+export class AppComponent {
 
   constructor(readonly eelDelegate: EelDelegateService,
+              readonly mainService: MainService,
               private readonly snackBar: MatSnackBar) {
   }
 
-  ngOnInit(): void {
-    this.eelDelegate.openedResource$.subscribe((value) => {
-      if (!value) {
-        this.resourceData$.next(null);
-        this.resourceError$.next(null);
-      } else if ((value as any).block_class_mro) {
-        this.resourceData$.next(value as ReadData);
-        this.resourceError$.next(null);
-      } else {
-        this.resourceData$.next(null);
-        this.resourceError$.next(value as ReadError);
-      }
-    });
-  }
+  Object = Object;
 
   async saveResource() {
     try {
-      await this.eelDelegate.saveFile();
+      const changes = Object.entries(this.mainService.changedDataBlocks);
+      await this.eelDelegate.saveFile(changes.map(([id, value]) => {
+        return { id, value };
+      }));
       this.snackBar.open('File Saved!');
+      Object.keys(this.mainService.changedDataBlocks).forEach(key => {
+        delete this.mainService.changedDataBlocks[key];
+      });
     } catch (err: any) {
       this.snackBar.open('Error while saving file! ' + err.errorText);
     }

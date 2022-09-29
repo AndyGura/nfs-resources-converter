@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
@@ -13,12 +13,16 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   get resourceData(): ReadData | null {
     return this._resourceData;
   }
+
   set resourceData(value: ReadData | null) {
     this._resourceData = value;
     this.showAsCollapsable = this._resourceData?.value?.length > 5;
     this.renderPage(0, this.minPageSize);
   }
+
   name: string = '';
+
+  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   showAsCollapsable: boolean = false;
   renderContents: boolean = false;
