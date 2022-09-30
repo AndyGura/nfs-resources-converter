@@ -24,6 +24,7 @@
 
 <ng-template #contents>
     <ng-container *ngIf="(renderContents || !showAsCollapsable) && !resourceData?.block?.child?.simplified">
+        <ng-template [ngTemplateOutlet]="paginator"></ng-template>
         <ng-container *ngFor="let data of this.renderItems, let i = index">
             <div class="divider" *ngIf="data?.block_class_mro?.indexOf('Atomic') == -1">
                 <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
@@ -33,18 +34,35 @@
             <app-editor [resourceData]="data"
                         [name]="i.toString()"></app-editor>
         </ng-container>
-        <mat-paginator *ngIf="(resourceData?.value || []).length > 0"
-                       [ngClass]="{ 'hidden': (resourceData?.value || []).length <= minPageSize }"
-                       [length]="(resourceData?.value || []).length"
-                       [pageSize]="pageSize"
-                       [pageIndex]="pageIndex"
-                       [pageSizeOptions]="pageSizeOptions"
-                       (page)="renderPage($event.pageIndex, $event.pageSize)"
-                       aria-label="Select page">
-        </mat-paginator>
+        <ng-template [ngTemplateOutlet]="paginator"></ng-template>
         <p *ngIf="(resourceData?.value || []).length == 0">Empty array</p>
     </ng-container>
     <ng-container *ngIf="(renderContents || !showAsCollapsable) && resourceData?.block?.child?.simplified">
         <p style="word-break: break-word; max-width: 100%;">[{{ (resourceData?.value || []).join(', ') }}]</p>
     </ng-container>
+</ng-template>
+
+<ng-template #paginator>
+    <div *ngIf="(resourceData?.value || []).length > 0"
+         id="pagination-wrapper"
+         [ngClass]="{ 'hidden': (resourceData?.value || []).length <= minPageSize }">
+        <mat-paginator [length]="(resourceData?.value || []).length"
+                       [pageSize]="pageSize"
+                       [pageIndex]="pageIndex"
+                       [pageSizeOptions]="pageSizeOptions"
+                       [showFirstLastButtons]="true"
+                       (page)="renderPage($event.pageIndex, $event.pageSize)"
+                       aria-label="Select page">
+        </mat-paginator>
+        <div class="go-to-container">
+            <div class="go-to-label">Go To: </div>
+            <mat-form-field>
+                <mat-select [(ngModel)]="goToIndex" (selectionChange)="renderPage(goToIndex, pageSize)">
+                    <mat-option *ngFor="let pageNumber of pageIndexes" [value]="pageNumber">
+                        {{pageNumber * pageSize}} - {{(pageNumber + 1) * pageSize - 1}}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
+    </div>
 </ng-template>

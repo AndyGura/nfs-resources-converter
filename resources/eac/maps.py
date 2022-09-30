@@ -76,15 +76,16 @@ class BitmapProxyObjectData(CompoundBlock):
                                    description='Represents texture id. How to get texture name from this value '
                                                'explained well by Denis Auroux http://www.math.polytechnique.fr/'
                                                'cmat/auroux/nfs/nfsspecs.txt')
-        unk0 = IntegerBlock(static_size=1, is_signed=False)
+        proxy_number = IntegerBlock(static_size=1, is_signed=False,
+                                    description='Seems to be always equal to own index * 4')
         width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
         frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
         animation_interval = Nfs1Interval(description='Interval between animation frames')
+        unk0 = IntegerBlock(static_size=1, is_signed=False)
         unk1 = IntegerBlock(static_size=1, is_signed=False)
-        unk2 = IntegerBlock(static_size=1, is_signed=False)
         height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Height in meters')
 
-        unknown_fields = ['unk0', 'unk1', 'unk2']
+        unknown_fields = ['unk0', 'unk1']
 
 
 class TwoSidedBitmapProxyObjectData(CompoundBlock):

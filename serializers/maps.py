@@ -607,6 +607,7 @@ if $save_collisions:
             }),
             # AL1, CL1, CY1, BS, VR - looks ok
             # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
+            # FINISH POSITION IS UNKNOWN: CY1 road spline vertex #1740
             'player_start': json.dumps({
                 # 0.8 is an approximate average car half width
                 'x': max(data.road_spline[18].position.x.value - data.road_spline[18].left_barrier_distance.value + 0.8,

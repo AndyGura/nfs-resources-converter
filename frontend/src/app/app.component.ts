@@ -24,12 +24,12 @@ export class AppComponent {
       await this.eelDelegate.saveFile(changes.map(([id, value]) => {
         return { id, value };
       }));
-      this.snackBar.open('File Saved!');
+      this.snackBar.open('File Saved!', 'OK', { duration: 1500 });
       Object.keys(this.mainService.changedDataBlocks).forEach(key => {
         delete this.mainService.changedDataBlocks[key];
       });
     } catch (err: any) {
-      this.snackBar.open('Error while saving file! ' + err.errorText);
+      this.snackBar.open('Error while saving file! ' + err.errorText, 'OK :(', { duration: 1500 });
     }
   }
 

@@ -17,6 +17,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   set resourceData(value: ReadData | null) {
     this._resourceData = value;
     this.showAsCollapsable = this._resourceData?.value?.length > 5;
+    this.updatePageIndexes();
     this.renderPage(0, this.minPageSize);
   }
 
@@ -33,6 +34,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   pageSize: number = 10;
   pageSizeOptions = [10, 25, 50, 100];
   renderItems: any[] = [];
+
+  goToIndex: number = 0;
+  pageIndexes: number[] = [];
 
   constructor(private readonly cdr: ChangeDetectorRef) {
   }
@@ -55,10 +59,18 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   }
 
   renderPage(pageIndex: number, pageSize: number) {
-    this.pageIndex = pageIndex;
+    this.goToIndex = this.pageIndex = pageIndex;
     this.pageSize = pageSize;
     this.renderItems = (this.resourceData?.value || []).slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
     this.cdr.markForCheck();
+  }
+
+  updatePageIndexes() {
+    this.goToIndex = this.pageIndex;
+    this.pageIndexes = [];
+    for (let i = 0; i < Math.ceil((this.resourceData?.value || []).length / this.pageSize); i++) {
+      this.pageIndexes.push(i);
+    }
   }
 
 }

@@ -234,12 +234,12 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value explained well by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
-| 1 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 1 | **proxy_number** | 1 | 1-byte unsigned integer | Seems to be always equal to own index * 4 |
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object |
 | 7 | **animation_interval** | 1 | EA games time interval field: 0 = 0ms, 256 = 4000ms (4 seconds). Max value (255) is 3984.375ms | Interval between animation frames |
-| 8 | **unk1** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 9 | **unk2** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 8 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 9 | **unk1** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 10 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters |
 ### **TwoSidedBitmapProxyObjectData** ###
 #### **Size**: 14 bytes ####

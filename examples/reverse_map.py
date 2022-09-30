@@ -19,6 +19,7 @@ from library import require_file
 # FIXME preserve 3D effect from two sided bitmaps (add math.pi to rotation, move base, switch side of side bitmap)
 # FIXME opponents have totally broken positioning on open tracks
 # FIXME AI speed inadequate
+# FIXME render order of props
 
 resource = argparse.ArgumentParser()
 resource.add_argument('file', type=pathlib.Path)
@@ -35,22 +36,34 @@ def rotate_point(origin, point, angle):
 
 
 road_spline_length = len(tri_map.terrain) * 4
-last_position = tri_map.road_spline[road_spline_length - 1].position
-pre_last_position = tri_map.road_spline[road_spline_length - 2].position
+# start happens at 18th road spline vertex
+new_start_position = tri_map.road_spline[road_spline_length - 19].position
+new_start_next_position = tri_map.road_spline[road_spline_length - 20].position
 # Y - up; X - left; Z - forward;
-y_angle_to_rotate = math.pi - math.atan2(last_position.x.value - pre_last_position.x.value,
-                                         last_position.z.value - pre_last_position.z.value)
+y_angle_to_rotate = math.pi - math.atan2(new_start_position.x.value - new_start_next_position.x.value,
+                                         new_start_position.z.value - new_start_next_position.z.value)
 
 lane_effects = []
+start_x_road_offset = tri_map.road_spline[18].position.x.value
 for i, vertex in enumerate(tri_map.road_spline[:road_spline_length]):
-    # translate so finish == 0, 0, 0
-    vertex.position.x.value -= last_position.x.value
-    vertex.position.y.value -= last_position.y.value
-    vertex.position.z.value -= last_position.z.value
-    # rotate so road finish goes forward
+    # rotate so road at new start goes forward
     vertex.position.z.value, vertex.position.x.value = rotate_point((0, 0),
                                                                     (vertex.position.z.value, vertex.position.x.value),
                                                                     y_angle_to_rotate)
+
+# translate so new start ==
+# -old_start.x (aligning car position for tracks, where road spline located at the side, like CY1)
+# 0,
+# 6.25 * 18 (average value for start position on original tracks)
+position_offset = [
+    tri_map.road_spline[road_spline_length - 19].position.x.value + start_x_road_offset,
+    tri_map.road_spline[road_spline_length - 19].position.y.value,
+    tri_map.road_spline[road_spline_length - 19].position.z.value - 6.25 * 18,
+]
+for i, vertex in enumerate(tri_map.road_spline[:road_spline_length]):
+    vertex.position.x.value -= position_offset[0]
+    vertex.position.y.value -= position_offset[1]
+    vertex.position.z.value -= position_offset[2]
     # swap left and right
     (vertex.left_verge_distance.value, vertex.right_verge_distance.value) = (
     vertex.right_verge_distance.value, vertex.left_verge_distance.value)
