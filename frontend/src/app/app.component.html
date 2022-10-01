@@ -1,10 +1,15 @@
 <mat-toolbar color="primary">
-    <span>{{(mainService.resourceData$ | async)?.block_state?.id}}{{Object.keys(mainService.changedDataBlocks).length > 0 ? '*' : ''}}</span>
+    <span>{{(mainService.resourceData$ | async)?.block_state?.id || '...'}}{{mainService.hasUnsavedChanges ? '*' : ''}}</span>
     <span class="flex-spacer"></span>
-    <button mat-icon-button (click)="saveResource()">
+    <button mat-icon-button (click)="reloadResource()"
+            [disabled]="!(this.mainService.eelDelegate.openedResourcePath$ | async)" matTooltip="Reload file from disk">
+        <mat-icon fontIcon="refresh"></mat-icon>
+    </button>
+    <button mat-icon-button (click)="saveResource()"
+            [disabled]="!(mainService.resourceData$ | async) || !mainService.hasUnsavedChanges" matTooltip="Save changes to file">
         <mat-icon fontIcon="save"></mat-icon>
     </button>
 </mat-toolbar>
 <div id="content-wrapper">
-    <app-editor [resourceData]="mainService.resourceData$ | async"></app-editor>
+    <app-editor [resourceData]="(mainService.resourceData$ | async) || (mainService.resourceError$ | async)"></app-editor>
 </div>

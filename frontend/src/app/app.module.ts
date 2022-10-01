@@ -36,6 +36,9 @@ import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { EnumBlockUiComponent } from './components/editor/library/enum.block-ui/enum.block-ui.component';
 import { MatSelectModule } from '@angular/material/select';
 import { FlagsBlockUiComponent } from './components/editor/library/flags.block-ui/flags.block-ui.component';
+import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @NgModule({
   declarations: [
@@ -56,6 +59,7 @@ import { FlagsBlockUiComponent } from './components/editor/library/flags.block-u
     WwwwBlockUiComponent,
     EnumBlockUiComponent,
     FlagsBlockUiComponent,
+    ConfirmDialogComponent,
   ],
   imports: [
     BrowserModule,
@@ -75,6 +79,8 @@ import { FlagsBlockUiComponent } from './components/editor/library/flags.block-u
     MatListModule,
     MatCardModule,
     MatSelectModule,
+    MatDialogModule,
+    MatProgressSpinnerModule,
   ],
   providers: [EelDelegateService,NgxDeepEqualsPureService],
   bootstrap: [AppComponent]

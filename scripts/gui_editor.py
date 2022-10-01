@@ -38,12 +38,15 @@ def init_eel_state():
         eel.open_file(str(args.file))
 
     @eel.expose
-    def open_file(path: str):
+    def open_file(path: str, force_reload: bool = False):
         try:
+            if (force_reload):
+                clear_file_cache(path)
             state.current_file = require_file(path)
+            state.current_file_id = state.current_file.block_state['id']
         except Exception as ex:
             state.current_file = ex
-        state.current_file_id = state.current_file.block_state['id']
+            state.current_file_id = path
         return DataTransferSerializer().serialize(state.current_file)
 
     @eel.expose

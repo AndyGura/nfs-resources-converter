@@ -29,8 +29,10 @@ export class EelDelegateService {
     });
   }
 
-  public async openFile(path: string) {
-    const res: ReadData | ReadError = await eel['open_file'](path)();
+  public async openFile(path: string, forceReload: boolean = false) {
+    this.openedResource$.next(null);
+    this.openedResourcePath$.next(null);
+    const res: ReadData | ReadError = await eel['open_file'](path, forceReload)();
     this.openedResource$.next(res);
     this.openedResourcePath$.next(path);
   }

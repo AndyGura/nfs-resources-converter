@@ -29,4 +29,8 @@ export class MainService {
       }
     });
   }
+
+  get hasUnsavedChanges(): boolean {
+    return Object.keys(this.changedDataBlocks).length > 0;
+  }
 }
