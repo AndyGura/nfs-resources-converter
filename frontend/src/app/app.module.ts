@@ -23,7 +23,7 @@ import { PaletteBlockUiComponent } from './components/editor/eac/palette.block-u
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BinaryBlockUiComponent } from './components/editor/library/binary.block-ui/binary.block-ui.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { AngleBlockUiComponent } from './components/editor/library/angle.block-ui/angle.block-ui.component';
@@ -39,6 +39,8 @@ import { FlagsBlockUiComponent } from './components/editor/library/flags.block-u
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
+import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 
 @NgModule({
   declarations: [
@@ -60,6 +62,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     EnumBlockUiComponent,
     FlagsBlockUiComponent,
     ConfirmDialogComponent,
+    RunCustomActionDialogComponent,
   ],
   imports: [
     BrowserModule,
@@ -81,6 +84,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatSelectModule,
     MatDialogModule,
     MatProgressSpinnerModule,
+    MatMenuModule,
+    ReactiveFormsModule,
   ],
   providers: [EelDelegateService,NgxDeepEqualsPureService],
   bootstrap: [AppComponent]

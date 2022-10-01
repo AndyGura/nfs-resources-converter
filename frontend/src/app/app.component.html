@@ -5,11 +5,27 @@
             [disabled]="!(this.mainService.eelDelegate.openedResourcePath$ | async)" matTooltip="Reload file from disk">
         <mat-icon fontIcon="refresh"></mat-icon>
     </button>
+    <button mat-icon-button
+            *ngIf="(mainService.resourceData$ | async)?.block.custom_actions?.length > 0"
+            [matMenuTriggerFor]="customActionsMenu"
+            matTooltip="Run custom action">
+        <mat-icon fontIcon="bolt"></mat-icon>
+    </button>
     <button mat-icon-button (click)="saveResource()"
             [disabled]="!(mainService.resourceData$ | async) || !mainService.hasUnsavedChanges" matTooltip="Save changes to file">
         <mat-icon fontIcon="save"></mat-icon>
     </button>
 </mat-toolbar>
 <div id="content-wrapper">
-    <app-editor [resourceData]="(mainService.resourceData$ | async) || (mainService.resourceError$ | async)"></app-editor>
+    <app-editor [resourceData]="(mainService.customActionRunning$ | async)
+    ? null
+    : ((mainService.resourceData$ | async) || (mainService.resourceError$ | async))"></app-editor>
 </div>
+
+<mat-menu #customActionsMenu="matMenu">
+    <button *ngFor="let action of ((mainService.resourceData$ | async)?.block.custom_actions || [])"
+            mat-menu-item
+            (click)="runCustomAction(action)">
+        <span>{{action.title}}</span>
+    </button>
+</mat-menu>

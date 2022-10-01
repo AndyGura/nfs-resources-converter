@@ -11,3 +11,10 @@ type ReadError = {
   error_class: string,
   error_text: string,
 }
+
+type CustomAction = {
+  method: string,
+  title: string,
+  description: string,
+  args: { id: string, title: string, type: string }[]
+};

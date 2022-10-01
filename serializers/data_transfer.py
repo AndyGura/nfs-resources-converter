@@ -12,8 +12,12 @@ class DataTransferSerializer(ResourceSerializer):
     @staticmethod
     def _serialize_block(block):
         from library.read_blocks.data_block import DataBlock
-        return {k: v if not isinstance(v, DataBlock) else DataTransferSerializer._serialize_block(v)
-                for (k, v) in block.__dict__.items()}
+        result = {k: v if not isinstance(v, DataBlock) else DataTransferSerializer._serialize_block(v)
+                  for (k, v) in block.__dict__.items()}
+        return {
+            'custom_actions': block.list_custom_actions(),
+            **result,
+        }
 
     @staticmethod
     def _is_serialized_read_data(data: Dict):

@@ -210,9 +210,9 @@ class TriMap(CompoundBlock):
         railing_texture_id = IntegerBlock(static_size=4, is_signed=False,
                                           description='Do not know what is "railing". Doesn\'t look like a fence '
                                                       'texture id, tested in TR1_001.FAM')
-        lookup_table = ArrayBlock(child=IntegerBlock(static_size=1, simplified=True), length=2400,
-                                  description='Pretty useless data, the same in every file. Looks like a space needed '
-                                              'by the original NFS engine')
+        lookup_table = ArrayBlock(child=IntegerBlock(static_size=4, simplified=True), length=600,
+                                  description='600 consequent numbers, each value is previous + 288. Looks like a space'
+                                              ' needed by the original NFS engine')
         road_spline = ArrayBlock(child=RoadSplinePoint(), length=2400,
                                  description="Road spline is a series of points in 3D space, located at the center of "
                                              "road. Around this spline the track terrain mesh is built. TRI always has "
@@ -242,3 +242,35 @@ class TriMap(CompoundBlock):
         if not state.get('proxy_object_instances'):
             state['proxy_object_instances'] = {}
         state['proxy_object_instances']['length'] = data['proxy_object_instances_count'].value
+
+    def list_custom_actions(self):
+        return [*super().list_custom_actions(), {
+        #     'method': 'reverse_track',
+        #     'title': 'Reverse track',
+        #     'description': 'Makes this track to go backwards',
+        #     'args': [],
+        # }, {
+        #     'method': 'flatten_track',
+        #     'title': 'Flatten track',
+        #     'description': 'Makes track super flat: going forward without turns, slopes and slants',
+        #     'args': [],
+        # }, {
+            'method': 'scale_track',
+            'title': 'Scale track length',
+            'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
+            'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
+        }, ]
+
+    # def action_reverse_track(self, read_data):
+    #     # TODO
+    #     pass
+    #
+    # def action_flatten_track(self, read_data):
+    #     # TODO
+    #     pass
+
+    def action_scale_track(self, read_data, scale: float):
+        for i, vertex in enumerate(read_data.road_spline):
+            vertex.position.x.value *= scale
+            vertex.position.y.value *= scale
+            vertex.position.z.value *= scale

@@ -37,6 +37,10 @@ export class EelDelegateService {
     this.openedResourcePath$.next(path);
   }
 
+  public async runCustomAction(readData: ReadData, action: CustomAction, args: { [key: string]: any }) {
+    return eel['run_custom_action'](readData.block_state.id, action, args)();
+  }
+
   public async saveFile(changes: {id: string, value: any}[]) {
     return eel['save_file'](this.openedResourcePath$.getValue(), changes)();
   }

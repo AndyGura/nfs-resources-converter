@@ -1,7 +1,7 @@
 import traceback
 from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO, BufferedWriter
-from typing import Literal, Dict
+from typing import Literal, Dict, List
 
 import settings
 from library.helpers.exceptions import EndOfBufferException
@@ -114,3 +114,6 @@ class DataBlock(ABC):
     @abstractmethod
     def to_raw_value(self, data: ReadData) -> bytes:
         pass
+
+    def list_custom_actions(self) -> List[Dict]:
+        return []

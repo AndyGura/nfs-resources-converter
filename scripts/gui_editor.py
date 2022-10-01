@@ -72,6 +72,13 @@ def init_eel_state():
         clear_file_cache(path)
 
     @eel.expose
+    def run_custom_action(resource_id: str, action: Dict, args: Dict):
+        _, resource = require_resource(resource_id)
+        action_func = getattr(resource.block, f'action_{action["method"]}')
+        action_func(resource, **args)
+        return DataTransferSerializer().serialize(resource)
+
+    @eel.expose
     def serialize_resource(id: str):
         if state.serialized_temporary_files.get(id):
             path, exported_file_paths, tmpdir, resource, top_level_resource, serializer = state.serialized_temporary_files[id]
