@@ -6,38 +6,44 @@ All the supported resources have an [auto-generated format specs](resources/READ
 
 Feel free to contribute
 
-<h1>How to use converter:</h1>
+<h1>Installation:</h1>
 
 0) install python 3.9, pip, ffmpeg, blender
 1) make sure that `blender` and `ffmpeg` commands work in terminal (cmd). If not, either fix your system environment variable PATH, or reboot your system if software was just installed, or set an absolute path to executables in [settings.py](settings.py)
 2) install dependencies `pip install -r requirements.txt`
-3) put entire game directory to `games/`
-4) run `python scripts/convert_all.py games`
-5) observe output files in `out/`
 
-<h2>Experimental features:</h2>
+<h2>Features:</h2>
 
-**WARNING**: those scripts not properly tested and can (read "will") damage your files!
+<h3>Converter</h3>
 
-<h3>Saving files</h3>
-Except reading, the converter is able to save some files back again, even with modified content. Can be done via code (look examples/ directory) or via GUI
+Converter will save parsed data to common file formats (png, txt, mp4, blend etc.)
 
-<h3>Flatten track</h3>
-Makes open track fully flat! I use it for testing car acceleration/deceleration dynamics
+Usage:
+`python run.py convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED`
 
-`python examples/flatten_map.py <your_track_file_name>.TRI`
+**WARNING**: please do not set as output existing directory with some data, it can be deleted!
 
-<h3>Reverse track</h3>
+<h3>GUI resource file editor (experimental)</h3>
+
+Opens GUI with editor of supported resource. Has ability to edit values, run custom commands if defined (check TRI files), and save file back
+
+Usage:
+`python run.py gui /media/fast/NFSSE/SIMDATA/MISC/AL1.TRI`
+
+**WARNING**: Script does not make backups and saved file consistency not guaranteed! Use only on copied file
+
+<h3>Custom commands</h3>
+
+<h3>*.TRI: flatten track</h3>
+Makes open track fully flat. I use it for testing car acceleration/deceleration dynamics. Can be launched from GUI on TRI file, or:
+
+`python run.py custom_command --custom-command flatten_track examples/maps/TR3.TRI --out examples/maps/flat/`
+
+<h3>*.TRI: reverse track</h3>
 
 Makes track go backwards. They have a bunch of issues and glitches for now. All reversed NFSSE tracks can be found [here](https://drive.google.com/drive/folders/10nhqRrZ2Vvm6yYrIEfxjlNsltoewNTrS?usp=sharing)
 
-`python examples/reverse_map.py <your_track_file_name>.TRI`
-
-<h3>GUI Editor</h3>
-
-There is a generic editor, where most of the values can be edited and file can be saved back
-
-`python scripts/gui_editor.py <you_file_path>`
+`python run.py custom_command --custom-command reverse_track examples/maps/TR3.TRI --out examples/maps/reversed/`
 
 <h2>Run tests:</h2>
 
@@ -64,7 +70,7 @@ There is a generic editor, where most of the values can be edited and file can b
 - **\*.QFS** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) compressed image archive
 - **\*.RPL** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/0) replay files
 - **\*.TGV** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/100) video
-- **\*.TRI** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/85) tracks. *Produces track, which have enough info for conversion to another game. Some data is skipped, some props are missed due to absence in FAM file*
+- **\*.TRI** ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/90) tracks. *Produces track, which have enough info for conversion to another game. Some data is skipped, some props are missed due to absence in FAM file*
 
 <h1>Output file formats</h1>
 

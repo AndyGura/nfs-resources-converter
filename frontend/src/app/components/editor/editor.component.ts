@@ -102,9 +102,9 @@ export class EditorComponent {
         this._componentChangedSub = this._component.instance.changed
           .subscribe(() => {
             if (isEqual(readData.value, this._dataSnapshot)) {
-              delete this.mainService.changedDataBlocks[readData.block_state.id];
+              delete this.mainService.changedDataBlocks[readData.block_id];
             } else {
-              this.mainService.changedDataBlocks[readData.block_state.id] = readData.value;
+              this.mainService.changedDataBlocks[readData.block_id] = readData.value;
             }
           });
       }
