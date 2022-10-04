@@ -277,6 +277,13 @@ class TriMap(CompoundBlock):
         }, ]
 
     def action_reverse_track(self, read_data):
+        # FIXME slants are wrong (CL2). on AL2 looks inversed
+        # FIXME lane merge/split are broken. Is it possible to fix?
+        # FIXME tunnel walls are broken. Is it possible to fix?
+        # FIXME preserve 3D effect from two sided bitmaps (add math.pi to rotation, move base, switch side of side bitmap)
+        # FIXME DONE, NEEDS TESTING opponents have totally broken positioning on open tracks
+        # FIXME AI speed inadequate
+        # FIXME render order of props
         from math import cos, sin, pi, atan2
         def rotate_point(origin, point, angle):
             ox, oy = origin
