@@ -12,11 +12,11 @@ from library.utils import format_exception
 from serializers import get_serializer
 
 
-def export_file(path, out_path):
+def export_file(base_input_path, path, out_path):
     try:
         data = require_file(path)
         serializer = get_serializer(data.block)
-        serializer.serialize(data, f'{out_path}/{path}')
+        serializer.serialize(data, f'{out_path}/{path[len(base_input_path):]}')
     except Exception as ex:
         if settings.print_errors:
             traceback.print_exc()
@@ -25,6 +25,7 @@ def export_file(path, out_path):
 
 def convert_all(path, out_path):
     start_time = time.time()
+    base_input_path = str(path)
     files_to_open = []
     if os.path.isdir(path):
         for subdir, dirs, files in os.walk(path):
@@ -35,7 +36,7 @@ def convert_all(path, out_path):
     processes = cpu_count() if settings.multiprocess_processes_count == 0 else settings.multiprocess_processes_count
     with Pool(processes=processes) as pool:
         pbar = tqdm(total=len(files_to_open))
-        results = [pool.apply_async(export_file, (f, out_path), callback=lambda *a: pbar.update()) for f in files_to_open]
+        results = [pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update()) for f in files_to_open]
         results = list(result.get() for result in results)
     pbar.close()
 
@@ -46,9 +47,9 @@ def convert_all(path, out_path):
             path, name = '/'.join(name.split('/')[:-1]), name.split('/')[-1]
             skipped_map[path].append((name, format_exception(ex)))
         for path, skipped in skipped_map.items():
-            os.makedirs(f'{out_path}/{path}', exist_ok=True)
+            os.makedirs(f'{out_path}/{path[len(base_input_path):]}', exist_ok=True)
             skipped.sort(key=lambda x: x[0])
-            with open(f'{out_path}/{path}/skipped.txt', 'w') as f:
+            with open(f'{out_path}/{path[len(base_input_path):]}/skipped.txt', 'w') as f:
                 for item in skipped:
                     f.write("%s\t\t%s\n" % item)
 
