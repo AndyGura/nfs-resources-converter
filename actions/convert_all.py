@@ -1,0 +1,55 @@
+import os
+import time
+import traceback
+from collections import defaultdict
+from multiprocessing import Pool, cpu_count
+
+from tqdm import tqdm
+
+import settings
+from library import require_file
+from library.utils import format_exception
+from serializers import get_serializer
+
+
+def export_file(path, out_path):
+    try:
+        data = require_file(path)
+        serializer = get_serializer(data.block)
+        serializer.serialize(data, f'{out_path}/{path}')
+    except Exception as ex:
+        if settings.print_errors:
+            traceback.print_exc()
+        return ex
+
+
+def convert_all(path, out_path):
+    start_time = time.time()
+    files_to_open = []
+    if os.path.isdir(path):
+        for subdir, dirs, files in os.walk(path):
+            files_to_open += [subdir + '/' + f for f in files]
+    else:
+        files_to_open = [str(path)]
+
+    processes = cpu_count() if settings.multiprocess_processes_count == 0 else settings.multiprocess_processes_count
+    with Pool(processes=processes) as pool:
+        pbar = tqdm(total=len(files_to_open))
+        results = [pool.apply_async(export_file, (f, out_path), callback=lambda *a: pbar.update()) for f in files_to_open]
+        results = list(result.get() for result in results)
+    pbar.close()
+
+    skipped_resources = [(files_to_open[i], exc) for i, exc in enumerate(results) if isinstance(exc, Exception)]
+    if skipped_resources:
+        skipped_map = defaultdict(lambda: list())
+        for name, ex in skipped_resources:
+            path, name = '/'.join(name.split('/')[:-1]), name.split('/')[-1]
+            skipped_map[path].append((name, format_exception(ex)))
+        for path, skipped in skipped_map.items():
+            os.makedirs(f'{out_path}/{path}', exist_ok=True)
+            skipped.sort(key=lambda x: x[0])
+            with open(f'{out_path}/{path}/skipped.txt', 'w') as f:
+                for item in skipped:
+                    f.write("%s\t\t%s\n" % item)
+
+    print(f'Finished. Execution time: {time.time() - start_time} seconds')

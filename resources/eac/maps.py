@@ -410,6 +410,7 @@ class TriMap(CompoundBlock):
             vertex.block.update_orientations(vertex, read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0])
 
     def action_scale_track(self, read_data, scale: float):
+        scale = float(scale)
         for i, vertex in enumerate(read_data.road_spline):
             vertex.position.x.value *= scale
             vertex.position.y.value *= scale

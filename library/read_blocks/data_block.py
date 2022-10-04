@@ -115,8 +115,5 @@ class DataBlock(ABC):
     def to_raw_value(self, data: ReadData) -> bytes:
         pass
 
-    # TODO rework call from frontend: should return resource deltas
-    # TODO ability to call custom action from the console
     def list_custom_actions(self) -> List[Dict]:
-        # TODO implement a way to call actions via console, update README (flatten, reverse track actions)
         return []
