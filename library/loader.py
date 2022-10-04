@@ -155,7 +155,11 @@ files_cache = {}
 
 
 def clear_file_cache(path: str):
-    del files_cache[path]
+    try:
+        del files_cache[path]
+    except KeyError:
+        pass
+
 
 def require_file(path: str):
     data = files_cache.get(path)

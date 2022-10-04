@@ -1,9 +1,7 @@
-import inspect
-import sys
 from typing import Dict
 
-from library.read_data import ReadData
 from library.helpers.data_wrapper import DataWrapper
+from library.read_data import ReadData
 from serializers.base import ResourceSerializer
 
 
@@ -12,42 +10,15 @@ class DataTransferSerializer(ResourceSerializer):
     @staticmethod
     def _serialize_block(block):
         from library.read_blocks.data_block import DataBlock
-        return {k: v if not isinstance(v, DataBlock) else DataTransferSerializer._serialize_block(v)
-                for (k, v) in block.__dict__.items()}
+        result = {k: v if not isinstance(v, DataBlock) else DataTransferSerializer._serialize_block(v)
+                  for (k, v) in block.__dict__.items()
+                  if k not in ['instance_fields', 'instance_fields_map']}
+        return {
+            'custom_actions': block.list_custom_actions(),
+            **result,
+        }
 
-    @staticmethod
-    def _is_serialized_read_data(data: Dict):
-        return (isinstance(data, dict)
-                and 'block_class_module' in data
-                and 'block_class_mro' in data
-                and 'block' in data
-                and 'block_state' in data
-                and 'value' in data)
-
-    @staticmethod
-    def _deserialize_block_value(value):
-        if isinstance(value, dict):
-            return DataWrapper({k: DataTransferSerializer._deserialize_block_value(
-                v) if not DataTransferSerializer._is_serialized_read_data(
-                v) else DataTransferSerializer._deserialize_read_data(v)
-                                for k, v in value.items()})
-        elif isinstance(value, list):
-            return [DataTransferSerializer._deserialize_block_value(
-                x) if not DataTransferSerializer._is_serialized_read_data(
-                x) else DataTransferSerializer._deserialize_read_data(x)
-                    for x in value]
-        return value
-
-    @staticmethod
-    def _deserialize_read_data(data: Dict) -> ReadData:
-        cls = getattr(sys.modules[data['block_class_module']], data['block_class_mro'].split('__')[0])
-        block = cls(**data['block'])
-        value = DataTransferSerializer._deserialize_block_value(data['value'])
-        return ReadData(value=value,
-                        block=block,
-                        block_state=data['block_state'])
-
-    def serialize(self, data: ReadData) -> Dict:
+    def serialize(self, data: ReadData, skip_block_info=False) -> Dict:
         if not isinstance(data, ReadData):
             if isinstance(data, Exception):
                 return {
@@ -59,22 +30,31 @@ class DataTransferSerializer(ResourceSerializer):
             except AttributeError:
                 return data
         if isinstance(data.value, DataWrapper):
-            value = { k: self.serialize(v) for k, v in data.value.items() }
+            value = {k: self.serialize(v) for k, v in data.value.items()}
         elif isinstance(data.value, list):
-            value = [self.serialize(x) for x in data.value]
+            array_scoped_block = None
+            try:
+                array_scoped_block = data.block.child
+            except Exception:
+                pass
+            value = [self.serialize(x, isinstance(x, ReadData) and x.block == array_scoped_block) for x in data.value]
         elif isinstance(data.value, bytes):
             value = list(data.value)
         else:
             value = data.value
+        if skip_block_info:
+            return {
+                'block_class_mro': '__'.join(
+                    [x.__name__ for x in data.block.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
+                'block_id': data.block_state['id'],
+                'editor_validators': data.block.get_editor_validators(data.block_state),
+                'value': value
+            }
         return {
-            'block_class_module': inspect.getmodule(data.block.__class__).__name__,
             'block_class_mro': '__'.join(
                 [x.__name__ for x in data.block.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
             'block': DataTransferSerializer._serialize_block(block=data.block),
-            'block_state': data.block_state,
+            'block_id': data.block_state['id'],
             'editor_validators': data.block.get_editor_validators(data.block_state),
             'value': value
         }
-
-    def deserialize(self, data: Dict) -> ReadData:
-        return DataTransferSerializer._deserialize_read_data(data)

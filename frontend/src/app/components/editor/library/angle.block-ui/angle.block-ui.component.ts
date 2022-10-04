@@ -3,7 +3,9 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  EventEmitter,
   HostListener,
+  Output,
   ViewChild
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
@@ -18,6 +20,8 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
 
   resourceData: ReadData | null = null;
   name: string = '';
+
+  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   pi = Math.PI;
 
@@ -44,15 +48,17 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     this.dragging = false;
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef) { }
+  constructor(private readonly cdr: ChangeDetectorRef) {
+  }
 
   private updateRotation(mouseEvent: MouseEvent) {
     const rect = this.picker!.nativeElement.getBoundingClientRect();
-    let newAngle = Math.atan2(mouseEvent.clientY - rect.top - rect.height/2, mouseEvent.clientX - rect.left - rect.width / 2);
+    let newAngle = Math.atan2(mouseEvent.clientY - rect.top - rect.height / 2, mouseEvent.clientX - rect.left - rect.width / 2);
     if (mouseEvent.shiftKey) {
-      newAngle = (Math.round( (newAngle * 180 / Math.PI)/ 15) * 15) * Math.PI / 180;
+      newAngle = (Math.round((newAngle * 180 / Math.PI) / 15) * 15) * Math.PI / 180;
     }
     this.resourceData!.value = newAngle;
+    this.changed.emit();
     this.cdr.markForCheck();
   }
 

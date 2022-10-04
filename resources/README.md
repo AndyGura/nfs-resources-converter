@@ -152,7 +152,7 @@
 | 24 | **unknowns0** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 36 | **terrain_block_size** | 4 | 4-bytes unsigned integer (little endian) | Size of terrain array in bytes (terrain_length * 0x120) |
 | 40 | **railing_texture_id** | 4 | 4-bytes unsigned integer (little endian) | Do not know what is "railing". Doesn't look like a fence texture id, tested in TR1_001.FAM |
-| 44 | **lookup_table** | 2400 | Array of 2400 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Pretty useless data, the same in every file. Looks like a space needed by the original NFS engine |
+| 44 | **lookup_table** | 4 * (600) | Array of 600 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | 600 consequent numbers, each value is previous + 288. Looks like a space needed by the original NFS engine |
 | 2444 | **road_spline** | 36 * (2400) | Array of 2400 items<br/>Item type: [RoadSplinePoint](#roadsplinepoint) | Road spline is a series of points in 3D space, located at the center of road. Around this spline the track terrain mesh is built. TRI always has 2400 elements, however it uses some amount of vertices, after them records filled with zeros |
 | 88844 | **ai_info** | 3 * (600) | Array of 600 items<br/>Item type: [AIEntry](#aientry) | - |
 | 90644 | **proxy_objects_count** | 4 | 4-bytes unsigned integer (little endian) | - |
@@ -177,11 +177,11 @@
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
-| 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top |
+| 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
 | 26 | **unknowns1** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 28 | **orientation_y** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 28 | **orientation_vector_x** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_vector_x == cos(orientation) * 32766 |
 | 30 | **slant_b** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
-| 32 | **orientation_x** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | Not quite sure about it. Denis Auroux gives more info about this http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 32 | **orientation_vector_neg_z** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_vector_neg_z == -sin(orientation) * 32766 |
 | 34 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 ### **ProxyObject** ###
 #### **Size**: 16 bytes ####
@@ -234,12 +234,12 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value explained well by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
-| 1 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 1 | **proxy_number** | 1 | 1-byte unsigned integer | Seems to be always equal to own index * 4 |
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object |
 | 7 | **animation_interval** | 1 | EA games time interval field: 0 = 0ms, 256 = 4000ms (4 seconds). Max value (255) is 3984.375ms | Interval between animation frames |
-| 8 | **unk1** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 9 | **unk2** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 8 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 9 | **unk1** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 10 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters |
 ### **TwoSidedBitmapProxyObjectData** ###
 #### **Size**: 14 bytes ####

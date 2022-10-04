@@ -42,19 +42,34 @@ class RoadSplinePoint(CompoundBlock):
         position = Point3D_32(description='Coordinates of this point in 3D space')
         slope = Nfs1Angle14(description='Slope of the road at this point (angle if road goes up or down)')
         slant_a = Nfs1Angle14(description='Perpendicular angle of road')
-        orientation = Nfs1Angle14(description='Rotation of road path, if view from the top')
+        orientation = Nfs1Angle14(description='Rotation of road path, if view from the top. '
+                                              'Equals to atan2(next_x - x, next_z - z)')
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
-        orientation_y = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        orientation_vector_x = IntegerBlock(static_size=2, is_signed=True,
+                                            description='Orientation vector is a 2D vector, normalized to ~32766 with '
+                                                        'angle == orientation field above, used for pseudo-3D effect on'
+                                                        ' opponent cars. So orientation_vector_x == cos(orientation) * '
+                                                        '32766')
         slant_b = Nfs1Angle16(description='has the same purpose as slant_a, but is a standard signed 16-bit value. '
                                           'Its value is positive for the left, negative for the right. The '
                                           'approximative relation between slant-A and slant-B is slant-B = -12.3 '
                                           'slant-A (remember that slant-A is 14-bit, though)')
-        orientation_x = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        orientation_vector_neg_z = IntegerBlock(static_size=2, is_signed=True,
+                                                description='Orientation vector is a 2D vector, normalized to ~32766 '
+                                                            'with angle == orientation field above, used for pseudo-3D '
+                                                            'effect on opponent cars. So orientation_vector_neg_z == '
+                                                            '-sin(orientation) * 32766')
         unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
 
         unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
+
+    def update_orientations(self, read_data: 'ReadData', next_spline_point):
+        from math import atan2, cos, sin
+        orientation = atan2(next_spline_point.position.x.value - read_data.position.x.value,
+                            next_spline_point.position.z.value - read_data.position.z.value)
+        read_data.orientation.value = orientation
+        read_data.orientation_vector_x.value = round(cos(orientation) * 32766)
+        read_data.orientation_vector_neg_z.value = round(-sin(orientation) * 32766)
 
 
 class ModelProxyObjectData(CompoundBlock):
@@ -76,15 +91,16 @@ class BitmapProxyObjectData(CompoundBlock):
                                    description='Represents texture id. How to get texture name from this value '
                                                'explained well by Denis Auroux http://www.math.polytechnique.fr/'
                                                'cmat/auroux/nfs/nfsspecs.txt')
-        unk0 = IntegerBlock(static_size=1, is_signed=False)
+        proxy_number = IntegerBlock(static_size=1, is_signed=False,
+                                    description='Seems to be always equal to own index * 4')
         width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
         frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
         animation_interval = Nfs1Interval(description='Interval between animation frames')
+        unk0 = IntegerBlock(static_size=1, is_signed=False)
         unk1 = IntegerBlock(static_size=1, is_signed=False)
-        unk2 = IntegerBlock(static_size=1, is_signed=False)
         height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Height in meters')
 
-        unknown_fields = ['unk0', 'unk1', 'unk2']
+        unknown_fields = ['unk0', 'unk1']
 
 
 class TwoSidedBitmapProxyObjectData(CompoundBlock):
@@ -209,9 +225,9 @@ class TriMap(CompoundBlock):
         railing_texture_id = IntegerBlock(static_size=4, is_signed=False,
                                           description='Do not know what is "railing". Doesn\'t look like a fence '
                                                       'texture id, tested in TR1_001.FAM')
-        lookup_table = ArrayBlock(child=IntegerBlock(static_size=1, simplified=True), length=2400,
-                                  description='Pretty useless data, the same in every file. Looks like a space needed '
-                                              'by the original NFS engine')
+        lookup_table = ArrayBlock(child=IntegerBlock(static_size=4, simplified=True), length=600,
+                                  description='600 consequent numbers, each value is previous + 288. Looks like a space'
+                                              ' needed by the original NFS engine')
         road_spline = ArrayBlock(child=RoadSplinePoint(), length=2400,
                                  description="Road spline is a series of points in 3D space, located at the center of "
                                              "road. Around this spline the track terrain mesh is built. TRI always has "
@@ -241,3 +257,159 @@ class TriMap(CompoundBlock):
         if not state.get('proxy_object_instances'):
             state['proxy_object_instances'] = {}
         state['proxy_object_instances']['length'] = data['proxy_object_instances_count'].value
+
+    def list_custom_actions(self):
+        return [*super().list_custom_actions(), {
+            'method': 'reverse_track',
+            'title': 'Reverse track',
+            'description': 'Makes this track to go backwards',
+            'args': [],
+        }, {
+            'method': 'flatten_track',
+            'title': 'Flatten track',
+            'description': 'Makes track super flat: going forward without turns, slopes and slants',
+            'args': [],
+        }, {
+            'method': 'scale_track',
+            'title': 'Scale track length',
+            'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
+            'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
+        }, ]
+
+    def action_reverse_track(self, read_data):
+        # FIXME lane merge/split are broken. Is it possible to fix?
+        # FIXME tunnel walls are broken. Is it possible to fix?
+        # FIXME preserve 3D effect from two sided bitmaps (add math.pi to rotation, move base, switch side of side bitmap)
+        # FIXME AI speed inadequate
+        # FIXME render order of props
+        from math import cos, sin, pi, atan2
+        def rotate_point(origin, point, angle):
+            ox, oy = origin
+            px, py = point
+            qx = ox + cos(angle) * (px - ox) - sin(angle) * (py - oy)
+            qy = oy + sin(angle) * (px - ox) + cos(angle) * (py - oy)
+            return qx, qy
+
+        road_spline_length = len(read_data.terrain) * 4
+        # start happens at 18th road spline vertex
+        new_start_position = read_data.road_spline[road_spline_length - 19].position
+        new_start_next_position = read_data.road_spline[road_spline_length - 20].position
+        # Y - up; X - left; Z - forward;
+        y_angle_to_rotate = pi - atan2(new_start_position.x.value - new_start_next_position.x.value,
+                                       new_start_position.z.value - new_start_next_position.z.value)
+
+        lane_effects = []
+        start_x_road_offset = read_data.road_spline[18].position.x.value
+        for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
+            # rotate so road at new start goes forward
+            vertex.position.z.value, vertex.position.x.value = rotate_point((0, 0),
+                                                                            (vertex.position.z.value, vertex.position.x.value),
+                                                                            y_angle_to_rotate)
+
+        # translate so new start ==
+        # -old_start.x (aligning car position for tracks, where road spline located at the side, like CY1)
+        # 0,
+        # 6.25 * 18 (average value for start position on original tracks)
+        position_offset = [
+            read_data.road_spline[road_spline_length - 19].position.x.value + start_x_road_offset,
+            read_data.road_spline[road_spline_length - 19].position.y.value,
+            read_data.road_spline[road_spline_length - 19].position.z.value - 6.25 * 18,
+        ]
+        for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
+            vertex.position.x.value -= position_offset[0]
+            vertex.position.y.value -= position_offset[1]
+            vertex.position.z.value -= position_offset[2]
+            # swap left and right
+            (vertex.left_verge_distance.value, vertex.right_verge_distance.value) = (
+                vertex.right_verge_distance.value, vertex.left_verge_distance.value)
+            (vertex.left_barrier_distance.value, vertex.right_barrier_distance.value) = (
+                vertex.right_barrier_distance.value, vertex.left_barrier_distance.value)
+            # slope/slant are just reversed
+            vertex.slope.value = -vertex.slope.value
+            vertex.slant_a.value = -vertex.slant_a.value
+            vertex.slant_b.value = -vertex.slant_b.value
+
+            if vertex.spline_item_mode.value == 'lane_split':
+                vertex.spline_item_mode.value = 'lane_merge'
+                lane_effects.append(i)
+            elif vertex.spline_item_mode.value == 'lane_merge':
+                vertex.spline_item_mode.value = 'lane_split'
+                # lane_effects.append(i)
+
+        for index in lane_effects:
+            read_data.road_spline[index].spline_item_mode.value, read_data.road_spline[index - 1].spline_item_mode.value = (
+                read_data.road_spline[index - 1].spline_item_mode.value, read_data.road_spline[index].spline_item_mode.value)
+
+        for chunk in read_data.terrain:
+            (chunk.fence.value.has_left_fence, chunk.fence.value.has_right_fence) = (
+                chunk.fence.value.has_right_fence, chunk.fence.value.has_left_fence)
+            chunk.texture_ids.value = chunk.texture_ids.value[5:] + chunk.texture_ids.value[:5]
+            chunk.rows.value = chunk.rows.value[::-1]
+            for i in range(4):
+                chunk.rows[i].value = [chunk.rows[i].value[0]] + chunk.rows[i].value[6:] + chunk.rows[i].value[1:6]
+                for j in range(11):
+                    chunk.rows[i][j].z.value, chunk.rows[i][j].x.value = rotate_point((0, 0),
+                                                                                      (chunk.rows[i][j].z.value,
+                                                                                       chunk.rows[i][j].x.value),
+                                                                                      y_angle_to_rotate)
+
+        amount_of_instances = [x.reference_road_spline_vertex.value for x in read_data.proxy_object_instances].index(-1)
+        for proxy_inst in read_data.proxy_object_instances[:amount_of_instances]:
+            proxy_inst.reference_road_spline_vertex.value = road_spline_length - 1 - proxy_inst.reference_road_spline_vertex.value
+            proxy_inst.rotation.value += pi
+            proxy_inst.position.z.value, proxy_inst.position.x.value = rotate_point((0, 0),
+                                                                                    (proxy_inst.position.z.value,
+                                                                                     proxy_inst.position.x.value),
+                                                                                    y_angle_to_rotate)
+
+        read_data.road_spline.value = read_data.road_spline.value[:road_spline_length][::-1] + read_data.road_spline.value[
+                                                                                           road_spline_length:]
+        read_data.terrain.value = read_data.terrain.value[::-1]
+        read_data.proxy_object_instances.value = (read_data.proxy_object_instances.value[:amount_of_instances][::-1]
+                                                  + read_data.proxy_object_instances.value[amount_of_instances:])
+        # update rotations
+        for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
+            vertex.block.update_orientations(vertex, read_data.road_spline[i + 1 if i < road_spline_length else 0])
+
+    def action_flatten_track(self, read_data):
+        from math import cos, sin, pi
+        for i, terrain_chunk in enumerate(read_data.terrain):
+            for j in range(4):
+                terrain_chunk.rows[j][0].y.value = 0.0
+                # rotate terrain mesh around first point
+                angle = read_data.road_spline[i * 4 + j].orientation.value
+                cosine = cos(angle)
+                sine = sin(angle)
+                for k in range(1, 11):
+                    terrain_chunk.rows[j][k].x.value -= terrain_chunk.rows[j][0].x.value
+                    terrain_chunk.rows[j][k].z.value -= terrain_chunk.rows[j][0].z.value
+                    x_new = terrain_chunk.rows[j][k].x.value * cosine - terrain_chunk.rows[j][k].z.value * sine
+                    z_new = terrain_chunk.rows[j][k].x.value * sine + terrain_chunk.rows[j][k].z.value * cosine
+                    terrain_chunk.rows[j][k].x.value = x_new + terrain_chunk.rows[j][0].x.value
+                    terrain_chunk.rows[j][k].z.value = z_new + terrain_chunk.rows[j][0].z.value
+        # fix props
+        for prop in read_data.proxy_object_instances:
+            road_vertex = read_data.road_spline[prop.reference_road_spline_vertex.value]
+            prop.rotation.value -= road_vertex.orientation.value
+            if prop.rotation.value < 0:
+                prop.rotation.value += 2 * pi
+            sine, cosine = sin(road_vertex.orientation.value), cos(road_vertex.orientation.value)
+            prop.position.x.value, prop.position.z.value = (prop.position.x.value * cosine - prop.position.z.value * sine,
+                                                            prop.position.x.value * sine + prop.position.z.value * cosine)
+
+        for i, road_vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
+            road_vertex.position.x.value = road_vertex.position.y.value = 0
+            road_vertex.position.z.value = i * 6.25
+            road_vertex.slope.value = 0
+            road_vertex.slant_a.value = 0
+            road_vertex.slant_b.value = 0
+        # update rotations
+        for i, vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
+            vertex.block.update_orientations(vertex, read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0])
+
+    def action_scale_track(self, read_data, scale: float):
+        scale = float(scale)
+        for i, vertex in enumerate(read_data.road_spline):
+            vertex.position.x.value *= scale
+            vertex.position.y.value *= scale
+            vertex.position.z.value *= scale

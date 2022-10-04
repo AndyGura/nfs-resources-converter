@@ -1,5 +1,7 @@
-<div *ngIf="!resourceData">
-    Loading...
+<div *ngIf="!resourceData || error" id="error-spinner-wrapper">
+    <mat-error *ngIf="error">
+        {{error.error_class}}: {{error.error_text}}
+    </mat-error>
+    <mat-spinner *ngIf="!resourceData" mode="indeterminate"></mat-spinner>
 </div>
-<span *ngIf="error" class="mat-error">{{error.error_class}}: {{error.error_text}}</span>
 <ng-template dataBlockUI></ng-template>

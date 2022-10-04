@@ -1,3 +1,3 @@
-<app-editor *ngFor="let fieldEntry of (resourceData?.block?.instance_fields || [])"
-            [resourceData]="resourceData?.value[fieldEntry[0]]"
-            [name]="fieldEntry[0]"></app-editor>
+<app-editor *ngFor="let field of fieldKeys"
+            [resourceData]="resourceData?.value[field]"
+            [name]="field"></app-editor>

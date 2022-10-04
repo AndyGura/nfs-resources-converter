@@ -3,7 +3,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ElementRef, OnDestroy,
+  ElementRef, EventEmitter, OnDestroy, Output,
   ViewChild
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
@@ -49,12 +49,14 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
     this._resourceData = value;
     if (this.editor) {
       this.editorProps.data = value ? new Uint8Array(value.value) : undefined;
-      console.log(this.editorProps);
       this.editor.$set({ props: { data: this.editorProps.data } });
       this.cdr.markForCheck();
     }
   }
   name: string = '';
+
+  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+
   private editor: any;
   private editorProps: HexEditorProps = {};
 
@@ -69,7 +71,6 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
       target: this.editorDiv?.nativeElement,
       props: this.editorProps,
     });
-    console.log(this.editor);
     this.cdr.markForCheck();
   }
 

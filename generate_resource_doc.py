@@ -1,16 +1,8 @@
-import inspect
-import os
-import sys
-
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
-
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
-from library.read_blocks.literal import LiteralBlock
 from library.read_blocks.data_block import DataBlock
 from library.read_blocks.detached import DetachedBlock
+from library.read_blocks.literal import LiteralBlock
 from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries, audios, archives
 
 EXPORT_RESOURCES = {
@@ -98,9 +90,7 @@ def render_type(instance: DataBlock) -> str:
     return f'[{name}](#{name.lower()})'
 
 
-md_name = os.path.join(parentdir, 'resources/README.md')
-
-with open(md_name, 'w') as f:
+with open('resources/README.md', 'w') as f:
     f.write(f"""# **File specs** #
 
 **\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually

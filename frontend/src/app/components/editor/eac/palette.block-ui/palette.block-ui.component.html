@@ -3,6 +3,7 @@
     Unknowns:
     <ng-container *ngFor="let number of [].constructor(resourceData.value.unknowns.value.length); let i = index">
         <input matInput type="number"
+               (change)="changed.emit()"
                [(ngModel)]="resourceData.value.unknowns.value[i]">
     </ng-container>
 </div>

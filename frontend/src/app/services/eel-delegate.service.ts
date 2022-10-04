@@ -29,14 +29,20 @@ export class EelDelegateService {
     });
   }
 
-  public async openFile(path: string) {
-    const res: ReadData | ReadError = await eel['open_file'](path)();
+  public async openFile(path: string, forceReload: boolean = false) {
+    this.openedResource$.next(null);
+    this.openedResourcePath$.next(null);
+    const res: ReadData | ReadError = await eel['open_file'](path, forceReload)();
     this.openedResource$.next(res);
     this.openedResourcePath$.next(path);
   }
 
-  public async saveFile() {
-    return eel['save_file'](this.openedResourcePath$.getValue(), this.openedResource$.getValue())();
+  public async runCustomAction(readData: ReadData, action: CustomAction, args: { [key: string]: any }) {
+    return eel['run_custom_action'](readData.block_id, action, args)();
+  }
+
+  public async saveFile(changes: {id: string, value: any}[]) {
+    return eel['save_file'](this.openedResourcePath$.getValue(), changes)();
   }
 
   public async serializeResource(id: string): Promise<string> {

@@ -1,0 +1,14 @@
+<h1 mat-dialog-title>Run action "{{data.title}}"</h1>
+<div mat-dialog-content>
+    <p>{{data.description}}</p>
+</div>
+<form [formGroup]="argsForm">
+    <mat-form-field appearance="fill" *ngFor="let arg of data.args">
+        <mat-label>{{ arg.title }}</mat-label>
+        <input matInput [id]="arg.id" [type]="arg.type" [formControlName]="arg.id">
+    </mat-form-field>
+</form>
+<div mat-dialog-actions>
+    <button mat-button (click)="dialogRef.close()">Cancel</button>
+    <button mat-button [disabled]="argsForm.invalid" (click)="submit()">Run</button>
+</div>

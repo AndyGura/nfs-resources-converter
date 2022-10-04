@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
@@ -13,12 +13,17 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   get resourceData(): ReadData | null {
     return this._resourceData;
   }
+
   set resourceData(value: ReadData | null) {
     this._resourceData = value;
     this.showAsCollapsable = this._resourceData?.value?.length > 5;
+    this.updatePageIndexes();
     this.renderPage(0, this.minPageSize);
   }
+
   name: string = '';
+
+  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   showAsCollapsable: boolean = false;
   renderContents: boolean = false;
@@ -29,6 +34,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   pageSize: number = 10;
   pageSizeOptions = [10, 25, 50, 100];
   renderItems: any[] = [];
+
+  goToIndex: number = 0;
+  pageIndexes: number[] = [];
 
   constructor(private readonly cdr: ChangeDetectorRef) {
   }
@@ -51,10 +59,19 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   }
 
   renderPage(pageIndex: number, pageSize: number) {
-    this.pageIndex = pageIndex;
+    this.goToIndex = this.pageIndex = pageIndex;
     this.pageSize = pageSize;
-    this.renderItems = (this.resourceData?.value || []).slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+    this.renderItems = (this.resourceData?.value || []).slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
+      .map((x: ReadData) => !!x['block'] ? x : { ...x, block: this.resourceData?.block.child });
     this.cdr.markForCheck();
+  }
+
+  updatePageIndexes() {
+    this.goToIndex = this.pageIndex;
+    this.pageIndexes = [];
+    for (let i = 0; i < Math.ceil((this.resourceData?.value || []).length / this.pageSize); i++) {
+      this.pageIndexes.push(i);
+    }
   }
 
 }

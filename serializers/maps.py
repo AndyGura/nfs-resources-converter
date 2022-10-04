@@ -272,6 +272,7 @@ class TriMapSerializer(BaseFileSerializer):
 import bpy
 import math
 import json
+from mathutils import Euler
 if $new_file:
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
@@ -311,6 +312,13 @@ for i in range(int(len(coords) / 4)):
         o['children'] = [f'chunk_{i + 1}']
     elif (i == int(len(coords) / 4) - 1) and not $is_opened_track:
         o['children'] = ['chunk_0']
+
+player_start_position = json.loads('$player_start')
+o = bpy.data.objects.new( "player_start", None )
+bpy.context.collection.objects.link(o)
+o.location = [player_start_position['x'], player_start_position['y'], player_start_position['z']]
+o.rotation_mode = 'QUATERNION'
+o.rotation_quaternion = Euler((player_start_position['rotation_x'], 0, 0), 'XYZ').to_quaternion()
 
    
 # barriers collisions
@@ -360,6 +368,7 @@ for index, proxy_obj in enumerate(proxy_objects):
     o = bpy.data.objects.new( f"proxy_{index}", None )
     bpy.context.collection.objects.link(o)
     o.location = (proxy_obj['x'], proxy_obj['y'], proxy_obj['z'])
+    o.rotation_mode = 'QUATERNION'
     o.rotation_quaternion = Euler((0, 0, proxy_obj['rotation_z']), 'XYZ').to_quaternion()
     o['is_prop'] = True
     for k, v in proxy_obj.items():
@@ -401,9 +410,10 @@ if $save_collisions:
         return [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
                 for i in range(max(frame_count, 1))]
 
-    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track) -> Dict:
+    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track, use_local_coordinates) -> Dict:
         proxy_definition = data.proxy_objects[instance.proxy_object_index.value % len(data.proxy_objects)]
-        road_spline_vertex = data.road_spline[instance.reference_road_spline_vertex.value]
+        spline_index = instance.reference_road_spline_vertex.value
+        road_spline_vertex = data.road_spline[spline_index]
         res = {
             'x': instance.position.x.value + road_spline_vertex.position.x.value,
             'y': instance.position.y.value + road_spline_vertex.position.y.value,
@@ -411,6 +421,9 @@ if $save_collisions:
             'rotation_z': instance.rotation.value + road_spline_vertex.orientation.value,
             'type': proxy_definition.type.value
         }
+        if use_local_coordinates:
+            for axis in ['x', 'y', 'z']:
+                res[axis] -= getattr(data.road_spline[spline_index - (spline_index % 4)].position, axis).value
         if res['type'] == 'model':
             res = {
                 **res,
@@ -557,7 +570,7 @@ if $save_collisions:
                     'save_collisions': settings.maps__save_collisions,
                     'obj_name': f'terrain_chunk_{i}.obj',
                     'proxy_objects_json': json.dumps(
-                        [self._proxy_object_instance_json(data, o, is_opened_track)
+                        [self._proxy_object_instance_json(data, o, is_opened_track, True)
                          for o in data.proxy_object_instances
                          if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
                 })
@@ -578,7 +591,7 @@ if $save_collisions:
                 'save_collisions': settings.maps__save_collisions,
                 'obj_name': 'terrain.obj',
                 'proxy_objects_json': json.dumps(
-                    [self._proxy_object_instance_json(data, o, is_opened_track)
+                    [self._proxy_object_instance_json(data, o, is_opened_track, False)
                      for o in data.proxy_object_instances
                      if len(data.terrain) * 4 > o.reference_road_spline_vertex.value >= 0]),
             })
@@ -591,6 +604,18 @@ if $save_collisions:
             'road_path_settings': json.dumps({
                 'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
                 'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
+            }),
+            # AL1, CL1, CY1, BS, VR - looks ok
+            # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
+            # FINISH POSITION IS UNKNOWN: CY1 road spline vertex #1740
+            'player_start': json.dumps({
+                # 0.8 is an approximate average car half width
+                'x': max(data.road_spline[18].position.x.value - data.road_spline[18].left_barrier_distance.value + 0.8,
+                         min(data.road_spline[18].position.x.value + data.road_spline[18].right_barrier_distance.value - 0.8,
+                             2.5)),
+                'y': max(data.road_spline[18].position.y.value, 0),
+                'z': data.road_spline[18].position.z.value,
+                'rotation_x': data.road_spline[18].slope.value,
             }),
             'is_opened_track': is_opened_track,
             'left_barrier': json.dumps({
