@@ -11,9 +11,6 @@ class RoadSplinePoint(CompoundBlock):
     block_description = 'The description of one single point of road spline. Thank you jeff-1amstudios for your ' \
                         'OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1'
 
-    # Misunderstanding about orientation_x, orientation_y. For part of track, when we go forward, they equal to
-    # (6.28, 3.14) radians, but if set (0, pi), player car works well but all opponents are being rendered upside down
-    # TODO investigate why, update documentation, fix reverse track script so it won't be the case
     class Fields(CompoundBlock.Fields):
         left_verge_distance = RationalNumber(static_size=1, fraction_bits=3, is_signed=False,
                                              description='The distance to the left edge of road. After this point the '
@@ -45,19 +42,34 @@ class RoadSplinePoint(CompoundBlock):
         position = Point3D_32(description='Coordinates of this point in 3D space')
         slope = Nfs1Angle14(description='Slope of the road at this point (angle if road goes up or down)')
         slant_a = Nfs1Angle14(description='Perpendicular angle of road')
-        orientation = Nfs1Angle14(description='Rotation of road path, if view from the top')
+        orientation = Nfs1Angle14(description='Rotation of road path, if view from the top. '
+                                              'Equals to atan2(next_x - x, next_z - z)')
         unknowns1 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
-        orientation_y = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        orientation_vector_x = IntegerBlock(static_size=2, is_signed=True,
+                                            description='Orientation vector is a 2D vector, normalized to ~32766 with '
+                                                        'angle == orientation field above, used for pseudo-3D effect on'
+                                                        ' opponent cars. So orientation_vector_x == cos(orientation) * '
+                                                        '32766')
         slant_b = Nfs1Angle16(description='has the same purpose as slant_a, but is a standard signed 16-bit value. '
                                           'Its value is positive for the left, negative for the right. The '
                                           'approximative relation between slant-A and slant-B is slant-B = -12.3 '
                                           'slant-A (remember that slant-A is 14-bit, though)')
-        orientation_x = Nfs1Angle16(description='Not quite sure about it. Denis Auroux gives more info about this '
-                                                'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt')
+        orientation_vector_neg_z = IntegerBlock(static_size=2, is_signed=True,
+                                                description='Orientation vector is a 2D vector, normalized to ~32766 '
+                                                            'with angle == orientation field above, used for pseudo-3D '
+                                                            'effect on opponent cars. So orientation_vector_neg_z == '
+                                                            '-sin(orientation) * 32766')
         unknowns2 = ArrayBlock(child=IntegerBlock(static_size=1), length=2)
 
         unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
+
+    def update_orientations(self, read_data: 'ReadData', next_spline_point):
+        from math import atan2, cos, sin
+        orientation = atan2(next_spline_point.position.x.value - read_data.position.x.value,
+                            next_spline_point.position.z.value - read_data.position.z.value)
+        read_data.orientation.value = orientation
+        read_data.orientation_vector_x.value = round(cos(orientation) * 32766)
+        read_data.orientation_vector_neg_z.value = round(-sin(orientation) * 32766)
 
 
 class ModelProxyObjectData(CompoundBlock):
@@ -273,14 +285,13 @@ class TriMap(CompoundBlock):
             qy = oy + sin(angle) * (px - ox) + cos(angle) * (py - oy)
             return qx, qy
 
-
         road_spline_length = len(read_data.terrain) * 4
         # start happens at 18th road spline vertex
         new_start_position = read_data.road_spline[road_spline_length - 19].position
         new_start_next_position = read_data.road_spline[road_spline_length - 20].position
         # Y - up; X - left; Z - forward;
         y_angle_to_rotate = pi - atan2(new_start_position.x.value - new_start_next_position.x.value,
-                                                 new_start_position.z.value - new_start_next_position.z.value)
+                                       new_start_position.z.value - new_start_next_position.z.value)
 
         lane_effects = []
         start_x_road_offset = read_data.road_spline[18].position.x.value
@@ -298,7 +309,7 @@ class TriMap(CompoundBlock):
             read_data.road_spline[road_spline_length - 19].position.x.value + start_x_road_offset,
             read_data.road_spline[road_spline_length - 19].position.y.value,
             read_data.road_spline[road_spline_length - 19].position.z.value - 6.25 * 18,
-            ]
+        ]
         for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
             vertex.position.x.value -= position_offset[0]
             vertex.position.y.value -= position_offset[1]
@@ -312,8 +323,6 @@ class TriMap(CompoundBlock):
             vertex.slope.value = -vertex.slope.value
             vertex.slant_a.value = -vertex.slant_a.value
             vertex.slant_b.value = -vertex.slant_b.value
-
-            vertex.orientation.value += pi + y_angle_to_rotate
 
             if vertex.spline_item_mode.value == 'lane_split':
                 vertex.spline_item_mode.value = 'lane_merge'
@@ -352,7 +361,10 @@ class TriMap(CompoundBlock):
                                                                                            road_spline_length:]
         read_data.terrain.value = read_data.terrain.value[::-1]
         read_data.proxy_object_instances.value = (read_data.proxy_object_instances.value[:amount_of_instances][::-1]
-                                                + read_data.proxy_object_instances.value[amount_of_instances:])
+                                                  + read_data.proxy_object_instances.value[amount_of_instances:])
+        # update rotations
+        for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
+            vertex.block.update_orientations(vertex, read_data.road_spline[i + 1 if i < road_spline_length else 0])
 
     def action_flatten_track(self, read_data):
         from math import cos, sin, pi
@@ -383,12 +395,12 @@ class TriMap(CompoundBlock):
         for i, road_vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
             road_vertex.position.x.value = road_vertex.position.y.value = 0
             road_vertex.position.z.value = i * 6.25
-            road_vertex.orientation.value = 0
-            road_vertex.orientation_x.value = 6.28
-            road_vertex.orientation_y.value = 3.14
             road_vertex.slope.value = 0
             road_vertex.slant_a.value = 0
             road_vertex.slant_b.value = 0
+        # update rotations
+        for i, vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
+            vertex.block.update_orientations(vertex, read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0])
 
     def action_scale_track(self, read_data, scale: float):
         for i, vertex in enumerate(read_data.road_spline):
