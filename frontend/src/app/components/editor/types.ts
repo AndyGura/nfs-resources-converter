@@ -2,7 +2,7 @@
 type ReadData = {
   block_class_mro: string,
   block: any,
-  block_state: any,
+  block_id: string,
   editor_validators: any,
   value: any,
 };

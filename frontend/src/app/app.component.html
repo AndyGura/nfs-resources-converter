@@ -1,5 +1,5 @@
 <mat-toolbar color="primary">
-    <span>{{(mainService.resourceData$ | async)?.block_state?.id || '...'}}{{mainService.hasUnsavedChanges ? '*' : ''}}</span>
+    <span>{{(mainService.resourceData$ | async)?.block_id || '...'}}{{mainService.hasUnsavedChanges ? '*' : ''}}</span>
     <span class="flex-spacer"></span>
     <button mat-icon-button (click)="reloadResource()"
             [disabled]="!(this.mainService.eelDelegate.openedResourcePath$ | async)" matTooltip="Reload file from disk">

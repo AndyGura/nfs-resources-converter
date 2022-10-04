@@ -28,7 +28,7 @@
         <ng-container *ngFor="let data of this.renderItems, let i = index">
             <div class="divider" *ngIf="data?.block_class_mro?.indexOf('Atomic') == -1">
                 <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
-                <span style="padding: 20px; font-weight: 500;">{{ data.block_state?.id.split('__')[1] || i }}</span>
+                <span style="padding: 20px; font-weight: 500;">{{ data.block_id.split('__')[1] || i }}</span>
                 <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
             </div>
             <app-editor [resourceData]="data"

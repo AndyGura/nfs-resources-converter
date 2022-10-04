@@ -61,7 +61,8 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   renderPage(pageIndex: number, pageSize: number) {
     this.goToIndex = this.pageIndex = pageIndex;
     this.pageSize = pageSize;
-    this.renderItems = (this.resourceData?.value || []).slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+    this.renderItems = (this.resourceData?.value || []).slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
+      .map((x: ReadData) => !!x['block'] ? x : { ...x, block: this.resourceData?.block.child });
     this.cdr.markForCheck();
   }
 

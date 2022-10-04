@@ -38,7 +38,7 @@ export class EelDelegateService {
   }
 
   public async runCustomAction(readData: ReadData, action: CustomAction, args: { [key: string]: any }) {
-    return eel['run_custom_action'](readData.block_state.id, action, args)();
+    return eel['run_custom_action'](readData.block_id, action, args)();
   }
 
   public async saveFile(changes: {id: string, value: any}[]) {

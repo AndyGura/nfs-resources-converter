@@ -36,7 +36,7 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
   async updateImageSource(): Promise<void> {
     let pixels = this.resourceData?.value?.bitmap?.value;
     if (this.resourceData?.block_class_mro?.startsWith('Bitmap8Bit')) {
-      const palette = await this.eelDelegate.determine8BitBitmapPalette(this.resourceData?.block_state?.id);
+      const palette = await this.eelDelegate.determine8BitBitmapPalette(this.resourceData?.block_id);
       // TODO link to palette if in the same file: when adding editing tool, bitmap should be updated
       if (palette && (palette as any).block_class_mro) {
         pixels = pixels.map((x: number) => (palette as any).value?.colors?.value[x].value);
@@ -55,13 +55,13 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
       console.error('Cannot open. Resource data is empty')
       return;
     }
-    await this.eelDelegate.serializeResource(this.resourceData.block_state.id);
+    await this.eelDelegate.serializeResource(this.resourceData.block_id);
     this.hasSerializedFile = true;
     this.cdr.markForCheck();
   }
 
   async pullResource(): Promise<void> {
-    await this.eelDelegate.deserializeResource(this.resourceData?.block_state.id);
+    await this.eelDelegate.deserializeResource(this.resourceData!.block_id);
     this.hasSerializedFile = false;
     this.cdr.markForCheck();
   }
