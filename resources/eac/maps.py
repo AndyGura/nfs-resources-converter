@@ -273,7 +273,12 @@ class TriMap(CompoundBlock):
             'method': 'scale_track',
             'title': 'Scale track length',
             'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
-            'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
+            'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number', 'required': True}],
+        }, {
+            'method': 'randomize_track',
+            'title': 'Randomize track',
+            'description': 'Generates random track, based on current one',
+            'args': [{'id': 'seed', 'title': 'Randomize seed', 'type': 'number', 'required': False}],
         }, ]
 
     def action_reverse_track(self, read_data):
@@ -413,3 +418,57 @@ class TriMap(CompoundBlock):
             vertex.position.x.value *= scale
             vertex.position.y.value *= scale
             vertex.position.z.value *= scale
+
+    def action_randomize_track(self, read_data, seed: int):
+        import random
+        from math import sin, sqrt, atan, pi, cos
+        self.action_flatten_track(read_data)
+        random.seed(seed)
+        # create random path
+        segment_length = 6.25
+        road_vector = [0, 0, 1]
+        last_coordinates = [0, 0, -segment_length]
+        for i in range(0, len(read_data.terrain) * 4):
+            if i > 25:
+                # randomize vector
+                road_vector[1] = 0.3 * sin((i - 25) / 50)
+                # road_vector[0] = 0.3 * cos((pi/2 + i - 25) / 45)
+            # normalize vector
+            road_vector_length = sqrt(road_vector[0]**2 + road_vector[1]**2 + road_vector[2]**2)
+            road_vector = [road_vector[x] / road_vector_length for x in range(3)]
+            last_coordinates = [last_coordinates[x] + road_vector[x] * segment_length for x in range(3)]
+            read_data.road_spline[i].position.x.value = last_coordinates[0]
+            read_data.road_spline[i].position.y.value = last_coordinates[1]
+            read_data.road_spline[i].position.z.value = last_coordinates[2]
+            read_data.road_spline[i].slant_a.value = 0
+            read_data.road_spline[i].slant_b.value = 0
+        # update rotations, slopes
+        for i, vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
+            next = read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0]
+            vertex.block.update_orientations(vertex, next)
+            vertex.slope.value = atan(next.position.y.value - vertex.position.y.value)
+        # rotate terrain mesh and props according to new rotations
+        for i, terrain_chunk in enumerate(read_data.terrain):
+            for j in range(4):
+                terrain_chunk.rows[j][0].y.value = 0.0
+                # rotate terrain mesh around first point
+                angle = -read_data.road_spline[i * 4 + j].orientation.value
+                cosine = cos(angle)
+                sine = sin(angle)
+                for k in range(1, 11):
+                    terrain_chunk.rows[j][k].x.value -= terrain_chunk.rows[j][0].x.value
+                    terrain_chunk.rows[j][k].z.value -= terrain_chunk.rows[j][0].z.value
+                    x_new = terrain_chunk.rows[j][k].x.value * cosine - terrain_chunk.rows[j][k].z.value * sine
+                    z_new = terrain_chunk.rows[j][k].x.value * sine + terrain_chunk.rows[j][k].z.value * cosine
+                    terrain_chunk.rows[j][k].x.value = x_new + terrain_chunk.rows[j][0].x.value
+                    terrain_chunk.rows[j][k].z.value = z_new + terrain_chunk.rows[j][0].z.value
+        # fix props
+        for prop in read_data.proxy_object_instances:
+            road_vertex = read_data.road_spline[prop.reference_road_spline_vertex.value]
+            angle = -road_vertex.orientation.value
+            prop.rotation.value -= angle
+            if prop.rotation.value < 0:
+                prop.rotation.value += 2 * pi
+            sine, cosine = sin(angle), cos(angle)
+            prop.position.x.value, prop.position.z.value = (prop.position.x.value * cosine - prop.position.z.value * sine,
+                                                            prop.position.x.value * sine + prop.position.z.value * cosine)
