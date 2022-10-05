@@ -421,20 +421,56 @@ class TriMap(CompoundBlock):
 
     def action_randomize_track(self, read_data, seed: int):
         import random
-        from math import sin, sqrt, atan, pi, cos
+        from math import sin, sqrt, atan, pi, cos, asin, fabs
+        from perlin import Perlin
         self.action_flatten_track(read_data)
         random.seed(seed)
         # create random path
         segment_length = 6.25
         road_vector = [0, 0, 1]
-        last_coordinates = [0, 0, -segment_length]
-        for i in range(0, len(read_data.terrain) * 4):
-            if i > 25:
-                # randomize vector
-                road_vector[1] = 0.3 * sin((i - 25) / 50)
-                # road_vector[0] = 0.3 * cos((pi/2 + i - 25) / 45)
+        current_turn = None
+        turn_elapsed_length = 0
+        turn_elapsed_angle = 0
+        last_coordinates = [0, 0, segment_length * 19]
+        height_scale = (0.2 + random.random() ** 2) * 0.025
+        perlin = Perlin(seed)
+        height_offset = perlin.one(0)
+        turn_deviation_noise_offset = round(random.random() * 10000)
+        perlin.one(0)
+        for i in range(20, len(read_data.terrain) * 4):
+            if current_turn is None or turn_elapsed_length >= current_turn['max_length'] or turn_elapsed_angle >= \
+                    current_turn['max_angle']:
+                if random.random() < 0.2:
+                    # no turn
+                    current_turn = {
+                        'angle_per_step': 0,
+                        'max_length': 20 + random.random() * 480,
+                        'max_angle': 0.05 + 1.25 * (random.random() ** 2),
+                    }
+                else:
+                    turn_radius = 15 + 300 * random.random()
+                    angle_per_step = 2 * asin(segment_length / (2 * turn_radius))
+                    if random.random() >= 0.5:
+                        angle_per_step = -angle_per_step
+                    current_turn = {
+                        'angle_per_step': angle_per_step,
+                        'max_length': 20 + random.random() ** 2 * 700,
+                        'max_angle': 0.05 + 1.25 * (random.random() ** 2),
+                    }
+                turn_elapsed_length = 0
+                turn_elapsed_angle = 0
+            angle_per_step = (current_turn['angle_per_step'] +
+                              (perlin.one(turn_deviation_noise_offset + i)
+                               - perlin.one(turn_deviation_noise_offset + i - 1)) * 0.01)
+            new_x = cos(angle_per_step) * (road_vector[0]) - sin(angle_per_step) * (road_vector[2])
+            new_z = sin(angle_per_step) * (road_vector[0]) + cos(angle_per_step) * (road_vector[2])
+            road_vector[0] = new_x
+            road_vector[1] = height_scale * (perlin.one(i - 20) - height_offset)
+            road_vector[2] = new_z
+            turn_elapsed_length += sqrt(road_vector[0] ** 2 + road_vector[2] ** 2)
+            turn_elapsed_angle += fabs(current_turn['angle_per_step'])
             # normalize vector
-            road_vector_length = sqrt(road_vector[0]**2 + road_vector[1]**2 + road_vector[2]**2)
+            road_vector_length = sqrt(road_vector[0] ** 2 + road_vector[1] ** 2 + road_vector[2] ** 2)
             road_vector = [road_vector[x] / road_vector_length for x in range(3)]
             last_coordinates = [last_coordinates[x] + road_vector[x] * segment_length for x in range(3)]
             read_data.road_spline[i].position.x.value = last_coordinates[0]
@@ -446,7 +482,7 @@ class TriMap(CompoundBlock):
         for i, vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
             next = read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0]
             vertex.block.update_orientations(vertex, next)
-            vertex.slope.value = atan(next.position.y.value - vertex.position.y.value)
+            vertex.slope.value = atan(next.position.y.value - vertex.position.y.value) / 2
         # rotate terrain mesh and props according to new rotations
         for i, terrain_chunk in enumerate(read_data.terrain):
             for j in range(4):
@@ -470,5 +506,6 @@ class TriMap(CompoundBlock):
             if prop.rotation.value < 0:
                 prop.rotation.value += 2 * pi
             sine, cosine = sin(angle), cos(angle)
-            prop.position.x.value, prop.position.z.value = (prop.position.x.value * cosine - prop.position.z.value * sine,
-                                                            prop.position.x.value * sine + prop.position.z.value * cosine)
+            prop.position.x.value, prop.position.z.value = (
+                prop.position.x.value * cosine - prop.position.z.value * sine,
+                prop.position.x.value * sine + prop.position.z.value * cosine)
