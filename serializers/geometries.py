@@ -54,7 +54,6 @@ def _setup_polygon(model: SubMesh, block: OripGeometry, vertices_file_indices_ma
 
 
 class OripGeometrySerializer(BaseFileSerializer):
-
     blender_script = Template("""
 import bpy
 import json
@@ -76,7 +75,8 @@ for dummy in dummies:
     def serialize(self, data: ReadData[OripGeometry], path: str):
         # shpi is always next block
         from library import require_resource
-        textures_shpi_block, _ = require_resource('/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))
+        textures_shpi_block, _ = require_resource(
+            '/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))
         if not textures_shpi_block or not isinstance(textures_shpi_block.block, ShpiBlock):
             raise BlockIntegrityException('Cannot find SHPI archive for ORIP geometry')
 
@@ -106,7 +106,8 @@ for dummy in dummies:
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2)
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
                 elif normal in [18, 2, 3, 48, 50]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=True)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2,
+                                   flip_texture=True)
                 elif normal in [0, 1, 16]:
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
                 else:
@@ -119,8 +120,10 @@ for dummy in dummies:
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
                 elif normal in [18, 2, 3, 48, 50, 10, 6]:  # 10, 6 are unknown. Placed here for testing and looks good
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3, flip_texture=True)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3, flip_texture=True)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3,
+                                   flip_texture=True)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3,
+                                   flip_texture=True)
                 elif normal in [0, 1, 16]:
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
@@ -135,8 +138,8 @@ for dummy in dummies:
             if settings.geometry__replace_car_wheel_with_dummies:
                 # receives wheel vertices (4 items), returns center vertex and radius
                 def get_wheel_display_info(vertices: List[List[float]]) -> Tuple[List[float], float]:
-                    center = [sum([v[i] for v in vertices])/len(vertices) for i in range(3)]
-                    distances = [math.sqrt(sum((v[i] - center[i])**2 for i in range(3))) for v in vertices]
+                    center = [sum([v[i] for v in vertices]) / len(vertices) for i in range(3)]
+                    distances = [math.sqrt(sum((v[i] - center[i]) ** 2 for i in range(3))) for v in vertices]
                     return center, (sum(distances) / len(distances)) / math.sqrt(2)
 
                 def get_wheel_polygon_key(polygon) -> Literal['fl', 'fr', 'rl', 'rr', None]:
@@ -161,27 +164,30 @@ for dummy in dummies:
                     if len(model.polygons) > 8:
                         # save non-wheel part of model (F512TR)
                         model_without_wheels = deepcopy(model)
-                        model_without_wheels.polygons = [p for p in model_without_wheels.polygons if not get_wheel_polygon_key(p)]
+                        model_without_wheels.polygons = [p for p in model_without_wheels.polygons if
+                                                         not get_wheel_polygon_key(p)]
                         model_without_wheels.remove_orphaned_vertices()
                         non_wheel_models[name] = model_without_wheels
                         # remove non wheel part from current model to process
                         model.polygons = [p for p in model.polygons if get_wheel_polygon_key(p)]
                         model.remove_orphaned_vertices()
-                    wheel_polygons_map = { 'fl': [], 'fr': [], 'rl': [], 'rr': [] }
+                    wheel_polygons_map = {'fl': [], 'fr': [], 'rl': [], 'rr': []}
                     for polygon in model.polygons:
                         try:
                             wheel_polygons_map[get_wheel_polygon_key(polygon)].append(polygon)
                         except KeyError:
                             pass
                     for key, polygons in wheel_polygons_map.items():
-                        vertex_indices = list({ x for p in polygons for x in p })
+                        vertex_indices = list({x for p in polygons for x in p})
                         if not vertex_indices:
                             continue
                         assert len(vertex_indices) == 4, BlockIntegrityException('Wheel square vertices count != 4')
-                        (shadow_centers if name == 'circ' else centers)[key] = get_wheel_display_info([model.vertices[i] for i in vertex_indices])
+                        (shadow_centers if name == 'circ' else centers)[key] = get_wheel_display_info(
+                            [model.vertices[i] for i in vertex_indices])
                 if centers and not shadow_centers:
                     # warrior car does not have shadow
-                    shadow_centers = { key: ([(p[0] - 0.3 if p[0] > 0 else p[0] + 0.3), p[1], p[2]], radius) for key, (p, radius) in centers.items() }
+                    shadow_centers = {key: ([(p[0] - 0.3 if p[0] > 0 else p[0] + 0.3), p[1], p[2]], radius) for
+                                      key, (p, radius) in centers.items()}
                 dummies = [{
                     'name': f'wheel_{key}',
                     'position': position,
@@ -222,8 +228,11 @@ map_Kd assets/{texture.id.split('/')[-1]}.png""")
         script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
                                                  'is_car': is_car,
                                                  'dummies': json.dumps(dummies)})
-        script += '\n' + settings.geometry__additional_exporter(f'{os.getcwd()}/{path}body',
-                                                                'car' if is_car else 'prop')
+        if settings.geometry__export_to_gg_web_engine:
+            from serializers.misc.build_blender_scene import construct_blender_export_script
+            script += '\n' + construct_blender_export_script(
+                file_name=f'{os.getcwd()}/{path}body',
+                export_materials='EXPORT')
         run_blender(path=path,
                     script=script,
                     out_blend_name=f'{os.getcwd()}/{path}body' if settings.geometry__save_blend else None)
