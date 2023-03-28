@@ -269,7 +269,7 @@
 | 4 | **mass_rear_axle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
 | 8 | **mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Car mass |
 | 12 | **unknowns0** | 4 * (4) | Array of 4 items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 28 | **brake_bias** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | how much car rotates when brake? |
+| 28 | **brake_bias** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Bias for brake force (0.0-1.0), determines the amount of braking force applied to front and rear axles: 0.7 will distribute braking force 70% on the front, 30% on the rear |
 | 32 | **unknowns1** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 36 | **center_of_gravity** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | probably the height of mass center in meters |
 | 40 | **max_brake_decel** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
@@ -327,8 +327,8 @@
 | 872 | **body__clearance** | 4 | 32-bit real number (little-endian, signed), where last 7 bits is a fractional part | - |
 | 876 | **body__height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 880 | **center_x** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 884 | **grip_curve_front** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 1396 | **grip_curve_rear** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 884 | **unknowns10** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_front" is here, takes the same space |
+| 1396 | **unknowns11** | 512 | Array of 512 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space |
 | 1908 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents |
 </details>
 

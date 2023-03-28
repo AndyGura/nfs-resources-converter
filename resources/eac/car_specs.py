@@ -26,8 +26,10 @@ class CarPerformanceSpec(CompoundBlock):
                                         description='The meaning is theoretical. For all cars value is mass / 2')
         mass = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Car mass')
         unknowns0 = ArrayBlock(length=4, child=RationalNumber(static_size=4, fraction_bits=16, is_signed=True))
-        brake_bias = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
-                                    description='how much car rotates when brake?')
+        brake_bias = RationalNumber(static_size=4, fraction_bits=16, is_signed=False,
+                                    description='Bias for brake force (0.0-1.0), determines the amount of braking force '
+                                                'applied to front and rear axles: 0.7 will distribute braking force 70% '
+                                                'on the front, 30% on the rear')
         unknowns1 = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
         center_of_gravity = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
                                            description='probably the height of mass center in meters')
@@ -102,11 +104,15 @@ class CarPerformanceSpec(CompoundBlock):
         body__clearance = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
         body__height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
         center_x = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
-        grip_curve_front = ArrayBlock(child=IntegerBlock(static_size=1), length=512)
-        grip_curve_rear = ArrayBlock(child=IntegerBlock(static_size=1), length=512)
+        unknowns10 = ArrayBlock(child=IntegerBlock(static_size=1), length=512,
+                                description='Unknown values. in 3DO version "grip_curve_front" is here, takes the same '
+                                            'space')
+        unknowns11 = ArrayBlock(child=IntegerBlock(static_size=1), length=512,
+                                description='Unknown values. in 3DO version "grip_curve_rear" is here, takes the same '
+                                            'space')
         hash = IntegerBlock(static_size=4, description='Check sum of this block contents')
 
-        unknown_fields = ['mass_front_axle', 'mass_rear_axle', 'unknowns0', 'brake_bias', 'unknowns1', 
+        unknown_fields = ['mass_front_axle', 'mass_rear_axle', 'unknowns0', 'unknowns1',
                           'center_of_gravity', 'max_brake_decel', 'unknowns2', 'drag', 'top_speed', 
                           'efficiency', 'burnout_div', 'unknowns3', 'roll_radius', 'unknowns4', 
                           'front_roll_stiffness', 'rear_roll_stiffness', 'roll_axis_height', 'unknowns5', 
@@ -119,7 +125,7 @@ class CarPerformanceSpec(CompoundBlock):
                           'steering__auto_steer_ramp_div_shift', 'lateral_accel_cutoff', 'unknowns9', 
                           'engine_shifting__shift_timer', 'engine_shifting__rpm_decel', 'engine_shifting__rpm_accel', 
                           'engine_shifting__clutch_drop_decel', 'engine_shifting__neg_torque', 
-                          'center_x', 'grip_curve_front', 'grip_curve_rear', 'hash']
+                          'center_x', 'unknowns10', 'unknowns11', 'hash']
 
 
 class CarSimplifiedPerformanceSpec(CompoundBlock):
