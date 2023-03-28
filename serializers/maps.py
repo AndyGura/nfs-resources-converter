@@ -342,7 +342,9 @@ if $save_collisions:
                                             rotation=(0, 0, -barrier['orientations'][i]))
             cube = bpy.data.objects['Cube']
             cube.name = f"wall_collision_{'left' if barrier == left_barrier else 'right'}_{i}"
-            cube['invisible'] = True
+            cube.hide_render = True
+            cube.display_bounds_type = 'BOX'
+            cube.display_type = 'BOUNDS'
             wall_cube_names.append(cube.name)
     bpy.ops.object.select_all(action='DESELECT')
     for name in wall_cube_names:
@@ -410,7 +412,8 @@ if $save_collisions:
         return [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
                 for i in range(max(frame_count, 1))]
 
-    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track, use_local_coordinates) -> Dict:
+    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track,
+                                    use_local_coordinates) -> Dict:
         proxy_definition = data.proxy_objects[instance.proxy_object_index.value % len(data.proxy_objects)]
         spline_index = instance.reference_road_spline_vertex.value
         road_spline_vertex = data.road_spline[spline_index]
@@ -576,8 +579,11 @@ if $save_collisions:
                 })
                 if settings.geometry__save_blend:
                     blender_script += get_blender_save_script(out_blend_name=f'{save_path}/{path}terrain_chunk_{i}')
-                blender_script += '\n' + settings.geometry__additional_exporter(f'{save_path}/{path}terrain_chunk_{i}',
-                                                                                'terrain_chunk')
+                if settings.geometry__export_to_gg_web_engine:
+                    from serializers.misc.build_blender_scene import construct_blender_export_script
+                    blender_script += '\n' + construct_blender_export_script(
+                        file_name=f'{save_path}/{path}terrain_chunk_{i}',
+                        export_materials='NONE')
         else:
             with open(f'{path}/terrain.obj', 'w') as f:
                 face_index_increment = 1
@@ -611,7 +617,8 @@ if $save_collisions:
             'player_start': json.dumps({
                 # 0.8 is an approximate average car half width
                 'x': max(data.road_spline[18].position.x.value - data.road_spline[18].left_barrier_distance.value + 0.8,
-                         min(data.road_spline[18].position.x.value + data.road_spline[18].right_barrier_distance.value - 0.8,
+                         min(data.road_spline[18].position.x.value + data.road_spline[
+                             18].right_barrier_distance.value - 0.8,
                              2.5)),
                 'y': max(data.road_spline[18].position.y.value, 0),
                 'z': data.road_spline[18].position.z.value,
@@ -631,7 +638,11 @@ if $save_collisions:
                 'orientations': right_barrier_points.orientations,
             }) if settings.maps__save_collisions else 'null',
         })
-        blender_script += '\n' + settings.geometry__additional_exporter(f'{save_path}/{path}map', 'map')
+        if settings.geometry__export_to_gg_web_engine:
+            from serializers.misc.build_blender_scene import construct_blender_export_script
+            blender_script += '\n' + construct_blender_export_script(
+                file_name=f'{save_path}/{path}map',
+                export_materials='EXPORT')
         run_blender(path=path,
                     script=blender_script,
                     out_blend_name=f'{save_path}/{path}map' if settings.geometry__save_blend else None)

@@ -18,5 +18,8 @@ def run_blender(path, script, out_blend_name=None):
     script_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
     script_file.write(script)
     script_file.flush()
-    os.system(f"cd {path} && {settings.blender_executable} --python {script_file.name} --background >/dev/null 2>&1")
+    command = f"cd {path} && {settings.blender_executable} --python {script_file.name} --background"
+    if not settings.print_blender_log:
+        command += " >/dev/null 2>&1"
+    os.system(command)
     os.unlink(script_file.name)
