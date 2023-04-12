@@ -49,6 +49,8 @@ if __name__ == "__main__":
         f = open(out_path, 'wb')
         try:
             f.write(resource.to_bytes())
+            print('Finished!')
+            print(f'Support me :) >>>  https://www.buymeacoffee.com/andygura <<<')
         finally:
             f.close()
 

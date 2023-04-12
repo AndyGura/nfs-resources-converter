@@ -83,3 +83,10 @@ Makes track go backwards. They have a bunch of issues and glitches for now. All 
 - metadata: **json**
 - videos: **mp4**
 
+<h1>Support me</h1>
+
+You can support project by:
+- giving any feedback, bug report, feature request, providing missed info about resources to [Issues](https://github.com/AndyGura/nfs-resources-converter/issues) 
+- fork & submit a [Pull Request](https://github.com/AndyGura/nfs-resources-converter/pulls)
+- [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/andygura)
+
