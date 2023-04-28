@@ -5,7 +5,6 @@ from copy import deepcopy
 from string import Template
 from typing import List, Dict
 
-import settings
 from library.helpers.data_wrapper import DataWrapper
 from library.helpers.json import resource_to_json
 from library.read_data import ReadData
@@ -512,7 +511,7 @@ if $save_collisions:
             terrain_data_entry['meshes'] = terrain_data_entry['chunk'].build_models(i,
                                                                                     terrain_data_entry['texture_names'])
 
-        if settings.maps__save_collisions:
+        if self.settings.maps__save_collisions:
             left_barrier_points = self.BarrierPath(
                 [[rp.position.x.value + rp.left_barrier_distance.value * math.cos(rp.orientation.value + math.pi),
                   rp.position.y.value,
@@ -542,7 +541,7 @@ if $save_collisions:
         for spline_point in data.road_spline[:len(data.terrain) * 4]:
             (spline_point.position.z, spline_point.position.y) = (spline_point.position.y, spline_point.position.z)
             spline_point.orientation.value = -spline_point.orientation.value
-        if settings.maps__save_collisions:
+        if self.settings.maps__save_collisions:
             if right_barrier_points:
                 right_barrier_points.points = [[p[0], p[2], p[1]] for p in right_barrier_points.points]
                 right_barrier_points.z_up = True
@@ -557,7 +556,7 @@ if $save_collisions:
         save_path = os.getcwd().replace('\\', '/')
         self._save_mtl(terrain_data, path, data.id.split('/')[-1])
         blender_script = "import bpy\nbpy.ops.wm.read_factory_settings(use_empty=True)"
-        if settings.maps__save_as_chunked:
+        if self.settings.maps__save_as_chunked:
             for i, terrain_chunk in enumerate(terrain_data):
                 with open(f'{path}/terrain_chunk_{i}.obj', 'w') as f:
                     face_index_increment = 1
@@ -570,16 +569,16 @@ if $save_collisions:
                         face_index_increment = face_index_increment + len(sub_model.vertices)
                 blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                     'new_file': True,
-                    'save_collisions': settings.maps__save_collisions,
+                    'save_collisions': self.settings.maps__save_collisions,
                     'obj_name': f'terrain_chunk_{i}.obj',
                     'proxy_objects_json': json.dumps(
                         [self._proxy_object_instance_json(data, o, is_opened_track, True)
                          for o in data.proxy_object_instances
                          if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
                 })
-                if settings.geometry__save_blend:
+                if self.settings.geometry__save_blend:
                     blender_script += get_blender_save_script(out_blend_name=f'{save_path}/{path}terrain_chunk_{i}')
-                if settings.geometry__export_to_gg_web_engine:
+                if self.settings.geometry__export_to_gg_web_engine:
                     from serializers.misc.build_blender_scene import construct_blender_export_script
                     blender_script += '\n' + construct_blender_export_script(
                         file_name=f'{save_path}/{path}terrain_chunk_{i}',
@@ -594,7 +593,7 @@ if $save_collisions:
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,
-                'save_collisions': settings.maps__save_collisions,
+                'save_collisions': self.settings.maps__save_collisions,
                 'obj_name': 'terrain.obj',
                 'proxy_objects_json': json.dumps(
                     [self._proxy_object_instance_json(data, o, is_opened_track, False)
@@ -602,8 +601,8 @@ if $save_collisions:
                      if len(data.terrain) * 4 > o.reference_road_spline_vertex.value >= 0]),
             })
         blender_script += '\n\n\n\n' + self.blender_map_script.substitute({
-            'new_file': settings.maps__save_as_chunked,
-            'save_collisions': settings.maps__save_collisions,
+            'new_file': self.settings.maps__save_as_chunked,
+            'save_collisions': self.settings.maps__save_collisions,
             'road_path_points': ', '.join(
                 [f'({block.position.x.value}, {block.position.y.value}, {block.position.z.value})' for block in
                  data.road_spline[:len(data.terrain) * 4]]),
@@ -630,24 +629,24 @@ if $save_collisions:
                 'middle_points': left_barrier_points.middle_points,
                 'lengths': left_barrier_points.lengths,
                 'orientations': left_barrier_points.orientations,
-            }) if settings.maps__save_collisions else 'null',
+            }) if self.settings.maps__save_collisions else 'null',
             'right_barrier': json.dumps({
                 'points': right_barrier_points.points,
                 'middle_points': right_barrier_points.middle_points,
                 'lengths': right_barrier_points.lengths,
                 'orientations': right_barrier_points.orientations,
-            }) if settings.maps__save_collisions else 'null',
+            }) if self.settings.maps__save_collisions else 'null',
         })
-        if settings.geometry__export_to_gg_web_engine:
+        if self.settings.geometry__export_to_gg_web_engine:
             from serializers.misc.build_blender_scene import construct_blender_export_script
             blender_script += '\n' + construct_blender_export_script(
                 file_name=f'{save_path}/{path}map',
                 export_materials='EXPORT')
         run_blender(path=path,
                     script=blender_script,
-                    out_blend_name=f'{save_path}/{path}map' if settings.geometry__save_blend else None)
-        if not settings.geometry__save_obj:
-            if settings.maps__save_as_chunked:
+                    out_blend_name=f'{save_path}/{path}map' if self.settings.geometry__save_blend else None)
+        if not self.settings.geometry__save_obj:
+            if self.settings.maps__save_as_chunked:
                 for i in range(len(terrain_data)):
                     os.unlink(f'{path}/terrain_chunk_{i}.obj')
             else:

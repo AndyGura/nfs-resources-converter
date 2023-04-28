@@ -8,9 +8,14 @@ from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
 from library.read_data import ReadData
+from library.helpers.data_wrapper import DataWrapper
 
 
 class ResourceSerializer(ABC):
+    settings = DataWrapper.wrap(settings.__dict__.copy())
+    def patch_settings(self, settings_patch: dict):
+        self.settings.update(settings_patch)
+
     @abstractmethod
     def serialize(self, data: ReadData) -> Dict:
         raise NotImplementedError
@@ -56,7 +61,7 @@ class BaseFileSerializer(ResourceSerializer):
         block = data.block
         if isinstance(block, DelegateBlock):
             block = block.delegated_block
-        if settings.export_unknown_values and isinstance(block, CompoundBlock):
+        if self.settings.export_unknown_values and isinstance(block, CompoundBlock):
             unknowns = self.get_unknowns_dict(data)
             if unknowns:
                 with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:

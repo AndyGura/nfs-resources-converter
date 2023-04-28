@@ -50,6 +50,8 @@ audio__save_car_sfx_loops = False
 maps__save_as_chunked = False
 # places boxes with collision, where invisible wall is located
 maps__save_collisions = False  # this one will consume time...
+# alongside with horz.png, save spherical.png, suitable to be used as sky spherical texture
+maps__save_spherical_skybox_texture = True
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
 geometry__save_obj = False

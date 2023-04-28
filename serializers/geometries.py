@@ -6,7 +6,6 @@ from copy import deepcopy
 from string import Template
 from typing import Literal, List, Tuple
 
-import settings
 from library.read_data import ReadData
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
@@ -135,7 +134,7 @@ for dummy in dummies:
                 raise NotImplementedError(f'Unknown polygon: {polygon_type}')
         dummies = []
         if is_car:
-            if settings.geometry__replace_car_wheel_with_dummies:
+            if self.settings.geometry__replace_car_wheel_with_dummies:
                 # receives wheel vertices (4 items), returns center vertex and radius
                 def get_wheel_display_info(vertices: List[List[float]]) -> Tuple[List[float], float]:
                     center = [sum([v[i] for v in vertices]) / len(vertices) for i in range(3)]
@@ -228,14 +227,14 @@ map_Kd assets/{texture.id.split('/')[-1]}.png""")
         script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
                                                  'is_car': is_car,
                                                  'dummies': json.dumps(dummies)})
-        if settings.geometry__export_to_gg_web_engine:
+        if self.settings.geometry__export_to_gg_web_engine:
             from serializers.misc.build_blender_scene import construct_blender_export_script
             script += '\n' + construct_blender_export_script(
-                file_name=f'{os.getcwd()}/{path}body',
+                file_name=os.path.join(os.getcwd(), path, 'body'),
                 export_materials='EXPORT')
         run_blender(path=path,
                     script=script,
-                    out_blend_name=f'{os.getcwd()}/{path}body' if settings.geometry__save_blend else None)
-        if not settings.geometry__save_obj:
+                    out_blend_name=os.path.join(os.getcwd(), path, 'body') if self.settings.geometry__save_blend else None)
+        if not self.settings.geometry__save_obj:
             os.unlink(f'{path}material.mtl')
             os.unlink(f'{path}geometry.obj')

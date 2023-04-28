@@ -1,7 +1,6 @@
 import traceback
 
 import serializers
-import settings
 from library.helpers.exceptions import BlockIntegrityException
 from library.read_data import ReadData
 from library.utils import format_exception
@@ -27,13 +26,13 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item.block)
                 serializer.serialize(item, f'{path}{name}')
             except Exception as ex:
-                if settings.print_errors:
+                if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         with open(f'{path}/positions.txt', 'w') as f:
             for name, item in [(name, item) for name, item in items if isinstance(item, ReadData) and isinstance(item.block, AnyBitmapBlock)]:
                 f.write(f"{name}: {item.x.value}, {item.y.value}\n")
-        if data.id and '.FAM__' in data.id:
+        if data.id and '.FAM__' in data.id and self.settings.maps__save_spherical_skybox_texture:
             try:
                 horz_bitmap = next(x for name, x in items if name == 'horz')
                 nfs1_panorama_to_spherical(data.id[data.id.index('.FAM') - 7:data.id.index('.FAM') - 4],
@@ -78,7 +77,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item.block)
                 serializer.serialize(item, f'{path}{name}')
             except Exception as ex:
-                if settings.print_errors:
+                if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
@@ -105,7 +104,7 @@ class SoundBankSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item.block)
                 serializer.serialize(item, f'{path}{name}')
             except Exception as ex:
-                if settings.print_errors:
+                if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:

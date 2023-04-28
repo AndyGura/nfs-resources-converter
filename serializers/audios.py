@@ -4,7 +4,6 @@ from random import choice
 from string import ascii_lowercase
 from wave import Wave_write
 
-import settings
 from library.read_data import ReadData
 from library.utils import audio_ima_adpcm_codec
 from resources.eac.audios import EacsAudio, AsfAudio
@@ -32,7 +31,7 @@ class EacsAudioSerializer(BaseFileSerializer):
         loop_start_time_ms = 1000 * data.repeat_loop_beginning.value / data.sampling_rate.value
         loop_end_time_ms = loop_start_time_ms + 1000 * (data.repeat_loop_length.value - 1) / data.sampling_rate.value
         loop_wave_data = None
-        if settings.audio__save_car_sfx_loops:
+        if self.settings.audio__save_car_sfx_loops:
             try:
                 # if car sound bank
                 if 'SW.BNK' in data.id or 'TRAFFC.BNK' in data.id or 'TESTBANK.BNK' in data.id:
@@ -61,7 +60,7 @@ class EacsAudioSerializer(BaseFileSerializer):
                 wave.setframerate(eacs_block.sampling_rate.value)
                 wave.writeframesraw(wave_data)
                 wave.close()
-                subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", temp_wav_file, f'{path}.mp3'], check=True)
+                subprocess.run([self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", temp_wav_file, f'{path}.mp3'], check=True)
             except Exception as ex:
                 raise ex
             finally:
@@ -72,7 +71,7 @@ class FfmpegSupportedAudioSerializer(BaseFileSerializer):
 
     def serialize(self, data: ReadData[AsfAudio], path: str):
         super().serialize(data, path)
-        subprocess.run([settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", data.id, f'{path}.mp3'], check=True)
+        subprocess.run([self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", data.id, f'{path}.mp3'], check=True)
         with open(f'{path}.meta.json', 'w') as file:
             loop_start_time_ms = 1000 * data.repeat_loop_beginning.value / data.sampling_rate.value
             loop_end_time_ms = loop_start_time_ms + 1000 * data.repeat_loop_length.value / data.sampling_rate.value
