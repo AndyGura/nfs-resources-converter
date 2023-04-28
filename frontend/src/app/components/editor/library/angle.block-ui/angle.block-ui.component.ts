@@ -5,20 +5,21 @@ import {
   ElementRef,
   EventEmitter,
   HostListener,
+  Input,
   Output,
   ViewChild
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
-  selector: 'app-angle.block-ui',
+  selector: 'app-angle-block-ui',
   templateUrl: './angle.block-ui.component.html',
   styleUrls: ['./angle.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AngleBlockUiComponent implements GuiComponentInterface {
 
-  resourceData: ReadData | null = null;
+  @Input() resourceData: ReadData | null = null;
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();

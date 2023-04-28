@@ -3,7 +3,11 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ElementRef, EventEmitter, OnDestroy, Output,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
   ViewChild
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
@@ -16,6 +20,7 @@ enum NumberBase {
   Decimal = 10,
   Hexadecimal = 16
 }
+
 interface HexEditorProps extends Partial<{
   data: ArrayBuffer;
   readonly: boolean;
@@ -32,7 +37,7 @@ interface HexEditorProps extends Partial<{
 }
 
 @Component({
-  selector: 'app-binary.block-ui',
+  selector: 'app-binary-block-ui',
   templateUrl: './binary.block-ui.component.html',
   styleUrls: ['./binary.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +50,8 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
   get resourceData(): ReadData | null {
     return this._resourceData;
   }
+
+  @Input()
   set resourceData(value: ReadData | null) {
     this._resourceData = value;
     if (this.editor) {
@@ -53,6 +60,7 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.cdr.markForCheck();
     }
   }
+
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();

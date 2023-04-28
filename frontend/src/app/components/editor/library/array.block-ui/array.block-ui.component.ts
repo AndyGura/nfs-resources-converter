@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Output } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
-  selector: 'app-array.block-ui',
+  selector: 'app-array-block-ui',
   templateUrl: './array.block-ui.component.html',
   styleUrls: ['./array.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -14,6 +14,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
     return this._resourceData;
   }
 
+  @Input()
   set resourceData(value: ReadData | null) {
     this._resourceData = value;
     this.showAsCollapsable = this._resourceData?.value?.length > 5;

@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, NgZone, Output } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { intArrayToBitmap } from '../../../../utils/int-array-to-bitmap';
 
 @Component({
-  selector: 'app-bitmap.block-ui',
+  selector: 'app-bitmap-block-ui',
   templateUrl: './bitmap.block-ui.component.html',
   styleUrls: ['./bitmap.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,12 +15,15 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
   get resourceData(): ReadData | null {
     return this._resourceData;
   }
+
+  @Input()
   set resourceData(value: ReadData | null) {
     this._resourceData = value;
     if (this.resourceData) {
       this.updateImageSource().then();
     }
   }
+
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
@@ -31,7 +34,8 @@ export class BitmapBlockUiComponent implements GuiComponentInterface {
   constructor(
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
-  ) { }
+  ) {
+  }
 
   async updateImageSource(): Promise<void> {
     let pixels = this.resourceData?.value?.bitmap?.value;
