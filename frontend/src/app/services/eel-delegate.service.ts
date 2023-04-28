@@ -45,8 +45,8 @@ export class EelDelegateService {
     return eel['save_file'](this.openedResourcePath$.getValue(), changes)();
   }
 
-  public async serializeResource(id: string): Promise<string> {
-    return eel['serialize_resource'](id)();
+  public async serializeResource(id: string, settingsPatch: any = {}): Promise<string[]> {
+    return eel['serialize_resource'](id, settingsPatch)();
   }
 
   public async deserializeResource(id: string): Promise<void> {
