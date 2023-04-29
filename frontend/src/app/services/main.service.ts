@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
 import * as _ from 'lodash';
 
@@ -14,6 +14,7 @@ export class MainService {
   customActionRunning$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   readonly changedDataBlocks: { [key: string]: any } = {};
+  dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
 
   constructor(readonly eelDelegate: EelDelegateService) {
     this.eelDelegate.openedResource$.subscribe((value) => {
@@ -27,6 +28,13 @@ export class MainService {
       } else {
         this.resourceData$.next(null);
         this.resourceError$.next(value as ReadError);
+      }
+    });
+    this.dataBlockChange$.subscribe(([blockId, value]) => {
+      if (value === undefined) { // change reverted
+        delete this.changedDataBlocks[blockId];
+      } else {
+        this.changedDataBlocks[blockId] = value;
       }
     });
   }

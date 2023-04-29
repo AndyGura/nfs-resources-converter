@@ -361,7 +361,7 @@ from mathutils import Euler
 
 if $new_file:
     bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_name", use_image_search=True, axis_forward='Y', axis_up='Z')
+bpy.ops.import_scene.obj(filepath="$obj_name", use_image_search=False, axis_forward='Y', axis_up='Z', split_mode='OFF')
 
 # create proxy objects
 proxy_objects = json.loads('$proxy_objects_json')
@@ -553,7 +553,6 @@ if $save_collisions:
             path = path + '/'
         if not os.path.exists(path):
             os.makedirs(path)
-        save_path = os.getcwd().replace('\\', '/')
         self._save_mtl(terrain_data, path, data.id.split('/')[-1])
         blender_script = "import bpy\nbpy.ops.wm.read_factory_settings(use_empty=True)"
         if self.settings.maps__save_as_chunked:
@@ -577,11 +576,11 @@ if $save_collisions:
                          if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
                 })
                 if self.settings.geometry__save_blend:
-                    blender_script += get_blender_save_script(out_blend_name=f'{save_path}/{path}terrain_chunk_{i}')
+                    blender_script += get_blender_save_script(out_blend_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}'))
                 if self.settings.geometry__export_to_gg_web_engine:
                     from serializers.misc.build_blender_scene import construct_blender_export_script
                     blender_script += '\n' + construct_blender_export_script(
-                        file_name=f'{save_path}/{path}terrain_chunk_{i}',
+                        file_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}'),
                         export_materials='NONE')
         else:
             with open(f'{path}/terrain.obj', 'w') as f:
@@ -640,15 +639,15 @@ if $save_collisions:
         if self.settings.geometry__export_to_gg_web_engine:
             from serializers.misc.build_blender_scene import construct_blender_export_script
             blender_script += '\n' + construct_blender_export_script(
-                file_name=f'{save_path}/{path}map',
+                file_name=os.path.join(os.getcwd(), path, 'map'),
                 export_materials='EXPORT')
         run_blender(path=path,
                     script=blender_script,
-                    out_blend_name=f'{save_path}/{path}map' if self.settings.geometry__save_blend else None)
+                    out_blend_name=os.path.join(os.getcwd(), path, 'map') if self.settings.geometry__save_blend else None)
         if not self.settings.geometry__save_obj:
             if self.settings.maps__save_as_chunked:
                 for i in range(len(terrain_data)):
-                    os.unlink(f'{path}/terrain_chunk_{i}.obj')
+                    os.unlink(os.path.join(os.getcwd(), path, f'terrain_chunk_{i}.obj'))
             else:
-                os.unlink(f'{path}/terrain.obj')
-            os.unlink(f'{path}terrain.mtl')
+                os.unlink(os.path.join(os.getcwd(), path, 'terrain.obj'))
+            os.unlink(os.path.join(os.getcwd(), path, 'terrain.mtl'))

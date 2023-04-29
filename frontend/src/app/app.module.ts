@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { EelDelegateService } from './services/eel-delegate.service';
@@ -41,6 +40,9 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
+import {
+  OripGeometryBlockUiComponent
+} from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -63,6 +65,7 @@ import { RunCustomActionDialogComponent } from './components/run-custom-action.d
     FlagsBlockUiComponent,
     ConfirmDialogComponent,
     RunCustomActionDialogComponent,
+    OripGeometryBlockUiComponent,
   ],
   imports: [
     BrowserModule,
