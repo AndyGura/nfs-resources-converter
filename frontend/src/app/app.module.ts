@@ -39,6 +39,7 @@ import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dial
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
+import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui/tri-map.block-ui.component';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 import {
   OripGeometryBlockUiComponent
@@ -64,6 +65,7 @@ import {
     EnumBlockUiComponent,
     FlagsBlockUiComponent,
     ConfirmDialogComponent,
+    TriMapBlockUiComponent,
     RunCustomActionDialogComponent,
     OripGeometryBlockUiComponent,
   ],

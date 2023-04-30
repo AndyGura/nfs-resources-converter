@@ -14,6 +14,7 @@ import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.componen
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
+import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 import { cloneDeep, isEqual } from 'lodash';
@@ -41,6 +42,7 @@ export class EditorComponent implements OnDestroy {
     // NFS1 blocks
     'BasePalette': PaletteBlockUiComponent,
     'AnyBitmapBlock': BitmapBlockUiComponent,
+    'TriMap': TriMapBlockUiComponent,
     'ShpiBlock': ShpiBlockUiComponent,
     'WwwwBlock': WwwwBlockUiComponent,
     'OripGeometry': OripGeometryBlockUiComponent,

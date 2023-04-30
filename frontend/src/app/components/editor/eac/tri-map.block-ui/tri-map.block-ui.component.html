@@ -1,0 +1,5 @@
+<div class="previewCanvasContainer" #previewCanvasContainer>
+    <canvas #previewCanvas width="640" height="480"></canvas>
+    <mat-spinner *ngIf="previewLoading$ | async" mode="indeterminate"></mat-spinner>
+</div>
+<app-compound-block-ui [resourceData]="_resourceData$ | async"></app-compound-block-ui>
