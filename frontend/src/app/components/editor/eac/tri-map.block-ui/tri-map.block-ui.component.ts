@@ -11,13 +11,31 @@ import {
   ViewChild
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { FreeCameraController, Gg3dEntity, Gg3dWorld, Pnt3, Point2, Qtrn } from '@gg-web-engine/core';
+import {
+  createInlineTickController,
+  FreeCameraController,
+  Gg3dEntity,
+  Gg3dWorld,
+  Pnt3,
+  Point2,
+  Qtrn
+} from '@gg-web-engine/core';
 import { Gg3dObject, Gg3dVisualScene, GgRenderer } from '@gg-web-engine/three';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
-import { AmbientLight, ClampToEdgeWrapping, DoubleSide, Material, Mesh, MeshBasicMaterial } from 'three';
+import {
+  AmbientLight,
+  ClampToEdgeWrapping,
+  DoubleSide,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  SphereGeometry,
+  sRGBEncoding,
+  TextureLoader
+} from 'three';
 import { MainService } from '../../../../services/main.service';
 
 @Component({
@@ -54,6 +72,10 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   renderer!: GgRenderer;
   entity: Gg3dEntity | null = null;
   controller!: FreeCameraController;
+  skySphere: Gg3dEntity = new Gg3dEntity(new Gg3dObject(new Mesh(new SphereGeometry(1000), new MeshBasicMaterial({
+    side: DoubleSide,
+    color: 0xffffff
+  }))));
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -86,6 +108,8 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       }
     } as any);
     await this.world.init();
+    this.skySphere.rotation = Qtrn.fromEuler({ x: Math.PI / 2, y: 0, z: 0 }); // make it face towards Z
+    this.world.addEntity(this.skySphere);
     this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
     this.renderer = new GgRenderer(
@@ -102,6 +126,9 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       z: 0
     }), { x: 0, y: 0, z: 1 });
     this.world.addEntity(this.renderer);
+    createInlineTickController(this.world).pipe(takeUntil(this.destroyed$)).subscribe(() => {
+      this.skySphere.position = this.renderer.camera.position;
+    });
 
     this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer.camera, {
       mouseOptions: {
@@ -163,6 +190,16 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       const mtlLoader = new MTLLoader();
       this.previewMtlInstance = await mtlLoader.parse(mtl, '');
       this.previewMtlInstance.preload();
+      const loader = new TextureLoader();
+      const skyPath = files.find(x => x.endsWith('spherical.png'));
+      if (skyPath) {
+        const tex = await loader.loadAsync(skyPath);
+        tex.encoding = sRGBEncoding;
+        (((this.skySphere.object3D as Gg3dObject).nativeMesh as Mesh).material as MeshBasicMaterial).map = tex;
+      } else {
+        (((this.skySphere.object3D as Gg3dObject).nativeMesh as Mesh).material as MeshBasicMaterial).map = null;
+      }
+      (((this.skySphere.object3D as Gg3dObject).nativeMesh as Mesh).material as MeshBasicMaterial).needsUpdate = true;
     } finally {
       this.previewFamLoading$.next(false);
     }
