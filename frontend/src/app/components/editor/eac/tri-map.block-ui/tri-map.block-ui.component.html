@@ -1,3 +1,25 @@
+<div class="famSelector">
+    <h4>Preview *.FAM file</h4>
+    <mat-form-field appearance="fill">
+        <mat-label>Current preview FAM</mat-label>
+        <mat-select #famSelect
+                    (valueChange)="onFamSelected($event)"
+                    [value]="previewFamPossibleLocations.includes((previewFamLocation$ | async)!) ? (previewFamLocation$ | async) : 'custom'">
+            <mat-option *ngFor="let fam of previewFamPossibleLocations" [value]="fam">
+                {{fam}}
+            </mat-option>
+            <mat-option value="custom">custom</mat-option>
+        </mat-select>
+    </mat-form-field>
+    <ng-container *ngIf="famSelect.value == 'custom'">
+        <mat-form-field appearance="fill">
+            <mat-label>Custom FAM path</mat-label>
+            <input #customFamInput matInput type="text" [value]="(previewFamLocation$ | async)!">
+        </mat-form-field>
+        <button mat-button (click)="onFamSelected(customFamInput.value)">LOAD</button>
+    </ng-container>
+    <mat-spinner *ngIf="previewFamLoading$ | async" mode="indeterminate" [diameter]="40"></mat-spinner>
+</div>
 <div class="previewCanvasContainer" #previewCanvasContainer>
     <canvas #previewCanvas width="640" height="480"></canvas>
     <mat-spinner *ngIf="previewLoading$ | async" mode="indeterminate"></mat-spinner>

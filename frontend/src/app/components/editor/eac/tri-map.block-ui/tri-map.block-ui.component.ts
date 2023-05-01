@@ -28,9 +28,10 @@ import { MainService } from '../../../../services/main.service';
 })
 export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
 
-  _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
-  previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
+  _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
 
   get resourceData(): ReadData | null {
     return this._resourceData$.getValue();
@@ -40,25 +41,42 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this._resourceData$.next(value);
   };
 
-  name: string = '';
-
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
+  previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
+  previewFamLocation$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+  previewFamLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  private previewMtlInstance: MTLLoader.MaterialCreator | null = null;
+  private previewObjPath: string | undefined;
 
-  private readonly destroyed$: Subject<void> = new Subject<void>();
+  name: string = '';
   world!: Gg3dWorld<Gg3dVisualScene, any>;
   renderer!: GgRenderer;
   entity: Gg3dEntity | null = null;
   controller!: FreeCameraController;
-  tmpFamLoaded: boolean = false;
+
+  private readonly destroyed$: Subject<void> = new Subject<void>();
 
   constructor(
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
   ) {
+  }
+
+  get previewFamPossibleLocations(): string[] {
+    const blockId = this.resourceData?.block_id;
+    if (blockId) {
+      return [
+        blockId.substring(0, blockId.indexOf('MISC')) + 'ETRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_001.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) + 'GTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_001.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) + 'NTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_M01.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) + 'NTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_R01.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) + 'NTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_T01.FAM',
+      ]
+    } else {
+      return [];
+    }
   }
 
   async ngAfterViewInit() {
@@ -106,10 +124,12 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       takeUntil(this.destroyed$),
     ).subscribe(async (data) => {
       this.previewLoading$.next(true);
-      const paths = await this.loadPreviewFilePaths(data?.block_id);
-      if (paths) {
-        await this.loadPreview(paths);
+      if (this.previewFamPossibleLocations[0]) {
+        this.previewFamLocation$.next(this.previewFamPossibleLocations[0]);
+        await this.onFamSelected(this.previewFamPossibleLocations[0]);
       }
+      await this.loadPreviewObjPath(data?.block_id);
+      await this.loadPreview();
       this.previewLoading$.next(false);
     });
     this.mainService.dataBlockChange$.pipe(
@@ -118,17 +138,39 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       debounceTime(1500),
     ).subscribe(async () => {
       this.previewLoading$.next(true);
-      const paths = await this.postTmpUpdates(this.resourceData?.block_id);
-      if (paths) {
-        await this.loadPreview(paths);
-      }
+      await this.postTmpUpdates(this.resourceData?.block_id);
+      await this.loadPreview();
       this.previewLoading$.next(false);
     });
   }
 
-  private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | undefined> {
+  async onFamSelected(path: string) {
+    if (path == 'custom') {
+      return;
+    }
+    this.previewFamLoading$.next(true);
+    try {
+      const files = await this.eelDelegate.serializeResource(path);
+      const terrainTextures = files.filter(x => x.includes('.FAM/background') && x.endsWith('.png'));
+      const mtl = terrainTextures.map(x => `newmtl ${x.substring(x.lastIndexOf('background') + 11, x.lastIndexOf('.png'))}
+        Ka 1.000000 1.000000 1.000000
+        Kd 1.000000 1.000000 1.000000
+        Ks 0.000000 0.000000 0.000000
+        illum 1
+        Ns 0.000000
+        map_Kd ${x}
+`).join('\n');
+      const mtlLoader = new MTLLoader();
+      this.previewMtlInstance = await mtlLoader.parse(mtl, '');
+      this.previewMtlInstance.preload();
+    } finally {
+      this.previewFamLoading$.next(false);
+    }
+    await this.loadPreview();
+  }
+
+  private async loadPreviewObjPath(blockId: string | undefined) {
     if (blockId) {
-      await this.eelDelegate.serializeResource(blockId.substring(0, blockId.indexOf('MISC')) + 'ETRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_001.FAM');
       const paths = await this.eelDelegate.serializeResource(blockId, {
         'geometry__save_obj': true,
         'geometry__save_blend': false,
@@ -137,20 +179,21 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         'maps__save_collisions': false,
         'maps__save_spherical_skybox_texture': true,
       });
-      const objPath = paths.find(x => x.endsWith('.obj'))!;
-      const mtlPath = paths.find(x => x.endsWith('.mtl'))!;
-      return [objPath, mtlPath];
+      this.previewObjPath = paths.find(x => x.endsWith('.obj'))!;
+    } else {
+      this.previewObjPath = undefined;
     }
-    return;
   }
 
-  private async loadPreview([objPath, mtlPath]: [string, string]) {
+  private async loadPreview() {
+    if (!this.previewObjPath) {
+      return;
+    }
     const objLoader = new OBJLoader();
-    const mtlLoader = new MTLLoader();
-    const mtl = await mtlLoader.loadAsync(mtlPath);
-    mtl.preload();
-    objLoader.setMaterials(mtl);
-    const object = await objLoader.loadAsync(objPath);
+    if (this.previewMtlInstance) {
+      objLoader.setMaterials(this.previewMtlInstance);
+    }
+    const object = await objLoader.loadAsync(this.previewObjPath);
     object.traverse((x) => {
       if (x instanceof Mesh) {
         const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
@@ -182,12 +225,8 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
   }
 
-  private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | undefined> {
+  private async postTmpUpdates(blockId: string | undefined) {
     if (blockId) {
-      if (!this.tmpFamLoaded) {
-        await this.eelDelegate.serializeResourceTmp(blockId.substring(0, blockId.indexOf('MISC')) + 'ETRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_001.FAM', []);
-        this.tmpFamLoaded = true;
-      }
       const paths = await this.eelDelegate.serializeResourceTmp(
         blockId,
         Object.entries(this.mainService.changedDataBlocks)
@@ -202,16 +241,14 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
           'maps__save_collisions': false,
           'maps__save_spherical_skybox_texture': true,
         });
-      const objPath = paths.find(x => x.endsWith('.obj'))!;
-      const mtlPath = paths.find(x => x.endsWith('.mtl'))!;
-      return [objPath, mtlPath];
+      this.previewObjPath = paths.find(x => x.endsWith('.obj'))!;
+    } else {
+      this.previewObjPath = undefined;
     }
-    return;
   }
 
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
   }
-
 }
