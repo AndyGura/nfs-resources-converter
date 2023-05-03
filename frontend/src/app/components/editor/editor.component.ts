@@ -17,7 +17,6 @@ import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.c
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
-import { cloneDeep, isEqual } from 'lodash';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component'
 
 @Component({
@@ -51,7 +50,6 @@ export class EditorComponent implements OnDestroy {
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
 
   _component: ComponentRef<GuiComponentInterface> | null = null;
-  _dataSnapshot: any;
   _componentChangedSub: Subscription | null = null;
 
   private destroyed$: Subject<void> = new Subject<void>();
@@ -101,17 +99,13 @@ export class EditorComponent implements OnDestroy {
         if (this._component && this._componentChangedSub) {
           this._componentChangedSub.unsubscribe();
         }
-        this._dataSnapshot = cloneDeep(readData.value);
         this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
         this._component.instance.resourceData = readData;
         this._component.instance.name = this._name;
         this._componentChangedSub = this._component.instance.changed
           .pipe(takeUntil(this.destroyed$))
           .subscribe(() => {
-            this.mainService.dataBlockChange$.next([
-              readData.block_id,
-              isEqual(readData.value, this._dataSnapshot) ? undefined : readData.value
-            ]);
+            this.mainService.dataBlockChange$.next([readData.block_id, readData.value]);
           });
       }
     }
