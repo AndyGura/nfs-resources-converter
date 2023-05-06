@@ -57,7 +57,7 @@ class OripGeometrySerializer(BaseFileSerializer):
 import bpy
 import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=False, axis_forward='Y', axis_up='Z', split_mode='OFF')
+bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=False, axis_forward='Y', axis_up='Z')
 
 dummies = json.loads('$dummies')
 for dummy in dummies:

@@ -20,8 +20,20 @@
     </ng-container>
     <mat-spinner *ngIf="previewFamLoading$ | async" mode="indeterminate" [diameter]="40"></mat-spinner>
 </div>
-<div class="previewCanvasContainer" #previewCanvasContainer>
-    <canvas #previewCanvas width="640" height="480"></canvas>
-    <mat-spinner *ngIf="previewLoading$ | async" mode="indeterminate"></mat-spinner>
+<div class="preview">
+    <div class="previewCanvasContainer" #previewCanvasContainer>
+        <canvas #previewCanvas width="640" height="480"></canvas>
+        <mat-spinner *ngIf="previewLoading$ | async" mode="indeterminate"></mat-spinner>
+    </div>
+    <div class="previewNavigationContainer" #previewCanvasContainer>
+        <mat-form-field appearance="fill">
+            <mat-label>Terrain chunk</mat-label>
+            <input matInput type="number"
+                   [min]="0" [max]="(_resourceData$ | async)?.value.terrain_length.value - 1"
+                   [ngModel]="selectedChunkIndex$ | async"
+                   (ngModelChange)="selectedChunkIndex$.next($event)">
+        </mat-form-field>
+    </div>
 </div>
-<app-compound-block-ui [resourceData]="_resourceData$ | async"></app-compound-block-ui>
+<app-compound-block-ui [resourceData]="_resourceData$ | async"
+                       [fieldBlacklist]="['lookup_table']"></app-compound-block-ui>

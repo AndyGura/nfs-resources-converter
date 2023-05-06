@@ -361,7 +361,7 @@ from mathutils import Euler
 
 if $new_file:
     bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_name", use_image_search=False, axis_forward='Y', axis_up='Z', split_mode='OFF')
+bpy.ops.import_scene.obj(filepath="$obj_name", use_image_search=False, axis_forward='Y', axis_up='Z')
 
 # create proxy objects
 proxy_objects = json.loads('$proxy_objects_json')
@@ -640,7 +640,7 @@ if $save_collisions:
             from serializers.misc.build_blender_scene import construct_blender_export_script
             blender_script += '\n' + construct_blender_export_script(
                 file_name=os.path.join(os.getcwd(), path, 'map'),
-                export_materials='EXPORT')
+                export_materials='NONE')
         run_blender(path=path,
                     script=blender_script,
                     out_blend_name=os.path.join(os.getcwd(), path, 'map') if self.settings.geometry__save_blend else None)
