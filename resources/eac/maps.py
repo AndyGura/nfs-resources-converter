@@ -94,7 +94,8 @@ class BitmapProxyObjectData(CompoundBlock):
         proxy_number = IntegerBlock(static_size=1, is_signed=False,
                                     description='Seems to be always equal to own index * 4')
         width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
-        frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
+        frame_count = IntegerBlock(static_size=1,
+                                   description='Frame amount for animated object. Ignored if flag `is_animated` not set')
         animation_interval = Nfs1Interval(description='Interval between animation frames')
         unk0 = IntegerBlock(static_size=1, is_signed=False)
         unk1 = IntegerBlock(static_size=1, is_signed=False)

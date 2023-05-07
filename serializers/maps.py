@@ -436,7 +436,10 @@ if $save_collisions:
                 **res,
                 'texture': ';'.join(self._texture_ids(
                     proxy_definition.proxy_object_data.resource_id.value,
-                    proxy_definition.proxy_object_data.frame_count.value, is_opened_track)),
+                    proxy_definition.proxy_object_data.frame_count.value
+                    if proxy_definition.flags['is_animated']
+                    else 1,
+                    is_opened_track)),
                 'width': proxy_definition.proxy_object_data.width.value,
                 'height': proxy_definition.proxy_object_data.height.value,
                 'animation_interval': proxy_definition.proxy_object_data.animation_interval.value
