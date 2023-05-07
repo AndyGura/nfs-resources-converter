@@ -8,7 +8,7 @@ class DashDeclarationFile(Utf8Block):
     def from_raw_value(self, raw: bytes, state: dict):
         text = super().from_raw_value(raw, state)
         dictionary = {}
-        values = text.split('\n')
+        values = text.splitlines()
         current_key = None
         current_key_ended = True
         for value in values:

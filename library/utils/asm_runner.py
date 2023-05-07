@@ -56,7 +56,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
 
     def run_block(self, block: str):
         should_jump = None
-        for command in [c.strip() for c in block.split('\n') if c.strip()]:
+        for command in [c.strip() for c in block.splitlines() if c.strip()]:
             if should_jump is not None:
                 raise Exception('Cannot run command after jump')
             should_jump = self.run_command(command)
