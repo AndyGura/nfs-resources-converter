@@ -27,13 +27,42 @@
     </div>
     <div class="previewNavigationContainer" #previewCanvasContainer>
         <mat-form-field appearance="fill">
-            <mat-label>Terrain chunk</mat-label>
+            <mat-label>Spline item</mat-label>
             <input matInput type="number"
-                   [min]="0" [max]="(_resourceData$ | async)?.value.terrain_length.value - 1"
-                   [ngModel]="selectedChunkIndex$ | async"
-                   (ngModelChange)="selectedChunkIndex$.next($event)">
+                   [min]="0" [max]="(_resourceData$ | async)?.value.terrain_length.value * 4 - 1"
+                   [ngModel]="selectedSplineIndex$ | async"
+                   (ngModelChange)="selectedSplineIndex$.next($event)">
         </mat-form-field>
+        <app-tri-minimap [roadSpline]="roadSpline" [pointer]="pointer$ | async"></app-tri-minimap>
     </div>
 </div>
+<h4>Road spline item</h4>
+<app-compound-block-ui
+        [resourceData]="(_resourceData$ | async)?.value.road_spline.value[(selectedSplineIndex$ | async)!]"
+></app-compound-block-ui>
+<h4>AI info (block for 4 spline items)</h4>
+<app-compound-block-ui
+        [resourceData]="(_resourceData$ | async)?.value.ai_info.value[Math.floor((selectedSplineIndex$ | async)! / 4)]"
+></app-compound-block-ui>
+<h4>Terrain (block for 4 spline items)</h4>
+<app-compound-block-ui
+        [resourceData]="(_resourceData$ | async)?.value.terrain.value[Math.floor((selectedSplineIndex$ | async)! / 4)]"
+></app-compound-block-ui>
+<h4>Common</h4>
 <app-compound-block-ui [resourceData]="_resourceData$ | async"
-                       [fieldBlacklist]="['lookup_table']"></app-compound-block-ui>
+                       [fieldWhitelist]="[
+                       'num_segments',
+                       'terrain_length',
+                       'unk0',
+                       'unk1',
+                       'position',
+                       'unknowns0',
+                       'terrain_block_size',
+                       'railing_texture_id',
+                       'proxy_objects_count',
+                       'proxy_object_instances_count',
+                       'unk2',
+                       'unk3',
+                       'proxy_objects',
+                       'proxy_object_instances',
+                       ]"></app-compound-block-ui>

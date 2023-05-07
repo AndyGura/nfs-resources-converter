@@ -44,6 +44,7 @@ import { RunCustomActionDialogComponent } from './components/run-custom-action.d
 import {
   OripGeometryBlockUiComponent
 } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
 
 @NgModule({
   declarations: [
@@ -68,6 +69,7 @@ import {
     TriMapBlockUiComponent,
     RunCustomActionDialogComponent,
     OripGeometryBlockUiComponent,
+    MinimapComponent,
   ],
   imports: [
     BrowserModule,

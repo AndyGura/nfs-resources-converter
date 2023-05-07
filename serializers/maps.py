@@ -535,6 +535,7 @@ if $save_collisions:
         # I use Z-up. Did not test exporter with Y-up, also prop rotations will not work, that's why it doesn't have
         # own settings option. Also correct rotation is (new_z='y', new_y='-z'), but looks like NFS loads map mirrored
         # So since we change y and z, we need to invert Y-rotation as well
+        # FIXME this code changes loaded data: problems when doing something after serialized it once (happens in GUI)
         for i, terrain_chunk in enumerate(terrain_data):
             for sub_model in terrain_chunk['meshes']:
                 sub_model.change_axes(new_z='y', new_y='z')

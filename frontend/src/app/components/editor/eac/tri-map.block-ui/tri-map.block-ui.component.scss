@@ -23,6 +23,11 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
+
+    app-tri-minimap {
+      flex-grow: 1;
+      display: flex;
+    }
   }
 
 }

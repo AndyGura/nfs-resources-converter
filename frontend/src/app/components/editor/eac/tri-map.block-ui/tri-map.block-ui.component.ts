@@ -250,18 +250,24 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   previewFamLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   private previewGlbPath: string | undefined;
 
-  selectedChunkIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
 
   famPath: string = '';
   name: string = '';
   world!: Gg3dWorld<Gg3dVisualScene, any>;
-  renderer!: GgRenderer;
+  renderer: GgRenderer | null = null;
   map: Nfs1MapWorldEntity | null = null;
   roadPath: GgCurve | null = null;
   controller!: FreeCameraController;
   skySphere: Gg3dEntity = new Gg3dEntity(new Gg3dObject(new Mesh(new SphereGeometry(1000), new MeshBasicMaterial({
     side: DoubleSide,
     color: 0xffffff
+  }))));
+  selectionSphere: Gg3dEntity = new Gg3dEntity(new Gg3dObject(new Mesh(new SphereGeometry(0.5), new MeshBasicMaterial({
+    opacity: 0.5,
+    transparent: true,
+    color: 0xff0000
   }))));
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
@@ -288,6 +294,16 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
   }
 
+  get roadSpline(): Point3[] {
+    return (this.resourceData?.value.road_spline.value || [])
+      .filter((_: any, i: number) => i < (this.resourceData?.value.terrain_length.value * 4 || 0))
+      .map((d: any) => ({
+        x: d.value.position.value.x.value,
+        y: d.value.position.value.y.value,
+        z: d.value.position.value.z.value,
+      })) || [];
+  }
+
   async ngAfterViewInit() {
     this.world = new Gg3dWorld(new Gg3dVisualScene(), {
       init: async () => {
@@ -301,6 +317,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     await this.world.init();
     this.skySphere.rotation = Qtrn.fromEuler({ x: Math.PI / 2, y: 0, z: 0 }); // make it face towards Z
     this.world.addEntity(this.skySphere);
+    this.world.addEntity(this.selectionSphere);
     this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
     this.renderer = new GgRenderer(
@@ -318,7 +335,10 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }), { x: 0, y: 0, z: 1 });
     this.world.addEntity(this.renderer);
     createInlineTickController(this.world).pipe(takeUntil(this.destroyed$)).subscribe(() => {
-      this.skySphere.position = this.renderer.camera.position;
+      if (this.renderer) {
+        this.skySphere.position = this.renderer.camera.position;
+        this.pointer$.next(this.renderer.camera.position);
+      }
     });
 
     this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer.camera, {
@@ -361,32 +381,28 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.previewLoading$.next(false);
     });
 
-    this.selectedChunkIndex$.pipe(
+    this.selectedSplineIndex$.pipe(
       takeUntil(this.destroyed$),
-      debounceTime(200),
-    ).subscribe((viewChunkIndex) => {
+      debounceTime(250),
+    ).subscribe(i => {
       if (this.roadPath) {
-        // TODO Pnt3.avg
-        const point = Pnt3.scalarMult(Pnt3.add(
-          this.roadPath.points[viewChunkIndex * 4 + 1],
-          this.roadPath.points[viewChunkIndex * 4 + 2],
-        ), 0.5);
-        const orientation = 0.5 * (
-          this.resourceData!.value.road_spline.value[viewChunkIndex * 4 + 1].value.orientation.value +
-          this.resourceData!.value.road_spline.value[viewChunkIndex * 4 + 2].value.orientation.value
-        );
+        const point = this.roadPath.points[i];
         if (!point) {
           return;
         }
-        this.renderer.camera.position = Pnt3.add(
-          point,
-          Pnt3.rotAround(
-            { x: 10, y: -12, z: 5 },
-            { x: 0, y: 0, z: 1 },
-            -orientation,
-          )
-        );
-        this.renderer.camera.rotation = Qtrn.lookAt(this.renderer.camera.position, point, { x: 0, y: 0, z: 1 });
+        this.selectionSphere.position = point;
+        const orientation = this.resourceData!.value.road_spline.value[i].value.orientation.value;
+        if (this.renderer) {
+          this.renderer.camera.position = Pnt3.add(
+            point,
+            Pnt3.rotAround(
+              { x: 10, y: -12, z: 5 },
+              { x: 0, y: 0, z: 1 },
+              -orientation,
+            )
+          );
+          this.renderer.camera.rotation = Qtrn.lookAt(this.renderer.camera.position, point, { x: 0, y: 0, z: 1 });
+        }
       }
     });
   }
@@ -461,7 +477,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     );
     this.unloadPreview();
     this.map = new Nfs1MapWorldEntity(chunksGraph, 'resources/' + this.famPath);
-    this.map.loaderCursorEntity$.next(this.renderer.camera);
+    this.map.loaderCursorEntity$.next(this.renderer!.camera);
     this.world.addEntity(this.map!);
     this.cdr.markForCheck();
   }
@@ -501,4 +517,6 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.destroyed$.next();
     this.destroyed$.complete();
   }
+
+  protected readonly Math = Math;
 }
