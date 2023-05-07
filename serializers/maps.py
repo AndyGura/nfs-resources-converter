@@ -436,7 +436,10 @@ if $save_collisions:
                 **res,
                 'texture': ';'.join(self._texture_ids(
                     proxy_definition.proxy_object_data.resource_id.value,
-                    proxy_definition.proxy_object_data.frame_count.value, is_opened_track)),
+                    proxy_definition.proxy_object_data.frame_count.value
+                    if proxy_definition.flags['is_animated']
+                    else 1,
+                    is_opened_track)),
                 'width': proxy_definition.proxy_object_data.width.value,
                 'height': proxy_definition.proxy_object_data.height.value,
                 'animation_interval': proxy_definition.proxy_object_data.animation_interval.value
@@ -576,7 +579,8 @@ if $save_collisions:
                          if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
                 })
                 if self.settings.geometry__save_blend:
-                    blender_script += get_blender_save_script(out_blend_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}'))
+                    blender_script += get_blender_save_script(
+                        out_blend_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}'))
                 if self.settings.geometry__export_to_gg_web_engine:
                     from serializers.misc.build_blender_scene import construct_blender_export_script
                     blender_script += '\n' + construct_blender_export_script(
@@ -643,7 +647,8 @@ if $save_collisions:
                 export_materials='NONE')
         run_blender(path=path,
                     script=blender_script,
-                    out_blend_name=os.path.join(os.getcwd(), path, 'map') if self.settings.geometry__save_blend else None)
+                    out_blend_name=os.path.join(os.getcwd(), path,
+                                                'map') if self.settings.geometry__save_blend else None)
         if not self.settings.geometry__save_obj:
             if self.settings.maps__save_as_chunked:
                 for i in range(len(terrain_data)):

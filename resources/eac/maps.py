@@ -94,7 +94,8 @@ class BitmapProxyObjectData(CompoundBlock):
         proxy_number = IntegerBlock(static_size=1, is_signed=False,
                                     description='Seems to be always equal to own index * 4')
         width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
-        frame_count = IntegerBlock(static_size=1, description='Frame amount for animated object')
+        frame_count = IntegerBlock(static_size=1,
+                                   description='Frame amount for animated object. Ignored if flag `is_animated` not set')
         animation_interval = Nfs1Interval(description='Interval between animation frames')
         unk0 = IntegerBlock(static_size=1, is_signed=False)
         unk1 = IntegerBlock(static_size=1, is_signed=False)
@@ -265,16 +266,16 @@ class TriMap(CompoundBlock):
             'description': 'Makes this track to go backwards',
             'args': [],
         }, {
-            'method': 'flatten_track',
-            'title': 'Flatten track',
-            'description': 'Makes track super flat: going forward without turns, slopes and slants',
-            'args': [],
-        }, {
-            'method': 'scale_track',
-            'title': 'Scale track length',
-            'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
-            'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
-        }, ]
+                    'method': 'flatten_track',
+                    'title': 'Flatten track',
+                    'description': 'Makes track super flat: going forward without turns, slopes and slants',
+                    'args': [],
+                }, {
+                    'method': 'scale_track',
+                    'title': 'Scale track length',
+                    'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
+                    'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
+                }, ]
 
     def action_reverse_track(self, read_data):
         # FIXME lane merge/split are broken. Is it possible to fix?
@@ -303,7 +304,8 @@ class TriMap(CompoundBlock):
         for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
             # rotate so road at new start goes forward
             vertex.position.z.value, vertex.position.x.value = rotate_point((0, 0),
-                                                                            (vertex.position.z.value, vertex.position.x.value),
+                                                                            (vertex.position.z.value,
+                                                                             vertex.position.x.value),
                                                                             y_angle_to_rotate)
 
         # translate so new start ==
@@ -337,8 +339,10 @@ class TriMap(CompoundBlock):
                 # lane_effects.append(i)
 
         for index in lane_effects:
-            read_data.road_spline[index].spline_item_mode.value, read_data.road_spline[index - 1].spline_item_mode.value = (
-                read_data.road_spline[index - 1].spline_item_mode.value, read_data.road_spline[index].spline_item_mode.value)
+            read_data.road_spline[index].spline_item_mode.value, read_data.road_spline[
+                index - 1].spline_item_mode.value = (
+                read_data.road_spline[index - 1].spline_item_mode.value,
+                read_data.road_spline[index].spline_item_mode.value)
 
         for chunk in read_data.terrain:
             (chunk.fence.value.has_left_fence, chunk.fence.value.has_right_fence) = (
@@ -362,8 +366,9 @@ class TriMap(CompoundBlock):
                                                                                      proxy_inst.position.x.value),
                                                                                     y_angle_to_rotate)
 
-        read_data.road_spline.value = read_data.road_spline.value[:road_spline_length][::-1] + read_data.road_spline.value[
-                                                                                           road_spline_length:]
+        read_data.road_spline.value = read_data.road_spline.value[:road_spline_length][
+                                      ::-1] + read_data.road_spline.value[
+                                              road_spline_length:]
         read_data.terrain.value = read_data.terrain.value[::-1]
         read_data.proxy_object_instances.value = (read_data.proxy_object_instances.value[:amount_of_instances][::-1]
                                                   + read_data.proxy_object_instances.value[amount_of_instances:])
@@ -394,8 +399,9 @@ class TriMap(CompoundBlock):
             if prop.rotation.value < 0:
                 prop.rotation.value += 2 * pi
             sine, cosine = sin(road_vertex.orientation.value), cos(road_vertex.orientation.value)
-            prop.position.x.value, prop.position.z.value = (prop.position.x.value * cosine - prop.position.z.value * sine,
-                                                            prop.position.x.value * sine + prop.position.z.value * cosine)
+            prop.position.x.value, prop.position.z.value = (
+            prop.position.x.value * cosine - prop.position.z.value * sine,
+            prop.position.x.value * sine + prop.position.z.value * cosine)
 
         for i, road_vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
             road_vertex.position.x.value = road_vertex.position.y.value = 0
@@ -405,7 +411,8 @@ class TriMap(CompoundBlock):
             road_vertex.slant_b.value = 0
         # update rotations
         for i, vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
-            vertex.block.update_orientations(vertex, read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0])
+            vertex.block.update_orientations(vertex,
+                                             read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0])
 
     def action_scale_track(self, read_data, scale: float):
         scale = float(scale)
