@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { EelDelegateService } from './services/eel-delegate.service';
@@ -40,7 +39,12 @@ import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dial
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
+import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui/tri-map.block-ui.component';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
+import {
+  OripGeometryBlockUiComponent
+} from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
 
 @NgModule({
   declarations: [
@@ -62,7 +66,10 @@ import { RunCustomActionDialogComponent } from './components/run-custom-action.d
     EnumBlockUiComponent,
     FlagsBlockUiComponent,
     ConfirmDialogComponent,
+    TriMapBlockUiComponent,
     RunCustomActionDialogComponent,
+    OripGeometryBlockUiComponent,
+    MinimapComponent,
   ],
   imports: [
     BrowserModule,

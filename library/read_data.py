@@ -1,5 +1,6 @@
 from io import BufferedWriter
 from typing import TypeVar, Generic
+from copy import deepcopy
 
 T = TypeVar('T')
 
@@ -31,6 +32,9 @@ class ReadData(Generic[T]):
 
     def __eq__(self, other):
         return self.value == other
+
+    def __deepcopy__(self, memodict={}):
+        return ReadData(value=deepcopy(self.value), block_state=deepcopy(self.block_state), block=self.block)
 
     def __ne__(self, other):
         return not self.__eq__(other)

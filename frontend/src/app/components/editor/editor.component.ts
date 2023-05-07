@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ComponentRef, Input, Type, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ComponentRef, Input, OnDestroy, Type, ViewChild } from '@angular/core';
 import { DataBlockUIDirective } from './data-block-ui.directive';
 import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { GuiComponentInterface } from './gui-component.interface';
@@ -14,9 +14,10 @@ import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.componen
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
+import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
-import { Subscription } from 'rxjs';
-import { cloneDeep, isEqual } from 'lodash';
+import { Subject, Subscription, takeUntil } from 'rxjs';
+import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component'
 
 @Component({
   selector: 'app-editor',
@@ -24,7 +25,7 @@ import { cloneDeep, isEqual } from 'lodash';
   styleUrls: ['./editor.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditorComponent {
+export class EditorComponent implements OnDestroy {
 
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
     'DataBlock': FallbackBlockUiComponent,
@@ -40,15 +41,18 @@ export class EditorComponent {
     // NFS1 blocks
     'BasePalette': PaletteBlockUiComponent,
     'AnyBitmapBlock': BitmapBlockUiComponent,
+    'TriMap': TriMapBlockUiComponent,
     'ShpiBlock': ShpiBlockUiComponent,
     'WwwwBlock': WwwwBlockUiComponent,
+    'OripGeometry': OripGeometryBlockUiComponent,
   }
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
 
   _component: ComponentRef<GuiComponentInterface> | null = null;
-  _dataSnapshot: any;
   _componentChangedSub: Subscription | null = null;
+
+  private destroyed$: Subject<void> = new Subject<void>();
 
   private _name: string = '';
   get name(): string {
@@ -95,23 +99,24 @@ export class EditorComponent {
         if (this._component && this._componentChangedSub) {
           this._componentChangedSub.unsubscribe();
         }
-        this._dataSnapshot = cloneDeep(readData.value);
         this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
         this._component.instance.resourceData = readData;
         this._component.instance.name = this._name;
         this._componentChangedSub = this._component.instance.changed
+          .pipe(takeUntil(this.destroyed$))
           .subscribe(() => {
-            if (isEqual(readData.value, this._dataSnapshot)) {
-              delete this.mainService.changedDataBlocks[readData.block_id];
-            } else {
-              this.mainService.changedDataBlocks[readData.block_id] = readData.value;
-            }
+            this.mainService.dataBlockChange$.next([readData.block_id, readData.value]);
           });
       }
     }
   };
 
   constructor(readonly mainService: MainService) {
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 
 }

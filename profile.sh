@@ -1,1 +1,1 @@
-viztracer --tracer_entries 10000000 scripts/convert_all.py $@ && vizviewer result.json
+viztracer --tracer_entries 1000000 run.py convert $@ && vizviewer result.json

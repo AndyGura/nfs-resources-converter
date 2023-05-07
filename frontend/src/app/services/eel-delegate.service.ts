@@ -45,15 +45,15 @@ export class EelDelegateService {
     return eel['save_file'](this.openedResourcePath$.getValue(), changes)();
   }
 
-  public async serializeResource(id: string): Promise<string> {
-    return eel['serialize_resource'](id)();
+  public async serializeResource(id: string, settingsPatch: any = {}): Promise<string[]> {
+    return eel['serialize_resource'](id, settingsPatch)();
+  }
+
+  public async serializeResourceTmp(id: string, changes: {id: string, value: any}[], settingsPatch: any = {}): Promise<string[]> {
+    return eel['serialize_resource_tmp'](id, changes, settingsPatch)();
   }
 
   public async deserializeResource(id: string): Promise<void> {
     this.openedResource$.next(await eel['deserialize_resource'](id)());
-  }
-
-  public async determine8BitBitmapPalette(bitmapId: string): Promise<ReadData | ReadError | null> {
-    return eel['determine_8_bit_bitmap_palette'](bitmapId)();
   }
 }

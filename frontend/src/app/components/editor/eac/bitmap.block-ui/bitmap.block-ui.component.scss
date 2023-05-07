@@ -12,6 +12,10 @@
   margin: 0 0 16px;
 }
 
+img {
+  min-width: 10rem;
+}
+
 #actions {
   display: flex;
   column-gap: 1rem;

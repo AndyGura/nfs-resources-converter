@@ -1,24 +1,49 @@
 import os
 import tempfile
+from distutils.dir_util import copy_tree
+from itertools import chain
 from logging import warn
+from pathlib import Path
 from typing import Dict
+from copy import deepcopy
 
 import eel
 
 from library import require_file, require_resource
 from library.loader import clear_file_cache
-from library.utils.start_file import start_file
-from resources.utils import determine_palette_for_8_bit_bitmap
 from serializers import get_serializer, DataTransferSerializer
 
 
+def __apply_delta_to_resource(resource_id, resource, changes: Dict):
+    suffix = '/' if '__' in resource_id else '__'
+    for delta in changes:
+        if not delta['id'].startswith(resource_id + suffix):
+            warn('Skipped change ' + delta['id'] + '. Wrong ID')
+        sub_id = delta['id'][len(resource_id) + len(suffix):]
+        field = resource
+        for subkey in sub_id.split('/'):
+            try:
+                field = getattr(field, subkey)
+            except AttributeError:
+                if isinstance(field.value, list):
+                    field = field[int(subkey)]
+                else:
+                    field = field[subkey]
+        field.value = delta['value']
+
+
 def run_gui_editor(file_path):
+    # create directory for all files, needed by GUI
+    service_dir = tempfile.TemporaryDirectory()
+    static_dir = service_dir.name
+    copy_tree('frontend/dist/gui', static_dir)
+
     def init_eel_state():
         from library.helpers.data_wrapper import DataWrapper
         state = DataWrapper({
             'current_file_id': None,
             'current_file': None,
-            'serialized_temporary_files': {},
+            'serialized_files': {},
         })
 
         @eel.expose
@@ -39,20 +64,7 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def save_file(path: str, changes: Dict):
-            for delta in changes:
-                if not delta['id'].startswith(state.current_file_id + '__'):
-                    warn('Skipped change ' + delta['id'] + '. Wrong ID')
-                sub_id = delta['id'][len(state.current_file_id) + 2:]
-                field = state.current_file
-                for subkey in sub_id.split('/'):
-                    try:
-                        field = getattr(field, subkey)
-                    except AttributeError:
-                        if isinstance(field.value, list):
-                            field = field[int(subkey)]
-                        else:
-                            field = field[subkey]
-                field.value = delta['value']
+            __apply_delta_to_resource(state.current_file_id, state.current_file, changes)
             bts = state.current_file.to_bytes()
             f = open(path, 'wb')
             f.write(bts)
@@ -67,45 +79,57 @@ def run_gui_editor(file_path):
             return DataTransferSerializer().serialize(resource)
 
         @eel.expose
-        def serialize_resource(id: str):
-            if state.serialized_temporary_files.get(id):
-                path, exported_file_paths, tmpdir, resource, top_level_resource, serializer = \
-                state.serialized_temporary_files[id]
+        def serialize_resource(id: str, settings_patch={}):
+            if state.serialized_files.get(id):
+                path, exported_file_paths, resource, top_level_resource, serializer = \
+                    state.serialized_files[id]
                 for path in exported_file_paths:
                     if not os.path.exists(path):
-                        del state.serialized_temporary_files[id]
+                        del state.serialized_files[id]
                         return serialize_resource(id)
             else:
-                tmpdir = tempfile.TemporaryDirectory()
                 resource, top_level_resource = require_resource(id)
                 serializer = get_serializer(resource.block)
-                path = tmpdir.name + '/' + id.split('/')[-1]
+                path = static_dir + '/resources/' + id
+                if settings_patch:
+                    serializer.patch_settings(settings_patch)
                 serializer.serialize(resource, path)
-                exported_file_paths = [path + '.png']  # TODO make serializer return list of files
-                state.serialized_temporary_files[
-                    id] = path, exported_file_paths, tmpdir, resource, top_level_resource, serializer
-            [start_file(x) for x in exported_file_paths]
+                exported_file_paths = [str(x)[len(static_dir):]
+                                       for x in chain(Path(path).glob("**/*"),
+                                                      Path(path[:path.rindex('/')]).glob(
+                                                          path[(path.rindex('/') + 1):] + '.*'))
+                                       if not x.is_dir()]
+                state.serialized_files[id] = \
+                    path, exported_file_paths, resource, top_level_resource, serializer
             return exported_file_paths
 
         @eel.expose
-        def deserialize_resource(id: str):
-            if not state.serialized_temporary_files.get(id):
-                return
-            path, exported_file_paths, tmpdir, resource, top_level_resource, serializer = \
-            state.serialized_temporary_files[id]
-            serializer.deserialize(path, resource)
-            tmpdir.cleanup()
-            del state.serialized_temporary_files[id]
-            return DataTransferSerializer().serialize(top_level_resource)
+        def serialize_resource_tmp(id: str, changes: Dict, settings_patch={}):
+            resource, _  = require_resource(id)
+            resource = deepcopy(resource)
+            __apply_delta_to_resource(id, resource, changes)
+            serializer = get_serializer(resource.block)
+            path = static_dir + '/resources_tmp/' + id
+            if settings_patch:
+                serializer.patch_settings(settings_patch)
+            serializer.serialize(resource, path)
+            return [str(x)[len(static_dir):]
+                    for x in chain(Path(path).glob("**/*"),
+                                   Path(path[:path.rindex('/')]).glob(
+                                       path[(path.rindex('/') + 1):] + '.*'))
+                    if not x.is_dir()]
 
         @eel.expose
-        def determine_8_bit_bitmap_palette(bitmap_id: str):
-            bitmap, _ = require_resource(bitmap_id)
-            palette = determine_palette_for_8_bit_bitmap(bitmap)
-            if palette:
-                return DataTransferSerializer().serialize(palette)
-            return None
+        def deserialize_resource(id: str):
+            if not state.serialized_files.get(id):
+                return
+            path, exported_file_paths, resource, top_level_resource, serializer = \
+                state.serialized_files[id]
+            serializer.deserialize(path, resource)
+            del state.serialized_files[id]
+            return DataTransferSerializer().serialize(top_level_resource)
 
-    eel.init('frontend/dist/gui')
+    eel.init(static_dir)
     init_eel_state()
     eel.start('index.html')
+    service_dir.cleanup()

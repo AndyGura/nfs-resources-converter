@@ -1,0 +1,14 @@
+.previewCanvasContainer {
+  width: 100%;
+  height: calc(100vh - 14rem);
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  canvas {
+    position: absolute;
+  }
+}
