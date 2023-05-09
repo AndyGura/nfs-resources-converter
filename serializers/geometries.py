@@ -6,19 +6,21 @@ from copy import deepcopy
 from string import Template
 from typing import Literal, List, Tuple
 
+from library.helpers.data_wrapper import DataWrapper
+from library.helpers.exceptions import BlockIntegrityException
 from library.read_data import ReadData
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
-from library.helpers.data_wrapper import DataWrapper
-from library.helpers.exceptions import BlockIntegrityException
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
 
+default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
 
-def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, vertices_file_indices_map,
-                  flip_texture=False, custom_uv=None):
+
+def _setup_vertex(model: SubMesh, block: ReadData[OripGeometry], vertices_file_indices_map, index_3D, index_2D,
+                  index_in_polygon):
     try:
         return vertices_file_indices_map[model][index_3D]
     except KeyError:
@@ -28,9 +30,9 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
     model.vertices.append([vertex.x.value, vertex.y.value, vertex.z.value])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
-    if custom_uv:
+    if index_2D is None:
         model.scaled_uvs.add(len(model.vertex_uvs))
-        uv = DataWrapper({ 'u': custom_uv[0], 'v': custom_uv[1] })
+        uv = DataWrapper({'u': default_uvs[index_in_polygon][0], 'v': default_uvs[index_in_polygon][1]})
     else:
         uv = DataWrapper({
             'u': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].u.value,
@@ -38,13 +40,6 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
         })
     model.vertex_uvs.append([uv.u, uv.v])
     return vertices_file_indices_map[model][index_3D]
-
-
-def _setup_polygon(model: SubMesh, block: OripGeometry, vertices_file_indices_map, offset_3D, offset_2D, *offsets,
-                   flip_texture=False, custom_uvs=None):
-    model.polygons.append(
-        [_setup_vertex(model, block, offset_3D + offset, offset_2D + offset, vertices_file_indices_map, flip_texture, custom_uv=custom_uvs[offset] if custom_uvs else None)
-         for offset in offsets])
 
 
 class OripGeometrySerializer(BaseFileSerializer):
@@ -92,40 +87,34 @@ for dummy in dummies:
                 sub_model.texture_id = texture_id
             offset_3D = polygon.offset_3d.value
             offset_2D = polygon.offset_2d.value
+
             is_triangle = (polygon_type & (0xff >> 5)) == 3
             is_quad = (polygon_type & (0xff >> 5)) == 4
+            use_uv = bool(normal & 16)  # 4th bit
+            flip_normal = bool(normal & 2)  # 7th bit
+            two_sided = bool(normal & 1)  # 8th bit
 
-            flip_uv = bool(normal & 32) # 3th bit
-            use_uv = bool(normal & 16) # 4th bit
-            flip_normal = bool(normal & 2) # 7th bit
-            two_sided = bool(normal & 1) # 8th bit
-
-            custom_uvs = None if use_uv else [(0, 0), (1, 0), (1, 1), (0, 1)]
+            def _setup_polygon(offsets):
+                sub_model.polygons.append([_setup_vertex(sub_model,
+                                                         data,
+                                                         vertices_file_indices_map,
+                                                         offset_3D + offset,
+                                                         (offset_2D + offset) if use_uv else None,
+                                                         offset)
+                                           for offset in offsets])
 
             if is_triangle:
-                if flip_normal:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                else:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                if two_sided:
-                    if flip_normal:
-                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                    else:
-                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                if two_sided or not flip_normal:
+                    _setup_polygon([0, 1, 2])
+                if two_sided or flip_normal:
+                    _setup_polygon([0, 2, 1])
             elif is_quad:
-                if flip_normal:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                else:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 3, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                if two_sided:
-                    if flip_normal:
-                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 3, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                    else:
-                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
-                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                if two_sided or not flip_normal:
+                    _setup_polygon([0, 1, 2])
+                    _setup_polygon([0, 2, 3])
+                if two_sided or flip_normal:
+                    _setup_polygon([0, 2, 1])
+                    _setup_polygon([0, 3, 2])
             elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon
                 continue
             else:
@@ -232,7 +221,9 @@ map_Kd assets/{texture.id.split('/')[-1]}.png""")
                 export_materials='EXPORT')
         run_blender(path=path,
                     script=script,
-                    out_blend_name=os.path.join(os.getcwd(), path, 'body') if self.settings.geometry__save_blend else None)
+                    out_blend_name=os.path.join(os.getcwd(), path, 'body')
+                    if self.settings.geometry__save_blend
+                    else None)
         if not self.settings.geometry__save_obj:
             os.unlink(f'{path}material.mtl')
             os.unlink(f'{path}geometry.obj')
