@@ -18,7 +18,7 @@ from serializers import BaseFileSerializer
 
 
 def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, vertices_file_indices_map,
-                  flip_texture=False):
+                  flip_texture=False, custom_uv=None):
     try:
         return vertices_file_indices_map[model][index_3D]
     except KeyError:
@@ -28,27 +28,31 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
     model.vertices.append([vertex.x.value, vertex.y.value, vertex.z.value])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
-    try:
-        uv = DataWrapper({
-            'u': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].u.value,
-            'v': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].v.value,
-        })
-    except IndexError:
+    if custom_uv:
         model.scaled_uvs.add(len(model.vertex_uvs))
-        uv = DataWrapper({
-            'u': 1 if len(model.vertex_uvs) % 4 > 1 else 0,
-            'v': 1 if len(model.vertex_uvs) % 2 == 1 else 0
-        })
-        if flip_texture:
-            uv = DataWrapper({'u': uv.v, 'v': uv.u})
+        uv = DataWrapper({ 'u': custom_uv[0], 'v': custom_uv[1] })
+    else:
+        try:
+            uv = DataWrapper({
+                'u': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].u.value,
+                'v': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].v.value,
+            })
+        except IndexError:
+            model.scaled_uvs.add(len(model.vertex_uvs))
+            uv = DataWrapper({
+                'u': 1 if len(model.vertex_uvs) % 4 > 1 else 0,
+                'v': 1 if len(model.vertex_uvs) % 2 == 1 else 0
+            })
+            if flip_texture:
+                uv = DataWrapper({'u': uv.v, 'v': uv.u})
     model.vertex_uvs.append([uv.u, uv.v])
     return vertices_file_indices_map[model][index_3D]
 
 
 def _setup_polygon(model: SubMesh, block: OripGeometry, vertices_file_indices_map, offset_3D, offset_2D, *offsets,
-                   flip_texture=False):
+                   flip_texture=False, custom_uvs=None):
     model.polygons.append(
-        [_setup_vertex(model, block, offset_3D + offset, offset_2D + offset, vertices_file_indices_map, flip_texture)
+        [_setup_vertex(model, block, offset_3D + offset, offset_2D + offset, vertices_file_indices_map, flip_texture, custom_uv=custom_uvs[offset] if custom_uvs else None)
          for offset in offsets])
 
 
@@ -123,9 +127,12 @@ for dummy in dummies:
                                    flip_texture=True)
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3,
                                    flip_texture=True)
-                elif normal in [0, 1, 16]:
+                elif normal in [16]:
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
                     _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
+                elif normal in [0, 1]:
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 2, custom_uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, custom_uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
                 else:
                     raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
             elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon
