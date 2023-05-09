@@ -14,6 +14,10 @@ export class EnumBlockUiComponent implements GuiComponentInterface {
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
+  isKnownEnumValue(value: string): boolean {
+    return !!this.resourceData?.block.enum_names.find(([_, v]: string[]) => v == value);
+  }
+
   constructor() {
   }
 

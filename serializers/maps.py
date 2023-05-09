@@ -195,11 +195,16 @@ class TriMapSerializer(BaseFileSerializer):
                         vertices_matrix_indices = 0, 1
                         # we have 4 points, but 5 items in matrix. last should obey mode of 4th point
                         mode = self.reference_points[min(j, 3)].spline_item_mode
-                        if mode == 'left_tunnel_A9_A4':
+                        # matrix_indices mapped as follows:
+                        # A10   A9  A8  A7  A6  A0  A1  A2  A3  A4  A5
+                        # 0     1   2   3   4   5   6   7   8   9   10
+                        if mode == 'left_tunnel_A4_A7':
+                            vertices_matrix_indices = 9, 3
+                        if mode == 'left_tunnel_A4_A8':
                             vertices_matrix_indices = 9, 2
-                        elif mode == 'left_tunnel_A9_A5':
+                        elif mode == 'left_tunnel_A5_A8':
                             vertices_matrix_indices = 10, 2
-                        elif mode == 'right_tunnel_A2_A9':
+                        elif mode == 'right_tunnel_A9_A2':
                             vertices_matrix_indices = 1, 7
                         if vertices_matrix_indices != (0, 1):
                             model.vertices[j] = [
