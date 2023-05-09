@@ -79,7 +79,7 @@ for dummy in dummies:
 
         for polygon in data.polygons_block:
             polygon_type = polygon.polygon_type.value
-            normal = polygon.normal.value
+            mapping = polygon.mapping.value
             texture_id = data.texture_names_block[polygon.texture_index.value].file_name.value
             sub_model = sub_models[texture_id]
             if not sub_model.name:
@@ -88,31 +88,27 @@ for dummy in dummies:
             offset_3D = polygon.offset_3d.value
             offset_2D = polygon.offset_2d.value
 
-            is_triangle = (polygon_type & (0xff >> 5)) == 3
-            is_quad = (polygon_type & (0xff >> 5)) == 4
-            use_uv = bool(normal & 16)  # 4th bit
-            flip_normal = bool(normal & 2)  # 7th bit
-            two_sided = bool(normal & 1)  # 8th bit
-
             def _setup_polygon(offsets):
                 sub_model.polygons.append([_setup_vertex(sub_model,
                                                          data,
                                                          vertices_file_indices_map,
                                                          offset_3D + offset,
-                                                         (offset_2D + offset) if use_uv else None,
+                                                         (offset_2D + offset) if mapping['use_uv'] else None,
                                                          offset)
                                            for offset in offsets])
 
-            if is_triangle:
-                if two_sided or not flip_normal:
+            if (polygon_type & (0xff >> 5)) == 3:
+                # triangle
+                if mapping['two_sided'] or not mapping['flip_normal']:
                     _setup_polygon([0, 1, 2])
-                if two_sided or flip_normal:
+                if mapping['two_sided'] or mapping['flip_normal']:
                     _setup_polygon([0, 2, 1])
-            elif is_quad:
-                if two_sided or not flip_normal:
+            elif (polygon_type & (0xff >> 5)) == 4:
+                # quad
+                if mapping['two_sided'] or not mapping['flip_normal']:
                     _setup_polygon([0, 1, 2])
                     _setup_polygon([0, 2, 3])
-                if two_sided or flip_normal:
+                if mapping['two_sided'] or mapping['flip_normal']:
                     _setup_polygon([0, 2, 1])
                     _setup_polygon([0, 3, 2])
             elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon

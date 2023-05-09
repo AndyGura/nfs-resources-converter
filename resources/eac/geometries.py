@@ -1,5 +1,5 @@
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import IntegerBlock, Utf8Block
+from library.read_blocks.atomic import IntegerBlock, Utf8Block, BitFlagsBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.literal import LiteralBlock
 from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4
@@ -14,12 +14,10 @@ class OripPolygon(CompoundBlock):
                                                 "polygon is a triangle. If xxx0_0100 - it's a quad. Also there is only "
                                                 "one polygon for entire TNFS with type == 2 in burnt sienna props. If "
                                                 "ignore this polygon everything still looks great")
-        normal = IntegerBlock(static_size=1, description="Strange field #2: no clue what it supposed to mean, TNFS "
-                                                         "doesnt have any shading so I don't believe they made a "
-                                                         "normal map back then. I assume that: values 17, 19 mean "
-                                                         "two-sided polygon; 18, 2, 3, 48, 50, 10, 6 - default polygon "
-                                                         "in order (0-1-2); 0, 1, 16 - back-faced polygon (order is "
-                                                         "0-2-1)")
+        mapping = BitFlagsBlock(flag_names=[(0, 'two_sided'),
+                                            (1, 'flip_normal'),
+                                            (4, 'use_uv')],
+                                description='Rendering properties of the polygon')
         texture_index = IntegerBlock(static_size=1, is_signed=False,
                                      description="The index of item in ORIP's texture_names block")
         unk = IntegerBlock(static_size=1)
@@ -124,8 +122,10 @@ class OripGeometry(CompoundBlock):
         texture_number_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of texture numbers')
         texture_number_block_offset = IntegerBlock(static_size=4, is_signed=False,
                                                    description='An offset to texture numbers block')
-        render_order_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of items in render_order block')
-        render_order_block_offset = IntegerBlock(static_size=4, is_signed=False, description='Offset of render_order block')
+        render_order_count = IntegerBlock(static_size=4, is_signed=False,
+                                          description='Amount of items in render_order block')
+        render_order_block_offset = IntegerBlock(static_size=4, is_signed=False,
+                                                 description='Offset of render_order block')
         polygon_vertex_map_block_offset = IntegerBlock(static_size=4, is_signed=False,
                                                        description='Offset of polygon_vertex_map block')
         unk0_count = IntegerBlock(static_size=4, is_signed=False, description='Amount of items in unk1 block')
@@ -167,8 +167,8 @@ class OripGeometry(CompoundBlock):
                                                           " a lookup to this table, and value from here is an index of "
                                                           "item in vertex_uvs_block")
 
-        unknown_fields = ['unk0', 'unk1', 'unknowns0', 'identifier', 'unknowns1', 'texture_number_map_block', 'unk0_block',
-                          'labels_block']
+        unknown_fields = ['unk0', 'unk1', 'unknowns0', 'identifier', 'unknowns1', 'texture_number_map_block',
+                          'unk0_block', 'labels_block']
 
     def _after_unknowns1_read(self, data, buffer, state, **kwargs):
         if not state.get('polygons_block'):
