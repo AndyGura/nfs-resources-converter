@@ -17,7 +17,7 @@ import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs'
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
-import { AmbientLight, ClampToEdgeWrapping, DoubleSide, Material, Mesh, MeshBasicMaterial } from 'three';
+import { AmbientLight, ClampToEdgeWrapping, Material, Mesh, MeshBasicMaterial } from 'three';
 import { MainService } from '../../../../services/main.service';
 
 @Component({
@@ -167,8 +167,6 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
             m.map.wrapT = ClampToEdgeWrapping;
             m.map.needsUpdate = true;
           }
-          // FIXME remove workaround for normals
-          m.side = DoubleSide;
         }
       }
     });

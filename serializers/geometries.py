@@ -94,38 +94,38 @@ for dummy in dummies:
             offset_2D = polygon.offset_2d.value
             is_triangle = (polygon_type & (0xff >> 5)) == 3
             is_quad = (polygon_type & (0xff >> 5)) == 4
+
+            flip_uv = bool(normal & 32) # 3th bit
+            use_uv = bool(normal & 16) # 4th bit
+            flip_normal = bool(normal & 2) # 7th bit
+            two_sided = bool(normal & 1) # 8th bit
+
+            custom_uvs = None if use_uv else [(0, 0), (1, 0), (1, 1), (0, 1)]
+
             if is_triangle:
-                if normal in [17, 19]:
-                    # two sided polygon
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
-                elif normal in [18, 2, 3, 48, 50]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2,
-                                   flip_texture=True)
-                elif normal in [0, 1, 16]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
+                if flip_normal:
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
                 else:
-                    raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                if two_sided:
+                    if flip_normal:
+                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                    else:
+                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
             elif is_quad:
-                if normal in [0, 1, 2, 3, 6, 10]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 2, custom_uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, custom_uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
-                elif normal in [16]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
-                elif normal in [17, 19]:
-                    # two sided polygon
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
-                elif normal in [18, 48, 50]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3,
-                                   flip_texture=True)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3,
-                                   flip_texture=True)
+                if flip_normal:
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
                 else:
-                    raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 3, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                if two_sided:
+                    if flip_normal:
+                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 3, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                    else:
+                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1, flip_texture=flip_uv, custom_uvs=custom_uvs)
+                        _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 2, flip_texture=flip_uv, custom_uvs=custom_uvs)
             elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon
                 continue
             else:
