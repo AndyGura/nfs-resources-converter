@@ -6,19 +6,21 @@ from copy import deepcopy
 from string import Template
 from typing import Literal, List, Tuple
 
+from library.helpers.data_wrapper import DataWrapper
+from library.helpers.exceptions import BlockIntegrityException
 from library.read_data import ReadData
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
-from library.helpers.data_wrapper import DataWrapper
-from library.helpers.exceptions import BlockIntegrityException
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
 
+default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
 
-def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, vertices_file_indices_map,
-                  flip_texture=False):
+
+def _setup_vertex(model: SubMesh, block: ReadData[OripGeometry], vertices_file_indices_map, index_3D, index_2D,
+                  index_in_polygon):
     try:
         return vertices_file_indices_map[model][index_3D]
     except KeyError:
@@ -28,28 +30,16 @@ def _setup_vertex(model: SubMesh, block: OripGeometry, index_3D, index_2D, verti
     model.vertices.append([vertex.x.value, vertex.y.value, vertex.z.value])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
-    try:
+    if index_2D is None:
+        model.scaled_uvs.add(len(model.vertex_uvs))
+        uv = DataWrapper({'u': default_uvs[index_in_polygon][0], 'v': default_uvs[index_in_polygon][1]})
+    else:
         uv = DataWrapper({
             'u': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].u.value,
             'v': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].v.value,
         })
-    except IndexError:
-        model.scaled_uvs.add(len(model.vertex_uvs))
-        uv = DataWrapper({
-            'u': 1 if len(model.vertex_uvs) % 4 > 1 else 0,
-            'v': 1 if len(model.vertex_uvs) % 2 == 1 else 0
-        })
-        if flip_texture:
-            uv = DataWrapper({'u': uv.v, 'v': uv.u})
     model.vertex_uvs.append([uv.u, uv.v])
     return vertices_file_indices_map[model][index_3D]
-
-
-def _setup_polygon(model: SubMesh, block: OripGeometry, vertices_file_indices_map, offset_3D, offset_2D, *offsets,
-                   flip_texture=False):
-    model.polygons.append(
-        [_setup_vertex(model, block, offset_3D + offset, offset_2D + offset, vertices_file_indices_map, flip_texture)
-         for offset in offsets])
 
 
 class OripGeometrySerializer(BaseFileSerializer):
@@ -89,7 +79,7 @@ for dummy in dummies:
 
         for polygon in data.polygons_block:
             polygon_type = polygon.polygon_type.value
-            normal = polygon.normal.value
+            mapping = polygon.mapping.value
             texture_id = data.texture_names_block[polygon.texture_index.value].file_name.value
             sub_model = sub_models[texture_id]
             if not sub_model.name:
@@ -97,37 +87,30 @@ for dummy in dummies:
                 sub_model.texture_id = texture_id
             offset_3D = polygon.offset_3d.value
             offset_2D = polygon.offset_2d.value
-            is_triangle = (polygon_type & (0xff >> 5)) == 3
-            is_quad = (polygon_type & (0xff >> 5)) == 4
-            if is_triangle:
-                if normal in [17, 19]:
-                    # two sided polygon
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
-                elif normal in [18, 2, 3, 48, 50]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 2,
-                                   flip_texture=True)
-                elif normal in [0, 1, 16]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 2, 1)
-                else:
-                    raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
-            elif is_quad:
-                if normal in [17, 19]:
-                    # two sided polygon
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
-                elif normal in [18, 2, 3, 48, 50, 10, 6]:  # 10, 6 are unknown. Placed here for testing and looks good
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 1, 3,
-                                   flip_texture=True)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 2, 3,
-                                   flip_texture=True)
-                elif normal in [0, 1, 16]:
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 0, 3, 1)
-                    _setup_polygon(sub_model, data, vertices_file_indices_map, offset_3D, offset_2D, 1, 3, 2)
-                else:
-                    raise NotImplementedError(f'Unknown normal: {normal}, polygon type: {polygon_type}')
+
+            def _setup_polygon(offsets):
+                sub_model.polygons.append([_setup_vertex(sub_model,
+                                                         data,
+                                                         vertices_file_indices_map,
+                                                         offset_3D + offset,
+                                                         (offset_2D + offset) if mapping['use_uv'] else None,
+                                                         offset)
+                                           for offset in offsets])
+
+            if (polygon_type & (0xff >> 5)) == 3:
+                # triangle
+                if mapping['two_sided'] or not mapping['flip_normal']:
+                    _setup_polygon([0, 1, 2])
+                if mapping['two_sided'] or mapping['flip_normal']:
+                    _setup_polygon([0, 2, 1])
+            elif (polygon_type & (0xff >> 5)) == 4:
+                # quad
+                if mapping['two_sided'] or not mapping['flip_normal']:
+                    _setup_polygon([0, 1, 2])
+                    _setup_polygon([0, 2, 3])
+                if mapping['two_sided'] or mapping['flip_normal']:
+                    _setup_polygon([0, 2, 1])
+                    _setup_polygon([0, 3, 2])
             elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon
                 continue
             else:
@@ -234,7 +217,9 @@ map_Kd assets/{texture.id.split('/')[-1]}.png""")
                 export_materials='EXPORT')
         run_blender(path=path,
                     script=script,
-                    out_blend_name=os.path.join(os.getcwd(), path, 'body') if self.settings.geometry__save_blend else None)
+                    out_blend_name=os.path.join(os.getcwd(), path, 'body')
+                    if self.settings.geometry__save_blend
+                    else None)
         if not self.settings.geometry__save_obj:
             os.unlink(f'{path}material.mtl')
             os.unlink(f'{path}geometry.obj')

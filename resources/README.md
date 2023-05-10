@@ -113,7 +113,7 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **polygon_type** | 1 | 1-byte unsigned integer | Huh, that's a srange field. From my tests, if it is xxx0_0011, the polygon is a triangle. If xxx0_0100 - it's a quad. Also there is only one polygon for entire TNFS with type == 2 in burnt sienna props. If ignore this polygon everything still looks great |
-| 1 | **normal** | 1 | 1-byte unsigned integer | Strange field #2: no clue what it supposed to mean, TNFS doesnt have any shading so I don't believe they made a normal map back then. I assume that: values 17, 19 mean two-sided polygon; 18, 2, 3, 48, 50, 10, 6 - default polygon in order (0-1-2); 0, 1, 16 - back-faced polygon (order is 0-2-1) |
+| 1 | **mapping** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: two_sided<br/>1: flip_normal<br/>4: use_uv</details> | Rendering properties of the polygon |
 | 2 | **texture_index** | 1 | 1-byte unsigned integer | The index of item in ORIP's texture_names block |
 | 3 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 4 | **offset_3d** | 4 | 4-bytes unsigned integer (little endian) | The index in polygon_vertex_map_block ORIP's table. This index represents first vertex of this polygon, so in order to determine all vertex we load next 2 or 3 (if quad) indexes from polygon_vertex_map. Look at polygon_vertex_map_block description for more info |
