@@ -609,16 +609,22 @@ if $save_collisions:
                      for o in data.proxy_object_instances
                      if len(data.terrain) * 4 > o.reference_road_spline_vertex.value >= 0]),
             })
+        road_path_settings = {
+            'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
+            'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
+        }
+        if is_opened_track:
+            # a terminal road path point: when go backwards, race ends after this point
+            road_path_settings['start_point_index'] = 12
+            # a finish road path point
+            road_path_settings['finish_point_index'] = data.terrain_length.value * 4 - 179
         blender_script += '\n\n\n\n' + self.blender_map_script.substitute({
             'new_file': self.settings.maps__save_as_chunked,
             'save_collisions': self.settings.maps__save_collisions,
             'road_path_points': ', '.join(
                 [f'({block.position.x.value}, {block.position.y.value}, {block.position.z.value})' for block in
                  data.road_spline[:len(data.terrain) * 4]]),
-            'road_path_settings': json.dumps({
-                'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
-                'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
-            }),
+            'road_path_settings': json.dumps(road_path_settings),
             # AL1, CL1, CY1, BS, VR - looks ok
             # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
             # FINISH POSITION IS UNKNOWN: CY1 road spline vertex #1740
