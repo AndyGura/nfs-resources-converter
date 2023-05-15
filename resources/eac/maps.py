@@ -233,8 +233,10 @@ class TriMap(CompoundBlock):
         road_spline = ArrayBlock(child=RoadSplinePoint(), length=2400,
                                  description="Road spline is a series of points in 3D space, located at the center of "
                                              "road. Around this spline the track terrain mesh is built. TRI always has "
-                                             "2400 elements, however it uses some amount of vertices, after them "
-                                             "records filled with zeros")
+                                             "2400 elements, however it uses only amount of vertices, equals to "
+                                             "(terrain_length * 4), after them records filled with zeros. For opened "
+                                             "tracks, finish line will be always located at spline point "
+                                             "(terrain_length * 4 - 179)")
         ai_info = ArrayBlock(child=AIEntry(), length=600)
         proxy_objects_count = IntegerBlock(static_size=4, is_signed=False)
         proxy_object_instances_count = IntegerBlock(static_size=4, is_signed=False)
@@ -261,22 +263,27 @@ class TriMap(CompoundBlock):
         state['proxy_object_instances']['length'] = data['proxy_object_instances_count'].value
 
     def list_custom_actions(self):
-        return [*super().list_custom_actions(), {
-            'method': 'reverse_track',
-            'title': 'Reverse track',
-            'description': 'Makes this track to go backwards',
-            'args': [],
-        }, {
-                    'method': 'flatten_track',
-                    'title': 'Flatten track',
-                    'description': 'Makes track super flat: going forward without turns, slopes and slants',
-                    'args': [],
-                }, {
-                    'method': 'scale_track',
-                    'title': 'Scale track length',
-                    'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
-                    'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
-                }, ]
+        return [
+            *super().list_custom_actions(),
+            {
+                'method': 'reverse_track',
+                'title': 'Reverse track',
+                'description': 'Makes this track to go backwards',
+                'args': [],
+            },
+            {
+                'method': 'flatten_track',
+                'title': 'Flatten track',
+                'description': 'Makes track super flat: going forward without turns, slopes and slants',
+                'args': [],
+            },
+            {
+                'method': 'scale_track',
+                'title': 'Scale track length',
+                'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
+                'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
+            },
+        ]
 
     def action_reverse_track(self, read_data):
         # FIXME lane merge/split are broken. Is it possible to fix?
@@ -401,8 +408,8 @@ class TriMap(CompoundBlock):
                 prop.rotation.value += 2 * pi
             sine, cosine = sin(road_vertex.orientation.value), cos(road_vertex.orientation.value)
             prop.position.x.value, prop.position.z.value = (
-            prop.position.x.value * cosine - prop.position.z.value * sine,
-            prop.position.x.value * sine + prop.position.z.value * cosine)
+                prop.position.x.value * cosine - prop.position.z.value * sine,
+                prop.position.x.value * sine + prop.position.z.value * cosine)
 
         for i, road_vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
             road_vertex.position.x.value = road_vertex.position.y.value = 0
