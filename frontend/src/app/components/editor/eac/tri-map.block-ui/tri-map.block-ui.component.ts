@@ -443,7 +443,8 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         'geometry__save_blend': false,
         'geometry__export_to_gg_web_engine': true,
         'maps__save_as_chunked': true,
-        'maps__save_collisions': false,
+        'maps__save_invisible_wall_collisions': false,
+        'maps__save_terrain_collisions': false,
         'maps__save_spherical_skybox_texture': true,
       });
       this.previewGlbPath = paths.find(x => x.endsWith('map.glb'))!;
@@ -504,7 +505,8 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
           'geometry__save_blend': false,
           'geometry__export_to_gg_web_engine': true,
           'maps__save_as_chunked': true,
-          'maps__save_collisions': false,
+          'maps__save_invisible_wall_collisions': false,
+          'maps__save_terrain_collisions': false,
           'maps__save_spherical_skybox_texture': true,
         });
       this.previewGlbPath = paths.find(x => x.endsWith('map.glb'))!;

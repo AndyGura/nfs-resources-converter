@@ -326,7 +326,7 @@ o.rotation_quaternion = Euler((player_start_position['rotation_x'], 0, 0), 'XYZ'
 
    
 # barriers collisions
-if $save_collisions:
+if $save_invisible_wall_collisions:
     print('defining wall collisions...')
     left_barrier = json.loads('$left_barrier')
     right_barrier = json.loads('$right_barrier')
@@ -389,7 +389,7 @@ def find_terrain_chunks():
     return [x for x in bpy.data.objects if pattern.match(x.name)]
     
 # terrain collisions
-if $save_collisions:
+if $save_terrain_collisions:
     bpy.ops.object.select_all(action='DESELECT')
     is_active_set = False
     objects = find_terrain_chunks()
@@ -519,7 +519,7 @@ if $save_collisions:
             terrain_data_entry['meshes'] = terrain_data_entry['chunk'].build_models(i,
                                                                                     terrain_data_entry['texture_names'])
 
-        if self.settings.maps__save_collisions:
+        if self.settings.maps__save_invisible_wall_collisions:
             left_barrier_points = self.BarrierPath(
                 [[rp.position.x.value + rp.left_barrier_distance.value * math.cos(rp.orientation.value + math.pi),
                   rp.position.y.value,
@@ -550,7 +550,7 @@ if $save_collisions:
         for spline_point in data.road_spline[:len(data.terrain) * 4]:
             (spline_point.position.z, spline_point.position.y) = (spline_point.position.y, spline_point.position.z)
             spline_point.orientation.value = -spline_point.orientation.value
-        if self.settings.maps__save_collisions:
+        if self.settings.maps__save_invisible_wall_collisions:
             if right_barrier_points:
                 right_barrier_points.points = [[p[0], p[2], p[1]] for p in right_barrier_points.points]
                 right_barrier_points.z_up = True
@@ -577,7 +577,8 @@ if $save_collisions:
                         face_index_increment = face_index_increment + len(sub_model.vertices)
                 blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                     'new_file': True,
-                    'save_collisions': self.settings.maps__save_collisions,
+                    'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
+                    'save_terrain_collisions': self.settings.maps__save_terrain_collisions,
                     'obj_name': f'terrain_chunk_{i}.obj',
                     'proxy_objects_json': json.dumps(
                         [self._proxy_object_instance_json(data, o, is_opened_track, True)
@@ -602,7 +603,8 @@ if $save_collisions:
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,
-                'save_collisions': self.settings.maps__save_collisions,
+                'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
+                'save_terrain_collisions': self.settings.maps__save_terrain_collisions,
                 'obj_name': 'terrain.obj',
                 'proxy_objects_json': json.dumps(
                     [self._proxy_object_instance_json(data, o, is_opened_track, False)
@@ -612,6 +614,8 @@ if $save_collisions:
         road_path_settings = {
             'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
             'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
+            'left_barrier_distance': [block.left_barrier_distance.value for block in data.road_spline[:len(data.terrain) * 4]],
+            'right_barrier_distance': [block.right_barrier_distance.value for block in data.road_spline[:len(data.terrain) * 4]],
         }
         if is_opened_track:
             # a terminal road path point: when go backwards, race ends after this point
@@ -620,7 +624,8 @@ if $save_collisions:
             road_path_settings['finish_point_index'] = data.terrain_length.value * 4 - 179
         blender_script += '\n\n\n\n' + self.blender_map_script.substitute({
             'new_file': self.settings.maps__save_as_chunked,
-            'save_collisions': self.settings.maps__save_collisions,
+            'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
+            'save_terrain_collisions': self.settings.maps__save_terrain_collisions,
             'road_path_points': ', '.join(
                 [f'({block.position.x.value}, {block.position.y.value}, {block.position.z.value})' for block in
                  data.road_spline[:len(data.terrain) * 4]]),
@@ -644,13 +649,13 @@ if $save_collisions:
                 'middle_points': left_barrier_points.middle_points,
                 'lengths': left_barrier_points.lengths,
                 'orientations': left_barrier_points.orientations,
-            }) if self.settings.maps__save_collisions else 'null',
+            }) if self.settings.maps__save_invisible_wall_collisions else 'null',
             'right_barrier': json.dumps({
                 'points': right_barrier_points.points,
                 'middle_points': right_barrier_points.middle_points,
                 'lengths': right_barrier_points.lengths,
                 'orientations': right_barrier_points.orientations,
-            }) if self.settings.maps__save_collisions else 'null',
+            }) if self.settings.maps__save_invisible_wall_collisions else 'null',
         })
         if self.settings.geometry__export_to_gg_web_engine:
             from serializers.misc.build_blender_scene import construct_blender_export_script

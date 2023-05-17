@@ -49,7 +49,8 @@ audio__save_car_sfx_loops = False
 # If false builds entire map into single file
 maps__save_as_chunked = False
 # places boxes with collision, where invisible wall is located
-maps__save_collisions = False  # this one will consume time...
+maps__save_invisible_wall_collisions = False  # this one will consume time...
+maps__save_terrain_collisions = False
 # alongside with horz.png, save spherical.png, suitable to be used as sky spherical texture
 maps__save_spherical_skybox_texture = True
 
