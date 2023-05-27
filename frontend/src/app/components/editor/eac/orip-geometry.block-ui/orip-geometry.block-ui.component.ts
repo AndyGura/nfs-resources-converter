@@ -72,12 +72,6 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
         background: 0xaaaaaa,
       }
     );
-    this.renderer.camera.position = { x: 1, y: 4, z: 1.5 };
-    this.renderer.camera.rotation = Qtrn.lookAt(this.renderer.camera.position, { x: 0, y: 0, z: 0 }, {
-      x: 0,
-      y: 0,
-      z: 1
-    });
     this.world.addEntity(this.renderer);
     this.controller = new OrbitCameraController(this.renderer.camera, { mouseOptions: { canvas: this.previewCanvas.nativeElement } });
     this.world.addEntity(this.controller);
@@ -173,19 +167,11 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     this.entity = new Gg3dEntity(new Gg3dObject(object), null);
     this.world.addEntity(this.entity);
 
-    this.world.removeEntity(this.controller);
     const bounds = this.entity.object3D!.getBoundings();
-    const center = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
-    this.renderer.camera.position = Pnt3.add(center, Pnt3.scalarMult(Pnt3.norm({
-      x: 1,
-      y: -4,
-      z: 1.5
-    }), Pnt3.dist(bounds.min, bounds.max)));
-    this.controller = new OrbitCameraController(this.renderer.camera, {
-      mouseOptions: { canvas: this.previewCanvas.nativeElement },
-      target: center
-    });
-    this.world.addEntity(this.controller);
+    this.controller.target = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
+    this.controller.radius = Pnt3.dist(bounds.min, bounds.max);
+    this.controller.theta = -1.32;
+    this.controller.phi = 1.22;
     this.cdr.markForCheck();
   }
 

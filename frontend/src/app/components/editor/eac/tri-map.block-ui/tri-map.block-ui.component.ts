@@ -345,7 +345,11 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       mouseOptions: {
         canvas: this.previewCanvas.nativeElement,
         pointerLock: true
-      }, keymap: 'wasd+arrows', movementOptions: { speed: 1 }
+      },
+      keymap: 'wasd+arrows',
+      movementOptions: { speed: 1 },
+      ignoreMouseUnlessPointerLocked: true,
+      ignoreKeyboardUnlessPointerLocked: true,
     });
     this.world.addEntity(this.controller);
     const updateSize = () => {
