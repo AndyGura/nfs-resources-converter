@@ -50,44 +50,84 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         # FIXME not supported operations listed below:
         # does not support adding/removing bitmaps
         # does not support changed image dimensions
-        # does not support changed palette size
         # does not support cases where 8-bitmaps use different palette (is it even possible?)
         # totally breaks car tail lights (TNFS)
-        # can break transparency
         # tested with only 8bit images (TNFS shpi archives)
         from resources.eac.bitmaps import Bitmap8Bit, AnyBitmapBlock
         from resources.eac.palettes import BasePalette
-        bitmaps_8bit = [(index, read_data) for (index, read_data) in enumerate(resource.value.children) if
+        bitmaps_8bit = [read_data for (_, read_data) in enumerate(resource.value.children) if
                         isinstance(read_data.block, Bitmap8Bit)]
         if len(bitmaps_8bit) > 0:
             shpi_pal = [read_data for read_data in resource.value.children if isinstance(read_data.block, BasePalette)][
                 0]
             if quantize_new_palette:
+                # build a new palette for SHPI
                 from PIL import Image
                 from collections import Counter
+                from resources.eac.palettes import transparency_colors
+                from serializers.bitmaps import BitmapWithPaletteSerializer
                 individual_palettes = []
-                for img_path in (os.path.join(path, image.id.split('/')[-1] + '.png') for (_, image) in bitmaps_8bit):
-                    src = Image.open(img_path)
-                    img = Image.new("RGB", src.size, (255, 0, 255))
+                # open all 8bit images
+                images_8bit = [Image.open(img_path) for img_path in (os.path.join(path, image.id.split('/')[-1] + '.png') for image in bitmaps_8bit)]
+                # find unused color for marking transparency
+                all_colors = set()
+                for src in images_8bit:
+                    all_colors.union({(x[0] << 24) + (x[1] << 16) + (x[2] << 8) + x[3] for _, x in src.getcolors(src.size[0] * src.size[1])})
+                # pick transparent color
+                transparent = 0xff
+                for c in transparency_colors:
+                    if c not in all_colors:
+                        transparent = c
+                        break
+                tail_lights_color = 0
+                if any(BitmapWithPaletteSerializer.has_tail_lights(read_data) for read_data in bitmaps_8bit):
+                    for c in transparency_colors:
+                        if c not in all_colors and c != transparent:
+                            tail_lights_color = c
+                            break
+                # quantize all images to 256 colors, transparency replaced with solid color, picked above
+                for i, src in enumerate(images_8bit):
+                    img = Image.new(
+                        "RGB",
+                        src.size,
+                        ((tail_lights_color & 0xff000000) >> 24, (tail_lights_color & 0xff0000) >> 16, (tail_lights_color & 0xff00) >> 8)
+                        if BitmapWithPaletteSerializer.has_tail_lights(bitmaps_8bit[i])
+                        else ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16, (transparent & 0xff00) >> 8)
+                    )
                     img.paste(src, mask=src.split()[3])
                     quantized_img = img.quantize(colors=256)
                     pil_palette = quantized_img.getpalette()
                     individual_palettes.append(
                         [(pil_palette[i] << 24) + (pil_palette[i + 1] << 16) + (pil_palette[i + 2] << 8) + 0xff for i in
                          range(0, len(pil_palette), 3)])
+                # calculating common palette among images
                 all_colors = sum(individual_palettes, [])
                 color_counts = Counter(all_colors)
                 most_common_colors = color_counts.most_common(256)
                 palette = [color[0] for color in most_common_colors]
-                palette_colors = [] + palette
-                if len(palette_colors) < 256:
-                    palette_colors += [0] * (256 - len(palette_colors))
+                if len(palette) < 256:
+                    palette += [0] * (256 - len(palette))
+                # place transparent color in the end
+                try:
+                    idx = palette.index(transparent)
+                    palette = palette[:idx] + palette[(idx + 1):] + [transparent]
+                except ValueError:
+                    palette[-1] = transparent
+                if tail_lights_color:
+                    try:
+                        idx = palette.index(tail_lights_color)
+                        palette = palette[:idx] + palette[(idx + 1):-1] + [tail_lights_color, transparent]
+                    except ValueError:
+                        palette[-2] = tail_lights_color
+                # write new palette to SHPI !PAL resource
                 shpi_pal.value.colors.value = [ReadData(value=x,
                                                         block_state={'id': resource.id + '/palette/colors/' + str(i)},
                                                         block=shpi_pal.block.instance_fields_map['colors'].child,
-                                                        ) for i, x in enumerate(palette_colors)]
+                                                        ) for i, x in enumerate(palette)]
             else:
+                # use SHPI !PAL resource
                 palette = [x.value for x in shpi_pal.colors]
+        # build images one by one with provided palette
         for image in (read_data for read_data in resource.value.children if
                       isinstance(read_data.block, AnyBitmapBlock)):
             serializer = serializers.get_serializer(image.block)

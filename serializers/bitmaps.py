@@ -18,6 +18,10 @@ class BitmapSerializer(BaseFileSerializer):
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
+    @staticmethod
+    def has_tail_lights(data: ReadData[Bitmap8Bit]):
+        return data.id[-4:] in ['rsid', 'lite'] and '.CFM' in data.id
+
     def serialize(self, data: ReadData[Bitmap8Bit], path: str):
         super().serialize(data, path)
         palette = determine_palette_for_8_bit_bitmap(data)
@@ -27,7 +31,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         palette_colors = [c.value for c in palette.colors]
         if getattr(palette, 'last_color_transparent', False):
             palette_colors[255] = 0
-        if data.id[-4:] in ['rsid', 'lite'] and '.CFM' in data.id:
+        if self.has_tail_lights(data):
             # NFS1 car tail lights: make transparent
             try:
                 palette_colors[254] = 0

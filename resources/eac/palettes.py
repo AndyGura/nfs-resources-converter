@@ -10,39 +10,37 @@ from resources.eac.fields.colors import (
     Color16Bit0565Block,
 )
 
-
-# TODO probably this flag is somewhere in image resource, need to find it
-def is_last_color_transparent(color):
-    return color in [
-        # green-ish
-        0x00_EA_1C_FF,  # TNFS lost vegas map props
-        0x00_EB_1C_FF,  # TNFS lost vegas map props
-        # 0x00_FB_00_FF,  # NFS2 GAMEDATA/TRACKS/SE/TR050M TODO not working, there is Bitmap 0565 without alpha
-        0x00_FF_00_FF,
-        0x04_FF_00_FF,
-        0x0C_FF_00_FF,
-        0x24_ff_10_FF,  # TNFS TRAFFC.CFM
-        0x28_FF_28_FF,
-        0x28_FF_2C_FF,
-        # blue
-        0x00_00_FF_FF,
-        0x00_00_FC_FF,  # TNFS Porsche 911 CFM
-        # light blue
-        0x00_FF_FF_FF,
-        0x1a_ff_ff_ff,  # NFS2SE TRACKS/PC/TR000M.QFS
-        0x48_ff_ff_FF,  # NFS2SE TRACKS/PC/TR020M.QFS
-        # purple
-        0xCE_1C_C6_FF,  # some TNFS map props
-        0xF2_00_FF_FF,
-        0xFF_00_F7_FF,  # TNFS AL2 map props
-        0xFF_00_FF_FF,
-        0xFF_00_F6_FF,  # TNFS NTRACKFM/AL3_T01.FAM map props
-        0xFF_31_59_FF,  # TNFS ETRACKFM/CL3_001.FAM road sign
-        # gray
-        0x28_28_28_FF,  # car wheels
-        0xFF_FF_FF_FF,  # map props
-        0x00_00_00_FF,  # some menu items: SHOW/DIABLO.QFS
-    ]
+transparency_colors = [
+    # default
+    0xFF_00_FF_FF,
+    0x00_FF_00_FF,
+    0x00_00_FF_FF,
+    # green-ish
+    0x00_EA_1C_FF,  # TNFS lost vegas map props
+    0x00_EB_1C_FF,  # TNFS lost vegas map props
+    # 0x00_FB_00_FF,  # NFS2 GAMEDATA/TRACKS/SE/TR050M, not working, there is Bitmap 0565 without alpha
+    0x04_FF_00_FF,
+    0x0C_FF_00_FF,
+    0x24_ff_10_FF,  # TNFS TRAFFC.CFM
+    0x28_FF_28_FF,
+    0x28_FF_2C_FF,
+    # blue
+    0x00_00_FC_FF,  # TNFS Porsche 911 CFM
+    # light blue
+    0x00_FF_FF_FF,
+    0x1a_ff_ff_ff,  # NFS2SE TRACKS/PC/TR000M.QFS
+    0x48_ff_ff_FF,  # NFS2SE TRACKS/PC/TR020M.QFS
+    # purple
+    0xCE_1C_C6_FF,  # some TNFS map props
+    0xF2_00_FF_FF,
+    0xFF_00_F7_FF,  # TNFS AL2 map props
+    0xFF_00_F6_FF,  # TNFS NTRACKFM/AL3_T01.FAM map props
+    0xFF_31_59_FF,  # TNFS ETRACKFM/CL3_001.FAM road sign
+    # gray
+    0x28_28_28_FF,  # car wheels
+    0xFF_FF_FF_FF,  # map props
+    0x00_00_00_FF,  # some menu items: SHOW/DIABLO.QFS
+]
 
 
 class BasePalette(CompoundBlock, ABC):
@@ -57,7 +55,7 @@ class BasePalette(CompoundBlock, ABC):
         res = super().from_raw_value(raw, state)
         res.last_color_transparent = False
         try:
-            if self.can_use_last_color_as_transparent and is_last_color_transparent(res.colors[255]):
+            if self.can_use_last_color_as_transparent and res.colors[255] in transparency_colors:
                 res.last_color_transparent = True
         except IndexError:
             pass
@@ -71,7 +69,7 @@ class PaletteReference(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7C, description='Resource ID')
         unknowns = ArrayBlock(length=7, child=IntegerBlock(static_size=1, simplified=True))
-        
+
         unknown_fields = ['unknowns']
 
     def __init__(self, **kwargs):
