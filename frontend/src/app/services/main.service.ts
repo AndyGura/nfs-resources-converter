@@ -84,16 +84,24 @@ export class MainService {
     });
   }
 
-  public async runCustomAction(readData: ReadData, action: CustomAction, args: { [key: string]: any }) {
+  private async processExternalChanges(call: () => Promise<ReadData | ReadError>): Promise<ReadData | ReadError> {
     this.customActionRunning$.next(true);
-    const res: ReadData | ReadError = await this.eelDelegate.runCustomAction(readData, action, args);
+    const res: ReadData | ReadError = await call();
     if (!!(res as ReadError).error_class) {
       this.customActionRunning$.next(false);
       throw res;
     }
-    merge(readData, res);
-    this.changedDataBlocks['__custom_action_performed__'] = 1;
+    merge(this.resourceData$.getValue()!, res);
+    this.changedDataBlocks['__has_external_changes__'] = 1;
     this.customActionRunning$.next(false);
     return res;
+  }
+
+  public async runCustomAction(action: CustomAction, args: { [key: string]: any }) {
+    return this.processExternalChanges(() => this.eelDelegate.runCustomAction(this.resourceData$.getValue()!, action, args));
+  }
+
+  public async deserializeResource(id: string) {
+    return this.processExternalChanges(() => this.eelDelegate.deserializeResource(id));
   }
 }

@@ -37,6 +37,10 @@ export class EelDelegateService {
     this.openedResourcePath$.next(path);
   }
 
+  public async openFileWithSystemApp(path: string) {
+    await eel['open_file_with_system_app'](path)();
+  }
+
   public async runCustomAction(readData: ReadData, action: CustomAction, args: { [key: string]: any }) {
     return eel['run_custom_action'](readData.block_id, action, args)();
   }
@@ -53,7 +57,7 @@ export class EelDelegateService {
     return eel['serialize_resource_tmp'](id, changes, settingsPatch)();
   }
 
-  public async deserializeResource(id: string): Promise<void> {
-    this.openedResource$.next(await eel['deserialize_resource'](id)());
+  public async deserializeResource(id: string): Promise<ReadData | ReadError> {
+    return eel['deserialize_resource'](id)();
   }
 }

@@ -179,3 +179,17 @@ class ExplicitOffsetsArrayBlock(ArrayBlock):
             }
             res.append(self.child.read(buffer, self.get_item_length(state, i, end_offset), child_state))
         return res
+
+    def to_raw_value(self, data: ReadData) -> bytes:
+        res = bytes()
+        # FIXME relativity of offsets is unknown here. For now assuming that first item starts immediately
+        relative_offsets = [x - data.block_state['offsets'][0] for x in data.block_state['offsets']]
+        for item, relative_offset in zip(data, relative_offsets):
+            if isinstance(item, Exception):
+                raise SerializationException('Cannot serialize block with errors')
+            if relative_offset > len(res):
+                res += bytes(relative_offset - len(res))
+            elif relative_offset < len(res):
+                raise SerializationException('ExplicitOffsetsArrayBlock: item data is bigger than possible')
+            res += self.child.to_raw_value(item)
+        return res

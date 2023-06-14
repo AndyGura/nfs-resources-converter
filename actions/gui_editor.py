@@ -1,16 +1,17 @@
 import os
 import tempfile
+from copy import deepcopy
 from distutils.dir_util import copy_tree
 from itertools import chain
 from logging import warn
 from pathlib import Path
 from typing import Dict
-from copy import deepcopy
 
 import eel
 
 from library import require_file, require_resource
 from library.loader import clear_file_cache
+from library.utils.file_utils import start_file
 from serializers import get_serializer, DataTransferSerializer
 
 
@@ -61,6 +62,12 @@ def run_gui_editor(file_path):
                 state.current_file = ex
                 state.current_file_id = path
             return DataTransferSerializer().serialize(state.current_file)
+
+        @eel.expose
+        def open_file_with_system_app(path: str):
+            if path.startswith('/'):
+                path = path[1:]
+            start_file(os.path.join(static_dir, path))
 
         @eel.expose
         def save_file(path: str, changes: Dict):
@@ -121,13 +128,14 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def deserialize_resource(id: str):
-            if not state.serialized_files.get(id):
-                return
-            path, exported_file_paths, resource, top_level_resource, serializer = \
-                state.serialized_files[id]
+            from library.utils.file_utils import remove_file_or_directory
+            resource, _ = require_resource(id)
+            serializer = get_serializer(resource.block)
+            path = static_dir + '/resources_tmp/' + id
             serializer.deserialize(path, resource)
-            del state.serialized_files[id]
-            return DataTransferSerializer().serialize(top_level_resource)
+            remove_file_or_directory(static_dir + '/resources/' + id)
+            remove_file_or_directory(static_dir + '/resources_tmp/' + id)
+            return DataTransferSerializer().serialize(state.current_file)
 
     eel.init(static_dir)
     init_eel_state()

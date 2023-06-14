@@ -1,3 +1,4 @@
+import os
 import traceback
 
 import serializers
@@ -30,7 +31,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         with open(f'{path}/positions.txt', 'w') as f:
-            for name, item in [(name, item) for name, item in items if isinstance(item, ReadData) and isinstance(item.block, AnyBitmapBlock)]:
+            for name, item in [(name, item) for name, item in items if
+                               isinstance(item, ReadData) and isinstance(item.block, AnyBitmapBlock)]:
                 f.write(f"{name}: {item.x.value}, {item.y.value}\n")
         if data.id and '.FAM__' in data.id and self.settings.maps__save_spherical_skybox_texture:
             try:
@@ -43,6 +45,53 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             with open(f'{path}/skipped.txt', 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)
+
+    def deserialize(self, path: str, resource: ReadData, quantize_new_palette=True, **kwargs) -> None:
+        # FIXME not supported operations listed below:
+        # does not support adding/removing bitmaps
+        # does not support changed image dimensions
+        # does not support changed palette size
+        # does not support cases where 8-bitmaps use different palette (is it even possible?)
+        # totally breaks car tail lights (TNFS)
+        # can break transparency
+        # tested with only 8bit images (TNFS shpi archives)
+        from resources.eac.bitmaps import Bitmap8Bit, AnyBitmapBlock
+        from resources.eac.palettes import BasePalette
+        bitmaps_8bit = [(index, read_data) for (index, read_data) in enumerate(resource.value.children) if
+                        isinstance(read_data.block, Bitmap8Bit)]
+        if len(bitmaps_8bit) > 0:
+            shpi_pal = [read_data for read_data in resource.value.children if isinstance(read_data.block, BasePalette)][
+                0]
+            if quantize_new_palette:
+                from PIL import Image
+                from collections import Counter
+                individual_palettes = []
+                for img_path in (os.path.join(path, image.id.split('/')[-1] + '.png') for (_, image) in bitmaps_8bit):
+                    src = Image.open(img_path)
+                    img = Image.new("RGB", src.size, (255, 0, 255))
+                    img.paste(src, mask=src.split()[3])
+                    quantized_img = img.quantize(colors=256)
+                    pil_palette = quantized_img.getpalette()
+                    individual_palettes.append(
+                        [(pil_palette[i] << 24) + (pil_palette[i + 1] << 16) + (pil_palette[i + 2] << 8) + 0xff for i in
+                         range(0, len(pil_palette), 3)])
+                all_colors = sum(individual_palettes, [])
+                color_counts = Counter(all_colors)
+                most_common_colors = color_counts.most_common(256)
+                palette = [color[0] for color in most_common_colors]
+                palette_colors = [] + palette
+                if len(palette_colors) < 256:
+                    palette_colors += [0] * (256 - len(palette_colors))
+                shpi_pal.value.colors.value = [ReadData(value=x,
+                                                        block_state={'id': resource.id + '/palette/colors/' + str(i)},
+                                                        block=shpi_pal.block.instance_fields_map['colors'].child,
+                                                        ) for i, x in enumerate(palette_colors)]
+            else:
+                palette = [x.value for x in shpi_pal.colors]
+        for image in (read_data for read_data in resource.value.children if
+                      isinstance(read_data.block, AnyBitmapBlock)):
+            serializer = serializers.get_serializer(image.block)
+            serializer.deserialize(os.path.join(path, image.id.split('/')[-1]), image, palette=palette)
 
 
 class WwwwArchiveSerializer(BaseFileSerializer):

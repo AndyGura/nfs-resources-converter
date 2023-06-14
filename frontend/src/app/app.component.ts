@@ -27,7 +27,7 @@ export class AppComponent {
 
   async saveResource() {
     try {
-      const changes = Object.entries(this.mainService.changedDataBlocks).filter(([id, _]) => id != '__custom_action_performed__');
+      const changes = Object.entries(this.mainService.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
       await this.eelDelegate.saveFile(changes.map(([id, value]) => {
         return { id, value };
       }));
@@ -72,7 +72,7 @@ export class AppComponent {
       return;
     }
     try {
-      await this.mainService.runCustomAction(this.mainService.resourceData$.getValue()!, action, args);
+      await this.mainService.runCustomAction(action, args);
       this.snackBar.open('Action performed!', 'OK', { duration: 1500 });
     } catch (err: any) {
       this.mainService.clearUnsavedChanges();

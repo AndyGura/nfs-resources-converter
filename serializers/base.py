@@ -67,5 +67,5 @@ class BaseFileSerializer(ResourceSerializer):
                 with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
                     file.write(json.dumps(unknowns, indent=4))
 
-    def deserialize(self, path: str, resource: ReadData) -> None:
+    def deserialize(self, path: str, resource: ReadData, **kwargs) -> None:
         raise NotImplementedError

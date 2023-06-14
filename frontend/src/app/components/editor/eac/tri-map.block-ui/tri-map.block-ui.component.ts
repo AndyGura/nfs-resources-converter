@@ -501,7 +501,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       const paths = await this.eelDelegate.serializeResourceTmp(
         blockId,
         Object.entries(this.mainService.changedDataBlocks)
-          .filter(([id, _]) => id != '__custom_action_performed__' && id.startsWith(blockId)).map(([id, value]) => {
+          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId)).map(([id, value]) => {
           return { id, value };
         }),
         {

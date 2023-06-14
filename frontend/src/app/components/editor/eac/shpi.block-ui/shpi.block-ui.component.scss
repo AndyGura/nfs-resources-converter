@@ -8,6 +8,10 @@
     flex-direction: row;
     align-items: center;
     column-gap: 2rem;
+
+    button {
+      margin: 0 0 16px;
+    }
   }
 
   app-sidenav-res-list {
