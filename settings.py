@@ -1,7 +1,7 @@
 # ======================================================= GENERIC ======================================================
 blender_executable = 'blender'
+# blender_executable = 'C:\\Program Files\\Blender Foundation\\Blender 3.5\\blender.exe'
 ffmpeg_executable = 'ffmpeg'
-# example of absolute path for windows '"C:/Program Files/Blender Foundation/Blender 3.2/blender.exe"'
 
 # amount of processes to be spawned.
 # 0 means "use the amount of CPU cores"
@@ -41,6 +41,8 @@ export_unknown_values = False
 
 # save palette, which is a part of 8bit bitmap and not listed in SHPI block
 images__save_inline_palettes = False
+# skip saving palette, image positions
+images__save_images_only = False
 
 # for car sfx for engine, honk, additionally export long audio, where the sample repeated 16 times
 audio__save_car_sfx_loops = False

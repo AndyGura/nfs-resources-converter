@@ -5,9 +5,7 @@ import tempfile
 from string import Template
 
 __blender_script_template = Template("""
-import bpy
 import json
-import os
 from rna_prop_ui import rna_idprop_value_to_python
 
 
@@ -152,7 +150,7 @@ with open("$file_name.meta", 'w') as outfile:
 def construct_blender_export_script(file_name, src_file="", export_materials="EXPORT") -> str:
     return __blender_script_template.substitute({
         'src_file': src_file,
-        'file_name': file_name,
+        'file_name': file_name.replace('\\', '/'),
         'export_materials': export_materials
     })
 
@@ -176,5 +174,6 @@ if __name__ == "__main__":
     script_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
     script_file.write(script)
     script_file.flush()
+    script_file.close()
     os.system(f"blender --python {script_file.name} --background")
     os.unlink(script_file.name)

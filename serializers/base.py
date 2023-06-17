@@ -56,8 +56,8 @@ class BaseFileSerializer(ResourceSerializer):
                         has_something = True
         return res if has_something else None
 
-    def serialize(self, data: ReadData, path: str):
-        os.makedirs('/'.join(path.split('/')[:-1]), exist_ok=True)
+    def serialize(self, data: ReadData, path: str, is_dir=False):
+        os.makedirs(path if is_dir else os.path.dirname(path), exist_ok=True)
         block = data.block
         if isinstance(block, DelegateBlock):
             block = block.delegated_block

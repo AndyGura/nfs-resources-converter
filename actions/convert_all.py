@@ -29,7 +29,7 @@ def convert_all(path, out_path):
     files_to_open = []
     if os.path.isdir(path):
         for subdir, dirs, files in os.walk(path):
-            files_to_open += [subdir + '/' + f for f in files]
+            files_to_open += [os.path.join(subdir, f) for f in files]
     else:
         files_to_open = [str(path)]
 

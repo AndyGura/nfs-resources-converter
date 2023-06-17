@@ -44,7 +44,6 @@ def _setup_vertex(model: SubMesh, block: ReadData[OripGeometry], vertices_file_i
 
 class OripGeometrySerializer(BaseFileSerializer):
     blender_script = Template("""
-import bpy
 import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.obj(filepath="$obj_file_path", use_image_search=False, axis_forward='Y', axis_up='Z')
@@ -69,7 +68,7 @@ for dummy in dummies:
         if not textures_shpi_block or not isinstance(textures_shpi_block.block, ShpiBlock):
             raise BlockIntegrityException('Cannot find SHPI archive for ORIP geometry')
 
-        super().serialize(data, path)
+        super().serialize(data, path, is_dir=True)
         try:
             is_car = '.CFM__' in data.block_state['id']
         except:
@@ -182,18 +181,13 @@ for dummy in dummies:
             sub_model.change_axes(new_z='y', new_y='z')
         for dummy in dummies:
             dummy['position'] = [dummy['position'][0], dummy['position'][2], dummy['position'][1]]
-
-        if path[-1] != '/':
-            path = path + '/'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        with open(f'{path}geometry.obj', 'w') as f:
+        with open(os.path.join(path, 'geometry.obj'), 'w') as f:
             f.write('mtllib material.mtl')
             face_index_increment = 1
             for sub_model in sub_models.values():
                 f.write(sub_model.to_obj(face_index_increment, True, textures_shpi_block))
                 face_index_increment += len(sub_model.vertices)
-        with open(f'{path}material.mtl', 'w') as f:
+        with open(os.path.join(path, 'material.mtl'), 'w') as f:
             for texture in textures_shpi_block.children:
                 if not isinstance(texture, ReadData) or not isinstance(texture.block, AnyBitmapBlock):
                     continue
@@ -215,11 +209,13 @@ map_Kd assets/{texture.id.split('/')[-1]}.png""")
             script += '\n' + construct_blender_export_script(
                 file_name=os.path.join(os.getcwd(), path, 'body'),
                 export_materials='EXPORT')
-        run_blender(path=path,
-                    script=script,
-                    out_blend_name=os.path.join(os.getcwd(), path, 'body')
-                    if self.settings.geometry__save_blend
-                    else None)
+        # skip running blender if it does not save anything
+        if self.settings.geometry__export_to_gg_web_engine or self.settings.geometry__save_blend:
+            run_blender(path=path,
+                        script=script,
+                        out_blend_name=os.path.join(os.getcwd(), path, 'body')
+                        if self.settings.geometry__save_blend
+                        else None)
         if not self.settings.geometry__save_obj:
-            os.unlink(f'{path}material.mtl')
-            os.unlink(f'{path}geometry.obj')
+            os.unlink(os.path.join(path, 'material.mtl'))
+            os.unlink(os.path.join(path, 'geometry.obj'))

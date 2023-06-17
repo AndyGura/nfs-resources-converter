@@ -120,7 +120,7 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = N
 
 # id example: /media/data/nfs/SIMDATA/CARFAMS/LDIABL.CFM__1/frnt
 def require_resource(id: str) -> Tuple:
-    file_path = id.split('__')[0]
+    file_path = id.split('__')[0].replace('---DRIVE', ':')
     file_resource = require_file(file_path)
     if not file_resource:
         return None, None
@@ -156,17 +156,17 @@ files_cache = {}
 
 def clear_file_cache(path: str):
     try:
-        del files_cache[path]
+        del files_cache[path.replace('\\', '/')]
     except KeyError:
         pass
 
 
 def require_file(path: str):
-    data = files_cache.get(path)
+    data = files_cache.get(path.replace('\\', '/'))
     if data is None:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
-            data = block.read(bdata, os.path.getsize(path), {'id': path})
-            files_cache[path] = data
+            data = block.read(bdata, os.path.getsize(path), {'id': path.replace('\\', '/').replace(':', '---DRIVE')})
+            files_cache[path.replace('\\', '/')] = data
     return data

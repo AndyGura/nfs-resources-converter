@@ -5,6 +5,7 @@ from library.read_data import ReadData
 from resources.eac.bitmaps import AnyBitmapBlock, Bitmap8Bit
 from resources.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
+from serializers.misc.path_utils import escape_chars
 
 
 class BitmapSerializer(BaseFileSerializer):
@@ -13,7 +14,7 @@ class BitmapSerializer(BaseFileSerializer):
         super().serialize(data, path)
         Image.frombytes('RGBA',
                         (data.width.value, data.height.value),
-                        bytes().join([c.to_bytes(4, 'big') for c in data.bitmap])).save(f'{path}.png')
+                        bytes().join([c.to_bytes(4, 'big') for c in data.bitmap])).save(f'{escape_chars(path)}.png')
 
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
@@ -45,14 +46,14 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                 colors.append(0)
         Image.frombytes('RGBA',
                         (data.width.value, data.height.value),
-                        bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{path}.png')
+                        bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{escape_chars(path)}.png')
         if self.settings.images__save_inline_palettes and data.value.palette and data.value.palette == palette:
             from serializers import PaletteSerializer
             palette_serializer = PaletteSerializer()
-            palette_serializer.serialize(data.palette, f'{path}_pal')
+            palette_serializer.serialize(data.palette, f'{escape_chars(path)}_pal')
 
     def deserialize(self, path: str, resource: ReadData[Bitmap8Bit], palette=None, **kwargs) -> None:
-        source = Image.open(path + '.png')
+        source = Image.open(escape_chars(path) + '.png')
         im = Image.new("RGB", source.size, (255, 0, 255))
         im.paste(source, mask=source.split()[3])
         palette_bytes = bytearray()

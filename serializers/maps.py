@@ -273,7 +273,6 @@ class TriMapSerializer(BaseFileSerializer):
             return model
 
     blender_map_script = Template("""
-import bpy
 import math
 import json
 from mathutils import Euler
@@ -359,7 +358,6 @@ if $save_invisible_wall_collisions:
     """)
 
     blender_chunk_script = Template("""
-import bpy
 import math
 import json
 from mathutils import Euler
@@ -465,7 +463,7 @@ if $save_terrain_collisions:
         return res
 
     def _save_mtl(self, terrain_data, path: str, name):
-        with open(f'{path}terrain.mtl', 'w') as f:
+        with open(os.path.join(path, 'terrain.mtl'), 'w') as f:
             texture_names = list(set(
                 sum([x['texture_names'] for x in terrain_data], [])
                 + [x['chunk'].fence_texture_name for x in terrain_data if x['chunk'].fence_texture_name]
@@ -481,7 +479,7 @@ if $save_terrain_collisions:
         map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
 
     def serialize(self, data: ReadData[TriMap], path: str):
-        super().serialize(data, path)
+        super().serialize(data, path, is_dir=True)
         is_opened_track = math.sqrt(
             (data.road_spline[0].position.x.value - data.road_spline[len(data.terrain) * 4 - 1].position.x.value) ** 2
             + (data.road_spline[0].position.y.value - data.road_spline[len(data.terrain) * 4 - 1].position.y.value) ** 2
@@ -557,16 +555,11 @@ if $save_terrain_collisions:
             if left_barrier_points:
                 left_barrier_points.points = [[p[0], p[2], p[1]] for p in left_barrier_points.points]
                 left_barrier_points.z_up = True
-
-        if path[-1] != '/':
-            path = path + '/'
-        if not os.path.exists(path):
-            os.makedirs(path)
         self._save_mtl(terrain_data, path, data.id.split('/')[-1])
-        blender_script = "import bpy\nbpy.ops.wm.read_factory_settings(use_empty=True)"
+        blender_script = "bpy.ops.wm.read_factory_settings(use_empty=True)"
         if self.settings.maps__save_as_chunked:
             for i, terrain_chunk in enumerate(terrain_data):
-                with open(f'{path}/terrain_chunk_{i}.obj', 'w') as f:
+                with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
                     face_index_increment = 1
                     for sub_model in terrain_chunk['meshes']:
                         f.write(sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=(
@@ -587,14 +580,14 @@ if $save_terrain_collisions:
                 })
                 if self.settings.geometry__save_blend:
                     blender_script += get_blender_save_script(
-                        out_blend_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}'))
+                        out_blend_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}').replace('\\', '/'))
                 if self.settings.geometry__export_to_gg_web_engine:
                     from serializers.misc.build_blender_scene import construct_blender_export_script
                     blender_script += '\n' + construct_blender_export_script(
                         file_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}'),
                         export_materials='NONE')
         else:
-            with open(f'{path}/terrain.obj', 'w') as f:
+            with open(os.path.join(path, 'terrain.obj'), 'w') as f:
                 face_index_increment = 1
                 for i, terrain_chunk in enumerate(terrain_data):
                     for sub_model in terrain_chunk['meshes']:
@@ -665,7 +658,7 @@ if $save_terrain_collisions:
         run_blender(path=path,
                     script=blender_script,
                     out_blend_name=os.path.join(os.getcwd(), path,
-                                                'map') if self.settings.geometry__save_blend else None)
+                                                'map').replace('\\', '/') if self.settings.geometry__save_blend else None)
         if not self.settings.geometry__save_obj:
             if self.settings.maps__save_as_chunked:
                 for i in range(len(terrain_data)):

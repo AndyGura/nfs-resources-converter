@@ -10,13 +10,13 @@ from resources.eac.archives import ShpiBlock, WwwwBlock, SoundBank
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
+from serializers.misc.path_utils import escape_chars
 
 
 class ShpiArchiveSerializer(BaseFileSerializer):
 
     def serialize(self, data: ReadData[ShpiBlock], path: str):
-        path += '/'
-        super().serialize(data, path)
+        super().serialize(data, path, is_dir=True)
         items = [(data.children_descriptions[i].name.value, data.children[i]) for i in range(data.children_count.value)]
         skipped_resources = []
         for name, item in [(name, item) for name, item in items]:
@@ -24,25 +24,27 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 skipped_resources.append((name, format_exception(item)))
                 continue
             try:
-                serializer = serializers.get_serializer(item.block)
-                serializer.serialize(item, f'{path}{name}')
+                if not self.settings.images__save_images_only or isinstance(item.block, AnyBitmapBlock):
+                    serializer = serializers.get_serializer(item.block)
+                    serializer.serialize(item, os.path.join(path, escape_chars(name)))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
-        with open(f'{path}/positions.txt', 'w') as f:
-            for name, item in [(name, item) for name, item in items if
-                               isinstance(item, ReadData) and isinstance(item.block, AnyBitmapBlock)]:
-                f.write(f"{name}: {item.x.value}, {item.y.value}\n")
+        if not self.settings.images__save_images_only:
+            with open(os.path.join(path, 'positions.txt'), 'w') as f:
+                for name, item in [(name, item) for name, item in items if
+                                   isinstance(item, ReadData) and isinstance(item.block, AnyBitmapBlock)]:
+                    f.write(f"{name}: {item.x.value}, {item.y.value}\n")
         if data.id and '.FAM__' in data.id and self.settings.maps__save_spherical_skybox_texture:
             try:
                 horz_bitmap = next(x for name, x in items if name == 'horz')
                 nfs1_panorama_to_spherical(data.id[data.id.index('.FAM') - 7:data.id.index('.FAM') - 4],
-                                           f'{path}horz.png', f'{path}spherical.png')
+                                           os.path.join(path, 'horz.png'), os.path.join(path, 'spherical.png'))
             except StopIteration:
                 pass
         if skipped_resources:
-            with open(f'{path}/skipped.txt', 'w') as f:
+            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)
 
@@ -68,7 +70,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 from serializers.bitmaps import BitmapWithPaletteSerializer
                 individual_palettes = []
                 # open all 8bit images
-                images_8bit = [Image.open(img_path) for img_path in (os.path.join(path, image.id.split('/')[-1] + '.png') for image in bitmaps_8bit)]
+                images_8bit = [Image.open(img_path) for img_path in (os.path.join(path, escape_chars(image.id.split('/')[-1]) + '.png') for image in bitmaps_8bit)]
                 # find unused color for marking transparency
                 all_colors = set()
                 for src in images_8bit:
@@ -137,8 +139,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 class WwwwArchiveSerializer(BaseFileSerializer):
 
     def serialize(self, data: WwwwBlock, path: str):
-        path += '/'
-        super().serialize(data, path)
+        super().serialize(data, path, is_dir=True)
         if data.id.endswith('.CFM') and data.children_count == 4:
             # car CFM file
             names = ['high-poly', 'high-poly-assets', 'low-poly', 'low-poly-assets']
@@ -164,13 +165,13 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 skip_next_shpi = True
             try:
                 serializer = serializers.get_serializer(item.block)
-                serializer.serialize(item, f'{path}{name}')
+                serializer.serialize(item, os.path.join(path, name))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
-            with open(f'{path}/skipped.txt', 'w') as f:
+            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)
 
@@ -178,8 +179,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
 class SoundBankSerializer(BaseFileSerializer):
 
     def serialize(self, data: SoundBank, path: str):
-        path += '/'
-        super().serialize(data, path)
+        super().serialize(data, path, is_dir=True)
         if ((data.id.endswith('SW.BNK') or data.id.endswith('TRAFFC.BNK') or data.id.endswith('TESTBANK.BNK'))
                 and len(data.children) == 4):
             # car soundbanks
@@ -191,12 +191,12 @@ class SoundBankSerializer(BaseFileSerializer):
         for name, item in [(name, item) for name, item in items]:
             try:
                 serializer = serializers.get_serializer(item.block)
-                serializer.serialize(item, f'{path}{name}')
+                serializer.serialize(item, os.path.join(path, name))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
-            with open(f'{path}/skipped.txt', 'w') as f:
+            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)

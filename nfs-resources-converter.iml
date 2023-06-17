@@ -6,6 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/.angular" />
+      <excludeFolder url="file://$MODULE_DIR$/win_venv" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (game-resources-converter)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

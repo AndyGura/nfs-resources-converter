@@ -8,12 +8,10 @@ from serializers import BaseFileSerializer, BitmapSerializer
 class FfnFontSerializer(BaseFileSerializer):
 
     def serialize(self, data: ReadData[FfnFont], path: str):
-        super().serialize(data, path)
-        if not os.path.exists(path):
-            os.makedirs(path)
+        super().serialize(data, path, is_dir=True)
         image_serializer = BitmapSerializer()
-        image_serializer.serialize(data.bitmap, f'{path}/bitmap')
-        with open(f'{path}/font.fnt', 'w') as file:
+        image_serializer.serialize(data.bitmap, os.path.join(path, 'bitmap'))
+        with open(os.path.join(path, 'font.fnt'), 'w') as file:
             file.write(f'info face="{data.id.split("/")[-1]}" size=24\n')
             file.write('common lineHeight=32\n')
             file.write(f'page id=0 file="bitmap.png"\n')

@@ -25,7 +25,7 @@ class JsonSerializer(BaseFileSerializer):
         return res
 
     def serialize(self, data: ReadData, path: str):
-        super().serialize(data, path)
+        super().serialize(data, path, is_dir=False)
         json_str = json.dumps(self.__make_dict(data), indent=4)
         with open(f'{path}.json', 'w') as file:
             file.write(json_str)

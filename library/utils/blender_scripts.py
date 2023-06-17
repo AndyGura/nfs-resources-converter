@@ -12,13 +12,19 @@ def get_blender_save_script(out_blend_name=None):
 
 
 def run_blender(path, script, out_blend_name=None):
+    working_dir = path.replace("\\", "/")
+    script = f"""import bpy
+import os
+os.chdir("{working_dir}")
+""" + script
     if out_blend_name:
         script += '\n\n' + get_blender_save_script(out_blend_name=out_blend_name)
     script += '\nquit()'
     script_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
     script_file.write(script)
     script_file.flush()
-    command = f"cd {path} && {settings.blender_executable} --python {script_file.name} --background"
+    script_file.close()
+    command = f'"{settings.blender_executable}" --python {script_file.name} --background'
     if not settings.print_blender_log:
         command += " >/dev/null 2>&1"
     os.system(command)
