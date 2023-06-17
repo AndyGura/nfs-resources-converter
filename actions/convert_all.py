@@ -44,12 +44,17 @@ def convert_all(path, out_path):
     if skipped_resources:
         skipped_map = defaultdict(lambda: list())
         for name, ex in skipped_resources:
+            name = name.replace('\\', '/')
             path, name = '/'.join(name.split('/')[:-1]), name.split('/')[-1]
             skipped_map[path].append((name, format_exception(ex)))
         for path, skipped in skipped_map.items():
-            os.makedirs(f'{out_path}/{path[len(base_input_path):]}', exist_ok=True)
+            path_suffix = path[len(base_input_path):]
+            if path_suffix.startswith('/'):
+                path_suffix = path_suffix[1:]
+            skipped_txt_output_path = os.path.join(out_path, path_suffix, 'skipped.txt')
+            os.makedirs(os.path.dirname(skipped_txt_output_path), exist_ok=True)
             skipped.sort(key=lambda x: x[0])
-            with open(f'{out_path}/{path[len(base_input_path):]}/skipped.txt', 'w') as f:
+            with open(skipped_txt_output_path, 'w') as f:
                 for item in skipped:
                     f.write("%s\t\t%s\n" % item)
 
