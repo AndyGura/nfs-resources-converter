@@ -82,7 +82,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 # find unused color for marking transparency
                 all_colors = set()
                 for src in images_8bit:
-                    all_colors.union({(x[0] << 24) + (x[1] << 16) + (x[2] << 8) + x[3] for _, x in src.getcolors(src.size[0] * src.size[1])})
+                    all_colors.union({(x[0] << 24) + (x[1] << 16) + (x[2] << 8) + (0xff if src.mode == 'RGB' else x[3])
+                                      for _, x in src.getcolors(src.size[0] * src.size[1])})
                 # pick transparent color
                 transparent = 0xff
                 for c in transparency_colors:
@@ -104,7 +105,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                         if BitmapWithPaletteSerializer.has_tail_lights(bitmaps_8bit[i])
                         else ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16, (transparent & 0xff00) >> 8)
                     )
-                    img.paste(src, mask=src.split()[3])
+                    img.paste(src, mask=(None if src.mode == 'RGB' else src.split()[3]))
                     quantized_img = img.quantize(colors=max_colors_amount + 1) # + transparent channel
                     pil_palette = quantized_img.getpalette()
                     individual_palettes.append(
