@@ -52,19 +52,13 @@ import {
 import { MainService } from '../../../../services/main.service';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { GgCurve } from '@gg-web-engine/core/dist/3d/models/gg-meta';
+import {setupNfs1Texture} from "../orip-geometry.block-ui/orip-geometry.block-ui.component";
 
 export enum MapPropType {
   ThreeModel = 'model',
   Bitmap = 'bitmap',
   TwoSidedBitmap = 'two_sided_bitmap',
 }
-
-export const setupNfs1Texture = (texture: Texture) => {
-  texture.encoding = sRGBEncoding;
-  texture.anisotropy = 8;
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
-};
 
 export const fixGltfMaterialsForNfs1: (obj: Mesh, isCar: boolean) => void = (obj, isCar) => {
   let materials = obj.material instanceof Array ? obj.material : [obj.material];

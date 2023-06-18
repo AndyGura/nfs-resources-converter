@@ -49,7 +49,9 @@ class BasePalette(CompoundBlock, ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, ' \
-                                 'meaning the index of color in LUT of assigned palette'
+                                 'meaning the index of color in LUT of assigned palette. Has special colors: ' \
+                                 '255th in most cases means transparent color, 254th in car textures is replaced by ' \
+                                 'tail light color, 250th - 253th in car textures are rendered black for unknown reason'
 
     def from_raw_value(self, raw: dict, state: dict):
         res = super().from_raw_value(raw, state)

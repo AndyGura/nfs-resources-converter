@@ -63,6 +63,14 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             shpi_pal = [read_data for read_data in resource.value.children if isinstance(read_data.block, BasePalette)][
                 0]
             if quantize_new_palette:
+                max_colors_amount = 255 # minus the last one, reserved for transparency
+                if '.CFM' in resource.id:
+                    # last 6 colors are somehow special for cars:
+                    # 250th - 253th seem to always be rendered black
+                    # 254th is replaced woith tail colors in the game
+                    # 255th is transparent
+                    max_colors_amount = 250
+
                 # build a new palette for SHPI
                 from PIL import Image
                 from collections import Counter
@@ -87,7 +95,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                         if c not in all_colors and c != transparent:
                             tail_lights_color = c
                             break
-                # quantize all images to 256 colors, transparency replaced with solid color, picked above
+                # quantize all images, transparency replaced with solid color, picked above
                 for i, src in enumerate(images_8bit):
                     img = Image.new(
                         "RGB",
@@ -97,7 +105,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                         else ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16, (transparent & 0xff00) >> 8)
                     )
                     img.paste(src, mask=src.split()[3])
-                    quantized_img = img.quantize(colors=256)
+                    quantized_img = img.quantize(colors=max_colors_amount + 1) # + transparent channel
                     pil_palette = quantized_img.getpalette()
                     individual_palettes.append(
                         [(pil_palette[i] << 24) + (pil_palette[i + 1] << 16) + (pil_palette[i + 2] << 8) + 0xff for i in
@@ -105,7 +113,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 # calculating common palette among images
                 all_colors = sum(individual_palettes, [])
                 color_counts = Counter(all_colors)
-                most_common_colors = color_counts.most_common(256)
+                most_common_colors = color_counts.most_common(max_colors_amount + 1) # + transparent channel
                 palette = [color[0] for color in most_common_colors]
                 if len(palette) < 256:
                     palette += [0] * (256 - len(palette))
