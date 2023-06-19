@@ -54,7 +54,8 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
 
     def deserialize(self, path: str, resource: ReadData[Bitmap8Bit], palette=None, **kwargs) -> None:
         source = Image.open(escape_chars(path) + '.png')
-        im = Image.new("RGB", source.size, (255, 0, 255))
+        transparency = palette[254] if self.has_tail_lights(resource) else palette[255]
+        im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24, (transparency & 0xff0000) >> 16, (transparency & 0xff00) >> 8))
         im.paste(source, (None if source.mode == 'RGB' else source.split()[3]))
         palette_bytes = bytearray()
         for color in palette:
