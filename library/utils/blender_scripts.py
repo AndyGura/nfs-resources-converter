@@ -5,9 +5,10 @@ import settings
 
 
 def get_blender_save_script(out_blend_name=None):
+    temp_blend_name = out_blend_name.replace("\\", "/")
     script = '\n\n\n'
     if out_blend_name:
-        script += f'\n\nbpy.ops.wm.save_as_mainfile(filepath="{out_blend_name}.blend")'
+        script += f'\n\nbpy.ops.wm.save_as_mainfile(filepath="{temp_blend_name}.blend")'
     return script
 
 
