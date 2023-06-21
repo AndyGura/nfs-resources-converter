@@ -1,8 +1,12 @@
 import os
 import tempfile
-
 import settings
 
+def get_log_throwaway_suffix():
+    if os.name == 'nt':
+        return " >NUL 2>&1"
+    else:
+        return " >\dev\null 2>&1"
 
 def get_blender_save_script(out_blend_name=None):
     temp_blend_name = out_blend_name.replace("\\", "/")
@@ -27,6 +31,6 @@ os.chdir("{working_dir}")
     script_file.close()
     command = f'"{settings.blender_executable}" --python {script_file.name} --background'
     if not settings.print_blender_log:
-        command += " >/dev/null 2>&1"
+        command += get_log_throwaway_suffix()
     os.system(command)
     os.unlink(script_file.name)
