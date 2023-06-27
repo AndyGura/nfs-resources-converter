@@ -12,8 +12,8 @@ class FfnFontSerializer(BaseFileSerializer):
         image_serializer = BitmapSerializer()
         image_serializer.serialize(data.bitmap, os.path.join(path, 'bitmap'))
         with open(os.path.join(path, 'font.fnt'), 'w') as file:
-            file.write(f'info face="{data.id.split("/")[-1]}" size=24\n')
-            file.write('common lineHeight=32\n')
+            file.write(f'info face="{data.id.split("/")[-1]}" size={data.font_size.value}\n')
+            file.write(f'common lineHeight={data.line_height.value}\n')
             file.write(f'page id=0 file="bitmap.png"\n')
             file.write(f'chars count={data.symbols_amount.value}\n')
             for symbol in data.definitions:

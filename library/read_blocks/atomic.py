@@ -143,7 +143,7 @@ class BytesField(AtomicDataBlock):
         return self.length
 
     def get_min_size(self, state):
-        return 0
+        return self.length if self.length is not None and self.length_strategy == "strict" else 0
 
     def get_max_size(self, state):
         if self.length is None:

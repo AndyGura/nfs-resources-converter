@@ -31,3 +31,12 @@ class TestSerializeDeserialize(unittest.TestCase):
             # self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
+
+    def test_ffn_should_remain_the_same(self):
+        car_fam = require_file('test/samples/MAIN24.FFN')
+        output = car_fam.to_bytes()
+        with open('test/samples/MAIN24.FFN', 'rb') as bdata:
+            original = bdata.read()
+            # self.assertEqual(len(original), len(output))
+            for i, x in enumerate(original):
+                self.assertEqual(x, output[i], f"Wrong value at index {i}")
