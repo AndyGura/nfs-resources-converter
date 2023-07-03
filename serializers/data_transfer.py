@@ -13,6 +13,9 @@ class DataTransferSerializer(ResourceSerializer):
         result = {k: v if not isinstance(v, DataBlock) else DataTransferSerializer._serialize_block(v)
                   for (k, v) in block.__dict__.items()
                   if k not in ['instance_fields', 'instance_fields_map']}
+        from library.read_blocks.compound import CompoundBlock
+        if isinstance(block, CompoundBlock):
+            result['unknown_fields'] = block.Fields.unknown_fields
         return {
             'custom_actions': block.list_custom_actions(),
             **result,

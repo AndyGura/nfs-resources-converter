@@ -5,7 +5,7 @@ import {
   Component,
   EventEmitter,
   Input,
-  Output
+  Output,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
@@ -18,13 +18,12 @@ import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewInit {
-
   _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   @Input() set resourceData(value: ReadData | null) {
     this._resourceData$.next(value);
-  };
+  }
 
   get resourceData(): ReadData | null {
     return this._resourceData$.getValue();
@@ -36,16 +35,10 @@ export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor(
-    private readonly eelDelegate: EelDelegateService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {
-  }
+  constructor(private readonly eelDelegate: EelDelegateService, private readonly cdr: ChangeDetectorRef) {}
 
   async ngAfterViewInit() {
-    this._resourceData$.pipe(
-      takeUntil(this.destroyed$),
-    ).subscribe(async (data) => {
+    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
       if (data) {
         const [path] = await this.eelDelegate.serializeResource(data.block_id);
         this.imageUrl$.next(path);
@@ -59,5 +52,4 @@ export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.destroyed$.next();
     this.destroyed$.complete();
   }
-
 }

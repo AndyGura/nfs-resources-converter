@@ -4,10 +4,9 @@ import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 @Component({
   selector: 'app-sidenav-res-list',
   templateUrl: './sidenav-res-list.component.html',
-  styleUrls: ['./sidenav-res-list.component.scss']
+  styleUrls: ['./sidenav-res-list.component.scss'],
 })
 export class SidenavResListComponent {
-
   _resources: { [key: string]: ReadData | ReadError } = {};
   get resources(): { [key: string]: ReadData | ReadError } {
     return this._resources;
@@ -19,7 +18,7 @@ export class SidenavResListComponent {
     if (listUpdated) {
       this.selectedValue = Object.keys(value).length > 0 ? Object.keys(value)[0] : null;
     }
-  };
+  }
 
   private _selectedValue: string | null = null;
   public set selectedValue(value: string | null) {
@@ -34,7 +33,5 @@ export class SidenavResListComponent {
     return Object.keys(this.resources);
   }
 
-  constructor(private readonly deep: NgxDeepEqualsPureService) {
-  }
-
+  constructor(private readonly deep: NgxDeepEqualsPureService) {}
 }

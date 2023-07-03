@@ -17,6 +17,11 @@ class SymbolDefinitionRecord(CompoundBlock):
 
 
 class FfnFont(CompoundBlock):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_serializable_to_disk = True
+
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Block(required_value='FNTF', length=4, description='Resource ID')
         file_size = IntegerBlock(static_size=4, description='This file size in bytes')

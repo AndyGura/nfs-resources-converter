@@ -8,7 +8,7 @@ import {
   Input,
   OnDestroy,
   Output,
-  ViewChild
+  ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { Gg3dEntity, Gg3dWorld, OrbitCameraController, Pnt3, Point2, Qtrn } from '@gg-web-engine/core';
@@ -25,7 +25,7 @@ import {
   MeshBasicMaterial,
   NearestFilter,
   sRGBEncoding,
-  Texture
+  Texture,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
 
@@ -43,14 +43,13 @@ export const setupNfs1Texture = (texture: Texture) => {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OripGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-
   _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
   get resourceData(): ReadData | null {
     return this._resourceData$.getValue();
-  };
+  }
   @Input() set resourceData(value: ReadData | null) {
     this._resourceData$.next(value);
-  };
+  }
 
   name: string = '';
 
@@ -69,57 +68,54 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
-  ) {
-  }
+  ) {}
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld(new Gg3dVisualScene(), {
-      init: async () => {
-      }, simulate: () => {
-      }
+      init: async () => {},
+      simulate: () => {},
     } as any);
     await this.world.init();
     this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
-    this.renderer = new GgRenderer(
-      this.previewCanvas.nativeElement,
-      {
-        size: rendererSize$.asObservable(),
-        background: 0xaaaaaa,
-      }
-    );
+    this.renderer = new GgRenderer(this.previewCanvas.nativeElement, {
+      size: rendererSize$.asObservable(),
+      background: 0xaaaaaa,
+    });
     this.world.addEntity(this.renderer);
-    this.controller = new OrbitCameraController(this.renderer.camera, { mouseOptions: { canvas: this.previewCanvas.nativeElement } });
+    this.controller = new OrbitCameraController(this.renderer.camera, {
+      mouseOptions: { canvas: this.previewCanvas.nativeElement },
+    });
     this.world.addEntity(this.controller);
     const updateSize = () => {
       rendererSize$.next({
         x: this.previewCanvasContainer.nativeElement.clientWidth,
-        y: this.previewCanvasContainer.nativeElement.clientHeight
+        y: this.previewCanvasContainer.nativeElement.clientHeight,
       });
-    }
+    };
     new ResizeObserver(updateSize).observe(this.previewCanvasContainer.nativeElement);
     updateSize();
     this.world.start();
 
-    this._resourceData$.pipe(
-      takeUntil(this.destroyed$),
-    ).subscribe(async (data) => {
+    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
       const paths = await this.loadPreviewFilePaths(data?.block_id);
       if (paths) {
         await this.loadPreview(paths);
       }
     });
-    this.mainService.dataBlockChange$.pipe(
-      takeUntil(this.destroyed$),
-      filter(([blockId, _]) => !!this.resourceData && blockId.startsWith(this.resourceData!.block_id)),
-      debounceTime(1500),
-    ).subscribe(async () => {
-      this.unloadPreview();
-      const paths = await this.postTmpUpdates(this.resourceData?.block_id);
-      if (paths) {
-        await this.loadPreview(paths);
-      }
-    });
+    this.mainService.dataBlockChange$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(([blockId, _]) => !!this.resourceData && blockId.startsWith(this.resourceData!.block_id)),
+        debounceTime(1500),
+      )
+      .subscribe(async () => {
+        this.unloadPreview();
+        const paths = await this.postTmpUpdates(this.resourceData?.block_id);
+        if (paths) {
+          await this.loadPreview(paths);
+        }
+      });
   }
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | undefined> {
@@ -127,15 +123,17 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
       const paths = await this.eelDelegate.serializeResourceTmp(
         blockId,
         Object.entries(this.mainService.changedDataBlocks)
-          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId)).map(([id, value]) => {
-          return { id, value };
-        }),
+          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
+          .map(([id, value]) => {
+            return { id, value };
+          }),
         {
-          'geometry__save_obj': true,
-          'geometry__save_blend': false,
-          'geometry__export_to_gg_web_engine': false,
-          'geometry__replace_car_wheel_with_dummies': false,
-        });
+          geometry__save_obj: true,
+          geometry__save_blend: false,
+          geometry__export_to_gg_web_engine: false,
+          geometry__replace_car_wheel_with_dummies: false,
+        },
+      );
       const objPath = paths.find(x => x.endsWith('.obj'))!;
       const mtlPath = paths.find(x => x.endsWith('.mtl'))!;
       return [objPath, mtlPath];
@@ -146,10 +144,10 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
   private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | undefined> {
     if (blockId) {
       const paths = await this.eelDelegate.serializeResource(blockId, {
-        'geometry__save_obj': true,
-        'geometry__save_blend': false,
-        'geometry__export_to_gg_web_engine': false,
-        'geometry__replace_car_wheel_with_dummies': false,
+        geometry__save_obj: true,
+        geometry__save_blend: false,
+        geometry__export_to_gg_web_engine: false,
+        geometry__replace_car_wheel_with_dummies: false,
       });
       const objPath = paths.find(x => x.endsWith('.obj'))!;
       const mtlPath = paths.find(x => x.endsWith('.mtl'))!;
@@ -166,7 +164,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     mtl.preload();
     objLoader.setMaterials(mtl);
     const object = await objLoader.loadAsync(objPath);
-    object.traverse((x) => {
+    object.traverse(x => {
       if (x instanceof Mesh) {
         const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
         for (const m of materials) {
@@ -205,5 +203,4 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     this.destroyed$.next();
     this.destroyed$.complete();
   }
-
 }

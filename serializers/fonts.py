@@ -7,6 +7,12 @@ from serializers import BaseFileSerializer, BitmapSerializer
 
 class FfnFontSerializer(BaseFileSerializer):
 
+    def setup_for_reversible_serialization(self) -> bool:
+        self.patch_settings({
+            'export_unknown_values': True,
+        })
+        return True
+
     def serialize(self, data: ReadData[FfnFont], path: str):
         super().serialize(data, path, is_dir=True)
         image_serializer = BitmapSerializer()

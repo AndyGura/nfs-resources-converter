@@ -4,10 +4,9 @@ import { EelDelegateService } from './eel-delegate.service';
 import { cloneDeep, forOwn, isEqual, isObject, merge } from 'lodash';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MainService {
-
   private dataSnapshot: any;
   resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
   resourceError$: BehaviorSubject<ReadError | null> = new BehaviorSubject<ReadError | null>(null);
@@ -17,8 +16,10 @@ export class MainService {
   readonly changedDataBlocks: { [key: string]: any } = {};
   dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
 
+  public unknownsHidden$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
+
   constructor(readonly eelDelegate: EelDelegateService) {
-    this.eelDelegate.openedResource$.subscribe((value) => {
+    this.eelDelegate.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();
       if (!value) {
         this.resourceData$.next(null);
@@ -33,7 +34,8 @@ export class MainService {
       }
     });
     this.dataBlockChange$.subscribe(([blockId, value]) => {
-      if (isEqual(value, this.getInitialValueFromSnapshot(blockId))) { // change reverted
+      if (isEqual(value, this.getInitialValueFromSnapshot(blockId))) {
+        // change reverted
         delete this.changedDataBlocks[blockId];
       } else {
         this.changedDataBlocks[blockId] = value;
@@ -57,7 +59,7 @@ export class MainService {
   private buildResourceDataSnapshot(readDataValue: any): { [key: string]: any } {
     const result: any = {};
     const recurse = (source: any) => {
-      forOwn(source, (value) => {
+      forOwn(source, value => {
         if (isObject(value)) {
           if (value && (value as any).block_class_mro) {
             const blockPath = (value as any).block_id.replace('__', '/').split('/');
@@ -73,7 +75,7 @@ export class MainService {
           recurse(value);
         }
       });
-    }
+    };
     recurse(readDataValue);
     return result;
   }
@@ -98,7 +100,9 @@ export class MainService {
   }
 
   public async runCustomAction(action: CustomAction, args: { [key: string]: any }) {
-    return this.processExternalChanges(() => this.eelDelegate.runCustomAction(this.resourceData$.getValue()!, action, args));
+    return this.processExternalChanges(() =>
+      this.eelDelegate.runCustomAction(this.resourceData$.getValue()!, action, args),
+    );
   }
 
   public async deserializeResource(id: string) {

@@ -8,7 +8,6 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArrayBlockUiComponent implements GuiComponentInterface {
-
   private _resourceData: ReadData | null = null;
   get resourceData(): ReadData | null {
     return this._resourceData;
@@ -39,8 +38,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   goToIndex: number = 0;
   pageIndexes: number[] = [];
 
-  constructor(private readonly cdr: ChangeDetectorRef) {
-  }
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
   onContentsTrigger(open: boolean): void {
     if (this.contentsTimeout !== undefined) {
@@ -62,8 +60,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   renderPage(pageIndex: number, pageSize: number) {
     this.goToIndex = this.pageIndex = pageIndex;
     this.pageSize = pageSize;
-    this.renderItems = (this.resourceData?.value || []).slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
-      .map((x: ReadData) => !!x['block'] ? x : { ...x, block: this.resourceData?.block.child });
+    this.renderItems = (this.resourceData?.value || [])
+      .slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
+      .map((x: ReadData) => (!!x['block'] ? x : { ...x, block: this.resourceData?.block.child }));
     this.cdr.markForCheck();
   }
 
@@ -74,5 +73,4 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
       this.pageIndexes.push(i);
     }
   }
-
 }

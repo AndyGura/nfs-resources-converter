@@ -16,6 +16,8 @@ def resource_to_json(item):
         return [resource_to_json(x) for x in item]
     if isinstance(item, DataWrapper):
         return item.to_dict()
+    if isinstance(item, bytes):
+        return list(item)
     if isinstance(item, Iterable) and not isinstance(item, str):
         return dict(item)
     return item

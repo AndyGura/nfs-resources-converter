@@ -9,14 +9,12 @@ import { MatSelectionListChange } from '@angular/material/list';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlagsBlockUiComponent implements GuiComponentInterface {
-
   @Input() resourceData: ReadData | null = null;
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor() {
-  }
+  constructor() {}
 
   onSelection(event: MatSelectionListChange) {
     for (const option of event.options) {
@@ -24,6 +22,4 @@ export class FlagsBlockUiComponent implements GuiComponentInterface {
     }
     this.changed.emit();
   }
-
 }
-

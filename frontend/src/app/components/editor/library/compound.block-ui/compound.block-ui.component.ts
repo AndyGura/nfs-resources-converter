@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
+import { MainService } from '../../../../services/main.service';
 
 @Component({
   selector: 'app-compound-block-ui',
@@ -8,7 +9,6 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompoundBlockUiComponent implements GuiComponentInterface {
-
   @Input() resourceData: ReadData | null = null;
   name: string = '';
 
@@ -28,7 +28,5 @@ export class CompoundBlockUiComponent implements GuiComponentInterface {
     return fields;
   }
 
-  constructor() {
-  }
-
+  constructor(public main: MainService) {}
 }

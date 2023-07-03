@@ -8,7 +8,7 @@ import {
   Input,
   OnDestroy,
   Output,
-  ViewChild
+  ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import {
@@ -25,7 +25,7 @@ import {
   Pnt3,
   Point2,
   Point3,
-  Qtrn
+  Qtrn,
 } from '@gg-web-engine/core';
 import { Gg3dObject, Gg3dVisualScene, GgRenderer } from '@gg-web-engine/three';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil, throttleTime } from 'rxjs';
@@ -47,12 +47,12 @@ import {
   SphereGeometry,
   sRGBEncoding,
   Texture,
-  TextureLoader
+  TextureLoader,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { GgCurve } from '@gg-web-engine/core/dist/3d/models/gg-meta';
-import {setupNfs1Texture} from "../orip-geometry.block-ui/orip-geometry.block-ui.component";
+import { setupNfs1Texture } from '../orip-geometry.block-ui/orip-geometry.block-ui.component';
 
 export enum MapPropType {
   ThreeModel = 'model',
@@ -83,7 +83,6 @@ export const fixGltfMaterialsForNfs1: (obj: Mesh, isCar: boolean) => void = (obj
   });
   obj.material = materials.length > 1 ? materials : materials[0];
 };
-
 
 export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
   public readonly textureLoader = new TextureLoader();
@@ -146,10 +145,10 @@ export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
       // 3D model
       const {
         entities: [proxy],
-      } = await this.world!.loader.loadGgGlb(
-        `${this.famPath}/props/${dummy['model_ref_id']}/0/body`,
-        { loadProps: false, cachingStrategy: CachingStrategy.Entities },
-      );
+      } = await this.world!.loader.loadGgGlb(`${this.famPath}/props/${dummy['model_ref_id']}/0/body`, {
+        loadProps: false,
+        cachingStrategy: CachingStrategy.Entities,
+      });
       (proxy.object3D as Gg3dObject).nativeMesh.traverse(obj => {
         if (obj instanceof Mesh) {
           fixGltfMaterialsForNfs1(obj, false);
@@ -223,7 +222,6 @@ export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
@@ -231,11 +229,11 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   get resourceData(): ReadData | null {
     return this._resourceData$.getValue();
-  };
+  }
 
   @Input() set resourceData(value: ReadData | null) {
     this._resourceData$.next(value);
-  };
+  }
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -254,15 +252,29 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   map: Nfs1MapWorldEntity | null = null;
   roadPath: GgCurve | null = null;
   controller!: FreeCameraController;
-  skySphere: Gg3dEntity = new Gg3dEntity(new Gg3dObject(new Mesh(new SphereGeometry(1000), new MeshBasicMaterial({
-    side: DoubleSide,
-    color: 0xffffff
-  }))));
-  selectionSphere: Gg3dEntity = new Gg3dEntity(new Gg3dObject(new Mesh(new SphereGeometry(0.5), new MeshBasicMaterial({
-    opacity: 0.5,
-    transparent: true,
-    color: 0xff0000
-  }))));
+  skySphere: Gg3dEntity = new Gg3dEntity(
+    new Gg3dObject(
+      new Mesh(
+        new SphereGeometry(1000),
+        new MeshBasicMaterial({
+          side: DoubleSide,
+          color: 0xffffff,
+        }),
+      ),
+    ),
+  );
+  selectionSphere: Gg3dEntity = new Gg3dEntity(
+    new Gg3dObject(
+      new Mesh(
+        new SphereGeometry(0.5),
+        new MeshBasicMaterial({
+          opacity: 0.5,
+          transparent: true,
+          color: 0xff0000,
+        }),
+      ),
+    ),
+  );
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -270,42 +282,57 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
-  ) {
-  }
+  ) {}
 
   get previewFamPossibleLocations(): string[] {
     const blockId = this.resourceData?.block_id;
     if (blockId) {
       return [
-        blockId.substring(0, blockId.indexOf('MISC')) + 'ETRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_001.FAM',
-        blockId.substring(0, blockId.indexOf('MISC')) + 'GTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_001.FAM',
-        blockId.substring(0, blockId.indexOf('MISC')) + 'NTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_M01.FAM',
-        blockId.substring(0, blockId.indexOf('MISC')) + 'NTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_R01.FAM',
-        blockId.substring(0, blockId.indexOf('MISC')) + 'NTRACKFM' + blockId.substr(blockId.indexOf('MISC') + 4, 4) + '_T01.FAM',
-      ]
+        blockId.substring(0, blockId.indexOf('MISC')) +
+          'ETRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_001.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) +
+          'GTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_001.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) +
+          'NTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_M01.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) +
+          'NTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_R01.FAM',
+        blockId.substring(0, blockId.indexOf('MISC')) +
+          'NTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_T01.FAM',
+      ];
     } else {
       return [];
     }
   }
 
   get roadSpline(): Point3[] {
-    return (this.resourceData?.value.road_spline.value || [])
-      .filter((_: any, i: number) => i < (this.resourceData?.value.terrain_length.value * 4 || 0))
-      .map((d: any) => ({
-        x: d.value.position.value.x.value,
-        y: d.value.position.value.y.value,
-        z: d.value.position.value.z.value,
-      })) || [];
+    return (
+      (this.resourceData?.value.road_spline.value || [])
+        .filter((_: any, i: number) => i < (this.resourceData?.value.terrain_length.value * 4 || 0))
+        .map((d: any) => ({
+          x: d.value.position.value.x.value,
+          y: d.value.position.value.y.value,
+          z: d.value.position.value.z.value,
+        })) || []
+    );
   }
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld(new Gg3dVisualScene(), {
-      init: async () => {
-      }, simulate: () => {
-      },
+      init: async () => {},
+      simulate: () => {},
       loader: {
         loadFromGgGlb: async (...args: any[]) => [],
-      }
+      },
     } as any);
     this.world.visualScene.loader.registerGltfLoaderAddon(new GLTFLoader());
     await this.world.init();
@@ -314,31 +341,34 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.world.addEntity(this.selectionSphere);
     this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
-    this.renderer = new GgRenderer(
-      this.previewCanvas.nativeElement,
-      {
-        size: rendererSize$.asObservable(),
-        background: 0xaaaaaa,
-      }
-    );
-    this.renderer.camera.position = { x: 0, y: 0, z: 2.5 };
-    this.renderer.camera.rotation = Qtrn.lookAt(this.renderer.camera.position, Pnt3.add(this.renderer.camera.position, {
-      x: 0,
-      y: 1,
-      z: 0
-    }), { x: 0, y: 0, z: 1 });
-    this.world.addEntity(this.renderer);
-    createInlineTickController(this.world).pipe(takeUntil(this.destroyed$)).subscribe(() => {
-      if (this.renderer) {
-        this.skySphere.position = this.renderer.camera.position;
-        this.pointer$.next(this.renderer.camera.position);
-      }
+    this.renderer = new GgRenderer(this.previewCanvas.nativeElement, {
+      size: rendererSize$.asObservable(),
+      background: 0xaaaaaa,
     });
+    this.renderer.camera.position = { x: 0, y: 0, z: 2.5 };
+    this.renderer.camera.rotation = Qtrn.lookAt(
+      this.renderer.camera.position,
+      Pnt3.add(this.renderer.camera.position, {
+        x: 0,
+        y: 1,
+        z: 0,
+      }),
+      { x: 0, y: 0, z: 1 },
+    );
+    this.world.addEntity(this.renderer);
+    createInlineTickController(this.world)
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe(() => {
+        if (this.renderer) {
+          this.skySphere.position = this.renderer.camera.position;
+          this.pointer$.next(this.renderer.camera.position);
+        }
+      });
 
     this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer.camera, {
       mouseOptions: {
         canvas: this.previewCanvas.nativeElement,
-        pointerLock: true
+        pointerLock: true,
       },
       keymap: 'wasd+arrows',
       movementOptions: { speed: 1 },
@@ -349,16 +379,14 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     const updateSize = () => {
       rendererSize$.next({
         x: this.previewCanvasContainer.nativeElement.clientWidth,
-        y: this.previewCanvasContainer.nativeElement.clientHeight
+        y: this.previewCanvasContainer.nativeElement.clientHeight,
       });
-    }
+    };
     new ResizeObserver(updateSize).observe(this.previewCanvasContainer.nativeElement);
     updateSize();
     this.world.start();
 
-    this._resourceData$.pipe(
-      takeUntil(this.destroyed$),
-    ).subscribe(async (data) => {
+    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
       this.previewLoading$.next(true);
       if (this.previewFamPossibleLocations[0]) {
         this.previewFamLocation$.next(this.previewFamPossibleLocations[0]);
@@ -368,21 +396,20 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       await this.loadPreview();
       this.previewLoading$.next(false);
     });
-    this.mainService.dataBlockChange$.pipe(
-      takeUntil(this.destroyed$),
-      filter(([blockId, _]) => !!this.resourceData && blockId.startsWith(this.resourceData!.block_id)),
-      debounceTime(3000),
-    ).subscribe(async () => {
-      this.previewLoading$.next(true);
-      await this.postTmpUpdates(this.resourceData?.block_id);
-      await this.loadPreview();
-      this.previewLoading$.next(false);
-    });
+    this.mainService.dataBlockChange$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(([blockId, _]) => !!this.resourceData && blockId.startsWith(this.resourceData!.block_id)),
+        debounceTime(3000),
+      )
+      .subscribe(async () => {
+        this.previewLoading$.next(true);
+        await this.postTmpUpdates(this.resourceData?.block_id);
+        await this.loadPreview();
+        this.previewLoading$.next(false);
+      });
 
-    this.selectedSplineIndex$.pipe(
-      takeUntil(this.destroyed$),
-      debounceTime(250),
-    ).subscribe(i => {
+    this.selectedSplineIndex$.pipe(takeUntil(this.destroyed$), debounceTime(250)).subscribe(i => {
       if (this.roadPath) {
         const point = this.roadPath.points[i];
         if (!point) {
@@ -393,11 +420,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         if (this.renderer) {
           this.renderer.camera.position = Pnt3.add(
             point,
-            Pnt3.rotAround(
-              { x: 10, y: -12, z: 5 },
-              { x: 0, y: 0, z: 1 },
-              -orientation,
-            )
+            Pnt3.rotAround({ x: 10, y: -12, z: 5 }, { x: 0, y: 0, z: 1 }, -orientation),
           );
           this.renderer.camera.rotation = Qtrn.lookAt(this.renderer.camera.position, point, { x: 0, y: 0, z: 1 });
         }
@@ -413,9 +436,9 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.previewFamLoading$.next(true);
     try {
       const files = await this.eelDelegate.serializeResource(path, {
-        'geometry__save_obj': false,
-        'geometry__save_blend': false,
-        'geometry__export_to_gg_web_engine': true,
+        geometry__save_obj: false,
+        geometry__save_blend: false,
+        geometry__export_to_gg_web_engine: true,
       });
       const loader = new TextureLoader();
       const skyPath = files.find(x => x.endsWith('spherical.png'));
@@ -437,13 +460,13 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   private async loadPreviewGlbPath(blockId: string | undefined) {
     if (blockId) {
       const paths = await this.eelDelegate.serializeResource(blockId, {
-        'geometry__save_obj': false,
-        'geometry__save_blend': false,
-        'geometry__export_to_gg_web_engine': true,
-        'maps__save_as_chunked': true,
-        'maps__save_invisible_wall_collisions': false,
-        'maps__save_terrain_collisions': false,
-        'maps__save_spherical_skybox_texture': true,
+        geometry__save_obj: false,
+        geometry__save_blend: false,
+        geometry__export_to_gg_web_engine: true,
+        maps__save_as_chunked: true,
+        maps__save_invisible_wall_collisions: false,
+        maps__save_terrain_collisions: false,
+        maps__save_spherical_skybox_texture: true,
       });
       this.previewGlbPath = paths.find(x => x.endsWith('map.glb'))!;
     } else {
@@ -455,11 +478,12 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     if (!this.previewGlbPath) {
       return;
     }
-    const {
-      meta
-    } = await this.world!.loader.loadGgGlb(this.previewGlbPath.substring(0, this.previewGlbPath.length - 4), {
-      loadProps: false,
-    });
+    const { meta } = await this.world!.loader.loadGgGlb(
+      this.previewGlbPath.substring(0, this.previewGlbPath.length - 4),
+      {
+        loadProps: false,
+      },
+    );
     this.roadPath = meta.curves.find(curve => curve.name === 'road_path')!;
     const chunksGraph = MapGraph.fromMapArray(
       this.roadPath.points
@@ -495,18 +519,20 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       const paths = await this.eelDelegate.serializeResourceTmp(
         blockId,
         Object.entries(this.mainService.changedDataBlocks)
-          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId)).map(([id, value]) => {
-          return { id, value };
-        }),
+          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
+          .map(([id, value]) => {
+            return { id, value };
+          }),
         {
-          'geometry__save_obj': false,
-          'geometry__save_blend': false,
-          'geometry__export_to_gg_web_engine': true,
-          'maps__save_as_chunked': true,
-          'maps__save_invisible_wall_collisions': false,
-          'maps__save_terrain_collisions': false,
-          'maps__save_spherical_skybox_texture': true,
-        });
+          geometry__save_obj: false,
+          geometry__save_blend: false,
+          geometry__export_to_gg_web_engine: true,
+          maps__save_as_chunked: true,
+          maps__save_invisible_wall_collisions: false,
+          maps__save_terrain_collisions: false,
+          maps__save_spherical_skybox_texture: true,
+        },
+      );
       this.previewGlbPath = paths.find(x => x.endsWith('map.glb'))!;
     } else {
       this.previewGlbPath = undefined;

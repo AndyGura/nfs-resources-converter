@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, ComponentRef, Input, OnDestroy, Type, ViewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ComponentRef,
+  Input,
+  OnDestroy,
+  Type,
+  ViewChild,
+} from '@angular/core';
 import { DataBlockUIDirective } from './data-block-ui.directive';
 import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { GuiComponentInterface } from './gui-component.interface';
@@ -17,7 +26,8 @@ import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.c
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
-import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component'
+import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { EelDelegateService } from '../../services/eel-delegate.service';
 
 @Component({
   selector: 'app-editor',
@@ -26,31 +36,32 @@ import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditorComponent implements OnDestroy {
-
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
-    'DataBlock': FallbackBlockUiComponent,
-    'CompoundBlock': CompoundBlockUiComponent,
-    'ArrayBlock': ArrayBlockUiComponent,
-    'IntegerBlock': IntegerBlockUiComponent,
-    'AngleBlock': AngleBlockUiComponent,
-    'Utf8Block': StringBlockUiComponent,
-    'BytesField': BinaryBlockUiComponent,
-    'EnumByteBlock': EnumBlockUiComponent,
-    'BitFlagsBlock': FlagsBlockUiComponent,
+    DataBlock: FallbackBlockUiComponent,
+    CompoundBlock: CompoundBlockUiComponent,
+    ArrayBlock: ArrayBlockUiComponent,
+    IntegerBlock: IntegerBlockUiComponent,
+    AngleBlock: AngleBlockUiComponent,
+    Utf8Block: StringBlockUiComponent,
+    BytesField: BinaryBlockUiComponent,
+    EnumByteBlock: EnumBlockUiComponent,
+    BitFlagsBlock: FlagsBlockUiComponent,
     // TODO SubByteArrayBlock
     // NFS1 blocks
-    'BasePalette': PaletteBlockUiComponent,
-    'AnyBitmapBlock': BitmapBlockUiComponent,
-    'TriMap': TriMapBlockUiComponent,
-    'ShpiBlock': ShpiBlockUiComponent,
-    'WwwwBlock': WwwwBlockUiComponent,
-    'OripGeometry': OripGeometryBlockUiComponent,
-  }
+    BasePalette: PaletteBlockUiComponent,
+    AnyBitmapBlock: BitmapBlockUiComponent,
+    TriMap: TriMapBlockUiComponent,
+    ShpiBlock: ShpiBlockUiComponent,
+    WwwwBlock: WwwwBlockUiComponent,
+    OripGeometry: OripGeometryBlockUiComponent,
+  };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
 
   _component: ComponentRef<GuiComponentInterface> | null = null;
   _componentChangedSub: Subscription | null = null;
+
+  isInReversibleSerializationState = false;
 
   private destroyed$: Subject<void> = new Subject<void>();
 
@@ -65,7 +76,7 @@ export class EditorComponent implements OnDestroy {
     if (this._component?.instance) {
       this._component.instance.name = value;
     }
-  };
+  }
 
   private _resourceData: ReadData | ReadError | null = null;
   get resourceData(): ReadData | ReadError | null {
@@ -77,6 +88,13 @@ export class EditorComponent implements OnDestroy {
       return this._resourceData as ReadError;
     }
     return null;
+  }
+
+  get data(): ReadData | null {
+    if ((this._resourceData as any)?.error_class) {
+      return null;
+    }
+    return this._resourceData as ReadData;
   }
 
   @Input()
@@ -102,21 +120,41 @@ export class EditorComponent implements OnDestroy {
         this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
         this._component.instance.resourceData = readData;
         this._component.instance.name = this._name;
-        this._componentChangedSub = this._component.instance.changed
-          .pipe(takeUntil(this.destroyed$))
-          .subscribe(() => {
-            this.mainService.dataBlockChange$.next([readData.block_id, readData.value]);
-          });
+        this._componentChangedSub = this._component.instance.changed.pipe(takeUntil(this.destroyed$)).subscribe(() => {
+          this.mainService.dataBlockChange$.next([readData.block_id, readData.value]);
+        });
       }
     }
-  };
+  }
 
-  constructor(readonly mainService: MainService) {
+  constructor(
+    readonly mainService: MainService,
+    readonly eelDelegate: EelDelegateService,
+    readonly cdr: ChangeDetectorRef,
+  ) {}
+
+  async serializeBlockReversible() {
+    const [files, isReversible] = await this.eelDelegate.serializeReversible(this.data!.block_id, []);
+    const commonPathPart = files.reduce((commonBeginning, currentString) => {
+      let j = 0;
+      while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {
+        j++;
+      }
+      return commonBeginning.substring(0, j);
+    });
+    await this.eelDelegate.openFileWithSystemApp(commonPathPart);
+    this.isInReversibleSerializationState = isReversible;
+    this.cdr.markForCheck();
+  }
+
+  async deserialize() {
+    await this.mainService.deserializeResource(this.data!.block_id);
+    this.isInReversibleSerializationState = false;
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
   }
-
 }
