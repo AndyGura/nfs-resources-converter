@@ -4,7 +4,7 @@
            [max]="resourceData.editor_validators.max_value"
            [min]="resourceData.editor_validators.min_value"
            [step]="resourceData.editor_validators.value_interval"
-           [disabled]="!!resourceData.block?.required_value"
+           [disabled]="resourceData.block?.required_value != null"
            [(ngModel)]="resourceData.value"
            (change)="changed.emit()">
 </mat-form-field>

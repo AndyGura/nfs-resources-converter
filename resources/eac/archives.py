@@ -73,6 +73,10 @@ class ShpiChildDescription(CompoundBlock):
 class ShpiBlock(CompoundBlock):
     block_description = 'A container of images and palettes for them'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_serializable_to_disk = True
+
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Block(required_value='SHPI', length=4, description='Resource ID')
         length = IntegerBlock(static_size=4, is_signed=False, description='The length of this SHPI block in bytes')

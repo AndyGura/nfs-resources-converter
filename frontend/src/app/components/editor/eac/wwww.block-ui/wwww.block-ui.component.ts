@@ -8,7 +8,6 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WwwwBlockUiComponent implements GuiComponentInterface {
-
   @Input() resourceData: ReadData | null = null;
   name: string = '';
 
@@ -20,6 +19,5 @@ export class WwwwBlockUiComponent implements GuiComponentInterface {
       res[i.toString()] = this.resourceData?.value.children?.value[i];
     }
     return res;
-  };
-
+  }
 }

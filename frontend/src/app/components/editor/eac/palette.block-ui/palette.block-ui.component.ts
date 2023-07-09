@@ -8,18 +8,15 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaletteBlockUiComponent implements GuiComponentInterface {
-
   @Input() resourceData: ReadData | null = null;
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor() {
-  }
+  constructor() {}
 
   lpad(str: string, padString: string, length: number) {
-    while (str.length < length)
-      str = padString + str;
+    while (str.length < length) str = padString + str;
     return str;
   }
 }

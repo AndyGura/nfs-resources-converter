@@ -16,6 +16,9 @@ class ResourceSerializer(ABC):
     def patch_settings(self, settings_patch: dict):
         self.settings.update(settings_patch)
 
+    def setup_for_reversible_serialization(self) -> bool:
+        return False
+
     @abstractmethod
     def serialize(self, data: ReadData) -> Dict:
         raise NotImplementedError

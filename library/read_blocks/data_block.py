@@ -25,6 +25,8 @@ class DataBlock(ABC):
         self.description = description
         self.error_handling_strategy = error_handling_strategy
         self.simplified = simplified
+        # For GUI only: adds buttons to serialize/deserialize block
+        self.is_serializable_to_disk = False
         self.__dict__.update(kwargs)
 
     def get_size(self, state) -> Literal[int, None]:

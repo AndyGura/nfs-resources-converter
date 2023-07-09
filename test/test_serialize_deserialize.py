@@ -31,3 +31,28 @@ class TestSerializeDeserialize(unittest.TestCase):
             # self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
+
+    def test_ffn_should_remain_the_same(self):
+        font_res = require_file('test/samples/MAIN24.FFN')
+        output = font_res.to_bytes()
+        with open('test/samples/MAIN24.FFN', 'rb') as bdata:
+            original = bdata.read()
+            self.assertEqual(len(original), len(output))
+            for i, x in enumerate(original):
+                self.assertEqual(x, output[i], f"Wrong value at index {i}")
+
+    def test_ffn_can_be_reconstructed_from_files(self):
+        font_res = require_file('test/samples/MAIN24.FFN')
+        import tempfile
+        from serializers import get_serializer
+        serializer = get_serializer(font_res.block)
+        self.assertTrue(serializer.setup_for_reversible_serialization())
+        with tempfile.TemporaryDirectory() as tmp:
+            serializer.serialize(font_res, tmp)
+            serializer.deserialize(tmp, font_res)
+        output = font_res.to_bytes()
+        with open('test/samples/MAIN24.FFN', 'rb') as bdata:
+            original = bdata.read()
+            self.assertEqual(len(original), len(output))
+            for i, x in enumerate(original):
+                self.assertEqual(x, output[i], f"Wrong value at index {i}")

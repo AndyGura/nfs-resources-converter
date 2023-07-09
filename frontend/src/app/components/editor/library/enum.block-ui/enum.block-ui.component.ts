@@ -8,7 +8,6 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EnumBlockUiComponent implements GuiComponentInterface {
-
   @Input() resourceData: ReadData | null = null;
   name: string = '';
 
@@ -18,8 +17,5 @@ export class EnumBlockUiComponent implements GuiComponentInterface {
     return !!this.resourceData?.block.enum_names.find(([_, v]: string[]) => v == value);
   }
 
-  constructor() {
-  }
-
+  constructor() {}
 }
-

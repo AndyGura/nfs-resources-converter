@@ -71,4 +71,13 @@ class SubByteArrayBlock(DataBlock):
             return [ReadData(value=self.value_deserialize_func(x), block=None, block_state=state) for x in values]
 
     def to_raw_value(self, data: ReadData) -> bytes:
-        raise NotImplementedError
+        bitstring = "".join(
+            bin(self.value_serialize_func(item))[2:].rjust(self.bits_per_value, "0") for item in data.value)
+        padding = len(bitstring) % 8
+        if padding != 0:
+            bitstring += '0' * (8 - padding)
+        byte_array = bytearray()
+        for i in range(0, len(bitstring), 8):
+            byte = int(bitstring[i:i + 8], 2)
+            byte_array.append(byte)
+        return bytes(byte_array)

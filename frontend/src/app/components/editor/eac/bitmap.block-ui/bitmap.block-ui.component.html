@@ -1,4 +1,4 @@
-<div *ngIf="_resourceData$ | async" class="number-matrix">
+<div *ngIf="(_resourceData$ | async) && !(main.unknownsHidden$ | async)" class="number-matrix">
     Unknowns:
     <ng-container *ngFor="let number of [].constructor((_resourceData$ | async)?.value.unknowns.value.length); let i = index">
         <input matInput type="number"

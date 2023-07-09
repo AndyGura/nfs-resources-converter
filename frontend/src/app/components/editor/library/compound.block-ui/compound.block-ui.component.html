@@ -1,3 +1,5 @@
-<app-editor *ngFor="let field of fieldKeys"
-            [resourceData]="resourceData?.value[field]"
-            [name]="field"></app-editor>
+<ng-container *ngFor="let field of fieldKeys">
+  <app-editor *ngIf="!((main.unknownsHidden$ | async) && (resourceData?.block.unknown_fields || []).includes(field))"
+              [resourceData]="resourceData?.value[field]"
+              [name]="field"></app-editor>
+</ng-container>

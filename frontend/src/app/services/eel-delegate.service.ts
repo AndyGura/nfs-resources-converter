@@ -4,29 +4,28 @@ import { BehaviorSubject } from 'rxjs';
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function };
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class EelDelegateService {
-
-  public readonly openedResource$: BehaviorSubject<ReadData | ReadError | null> = new BehaviorSubject<ReadData | ReadError | null>(null);
+  public readonly openedResource$: BehaviorSubject<ReadData | ReadError | null> = new BehaviorSubject<
+    ReadData | ReadError | null
+  >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  constructor(
-    private readonly ngZone: NgZone,
-  ) {
+  constructor(private readonly ngZone: NgZone) {
     eel.expose(this.wrapHandler(this.openFile), 'open_file');
     eel['on_angular_ready']();
   }
 
   private wrapHandler(handler: (...args: any[]) => unknown) {
-    return ((...args: any[]) => {
+    return (...args: any[]) => {
       try {
         NgZone.assertInAngularZone();
         handler.bind(this)(...args);
       } catch (err) {
         this.ngZone.run(handler, this, args);
       }
-    });
+    };
   }
 
   public async openFile(path: string, forceReload: boolean = false) {
@@ -45,7 +44,7 @@ export class EelDelegateService {
     return eel['run_custom_action'](readData.block_id, action, args)();
   }
 
-  public async saveFile(changes: {id: string, value: any}[]) {
+  public async saveFile(changes: { id: string; value: any }[]) {
     return eel['save_file'](this.openedResourcePath$.getValue(), changes)();
   }
 
@@ -53,8 +52,16 @@ export class EelDelegateService {
     return eel['serialize_resource'](id, settingsPatch)();
   }
 
-  public async serializeResourceTmp(id: string, changes: {id: string, value: any}[], settingsPatch: any = {}): Promise<string[]> {
+  public async serializeResourceTmp(
+    id: string,
+    changes: { id: string; value: any }[],
+    settingsPatch: any = {},
+  ): Promise<string[]> {
     return eel['serialize_resource_tmp'](id, changes, settingsPatch)();
+  }
+
+  public async serializeReversible(id: string, changes: { id: string; value: any }[]): Promise<[string[], boolean]> {
+    return eel['serialize_reversible'](id, changes)();
   }
 
   public async deserializeResource(id: string): Promise<ReadData | ReadError> {

@@ -8,7 +8,7 @@ import {
   Input,
   OnDestroy,
   Output,
-  ViewChild
+  ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 
@@ -18,23 +18,23 @@ enum NumberBase {
   Binary = 2,
   Octal = 8,
   Decimal = 10,
-  Hexadecimal = 16
+  Hexadecimal = 16,
 }
 
-interface HexEditorProps extends Partial<{
-  data: ArrayBuffer;
-  readonly: boolean;
-  showHeader: boolean;
-  showFooter: boolean;
-  height: string;
-  width: string;
-  offsetBase: NumberBase;
-  dataBase: NumberBase;
-  bytesPerLine: number;
-  start: number;
-  end: number;
-}> {
-}
+interface HexEditorProps
+  extends Partial<{
+    data: ArrayBuffer;
+    readonly: boolean;
+    showHeader: boolean;
+    showFooter: boolean;
+    height: string;
+    width: string;
+    offsetBase: NumberBase;
+    dataBase: NumberBase;
+    bytesPerLine: number;
+    start: number;
+    end: number;
+  }> {}
 
 @Component({
   selector: 'app-binary-block-ui',
@@ -43,7 +43,6 @@ interface HexEditorProps extends Partial<{
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-
   @ViewChild('editor') editorDiv?: ElementRef<HTMLDivElement>;
 
   private _resourceData: ReadData | null = null;
@@ -68,8 +67,7 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
   private editor: any;
   private editorProps: HexEditorProps = {};
 
-  constructor(private readonly cdr: ChangeDetectorRef) {
-  }
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
   ngAfterViewInit(): void {
     if (this.resourceData) {
@@ -87,5 +85,4 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.editor.$destroy();
     }
   }
-
 }

@@ -41,9 +41,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui/tri-map.block-ui.component';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
-import {
-  OripGeometryBlockUiComponent
-} from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
 
 @NgModule({
@@ -94,8 +92,7 @@ import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minim
     MatMenuModule,
     ReactiveFormsModule,
   ],
-  providers: [EelDelegateService,NgxDeepEqualsPureService],
-  bootstrap: [AppComponent]
+  providers: [EelDelegateService, NgxDeepEqualsPureService],
+  bootstrap: [AppComponent],
 })
-export class AppModule {
-}
+export class AppModule {}

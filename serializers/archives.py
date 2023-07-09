@@ -15,6 +15,14 @@ from serializers.misc.path_utils import escape_chars
 
 class ShpiArchiveSerializer(BaseFileSerializer):
 
+    def setup_for_reversible_serialization(self) -> bool:
+        self.patch_settings({
+            'export_unknown_values': False,
+            'images__save_inline_palettes': False,
+            'images__save_images_only': True,
+        })
+        return True
+
     def serialize(self, data: ReadData[ShpiBlock], path: str):
         super().serialize(data, path, is_dir=True)
         items = [(data.children_descriptions[i].name.value, data.children[i]) for i in range(data.children_count.value)]

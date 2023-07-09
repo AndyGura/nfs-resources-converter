@@ -5,11 +5,12 @@ import {
   Component,
   EventEmitter,
   Input,
-  Output
+  Output,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
+import {MainService} from "../../../../services/main.service";
 
 @Component({
   selector: 'app-bitmap-block-ui',
@@ -18,13 +19,12 @@ import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewInit {
-
   _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   @Input() set resourceData(value: ReadData | null) {
     this._resourceData$.next(value);
-  };
+  }
 
   get resourceData(): ReadData | null {
     return this._resourceData$.getValue();
@@ -39,16 +39,14 @@ export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewI
   constructor(
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
-  ) {
-  }
+    public readonly main: MainService,
+  ) {}
 
   async ngAfterViewInit() {
-    this._resourceData$.pipe(
-      takeUntil(this.destroyed$),
-    ).subscribe(async (data) => {
+    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
       if (data) {
-        const [path] = await this.eelDelegate.serializeResource(data.block_id);
-        this.imageUrl$.next(path);
+        const paths = await this.eelDelegate.serializeResource(data.block_id);
+        this.imageUrl$.next(paths.find(x => x.endsWith('.png')) || null);
       } else {
         this.imageUrl$.next(null);
       }
@@ -59,5 +57,4 @@ export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.destroyed$.next();
     this.destroyed$.complete();
   }
-
 }

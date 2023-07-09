@@ -104,6 +104,26 @@ def run_gui_editor(file_path):
             return [x.replace('\\', '/') for x in exported_file_paths]
 
         @eel.expose
+        # serialize resource with ability to serialize it back.
+        # serializes data in any case
+        # returns file list and flag is it possible to deserialize files back
+        def serialize_reversible(id: str, changes: Dict):
+            resource, _ = require_resource(id)
+            resource = deepcopy(resource)
+            __apply_delta_to_resource(id, resource, changes)
+            serializer = get_serializer(resource.block)
+            path = os.path.join(static_path, 'resources_edit', *id.split('/'))
+            reverse_flag = serializer.setup_for_reversible_serialization()
+            serializer.serialize(resource, path)
+            normal_slashes_path = path.replace('\\', '/')
+            return [str(x)[len(static_path):]
+                    for x in chain(Path(normal_slashes_path).glob("**/*"),
+                                   Path(normal_slashes_path[:normal_slashes_path.rindex('/')]).glob(
+                                       normal_slashes_path[(normal_slashes_path.rindex('/') + 1):] + '.*'))
+                    if not x.is_dir()], reverse_flag
+
+
+        @eel.expose
         def serialize_resource_tmp(id: str, changes: Dict, settings_patch={}):
             resource, _ = require_resource(id)
             resource = deepcopy(resource)
@@ -124,10 +144,11 @@ def run_gui_editor(file_path):
         def deserialize_resource(id: str):
             resource, _ = require_resource(id)
             serializer = get_serializer(resource.block)
-            path = os.path.join(static_path, 'resources_tmp', *id.split('/'))
+            path = os.path.join(static_path, 'resources_edit', *id.split('/'))
             serializer.deserialize(path, resource)
             remove_file_or_directory(os.path.join(static_path, 'resources', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_tmp', *id.split('/')))
+            remove_file_or_directory(os.path.join(static_path, 'resources_edit', *id.split('/')))
             return DataTransferSerializer().serialize(current_file)
 
     eel.init(static_path)

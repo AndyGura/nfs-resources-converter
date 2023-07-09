@@ -1,14 +1,13 @@
-import { Component, Inject, } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-run-custom-action.dialog',
   templateUrl: './run-custom-action.dialog.component.html',
-  styleUrls: ['./run-custom-action.dialog.component.scss']
+  styleUrls: ['./run-custom-action.dialog.component.scss'],
 })
 export class RunCustomActionDialogComponent {
-
   readonly argsForm: FormGroup;
 
   constructor(
@@ -32,5 +31,4 @@ export class RunCustomActionDialogComponent {
     }
     this.dialogRef.close(result);
   }
-
 }

@@ -1,5 +1,5 @@
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import IntegerBlock, Utf8Block
+from library.read_blocks.atomic import IntegerBlock, Utf8Block, BytesField
 from library.read_blocks.compound import CompoundBlock
 from resources.eac.bitmaps import Bitmap4Bit
 
@@ -17,21 +17,33 @@ class SymbolDefinitionRecord(CompoundBlock):
 
 
 class FfnFont(CompoundBlock):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_serializable_to_disk = True
+
     class Fields(CompoundBlock.Fields):
         resource_id = Utf8Block(required_value='FNTF', length=4, description='Resource ID')
         file_size = IntegerBlock(static_size=4, description='This file size in bytes')
-        unknowns0 = ArrayBlock(length=2, child=IntegerBlock(static_size=1))
+        unk0 = IntegerBlock(static_size=1, required_value=100)
+        unk1 = IntegerBlock(static_size=1, required_value=0)
         symbols_amount = IntegerBlock(static_size=2, description='Amount of symbols, defined in this font')
-        unknowns1 = ArrayBlock(length=16, child=IntegerBlock(static_size=1))
+        unk2 = BytesField(length=6, required_value=b'\0' * 6)
+        font_size = IntegerBlock(static_size=1, description='Font size ?')
+        unk3 = IntegerBlock(static_size=1, required_value=0)
+        line_height = IntegerBlock(static_size=1, description='Line height ?')
+        unk4 = BytesField(length=7, required_value=b'\0' * 7)
         bitmap_data_pointer = IntegerBlock(static_size=2, description='Pointer to bitmap block')
-        unknowns2 = ArrayBlock(length=2, child=IntegerBlock(static_size=1))
+        unk5 = IntegerBlock(static_size=1, required_value=0)
+        unk6 = IntegerBlock(static_size=1, required_value=0)
         definitions = ArrayBlock(child=SymbolDefinitionRecord(), length_label='symbols_amount',
                                  description='Definitions of chars in this bitmap font')
-        skip_bytes = ArrayBlock(length_label='up to offset bitmap_data_pointer', child=IntegerBlock(static_size=1, required_value=0xAD),
+        skip_bytes = ArrayBlock(length_label='up to offset bitmap_data_pointer',
+                                child=IntegerBlock(static_size=1, required_value=0xAD),
                                 description='4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36)')
         bitmap = Bitmap4Bit(description='Font atlas bitmap data')
-        
-        unknown_fields = ['unknowns0', 'unknowns1', 'unknowns2']
+
+        unknown_fields = ['unk0', 'unk1', 'unk2', 'unk3', 'unk4', 'unk5', 'unk6']
 
     def _after_symbols_amount_read(self, data, state, **kwargs):
         if not state.get('definitions'):
@@ -42,4 +54,3 @@ class FfnFont(CompoundBlock):
         if not state.get('skip_bytes'):
             state['skip_bytes'] = {}
         state['skip_bytes']['length'] = data['bitmap_data_pointer'].value - buffer.tell()
-

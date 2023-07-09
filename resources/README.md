@@ -439,11 +439,17 @@
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == FNTF | Resource ID |
 | 4 | **file_size** | 4 | 4-bytes unsigned integer (little endian) | This file size in bytes |
-| 8 | **unknowns0** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
+| 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 10 | **symbols_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unknowns1** | 16 | Array of 16 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 12 | **unk2** | 6 | Always == b'\x00\x00\x00\x00\x00\x00' | Unknown purpose |
+| 18 | **font_size** | 1 | 1-byte unsigned integer | Font size ? |
+| 19 | **unk3** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
+| 21 | **unk4** | 7 | Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
 | 28 | **bitmap_data_pointer** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
-| 30 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 32 | **definitions** | 11 * (symbols_amount) | Array of symbols_amount items<br/>Item type: [SymbolDefinitionRecord](#symboldefinitionrecord) | Definitions of chars in this bitmap font |
 | 32..? | **skip_bytes** | up to offset bitmap_data_pointer | Array of up to offset bitmap_data_pointer items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0xad | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
 | 32..? | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |

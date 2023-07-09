@@ -16,6 +16,13 @@ class BitmapSerializer(BaseFileSerializer):
                         (data.width.value, data.height.value),
                         bytes().join([c.to_bytes(4, 'big') for c in data.bitmap])).save(f'{escape_chars(path)}.png')
 
+    def deserialize(self, path: str, resource: ReadData, **kwargs) -> None:
+        image = Image.open(path + '.png')
+        image_rgba = image.convert("RGBA")
+        resource.width.value = image.width
+        resource.height.value = image.height
+        resource.bitmap.value = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
+
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
