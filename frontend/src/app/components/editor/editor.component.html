@@ -4,7 +4,7 @@
     </mat-error>
     <mat-spinner *ngIf="!resourceData" mode="indeterminate"></mat-spinner>
 </div>
-<div *ngIf="data?.block?.is_serializable_to_disk" id="actionsOverlay">
+<div *ngIf="data?.block?.is_serializable_to_disk && data?.block_id != (mainService.resourceData$ | async)?.block_id" id="actionsOverlay">
   <button mat-icon-button
           *ngIf="isInReversibleSerializationState"
           matTooltip="Deserialize back from common format"

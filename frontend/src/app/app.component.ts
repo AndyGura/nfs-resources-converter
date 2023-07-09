@@ -73,6 +73,18 @@ export class AppComponent {
     this.mainService.unknownsHidden$.next(!this.mainService.unknownsHidden$.getValue());
   }
 
+  async serializeResource() {
+    const files = await this.eelDelegate.serializeResource(this.mainService.resourceData$.getValue()!.block_id);
+    const commonPathPart = files.reduce((commonBeginning, currentString) => {
+      let j = 0;
+      while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {
+        j++;
+      }
+      return commonBeginning.substring(0, j);
+    });
+    await this.eelDelegate.openFileWithSystemApp(commonPathPart);
+  }
+
   async reloadResource() {
     if (this.mainService.hasUnsavedChanges) {
       let dialogRef = this.dialog.open(ConfirmDialogComponent, {

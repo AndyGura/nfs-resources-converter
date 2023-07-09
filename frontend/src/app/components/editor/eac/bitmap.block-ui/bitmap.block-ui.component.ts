@@ -10,6 +10,7 @@ import {
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
+import {MainService} from "../../../../services/main.service";
 
 @Component({
   selector: 'app-bitmap-block-ui',
@@ -35,13 +36,17 @@ export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor(private readonly eelDelegate: EelDelegateService, private readonly cdr: ChangeDetectorRef) {}
+  constructor(
+    private readonly eelDelegate: EelDelegateService,
+    private readonly cdr: ChangeDetectorRef,
+    public readonly main: MainService,
+  ) {}
 
   async ngAfterViewInit() {
     this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
       if (data) {
-        const [path] = await this.eelDelegate.serializeResource(data.block_id);
-        this.imageUrl$.next(path);
+        const paths = await this.eelDelegate.serializeResource(data.block_id);
+        this.imageUrl$.next(paths.find(x => x.endsWith('.png')) || null);
       } else {
         this.imageUrl$.next(null);
       }
