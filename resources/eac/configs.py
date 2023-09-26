@@ -17,7 +17,7 @@ class TnfsRecordTime(IntegerBlock):
         return super().to_raw_value(int(data * 60))
 
 
-class TnfsConfigDatRecord(CompoundBlock):
+class BestTrackTimeRecord(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         name = Utf8Block(length=11, description='Racer name')
         unk0 = BytesField(length=4)
@@ -50,36 +50,36 @@ class TnfsConfigDatRecord(CompoundBlock):
 class TnfsConfigDat(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         unk0 = BytesField(length=415)
-        city_best_times = ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        city_best_times = ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                      description='Best 10 runs of City track (all segments)')
         unk1 = BytesField(length=2277)
-        coast_best_times = ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        coast_best_times = ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                       description='Best 10 runs of Coastal track (all segments)')
         unk2 = BytesField(length=2277)
-        alpine_best_times = ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        alpine_best_times = ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                        description='Best 10 runs of Alpine track (all segments)')
         unk3 = BytesField(length=2277)
-        rusty_springs_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        rusty_springs_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                                                          description='Best 10 runs'),
                                               description='Best runs of Rusty Springs track per lap amount (4/8/16)')
         unk4 = BytesField(length=1497)
-        autumn_valley_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        autumn_valley_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                                                          description='Best 10 runs'),
                                               description='Best runs of Autumn Valley track per lap amount (2/6/12)')
         unk5 = BytesField(length=1497)
-        burnt_sienna_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        burnt_sienna_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                                                         description='Best 10 runs'),
                                              description='Best runs of Burnt Sienna track per lap amount (2/6/12)')
         unk6 = BytesField(length=1497)
-        vertigo_ridge_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        vertigo_ridge_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                                                          description='Best 10 runs'),
                                               description='Best runs of Vertigo Ridge track per lap amount (2/6/12)')
         unk7 = BytesField(length=1497)
-        transtropolis_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        transtropolis_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                                                          description='Best 10 runs'),
                                               description='Best runs of Transtropolis track per lap amount (2/6/12)')
         unk8 = BytesField(length=1497)
-        lost_vegas_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=TnfsConfigDatRecord(),
+        lost_vegas_best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=BestTrackTimeRecord(),
                                                                       description='Best 10 runs'),
                                            description='Best runs of Lost Vegas track per lap amount (4/8/16)')
         unk9 = BytesField(length_strategy="read_available")

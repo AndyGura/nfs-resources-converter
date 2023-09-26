@@ -547,25 +547,25 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 415 | Byte array | Unknown purpose |
-| 415 | **city_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best 10 runs of City track (all segments) |
+| 415 | **city_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best 10 runs of City track (all segments) |
 | 805 | **unk1** | 2277 | Byte array | Unknown purpose |
-| 3082 | **coast_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best 10 runs of Coastal track (all segments) |
+| 3082 | **coast_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best 10 runs of Coastal track (all segments) |
 | 3472 | **unk2** | 2277 | Byte array | Unknown purpose |
-| 5749 | **alpine_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best 10 runs of Alpine track (all segments) |
+| 5749 | **alpine_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best 10 runs of Alpine track (all segments) |
 | 6139 | **unk3** | 2277 | Byte array | Unknown purpose |
-| 8416 | **rusty_springs_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Rusty Springs track per lap amount (4/8/16) |
+| 8416 | **rusty_springs_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Rusty Springs track per lap amount (4/8/16) |
 | 9586 | **unk4** | 1497 | Byte array | Unknown purpose |
-| 11083 | **autumn_valley_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Autumn Valley track per lap amount (2/6/12) |
+| 11083 | **autumn_valley_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Autumn Valley track per lap amount (2/6/12) |
 | 12253 | **unk5** | 1497 | Byte array | Unknown purpose |
-| 13750 | **burnt_sienna_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Burnt Sienna track per lap amount (2/6/12) |
+| 13750 | **burnt_sienna_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Burnt Sienna track per lap amount (2/6/12) |
 | 14920 | **unk6** | 1497 | Byte array | Unknown purpose |
-| 16417 | **vertigo_ridge_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Vertigo Ridge track per lap amount (2/6/12) |
+| 16417 | **vertigo_ridge_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Vertigo Ridge track per lap amount (2/6/12) |
 | 17587 | **unk7** | 1497 | Byte array | Unknown purpose |
-| 19084 | **transtropolis_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Transtropolis track per lap amount (2/6/12) |
+| 19084 | **transtropolis_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Transtropolis track per lap amount (2/6/12) |
 | 20254 | **unk8** | 1497 | Byte array | Unknown purpose |
-| 21751 | **lost_vegas_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Lost Vegas track per lap amount (4/8/16) |
+| 21751 | **lost_vegas_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Lost Vegas track per lap amount (4/8/16) |
 | 22921 | **unk9** | 0..? | Byte array | Unknown purpose |
-### **TnfsConfigDatRecord** ###
+### **BestTrackTimeRecord** ###
 #### **Size**: 39 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |

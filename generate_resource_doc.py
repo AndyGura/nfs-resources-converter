@@ -59,7 +59,7 @@ EXPORT_RESOURCES = {
     ],
     'Misc': [
         configs.TnfsConfigDat(),
-        configs.TnfsConfigDatRecord(),
+        configs.BestTrackTimeRecord(),
     ]
 }
 
