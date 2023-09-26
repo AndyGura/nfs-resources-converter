@@ -18,6 +18,9 @@ def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
         elif file_name.endswith('.PDN_UNCOMPRESSED'):
             from resources.eac.car_specs import CarSimplifiedPerformanceSpec
             return CarSimplifiedPerformanceSpec
+        elif file_name.endswith('CONFIG.DAT'):
+            from resources.eac.configs import TnfsConfigDat
+            return TnfsConfigDat
     if header_str:
         if header_str == 'TSTR':
             from resources.test_resource import TestResource

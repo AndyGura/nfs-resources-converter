@@ -3,7 +3,7 @@ from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.data_block import DataBlock
 from library.read_blocks.detached import DetachedBlock
 from library.read_blocks.literal import LiteralBlock
-from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries, audios, archives
+from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries, audios, archives, configs
 
 EXPORT_RESOURCES = {
     'Archives': [
@@ -56,6 +56,10 @@ EXPORT_RESOURCES = {
     'Audio': [
         audios.AsfAudio(),
         audios.EacsAudio(),
+    ],
+    'Misc': [
+        configs.TnfsConfigDat(),
+        configs.TnfsConfigDatRecord(),
     ]
 }
 
@@ -124,6 +128,8 @@ with open('resources/README.md', 'w') as f:
 **\*.TGV** video, I just use ffmpeg to convert it
 
 **\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(maps.TriMap())}
+
+**GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(configs.TnfsConfigDat())}
 
 
 # **Block specs** #""")

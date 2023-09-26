@@ -32,6 +32,8 @@
 
 **\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. [TriMap](#trimap)
 
+**GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. [TnfsConfigDat](#tnfsconfigdat)
+
 
 # **Block specs** #
 ## **Archives** ##
@@ -62,7 +64,7 @@
 | --- | --- | --- | --- | --- |
 | 0 | **children_offsets** | 4 * (128) | Array of 128 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file. Zero values seem to be ignored, but for some reason the very first offset is 0 in most files. The real audio data start is shifted 40 bytes forward for some reason, so EACS is located at {offset from this array} + 40 |
 | 512 | **children** | ? | Array of ? items with custom offset to items<br/>Item type: [EacsAudio](#eacsaudio) | EACS blocks are here, placed at offsets from previous block. Those EACS blocks don't have own wave data, there are 44 bytes of unknown data instead, offsets in them are pointed to wave data of this block |
-| 512..? | **wave_data** | ? | Array of ? items with custom offset to items<br/>Item size: 0..? bytes<br/>Item type:  | A space, where wave data is located. Pointers are in children EACS |
+| 512..? | **wave_data** | ? | Array of ? items with custom offset to items<br/>Item size: 0..? bytes<br/>Item type: Byte array | A space, where wave data is located. Pointers are in children EACS |
 ## **Geometries** ##
 ### **OripGeometry** ###
 #### **Size**: 112..? bytes ####
@@ -442,11 +444,11 @@
 | 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
 | 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 10 | **symbols_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unk2** | 6 | Always == b'\x00\x00\x00\x00\x00\x00' | Unknown purpose |
+| 12 | **unk2** | 6 | Byte array. Always == b'\x00\x00\x00\x00\x00\x00' | Unknown purpose |
 | 18 | **font_size** | 1 | 1-byte unsigned integer | Font size ? |
 | 19 | **unk3** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
-| 21 | **unk4** | 7 | Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
+| 21 | **unk4** | 7 | Byte array. Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
 | 28 | **bitmap_data_pointer** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
@@ -522,7 +524,7 @@
 | 24 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | When audio ends, it repeats in loop from here. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
-| 36 | **wave_data** | 0..? |  | Wave data is here |
+| 36 | **wave_data** | 0..? | Byte array | Wave data is here |
 ### **EacsAudio** ###
 #### **Size**: 28..? bytes ####
 #### **Description**: An audio block, almost identical to AsfAudio, but can be included in single SoundBank file with multiple other EACS blocks and has detached wave data, which is located somewhere in the SoundBank file after all EACS blocks ####
@@ -539,3 +541,39 @@
 | 20 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 24 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
 | - | **wave_data** | 0..? | Detached block, located somewhere in file, knowing it's offset.Does not take place inside parent block | Wave data, located somewhere in file at wave_data_offset. if sound_resolution == 1, contains signed bytes, else - unsigned |
+## **Misc** ##
+### **TnfsConfigDat** ###
+#### **Size**: 22921..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 415 | Byte array | Unknown purpose |
+| 415 | **city_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best 10 runs of City track (all segments) |
+| 805 | **unk1** | 2277 | Byte array | Unknown purpose |
+| 3082 | **coast_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best 10 runs of Coastal track (all segments) |
+| 3472 | **unk2** | 2277 | Byte array | Unknown purpose |
+| 5749 | **alpine_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best 10 runs of Alpine track (all segments) |
+| 6139 | **unk3** | 2277 | Byte array | Unknown purpose |
+| 8416 | **rusty_springs_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Rusty Springs track per lap amount (4/8/16) |
+| 9586 | **unk4** | 1497 | Byte array | Unknown purpose |
+| 11083 | **autumn_valley_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Autumn Valley track per lap amount (2/6/12) |
+| 12253 | **unk5** | 1497 | Byte array | Unknown purpose |
+| 13750 | **burnt_sienna_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Burnt Sienna track per lap amount (2/6/12) |
+| 14920 | **unk6** | 1497 | Byte array | Unknown purpose |
+| 16417 | **vertigo_ridge_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Vertigo Ridge track per lap amount (2/6/12) |
+| 17587 | **unk7** | 1497 | Byte array | Unknown purpose |
+| 19084 | **transtropolis_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Transtropolis track per lap amount (2/6/12) |
+| 20254 | **unk8** | 1497 | Byte array | Unknown purpose |
+| 21751 | **lost_vegas_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [TnfsConfigDatRecord](#tnfsconfigdatrecord) | Best runs of Lost Vegas track per lap amount (4/8/16) |
+| 22921 | **unk9** | 0..? | Byte array | Unknown purpose |
+### **TnfsConfigDatRecord** ###
+#### **Size**: 39 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **name** | 11 | UTF-8 string | Racer name |
+| 11 | **unk0** | 4 | Byte array | Unknown purpose |
+| 15 | **car_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: RX-7<br/>1: NSX<br/>2: SUPRA<br/>3: 911<br/>4: CORVETTE<br/>5: VIPER<br/>6: 512TR<br/>7: DIABLO<br/>8: WAR_SLEW?<br/>9: WAR_WATCH?<br/>10: WAR_TOURNY?<br/>11: WAR?</details> | A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE |
+| 16 | **unk1** | 11 | Byte array | Unknown purpose |
+| 27 | **time** | 2 | TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60 | Total track time |
+| 29 | **unk2** | 6 | Byte array | Unknown purpose |
+| 35 | **tt_hh** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: T.T.<br/>1: H.H.<br/>2: None</details> | Unclear parameter. Shows up in the game |
+| 36 | **unk3** | 3 | Byte array | Unknown purpose |

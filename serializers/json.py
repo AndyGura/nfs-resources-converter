@@ -2,7 +2,6 @@ import json
 
 from library.helpers.json import rec_dd, resource_to_json
 from library.read_blocks.compound import CompoundBlock
-from library.read_blocks.delegate import DelegateBlock
 from library.read_data import ReadData
 from serializers import BaseFileSerializer
 
@@ -27,5 +26,7 @@ class JsonSerializer(BaseFileSerializer):
     def serialize(self, data: ReadData, path: str):
         super().serialize(data, path, is_dir=False)
         json_str = json.dumps(self.__make_dict(data), indent=4)
+        if path.endswith('/') or path.endswith('\\'):
+            path += data.id[data.id.rindex('/')+1:]
         with open(f'{path}.json', 'w') as file:
             file.write(json_str)

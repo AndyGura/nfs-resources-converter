@@ -129,7 +129,7 @@ class Utf8Block(AtomicDataBlock):
 
 
 class BytesField(AtomicDataBlock):
-    block_description = ""
+    block_description = "Byte array"
 
     def __init__(self,
                  length: int = None,

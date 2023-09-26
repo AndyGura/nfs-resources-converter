@@ -35,6 +35,7 @@ SERIALIZER_CLASSES = {
     'SoundBank': 'SoundBankSerializer',
     'EacsAudio': 'EacsAudioSerializer',
     'AsfAudio': 'FfmpegSupportedAudioSerializer',
+    'TnfsConfigDat': 'JsonSerializer',
 }
 # for debug: this option will dump all data, marked as "unknown" to json file besides the output
 export_unknown_values = False

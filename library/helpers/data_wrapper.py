@@ -41,6 +41,8 @@ class DataWrapper(dict):
                 value = value.value
             if isinstance(value, DataWrapper):
                 res[key] = value.to_dict()
+            elif isinstance(value, bytes):
+                res[key] = list(value)
             elif isinstance(value, list):
                 res[key] = [x.to_dict()
                             if isinstance(x, DataWrapper)
