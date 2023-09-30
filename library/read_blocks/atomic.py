@@ -139,9 +139,10 @@ class BytesField(AtomicDataBlock):
         self.length = length
         self.length_strategy = length_strategy
 
+    # FIXME hack for making it work as atomic block. Remove after refactoring
     @property
     def static_size(self):
-        return self.length
+        return self.length or 0
 
     @static_size.setter
     def static_size(self, v):

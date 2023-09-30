@@ -28,7 +28,7 @@ class FfnFont(CompoundBlock):
         unk0 = IntegerBlock(static_size=1, required_value=100)
         unk1 = IntegerBlock(static_size=1, required_value=0)
         symbols_amount = IntegerBlock(static_size=2, description='Amount of symbols, defined in this font')
-        unk2 = BytesField(length=6, required_value=b'\0' * 6)
+        unk2 = BytesField(length=6)
         font_size = IntegerBlock(static_size=1, description='Font size ?')
         unk3 = IntegerBlock(static_size=1, required_value=0)
         line_height = IntegerBlock(static_size=1, description='Line height ?')

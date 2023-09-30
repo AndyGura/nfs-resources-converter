@@ -444,7 +444,7 @@
 | 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
 | 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 10 | **symbols_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unk2** | 6 | Byte array. Always == b'\x00\x00\x00\x00\x00\x00' | Unknown purpose |
+| 12 | **unk2** | 6 | Byte array | Unknown purpose |
 | 18 | **font_size** | 1 | 1-byte unsigned integer | Font size ? |
 | 19 | **unk3** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
