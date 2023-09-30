@@ -127,7 +127,7 @@ class Utf8Block(AtomicDataBlock):
         value = self.unwrap_result(data)
         return value.encode('utf-8')
 
-
+# FIXME it is not an atomic block, because has variable size. Split to two: AtomicByteField and ByteField
 class BytesField(AtomicDataBlock):
     block_description = "Byte array"
 
@@ -138,6 +138,14 @@ class BytesField(AtomicDataBlock):
         super().__init__(**kwargs)
         self.length = length
         self.length_strategy = length_strategy
+
+    @property
+    def static_size(self):
+        return self.length
+
+    @static_size.setter
+    def static_size(self, v):
+        pass
 
     def get_size(self, state):
         return self.length

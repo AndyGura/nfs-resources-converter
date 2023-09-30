@@ -543,29 +543,39 @@
 | - | **wave_data** | 0..? | Detached block, located somewhere in file, knowing it's offset.Does not take place inside parent block | Wave data, located somewhere in file at wave_data_offset. if sound_resolution == 1, contains signed bytes, else - unsigned |
 ## **Misc** ##
 ### **TnfsConfigDat** ###
-#### **Size**: 22921..? bytes ####
+#### **Size**: 24223..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unk0** | 415 | Byte array | Unknown purpose |
-| 415 | **city_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best 10 runs of City track (all segments) |
-| 805 | **unk1** | 2277 | Byte array | Unknown purpose |
-| 3082 | **coast_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best 10 runs of Coastal track (all segments) |
-| 3472 | **unk2** | 2277 | Byte array | Unknown purpose |
-| 5749 | **alpine_best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best 10 runs of Alpine track (all segments) |
-| 6139 | **unk3** | 2277 | Byte array | Unknown purpose |
-| 8416 | **rusty_springs_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Rusty Springs track per lap amount (4/8/16) |
-| 9586 | **unk4** | 1497 | Byte array | Unknown purpose |
-| 11083 | **autumn_valley_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Autumn Valley track per lap amount (2/6/12) |
-| 12253 | **unk5** | 1497 | Byte array | Unknown purpose |
-| 13750 | **burnt_sienna_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Burnt Sienna track per lap amount (2/6/12) |
-| 14920 | **unk6** | 1497 | Byte array | Unknown purpose |
-| 16417 | **vertigo_ridge_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Vertigo Ridge track per lap amount (2/6/12) |
-| 17587 | **unk7** | 1497 | Byte array | Unknown purpose |
-| 19084 | **transtropolis_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Transtropolis track per lap amount (2/6/12) |
-| 20254 | **unk8** | 1497 | Byte array | Unknown purpose |
-| 21751 | **lost_vegas_best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestTrackTimeRecord](#besttracktimerecord) | Best runs of Lost Vegas track per lap amount (4/8/16) |
-| 22921 | **unk9** | 0..? | Byte array | Unknown purpose |
-### **BestTrackTimeRecord** ###
+| 0 | **unk0** | 181 | Byte array | Unknown purpose |
+| 181 | **city_stats** | 2667 | [OpenTrackStats](#opentrackstats) | - |
+| 2848 | **coastal_stats** | 2667 | [OpenTrackStats](#opentrackstats) | - |
+| 5515 | **alpine_stats** | 2667 | [OpenTrackStats](#opentrackstats) | - |
+| 8182 | **rusty_springs_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
+| 10849 | **autumn_valley_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
+| 13516 | **burnt_sienna_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
+| 16183 | **vertigo_ridge_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
+| 18850 | **transtropolis_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
+| 21517 | **lost_vegas_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
+| 24184 | **some_record** | 39 | [BestRaceRecord](#bestracerecord) | - |
+| 24223 | **unk1** | 0..? | Byte array | Unknown purpose |
+### **OpenTrackStats** ###
+#### **Size**: 2667 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **some_records** | 39 * (6) | Array of 6 items<br/>Item type: [BestRaceRecord](#bestracerecord) | - |
+| 234 | **best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best 10 runs of open track (all segments) |
+| 624 | **unk0** | 780 | Byte array | Unknown purpose |
+| 1404 | **top_speed_stat** | 39 | [BestRaceRecord](#bestracerecord) | - |
+| 1443 | **unk1** | 1224 | Byte array | Unknown purpose |
+### **ClosedTrackStats** ###
+#### **Size**: 2667 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **some_records** | 39 * (6) | Array of 6 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Only first record defined by default, next 5 are filled with zeros |
+| 234 | **best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best runs of open track per selected lap amount |
+| 1404 | **top_speed_stat** | 39 | [BestRaceRecord](#bestracerecord) | - |
+| 1443 | **unk** | 1224 | Byte array | Unknown purpose |
+### **BestRaceRecord** ###
 #### **Size**: 39 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
@@ -574,6 +584,7 @@
 | 15 | **car_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: RX-7<br/>1: NSX<br/>2: SUPRA<br/>3: 911<br/>4: CORVETTE<br/>5: VIPER<br/>6: 512TR<br/>7: DIABLO<br/>8: WAR_SLEW?<br/>9: WAR_WATCH?<br/>10: WAR_TOURNY?<br/>11: WAR?</details> | A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE |
 | 16 | **unk1** | 11 | Byte array | Unknown purpose |
 | 27 | **time** | 2 | TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60 | Total track time |
-| 29 | **unk2** | 6 | Byte array | Unknown purpose |
+| 29 | **unk2** | 3 | Byte array | Unknown purpose |
+| 32 | **top_speed** | 3 | TNFS top speed record. Appears to be 24-bit real number (sign unknown because big values show up as N/A in the game), little-endian, where last 8 bits is a fractional part. For determining speed, ONLY INTEGER PART of this number should be multiplied by 2,240000000001 and rounded up, e.g. 0xFF will be equal to 572mph. Note: probably game multiplies number by 2,24 with some fast algorithm so it rounds up even integer result, because 0xFA (*2,24 == 560.0) shows up in game as 561mph | Top speed |
 | 35 | **tt_hh** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: T.T.<br/>1: H.H.<br/>2: None</details> | Unclear parameter. Shows up in the game |
 | 36 | **unk3** | 3 | Byte array | Unknown purpose |
