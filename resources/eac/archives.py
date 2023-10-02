@@ -1,7 +1,7 @@
 from io import BufferedReader, BytesIO
 
-from library.read_blocks.array import ArrayBlock, ExplicitOffsetsArrayBlock
-from library.read_blocks.atomic import Utf8Block, IntegerBlock, BytesField
+from library.read_blocks.array import ArrayBlock, ExplicitOffsetsArrayBlock, ByteArray
+from library.read_blocks.atomic import Utf8Block, IntegerBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
 from library.read_blocks.literal import LiteralBlock
@@ -181,7 +181,7 @@ class SoundBank(CompoundBlock):
                                                          'Those EACS blocks don\'t have own wave data, there are 44 '
                                                          'bytes of unknown data instead, offsets in them are pointed '
                                                          'to wave data of this block')
-        wave_data = ExplicitOffsetsArrayBlock(child=BytesField(length_strategy="read_available"),
+        wave_data = ExplicitOffsetsArrayBlock(child=ByteArray(length_strategy="read_available"),
                                               description='A space, where wave data is located. Pointers are in '
                                                           'children EACS')
 

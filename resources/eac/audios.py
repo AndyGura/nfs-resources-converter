@@ -1,5 +1,5 @@
-from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import Utf8Block, IntegerBlock, BytesField
+from library.read_blocks.array import ArrayBlock, ByteArray
+from library.read_blocks.atomic import Utf8Block, IntegerBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.detached import DetachedBlock
 
@@ -31,7 +31,7 @@ class EacsAudio(CompoundBlock):
                                                       'calculate offset in bytes')
         wave_data_offset = IntegerBlock(static_size=4, description='Offset of wave data start in current file, relative'
                                                                    ' to start of the file itself')
-        wave_data = DetachedBlock(block=BytesField(),
+        wave_data = DetachedBlock(block=ByteArray(),
                                   description='Wave data, located somewhere in file at wave_data_offset. if '
                                               'sound_resolution == 1, contains signed bytes, else - unsigned')
 
@@ -72,6 +72,6 @@ class AsfAudio(CompoundBlock):
                                                       'calculate offset in bytes')
         wave_data_offset = IntegerBlock(static_size=4, description='Offset of wave data start in current file, relative'
                                                                    ' to start of the file itself')
-        wave_data = BytesField(description='Wave data is here')
+        wave_data = ByteArray(description='Wave data is here')
 
         unknown_fields = ['unknowns', 'unk0']

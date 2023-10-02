@@ -193,3 +193,32 @@ class ExplicitOffsetsArrayBlock(ArrayBlock):
                 raise SerializationException('ExplicitOffsetsArrayBlock: item data is bigger than possible')
             res += self.child.to_raw_value(item)
         return res
+
+
+class ByteArray(DataBlock):
+    block_description = "Raw bytes sequence"
+
+    def __init__(self,
+                 length: int = None,
+                 length_strategy: Literal["strict", "read_available"] = "strict",
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.length = length
+        self.length_strategy = length_strategy
+
+    def get_size(self, state):
+        return self.length
+
+    def get_min_size(self, state):
+        return self.length if self.length is not None and self.length_strategy == "strict" else 0
+
+    def get_max_size(self, state):
+        if self.length is None:
+            return float('inf')
+        return self.length
+
+    def from_raw_value(self, raw: bytes, state: dict):
+        return raw
+
+    def to_raw_value(self, data: ReadData) -> bytes:
+        return self.unwrap_result(data)

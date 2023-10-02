@@ -1,6 +1,6 @@
 from math import floor, ceil
 
-from library.read_blocks.array import ArrayBlock
+from library.read_blocks.array import ArrayBlock, ByteArray
 from library.read_blocks.atomic import IntegerBlock, Utf8Block, EnumByteBlock, BytesField
 from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
@@ -48,7 +48,7 @@ class TnfsTopSpeed(RationalNumber):
 class BestRaceRecord(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         name = Utf8Block(length=11, description='Racer name')
-        unk0 = BytesField(length=4)
+        unk0 = BytesField(static_size=4)
         car_id = EnumByteBlock(enum_names=[(0, 'RX-7'),
                                            (1, 'NSX'),
                                            (2, 'SUPRA'),
@@ -63,57 +63,46 @@ class BestRaceRecord(CompoundBlock):
                                            (11, 'WAR?'),
                                            ],
                                description='A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE')
-        unk1 = BytesField(length=11)
+        unk1 = BytesField(static_size=11)
         time = TnfsRecordTime(description='Total track time')
-        unk2 = BytesField(length=3)
+        unk2 = BytesField(static_size=3)
         top_speed = TnfsTopSpeed(description='Top speed')
         tt_hh = EnumByteBlock(enum_names=[(0, 'T.T.'),
                                           (1, 'H.H.'),
                                           (2, 'None'),
                                           ], description='Unclear parameter. Shows up in the game')
-        unk3 = BytesField(length=3)
+        unk3 = BytesField(static_size=3)
 
         unknown_fields = ['unk0', 'unk1', 'unk2', 'unk3']
 
 
-class OpenTrackStats(CompoundBlock):
-    class Fields(CompoundBlock.Fields):
-        some_records = ArrayBlock(length=6, child=BestRaceRecord())
-        best_times = ArrayBlock(length=10, child=BestRaceRecord(),
-                                description='Best 10 runs of open track (all segments)')
-        unk0 = BytesField(length=780)
-        top_speed_stat = BestRaceRecord()
-        unk1 = BytesField(length=1224)
-
-        unknown_fields = ['unk0', 'unk1']
-
-
-class ClosedTrackStats(CompoundBlock):
+class TrackStats(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         some_records = ArrayBlock(length=6, child=BestRaceRecord(),
-                                  description='Only first record defined by default, next 5 are filled with zeros')
-        best_times = ArrayBlock(length=3, child=ArrayBlock(length=10, child=BestRaceRecord(),
-                                                           description='Best 10 runs'),
-                                description='Best runs of open track per selected lap amount')
+                                  description='Unknown records. For closed track only first record defined, next 5 are '
+                                              'filled with zeros')
+        best_times = ArrayBlock(length=30, child=BestRaceRecord(),
+                                description='Best 10 runs of track per lap amount. For open track only 10 records '
+                                            'defined, next 20 are filled with zeros')
         top_speed_stat = BestRaceRecord()
-        unk = BytesField(length=1224)
+        unk = BytesField(static_size=1224)
 
-        unknown_fields = ['unk']
+        unknown_fields = ['unk0']
 
 
 class TnfsConfigDat(CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        unk0 = BytesField(length=181)
-        city_stats = OpenTrackStats()
-        coastal_stats = OpenTrackStats()
-        alpine_stats = OpenTrackStats()
-        rusty_springs_stats = ClosedTrackStats()
-        autumn_valley_stats = ClosedTrackStats()
-        burnt_sienna_stats = ClosedTrackStats()
-        vertigo_ridge_stats = ClosedTrackStats()
-        transtropolis_stats = ClosedTrackStats()
-        lost_vegas_stats = ClosedTrackStats()
+        unk0 = BytesField(static_size=181)
+        city_stats = TrackStats()
+        coastal_stats = TrackStats()
+        alpine_stats = TrackStats()
+        rusty_springs_stats = TrackStats()
+        autumn_valley_stats = TrackStats()
+        burnt_sienna_stats = TrackStats()
+        vertigo_ridge_stats = TrackStats()
+        transtropolis_stats = TrackStats()
+        lost_vegas_stats = TrackStats()
         some_record = BestRaceRecord()
-        unk1 = BytesField(length_strategy="read_available")
+        unk1 = ByteArray(length_strategy="read_available")
 
         unknown_fields = ['unk0', 'unk1']

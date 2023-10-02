@@ -44,6 +44,7 @@ export class EditorComponent implements OnDestroy {
     AngleBlock: AngleBlockUiComponent,
     Utf8Block: StringBlockUiComponent,
     BytesField: BinaryBlockUiComponent,
+    ByteArray: BinaryBlockUiComponent,
     EnumByteBlock: EnumBlockUiComponent,
     BitFlagsBlock: FlagsBlockUiComponent,
     // TODO SubByteArrayBlock
