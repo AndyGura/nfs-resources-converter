@@ -586,5 +586,5 @@
 | 27 | **time** | 2 | TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60 | Total track time |
 | 29 | **unk2** | 3 | Byte array | Unknown purpose |
 | 32 | **top_speed** | 3 | TNFS top speed record. Appears to be 24-bit real number (sign unknown because big values show up as N/A in the game), little-endian, where last 8 bits is a fractional part. For determining speed, ONLY INTEGER PART of this number should be multiplied by 2,240000000001 and rounded up, e.g. 0xFF will be equal to 572mph. Note: probably game multiplies number by 2,24 with some fast algorithm so it rounds up even integer result, because 0xFA (*2,24 == 560.0) shows up in game as 561mph | Top speed |
-| 35 | **tt_hh** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: T.T.<br/>1: H.H.<br/>2: None</details> | Unclear parameter. Shows up in the game |
+| 35 | **game_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: time_trial<br/>1: head_to_head<br/>2: full_grid_race</details> | Game mode. In the game shown as "t.t.", "h.h." or empty string |
 | 36 | **unk3** | 3 | Byte array | Unknown purpose |
