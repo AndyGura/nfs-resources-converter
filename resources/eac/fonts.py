@@ -1,5 +1,5 @@
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import IntegerBlock, Utf8Block, BytesField
+from library.read_blocks.atomic import IntegerBlock, Utf8Block, AtomicDataBlock
 from library.read_blocks.compound import CompoundBlock
 from resources.eac.bitmaps import Bitmap4Bit
 
@@ -28,11 +28,11 @@ class FfnFont(CompoundBlock):
         unk0 = IntegerBlock(static_size=1, required_value=100)
         unk1 = IntegerBlock(static_size=1, required_value=0)
         symbols_amount = IntegerBlock(static_size=2, description='Amount of symbols, defined in this font')
-        unk2 = BytesField(static_size=6)
+        unk2 = AtomicDataBlock(static_size=6)
         font_size = IntegerBlock(static_size=1, description='Font size ?')
         unk3 = IntegerBlock(static_size=1, required_value=0)
         line_height = IntegerBlock(static_size=1, description='Line height ?')
-        unk4 = BytesField(static_size=7, required_value=b'\0' * 7)
+        unk4 = AtomicDataBlock(static_size=7, required_value=b'\0' * 7)
         bitmap_data_pointer = IntegerBlock(static_size=2, description='Pointer to bitmap block')
         unk5 = IntegerBlock(static_size=1, required_value=0)
         unk6 = IntegerBlock(static_size=1, required_value=0)

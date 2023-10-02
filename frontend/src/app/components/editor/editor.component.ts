@@ -37,24 +37,24 @@ import { EelDelegateService } from '../../services/eel-delegate.service';
 })
 export class EditorComponent implements OnDestroy {
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
-    DataBlock: FallbackBlockUiComponent,
-    CompoundBlock: CompoundBlockUiComponent,
-    ArrayBlock: ArrayBlockUiComponent,
-    IntegerBlock: IntegerBlockUiComponent,
     AngleBlock: AngleBlockUiComponent,
-    Utf8Block: StringBlockUiComponent,
-    BytesField: BinaryBlockUiComponent,
-    ByteArray: BinaryBlockUiComponent,
-    EnumByteBlock: EnumBlockUiComponent,
+    ArrayBlock: ArrayBlockUiComponent,
+    AtomicDataBlock: BinaryBlockUiComponent,
     BitFlagsBlock: FlagsBlockUiComponent,
+    ByteArray: BinaryBlockUiComponent,
+    CompoundBlock: CompoundBlockUiComponent,
+    DataBlock: FallbackBlockUiComponent,
+    EnumByteBlock: EnumBlockUiComponent,
+    IntegerBlock: IntegerBlockUiComponent,
+    Utf8Block: StringBlockUiComponent,
     // TODO SubByteArrayBlock
     // NFS1 blocks
-    BasePalette: PaletteBlockUiComponent,
     AnyBitmapBlock: BitmapBlockUiComponent,
-    TriMap: TriMapBlockUiComponent,
-    ShpiBlock: ShpiBlockUiComponent,
-    WwwwBlock: WwwwBlockUiComponent,
+    BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
+    ShpiBlock: ShpiBlockUiComponent,
+    TriMap: TriMapBlockUiComponent,
+    WwwwBlock: WwwwBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

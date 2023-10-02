@@ -1,7 +1,7 @@
 from math import floor, ceil
 
 from library.read_blocks.array import ArrayBlock, ByteArray
-from library.read_blocks.atomic import IntegerBlock, Utf8Block, EnumByteBlock, BytesField
+from library.read_blocks.atomic import IntegerBlock, Utf8Block, EnumByteBlock, AtomicDataBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
 from resources.eac.fields.numbers import RationalNumber
@@ -17,7 +17,7 @@ class TnfsRecordTime(IntegerBlock):
         return value / 60
 
     def to_raw_value(self, data: ReadData) -> bytes:
-        return super().to_raw_value(int(self.unwrap_result(data) * 60))
+        return super().to_raw_value(self.wrap_result(int(self.unwrap_result(data) * 60)))
 
 
 class TnfsTopSpeed(RationalNumber):
@@ -42,13 +42,13 @@ class TnfsTopSpeed(RationalNumber):
         int_part = floor(value)
         frac_part = value - int_part
         int_part = floor(int_part / 2.24)
-        return super().to_raw_value(int_part + frac_part)
+        return super().to_raw_value(self.wrap_result(int_part + frac_part))
 
 
 class BestRaceRecord(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         name = Utf8Block(length=11, description='Racer name')
-        unk0 = BytesField(static_size=4)
+        unk0 = AtomicDataBlock(static_size=4)
         car_id = EnumByteBlock(enum_names=[(0, 'RX-7'),
                                            (1, 'NSX'),
                                            (2, 'SUPRA'),
@@ -63,15 +63,15 @@ class BestRaceRecord(CompoundBlock):
                                            (11, 'WAR?'),
                                            ],
                                description='A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE')
-        unk1 = BytesField(static_size=11)
+        unk1 = AtomicDataBlock(static_size=11)
         time = TnfsRecordTime(description='Total track time')
-        unk2 = BytesField(static_size=3)
+        unk2 = AtomicDataBlock(static_size=3)
         top_speed = TnfsTopSpeed(description='Top speed')
         tt_hh = EnumByteBlock(enum_names=[(0, 'T.T.'),
                                           (1, 'H.H.'),
                                           (2, 'None'),
                                           ], description='Unclear parameter. Shows up in the game')
-        unk3 = BytesField(static_size=3)
+        unk3 = AtomicDataBlock(static_size=3)
 
         unknown_fields = ['unk0', 'unk1', 'unk2', 'unk3']
 
@@ -85,14 +85,18 @@ class TrackStats(CompoundBlock):
                                 description='Best 10 runs of track per lap amount. For open track only 10 records '
                                             'defined, next 20 are filled with zeros')
         top_speed_stat = BestRaceRecord()
-        unk = BytesField(static_size=1224)
+        unk = AtomicDataBlock(static_size=1224)
 
-        unknown_fields = ['unk0']
+        unknown_fields = ['unk']
 
 
 class TnfsConfigDat(CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        unk0 = BytesField(static_size=181)
+        player_name = Utf8Block(length=42,
+                                description="Player name, leading with zeros. Though game allows to set name with as "
+                                            "many as 8 characters, the game seems to work fine with name up to 42 "
+                                            "symbols, though some part of name will be cut off in the UI")
+        unk0 = AtomicDataBlock(static_size=139)
         city_stats = TrackStats()
         coastal_stats = TrackStats()
         alpine_stats = TrackStats()

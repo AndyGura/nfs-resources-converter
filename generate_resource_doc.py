@@ -59,8 +59,7 @@ EXPORT_RESOURCES = {
     ],
     'Misc': [
         configs.TnfsConfigDat(),
-        configs.OpenTrackStats(),
-        configs.ClosedTrackStats(),
+        configs.TrackStats(),
         configs.BestRaceRecord(),
     ]
 }

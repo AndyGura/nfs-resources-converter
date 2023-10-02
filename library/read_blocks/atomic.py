@@ -8,8 +8,9 @@ from library.read_data import ReadData
 from library.utils import represent_value_as_str
 
 
-class AtomicDataBlock(DataBlock, ABC):
+class AtomicDataBlock(DataBlock):
     """Block with static size"""
+    block_description = "Bytes"
 
     def get_size(self, state):
         return self.static_size
@@ -50,6 +51,12 @@ class AtomicDataBlock(DataBlock, ABC):
                                      states[i] if len(states) > i else None)
                                     for i in range(length)
                                     ]]
+
+    def from_raw_value(self, raw: bytes, state: dict):
+        return raw
+
+    def to_raw_value(self, data: ReadData) -> bytes:
+        return self.unwrap_result(data)
 
 
 class IntegerBlock(AtomicDataBlock):
@@ -110,32 +117,25 @@ class IntegerBlock(AtomicDataBlock):
 
 class Utf8Block(AtomicDataBlock):
 
-    def __init__(self, length: int = None, **kwargs):
+    def __init__(self, length: int = None, pad_value=0, **kwargs):
         if kwargs.get('required_value'):
             length = len(kwargs['required_value'])
         self.block_description = 'UTF-8 string'
         super().__init__(**kwargs)
         self.length = length
+        self.pad_value = pad_value
 
     def get_size(self, state):
         return self.length
 
     def from_raw_value(self, raw: bytes, state: dict):
-        return raw.decode('utf-8')
+        return raw.decode('utf-8').rstrip(chr(self.pad_value))
 
     def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
-        return value.encode('utf-8')
-
-
-class BytesField(AtomicDataBlock):
-    block_description = "Simple raw byte array"
-
-    def from_raw_value(self, raw: bytes, state: dict):
-        return raw
-
-    def to_raw_value(self, data: ReadData) -> bytes:
-        return self.unwrap_result(data)
+        value = self.unwrap_result(data).encode('utf-8')
+        if len(value) < self.length:
+            value += bytes([self.pad_value]) * (self.length - len(value))
+        return value
 
 
 class BitFlagsBlock(IntegerBlock, ABC):
