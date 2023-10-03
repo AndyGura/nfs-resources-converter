@@ -64,7 +64,7 @@
 | --- | --- | --- | --- | --- |
 | 0 | **children_offsets** | 4 * (128) | Array of 128 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file. Zero values seem to be ignored, but for some reason the very first offset is 0 in most files. The real audio data start is shifted 40 bytes forward for some reason, so EACS is located at {offset from this array} + 40 |
 | 512 | **children** | ? | Array of ? items with custom offset to items<br/>Item type: [EacsAudio](#eacsaudio) | EACS blocks are here, placed at offsets from previous block. Those EACS blocks don't have own wave data, there are 44 bytes of unknown data instead, offsets in them are pointed to wave data of this block |
-| 512..? | **wave_data** | ? | Array of ? items with custom offset to items<br/>Item size: 0..? bytes<br/>Item type: Byte array | A space, where wave data is located. Pointers are in children EACS |
+| 512..? | **wave_data** | ? | Array of ? items with custom offset to items<br/>Item size: 0..? bytes<br/>Item type: Raw bytes sequence | A space, where wave data is located. Pointers are in children EACS |
 ## **Geometries** ##
 ### **OripGeometry** ###
 #### **Size**: 112..? bytes ####
@@ -444,11 +444,11 @@
 | 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
 | 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 10 | **symbols_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unk2** | 6 | Byte array | Unknown purpose |
+| 12 | **unk2** | 6 | Bytes | Unknown purpose |
 | 18 | **font_size** | 1 | 1-byte unsigned integer | Font size ? |
 | 19 | **unk3** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
-| 21 | **unk4** | 7 | Byte array. Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
+| 21 | **unk4** | 7 | Bytes. Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
 | 28 | **bitmap_data_pointer** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
@@ -524,7 +524,7 @@
 | 24 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | When audio ends, it repeats in loop from here. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
-| 36 | **wave_data** | 0..? | Byte array | Wave data is here |
+| 36 | **wave_data** | 0..? | Raw bytes sequence | Wave data is here |
 ### **EacsAudio** ###
 #### **Size**: 28..? bytes ####
 #### **Description**: An audio block, almost identical to AsfAudio, but can be included in single SoundBank file with multiple other EACS blocks and has detached wave data, which is located somewhere in the SoundBank file after all EACS blocks ####
@@ -546,45 +546,37 @@
 #### **Size**: 24223..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unk0** | 181 | Byte array | Unknown purpose |
-| 181 | **city_stats** | 2667 | [OpenTrackStats](#opentrackstats) | - |
-| 2848 | **coastal_stats** | 2667 | [OpenTrackStats](#opentrackstats) | - |
-| 5515 | **alpine_stats** | 2667 | [OpenTrackStats](#opentrackstats) | - |
-| 8182 | **rusty_springs_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
-| 10849 | **autumn_valley_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
-| 13516 | **burnt_sienna_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
-| 16183 | **vertigo_ridge_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
-| 18850 | **transtropolis_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
-| 21517 | **lost_vegas_stats** | 2667 | [ClosedTrackStats](#closedtrackstats) | - |
+| 0 | **player_name** | 42 | UTF-8 string | Player name, leading with zeros. Though game allows to set name with as many as 8 characters, the game seems to work fine with name up to 42 symbols, though some part of name will be cut off in the UI |
+| 42 | **unk0** | 139 | Bytes | Unknown purpose |
+| 181 | **city_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 2848 | **coastal_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 5515 | **alpine_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 8182 | **rusty_springs_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 10849 | **autumn_valley_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 13516 | **burnt_sienna_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 16183 | **vertigo_ridge_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 18850 | **transtropolis_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 21517 | **lost_vegas_stats** | 2667 | [TrackStats](#trackstats) | - |
 | 24184 | **some_record** | 39 | [BestRaceRecord](#bestracerecord) | - |
-| 24223 | **unk1** | 0..? | Byte array | Unknown purpose |
-### **OpenTrackStats** ###
+| 24223 | **unk1** | 0..? | Raw bytes sequence | Unknown purpose |
+### **TrackStats** ###
 #### **Size**: 2667 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **some_records** | 39 * (6) | Array of 6 items<br/>Item type: [BestRaceRecord](#bestracerecord) | - |
-| 234 | **best_times** | 39 * (10) | Array of 10 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best 10 runs of open track (all segments) |
-| 624 | **unk0** | 780 | Byte array | Unknown purpose |
+| 0 | **some_records** | 39 * (6) | Array of 6 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Unknown records. For closed track only first record defined, next 5 are filled with zeros |
+| 234 | **best_times** | 39 * (30) | Array of 30 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best 10 runs of track per lap amount. For open track only 10 records defined, next 20 are filled with zeros |
 | 1404 | **top_speed_stat** | 39 | [BestRaceRecord](#bestracerecord) | - |
-| 1443 | **unk1** | 1224 | Byte array | Unknown purpose |
-### **ClosedTrackStats** ###
-#### **Size**: 2667 bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **some_records** | 39 * (6) | Array of 6 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Only first record defined by default, next 5 are filled with zeros |
-| 234 | **best_times** | 390 * (3) | Array of 3 items<br/>Item size: 390 bytes<br/>Item type: Array of 10 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best runs of open track per selected lap amount |
-| 1404 | **top_speed_stat** | 39 | [BestRaceRecord](#bestracerecord) | - |
-| 1443 | **unk** | 1224 | Byte array | Unknown purpose |
+| 1443 | **unk** | 1224 | Bytes | Unknown purpose |
 ### **BestRaceRecord** ###
 #### **Size**: 39 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **name** | 11 | UTF-8 string | Racer name |
-| 11 | **unk0** | 4 | Byte array | Unknown purpose |
+| 11 | **unk0** | 4 | Bytes | Unknown purpose |
 | 15 | **car_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: RX-7<br/>1: NSX<br/>2: SUPRA<br/>3: 911<br/>4: CORVETTE<br/>5: VIPER<br/>6: 512TR<br/>7: DIABLO<br/>8: WAR_SLEW?<br/>9: WAR_WATCH?<br/>10: WAR_TOURNY?<br/>11: WAR?</details> | A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE |
-| 16 | **unk1** | 11 | Byte array | Unknown purpose |
+| 16 | **unk1** | 11 | Bytes | Unknown purpose |
 | 27 | **time** | 2 | TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60 | Total track time |
-| 29 | **unk2** | 3 | Byte array | Unknown purpose |
+| 29 | **unk2** | 3 | Bytes | Unknown purpose |
 | 32 | **top_speed** | 3 | TNFS top speed record. Appears to be 24-bit real number (sign unknown because big values show up as N/A in the game), little-endian, where last 8 bits is a fractional part. For determining speed, ONLY INTEGER PART of this number should be multiplied by 2,240000000001 and rounded up, e.g. 0xFF will be equal to 572mph. Note: probably game multiplies number by 2,24 with some fast algorithm so it rounds up even integer result, because 0xFA (*2,24 == 560.0) shows up in game as 561mph | Top speed |
 | 35 | **game_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: time_trial<br/>1: head_to_head<br/>2: full_grid_race</details> | Game mode. In the game shown as "t.t.", "h.h." or empty string |
-| 36 | **unk3** | 3 | Byte array | Unknown purpose |
+| 36 | **unk3** | 3 | Bytes | Unknown purpose |
