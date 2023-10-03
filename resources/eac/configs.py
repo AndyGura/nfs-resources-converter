@@ -67,10 +67,11 @@ class BestRaceRecord(CompoundBlock):
         time = TnfsRecordTime(description='Total track time')
         unk2 = AtomicDataBlock(static_size=3)
         top_speed = TnfsTopSpeed(description='Top speed')
-        tt_hh = EnumByteBlock(enum_names=[(0, 'T.T.'),
-                                          (1, 'H.H.'),
-                                          (2, 'None'),
-                                          ], description='Unclear parameter. Shows up in the game')
+        game_mode = EnumByteBlock(enum_names=[(0, 'time_trial'),
+                                              (1, 'head_to_head'),
+                                              (2, 'full_grid_race'),
+                                              ],
+                                  description='Game mode. In the game shown as "t.t.", "h.h." or empty string')
         unk3 = AtomicDataBlock(static_size=3)
 
         unknown_fields = ['unk0', 'unk1', 'unk2', 'unk3']
