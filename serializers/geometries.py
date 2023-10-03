@@ -139,7 +139,7 @@ for dummy in dummies:
                 centers = {}
                 shadow_centers = {}
                 for name, model in sub_models.items():
-                    if name not in ['tyr4', 'rty4', 'circ', '\x00\x00\x00\x00', 'tyre']:
+                    if name not in ['tyr4', 'rty4', 'circ', '', 'tyre']:
                         non_wheel_models[name] = model
                         continue
                     if len(model.polygons) > 8:
