@@ -543,7 +543,7 @@
 | - | **wave_data** | 0..? | Detached block, located somewhere in file, knowing it's offset.Does not take place inside parent block | Wave data, located somewhere in file at wave_data_offset. if sound_resolution == 1, contains signed bytes, else - unsigned |
 ## **Misc** ##
 ### **TnfsConfigDat** ###
-#### **Size**: 24223..? bytes ####
+#### **Size**: 24402 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **player_name** | 42 | UTF-8 string | Player name, leading with zeros. Though game allows to set name with as many as 8 characters, the game seems to work fine with name up to 42 symbols, though some part of name will be cut off in the UI |
@@ -558,7 +558,9 @@
 | 18850 | **transtropolis_stats** | 2667 | [TrackStats](#trackstats) | - |
 | 21517 | **lost_vegas_stats** | 2667 | [TrackStats](#trackstats) | - |
 | 24184 | **some_record** | 39 | [BestRaceRecord](#bestracerecord) | - |
-| 24223 | **unk1** | 0..? | Raw bytes sequence | Unknown purpose |
+| 24223 | **unk1** | 177 | Bytes | Unknown purpose |
+| 24400 | **unlocks_level** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: none<br/>1: warrior_mirror<br/>2: warrior_mirror_rally</details> | Level of unlocked features: warrior car, mirror track mode, rally track mode |
+| 24401 | **unk2** | 1 | Bytes | Unknown purpose |
 ### **TrackStats** ###
 #### **Size**: 2667 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -575,8 +577,8 @@
 | 11 | **unk0** | 4 | Bytes | Unknown purpose |
 | 15 | **car_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: RX-7<br/>1: NSX<br/>2: SUPRA<br/>3: 911<br/>4: CORVETTE<br/>5: VIPER<br/>6: 512TR<br/>7: DIABLO<br/>8: WAR_SLEW?<br/>9: WAR_WATCH?<br/>10: WAR_TOURNY?<br/>11: WAR?</details> | A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE |
 | 16 | **unk1** | 11 | Bytes | Unknown purpose |
-| 27 | **time** | 2 | TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60 | Total track time |
-| 29 | **unk2** | 3 | Bytes | Unknown purpose |
+| 27 | **time** | 4 | TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60 | Total track time |
+| 31 | **unk2** | 1 | Bytes | Unknown purpose |
 | 32 | **top_speed** | 3 | TNFS top speed record. Appears to be 24-bit real number (sign unknown because big values show up as N/A in the game), little-endian, where last 8 bits is a fractional part. For determining speed, ONLY INTEGER PART of this number should be multiplied by 2,240000000001 and rounded up, e.g. 0xFF will be equal to 572mph. Note: probably game multiplies number by 2,24 with some fast algorithm so it rounds up even integer result, because 0xFA (*2,24 == 560.0) shows up in game as 561mph | Top speed |
 | 35 | **game_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: time_trial<br/>1: head_to_head<br/>2: full_grid_race</details> | Game mode. In the game shown as "t.t.", "h.h." or empty string |
 | 36 | **unk3** | 3 | Bytes | Unknown purpose |

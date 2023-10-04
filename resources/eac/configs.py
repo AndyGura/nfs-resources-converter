@@ -1,6 +1,6 @@
 from math import floor, ceil
 
-from library.read_blocks.array import ArrayBlock, ByteArray
+from library.read_blocks.array import ArrayBlock
 from library.read_blocks.atomic import IntegerBlock, Utf8Block, EnumByteBlock, AtomicDataBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
@@ -9,7 +9,7 @@ from resources.eac.fields.numbers import RationalNumber
 
 class TnfsRecordTime(IntegerBlock):
     def __init__(self, **kwargs):
-        super().__init__(static_size=2, is_signed=False, **kwargs)
+        super().__init__(static_size=4, is_signed=False, **kwargs)
         self.block_description = 'TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60'
 
     def from_raw_value(self, raw: bytes, state: dict):
@@ -65,7 +65,7 @@ class BestRaceRecord(CompoundBlock):
                                description='A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE')
         unk1 = AtomicDataBlock(static_size=11)
         time = TnfsRecordTime(description='Total track time')
-        unk2 = AtomicDataBlock(static_size=3)
+        unk2 = AtomicDataBlock(static_size=1)
         top_speed = TnfsTopSpeed(description='Top speed')
         game_mode = EnumByteBlock(enum_names=[(0, 'time_trial'),
                                               (1, 'head_to_head'),
@@ -108,6 +108,11 @@ class TnfsConfigDat(CompoundBlock):
         transtropolis_stats = TrackStats()
         lost_vegas_stats = TrackStats()
         some_record = BestRaceRecord()
-        unk1 = ByteArray(length_strategy="read_available")
-
-        unknown_fields = ['unk0', 'unk1']
+        unk1 = AtomicDataBlock(static_size=177)
+        unlocks_level = EnumByteBlock(enum_names=[(0, 'none'),
+                                                  (1, 'warrior_mirror'),
+                                                  (2, 'warrior_mirror_rally'),
+                                                  ],
+                                      description='Level of unlocked features: warrior car, mirror track mode, rally track mode')
+        unk2 = AtomicDataBlock(static_size=1)
+        unknown_fields = ['unk0', 'unk1', 'unk2']
