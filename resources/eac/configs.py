@@ -10,7 +10,8 @@ from resources.eac.fields.numbers import RationalNumber
 class TnfsRecordTime(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(static_size=4, is_signed=False, **kwargs)
-        self.block_description = 'TNFS time field (in physics ticks?). 2-bytes unsigned integer, equals to amount of seconds * 60'
+        self.block_description = ('TNFS time field (in physics ticks?). 4-bytes unsigned integer, little-endian, '
+                                  'equals to amount of seconds * 60')
 
     def from_raw_value(self, raw: bytes, state: dict):
         value = super().from_raw_value(raw, state)
@@ -110,9 +111,9 @@ class TnfsConfigDat(CompoundBlock):
         some_record = BestRaceRecord()
         unk1 = AtomicDataBlock(static_size=177)
         unlocks_level = EnumByteBlock(enum_names=[(0, 'none'),
-                                                  (1, 'warrior_mirror'),
-                                                  (2, 'warrior_mirror_rally'),
+                                                  (1, 'warrior_vegas_mirror'),
+                                                  (2, 'warrior_vegas_mirror_rally'),
                                                   ],
-                                      description='Level of unlocked features: warrior car, mirror track mode, rally track mode')
+                                      description='Level of unlocked features: warrior car, lost vegas track, mirror track mode, rally track mode')
         unk2 = AtomicDataBlock(static_size=1)
         unknown_fields = ['unk0', 'unk1', 'unk2']
