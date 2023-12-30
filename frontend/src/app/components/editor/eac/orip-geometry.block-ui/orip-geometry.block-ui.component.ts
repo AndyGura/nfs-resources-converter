@@ -11,8 +11,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { Gg3dEntity, Gg3dWorld, OrbitCameraController, Pnt3, Point2, Qtrn } from '@gg-web-engine/core';
-import { Gg3dObject, Gg3dVisualScene, GgRenderer } from '@gg-web-engine/three';
+import { Entity3d, Gg3dWorld, OrbitCameraController, Pnt3, Point2, Renderer3dEntity } from '@gg-web-engine/core';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
@@ -28,6 +27,7 @@ import {
   Texture,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
+import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
 
 export const setupNfs1Texture = (texture: Texture) => {
   texture.encoding = sRGBEncoding;
@@ -59,9 +59,9 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
-  world!: Gg3dWorld<Gg3dVisualScene, any>;
-  renderer!: GgRenderer;
-  entity: Gg3dEntity | null = null;
+  world!: Gg3dWorld<ThreeVisualTypeDocRepo, any, ThreeSceneComponent>;
+  renderer!: Renderer3dEntity<ThreeVisualTypeDocRepo>;
+  entity: Entity3d<ThreeVisualTypeDocRepo> | null = null;
   controller!: OrbitCameraController;
 
   constructor(
@@ -71,19 +71,22 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
   ) {}
 
   async ngAfterViewInit() {
-    this.world = new Gg3dWorld(new Gg3dVisualScene(), {
+    this.world = new Gg3dWorld(new ThreeSceneComponent(), {
       init: async () => {},
       simulate: () => {},
     } as any);
     await this.world.init();
     this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
-    this.renderer = new GgRenderer(this.previewCanvas.nativeElement, {
-      size: rendererSize$.asObservable(),
-      background: 0xaaaaaa,
-    });
-    this.world.addEntity(this.renderer);
-    this.controller = new OrbitCameraController(this.renderer.camera, {
+    this.renderer = this.world.addRenderer(
+      this.world.visualScene.factory.createPerspectiveCamera(),
+      this.previewCanvas.nativeElement,
+      {
+        size: rendererSize$.asObservable(),
+        background: 0xaaaaaa,
+      },
+    );
+    this.controller = new OrbitCameraController(this.renderer, {
       mouseOptions: { canvas: this.previewCanvas.nativeElement },
     });
     this.world.addEntity(this.controller);
@@ -179,7 +182,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
         }
       }
     });
-    this.entity = new Gg3dEntity(new Gg3dObject(object), null);
+    this.entity = new Entity3d<ThreeVisualTypeDocRepo>(new ThreeDisplayObjectComponent(object), null);
     this.world.addEntity(this.entity);
 
     const bounds = this.entity.object3D!.getBoundings();

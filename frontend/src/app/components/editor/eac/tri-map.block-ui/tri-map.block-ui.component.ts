@@ -14,20 +14,20 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import {
   CachingStrategy,
   createInlineTickController,
+  Entity3d,
   FreeCameraController,
-  Gg3dEntity,
-  Gg3dMapGraphEntity,
   Gg3dWorld,
   GgDummy,
   LoadResultWithProps,
   MapGraph,
+  MapGraph3dEntity,
   MapGraphNodeType,
   Pnt3,
   Point2,
   Point3,
   Qtrn,
+  Renderer3dEntity,
 } from '@gg-web-engine/core';
-import { Gg3dObject, Gg3dVisualScene, GgRenderer } from '@gg-web-engine/three';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil, throttleTime } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import {
@@ -40,19 +40,16 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
-  NearestFilter,
   Object3D,
   PlaneGeometry,
   RepeatWrapping,
-  SphereGeometry,
   sRGBEncoding,
-  Texture,
   TextureLoader,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { GgCurve } from '@gg-web-engine/core/dist/3d/models/gg-meta';
 import { setupNfs1Texture } from '../orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
 
 export enum MapPropType {
   ThreeModel = 'model',
@@ -84,7 +81,7 @@ export const fixGltfMaterialsForNfs1: (obj: Mesh, isCar: boolean) => void = (obj
   obj.material = materials.length > 1 ? materials : materials[0];
 };
 
-export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
+export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo, any> {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
 
@@ -92,11 +89,13 @@ export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
     super(mapGraph, { loadDepth: 50, inertia: 2 });
   }
 
-  protected override async loadChunk(node: MapGraphNodeType): Promise<[Gg3dEntity[], LoadResultWithProps]> {
+  protected override async loadChunk(
+    node: MapGraphNodeType,
+  ): Promise<[Entity3d<ThreeVisualTypeDocRepo, any>[], LoadResultWithProps<ThreeVisualTypeDocRepo, any>]> {
     const [entities, loadResult] = await super.loadChunk(node);
     for (const entity of entities) {
       if (entity.object3D) {
-        (entity.object3D as Gg3dObject).nativeMesh.traverse(node => {
+        entity.object3D.nativeMesh.traverse(node => {
           if (node instanceof Mesh) {
             node.material = this.getTerrainMaterial(
               (node.userData['name'] || node.name)
@@ -109,7 +108,7 @@ export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
     }
     const props = (
       await Promise.all(loadResult.meta.dummies.filter(x => x.is_prop).map(dummy => this.loadPropInternal(dummy)))
-    ).filter(p => !!p) as Gg3dEntity[];
+    ).filter(p => !!p) as Entity3d<ThreeVisualTypeDocRepo, any>[];
     for (const prop of props) {
       prop.position = Pnt3.add(prop.position, node.position);
     }
@@ -140,7 +139,7 @@ export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
     return this.terrainMaterials[matId];
   }
 
-  protected async loadPropInternal(dummy: GgDummy): Promise<Gg3dEntity | null> {
+  protected async loadPropInternal(dummy: GgDummy): Promise<Entity3d<ThreeVisualTypeDocRepo, any> | null> {
     if (dummy.type == MapPropType.ThreeModel) {
       // 3D model
       const {
@@ -149,7 +148,7 @@ export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
         loadProps: false,
         cachingStrategy: CachingStrategy.Entities,
       });
-      (proxy.object3D as Gg3dObject).nativeMesh.traverse(obj => {
+      proxy.object3D!.nativeMesh.traverse(obj => {
         if (obj instanceof Mesh) {
           fixGltfMaterialsForNfs1(obj, false);
         }
@@ -181,7 +180,7 @@ export class Nfs1MapWorldEntity extends Gg3dMapGraphEntity {
         plane2.position.x = plane2.position.y = dummy.width / 2;
         object.add(plane2);
       }
-      const entity = new Gg3dEntity(new Gg3dObject(object), null);
+      const entity = new Entity3d<ThreeVisualTypeDocRepo, any>(new ThreeDisplayObjectComponent(object), null);
       entity.position = dummy.position;
       entity.rotation = dummy.rotation;
       return entity;
@@ -247,34 +246,13 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   famPath: string = '';
   name: string = '';
-  world!: Gg3dWorld<Gg3dVisualScene, any>;
-  renderer: GgRenderer | null = null;
+  world!: Gg3dWorld<ThreeVisualTypeDocRepo, any, ThreeSceneComponent>;
+  renderer: Renderer3dEntity<ThreeVisualTypeDocRepo> | null = null;
   map: Nfs1MapWorldEntity | null = null;
   roadPath: GgCurve | null = null;
   controller!: FreeCameraController;
-  skySphere: Gg3dEntity = new Gg3dEntity(
-    new Gg3dObject(
-      new Mesh(
-        new SphereGeometry(1000),
-        new MeshBasicMaterial({
-          side: DoubleSide,
-          color: 0xffffff,
-        }),
-      ),
-    ),
-  );
-  selectionSphere: Gg3dEntity = new Gg3dEntity(
-    new Gg3dObject(
-      new Mesh(
-        new SphereGeometry(0.5),
-        new MeshBasicMaterial({
-          opacity: 0.5,
-          transparent: true,
-          color: 0xff0000,
-        }),
-      ),
-    ),
-  );
+  skySphere!: Entity3d<ThreeVisualTypeDocRepo>;
+  selectionSphere!: Entity3d<ThreeVisualTypeDocRepo>;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -327,35 +305,49 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   async ngAfterViewInit() {
-    this.world = new Gg3dWorld(new Gg3dVisualScene(), {
+    this.world = new Gg3dWorld(new ThreeSceneComponent(), {
       init: async () => {},
       simulate: () => {},
       loader: {
         loadFromGgGlb: async (...args: any[]) => [],
       },
     } as any);
-    this.world.visualScene.loader.registerGltfLoaderAddon(new GLTFLoader());
     await this.world.init();
+    this.skySphere = new Entity3d(
+      this.world.visualScene.factory.createPrimitive({ shape: 'SPHERE', radius: 1000 }, { color: 0xffffff }),
+    );
+    ((this.skySphere.object3D!.nativeMesh as Mesh).material as Material).side = DoubleSide;
     this.skySphere.rotation = Qtrn.fromEuler({ x: Math.PI / 2, y: 0, z: 0 }); // make it face towards Z
     this.world.addEntity(this.skySphere);
+    this.selectionSphere = new Entity3d(
+      this.world.visualScene.factory.createPrimitive(
+        { shape: 'SPHERE', radius: 0.5 },
+        {
+          color: 0xff0000,
+          shading: 'unlit',
+        },
+      ),
+    );
+    ((this.selectionSphere.object3D!.nativeMesh as Mesh).material as Material).opacity = 0.4;
+    ((this.selectionSphere.object3D!.nativeMesh as Mesh).material as Material).transparent = true;
     this.world.addEntity(this.selectionSphere);
+
     this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
-    this.renderer = new GgRenderer(this.previewCanvas.nativeElement, {
-      size: rendererSize$.asObservable(),
-      background: 0xaaaaaa,
-    });
+    this.renderer = this.world.addRenderer(
+      this.world.visualScene.factory.createPerspectiveCamera(),
+      this.previewCanvas.nativeElement,
+      {
+        size: rendererSize$.asObservable(),
+        background: 0xaaaaaa,
+      },
+    );
     this.renderer.camera.position = { x: 0, y: 0, z: 2.5 };
     this.renderer.camera.rotation = Qtrn.lookAt(
       this.renderer.camera.position,
-      Pnt3.add(this.renderer.camera.position, {
-        x: 0,
-        y: 1,
-        z: 0,
-      }),
-      { x: 0, y: 0, z: 1 },
+      Pnt3.add(this.renderer.camera.position, Pnt3.Y),
+      Pnt3.Z,
     );
-    this.world.addEntity(this.renderer);
     createInlineTickController(this.world)
       .pipe(takeUntil(this.destroyed$))
       .subscribe(() => {
@@ -365,7 +357,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         }
       });
 
-    this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer.camera, {
+    this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer, {
       mouseOptions: {
         canvas: this.previewCanvas.nativeElement,
         pointerLock: true,
@@ -418,11 +410,11 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         this.selectionSphere.position = point;
         const orientation = this.resourceData!.value.road_spline.value[i].value.orientation.value;
         if (this.renderer) {
-          this.renderer.camera.position = Pnt3.add(
+          this.renderer.position = Pnt3.add(
             point,
             Pnt3.rotAround({ x: 10, y: -12, z: 5 }, { x: 0, y: 0, z: 1 }, -orientation),
           );
-          this.renderer.camera.rotation = Qtrn.lookAt(this.renderer.camera.position, point, { x: 0, y: 0, z: 1 });
+          this.renderer.rotation = Qtrn.lookAt(this.renderer.position, point, { x: 0, y: 0, z: 1 });
         }
       }
     });
@@ -446,11 +438,11 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         const tex = await loader.loadAsync(skyPath);
         tex.encoding = sRGBEncoding;
         tex.mapping = CubeReflectionMapping;
-        (((this.skySphere.object3D as Gg3dObject).nativeMesh as Mesh).material as MeshBasicMaterial).map = tex;
+        ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = tex;
       } else {
-        (((this.skySphere.object3D as Gg3dObject).nativeMesh as Mesh).material as MeshBasicMaterial).map = null;
+        ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = null;
       }
-      (((this.skySphere.object3D as Gg3dObject).nativeMesh as Mesh).material as MeshBasicMaterial).needsUpdate = true;
+      ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).needsUpdate = true;
     } finally {
       this.previewFamLoading$.next(false);
     }
@@ -500,7 +492,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     );
     this.unloadPreview();
     this.map = new Nfs1MapWorldEntity(chunksGraph, 'resources/' + this.famPath);
-    this.map.loaderCursorEntity$.next(this.renderer!.camera);
+    this.map.loaderCursorEntity$.next(this.renderer);
     this.world.addEntity(this.map!);
     this.cdr.markForCheck();
   }
