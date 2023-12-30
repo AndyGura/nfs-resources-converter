@@ -93,8 +93,8 @@
 | 72 | **render_order_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in render_order block |
 | 76 | **render_order_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block |
 | 80 | **polygon_vertex_map_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of polygon_vertex_map block |
-| 84 | **unk0_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in unk1 block |
-| 88 | **unk0_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of unk1 block |
+| 84 | **labels0_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels0 block |
+| 88 | **labels0_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels0 block |
 | 92 | **labels_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels block |
 | 96 | **labels_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block |
 | 100 | **unknowns1** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
@@ -103,8 +103,8 @@
 | 112..? | **texture_names_block** | 20 * (texture_names_count) | Array of texture_names_count items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
 | 112..? | **texture_number_map_block** | 20 * (texture_number_count) | Array of texture_number_count items<br/>Item size: 20 bytes<br/>Item type: Array of 20 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 112..? | **render_order_block** | 28 * (render_order_count) | Array of render_order_count items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
-| 112..? | **unk0_block** | 12 * (unk1_count) | Array of unk1_count items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **labels_block** | 12 * (labels_count) | Array of labels_count items<br/>Item size: 12 bytes<br/>Item type: Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Format and purpose is unknown. 3DO spec available here: http://3dodev.com/documentation/file_formats/games/nfs , but do not work for TNFSSE: UTF-8 decode error |
+| 112..? | **labels0_block** | 12 * (labels0_count) | Array of labels0_count items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Unclear |
+| 112..? | **labels_block** | 12 * (labels_count) | Array of labels_count items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on drifting, accelerating and braking in the place where texture is shown. 3DO version ORIP description: "Texture indexes referenced from records in block 10 and block 11th. Texture index shows that wheel or back light will be displayed on the polygon number defined in block 10." - the issue is that TNFSSE orip files consist of 9 blocks |
 | 112..? | **vertex_block** | 12 * (vertex_count) | Array of vertex_count items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices in 3D space. For cars it consists of 32:7 points, else 32:4 |
 | 112..? | **polygon_vertex_map_block** | 4 * ((up to end of block)) | Array of (up to end of block) items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertex_block or vertex_uvs_block. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertex_block. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs_block |
 </details>
@@ -125,10 +125,9 @@
 #### **Description**: A settings of the texture. From what is known, contains name of bitmap ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **type** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Sometimes UTF8 string, but not always. Unknown purpose |
-| 4 | **unknown0** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 8 | **file_name** | 4 | UTF-8 string | Name of bitmap in SHPI block |
-| 12 | **unknown1** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 0 | **type** | 8 | NFS1 UTF-8 string with variable length, but static size in file. 0x00 means end of string, the rest is ignored | - |
+| 8 | **file_name** | 4 | NFS1 UTF-8 string with variable length, but static size in file. 0x00 means end of string, the rest is ignored | Name of bitmap in SHPI block |
+| 12 | **unknown** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 ### **RenderOrderBlock** ###
 #### **Size**: 28 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -137,8 +136,8 @@
 | 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | 0x8 for 'NON-SORT' or 0x1 for the others |
 | 12 | **polygons_amount** | 4 | 4-bytes unsigned integer (little endian) | Polygons amount (3DO). For TNFSSE sometimes too big value |
 | 16 | **polygon_sum** | 4 | 4-bytes unsigned integer (little endian) | 0 for 'NON-SORT'; block’s 10 size for 'inside'; equals block’s 10 size + number of polygons from ‘inside’ = XXX for 'surface'; equals XXX + number of polygons from 'surface' for 'outside'; (Description for 3DO orip file, TNFSSE version has only 9 blocks!) |
-| 20 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 24 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 20 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 24 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ## **Maps** ##
 ### **TriMap** ###
 #### **Size**: 90664..? bytes ####
@@ -557,17 +556,24 @@
 | 16183 | **vertigo_ridge_stats** | 2667 | [TrackStats](#trackstats) | - |
 | 18850 | **transtropolis_stats** | 2667 | [TrackStats](#trackstats) | - |
 | 21517 | **lost_vegas_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 24184 | **some_record** | 39 | [BestRaceRecord](#bestracerecord) | - |
-| 24223 | **unk1** | 177 | Bytes | Unknown purpose |
+| 24184 | **unk1** | 39 | [BestRaceRecord](#bestracerecord) | Unknown purpose |
+| 24223 | **unk2** | 177 | Bytes | Unknown purpose |
 | 24400 | **unlocks_level** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: none<br/>1: warrior_vegas_mirror<br/>2: warrior_vegas_mirror_rally</details> | Level of unlocked features: warrior car, lost vegas track, mirror track mode, rally track mode |
-| 24401 | **unk2** | 1 | Bytes | Unknown purpose |
+| 24401 | **unk3** | 1 | Bytes | Unknown purpose |
 ### **TrackStats** ###
 #### **Size**: 2667 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **some_records** | 39 * (6) | Array of 6 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Unknown records. For closed track only first record defined, next 5 are filled with zeros |
-| 234 | **best_times** | 39 * (30) | Array of 30 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best 10 runs of track per lap amount. For open track only 10 records defined, next 20 are filled with zeros |
-| 1404 | **top_speed_stat** | 39 | [BestRaceRecord](#bestracerecord) | - |
+| 0 | **best_lap_1** | 39 | [BestRaceRecord](#bestracerecord) | Best single lap time (closed track). Best time of first segment for open track |
+| 39 | **best_lap_2** | 39 | [BestRaceRecord](#bestracerecord) | Best time of second segment (open track). Zeros for closed track |
+| 78 | **best_lap_3** | 39 | [BestRaceRecord](#bestracerecord) | Best time of third segment (open track). Zeros for closed track |
+| 117 | **top_speed_1** | 39 | [BestRaceRecord](#bestracerecord) | Top speed on first segment (open track). Zeros for closed track |
+| 156 | **top_speed_2** | 39 | [BestRaceRecord](#bestracerecord) | Top speed on second segment (open track). Zeros for closed track |
+| 195 | **top_speed_3** | 39 | [BestRaceRecord](#bestracerecord) | Top speed on third segment (open track). Zeros for closed track |
+| 234 | **best_race_time_table_1** | 39 * (10) | Array of 10 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best 10 runs of the whole race with minimum amount of laps: for open track total time of all 3 segments, for closed track time of minimum selection of laps (2 or 4 depending on track) |
+| 624 | **best_race_time_table_2** | 39 * (10) | Array of 10 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best 10 runs of the whole race with middle amount of laps (6 or 8 depending on track). Zeros for open track |
+| 1014 | **best_race_time_table_3** | 39 * (10) | Array of 10 items<br/>Item type: [BestRaceRecord](#bestracerecord) | Best 10 runs of the whole race with maximum amount of laps (12 or 16 depending on track). Zeros for open track |
+| 1404 | **top_race_speed** | 39 | [BestRaceRecord](#bestracerecord) | Top speed on the whole race. Why it is not equal to max stat between top_speed_1, top_speed_2 and top_speed_3 for open track? |
 | 1443 | **unk** | 1224 | Bytes | Unknown purpose |
 ### **BestRaceRecord** ###
 #### **Size**: 39 bytes ####
@@ -581,4 +587,4 @@
 | 31 | **unk2** | 1 | Bytes | Unknown purpose |
 | 32 | **top_speed** | 3 | TNFS top speed record. Appears to be 24-bit real number (sign unknown because big values show up as N/A in the game), little-endian, where last 8 bits is a fractional part. For determining speed, ONLY INTEGER PART of this number should be multiplied by 2,240000000001 and rounded up, e.g. 0xFF will be equal to 572mph. Note: probably game multiplies number by 2,24 with some fast algorithm so it rounds up even integer result, because 0xFA (*2,24 == 560.0) shows up in game as 561mph | Top speed |
 | 35 | **game_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: time_trial<br/>1: head_to_head<br/>2: full_grid_race</details> | Game mode. In the game shown as "t.t.", "h.h." or empty string |
-| 36 | **unk3** | 3 | Bytes | Unknown purpose |
+| 36 | **unk3** | 3 | Bytes. Always == b'\x00\x00\x00' | Unknown purpose |

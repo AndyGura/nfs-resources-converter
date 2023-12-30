@@ -8,7 +8,7 @@ Feel free to contribute
 
 <h1>Installation:</h1>
 
-0) install python 3.9, pip, ffmpeg, blender
+0) install python 3.9, pip, ffmpeg, blender (version 4+)
 1) make sure that `blender` and `ffmpeg` commands work in terminal (cmd). If not, either fix your system environment variable PATH, or reboot your system if software was just installed, or set an absolute path to executables in [settings.py](settings.py)
 2) install dependencies `pip install -r requirements.txt`
 

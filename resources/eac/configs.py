@@ -73,20 +73,32 @@ class BestRaceRecord(CompoundBlock):
                                               (2, 'full_grid_race'),
                                               ],
                                   description='Game mode. In the game shown as "t.t.", "h.h." or empty string')
-        unk3 = AtomicDataBlock(static_size=3)
+        unk3 = AtomicDataBlock(static_size=3, required_value=b'\x00\x00\x00')
 
         unknown_fields = ['unk0', 'unk1', 'unk2', 'unk3']
 
 
 class TrackStats(CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        some_records = ArrayBlock(length=6, child=BestRaceRecord(),
-                                  description='Unknown records. For closed track only first record defined, next 5 are '
-                                              'filled with zeros')
-        best_times = ArrayBlock(length=30, child=BestRaceRecord(),
-                                description='Best 10 runs of track per lap amount. For open track only 10 records '
-                                            'defined, next 20 are filled with zeros')
-        top_speed_stat = BestRaceRecord()
+        best_lap_1 = BestRaceRecord(description='Best single lap time (closed track). Best time of first segment for '
+                                                'open track')
+        best_lap_2 = BestRaceRecord(description='Best time of second segment (open track). Zeros for closed track')
+        best_lap_3 = BestRaceRecord(description='Best time of third segment (open track). Zeros for closed track')
+        top_speed_1 = BestRaceRecord(description='Top speed on first segment (open track). Zeros for closed track')
+        top_speed_2 = BestRaceRecord(description='Top speed on second segment (open track). Zeros for closed track')
+        top_speed_3 = BestRaceRecord(description='Top speed on third segment (open track). Zeros for closed track')
+        best_race_time_table_1 = ArrayBlock(length=10, child=BestRaceRecord(),
+                                            description='Best 10 runs of the whole race with minimum amount of laps: '
+                                                        'for open track total time of all 3 segments, for closed track '
+                                                        'time of minimum selection of laps (2 or 4 depending on track)')
+        best_race_time_table_2 = ArrayBlock(length=10, child=BestRaceRecord(),
+                                            description='Best 10 runs of the whole race with middle amount of laps (6 '
+                                                        'or 8 depending on track). Zeros for open track')
+        best_race_time_table_3 = ArrayBlock(length=10, child=BestRaceRecord(),
+                                            description='Best 10 runs of the whole race with maximum amount of laps (12 '
+                                                        'or 16 depending on track). Zeros for open track')
+        top_race_speed = BestRaceRecord(description='Top speed on the whole race. Why it is not equal to max stat '
+                                                    'between top_speed_1, top_speed_2 and top_speed_3 for open track?')
         unk = AtomicDataBlock(static_size=1224)
 
         unknown_fields = ['unk']
@@ -108,12 +120,12 @@ class TnfsConfigDat(CompoundBlock):
         vertigo_ridge_stats = TrackStats()
         transtropolis_stats = TrackStats()
         lost_vegas_stats = TrackStats()
-        some_record = BestRaceRecord()
-        unk1 = AtomicDataBlock(static_size=177)
+        unk1 = BestRaceRecord()
+        unk2 = AtomicDataBlock(static_size=177)
         unlocks_level = EnumByteBlock(enum_names=[(0, 'none'),
                                                   (1, 'warrior_vegas_mirror'),
                                                   (2, 'warrior_vegas_mirror_rally'),
                                                   ],
                                       description='Level of unlocked features: warrior car, lost vegas track, mirror track mode, rally track mode')
-        unk2 = AtomicDataBlock(static_size=1)
-        unknown_fields = ['unk0', 'unk1', 'unk2']
+        unk3 = AtomicDataBlock(static_size=1)
+        unknown_fields = ['unk0', 'unk1', 'unk2', 'unk3']

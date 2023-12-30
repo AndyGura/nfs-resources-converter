@@ -1,8 +1,23 @@
 from library.helpers.data_wrapper import DataWrapper
-from library.read_blocks.atomic import IntegerBlock
+from library.read_blocks.atomic import IntegerBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
 from resources.eac.fields.numbers import RationalNumber
+
+
+class Nfs1Utf8Block(Utf8Block):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(pad_value=0, **kwargs)
+        self.block_description = 'NFS1 UTF-8 string with variable length, but static size in file. 0x00 means end of string, the rest is ignored'
+
+    def from_raw_value(self, raw: bytes, state: dict):
+        try:
+            raw = raw[:raw.index(0)]
+        except ValueError:
+            pass
+        # In NFS1 sometimes we can see sequences, which cannot be parsed as UTF-8, for instance, 0x80 0x02 Ignore them
+        return raw.decode('utf-8', errors='ignore')
 
 
 class Point3D_16(CompoundBlock):

@@ -364,7 +364,7 @@ from mathutils import Euler
 
 if $new_file:
     bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_name", use_image_search=False, axis_forward='Y', axis_up='Z')
+bpy.ops.wm.obj_import(filepath="$obj_name", forward_axis='Y', up_axis='Z')
 
 # create proxy objects
 proxy_objects = json.loads('$proxy_objects_json')
