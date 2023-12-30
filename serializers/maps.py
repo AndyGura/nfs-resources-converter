@@ -217,16 +217,12 @@ class TriMapSerializer(BaseFileSerializer):
                                 inverted_matrix[vertices_matrix_indices[1]][j].y,
                                 inverted_matrix[vertices_matrix_indices[1]][j].z,
                             ]
-                model.polygons = [
-                    [0, int(len(model.vertices) / 2), 1],
-                    [int(len(model.vertices) / 2), int(len(model.vertices) / 2) + 1, 1],
-                    [1, int(len(model.vertices) / 2) + 1, 2],
-                    [int(len(model.vertices) / 2) + 1, int(len(model.vertices) / 2) + 2, 2],
-                ]
-                model.polygons = [[i, int(len(model.vertices) / 2) + i, 1 + i] + [int(len(model.vertices) / 2) + i,
-                                                                                  int(len(model.vertices) / 2) + 1 + i,
-                                                                                  1 + i] for i in
-                                  range(int(len(model.vertices) / 2) - 1)]
+                polygons = [
+                    [[i, int(len(model.vertices) / 2) + i, 1 + i], [int(len(model.vertices) / 2) + i,
+                                                                    int(len(model.vertices) / 2) + 1 + i,
+                                                                    1 + i]] for i in
+                    range(int(len(model.vertices) / 2) - 1)]
+                model.polygons = [item for row in polygons for item in row]
                 model.vertex_uvs = [[
                     (x % int(len(model.vertices) / 2)) / 2,
                     (0 if x < int(len(model.vertices) / 2) else 1) if i < int(len(model.vertices) / 2) else (
@@ -607,8 +603,10 @@ if $save_terrain_collisions:
         road_path_settings = {
             'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
             'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
-            'left_barrier_distance': [block.left_barrier_distance.value for block in data.road_spline[:len(data.terrain) * 4]],
-            'right_barrier_distance': [block.right_barrier_distance.value for block in data.road_spline[:len(data.terrain) * 4]],
+            'left_barrier_distance': [block.left_barrier_distance.value for block in
+                                      data.road_spline[:len(data.terrain) * 4]],
+            'right_barrier_distance': [block.right_barrier_distance.value for block in
+                                       data.road_spline[:len(data.terrain) * 4]],
         }
         if is_opened_track:
             # a terminal road path point: when go backwards, race ends after this point
@@ -657,8 +655,9 @@ if $save_terrain_collisions:
                 export_materials='NONE')
         run_blender(path=path,
                     script=blender_script,
-                    out_blend_name=os.path.join(os.getcwd(), path,
-                                                'map').replace('\\', '/') if self.settings.geometry__save_blend else None)
+                    out_blend_name=os.path.join(
+                        os.getcwd(), path, 'map'
+                    ).replace('\\', '/') if self.settings.geometry__save_blend else None)
         if not self.settings.geometry__save_obj:
             if self.settings.maps__save_as_chunked:
                 for i in range(len(terrain_data)):
