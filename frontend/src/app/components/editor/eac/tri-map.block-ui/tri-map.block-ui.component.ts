@@ -545,4 +545,5 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   protected readonly Math = Math;
+  protected readonly Object = Object;
 }
