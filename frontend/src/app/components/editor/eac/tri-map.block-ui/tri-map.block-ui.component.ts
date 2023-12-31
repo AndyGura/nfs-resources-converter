@@ -241,8 +241,12 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   previewFamLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   private previewGlbPath: string | undefined;
 
-  selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
+
+  selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  selectedSplineItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  selectedAiInfoItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  selectedTerrainItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
 
   famPath: string = '';
   name: string = '';
@@ -417,6 +421,18 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
           this.renderer.rotation = Qtrn.lookAt(this.renderer.position, point, { x: 0, y: 0, z: 1 });
         }
       }
+      this.selectedSplineItem$.next({
+        block: this.resourceData!.value.road_spline.block,
+        ...this.resourceData!.value.road_spline.value[i],
+      });
+      this.selectedAiInfoItem$.next({
+        block: this.resourceData!.value.ai_info.block,
+        ...this.resourceData!.value.ai_info.value[Math.floor(i / 4)],
+      });
+      this.selectedTerrainItem$.next({
+        block: this.resourceData!.value.terrain.block,
+        ...this.resourceData!.value.terrain.value[Math.floor(i / 4)],
+      });
     });
   }
 

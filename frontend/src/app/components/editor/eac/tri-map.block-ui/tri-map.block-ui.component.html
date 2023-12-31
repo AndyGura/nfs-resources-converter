@@ -37,17 +37,11 @@
     </div>
 </div>
 <h4>Road spline item</h4>
-<app-compound-block-ui
-        [resourceData]="Object.assign({ block: (_resourceData$ | async)?.value.road_spline.block }, (_resourceData$ | async)?.value.road_spline.value[(selectedSplineIndex$ | async)!])"
-></app-compound-block-ui>
+<app-compound-block-ui [resourceData]="selectedSplineItem$ | async"></app-compound-block-ui>
 <h4>AI info (block for 4 spline items)</h4>
-<app-compound-block-ui
-        [resourceData]="Object.assign({ block: (_resourceData$ | async)?.value.ai_info.block }, (_resourceData$ | async)?.value.ai_info.value[Math.floor((selectedSplineIndex$ | async)! / 4)])"
-></app-compound-block-ui>
+<app-compound-block-ui [resourceData]="selectedAiInfoItem$ | async"></app-compound-block-ui>
 <h4>Terrain (block for 4 spline items)</h4>
-<app-compound-block-ui
-        [resourceData]="Object.assign({ block: (_resourceData$ | async)?.value.terrain.block }, (_resourceData$ | async)?.value.terrain.value[Math.floor((selectedSplineIndex$ | async)! / 4)])"
-></app-compound-block-ui>
+<app-compound-block-ui [resourceData]="selectedTerrainItem$ | async"></app-compound-block-ui>
 <h4>Common</h4>
 <app-compound-block-ui [resourceData]="_resourceData$ | async"
                        [fieldWhitelist]="[
