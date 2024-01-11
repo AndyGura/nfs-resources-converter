@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
+import {GuiComponentInterface} from '../../gui-component.interface';
 
 @Component({
   selector: 'app-string-block-ui',
@@ -8,10 +8,10 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StringBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
-  name: string = '';
+  @Input() resource: Resource | null = null;
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor() {}
+  constructor() {
+  }
 }

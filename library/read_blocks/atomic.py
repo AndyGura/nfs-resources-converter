@@ -2,7 +2,7 @@ from abc import ABC
 from io import BufferedReader, BytesIO
 from typing import Literal, List, Tuple, Dict
 
-from library.helpers.exceptions import BlockIntegrityException, EndOfBufferException
+from library.helpers.exceptions import DataIntegrityException, EndOfBufferException
 from library.read_blocks.data_block import DataBlock
 from library.read_data import ReadData
 from library.utils import represent_value_as_str
@@ -32,7 +32,7 @@ class AtomicDataBlock(DataBlock):
     def read(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
         data = super().read(buffer, size, state)
         if self.required_value and data.value != self.required_value:
-            raise BlockIntegrityException(f'Expected {represent_value_as_str(self.required_value)}, '
+            raise DataIntegrityException(f'Expected {represent_value_as_str(self.required_value)}, '
                                           f'found {represent_value_as_str(data.value)}')
         return data
 

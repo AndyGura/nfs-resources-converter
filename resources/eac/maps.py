@@ -1,4 +1,4 @@
-from library.helpers.exceptions import BlockIntegrityException
+from library.helpers.exceptions import DataIntegrityException
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
@@ -157,7 +157,7 @@ class ProxyObject(CompoundBlock):
         elif data['type'].value == 'unk':
             state['proxy_object_data']['delegated_block'] = UnknownProxyObjectData()
         else:
-            raise BlockIntegrityException(f"Unknown proxy object type: {data['type'].value}")
+            raise DataIntegrityException(f"Unknown proxy object type: {data['type'].value}")
 
 
 class ProxyObjectInstance(CompoundBlock):

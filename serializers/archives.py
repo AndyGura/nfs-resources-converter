@@ -2,7 +2,7 @@ import os
 import traceback
 
 import serializers
-from library.helpers.exceptions import BlockIntegrityException
+from library.helpers.exceptions import DataIntegrityException
 from library.read_data import ReadData
 from library.utils import format_exception
 from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
@@ -175,7 +175,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 continue
             if skip_next_shpi:
                 assert isinstance(item.block, ShpiBlock), \
-                    BlockIntegrityException('After ORIP geometry in wwww archive only SHPI directory expected!')
+                    DataIntegrityException('After ORIP geometry in wwww archive only SHPI directory expected!')
                 skip_next_shpi = False
                 continue
             if isinstance(item.block, OripGeometry):

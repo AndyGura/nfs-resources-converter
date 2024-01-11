@@ -1,5 +1,5 @@
 <mat-toolbar color="primary">
-    <span>{{(mainService.resourceData$ | async)?.block_id || '...'}}{{mainService.hasUnsavedChanges ? '*' : ''}}</span>
+    <span>{{(mainService.resource$ | async)?.name || '...'}}{{mainService.hasUnsavedChanges ? '*' : ''}}</span>
     <span class="flex-spacer"></span>
     <button mat-icon-button (click)="toggleUnknownsVisibility()"
             matTooltip="Show/hide unknown fields">
@@ -14,14 +14,14 @@
       <mat-icon fontIcon="upload"></mat-icon>
     </button>
     <button mat-icon-button
-            *ngIf="(mainService.resourceData$ | async)?.block.is_serializable_to_disk"
+            *ngIf="(mainService.resource$ | async)?.schema.serializable_to_disc"
             [disabled]="isInReversibleSerializationState"
             matTooltip="Serialize to common format"
             (click)="serializeBlockReversible()">
       <mat-icon fontIcon="download"></mat-icon>
     </button>
     <button mat-icon-button
-            *ngIf="(mainService.resourceData$ | async)?.block.custom_actions?.length > 0"
+            *ngIf="(mainService.resource$ | async)?.schema.custom_actions?.length > 0"
             [matMenuTriggerFor]="customActionsMenu"
             matTooltip="Run custom action">
       <mat-icon fontIcon="bolt"></mat-icon>
@@ -33,15 +33,15 @@
     </button>
     <mat-divider vertical></mat-divider>
     <button mat-icon-button (click)="saveResource()"
-            [disabled]="!(mainService.resourceData$ | async) || !mainService.hasUnsavedChanges"
+            [disabled]="!(mainService.resource$ | async) || !mainService.hasUnsavedChanges"
             matTooltip="Save changes to file">
         <mat-icon fontIcon="save"></mat-icon>
     </button>
 </mat-toolbar>
 <div id="content-wrapper">
-    <app-editor [resourceData]="(mainService.customActionRunning$ | async)
+    <app-editor [resource]="(mainService.customActionRunning$ | async)
     ? null
-    : ((mainService.resourceData$ | async) || (mainService.resourceError$ | async))"></app-editor>
+    : ((mainService.resource$ | async) || (mainService.error$ | async))"></app-editor>
     <div id="bmac">
         <a href="https://www.buymeacoffee.com/andygura" target="_blank"><img
                 src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee"
@@ -50,7 +50,7 @@
 </div>
 
 <mat-menu #customActionsMenu="matMenu">
-    <button *ngFor="let action of ((mainService.resourceData$ | async)?.block.custom_actions || [])"
+    <button *ngFor="let action of ((mainService.resource$ | async)?.schema.custom_actions || [])"
             mat-menu-item
             (click)="runCustomAction(action)">
         <span>{{action.title}}</span>

@@ -3,7 +3,7 @@ from io import BufferedReader, BytesIO
 from typing import List, Tuple
 
 from library.helpers.data_wrapper import DataWrapper
-from library.helpers.exceptions import EndOfBufferException, BlockIntegrityException
+from library.helpers.exceptions import EndOfBufferException, DataIntegrityException
 from library.helpers.id import join_id
 from library.read_blocks.data_block import DataBlock
 from library.read_data import ReadData
@@ -92,7 +92,7 @@ class CompoundBlock(DataBlock, ABC):
                 remaining_size -= buffer.tell() - start
                 if remaining_size < 0:
                     raise EndOfBufferException()
-            except (EndOfBufferException, BlockIntegrityException, NotImplementedError) as ex:
+            except (EndOfBufferException, DataIntegrityException, NotImplementedError) as ex:
                 if name in self.Fields.optional_fields:
                     field.wrap_result(None, block_state=state[name])
                     buffer.seek(start)
@@ -120,7 +120,7 @@ class CompoundBlock(DataBlock, ABC):
                     if isinstance(field, ArrayBlock):
                         value = field.wrap_result([], {})
                     else:
-                        raise BlockIntegrityException(f'Data for non-optional field {name} is missed')
+                        raise DataIntegrityException(f'Data for non-optional field {name} is missed')
                 else:
                     continue
             res += field.to_raw_value(value)

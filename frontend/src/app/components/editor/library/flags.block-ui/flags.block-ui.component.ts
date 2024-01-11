@@ -9,7 +9,7 @@ import { MatSelectionListChange } from '@angular/material/list';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlagsBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
+  @Input() resourceData: BlockData | null = null;
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();

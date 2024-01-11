@@ -8,20 +8,34 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArrayBlockUiComponent implements GuiComponentInterface {
-  private _resourceData: ReadData | null = null;
-  get resourceData(): ReadData | null {
-    return this._resourceData;
-  }
+  private _resource: Resource | null = null;
 
   @Input()
-  set resourceData(value: ReadData | null) {
-    this._resourceData = value;
-    this.showAsCollapsable = this._resourceData?.value?.length > 5;
-    this.updatePageIndexes();
+  set resource(value: Resource | null) {
+    this._resource = value;
+    this.showAsCollapsable = this._resource?.data?.length > 5;
+    this.children = (this.resourceData || [])
+      .map((d: BlockData, i: number) => ({
+        id: this._resource!.id + (this._resource!.id.includes('__') ? '/' : '__') + i,
+        name: '' + i,
+        data: d,
+        schema: this._resource!.schema.child_schema,
+      }));
     this.renderPage(0, this.minPageSize);
+    this.updatePageIndexes();
   }
 
-  name: string = '';
+  get resourceData(): BlockData | null {
+    return this._resource?.data;
+  }
+
+  get schema(): BlockSchema | null {
+    return this._resource?.schema;
+  }
+
+  get name(): string | null {
+    return this._resource?.name || null;
+  }
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -31,10 +45,11 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
 
   minPageSize: number = 10;
   pageIndex: number = 0;
-  pageSize: number = 10;
+  pageSize: number = 0;
   pageSizeOptions = [10, 25, 50, 100];
-  renderItems: any[] = [];
+  children: Resource[] = [];
 
+  renderIndexes: number[] = [];
   goToIndex: number = 0;
   pageIndexes: number[] = [];
 
@@ -58,18 +73,19 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   }
 
   renderPage(pageIndex: number, pageSize: number) {
+    if (this.pageSize !== pageSize) {
+      this.renderIndexes = new Array(pageSize).fill(null).map((_, i) => i);
+    }
     this.goToIndex = this.pageIndex = pageIndex;
     this.pageSize = pageSize;
-    this.renderItems = (this.resourceData?.value || [])
-      .slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
-      .map((x: ReadData) => (!!x['block'] ? x : { ...x, block: this.resourceData?.block.child }));
+
     this.cdr.markForCheck();
   }
 
   updatePageIndexes() {
     this.goToIndex = this.pageIndex;
     this.pageIndexes = [];
-    for (let i = 0; i < Math.ceil((this.resourceData?.value || []).length / this.pageSize); i++) {
+    for (let i = 0; i < Math.ceil((this.resourceData || []).length / this.pageSize); i++) {
       this.pageIndexes.push(i);
     }
   }

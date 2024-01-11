@@ -3,7 +3,7 @@ from typing import List
 
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
-from library.helpers.exceptions import BlockIntegrityException
+from library.helpers.exceptions import DataIntegrityException
 
 
 class LiteralBlock(DelegateBlock):
@@ -42,7 +42,7 @@ class LiteralBlock(DelegateBlock):
                 from library import probe_block_class
                 block_class = probe_block_class(buffer, resources_to_pick=[x.__class__ for x in self.possible_resources])
                 if not block_class:
-                    raise BlockIntegrityException('Expectation failed for literal block while reading: class not found')
+                    raise DataIntegrityException('Expectation failed for literal block while reading: class not found')
                 for res in self.possible_resources:
                     if isinstance(res, block_class):
                         state['delegated_block'] = res

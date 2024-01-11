@@ -29,7 +29,7 @@ export class AppComponent {
       ([id, _]) => id != '__has_external_changes__',
     );
     const [files, isReversible] = await this.eelDelegate.serializeReversible(
-      this.mainService.resourceData$.getValue()!.block_id,
+      this.mainService.resource$.getValue()!.name,
       changes.map(([id, value]) => {
         return { id, value };
       }),
@@ -47,7 +47,7 @@ export class AppComponent {
   }
 
   async deserialize() {
-    await this.mainService.deserializeResource(this.mainService.resourceData$.getValue()!.block_id);
+    await this.mainService.deserializeResource(this.mainService.resource$.getValue()!.name);
     this.isInReversibleSerializationState = false;
     this.cdr.markForCheck();
   }
@@ -74,7 +74,7 @@ export class AppComponent {
   }
 
   async serializeResource() {
-    const files = await this.eelDelegate.serializeResource(this.mainService.resourceData$.getValue()!.block_id);
+    const files = await this.eelDelegate.serializeResource(this.mainService.resource$.getValue()!.name);
     const commonPathPart = files.reduce((commonBeginning, currentString) => {
       let j = 0;
       while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {

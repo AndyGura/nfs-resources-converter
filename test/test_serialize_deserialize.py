@@ -28,13 +28,13 @@ class TestSerializeDeserialize(unittest.TestCase):
         output = car_fam.to_bytes()
         with open('test/samples/LDIABL.CFM', 'rb') as bdata:
             original = bdata.read()
-            # self.assertEqual(len(original), len(output))
+            self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
     def test_ffn_should_remain_the_same(self):
-        font_res = require_file('test/samples/MAIN24.FFN')
-        output = font_res.to_bytes()
+        (name, block, font_res) = require_file('test/samples/MAIN24.FFN')
+        output = block.pack(font_res, name=name)
         with open('test/samples/MAIN24.FFN', 'rb') as bdata:
             original = bdata.read()
             self.assertEqual(len(original), len(output))
@@ -42,15 +42,15 @@ class TestSerializeDeserialize(unittest.TestCase):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
     def test_ffn_can_be_reconstructed_from_files(self):
-        font_res = require_file('test/samples/MAIN24.FFN')
+        (name, block, font_res) = require_file('test/samples/MAIN24.FFN')
         import tempfile
         from serializers import get_serializer
-        serializer = get_serializer(font_res.block)
+        serializer = get_serializer(block)
         self.assertTrue(serializer.setup_for_reversible_serialization())
         with tempfile.TemporaryDirectory() as tmp:
-            serializer.serialize(font_res, tmp)
-            serializer.deserialize(tmp, font_res)
-        output = font_res.to_bytes()
+            serializer.serialize(font_res, tmp, name, block)
+            serializer.deserialize(tmp, font_res) # todo those tests are not fair: we provide original data to deserialize. Remove it even from signature everywhere
+        output = block.pack(font_res, name=name)
         with open('test/samples/MAIN24.FFN', 'rb') as bdata:
             original = bdata.read()
             self.assertEqual(len(original), len(output))

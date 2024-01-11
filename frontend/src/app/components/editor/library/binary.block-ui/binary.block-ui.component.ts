@@ -45,22 +45,20 @@ interface HexEditorProps
 export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
   @ViewChild('editor') editorDiv?: ElementRef<HTMLDivElement>;
 
-  private _resourceData: ReadData | null = null;
-  get resourceData(): ReadData | null {
-    return this._resourceData;
+  private _resource: Resource | null = null;
+  get resource(): Resource | null {
+    return this._resource;
   }
 
   @Input()
-  set resourceData(value: ReadData | null) {
-    this._resourceData = value;
+  set resource(value: Resource | null) {
+    this._resource = value;
     if (this.editor) {
-      this.editorProps.data = value ? new Uint8Array(value.value) : undefined;
+      this.editorProps.data = value ? new Uint8Array(value.data) : undefined;
       this.editor.$set({ props: { data: this.editorProps.data } });
       this.cdr.markForCheck();
     }
   }
-
-  name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -70,8 +68,8 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
   constructor(private readonly cdr: ChangeDetectorRef) {}
 
   ngAfterViewInit(): void {
-    if (this.resourceData) {
-      this.editorProps.data = new Uint8Array(this.resourceData.value);
+    if (this.resource) {
+      this.editorProps.data = new Uint8Array(this.resource.data);
     }
     this.editor = new HexEditor({
       target: this.editorDiv?.nativeElement,

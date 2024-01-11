@@ -9,8 +9,17 @@ import { MainService } from '../../../../services/main.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompoundBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
-  name: string = '';
+  @Input() resource: Resource | null = null;
+
+  get name(): string | null {
+    return this.resource && this.resource.name;
+  }
+  get data(): BlockData | null {
+    return this.resource && this.resource.data;
+  }
+  get schema(): BlockSchema | null {
+    return this.resource && this.resource.schema;
+  }
 
   @Input() fieldWhitelist: string[] | null = null;
 
@@ -18,14 +27,18 @@ export class CompoundBlockUiComponent implements GuiComponentInterface {
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  get fieldKeys(): string[] {
-    let fields = Object.keys(this.resourceData?.value || {});
+  get fieldKeys(): { index: number, key: string}[] {
+    let fields: { index: number, key: string}[] = this.schema?.fields.map((f: { name: string }, i: number) => ({ index: i, key: f.name })) || [];
     if (this.fieldWhitelist) {
-      fields = fields.filter(x => this.fieldWhitelist?.includes(x));
+      fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));
     } else if (this.fieldBlacklist) {
-      fields = fields.filter(x => !this.fieldBlacklist?.includes(x));
+      fields = fields.filter(({ key }) => !this.fieldBlacklist?.includes(key));
     }
     return fields;
+  }
+
+  fieldTrackBy(index: number, item: { index: number, key: string}) {
+    return item.index;
   }
 
   constructor(public main: MainService) {}

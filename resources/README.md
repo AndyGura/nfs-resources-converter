@@ -375,10 +375,10 @@
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length. For "WRAP" SHPI directory it contains some different unknown data |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unknowns** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 8 | **unknowns** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | 0..? | Array of width * height sub-byte numbers. Each number consists of 4 bits | Font atlas bitmap data |
+| 16 | **bitmap** | ceil((width\*height)\*4/8) | Array of `width*height` sub-byte numbers. Each number consists of 4 bits | Font atlas bitmap data |
 ### **Bitmap8Bit** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: 8bit bitmap can be serialized to image only with palette. Basically, for every pixel it uses 8-bit index of color in assigned palette. The tricky part is to determine how the game understands which palette to use. In most cases, if bitmap has embedded palette, it should be used, EXCEPT Autumn Valley fence texture: there embedded palette should be ignored. In all other cases it is tricky even more: it uses !pal or !PAL palette from own SHPI archive, if it is WWWW archive, palette can be in a different SHPI before this one. In CONTROL directory most of QFS files use !pal even from different QFS file! It is a mystery how to reliably pick palette ####
@@ -438,7 +438,7 @@
 #### **Size**: 48..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == FNTF | Resource ID |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "FNTF" | Resource ID |
 | 4 | **file_size** | 4 | 4-bytes unsigned integer (little endian) | This file size in bytes |
 | 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
 | 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
@@ -451,9 +451,9 @@
 | 28 | **bitmap_data_pointer** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 32 | **definitions** | 11 * (symbols_amount) | Array of symbols_amount items<br/>Item type: [SymbolDefinitionRecord](#symboldefinitionrecord) | Definitions of chars in this bitmap font |
-| 32..? | **skip_bytes** | up to offset bitmap_data_pointer | Array of up to offset bitmap_data_pointer items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0xad | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
-| 32..? | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
+| 32 | **definitions** | symbols_amount\*11 | Array of `symbols_amount` items<br/>Item type: [SymbolDefinitionRecord](#symboldefinitionrecord) | Definitions of chars in this bitmap font |
+| 32+symbols_amount\*11 | **skip_bytes** | up to offset bitmap_data_pointer | Bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
+| bitmap_data_pointer | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
 ### **SymbolDefinitionRecord** ###
 #### **Size**: 11 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -462,7 +462,7 @@
 | 2 | **glyph_width** | 1 | 1-byte unsigned integer | Width of symbol in font bitmap |
 | 3 | **glyph_height** | 1 | 1-byte unsigned integer | Height of symbol in font bitmap |
 | 4 | **glyph_x** | 2 | 2-bytes unsigned integer (little endian) | Position (x) of symbol in font bitmap |
-| 6 | **glyph_y** | 2 | 2-bytes unsigned integer (little endian) | Position (Y) of symbol in font bitmap |
+| 6 | **glyph_y** | 2 | 2-bytes unsigned integer (little endian) | Position (y) of symbol in font bitmap |
 | 8 | **x_advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
 | 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |

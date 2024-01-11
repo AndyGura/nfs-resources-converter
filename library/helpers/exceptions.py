@@ -3,8 +3,8 @@ class EndOfBufferException(Exception):
         super().__init__(message)
 
 
-class BlockIntegrityException(Exception):
-    def __init__(self, message='Block integrity exception'):
+class DataIntegrityException(Exception):
+    def __init__(self, message='Data integrity exception'):
         super().__init__(message)
 
 

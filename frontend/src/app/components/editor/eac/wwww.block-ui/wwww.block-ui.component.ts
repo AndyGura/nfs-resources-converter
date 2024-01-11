@@ -8,13 +8,13 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WwwwBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
+  @Input() resourceData: BlockData | null = null;
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  get resourcesMap(): { [key: string]: ReadData | ReadError } {
-    const res: { [key: string]: ReadData | ReadError } = {};
+  get resourcesMap(): { [key: string]: BlockData | ReadError } {
+    const res: { [key: string]: BlockData | ReadError } = {};
     for (let i = 0; i < this.resourceData?.value.children?.value.length; i++) {
       res[i.toString()] = this.resourceData?.value.children?.value[i];
     }

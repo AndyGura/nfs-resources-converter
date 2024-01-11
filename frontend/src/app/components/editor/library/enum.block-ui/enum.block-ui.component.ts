@@ -8,7 +8,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EnumBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
+  @Input() resourceData: BlockData | null = null;
   name: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();

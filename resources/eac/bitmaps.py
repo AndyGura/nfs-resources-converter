@@ -1,10 +1,11 @@
-from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import IntegerBlock
-from library.read_blocks.compound import CompoundBlock
-from library.helpers.exceptions import BlockIntegrityException
+from typing import Dict
+
+from library.helpers.exceptions import DataIntegrityException
+from library.read_blocks.array import ArrayBlock as ArrayBlockOld
+from library.read_blocks.atomic import IntegerBlock as IntegerBlockOld
 from library.read_blocks.literal import LiteralBlock
-from library.read_blocks.sub_byte_array import SubByteArrayBlock
 from library.utils import transform_bitness
+from library2.read_blocks import CompoundBlock, IntegerBlock, ArrayBlock, SubByteArrayBlock
 from resources.eac import palettes
 from resources.eac.fields.colors import (
     Color16Bit1555Block,
@@ -25,8 +26,8 @@ class AnyBitmapBlock(CompoundBlock):
             # some NFS2 resources have block size equal to 0
             block_size = expected_block_size
         if block_size > total_size:
-            raise BlockIntegrityException(f'Too big bitmap block size {block_size}, available: '
-                                          f'{total_size}. Expected block size {expected_block_size}')
+            raise DataIntegrityException(f'Too big bitmap block size {block_size}, available: '
+                                         f'{total_size}. Expected block size {expected_block_size}')
         if not state.get('trailing_bytes'):
             state['trailing_bytes'] = {}
         state['trailing_bytes']['length'] = block_size - expected_block_size
@@ -37,61 +38,61 @@ class AnyBitmapBlock(CompoundBlock):
 
 class Bitmap16Bit0565(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x78, description='Resource ID')
-        block_size = IntegerBlock(static_size=3, is_signed=False, byte_order='little',
-                                  description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                              '"WRAP" SHPI directory it contains some different unknown data')
-        width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
-        height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                              description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
-        x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
-        y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color16Bit0565Block(simplified=True), length_label='width * height',
-                            description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
-                                    length_label='block_size - (16 + 2\\*width\\*height)',
-                                    description="Looks like aligning size to be divisible by 4")
+        resource_id = IntegerBlockOld(static_size=1, is_signed=False, required_value=0x78, description='Resource ID')
+        block_size = IntegerBlockOld(static_size=3, is_signed=False, byte_order='little',
+                                     description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
+                                                 '"WRAP" SHPI directory it contains some different unknown data')
+        width = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                description='Bitmap width in pixels')
+        height = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                 description='Bitmap height in pixels')
+        unknowns = ArrayBlockOld(length=4, child=IntegerBlockOld(static_size=1))
+        x = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
+        y = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
+        bitmap = ArrayBlockOld(child=Color16Bit0565Block(simplified=True), length_label='width * height',
+                               description='Colors of bitmap pixels')
+        trailing_bytes = ArrayBlockOld(child=IntegerBlockOld(static_size=1),
+                                       length_label='block_size - (16 + 2\\*width\\*height)',
+                                       description="Looks like aligning size to be divisible by 4")
 
         unknown_fields = ['unknowns', 'trailing_bytes']
 
 
 class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.block_description = 'Single-channel image, 4 bits per pixel. Used in FFN font files and some NFS2SE ' \
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Single-channel image, 4 bits per pixel. Used in FFN font files and some NFS2SE ' \
                                  'SHPI directories as some small sprites, like "dot". Seems to be always used as ' \
-                                 'alpha channel, so we save it as white image with alpha mask'
-
-    def _after_height_read(self, data, total_size, state, **kwargs):
-        if not state.get('bitmap'):
-            state['bitmap'] = {}
-        state['bitmap']['length'] = data['width'].value * data['height'].value
+                                 'alpha channel, so we save it as white image with alpha mask',
+        }
 
     class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7A, description='Resource ID')
-        block_size = IntegerBlock(static_size=3, is_signed=False, byte_order='little',
-                                  description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                              '"WRAP" SHPI directory it contains some different unknown data')
-        width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
-        height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                              description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
-        x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
-        y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = SubByteArrayBlock(bits_per_value=4,
-                                   length_label='width * height',
-                                   value_deserialize_func=lambda x: 0xFFFFFF00 | transform_bitness(x, 4),
-                                   value_serialize_func=lambda x: (x & 0xFF) >> 4,
-                                   children_simplified=True,
-                                   description='Font atlas bitmap data')
-
-        unknown_fields = ['unknowns']
+        resource_id = (IntegerBlock(length=1, required_value=0x7A),
+                       {'description': 'Resource ID'})
+        block_size = (IntegerBlock(length=3, ),
+                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
+                                      '"WRAP" SHPI directory it contains some different unknown data'})
+        width = (IntegerBlock(length=2),
+                 {'description': 'Bitmap width in pixels'})
+        height = (IntegerBlock(length=2),
+                  {'description': 'Bitmap height in pixels'})
+        unknowns = (ArrayBlock(length=4, child=IntegerBlock(length=1)),
+                    {'is_unknown': True})
+        x = (IntegerBlock(length=2),
+             {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
+        y = (IntegerBlock(length=2),
+             {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
+        bitmap = (SubByteArrayBlock(bits_per_value=4,
+                                    length=(lambda ctx: ctx.data('width') * ctx.data('height'),
+                                            'width*height'),
+                                    value_deserialize_func=lambda x: 0xFFFFFF00 | transform_bitness(x, 4),
+                                    value_serialize_func=lambda x: (x & 0xFF) >> 4),
+                  {'description': 'Font atlas bitmap data'})
 
 
 class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
@@ -107,24 +108,26 @@ class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
                                  'use !pal even from different QFS file! It is a mystery how to reliably pick palette'
 
     class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7B, description='Resource ID')
-        block_size = IntegerBlock(static_size=3, is_signed=False, byte_order='little',
-                                  description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                              '"WRAP" SHPI directory it contains some different unknown data')
-        width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
-        height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                              description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
-        x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
-        y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=IntegerBlock(static_size=1, is_signed=False, simplified=True), length_label='width * height',
-                            description='Color indexes of bitmap pixels. The actual colors are '
-                                        'in assigned to this bitmap palette')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
-                                    length_label='block_size - (16 + width\\*height)',
-                                    description="Looks like aligning size to be divisible by 4")
+        resource_id = IntegerBlockOld(static_size=1, is_signed=False, required_value=0x7B, description='Resource ID')
+        block_size = IntegerBlockOld(static_size=3, is_signed=False, byte_order='little',
+                                     description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
+                                                 '"WRAP" SHPI directory it contains some different unknown data')
+        width = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                description='Bitmap width in pixels')
+        height = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                 description='Bitmap height in pixels')
+        unknowns = ArrayBlockOld(length=4, child=IntegerBlockOld(static_size=1))
+        x = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
+        y = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
+        bitmap = ArrayBlockOld(child=IntegerBlockOld(static_size=1, is_signed=False, simplified=True),
+                               length_label='width * height',
+                               description='Color indexes of bitmap pixels. The actual colors are '
+                                           'in assigned to this bitmap palette')
+        trailing_bytes = ArrayBlockOld(child=IntegerBlockOld(static_size=1),
+                                       length_label='block_size - (16 + width\\*height)',
+                                       description="Looks like aligning size to be divisible by 4")
         palette = LiteralBlock(possible_resources=[palettes.PaletteReference(),
                                                    palettes.Palette24BitDos(),
                                                    palettes.Palette24Bit(),
@@ -141,68 +144,71 @@ class Bitmap8Bit(AnyBitmapBlock, CompoundBlock):
 
 class Bitmap32Bit(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7D, description='Resource ID')
-        block_size = IntegerBlock(static_size=3, is_signed=False, byte_order='little',
-                                  description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                              '"WRAP" SHPI directory it contains some different unknown data')
-        width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
-        height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                              description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
-        x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
-        y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color32BitBlock(simplified=True), length_label='width * height',
-                            description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
-                                    length_label='block_size - (16 + 4\\*width\\*height)',
-                                    description="Looks like aligning size to be divisible by 4")
+        resource_id = IntegerBlockOld(static_size=1, is_signed=False, required_value=0x7D, description='Resource ID')
+        block_size = IntegerBlockOld(static_size=3, is_signed=False, byte_order='little',
+                                     description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
+                                                 '"WRAP" SHPI directory it contains some different unknown data')
+        width = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                description='Bitmap width in pixels')
+        height = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                 description='Bitmap height in pixels')
+        unknowns = ArrayBlockOld(length=4, child=IntegerBlockOld(static_size=1))
+        x = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
+        y = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
+        bitmap = ArrayBlockOld(child=Color32BitBlock(simplified=True), length_label='width * height',
+                               description='Colors of bitmap pixels')
+        trailing_bytes = ArrayBlockOld(child=IntegerBlockOld(static_size=1),
+                                       length_label='block_size - (16 + 4\\*width\\*height)',
+                                       description="Looks like aligning size to be divisible by 4")
 
         unknown_fields = ['unknowns', 'trailing_bytes']
 
 
 class Bitmap16Bit1555(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7E, description='Resource ID')
-        block_size = IntegerBlock(static_size=3, is_signed=False, byte_order='little',
-                                  description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                              '"WRAP" SHPI directory it contains some different unknown data')
-        width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
-        height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                              description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
-        x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
-        y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color16Bit1555Block(simplified=True), length_label='width * height',
-                            description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
-                                    length_label='block_size - (16 + 2\\*width\\*height)',
-                                    description="Looks like aligning size to be divisible by 4")
+        resource_id = IntegerBlockOld(static_size=1, is_signed=False, required_value=0x7E, description='Resource ID')
+        block_size = IntegerBlockOld(static_size=3, is_signed=False, byte_order='little',
+                                     description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
+                                                 '"WRAP" SHPI directory it contains some different unknown data')
+        width = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                description='Bitmap width in pixels')
+        height = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                 description='Bitmap height in pixels')
+        unknowns = ArrayBlockOld(length=4, child=IntegerBlockOld(static_size=1))
+        x = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
+        y = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
+        bitmap = ArrayBlockOld(child=Color16Bit1555Block(simplified=True), length_label='width * height',
+                               description='Colors of bitmap pixels')
+        trailing_bytes = ArrayBlockOld(child=IntegerBlockOld(static_size=1),
+                                       length_label='block_size - (16 + 2\\*width\\*height)',
+                                       description="Looks like aligning size to be divisible by 4")
 
         unknown_fields = ['unknowns', 'trailing_bytes']
 
 
 class Bitmap24Bit(AnyBitmapBlock, CompoundBlock):
     class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7F, description='Resource ID')
-        block_size = IntegerBlock(static_size=3, is_signed=False, byte_order='little',
-                                  description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                              '"WRAP" SHPI directory it contains some different unknown data')
-        width = IntegerBlock(static_size=2, is_signed=False, byte_order='little', description='Bitmap width in pixels')
-        height = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                              description='Bitmap height in pixels')
-        unknowns = ArrayBlock(length=4, child=IntegerBlock(static_size=1))
-        x = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
-        y = IntegerBlock(static_size=2, is_signed=False, byte_order='little',
-                         description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
-        bitmap = ArrayBlock(child=Color24BitLittleEndianField(simplified=True), length_label='width * height',
-                            description='Colors of bitmap pixels')
-        trailing_bytes = ArrayBlock(child=IntegerBlock(static_size=1),
-                                    length_label='block_size - (16 + 3\\*width\\*height)',
-                                    description="Looks like aligning size to be divisible by 4")
+        resource_id = IntegerBlockOld(static_size=1, is_signed=False, required_value=0x7F, description='Resource ID')
+        block_size = IntegerBlockOld(static_size=3, is_signed=False, byte_order='little',
+                                     description='Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
+                                                 '"WRAP" SHPI directory it contains some different unknown data')
+        width = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                description='Bitmap width in pixels')
+        height = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                                 description='Bitmap height in pixels')
+        unknowns = ArrayBlockOld(length=4, child=IntegerBlockOld(static_size=1))
+        x = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='X coordinate of bitmap position on screen. Used for menu/dash sprites')
+        y = IntegerBlockOld(static_size=2, is_signed=False, byte_order='little',
+                            description='Y coordinate of bitmap position on screen. Used for menu/dash sprites')
+        bitmap = ArrayBlockOld(child=Color24BitLittleEndianField(simplified=True), length_label='width * height',
+                               description='Colors of bitmap pixels')
+        trailing_bytes = ArrayBlockOld(child=IntegerBlockOld(static_size=1),
+                                       length_label='block_size - (16 + 3\\*width\\*height)',
+                                       description="Looks like aligning size to be divisible by 4")
 
         unknown_fields = ['unknowns', 'trailing_bytes']

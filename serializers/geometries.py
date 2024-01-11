@@ -7,7 +7,7 @@ from string import Template
 from typing import Literal, List, Tuple
 
 from library.helpers.data_wrapper import DataWrapper
-from library.helpers.exceptions import BlockIntegrityException
+from library.helpers.exceptions import DataIntegrityException
 from library.read_data import ReadData
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
@@ -66,7 +66,7 @@ for dummy in dummies:
         textures_shpi_block, _ = require_resource(
             '/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))
         if not textures_shpi_block or not isinstance(textures_shpi_block.block, ShpiBlock):
-            raise BlockIntegrityException('Cannot find SHPI archive for ORIP geometry')
+            raise DataIntegrityException('Cannot find SHPI archive for ORIP geometry')
 
         super().serialize(data, path, is_dir=True)
         try:
@@ -162,7 +162,7 @@ for dummy in dummies:
                         vertex_indices = list({x for p in polygons for x in p})
                         if not vertex_indices:
                             continue
-                        assert len(vertex_indices) == 4, BlockIntegrityException('Wheel square vertices count != 4')
+                        assert len(vertex_indices) == 4, DataIntegrityException('Wheel square vertices count != 4')
                         (shadow_centers if name == 'circ' else centers)[key] = get_wheel_display_info(
                             [model.vertices[i] for i in vertex_indices])
                 if centers and not shadow_centers:

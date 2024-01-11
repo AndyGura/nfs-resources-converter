@@ -1,5 +1,5 @@
-import { Injectable, NgZone } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import {Injectable, NgZone} from '@angular/core';
+import {BehaviorSubject} from 'rxjs';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function };
 
@@ -7,8 +7,8 @@ declare const eel: { expose: (func: Function, alias: string) => void } & { [key:
   providedIn: 'root',
 })
 export class EelDelegateService {
-  public readonly openedResource$: BehaviorSubject<ReadData | ReadError | null> = new BehaviorSubject<
-    ReadData | ReadError | null
+  public readonly openedResource$: BehaviorSubject<Resource | ResourceError | null> = new BehaviorSubject<
+    Resource | ResourceError | null
   >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
@@ -31,8 +31,8 @@ export class EelDelegateService {
   public async openFile(path: string, forceReload: boolean = false) {
     this.openedResource$.next(null);
     this.openedResourcePath$.next(null);
-    const res: ReadData | ReadError = await eel['open_file'](path, forceReload)();
-    this.openedResource$.next(res);
+    const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
+    this.openedResource$.next({...res, id: res.name});
     this.openedResourcePath$.next(path);
   }
 
@@ -40,8 +40,8 @@ export class EelDelegateService {
     await eel['open_file_with_system_app'](path)();
   }
 
-  public async runCustomAction(readData: ReadData, action: CustomAction, args: { [key: string]: any }) {
-    return eel['run_custom_action'](readData.block_id, action, args)();
+  public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
+    return eel['run_custom_action'](name, action, args)();
   }
 
   public async saveFile(changes: { id: string; value: any }[]) {
@@ -64,7 +64,7 @@ export class EelDelegateService {
     return eel['serialize_reversible'](id, changes)();
   }
 
-  public async deserializeResource(id: string): Promise<ReadData | ReadError> {
+  public async deserializeResource(id: string): Promise<BlockData | ReadError> {
     return eel['deserialize_resource'](id)();
   }
 }

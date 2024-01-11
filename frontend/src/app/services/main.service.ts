@@ -8,8 +8,8 @@ import { cloneDeep, forOwn, isEqual, isObject, merge } from 'lodash';
 })
 export class MainService {
   private dataSnapshot: any;
-  resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  resourceError$: BehaviorSubject<ReadError | null> = new BehaviorSubject<ReadError | null>(null);
+  resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
   customActionRunning$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
@@ -21,16 +21,16 @@ export class MainService {
   constructor(readonly eelDelegate: EelDelegateService) {
     this.eelDelegate.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();
-      if (!value) {
-        this.resourceData$.next(null);
-        this.resourceError$.next(null);
-      } else if ((value as any).block_class_mro) {
-        this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot((value as ReadData).value));
-        this.resourceData$.next(value as ReadData);
-        this.resourceError$.next(null);
+      if (!value?.schema) {
+        this.resource$.next(null);
+        this.error$.next(null);
+      } else if (value.data.error_class) {
+        this.error$.next(value);
+        this.resource$.next(null);
       } else {
-        this.resourceData$.next(null);
-        this.resourceError$.next(value as ReadError);
+        this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot(value));
+        this.resource$.next(value);
+        this.error$.next(null);
       }
     });
     this.dataBlockChange$.subscribe(([blockId, value]) => {
@@ -48,35 +48,26 @@ export class MainService {
   }
 
   private getInitialValueFromSnapshot(blockId: string): any {
-    let sub = this.dataSnapshot;
-    const blockPath = blockId.replace('__', '/').split('/');
-    for (let i = 0; i < blockPath.length - 1; i++) {
-      sub = sub[blockPath[i]];
-    }
-    return sub[blockPath[blockPath.length - 1]];
+    return this.dataSnapshot[blockId];
   }
 
-  private buildResourceDataSnapshot(readDataValue: any): { [key: string]: any } {
+  private buildResourceDataSnapshot(res: Resource): { [key: string]: any } {
     const result: any = {};
-    const recurse = (source: any) => {
-      forOwn(source, value => {
-        if (isObject(value)) {
-          if (value && (value as any).block_class_mro) {
-            const blockPath = (value as any).block_id.replace('__', '/').split('/');
-            let sub = result;
-            for (let i = 0; i < blockPath.length - 1; i++) {
-              if (!sub[blockPath[i]] || !sub[blockPath[i]].__snap__) {
-                sub[blockPath[i]] = { __snap__: true };
-              }
-              sub = sub[blockPath[i]];
-            }
-            sub[blockPath[blockPath.length - 1]] = (value as any).value;
-          }
-          recurse(value);
+    const recurse = (id: string, data: BlockData) => {
+      let joinStr = id.includes('__') ? '/' : '__';
+      if (data instanceof Array) {
+        for (let i = 0; i < data.length; i++) {
+          recurse(id + joinStr + i, data[i]);
         }
-      });
+      } else if (isObject(data)) {
+        for (const key in data) {
+          recurse(id + joinStr + key, (data as any)[key]);
+        }
+      } else {
+        result[id] = data;
+      }
     };
-    recurse(readDataValue);
+    recurse(res.id, res.data);
     return result;
   }
 
@@ -86,14 +77,14 @@ export class MainService {
     });
   }
 
-  private async processExternalChanges(call: () => Promise<ReadData | ReadError>): Promise<ReadData | ReadError> {
+  private async processExternalChanges(call: () => Promise<BlockData | ReadError>): Promise<BlockData | ReadError> {
     this.customActionRunning$.next(true);
-    const res: ReadData | ReadError = await call();
+    const res: BlockData | ReadError = await call();
     if (!!(res as ReadError).error_class) {
       this.customActionRunning$.next(false);
       throw res;
     }
-    merge(this.resourceData$.getValue()!, res);
+    merge(this.resource$.getValue()!, res);
     this.changedDataBlocks['__has_external_changes__'] = 1;
     this.customActionRunning$.next(false);
     return res;
@@ -101,7 +92,7 @@ export class MainService {
 
   public async runCustomAction(action: CustomAction, args: { [key: string]: any }) {
     return this.processExternalChanges(() =>
-      this.eelDelegate.runCustomAction(this.resourceData$.getValue()!, action, args),
+      this.eelDelegate.runCustomAction(this.resource$.getValue()!.name, action, args),
     );
   }
 

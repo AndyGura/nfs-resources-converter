@@ -43,11 +43,11 @@ export const setupNfs1Texture = (texture: Texture) => {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OripGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  get resourceData(): ReadData | null {
+  _resourceData$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
+  get resourceData(): BlockData | null {
     return this._resourceData$.getValue();
   }
-  @Input() set resourceData(value: ReadData | null) {
+  @Input() set resourceData(value: BlockData | null) {
     this._resourceData$.next(value);
   }
 

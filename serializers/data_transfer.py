@@ -5,6 +5,7 @@ from library.read_data import ReadData
 from serializers.base import ResourceSerializer
 
 
+# TODO remove, not used anymore?
 class DataTransferSerializer(ResourceSerializer):
 
     @staticmethod

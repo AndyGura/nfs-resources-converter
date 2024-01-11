@@ -2,7 +2,7 @@ from PIL import Image
 
 from library.helpers.exceptions import SerializationException
 from library.read_data import ReadData
-from resources.eac.bitmaps import AnyBitmapBlock, Bitmap8Bit
+from resources.eac.bitmaps import Bitmap8Bit
 from resources.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
@@ -10,18 +10,18 @@ from serializers.misc.path_utils import escape_chars
 
 class BitmapSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData[AnyBitmapBlock], path: str):
+    def serialize(self, data, path: str):
         super().serialize(data, path)
         Image.frombytes('RGBA',
-                        (data.width.value, data.height.value),
-                        bytes().join([c.to_bytes(4, 'big') for c in data.bitmap])).save(f'{escape_chars(path)}.png')
+                        (data['width'], data['height']),
+                        bytes().join([c.to_bytes(4, 'big') for c in data['bitmap']])).save(f'{escape_chars(path)}.png')
 
     def deserialize(self, path: str, resource: ReadData, **kwargs) -> None:
         image = Image.open(path + '.png')
         image_rgba = image.convert("RGBA")
-        resource.width.value = image.width
-        resource.height.value = image.height
-        resource.bitmap.value = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
+        resource['width'] = image.width
+        resource['height'] = image.height
+        resource['bitmap'] = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
 
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
@@ -62,7 +62,9 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
     def deserialize(self, path: str, resource: ReadData[Bitmap8Bit], palette=None, **kwargs) -> None:
         source = Image.open(escape_chars(path) + '.png')
         transparency = palette[254] if self.has_tail_lights(resource) else palette[255]
-        im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24, (transparency & 0xff0000) >> 16, (transparency & 0xff00) >> 8))
+        im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24,
+                                            (transparency & 0xff0000) >> 16,
+                                            (transparency & 0xff00) >> 8))
         im.paste(source, (None if source.mode == 'RGB' else source.split()[3]))
         palette_bytes = bytearray()
         for color in palette:

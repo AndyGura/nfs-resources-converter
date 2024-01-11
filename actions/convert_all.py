@@ -14,9 +14,9 @@ from serializers import get_serializer
 
 def export_file(base_input_path, path, out_path):
     try:
-        data = require_file(path)
-        serializer = get_serializer(data.block)
-        serializer.serialize(data, f'{out_path}/{path[len(base_input_path):]}')
+        (name, block, data) = require_file(path)
+        serializer = get_serializer(block)
+        serializer.serialize(data, f'{out_path}/{path[len(base_input_path):]}', name=name, block=block)
     except Exception as ex:
         if settings.print_errors:
             traceback.print_exc()

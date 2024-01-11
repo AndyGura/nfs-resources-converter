@@ -224,13 +224,13 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
-  _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  _resourceData$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
 
-  get resourceData(): ReadData | null {
+  get resourceData(): BlockData | null {
     return this._resourceData$.getValue();
   }
 
-  @Input() set resourceData(value: ReadData | null) {
+  @Input() set resourceData(value: BlockData | null) {
     this._resourceData$.next(value);
   }
 
@@ -244,9 +244,9 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
 
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
-  selectedSplineItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  selectedAiInfoItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  selectedTerrainItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  selectedSplineItem$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
+  selectedAiInfoItem$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
+  selectedTerrainItem$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
 
   famPath: string = '';
   name: string = '';

@@ -4,15 +4,16 @@ from abc import ABC, abstractmethod
 from typing import Dict
 
 import settings
+from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
 from library.read_data import ReadData
-from library.helpers.data_wrapper import DataWrapper
 
 
 class ResourceSerializer(ABC):
     settings = DataWrapper.wrap(settings.__dict__.copy())
+
     def patch_settings(self, settings_patch: dict):
         self.settings.update(settings_patch)
 
@@ -53,15 +54,16 @@ class BaseFileSerializer(ResourceSerializer):
                         has_something = True
                 elif isinstance(data.block.instance_fields_map[key], ArrayBlock):
                     custom_names = data[key].block_state.get('custom_names')
-                    sub_data = {i: x for i, x in {i if custom_names is None else custom_names[i]: self.get_unknowns_dict(x) for i, x in enumerate(value)}.items() if x is not None}
+                    sub_data = {i: x for i, x in
+                                {i if custom_names is None else custom_names[i]: self.get_unknowns_dict(x) for i, x in
+                                 enumerate(value)}.items() if x is not None}
                     if sub_data:
                         res[key] = sub_data
                         has_something = True
         return res if has_something else None
 
-    def serialize(self, data: ReadData, path: str, is_dir=False):
+    def serialize(self, data: dict, path: str, is_dir=False, name=None, block=None):
         os.makedirs(path if is_dir else os.path.dirname(path), exist_ok=True)
-        block = data.block
         if isinstance(block, DelegateBlock):
             block = block.delegated_block
         if self.settings.export_unknown_values and isinstance(block, CompoundBlock):

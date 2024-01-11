@@ -1,14 +1,14 @@
-<div *ngIf="(_resourceData$ | async) && !(main.unknownsHidden$ | async)" class="number-matrix">
-    Unknowns:
-    <ng-container *ngFor="let number of [].constructor((_resourceData$ | async)?.value.unknowns.value.length); let i = index">
-        <input matInput type="number"
-               (change)="changed.emit()"
-               [(ngModel)]="resourceData?.value.unknowns.value[i].value">
-    </ng-container>
+<div *ngIf="(_resource$ | async) && !(main.unknownsHidden$ | async)" class="number-matrix">
+  Unknowns:
+  <ng-container *ngFor="let number of [].constructor((_resource$ | async)?.data.unknowns.value.length); let i = index">
+    <input matInput type="number"
+           (change)="changed.emit()"
+           [(ngModel)]="resource?.data.unknowns[i]">
+  </ng-container>
 </div>
 <img *ngIf="imageUrl$ | async" [src]="imageUrl$ | async">
-<app-editor *ngIf="(_resourceData$ | async)?.value?.palette && (_resourceData$ | async)?.value?.palette?.value?.resource_id?.value != 124"
-            [resourceData]="(_resourceData$ | async)?.value?.palette"></app-editor>
+<app-editor *ngIf="(_resource$ | async)?.data.palette && (_resource$ | async)?.data.palette.resource_id != 124"
+            [resource]="(_resource$ | async)?.data.palette"></app-editor>
 <!--<div id="actions">-->
 <!--    <button mat-raised-button color="primary" (click)="openResourceInSystem()">Open with system app</button>-->
 <!--    <button mat-raised-button color="primary" *ngIf="hasSerializedFile" (click)="pullResource()">Pull updated file</button>-->
