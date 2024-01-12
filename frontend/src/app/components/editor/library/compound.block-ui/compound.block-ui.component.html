@@ -1,7 +1,7 @@
 <h2 *ngIf="resource?.name != (main.resource$ | async)?.name">{{ name }}</h2>
 <div class="container">
   <ng-container *ngFor="let f of fieldKeys; trackBy: fieldTrackBy">
-    <app-editor *ngIf="!((main.unknownsHidden$ | async) && schema?.fields[f.index].is_unknown)"
+    <app-editor *ngIf="!(main.hideHiddenFields$ | async) || (!schema?.fields[f.index].is_unknown && !schema?.fields[f.index].is_programmatic)"
                 [resource]="{ id: resource!.id + (resource!.id.includes('__') ? '/' : '__') + f.key, name: f.key, data: data?.[f.key], schema: schema?.fields[f.index].schema }"></app-editor>
   </ng-container>
 </div>

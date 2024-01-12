@@ -13,7 +13,7 @@ from library import require_file, require_resource
 from library.loader import clear_file_cache
 from library.utils.file_utils import remove_file_or_directory
 from library.utils.file_utils import start_file
-from serializers import get_serializer, DataTransferSerializer
+from serializers import get_serializer
 
 
 def convert_bytes(data):
@@ -104,10 +104,14 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def run_custom_action(resource_id: str, action: Dict, args: Dict):
-            _, resource = require_resource(resource_id)
-            action_func = getattr(resource.block, f'action_{action["method"]}')
+            (name, res_block, resource), _ = require_resource(resource_id)
+            action_func = getattr(res_block, f'action_{action["method"]}')
             action_func(resource, **args)
-            return DataTransferSerializer().serialize(resource)
+            return {
+                'name': name,
+                'schema': res_block.schema,
+                'data': convert_bytes(resource)
+            }
 
         @eel.expose
         def serialize_resource(id: str, settings_patch={}):
@@ -131,13 +135,13 @@ def run_gui_editor(file_path):
         # serializes data in any case
         # returns file list and flag is it possible to deserialize files back
         def serialize_reversible(id: str, changes: Dict):
-            resource, _ = require_resource(id)
+            (id, res_block, resource), _ = require_resource(id)
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
-            serializer = get_serializer(resource.block)
+            serializer = get_serializer(res_block)
             path = os.path.join(static_path, 'resources_edit', *id.split('/'))
             reverse_flag = serializer.setup_for_reversible_serialization()
-            serializer.serialize(resource, path)
+            serializer.serialize(resource, path, id, res_block)
             normal_slashes_path = path.replace('\\', '/')
             return [str(x)[len(static_path):]
                     for x in chain(Path(normal_slashes_path).glob("**/*"),
@@ -147,14 +151,14 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def serialize_resource_tmp(id: str, changes: Dict, settings_patch={}):
-            resource, _ = require_resource(id)
+            (_, res_block, resource), _ = require_resource(id)
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
-            serializer = get_serializer(resource.block)
+            serializer = get_serializer(res_block)
             path = os.path.join(static_path, 'resources_tmp', *id.split('/'))
             if settings_patch:
                 serializer.patch_settings(settings_patch)
-            serializer.serialize(resource, path)
+            serializer.serialize(resource, path, id, res_block)
             normal_slashes_path = path.replace('\\', '/')
             return [str(x)[len(static_path):]
                     for x in chain(Path(normal_slashes_path).glob("**/*"),
@@ -164,14 +168,18 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def deserialize_resource(id: str):
-            resource, _ = require_resource(id)
-            serializer = get_serializer(resource.block)
+            (id, res_block, resource), _ = require_resource(id)
+            serializer = get_serializer(res_block)
             path = os.path.join(static_path, 'resources_edit', *id.split('/'))
             serializer.deserialize(path, resource)
             remove_file_or_directory(os.path.join(static_path, 'resources', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_tmp', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_edit', *id.split('/')))
-            return DataTransferSerializer().serialize(current_file_data)
+            return {
+                'name': current_file_name,
+                'schema': current_file_block.schema if current_file_block else None,
+                'data': convert_bytes(current_file_data)
+            }
 
     eel.init(static_path)
     init_eel_state()

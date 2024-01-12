@@ -70,7 +70,7 @@ export class AppComponent {
   }
 
   toggleUnknownsVisibility() {
-    this.mainService.unknownsHidden$.next(!this.mainService.unknownsHidden$.getValue());
+    this.mainService.hideHiddenFields$.next(!this.mainService.hideHiddenFields$.getValue());
   }
 
   async serializeResource() {

@@ -16,7 +16,7 @@ export class MainService {
   readonly changedDataBlocks: { [key: string]: any } = {};
   dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
 
-  public unknownsHidden$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
+  public hideHiddenFields$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
 
   constructor(readonly eelDelegate: EelDelegateService) {
     this.eelDelegate.openedResource$.subscribe(value => {
@@ -30,6 +30,7 @@ export class MainService {
       } else {
         this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot(value));
         this.resource$.next(value);
+        console.log(value);
         this.error$.next(null);
       }
     });

@@ -2,9 +2,9 @@
     <span>{{(mainService.resource$ | async)?.name || '...'}}{{mainService.hasUnsavedChanges ? '*' : ''}}</span>
     <span class="flex-spacer"></span>
     <button mat-icon-button (click)="toggleUnknownsVisibility()"
-            matTooltip="Show/hide unknown fields">
-      <mat-icon *ngIf="mainService.unknownsHidden$ | async" fontIcon="visibility_off"></mat-icon>
-      <mat-icon *ngIf="!(mainService.unknownsHidden$ | async)" fontIcon="visibility_on"></mat-icon>
+            matTooltip="Show/hide hidden fields">
+      <mat-icon *ngIf="mainService.hideHiddenFields$ | async" fontIcon="visibility_off"></mat-icon>
+      <mat-icon *ngIf="!(mainService.hideHiddenFields$ | async)" fontIcon="visibility_on"></mat-icon>
     </button>
     <mat-divider vertical></mat-divider>
     <button mat-icon-button

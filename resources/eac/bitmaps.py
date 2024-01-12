@@ -5,7 +5,7 @@ from library.read_blocks.array import ArrayBlock as ArrayBlockOld
 from library.read_blocks.atomic import IntegerBlock as IntegerBlockOld
 from library.read_blocks.literal import LiteralBlock
 from library.utils import transform_bitness
-from library2.read_blocks import CompoundBlock, IntegerBlock, ArrayBlock, SubByteArrayBlock
+from library2.read_blocks import CompoundBlock, IntegerBlock, SubByteArrayBlock, BytesBlock
 from resources.eac import palettes
 from resources.eac.fields.colors import (
     Color16Bit1555Block,
@@ -81,8 +81,8 @@ class Bitmap4Bit(AnyBitmapBlock, CompoundBlock):
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
                   {'description': 'Bitmap height in pixels'})
-        unknowns = (ArrayBlock(length=4, child=IntegerBlock(length=1)),
-                    {'is_unknown': True})
+        unk = (BytesBlock(length=4),
+               {'is_unknown': True})
         x = (IntegerBlock(length=2),
              {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
         y = (IntegerBlock(length=2),

@@ -1,11 +1,8 @@
-<div *ngIf="(_resource$ | async) && !(main.unknownsHidden$ | async)" class="number-matrix">
-  Unknowns:
-  <ng-container *ngFor="let number of [].constructor((_resource$ | async)?.data.unknowns.value.length); let i = index">
-    <input matInput type="number"
-           (change)="changed.emit()"
-           [(ngModel)]="resource?.data.unknowns[i]">
-  </ng-container>
-</div>
+<app-compound-block-ui [resource]="_resource$ | async"
+                       [fieldBlacklist]="[
+                        'bitmap',
+                        'palette',
+                       ]"></app-compound-block-ui>
 <img *ngIf="imageUrl$ | async" [src]="imageUrl$ | async">
 <app-editor *ngIf="(_resource$ | async)?.data.palette && (_resource$ | async)?.data.palette.resource_id != 124"
             [resource]="(_resource$ | async)?.data.palette"></app-editor>
