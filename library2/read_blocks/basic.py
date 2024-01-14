@@ -30,15 +30,14 @@ class DataBlock(ABC):
             s['required_value'] = self.required_value
         return s
 
-    def get_child_block(self, unpacked_data: Any, name: str) -> Tuple['DataBlock', Any]:
-        raise BlockDefinitionException('Data block ' +
-                                       "__".join([x.__name__ for x in self.__class__.mro() if
-                                                  x.__name__ not in ["object", "ABC"]]) +
-                                       ' cannot contain children blocks')
-
     @abstractmethod
     def read(self, buffer: [BufferedReader, BytesIO], ctx: Context = None, name: str = ''):
         pass
+
+    def estimate_packed_size(self, data, ctx: Context = None):
+        raise BlockDefinitionException('Cannot estimate packed size of data block ' +
+                                       "__".join([x.__name__ for x in self.__class__.mro() if
+                                                  x.__name__ not in ["object", "ABC"]]))
 
     @abstractmethod
     def write(self, data, ctx: Context = None, name: str = '') -> bytes:
@@ -58,6 +57,22 @@ class DataBlock(ABC):
     ### final method, should never override
     def pack(self, data, ctx: Context = None, name: str = '') -> bytes:
         return self.write(data, ctx, name)
+
+
+class DataBlockWithChildren(ABC):
+
+    ### get child block with appropriate data from this block unpacked data
+    @abstractmethod
+    def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
+        pass
+
+    ### from given unpacked data, get offset to child block by name in packed byte array
+    @abstractmethod
+    def offset_to_child_when_packed(self, data, child_name: str, ctx: Context = None):
+        index = int(child_name)
+        if index >= len(data):
+            raise IndexError()
+        return self.estimate_packed_size(data[:index], ctx)
 
 
 class BytesBlock(DataBlock):
@@ -95,6 +110,9 @@ class BytesBlock(DataBlock):
         if callable(self_len):
             self_len = self_len(ctx)
         return buffer.read(self_len)
+
+    def estimate_packed_size(self, data, ctx: Context = None):
+        return len(data)
 
     def write(self, data, ctx: Context = None, name: str = '') -> bytes:
         return data

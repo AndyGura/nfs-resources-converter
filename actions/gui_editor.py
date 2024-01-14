@@ -171,7 +171,7 @@ def run_gui_editor(file_path):
             (id, res_block, resource), _ = require_resource(id)
             serializer = get_serializer(res_block)
             path = os.path.join(static_path, 'resources_edit', *id.split('/'))
-            serializer.deserialize(path, resource)
+            serializer.deserialize(resource, path, res_block)
             remove_file_or_directory(os.path.join(static_path, 'resources', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_tmp', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_edit', *id.split('/')))

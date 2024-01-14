@@ -49,7 +49,7 @@ class TestSerializeDeserialize(unittest.TestCase):
         self.assertTrue(serializer.setup_for_reversible_serialization())
         with tempfile.TemporaryDirectory() as tmp:
             serializer.serialize(font_res, tmp, name, block)
-            serializer.deserialize(tmp, font_res) # todo those tests are not fair: we provide original data to deserialize. Remove it even from signature everywhere
+            serializer.deserialize(font_res, tmp, block)  # todo those tests are not fair: we provide original data to deserialize. Remove it even from signature everywhere
         output = block.pack(font_res, name=name)
         with open('test/samples/MAIN24.FFN', 'rb') as bdata:
             original = bdata.read()

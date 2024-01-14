@@ -2,9 +2,9 @@ from abc import ABC
 from io import BufferedReader, BytesIO
 from typing import Dict, List, Tuple, Any
 
-from library.helpers.exceptions import BlockDefinitionException
+from library.helpers.exceptions import BlockDefinitionException, DataIntegrityException
 from library2.context import Context
-from library2.read_blocks.basic import DataBlock
+from library2.read_blocks.basic import DataBlock, DataBlockWithChildren
 
 
 class CompoundBlockFields(ABC):
@@ -21,7 +21,7 @@ class CompoundBlockFields(ABC):
             return cls.__fields_cache
 
 
-class CompoundBlock(DataBlock, ABC):
+class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
     class Fields(CompoundBlockFields):
         pass
 
@@ -49,7 +49,7 @@ class CompoundBlock(DataBlock, ABC):
             ],
         }
 
-    def get_child_block(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
+    def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
         for f_name, field in self.field_blocks:
             if f_name == name:
                 return field, unpacked_data.get(name)
@@ -74,13 +74,29 @@ class CompoundBlock(DataBlock, ABC):
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: Context = None, name: str = ''):
         res = dict()
-        self_ctx = Context(buffer=buffer, data=res, name=name, parent=ctx)
+        self_ctx = Context(buffer=buffer, data=res, name=name, block=self, parent=ctx)
         for name, field in self.field_blocks:
-                res[name] = field.unpack(buffer=buffer, ctx=self_ctx, name=name)
+            res[name] = field.unpack(buffer=buffer, ctx=self_ctx, name=name)
         return res
 
+    def estimate_packed_size(self, data, ctx: Context = None):
+        self_ctx = Context(data=data, block=self, parent=ctx)
+        res = 0
+        for name, field in self.field_blocks:
+            res += field.estimate_packed_size(data=data.get(name), ctx=self_ctx)
+        return res
+
+    def offset_to_child_when_packed(self, data, child_name: str, ctx: Context = None):
+        self_ctx = Context(data=data, block=self, parent=ctx)
+        res = 0
+        for name, field in self.field_blocks:
+            if name == child_name:
+                return res
+            res += field.estimate_packed_size(data=data.get(name), ctx=self_ctx)
+        raise DataIntegrityException(f'Cannot calculate offset to child "{child_name}". Child with such name not found')
+
     def write(self, data, ctx: Context = None, name: str = '') -> bytes:
-        self_ctx = Context(data=data, name=name, parent=ctx)
+        self_ctx = Context(data=data, name=name, block=self, parent=ctx)
         res = bytes()
         for name, field in self.field_blocks:
             programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')

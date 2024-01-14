@@ -1,14 +1,9 @@
-import os
 from io import BufferedReader, BytesIO, SEEK_CUR
+from typing import Tuple
 
 
 # this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
 # performance, because we spawn process per file, and it doesn't need to load all those classes every time
-from typing import Tuple
-
-from library2.read_blocks import DataBlock
-
-
 def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
     if file_name:
         if file_name.endswith('.BNK'):
@@ -124,7 +119,7 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = N
 
 
 # id example: /media/data/nfs/SIMDATA/CARFAMS/LDIABL.CFM__1/frnt
-def require_resource(id: str) -> Tuple[Tuple[str, DataBlock, dict], Tuple[str, DataBlock, dict]]:
+def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str, "DataBlock", dict]]:
     file_path = id.split('__')[0].replace('---DRIVE', ':')
     (file_id, block, data) = require_file(file_path)
     if not data:
@@ -134,7 +129,7 @@ def require_resource(id: str) -> Tuple[Tuple[str, DataBlock, dict], Tuple[str, D
     resource_path = [x for x in id.split('__')[1].split('/') if x]
     (res_block, res) = (block, data)
     for key in resource_path:
-        (res_block, res) = res_block.get_child_block(res, key)
+        (res_block, res) = res_block.get_child_block_with_data(res, key)
     return (id, res_block, res), (file_id, block, data)
 
 
@@ -151,7 +146,7 @@ def clear_file_cache(path: str):
         pass
 
 
-def require_file(path: str) -> Tuple[str, DataBlock, dict]:
+def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
     name = path.replace('\\', '/').replace(':', '---DRIVE')
     (block, data) = files_cache.get(name, (None, None))
     if block is None or data is None:

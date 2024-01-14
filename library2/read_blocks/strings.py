@@ -40,5 +40,8 @@ class UTF8Block(DataBlock):
             self_len = self_len(ctx)
         return buffer.read(self_len).decode('utf-8')
 
+    def estimate_packed_size(self, data, ctx: Context = None):
+        return len(data)
+
     def write(self, data, ctx: Context = None, name: str = '') -> bytes:
         return data.encode('utf-8')

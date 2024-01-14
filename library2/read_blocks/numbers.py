@@ -40,5 +40,8 @@ class IntegerBlock(DataBlock):
                               byteorder=self.byte_order,
                               signed=self.is_signed)
 
+    def estimate_packed_size(self, data, ctx: Context = None):
+        return self.length
+
     def write(self, data, ctx: Context = None, name: str = '') -> bytes:
         return data.to_bytes(self.length, byteorder=self.byte_order, signed=self.is_signed).ljust(self.length, b'\0')

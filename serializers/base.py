@@ -1,7 +1,7 @@
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Any
 
 import settings
 from library.helpers.data_wrapper import DataWrapper
@@ -21,10 +21,10 @@ class ResourceSerializer(ABC):
         return False
 
     @abstractmethod
-    def serialize(self, data: ReadData) -> Dict:
+    def serialize(self, data: dict, path: str, name=None, block=None, **kwargs) -> Dict:
         raise NotImplementedError
 
-    def deserialize(self, data: Dict) -> ReadData:
+    def deserialize(self, data: Any, path: str, block=None, **kwargs) -> ReadData:
         raise NotImplementedError
 
 
@@ -72,5 +72,5 @@ class BaseFileSerializer(ResourceSerializer):
                 with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
                     file.write(json.dumps(unknowns, indent=4))
 
-    def deserialize(self, path: str, resource: ReadData, **kwargs) -> None:
+    def deserialize(self, data: Any, path: str, block=None, **kwargs) -> None:
         raise NotImplementedError

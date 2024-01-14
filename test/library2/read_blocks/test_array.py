@@ -2,10 +2,9 @@ import unittest
 from io import BytesIO
 
 from library.helpers.exceptions import DataIntegrityException
+from library2.read_blocks import UTF8Block
 from library2.read_blocks.array import ArrayBlock, SubByteArrayBlock
-from library2.read_blocks.compound import CompoundBlock
 from library2.read_blocks.numbers import IntegerBlock
-from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8
 
 
 class TestArray(unittest.TestCase):
@@ -25,6 +24,25 @@ class TestArray(unittest.TestCase):
         field.unpack(BytesIO(bytes([10, 20, 30])))
         with self.assertRaises(DataIntegrityException):
             field.unpack(BytesIO(bytes([90, 12, 30])))
+
+    def test_get_child_block_with_data(self):
+        child_block = IntegerBlock(length=1)
+        field = ArrayBlock(length=3, child=child_block)
+        block, data = field.get_child_block_with_data([123, 456, 789], '1')
+        self.assertEqual(block, child_block)
+        self.assertEqual(data, 456)
+
+    def test_estimate_packed_size(self):
+        field = ArrayBlock(length=3, child=IntegerBlock(length=3))
+        self.assertEqual(field.estimate_packed_size([1, 2, 3]), 9)
+
+    def test_estimate_packed_size_variable_child_length(self):
+        field = ArrayBlock(length=3, child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        self.assertEqual(field.estimate_packed_size(['abc', '0', 'qwerty']), 10)
+
+    def test_offset_to_child_when_packed(self):
+        field = ArrayBlock(length=3, child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 3)
 
 
 class TestSubByteArray(unittest.TestCase):
@@ -48,3 +66,13 @@ class TestSubByteArray(unittest.TestCase):
         field = SubByteArrayBlock(length=5, bits_per_value=5)
         data = field.pack([31, 31, 31, 31, 31])
         self.assertEqual(data, bytes([255, 255, 255, 128]))
+
+    def test_get_child_block_with_data(self):
+        field = SubByteArrayBlock(length=5, bits_per_value=5)
+        block, data = field.get_child_block_with_data([29, 26, 13], '1')
+        self.assertIsNone(block)
+        self.assertEqual(data, 26)
+
+    def test_estimate_packed_size(self):
+        field = SubByteArrayBlock(length=5, bits_per_value=5)
+        self.assertEqual(field.estimate_packed_size([1, 2, 3]), 2)

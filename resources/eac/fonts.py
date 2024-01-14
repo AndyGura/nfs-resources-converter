@@ -36,8 +36,9 @@ class FfnFont(CompoundBlock):
     class Fields(CompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, required_value='FNTF'),
                        {'description': 'Resource ID'})
-        file_size = (IntegerBlock(length=4),
-                     {'description': 'This file size in bytes'})
+        block_size = (IntegerBlock(length=4),
+                      {'description': 'This FFN block size in bytes',
+                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
         unk0 = (IntegerBlock(length=1, required_value=100),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=1, required_value=0),
@@ -56,7 +57,9 @@ class FfnFont(CompoundBlock):
         unk4 = (BytesBlock(length=7, required_value=b'\0' * 7),
                 {'is_unknown': True})
         bitmap_data_pointer = (IntegerBlock(length=2),
-                               {'description': 'Pointer to bitmap block'})
+                               {'description': 'Pointer to bitmap block',
+                                'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(
+                                    ctx.get_full_data(), 'bitmap')})
         unk5 = (IntegerBlock(length=1, required_value=0),
                 {'is_unknown': True})
         unk6 = (IntegerBlock(length=1, required_value=0),

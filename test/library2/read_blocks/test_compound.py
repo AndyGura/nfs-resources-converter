@@ -1,9 +1,7 @@
 import unittest
 from io import BytesIO
 
-from library2.read_blocks.array import ArrayBlock
-from library2.read_blocks.compound import CompoundBlock
-from library2.read_blocks.numbers import IntegerBlock
+from library2.read_blocks import ArrayBlock, CompoundBlock, IntegerBlock, UTF8Block
 
 
 class SimpleBlock(CompoundBlock):
@@ -77,7 +75,7 @@ class TestCompound(unittest.TestCase):
         self.assertDictEqual(
             field.schema,
             {
-                'block_class_mro': 'BindingBlockWithDoc__CompoundBlock__DataBlock',
+                'block_class_mro': 'BindingBlockWithDoc__CompoundBlock__DataBlockWithChildren__DataBlock',
                 'block_description': '',
                 'serializable_to_disc': False,
                 'inline_description': False,
@@ -112,7 +110,7 @@ class TestCompound(unittest.TestCase):
                     {
                         'name': 'val',
                         'schema': {
-                            'block_class_mro': 'ArrayBlock__DataBlock',
+                            'block_class_mro': 'ArrayBlock__DataBlockWithChildren__DataBlock',
                             'block_description': 'Array of `len` items',
                             'serializable_to_disc': False,
                             'child_schema': {
@@ -129,3 +127,34 @@ class TestCompound(unittest.TestCase):
                     }
                 ]
             })
+
+    def test_get_child_block_with_data(self):
+        child_block = IntegerBlock(length=1)
+
+        class TestBlock(CompoundBlock):
+            class Fields(CompoundBlock.Fields):
+                a = IntegerBlock(length=2)
+                b = child_block
+
+        field = TestBlock()
+        block, data = field.get_child_block_with_data({'a': 123, 'b': 456}, 'b')
+        self.assertEqual(block, child_block)
+        self.assertEqual(data, 456)
+
+    def test_estimate_packed_size(self):
+        class TestBlock(CompoundBlock):
+            class Fields(CompoundBlock.Fields):
+                a = IntegerBlock(length=2)
+                b = UTF8Block(length=lambda ctx: exec('raise Exception()'))
+
+        field = TestBlock()
+        self.assertEqual(field.estimate_packed_size({'a': 123, 'b': '123qwerty'}), 11)
+
+    def test_offset_to_child_when_packed(self):
+        class TestBlock(CompoundBlock):
+            class Fields(CompoundBlock.Fields):
+                foo = UTF8Block(length=lambda ctx: exec('raise Exception()'))
+                bar = IntegerBlock(length=2)
+
+        field = TestBlock()
+        self.assertEqual(field.offset_to_child_when_packed({'foo': 'test_str', 'bar': 2}, 'bar'), 8)

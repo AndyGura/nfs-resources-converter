@@ -22,3 +22,7 @@ class TestStrings(unittest.TestCase):
         field.unpack(BytesIO(bytes([65, 115, 100, 102, 103])))
         with self.assertRaises(DataIntegrityException):
             field.unpack(BytesIO(bytes([84, 101, 120, 116, 83])))
+
+    def test_estimate_packed_size_should_use_real_length(self):
+        field = UTF8Block(length=5)
+        self.assertEqual(field.estimate_packed_size('foo'), 3)

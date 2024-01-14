@@ -4,10 +4,10 @@ from math import ceil
 from typing import Dict, Tuple, Any
 
 from library2.context import Context
-from library2.read_blocks.basic import DataBlock
+from library2.read_blocks.basic import DataBlock, DataBlockWithChildren
 
 
-class ArrayBlock(DataBlock, ABC):
+class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
 
     def __init__(self, child: DataBlock, length, **kwargs):
         super().__init__(**kwargs)
@@ -44,7 +44,7 @@ class ArrayBlock(DataBlock, ABC):
         except ValueError:
             return f'{length_doc}*{child_size_doc}'
 
-    def get_child_block(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return self.child, unpacked_data[int(name)]
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: Context = None, name: str = ''):
@@ -59,6 +59,18 @@ class ArrayBlock(DataBlock, ABC):
         for i in range(self_len):
             res.append(self.child.unpack(buffer=buffer, ctx=self_ctx, name=str(i)))
         return res
+
+    def estimate_packed_size(self, data, ctx: Context = None):
+        res = 0
+        for item in data:
+            res += self.child.estimate_packed_size(data=item, ctx=ctx)
+        return res
+
+    def offset_to_child_when_packed(self, data, child_name: str, ctx: Context = None):
+        index = int(child_name)
+        if index >= len(data):
+            raise IndexError()
+        return self.estimate_packed_size(data[:index], ctx)
 
     def write(self, data, ctx: Context = None, name: str = '') -> bytes:
         res = bytes()
@@ -113,7 +125,7 @@ class SubByteArrayBlock(DataBlock):
         except ValueError:
             return f'ceil(({length_doc})*{self.bits_per_value}/8)'
 
-    def get_child_block(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return None, unpacked_data[int(name)]
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: Context = None, name: str = ''):
@@ -130,6 +142,9 @@ class SubByteArrayBlock(DataBlock):
         if self.value_deserialize_func:
             values = [self.value_deserialize_func(x) for x in values]
         return values
+
+    def estimate_packed_size(self, data, ctx: Context = None):
+        return ceil(self.bits_per_value * len(data) / 8)
 
     def write(self, data, ctx: Context = None, name: str = '') -> bytes:
         value_serialize_func = self.value_serialize_func if self.value_serialize_func else lambda x: x
