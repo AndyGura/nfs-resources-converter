@@ -1,39 +1,36 @@
 from io import BufferedReader, BytesIO
+from typing import Dict
 
-from library.read_blocks.array import ArrayBlock, ExplicitOffsetsArrayBlock, ByteArray
-from library.read_blocks.atomic import Utf8Block, IntegerBlock
-from library.read_blocks.compound import CompoundBlock
-from library.read_blocks.delegate import DelegateBlock
+from library.read_blocks.array import ArrayBlock as ArrayBlockOld, ExplicitOffsetsArrayBlock, ByteArray
+from library.read_blocks.atomic import Utf8Block as Utf8BlockOld, IntegerBlock as IntegerBlockOld
+from library.read_blocks.compound import CompoundBlock as CompoundBlockOld
 from library.read_blocks.literal import LiteralBlock
+from library2.context import ReadContext
+from library2.read_blocks import (CompoundBlock, DeclarativeCompoundBlock, UTF8Block, IntegerBlock, ArrayBlock,
+                                  HeapBlock, AutoDetectBlock, SkipBlock, DelegateBlock)
 from resources.eac.audios import EacsAudio
-from resources.eac.bitmaps import Bitmap16Bit0565, Bitmap24Bit, Bitmap16Bit1555, Bitmap32Bit, Bitmap8Bit, Bitmap4Bit
+from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
 from resources.eac.geometries import OripGeometry
-from resources.eac.palettes import (
-    Palette16Bit,
-    Palette32Bit,
-    Palette24Bit,
-    Palette24BitDos,
-)
+from resources.eac.palettes import Palette24BitDos, Palette24Bit, Palette32Bit, Palette16Bit
 
 
-class CompressedBlock(DelegateBlock):
-    block_description = ''
+class CompressedBlock(AutoDetectBlock):
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(possible_blocks=[
+            ShpiBlock()
+        ], **kwargs)
         self.algorithm = None
 
-    def read(self, buffer: [BufferedReader, BytesIO], size: int, state):
-        uncompressed_bytes = self.algorithm(buffer, size)
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        raise NotImplementedError
+        uncompressed_bytes = self.algorithm(buffer, read_bytes_amount)
         uncompressed = BytesIO(uncompressed_bytes)
-        delegated_block = state.get('delegated_block')
-        if delegated_block is None:
-            from library import probe_block_class
-            state['delegated_block'] = probe_block_class(uncompressed, state.get('id') + '_UNCOMPRESSED')()
-        return super().read(uncompressed, len(uncompressed_bytes), state)
+        self_ctx = ReadContext(buffer=uncompressed, name=name, parent=ctx, read_bytes_amount=len(uncompressed_bytes))
+        return super().read(buffer=uncompressed, ctx=self_ctx, name=name, read_bytes_amount=len(uncompressed_bytes))
 
 
 class RefPackBlock(CompressedBlock):
@@ -57,84 +54,73 @@ class Qfs3Block(CompressedBlock):
         self.algorithm = Qfs3Compression().uncompress
 
 
-class ShpiChildDescription(CompoundBlock):
-    block_description = '8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an ' \
-                        'unsigned integer (little-endian)'
-
-    def __init__(self, **kwargs):
-        kwargs.pop('inline_description', None)
-        super().__init__(inline_description=True, **kwargs)
-
-    class Fields(CompoundBlock.Fields):
-        name = Utf8Block(length=4)
-        offset = IntegerBlock(static_size=4, is_signed=False)
+def build_children_block_fields(ctx):
+    res = []
+    shpi_start_offset = ctx.read_start_offset if isinstance(ctx, ReadContext) else None
+    for i, c in enumerate(ctx.data('children_descriptions')):
+        res.append((c['name'], c['offset'] - (ctx.buffer.tell() - shpi_start_offset), None))
+    return res
 
 
-class ShpiBlock(CompoundBlock):
-    block_description = 'A container of images and palettes for them'
+class ShpiBlock(DeclarativeCompoundBlock):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.is_serializable_to_disk = True
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'A container of images and palettes for them',
+            'serializable_to_disc': True,
+        }
 
-    class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Block(required_value='SHPI', length=4, description='Resource ID')
-        length = IntegerBlock(static_size=4, is_signed=False, description='The length of this SHPI block in bytes')
-        children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
-        shpi_directory = Utf8Block(length=4, description='One of: "LN32", "GIMX", "WRAP". The purpose is unknown')
-        children_descriptions = ArrayBlock(child=ShpiChildDescription(),
-                                           length_label='children_count',
-                                           description='An array of items, each of them represents name of SHPI item '
-                                                       '(image or palette) and offset to item data in file, relatively '
-                                                       'to SHPI block start (where resource id string is presented)')
-        children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
-            possible_resources=[
-                Bitmap16Bit0565(error_handling_strategy='return'),
-                Bitmap4Bit(error_handling_strategy='return'),
-                Bitmap8Bit(error_handling_strategy='return'),
-                Bitmap32Bit(error_handling_strategy='return'),
-                Bitmap16Bit1555(error_handling_strategy='return'),
-                Bitmap24Bit(error_handling_strategy='return'),
-                Palette24BitDos(error_handling_strategy='return'),
-                Palette24Bit(error_handling_strategy='return'),
-                Palette32Bit(error_handling_strategy='return'),
-                Palette16Bit(error_handling_strategy='return'),
-            ],
-            error_handling_strategy='return',
-        ), length_label='children_count',
-            description='A part of block, where items data is located. Offsets are defined in previous block, lengths '
-                        'are calculated: either up to next item offset, or up to the end of block')
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (UTF8Block(length=4, required_value='SHPI'),
+                       {'description': 'Resource ID'})
+        length = (IntegerBlock(length=4),
+                  {'description': 'The length of this SHPI block in bytes',
+                   'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        children_count = (IntegerBlock(length=4),
+                          {'description': 'An amount of items',
+                           'programmatic_value': lambda ctx: len(ctx.data('children_descriptions'))})
+        shpi_directory = (UTF8Block(length=4),
+                          {'description': 'One of: "LN32", "GIMX", "WRAP". The purpose is unknown'})
+        children_descriptions = (ArrayBlock(child=CompoundBlock(fields=[('name', UTF8Block(length=4), {}),
+                                                                        ('offset', IntegerBlock(length=4), {})],
+                                                                inline_description='8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an '
+                                                                                   'unsigned integer (little-endian)'),
+                                            length=(lambda ctx: ctx.data('children_count'), 'children_count')),
+                                 {'description': 'An array of items, each of them represents name of SHPI item '
+                                                 '(image or palette) and offset to item data in file, relatively '
+                                                 'to SHPI block start (where resource id string is presented)'})
 
-    def _after_children_count_read(self, data, state, **kwargs):
-        if not state.get('children_descriptions'):
-            state['children_descriptions'] = {}
-        state['children_descriptions']['length'] = data['children_count'].value
-
-    def _after_children_descriptions_read(self, data, initial_buffer_pointer, state, **kwargs):
-        # FIXME we do not support / in part of id since it will be considered as sub resource
-        for description in data['children_descriptions'].value:
-            description.name.value = description.name.value.replace('/', '_')
-        if not state.get('children'):
-            state['children'] = {}
-        state['children']['offsets'] = [x.offset.value + initial_buffer_pointer for x in
-                                        data['children_descriptions'].value]
-        state['children']['custom_names'] = [descr.name.value for descr in data['children_descriptions'].value]
-        if not state['children'].get('common_children_states'):
-            state['children']['common_children_states'] = {}
-        state['children']['common_children_states']['shpi_directory'] = data['shpi_directory'].value
+        children = (HeapBlock(child=AutoDetectBlock(possible_blocks=[Bitmap4Bit(),
+                                                                     Bitmap8Bit(),
+                                                                     Bitmap16Bit0565(),
+                                                                     Bitmap32Bit(),
+                                                                     Bitmap16Bit1555(),
+                                                                     Bitmap24Bit(),
+                                                                     Palette24BitDos(),
+                                                                     Palette24Bit(),
+                                                                     Palette32Bit(),
+                                                                     Palette16Bit(),
+                                                                     SkipBlock(error_strategy="return_exception")]),
+                              length=lambda ctx: ctx.read_bytes_amount - (ctx.buffer.tell() - ctx.read_start_offset),
+                              children_descr=lambda ctx: build_children_block_fields(ctx)),
+                    {'description': 'A part of block, where items data is located. Offsets are defined in previous'
+                                    ' block. After 8-bit bitmaps sometimes have additional palette, not referenced in '
+                                    '"children_descriptions". Such palette should be assigned to prepending bitmap', })
 
 
-class WwwwBlock(CompoundBlock):
+class WwwwBlock(CompoundBlockOld):
     block_description = 'A block-container with various data: image archives, geometries, other wwww blocks. ' \
                         'If has ORIP 3D model, next item is always SHPI block with textures to this 3D model'
 
-    class Fields(CompoundBlock.Fields):
-        resource_id = Utf8Block(required_value='wwww', length=4, description='Resource ID')
-        children_count = IntegerBlock(static_size=4, is_signed=False, description='An amount of items')
-        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False),
-                                      length_label='children_count',
-                                      description='An array of offsets to items data in file, relatively '
-                                                  'to wwww block start (where resource id string is presented)')
+    class Fields(CompoundBlockOld.Fields):
+        resource_id = Utf8BlockOld(required_value='wwww', length=4, description='Resource ID')
+        children_count = IntegerBlockOld(static_size=4, is_signed=False, description='An amount of items')
+        children_offsets = ArrayBlockOld(child=IntegerBlockOld(static_size=4, is_signed=False),
+                                         length_label='children_count',
+                                         description='An array of offsets to items data in file, relatively '
+                                                     'to wwww block start (where resource id string is presented)')
         children = ExplicitOffsetsArrayBlock(child=LiteralBlock(
             possible_resources=[
                 OripGeometry(error_handling_strategy='return'),
@@ -167,15 +153,15 @@ class WwwwBlock(CompoundBlock):
 WwwwBlock.Fields.children.child.possible_resources.append(WwwwBlock(error_handling_strategy='return'))
 
 
-class SoundBank(CompoundBlock):
+class SoundBank(CompoundBlockOld):
     block_description = 'A pack of SFX samples (short audios). Used mostly for car engine sounds, crash sounds etc.'
 
-    class Fields(CompoundBlock.Fields):
-        children_offsets = ArrayBlock(child=IntegerBlock(static_size=4, is_signed=False), length=128,
-                                      description='An array of offsets to items data in file. Zero values seem to be '
-                                                  'ignored, but for some reason the very first offset is 0 in most '
-                                                  'files. The real audio data start is shifted 40 bytes forward for '
-                                                  'some reason, so EACS is located at {offset from this array} + 40')
+    class Fields(CompoundBlockOld.Fields):
+        children_offsets = ArrayBlockOld(child=IntegerBlockOld(static_size=4, is_signed=False), length=128,
+                                         description='An array of offsets to items data in file. Zero values seem to be '
+                                                     'ignored, but for some reason the very first offset is 0 in most '
+                                                     'files. The real audio data start is shifted 40 bytes forward for '
+                                                     'some reason, so EACS is located at {offset from this array} + 40')
         children = ExplicitOffsetsArrayBlock(child=EacsAudio(),
                                              description='EACS blocks are here, placed at offsets from previous block. '
                                                          'Those EACS blocks don\'t have own wave data, there are 44 '

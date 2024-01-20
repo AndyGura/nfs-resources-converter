@@ -1,12 +1,12 @@
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
-from library.read_blocks.literal import LiteralBlock
-from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock
-from resources.eac import bitmaps, fonts
+from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
+from library2.read_blocks.basic import HeapBlock
+from resources.eac import archives, bitmaps, fonts, palettes
 
 EXPORT_RESOURCES = {
     'Archives': [
-        # archives.ShpiBlock(),
+        archives.ShpiBlock(),
         # archives.WwwwBlock(),
         # archives.SoundBank(),
     ],
@@ -34,23 +34,23 @@ EXPORT_RESOURCES = {
         # car_specs.CarSimplifiedPerformanceSpec(),
     ],
     'Bitmaps': [
-        # bitmaps.Bitmap16Bit0565(),
+        bitmaps.Bitmap16Bit0565(),
         bitmaps.Bitmap4Bit(),
-        # bitmaps.Bitmap8Bit(),
-        # bitmaps.Bitmap32Bit(),
-        # bitmaps.Bitmap16Bit1555(),
-        # bitmaps.Bitmap24Bit(),
+        bitmaps.Bitmap8Bit(),
+        bitmaps.Bitmap32Bit(),
+        bitmaps.Bitmap16Bit1555(),
+        bitmaps.Bitmap24Bit(),
     ],
     'Fonts': [
         fonts.FfnFont(),
         fonts.SymbolDefinitionRecord(),
     ],
     'Palettes': [
-        # palettes.PaletteReference(),
-        # palettes.Palette24BitDos(),
-        # palettes.Palette24Bit(),
-        # palettes.Palette32Bit(),
-        # palettes.Palette16Bit(),
+        palettes.PaletteReference(),
+        palettes.Palette24BitDos(),
+        palettes.Palette24Bit(),
+        palettes.Palette32Bit(),
+        palettes.Palette16Bit(),
     ],
     'Audio': [
         # audios.AsfAudio(),
@@ -70,11 +70,11 @@ def render_value_doc_str(value: str) -> str:
 
 def render_type(instance: DataBlock) -> str:
     schema = instance.schema
-    if isinstance(instance, LiteralBlock):
-        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_resources])
+    if isinstance(instance, DelegateBlock):
+        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_blocks])
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
-        if isinstance(instance, ArrayBlock):
+        if isinstance(instance, ArrayBlock) or isinstance(instance, HeapBlock):
             if not isinstance(instance.child, CompoundBlock) or instance.child.schema["inline_description"]:
                 size = render_value_doc_str(instance.child.size_doc_str)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
@@ -105,7 +105,8 @@ with open('resources/README.md', 'w') as f:
             f.write(f'\n| --- | --- | --- | --- | --- |')
             offset_int = 0
             offset_lbl = ''
-            for key, (field, extras) in resource.Fields.fields:
+            for key, field in resource.field_blocks:
+                extras = resource.field_extras_map[key]
                 if extras.get('custom_offset'):
                     try:
                         offset_int = int(extras.get('custom_offset'))

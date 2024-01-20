@@ -15,11 +15,11 @@ class TestSerializeDeserialize(unittest.TestCase):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
     def test_fsh_should_remain_the_same(self):
-        fsh = require_file('test/samples/VERTBST.FSH')
-        output = fsh.to_bytes()
+        (name, block, fsh) = require_file('test/samples/VERTBST.FSH')
+        output = block.pack(fsh, name=name)
         with open('test/samples/VERTBST.FSH', 'rb') as bdata:
             original = bdata.read()
-            # self.assertEqual(len(original), len(output))
+            self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
@@ -45,7 +45,7 @@ class TestSerializeDeserialize(unittest.TestCase):
         (name, block, font_res) = require_file('test/samples/MAIN24.FFN')
         import tempfile
         from serializers import get_serializer
-        serializer = get_serializer(block)
+        serializer = get_serializer(block, font_res)
         self.assertTrue(serializer.setup_for_reversible_serialization())
         with tempfile.TemporaryDirectory() as tmp:
             serializer.serialize(font_res, tmp, name, block)

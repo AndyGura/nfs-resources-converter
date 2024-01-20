@@ -43,6 +43,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 // import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
+import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
+import { MatOptionModule } from '@angular/material/core';
 
 @NgModule({
   declarations: [
@@ -68,6 +70,7 @@ import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minim
     RunCustomActionDialogComponent,
     // OripGeometryBlockUiComponent,
     MinimapComponent,
+    DelegateBlockUiComponent,
   ],
   imports: [
     BrowserModule,
@@ -91,6 +94,7 @@ import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minim
     MatProgressSpinnerModule,
     MatMenuModule,
     ReactiveFormsModule,
+    MatOptionModule,
   ],
   providers: [EelDelegateService, NgxDeepEqualsPureService],
   bootstrap: [AppComponent],

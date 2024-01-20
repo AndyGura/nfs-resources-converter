@@ -1,8 +1,8 @@
-type Resource = {
+type Resource<BD = BlockData> = {
   id: string;
   name: string;
   schema: BlockSchema;
-  data: BlockData;
+  data: BD;
 };
 
 type ResourceError = {

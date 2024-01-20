@@ -1,5 +1,5 @@
-import {Injectable, NgZone} from '@angular/core';
-import {BehaviorSubject} from 'rxjs';
+import { Injectable, NgZone } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function };
 
@@ -32,7 +32,7 @@ export class EelDelegateService {
     this.openedResource$.next(null);
     this.openedResourcePath$.next(null);
     const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
-    this.openedResource$.next({...res, id: res.name});
+    this.openedResource$.next({ ...res, id: res.name });
     this.openedResourcePath$.next(path);
   }
 

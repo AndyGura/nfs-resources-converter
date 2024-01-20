@@ -1,0 +1,8 @@
+<ng-container *ngIf="resourceData">
+  <mat-select [value]="resourceData.choice_index" (selectionChange)="setChoiceIndex($event.value)">
+    <mat-option *ngFor="let schema of resource!.schema.possible_resource_schemas; let i = index" [value]="i">
+      {{ schema.block_class_mro.split('__')[0] }}
+    </mat-option>
+  </mat-select>
+  <app-editor [resource]="this.childResource"></app-editor>
+</ng-container>

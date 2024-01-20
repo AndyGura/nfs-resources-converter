@@ -1,11 +1,11 @@
 from typing import Dict
 
-from library2.read_blocks import CompoundBlock, IntegerBlock, UTF8Block, BytesBlock, ArrayBlock
+from library2.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock
 from resources.eac.bitmaps import Bitmap4Bit
 
 
-class SymbolDefinitionRecord(CompoundBlock):
-    class Fields(CompoundBlock.Fields):
+class SymbolDefinitionRecord(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
         code = (IntegerBlock(length=2),
                 {'description': 'Code of symbol'})
         glyph_width = (IntegerBlock(length=1),
@@ -24,7 +24,7 @@ class SymbolDefinitionRecord(CompoundBlock):
                     {'description': 'Offset (y) for drawing the character image'})
 
 
-class FfnFont(CompoundBlock):
+class FfnFont(DeclarativeCompoundBlock):
 
     @property
     def schema(self) -> Dict:
@@ -33,11 +33,11 @@ class FfnFont(CompoundBlock):
             'serializable_to_disc': True,
         }
 
-    class Fields(CompoundBlock.Fields):
+    class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, required_value='FNTF'),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4),
-                      {'description': 'This FFN block size in bytes',
+                      {'description': 'The length of this FFN block in bytes',
                        'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
         unk0 = (IntegerBlock(length=1, required_value=100),
                 {'is_unknown': True})

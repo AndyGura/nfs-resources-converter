@@ -1,7 +1,8 @@
 from io import BufferedReader, BytesIO
 from typing import Dict, Literal
 
-from library2.context import Context
+from library.helpers.exceptions import EndOfBufferException
+from library2.context import ReadContext, WriteContext
 from library2.read_blocks.basic import DataBlock
 
 
@@ -34,14 +35,14 @@ class IntegerBlock(DataBlock):
     def size_doc_str(self):
         return str(self.length)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: Context = None, name: str = ''):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         raw = buffer.read(self.length)
-        return int.from_bytes(raw.ljust(self.length, b'\0') if self.length > 1 else raw,
-                              byteorder=self.byte_order,
-                              signed=self.is_signed)
+        if len(raw) < self.length:
+            raise EndOfBufferException()
+        return int.from_bytes(raw, byteorder=self.byte_order, signed=self.is_signed)
 
-    def estimate_packed_size(self, data, ctx: Context = None):
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
         return self.length
 
-    def write(self, data, ctx: Context = None, name: str = '') -> bytes:
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return data.to_bytes(self.length, byteorder=self.byte_order, signed=self.is_signed).ljust(self.length, b'\0')

@@ -1,28 +1,30 @@
 from io import BufferedReader, BytesIO, SEEK_CUR
+from os.path import getsize
 from typing import Tuple
 
 
 # this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
 # performance, because we spawn process per file, and it doesn't need to load all those classes every time
-def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
-    if file_name:
-        if file_name.endswith('.BNK'):
+def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
+    if file_path:
+        # test resource
+        if file_path.endswith('nfsrc_test_resource.bin'):
+            from resources.test_resource import TestResource
+            return TestResource
+        elif file_path.endswith('.BNK'):
             from resources.eac.archives import SoundBank
             return SoundBank
-        if file_name.endswith('.PBS_UNCOMPRESSED'):
+        elif file_path.endswith('.PBS_UNCOMPRESSED'):
             from resources.eac.car_specs import CarPerformanceSpec
             return CarPerformanceSpec
-        elif file_name.endswith('.PDN_UNCOMPRESSED'):
+        elif file_path.endswith('.PDN_UNCOMPRESSED'):
             from resources.eac.car_specs import CarSimplifiedPerformanceSpec
             return CarSimplifiedPerformanceSpec
-        elif file_name.endswith('CONFIG.DAT'):
+        elif file_path.endswith('CONFIG.DAT'):
             from resources.eac.configs import TnfsConfigDat
             return TnfsConfigDat
     if header_str:
-        if header_str == 'TSTR':
-            from resources.test_resource import TestResource
-            return TestResource
-        elif file_name and header_str == '#ver' and file_name.endswith('INFO'):
+        if file_path and header_str == '#ver' and file_path.endswith('INFO'):
             from resources.eac.misc import DashDeclarationFile
             return DashDeclarationFile
         elif header_str == '1SNh':
@@ -105,14 +107,14 @@ def _find_block_class(file_name: str, header_str: str, header_bytes: bytes):
     return None
 
 
-def probe_block_class(binary_file: [BufferedReader, BytesIO], file_name: str = None, resources_to_pick=None):
+def probe_block_class(binary_file: [BufferedReader, BytesIO], file_path: str = None, resources_to_pick=None):
     header_bytes = binary_file.read(4)
     binary_file.seek(-len(header_bytes), SEEK_CUR)
     try:
         header_str = header_bytes.decode('utf8')
     except UnicodeDecodeError:
         header_str = None
-    block_class = _find_block_class(file_name, header_str, header_bytes)
+    block_class = _find_block_class(file_path, header_str, header_bytes)
     if block_class and (not resources_to_pick or block_class in resources_to_pick):
         return block_class
     raise NotImplementedError('Don`t have parser for such resource')
@@ -153,6 +155,6 @@ def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
-            data = block.unpack(bdata, name=name)
+            data = block.unpack(bdata, name=name, read_bytes_amount=getsize(path))
             files_cache[name] = (block, data)
     return name, block, data

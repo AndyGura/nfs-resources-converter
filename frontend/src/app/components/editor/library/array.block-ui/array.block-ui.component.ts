@@ -14,13 +14,21 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   set resource(value: Resource | null) {
     this._resource = value;
     this.showAsCollapsable = this._resource?.data?.length > 5;
-    this.children = (this.resourceData || [])
-      .map((d: BlockData, i: number) => ({
+    if (this.resourceData instanceof Array) {
+      this.children = (this.resourceData || []).map((d: BlockData, i: number) => ({
         id: this._resource!.id + (this._resource!.id.includes('__') ? '/' : '__') + i,
         name: '' + i,
         data: d,
         schema: this._resource!.schema.child_schema,
       }));
+    } else {
+      this.children = Object.entries(this.resourceData || {}).map(([name, d]) => ({
+        id: this._resource!.id + (this._resource!.id.includes('__') ? '/' : '__') + name,
+        name,
+        data: d,
+        schema: this._resource!.schema.child_schema,
+      }));
+    }
     this.renderPage(0, this.minPageSize);
     this.updatePageIndexes();
   }
@@ -29,6 +37,8 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
     return this._resource?.data;
   }
 
+  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+
   get schema(): BlockSchema | null {
     return this._resource?.schema;
   }
@@ -36,8 +46,6 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   get name(): string | null {
     return this._resource?.name || null;
   }
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   showAsCollapsable: boolean = false;
   renderContents: boolean = false;

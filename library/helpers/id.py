@@ -1,5 +1,8 @@
-def join_id(base_id: str, suffix_id: str):
-    if '__' in base_id:
-        return base_id + '/' + suffix_id
-    else:
-        return base_id + '__' + suffix_id
+def join_id(base_id: str, *suffix_ids):
+    res = base_id
+    for i, suff in enumerate(suffix_ids):
+        if i > 0 or '__' in base_id:
+            res += '/' + suff
+        else:
+            res += '__' + suff
+    return res

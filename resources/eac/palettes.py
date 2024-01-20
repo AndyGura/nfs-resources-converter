@@ -1,8 +1,9 @@
 from abc import ABC
+from io import BufferedReader, BytesIO
+from typing import Dict
 
-from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import IntegerBlock
-from library.read_blocks.compound import CompoundBlock
+from library2.context import ReadContext
+from library2.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock
 from resources.eac.fields.colors import (
     Color24BitBigEndianField,
     Color24BitDosBlock,
@@ -43,22 +44,25 @@ transparency_colors = [
 ]
 
 
-class BasePalette(CompoundBlock, ABC):
+class BasePalette(DeclarativeCompoundBlock, ABC):
     can_use_last_color_as_transparent = True
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.block_description = 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, ' \
-                                 'meaning the index of color in LUT of assigned palette. Has special colors: ' \
-                                 '255th in most cases means transparent color, 254th in car textures is replaced by ' \
-                                 'tail light color, 250th - 253th in car textures are rendered black for unknown reason'
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, '
+                                 'meaning the index of color in LUT of assigned palette. Has special colors: '
+                                 '255th in most cases means transparent color, 254th in car textures is replaced by '
+                                 'tail light color, 250th - 253th in car textures are rendered black for unknown reason',
+        }
 
-    def from_raw_value(self, raw: dict, state: dict):
-        res = super().from_raw_value(raw, state)
-        res.last_color_transparent = False
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        res = super().read(buffer, ctx, name)
+        res['last_color_transparent'] = False
         try:
-            if self.can_use_last_color_as_transparent and res.colors[255] in transparency_colors:
-                res.last_color_transparent = True
+            if self.can_use_last_color_as_transparent and res['colors'][255] in transparency_colors:
+                res['last_color_transparent'] = True
         except IndexError:
             pass
         return res
@@ -67,56 +71,59 @@ class BasePalette(CompoundBlock, ABC):
 # TODO 41 (0x29) 16 bit dos palette
 
 
-class PaletteReference(CompoundBlock):
-    class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x7C, description='Resource ID')
-        unknowns = ArrayBlock(length=7, child=IntegerBlock(static_size=1, simplified=True))
+class PaletteReference(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, required_value=0x7C),
+                       {'description': 'Resource ID'})
+        unknowns = (BytesBlock(length=7),
+                    {'is_unknown': True})
 
-        unknown_fields = ['unknowns']
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.block_description = 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. ' \
-                                 'Probably a reference to palette which should be used, that\'s why named so'
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
+                                 'Probably a reference to palette which should be used, that\'s why named so',
+        }
 
 
 class Palette24BitDos(BasePalette):
-    class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x22, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
-        colors = ArrayBlock(length=256, child=Color24BitDosBlock(), length_strategy="read_available",
-                            description='Colors LUT')
-
-        unknown_fields = ['unknowns']
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, required_value=0x22),
+                       {'description': 'Resource ID'})
+        unknowns = (BytesBlock(length=15),
+                    {'is_unknown': True})
+        colors = (ArrayBlock(length=256, child=Color24BitDosBlock()),
+                  {'description': 'Colors LUT'})
 
 
 class Palette24Bit(BasePalette):
-    class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x24, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
-        colors = ArrayBlock(length=256, child=Color24BitBigEndianField(), length_strategy="read_available",
-                            description='Colors LUT')
-
-        unknown_fields = ['unknowns']
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, required_value=0x24),
+                       {'description': 'Resource ID'})
+        unknowns = (BytesBlock(length=15),
+                    {'is_unknown': True})
+        colors = (ArrayBlock(length=256, child=Color24BitBigEndianField()),
+                  {'description': 'Colors LUT'})
 
 
 class Palette32Bit(BasePalette):
-    class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x2A, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
-        colors = ArrayBlock(length=256, child=Color32BitBlock(), length_strategy="read_available",
-                            description='Colors LUT')
-
-        unknown_fields = ['unknowns']
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, required_value=0x2A),
+                       {'description': 'Resource ID'})
+        unknowns = (BytesBlock(length=15),
+                    {'is_unknown': True})
+        colors = (ArrayBlock(length=256, child=Color32BitBlock()),
+                  {'description': 'Colors LUT'})
 
     can_use_last_color_as_transparent = False
 
 
 class Palette16Bit(BasePalette):
-    class Fields(CompoundBlock.Fields):
-        resource_id = IntegerBlock(static_size=1, is_signed=False, required_value=0x2D, description='Resource ID')
-        unknowns = ArrayBlock(length=15, child=IntegerBlock(static_size=1, simplified=True))
-        colors = ArrayBlock(length=256, child=Color16Bit0565Block(), length_strategy="read_available",
-                            description='Colors LUT')
-
-        unknown_fields = ['unknowns']
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, required_value=0x2D),
+                       {'description': 'Resource ID'})
+        unknowns = (BytesBlock(length=15),
+                    {'is_unknown': True})
+        colors = (ArrayBlock(length=256, child=Color16Bit0565Block()),
+                  {'description': 'Colors LUT'})

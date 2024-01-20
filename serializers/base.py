@@ -21,10 +21,10 @@ class ResourceSerializer(ABC):
         return False
 
     @abstractmethod
-    def serialize(self, data: dict, path: str, name=None, block=None, **kwargs) -> Dict:
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> Dict:
         raise NotImplementedError
 
-    def deserialize(self, data: Any, path: str, block=None, **kwargs) -> ReadData:
+    def deserialize(self, data: Any, path: str, id=None, block=None, **kwargs):
         raise NotImplementedError
 
 
@@ -62,7 +62,7 @@ class BaseFileSerializer(ResourceSerializer):
                         has_something = True
         return res if has_something else None
 
-    def serialize(self, data: dict, path: str, is_dir=False, name=None, block=None):
+    def serialize(self, data: dict, path: str, is_dir=False, id=None, block=None, **kwargs):
         os.makedirs(path if is_dir else os.path.dirname(path), exist_ok=True)
         if isinstance(block, DelegateBlock):
             block = block.delegated_block
@@ -71,6 +71,3 @@ class BaseFileSerializer(ResourceSerializer):
             if unknowns:
                 with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
                     file.write(json.dumps(unknowns, indent=4))
-
-    def deserialize(self, data: Any, path: str, block=None, **kwargs) -> None:
-        raise NotImplementedError

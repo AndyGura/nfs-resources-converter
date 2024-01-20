@@ -11,12 +11,12 @@ class FfnFontSerializer(BaseFileSerializer):
         })
         return True
 
-    def serialize(self, data: dict, path: str, name=None, block=None):
-        super().serialize(data, path, is_dir=True, name=name, block=None)
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path, is_dir=True, id=id, block=None)
         image_serializer = BitmapSerializer()
         image_serializer.serialize(data["bitmap"], os.path.join(path, 'bitmap'))
         with open(os.path.join(path, 'font.fnt'), 'w') as file:
-            file.write(f'info face="{name.split("/")[-1]}" size={data["font_size"]}\n')
+            file.write(f'info face="{id.split("/")[-1]}" size={data["font_size"]}\n')
             file.write(f'common lineHeight={data["line_height"]}\n')
             file.write(f'page id=0 file="bitmap.png"\n')
             file.write(f'chars count={data["symbols_amount"]}\n')

@@ -474,7 +474,7 @@ if $save_terrain_collisions:
         Ns 0.000000
         map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
 
-    def serialize(self, data: ReadData[TriMap], path: str):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
         is_opened_track = math.sqrt(
             (data.road_spline[0].position.x.value - data.road_spline[len(data.terrain) * 4 - 1].position.x.value) ** 2

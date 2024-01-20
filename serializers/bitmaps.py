@@ -10,8 +10,8 @@ from serializers.misc.path_utils import escape_chars
 
 class BitmapSerializer(BaseFileSerializer):
 
-    def serialize(self, data, path: str):
-        super().serialize(data, path)
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path, is_dir=False, id=id, block=block)
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in data['bitmap']])).save(f'{escape_chars(path)}.png')
@@ -27,37 +27,37 @@ class BitmapSerializer(BaseFileSerializer):
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
     @staticmethod
-    def has_tail_lights(data: ReadData[Bitmap8Bit]):
-        return data.id[-4:] in ['rsid', 'lite'] and '.CFM' in data.id
+    def has_tail_lights(id: str):
+        return id[-4:] in ['rsid', 'lite'] and '.CFM' in id
 
-    def serialize(self, data: ReadData[Bitmap8Bit], path: str):
-        super().serialize(data, path)
-        palette = determine_palette_for_8_bit_bitmap(data)
-        if palette is None:
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path, is_dir=False, id=id, block=block)
+        (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
+        if palette_block is None:
             raise SerializationException('Palette not found for 8bit bitmap')
         colors = []
-        palette_colors = [c.value for c in palette.colors]
-        if getattr(palette, 'last_color_transparent', False):
+        palette_colors = [c for c in palette_data['colors']]
+        if palette_data['last_color_transparent']:
             palette_colors[255] = 0
-        if self.has_tail_lights(data):
+        if self.has_tail_lights(id):
             # NFS1 car tail lights: make transparent
             try:
                 palette_colors[254] = 0
             except IndexError:
                 print('WARN: car tail lights problem: palette is too short')
                 pass
-        for index in data.bitmap:
+        for index in data['bitmap']:
             try:
                 colors.append(palette_colors[index])
             except IndexError:
                 colors.append(0)
         Image.frombytes('RGBA',
-                        (data.width.value, data.height.value),
+                        (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{escape_chars(path)}.png')
-        if self.settings.images__save_inline_palettes and data.value.palette and data.value.palette == palette:
+        if self.settings.images__save_inline_palettes and data['palette'] and data['palette'] == (palette_block, palette_data):
             from serializers import PaletteSerializer
             palette_serializer = PaletteSerializer()
-            palette_serializer.serialize(data.palette, f'{escape_chars(path)}_pal')
+            palette_serializer.serialize(data['palette'][1], f'{escape_chars(path)}_pal', block=data['palette'][0])
 
     def deserialize(self, path: str, resource: ReadData[Bitmap8Bit], palette=None, **kwargs) -> None:
         source = Image.open(escape_chars(path) + '.png')
@@ -87,6 +87,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         resource.value.bitmap.value = list(im.getdata())
         if resource.value.trailing_bytes:
             resource.value.trailing_bytes.value = []
+        # TODO rewrite code below for new library
         # TODO wow, it's so complicated... Need a way to construct a new resource easily
         # block = Palette24BitDos()
         # resource.value.palette = ReadData(block=block,

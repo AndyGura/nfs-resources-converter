@@ -3,10 +3,11 @@ import traceback
 
 import serializers
 from library.helpers.exceptions import DataIntegrityException
+from library.helpers.id import join_id
 from library.read_data import ReadData
 from library.utils import format_exception
-from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
-from resources.eac.archives import ShpiBlock, WwwwBlock, SoundBank
+from library2.context import WriteContext
+from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
@@ -23,34 +24,36 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         })
         return True
 
-    def serialize(self, data: ReadData[ShpiBlock], path: str):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
-        items = [(data.children_descriptions[i].name.value, data.children[i]) for i in range(data.children_count.value)]
+        children_field = block.field_blocks_map['children'].child
+        items = [(name, data['children'][name]['data'],children_field.possible_blocks[data['children'][name]['choice_index']]) for name in
+                 (data['children_descriptions'][i]['name'] for i in range(data['children_count']))]
         skipped_resources = []
-        for name, item in [(name, item) for name, item in items]:
-            if isinstance(item, Exception):
-                skipped_resources.append((name, format_exception(item)))
+        for name, item_data, item_block in items:
+            if isinstance(item_data, Exception):
+                skipped_resources.append((name, format_exception(item_data)))
                 continue
             try:
-                if not self.settings.images__save_images_only or isinstance(item.block, AnyBitmapBlock):
-                    serializer = serializers.get_serializer(item.block)
-                    serializer.serialize(item, os.path.join(path, escape_chars(name)))
+                if not self.settings.images__save_images_only or isinstance(item_block, AnyBitmapBlock):
+                    serializer = serializers.get_serializer(item_block, item_data)
+                    serializer.serialize(item_data, os.path.join(path, escape_chars(name).replace('/', '_')), block=item_block,
+                                         id=join_id(id, 'children', name))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if not self.settings.images__save_images_only:
             with open(os.path.join(path, 'positions.txt'), 'w') as f:
-                for name, item in [(name, item) for name, item in items if
-                                   isinstance(item, ReadData) and isinstance(item.block, AnyBitmapBlock)]:
-                    f.write(f"{name}: {item.x.value}, {item.y.value}\n")
-        if data.id and '.FAM__' in data.id and self.settings.maps__save_spherical_skybox_texture:
-            try:
-                horz_bitmap = next(x for name, x in items if name == 'horz')
-                nfs1_panorama_to_spherical(data.id[data.id.index('.FAM') - 7:data.id.index('.FAM') - 4],
-                                           os.path.join(path, 'horz.png'), os.path.join(path, 'spherical.png'))
-            except StopIteration:
-                pass
+                for name, item in [(name, data) for name, data, block in items if isinstance(block, AnyBitmapBlock)]:
+                    f.write(f"{name}: {item['x']}, {item['y']}\n")
+        # if data.id and '.FAM__' in data.id and self.settings.maps__save_spherical_skybox_texture:
+        #     try:
+        #         horz_bitmap = next(x for name, x in items if name == 'horz')
+        #         nfs1_panorama_to_spherical(data.id[data.id.index('.FAM') - 7:data.id.index('.FAM') - 4],
+        #                                    os.path.join(path, 'horz.png'), os.path.join(path, 'spherical.png'))
+        #     except StopIteration:
+        #         pass
         if skipped_resources:
             with open(os.path.join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
@@ -71,7 +74,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             shpi_pal = [read_data for read_data in resource.value.children if isinstance(read_data.block, BasePalette)][
                 0]
             if quantize_new_palette:
-                max_colors_amount = 255 # minus the last one, reserved for transparency
+                max_colors_amount = 255  # minus the last one, reserved for transparency
                 if '.CFM' in resource.id:
                     # last 6 colors are somehow special for cars:
                     # 250th - 253th seem to always be rendered black
@@ -86,7 +89,9 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 from serializers.bitmaps import BitmapWithPaletteSerializer
                 individual_palettes = []
                 # open all 8bit images
-                images_8bit = [Image.open(img_path) for img_path in (os.path.join(path, escape_chars(image.id.split('/')[-1]) + '.png') for image in bitmaps_8bit)]
+                images_8bit = [Image.open(img_path) for img_path in
+                               (os.path.join(path, escape_chars(image.id.split('/')[-1]) + '.png') for image in
+                                bitmaps_8bit)]
                 # find unused color for marking transparency
                 all_colors = set()
                 for src in images_8bit:
@@ -109,12 +114,14 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     img = Image.new(
                         "RGB",
                         src.size,
-                        ((tail_lights_color & 0xff000000) >> 24, (tail_lights_color & 0xff0000) >> 16, (tail_lights_color & 0xff00) >> 8)
+                        ((tail_lights_color & 0xff000000) >> 24, (tail_lights_color & 0xff0000) >> 16,
+                         (tail_lights_color & 0xff00) >> 8)
                         if BitmapWithPaletteSerializer.has_tail_lights(bitmaps_8bit[i])
-                        else ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16, (transparent & 0xff00) >> 8)
+                        else (
+                        (transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16, (transparent & 0xff00) >> 8)
                     )
                     img.paste(src, mask=(None if src.mode == 'RGB' else src.split()[3]))
-                    quantized_img = img.quantize(colors=max_colors_amount + 1) # + transparent channel
+                    quantized_img = img.quantize(colors=max_colors_amount + 1)  # + transparent channel
                     pil_palette = quantized_img.getpalette()
                     individual_palettes.append(
                         [(pil_palette[i] << 24) + (pil_palette[i + 1] << 16) + (pil_palette[i + 2] << 8) + 0xff for i in
@@ -122,7 +129,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 # calculating common palette among images
                 all_colors = sum(individual_palettes, [])
                 color_counts = Counter(all_colors)
-                most_common_colors = color_counts.most_common(max_colors_amount + 1) # + transparent channel
+                most_common_colors = color_counts.most_common(max_colors_amount + 1)  # + transparent channel
                 palette = [color[0] for color in most_common_colors]
                 if len(palette) < 256:
                     palette += [0] * (256 - len(palette))
@@ -149,13 +156,13 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         # build images one by one with provided palette
         for image in (read_data for read_data in resource.value.children if
                       isinstance(read_data.block, AnyBitmapBlock)):
-            serializer = serializers.get_serializer(image.block)
+            serializer = serializers.get_serializer(image.block, image)
             serializer.deserialize(os.path.join(path, image.id.split('/')[-1]), image, palette=palette)
 
 
 class WwwwArchiveSerializer(BaseFileSerializer):
 
-    def serialize(self, data: WwwwBlock, path: str):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
         if data.id.endswith('.CFM') and data.children_count == 4:
             # car CFM file
@@ -181,7 +188,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
             if isinstance(item.block, OripGeometry):
                 skip_next_shpi = True
             try:
-                serializer = serializers.get_serializer(item.block)
+                serializer = serializers.get_serializer(item.block, item)
                 serializer.serialize(item, os.path.join(path, name))
             except Exception as ex:
                 if self.settings.print_errors:
@@ -195,7 +202,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
 
 class SoundBankSerializer(BaseFileSerializer):
 
-    def serialize(self, data: SoundBank, path: str):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
         if ((data.id.endswith('SW.BNK') or data.id.endswith('TRAFFC.BNK') or data.id.endswith('TESTBANK.BNK'))
                 and len(data.children) == 4):
@@ -207,7 +214,7 @@ class SoundBankSerializer(BaseFileSerializer):
         skipped_resources = []
         for name, item in [(name, item) for name, item in items]:
             try:
-                serializer = serializers.get_serializer(item.block)
+                serializer = serializers.get_serializer(item.block, item)
                 serializer.serialize(item, os.path.join(path, name))
             except Exception as ex:
                 if self.settings.print_errors:

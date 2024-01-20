@@ -116,11 +116,11 @@ def run_gui_editor(file_path):
         @eel.expose
         def serialize_resource(id: str, settings_patch={}):
             (_, res_block, res), (_, top_level_block, top_level_res) = require_resource(id)
-            serializer = get_serializer(res_block)
+            serializer = get_serializer(res_block, res)
             path = os.path.join(static_path, 'resources', *id.split('/'))
             if settings_patch:
                 serializer.patch_settings(settings_patch)
-            serializer.serialize(res, path)
+            serializer.serialize(res, path, id, res_block)
             normal_slashes_path = path.replace('\\', '/')
             exported_file_paths = [str(x)[len(static_path):]
                                    for x in chain(Path(normal_slashes_path).glob("**/*"),
@@ -138,7 +138,7 @@ def run_gui_editor(file_path):
             (id, res_block, resource), _ = require_resource(id)
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
-            serializer = get_serializer(res_block)
+            serializer = get_serializer(res_block, resource)
             path = os.path.join(static_path, 'resources_edit', *id.split('/'))
             reverse_flag = serializer.setup_for_reversible_serialization()
             serializer.serialize(resource, path, id, res_block)
@@ -154,7 +154,7 @@ def run_gui_editor(file_path):
             (_, res_block, resource), _ = require_resource(id)
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
-            serializer = get_serializer(res_block)
+            serializer = get_serializer(res_block, resource)
             path = os.path.join(static_path, 'resources_tmp', *id.split('/'))
             if settings_patch:
                 serializer.patch_settings(settings_patch)
@@ -169,7 +169,7 @@ def run_gui_editor(file_path):
         @eel.expose
         def deserialize_resource(id: str):
             (id, res_block, resource), _ = require_resource(id)
-            serializer = get_serializer(res_block)
+            serializer = get_serializer(res_block, resource)
             path = os.path.join(static_path, 'resources_edit', *id.split('/'))
             serializer.deserialize(resource, path, res_block)
             remove_file_or_directory(os.path.join(static_path, 'resources', *id.split('/')))

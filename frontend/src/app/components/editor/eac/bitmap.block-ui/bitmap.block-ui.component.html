@@ -4,8 +4,8 @@
                         'palette',
                        ]"></app-compound-block-ui>
 <img *ngIf="imageUrl$ | async" [src]="imageUrl$ | async">
-<app-editor *ngIf="(_resource$ | async)?.data.palette && (_resource$ | async)?.data.palette.resource_id != 124"
-            [resource]="(_resource$ | async)?.data.palette"></app-editor>
+<app-editor *ngIf="resource!.schema.fields['palette']"
+            [resource]="{ id: resource!.id + '/' + 'palette', name: 'palette', data: resource!.data.palette, schema: resource!.schema.fields['palette']?.schema }"></app-editor>
 <!--<div id="actions">-->
 <!--    <button mat-raised-button color="primary" (click)="openResourceInSystem()">Open with system app</button>-->
 <!--    <button mat-raised-button color="primary" *ngIf="hasSerializedFile" (click)="pullResource()">Pull updated file</button>-->

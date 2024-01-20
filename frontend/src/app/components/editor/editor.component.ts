@@ -8,12 +8,12 @@ import {
   Type,
   ViewChild,
 } from '@angular/core';
-import {DataBlockUIDirective} from './data-block-ui.directive';
-import {FallbackBlockUiComponent} from './library/fallback.block-ui/fallback.block-ui.component';
-import {GuiComponentInterface} from './gui-component.interface';
-import {CompoundBlockUiComponent} from './library/compound.block-ui/compound.block-ui.component';
+import { DataBlockUIDirective } from './data-block-ui.directive';
+import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
+import { GuiComponentInterface } from './gui-component.interface';
+import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
 import { IntegerBlockUiComponent } from './library/integer.block-ui/integer.block-ui.component';
-import {StringBlockUiComponent} from './library/string.block-ui/string.block-ui.component';
+import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
 // import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
@@ -24,10 +24,11 @@ import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-u
 // import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 // import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
 // import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
-import {MainService} from '../../services/main.service';
-import {Subject, Subscription, takeUntil} from 'rxjs';
+import { MainService } from '../../services/main.service';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 // import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import {EelDelegateService} from '../../services/eel-delegate.service';
+import { EelDelegateService } from '../../services/eel-delegate.service';
+import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -39,11 +40,13 @@ export class EditorComponent implements OnDestroy {
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
     // AngleBlock: AngleBlockUiComponent,
     ArrayBlock: ArrayBlockUiComponent,
+    HeapBlock: ArrayBlockUiComponent,
     SubByteArrayBlock: ArrayBlockUiComponent,
     // BitFlagsBlock: FlagsBlockUiComponent,
     BytesBlock: BinaryBlockUiComponent,
     CompoundBlock: CompoundBlockUiComponent,
     DataBlock: FallbackBlockUiComponent,
+    DelegateBlock: DelegateBlockUiComponent,
     // EnumByteBlock: EnumBlockUiComponent,
     IntegerBlock: IntegerBlockUiComponent,
     UTF8Block: StringBlockUiComponent,
@@ -56,7 +59,7 @@ export class EditorComponent implements OnDestroy {
     // WwwwBlock: WwwwBlockUiComponent,
   };
 
-  @ViewChild(DataBlockUIDirective, {static: true}) dataBlockUiHost!: DataBlockUIDirective;
+  @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
 
   _component: ComponentRef<GuiComponentInterface> | null = null;
   _componentChangedSub: Subscription | null = null;
@@ -80,7 +83,7 @@ export class EditorComponent implements OnDestroy {
   public set resource(value: Resource | ResourceError | null) {
     this.resourceSet$.next();
     // TODO reusing components does not work for some reason. At least when child is compound block with the same schema
-    let reuseComponent = false;//!!this._component && value && this._resource && value.schema.block_class_mro === this._resource.schema.block_class_mro;
+    let reuseComponent = false; //!!this._component && value && this._resource && value.schema.block_class_mro === this._resource.schema.block_class_mro;
     if (!value) {
       this._resource = null;
       this._resourceError = null;
@@ -109,7 +112,10 @@ export class EditorComponent implements OnDestroy {
             this._componentChangedSub.unsubscribe();
           }
           this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
-          this._componentChangedSub = this._component!.instance.changed.pipe(takeUntil(this.destroyed$), takeUntil(this.resourceSet$)).subscribe(() => {
+          this._componentChangedSub = this._component!.instance.changed.pipe(
+            takeUntil(this.destroyed$),
+            takeUntil(this.resourceSet$),
+          ).subscribe(() => {
             this.mainService.dataBlockChange$.next([this._resource!.id, this._resource!.data]);
           });
         }
@@ -122,8 +128,7 @@ export class EditorComponent implements OnDestroy {
     readonly mainService: MainService,
     readonly eelDelegate: EelDelegateService,
     readonly cdr: ChangeDetectorRef,
-  ) {
-  }
+  ) {}
 
   async serializeBlockReversible() {
     const [files, isReversible] = await this.eelDelegate.serializeReversible(this.resource.name, []);

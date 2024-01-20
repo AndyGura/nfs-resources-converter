@@ -60,7 +60,7 @@ for dummy in dummies:
 
     """)
 
-    def serialize(self, data: ReadData[OripGeometry], path: str):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         # shpi is always next block
         from library import require_resource
         textures_shpi_block, _ = require_resource(

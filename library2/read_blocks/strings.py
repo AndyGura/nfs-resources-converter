@@ -1,7 +1,8 @@
 from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library2.context import Context
+from library.helpers.exceptions import EndOfBufferException
+from library2.context import ReadContext, WriteContext
 from library2.read_blocks.basic import DataBlock
 
 
@@ -19,6 +20,7 @@ class UTF8Block(DataBlock):
         return {
             **super().schema,
             'block_description': descr,
+            'length': self.size_doc_str
         }
 
     # For auto-generated documentation only
@@ -31,17 +33,20 @@ class UTF8Block(DataBlock):
             return "custom_func"
         return str(self._length)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: Context = None, name: str = ''):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
         if callable(self_len):
             self_len = self_len(ctx)
-        return buffer.read(self_len).decode('utf-8')
+        res = buffer.read(self_len).decode('utf-8')
+        if len(res) < self_len:
+            raise EndOfBufferException()
+        return res
 
-    def estimate_packed_size(self, data, ctx: Context = None):
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
         return len(data)
 
-    def write(self, data, ctx: Context = None, name: str = '') -> bytes:
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return data.encode('utf-8')

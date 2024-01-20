@@ -12,7 +12,7 @@ from serializers import BaseFileSerializer
 
 class EacsAudioSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData[EacsAudio], path: str):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
         wave_bytes = data.wave_data.value
         if data.compression == 2:
@@ -73,7 +73,7 @@ class EacsAudioSerializer(BaseFileSerializer):
 
 class FfmpegSupportedAudioSerializer(BaseFileSerializer):
 
-    def serialize(self, data: ReadData[AsfAudio], path: str):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
         subprocess.run(
             [self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", data.id, f'{path}.mp3'],

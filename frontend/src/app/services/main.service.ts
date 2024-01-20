@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
-import { cloneDeep, forOwn, isEqual, isObject, merge } from 'lodash';
+import { cloneDeep, isEqual, isObject, merge } from 'lodash';
 
 @Injectable({
   providedIn: 'root',
@@ -21,16 +21,15 @@ export class MainService {
   constructor(readonly eelDelegate: EelDelegateService) {
     this.eelDelegate.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();
-      if (!value?.schema) {
-        this.resource$.next(null);
-        this.error$.next(null);
-      } else if (value.data.error_class) {
+      if (value?.data.error_class) {
         this.error$.next(value);
         this.resource$.next(null);
+      } else if (!value?.schema) {
+        this.resource$.next(null);
+        this.error$.next(null);
       } else {
         this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot(value));
         this.resource$.next(value);
-        console.log(value);
         this.error$.next(null);
       }
     });

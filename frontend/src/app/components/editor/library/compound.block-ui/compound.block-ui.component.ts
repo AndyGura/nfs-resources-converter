@@ -27,8 +27,9 @@ export class CompoundBlockUiComponent implements GuiComponentInterface {
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  get fieldKeys(): { index: number, key: string}[] {
-    let fields: { index: number, key: string}[] = this.schema?.fields.map((f: { name: string }, i: number) => ({ index: i, key: f.name })) || [];
+  get fieldKeys(): { index: number; key: string }[] {
+    let fields: { index: number; key: string }[] =
+      this.schema?.fields.map((f: { name: string }, i: number) => ({ index: i, key: f.name })) || [];
     if (this.fieldWhitelist) {
       fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));
     } else if (this.fieldBlacklist) {
@@ -37,7 +38,7 @@ export class CompoundBlockUiComponent implements GuiComponentInterface {
     return fields;
   }
 
-  fieldTrackBy(index: number, item: { index: number, key: string}) {
+  fieldTrackBy(index: number, item: { index: number; key: string }) {
     return item.index;
   }
 
