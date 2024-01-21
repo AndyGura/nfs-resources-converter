@@ -9,11 +9,13 @@ def _get_palette_from_shpi(shpi_block, shpi_data: dict):
     # some of SHPI directories have 0000 as palette. Happens in NFS2SE car models, dash hud, render/pc
     child_field = shpi_block.field_blocks_map['children'].child
     for name in ['!pal', '!PAL', '0000']:
-        data = shpi_data['children'].get(name, None)
-        if data:
+        try:
+            data = next(x['data'] for x in shpi_data['children'] if x['name'] == name)
             block = child_field.possible_blocks[data['choice_index']]
             if block and isinstance(block, BasePalette):
                 return block, data['data']
+        except StopIteration:
+            pass
     return None, None
 
 
@@ -67,6 +69,6 @@ def determine_palette_for_8_bit_bitmap(block: Bitmap8Bit, data: dict, id: str) -
         if palette_block is None and 'ART/CONTROL/' in id:
             # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
             from library import require_resource
-            (_, _, shpi), _ = require_resource('/'.join(id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS')
-            (palette_block, palette_data) = _get_palette_from_shpi(shpi)
+            (_, shpi_block, shpi_data), _ = require_resource('/'.join(id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS__data')
+            (palette_block, palette_data) = _get_palette_from_shpi(shpi_block, shpi_data)
     return palette_block, palette_data

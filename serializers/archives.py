@@ -6,7 +6,6 @@ from library.helpers.exceptions import DataIntegrityException
 from library.helpers.id import join_id
 from library.read_data import ReadData
 from library.utils import format_exception
-from library2.context import WriteContext
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
@@ -27,9 +26,11 @@ class ShpiArchiveSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
         children_field = block.field_blocks_map['children'].child
-        items = [(name, data['children'][name]['data'],children_field.possible_blocks[data['children'][name]['choice_index']]) for name in
-                 (data['children_descriptions'][i]['name'] for i in range(data['children_count']))]
+        items = [(data['children'][i]['name'], data['children'][i]['data']['data'],
+                  children_field.possible_blocks[data['children'][i]['data']['choice_index']]) for i in
+                 range(data['children_count'])]
         skipped_resources = []
+        save_image_names = {}
         for name, item_data, item_block in items:
             if isinstance(item_data, Exception):
                 skipped_resources.append((name, format_exception(item_data)))
@@ -37,8 +38,17 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             try:
                 if not self.settings.images__save_images_only or isinstance(item_block, AnyBitmapBlock):
                     serializer = serializers.get_serializer(item_block, item_data)
-                    serializer.serialize(item_data, os.path.join(path, escape_chars(name).replace('/', '_')), block=item_block,
+                    file_name = escape_chars(name).replace('/', '_')
+                    if save_image_names.get(file_name):
+                        original_file_name = file_name
+                        i = 0
+                        while save_image_names.get(file_name):
+                            file_name = f'{original_file_name}{i}'
+                            i += 1
+                    serializer.serialize(item_data, os.path.join(path, file_name),
+                                         block=item_block,
                                          id=join_id(id, 'children', name))
+                    save_image_names[file_name] = True
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()
@@ -118,7 +128,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                          (tail_lights_color & 0xff00) >> 8)
                         if BitmapWithPaletteSerializer.has_tail_lights(bitmaps_8bit[i])
                         else (
-                        (transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16, (transparent & 0xff00) >> 8)
+                            (transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16,
+                            (transparent & 0xff00) >> 8)
                     )
                     img.paste(src, mask=(None if src.mode == 'RGB' else src.split()[3]))
                     quantized_img = img.quantize(colors=max_colors_amount + 1)  # + transparent channel

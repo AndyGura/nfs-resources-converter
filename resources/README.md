@@ -392,7 +392,7 @@
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | width\*height | Array of `width*height` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Color indexes of bitmap pixels. The actual colors are in assigned to this bitmap palette |
 | 16+width\*height | **skip_bytes** | up to offset block_size | Bytes | - |
-| block_size | **palette** | 0..1040 | One of types:<br/>- [Palette24BitDos](#palette24bitdos)<br/>- [Palette24Bit](#palette24bit)<br/>- [Palette32Bit](#palette32bit)<br/>- [Palette16Bit](#palette16bit)<br/>- [PaletteReference](#palettereference)<br/>- Nothing, block skipped | - |
+| block_size | **palette** | ? | One of types:<br/>- [Palette24BitDos](#palette24bitdos)<br/>- [Palette24Bit](#palette24bit)<br/>- [Palette32Bit](#palette32bit)<br/>- [Palette16Bit](#palette16bit)<br/>- [PaletteReference](#palettereference)<br/>- Nothing, block skipped | - |
 ### **Bitmap32Bit** ###
 #### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -464,44 +464,62 @@
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
 ## **Palettes** ##
 ### **PaletteReference** ###
-#### **Size**: 8 bytes ####
+#### **Size**: 8..? bytes ####
 #### **Description**: Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. Probably a reference to palette which should be used, that's why named so ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
-| 1 | **unknowns** | 7 | Bytes | Unknown purpose |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **unk1_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 8 | **unk1** | 2\*unk1_length\*4 | Array of `2*unk1_length` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **Palette24BitDos** ###
-#### **Size**: 784 bytes ####
+#### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x22 | Resource ID |
-| 1 | **unknowns** | 15 | Bytes | Unknown purpose |
-| 16 | **colors** | 768 | Array of `256` items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit dos color, 00rrrrrr_00gggggg_00bbbbbb | Colors LUT |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **colors_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
+| 6 | **unk1** | 2 | Bytes | Unknown purpose |
+| 8 | **colors_amount1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to colors_amount? |
+| 10 | **unk2** | 6 | Bytes | Unknown purpose |
+| 16 | **colors** | colors_amount\*3 | Array of `colors_amount` items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit dos color, 00rrrrrr_00gggggg_00bbbbbb | Colors LUT |
 ### **Palette24Bit** ###
-#### **Size**: 784 bytes ####
+#### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x24 | Resource ID |
-| 1 | **unknowns** | 15 | Bytes | Unknown purpose |
-| 16 | **colors** | 768 | Array of `256` items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit color (big-endian), rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **colors_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
+| 6 | **unk1** | 2 | Bytes | Unknown purpose |
+| 8 | **colors_amount1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to colors_amount? |
+| 10 | **unk2** | 6 | Bytes | Unknown purpose |
+| 16 | **colors** | colors_amount\*3 | Array of `colors_amount` items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit color (big-endian), rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
 ### **Palette32Bit** ###
-#### **Size**: 1040 bytes ####
+#### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x2a | Resource ID |
-| 1 | **unknowns** | 15 | Bytes | Unknown purpose |
-| 16 | **colors** | 1024 | Array of `256` items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **colors_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
+| 6 | **unk1** | 2 | Bytes | Unknown purpose |
+| 8 | **colors_amount1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to colors_amount? |
+| 10 | **unk2** | 6 | Bytes | Unknown purpose |
+| 16 | **colors** | colors_amount\*4 | Array of `colors_amount` items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
 ### **Palette16Bit** ###
-#### **Size**: 528 bytes ####
+#### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x2d | Resource ID |
-| 1 | **unknowns** | 15 | Bytes | Unknown purpose |
-| 16 | **colors** | 512 | Array of `256` items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent | Colors LUT |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **colors_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
+| 6 | **unk1** | 2 | Bytes | Unknown purpose |
+| 8 | **colors_amount1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to colors_amount? |
+| 10 | **unk2** | 6 | Bytes | Unknown purpose |
+| 16 | **colors** | colors_amount\*2 | Array of `colors_amount` items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent | Colors LUT |
 ## **Audio** ##
 ### **AsfAudio** ###
 #### **Size**: 36..? bytes ####

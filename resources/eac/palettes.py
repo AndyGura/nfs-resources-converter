@@ -59,6 +59,8 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         res = super().read(buffer, ctx, name)
+        if res.get('colors_amount') is not None:
+            assert res['colors_amount'] == res['colors_amount1']
         res['last_color_transparent'] = False
         try:
             if self.can_use_last_color_as_transparent and res['colors'][255] in transparency_colors:
@@ -75,8 +77,13 @@ class PaletteReference(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, required_value=0x7C),
                        {'description': 'Resource ID'})
-        unknowns = (BytesBlock(length=7),
-                    {'is_unknown': True})
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        unk1_length = (IntegerBlock(length=4),
+                       {'is_unknown': True})
+        unk1 = (ArrayBlock(length=(lambda ctx: 2 * ctx.data('unk1_length'), '2*unk1_length'),
+                           child=IntegerBlock(length=4)),
+                {'is_unknown': True})
 
     @property
     def schema(self) -> Dict:
@@ -91,9 +98,18 @@ class Palette24BitDos(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, required_value=0x22),
                        {'description': 'Resource ID'})
-        unknowns = (BytesBlock(length=15),
-                    {'is_unknown': True})
-        colors = (ArrayBlock(length=256, child=Color24BitDosBlock()),
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        colors_amount = (IntegerBlock(length=2),
+                         {'description': 'Amount of colors'})
+        unk1 = (BytesBlock(length=2),
+                {'is_unknown': True})
+        colors_amount1 = (IntegerBlock(length=2),
+                          {'description': 'Always equal to colors_amount?'})
+        unk2 = (BytesBlock(length=6),
+                {'is_unknown': True})
+        colors = (ArrayBlock(length=(lambda ctx: ctx.data('colors_amount'), 'colors_amount'),
+                             child=Color24BitDosBlock()),
                   {'description': 'Colors LUT'})
 
 
@@ -101,9 +117,18 @@ class Palette24Bit(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, required_value=0x24),
                        {'description': 'Resource ID'})
-        unknowns = (BytesBlock(length=15),
-                    {'is_unknown': True})
-        colors = (ArrayBlock(length=256, child=Color24BitBigEndianField()),
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        colors_amount = (IntegerBlock(length=2),
+                         {'description': 'Amount of colors'})
+        unk1 = (BytesBlock(length=2),
+                {'is_unknown': True})
+        colors_amount1 = (IntegerBlock(length=2),
+                          {'description': 'Always equal to colors_amount?'})
+        unk2 = (BytesBlock(length=6),
+                {'is_unknown': True})
+        colors = (ArrayBlock(length=(lambda ctx: ctx.data('colors_amount'), 'colors_amount'),
+                             child=Color24BitBigEndianField()),
                   {'description': 'Colors LUT'})
 
 
@@ -111,9 +136,18 @@ class Palette32Bit(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, required_value=0x2A),
                        {'description': 'Resource ID'})
-        unknowns = (BytesBlock(length=15),
-                    {'is_unknown': True})
-        colors = (ArrayBlock(length=256, child=Color32BitBlock()),
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        colors_amount = (IntegerBlock(length=2),
+                         {'description': 'Amount of colors'})
+        unk1 = (BytesBlock(length=2),
+                {'is_unknown': True})
+        colors_amount1 = (IntegerBlock(length=2),
+                          {'description': 'Always equal to colors_amount?'})
+        unk2 = (BytesBlock(length=6),
+                {'is_unknown': True})
+        colors = (ArrayBlock(length=(lambda ctx: ctx.data('colors_amount'), 'colors_amount'),
+                             child=Color32BitBlock()),
                   {'description': 'Colors LUT'})
 
     can_use_last_color_as_transparent = False
@@ -123,7 +157,16 @@ class Palette16Bit(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, required_value=0x2D),
                        {'description': 'Resource ID'})
-        unknowns = (BytesBlock(length=15),
-                    {'is_unknown': True})
-        colors = (ArrayBlock(length=256, child=Color16Bit0565Block()),
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        colors_amount = (IntegerBlock(length=2),
+                         {'description': 'Amount of colors'})
+        unk1 = (BytesBlock(length=2),
+                {'is_unknown': True})
+        colors_amount1 = (IntegerBlock(length=2),
+                          {'description': 'Always equal to colors_amount?'})
+        unk2 = (BytesBlock(length=6),
+                {'is_unknown': True})
+        colors = (ArrayBlock(length=(lambda ctx: ctx.data('colors_amount'), 'colors_amount'),
+                             child=Color16Bit0565Block()),
                   {'description': 'Colors LUT'})

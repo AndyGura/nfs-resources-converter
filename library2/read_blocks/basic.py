@@ -162,16 +162,17 @@ class HeapBlock(BytesBlock):
         }
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        packed_sizes = {name: self.child.estimate_packed_size(data) for (name, data) in data.items()}
-        last_item_name, last_offset = max(self.layout_children([x for x in packed_sizes.items()]), key=lambda d: d[1])
-        return last_offset + packed_sizes[last_item_name]
+        packed_items = [(x['name'], self.child.estimate_packed_size(x['data'])) for x in data]
+        layout = self.layout_children([(*x, None) for x in packed_items])
+        last_i, (_, last_offset, _) = max(enumerate(layout), key=lambda d: d[1][1])
+        return last_offset + packed_items[last_i][1]
 
     # for each item provide tuple with name and length
-    def default_layout(self, items: List[Tuple[str, int]]):
+    def default_layout(self, items: List[Tuple[str, int, bytes]]):
         offset = 0
         res = []
-        for (name, packed_data_size) in items:
-            res.append((name, offset))
+        for (name, packed_data_size, bts) in items:
+            res.append((name, offset, bts))
             offset += packed_data_size
         return res
 
@@ -184,28 +185,28 @@ class HeapBlock(BytesBlock):
             self.layout_children = self.default_layout
 
     def get_child_block_with_data(self, unpacked_data, name: str) -> Tuple['DataBlock', Any]:
-        return self.child, unpacked_data.get(name)
+        return self.child, unpacked_data[int(name)]['data']
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         children = self.children_descr(ctx)
         bts = super().read(buffer, ctx, name, read_bytes_amount)
-        res = {}
+        res = []
         self_ctx = ReadContext(buffer=buffer, data=res, name=name, block=self, parent=ctx,
                                read_bytes_amount=read_bytes_amount)
         for (name, offset, length) in children:
             self_ctx.buffer = BytesIO(bts[offset:offset + length] if length is not None else bts[offset:])
-            res[name] = self.child.unpack(self_ctx.buffer, ctx=self_ctx, name=name, read_bytes_amount=length)
+            res.append({ 'name': name, 'data': self.child.unpack(self_ctx.buffer, ctx=self_ctx, name=name, read_bytes_amount=length) })
         return res
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        packed_items = {name: self.child.pack(data) for (name, data) in data.items()}
+        packed_items = [(x['name'], self.child.pack(x['data'])) for x in data]
         res = b''
-        for (name, offset) in sorted(self.layout_children([(name, len(bts)) for name, bts in packed_items.items()]),
-                                     key=lambda d: d[1]):
+        for (name, offset, bts) in sorted(self.layout_children([(name, len(bts), bts) for name, bts in packed_items]),
+                                          key=lambda d: d[1]):
             if len(res) < offset:
                 res += bytes([0] * (offset - offset.size()))
             elif len(res) > offset:
                 # TODO support
                 raise NotImplementedError('Intersecting blocks in heap not supported')
-            res += packed_items[name]
+            res += bts
         return res

@@ -5,6 +5,7 @@ from typing import Dict, Any
 
 import settings
 from library.helpers.data_wrapper import DataWrapper
+from library.helpers.id import join_id
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.delegate import DelegateBlock
@@ -26,6 +27,15 @@ class ResourceSerializer(ABC):
 
     def deserialize(self, data: Any, path: str, id=None, block=None, **kwargs):
         raise NotImplementedError
+
+
+class DelegateBlockSerializer(ResourceSerializer):
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> Dict:
+        from serializers import get_serializer
+        sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']
+        serializer = get_serializer(sub_block, sub_data)
+        return serializer.serialize(sub_data, path=path, id=join_id(id, 'data'), block=sub_block)
 
 
 class BaseFileSerializer(ResourceSerializer):

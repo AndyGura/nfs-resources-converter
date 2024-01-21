@@ -7,7 +7,7 @@ from library.read_blocks.compound import CompoundBlock as CompoundBlockOld
 from library.read_blocks.literal import LiteralBlock
 from library2.context import ReadContext
 from library2.read_blocks import (CompoundBlock, DeclarativeCompoundBlock, UTF8Block, IntegerBlock, ArrayBlock,
-                                  HeapBlock, AutoDetectBlock, SkipBlock, DelegateBlock)
+                                  HeapBlock, AutoDetectBlock, SkipBlock)
 from resources.eac.audios import EacsAudio
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.compressions.qfs2 import Qfs2Compression
@@ -26,7 +26,6 @@ class CompressedBlock(AutoDetectBlock):
         self.algorithm = None
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        raise NotImplementedError
         uncompressed_bytes = self.algorithm(buffer, read_bytes_amount)
         uncompressed = BytesIO(uncompressed_bytes)
         self_ctx = ReadContext(buffer=uncompressed, name=name, parent=ctx, read_bytes_amount=len(uncompressed_bytes))

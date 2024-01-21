@@ -110,7 +110,7 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
                              length=(lambda ctx: ctx.data('width') * ctx.data('height'), 'width*height')),
                   {'description': 'Color indexes of bitmap pixels. The actual colors are '
                                   'in assigned to this bitmap palette'})
-        skip_bytes = BytesBlock(length=(lambda ctx: ctx.data('block_size') - ctx.buffer.tell(),
+        skip_bytes = BytesBlock(length=(lambda ctx: ctx.data('block_size') + ctx.read_start_offset - ctx.buffer.tell(),
                                         'up to offset block_size'))
         palette = (AutoDetectBlock(possible_blocks=[Palette24BitDos(),
                                                     Palette24Bit(),

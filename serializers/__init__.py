@@ -1,8 +1,7 @@
 import settings
-from library.read_blocks.data_block import DataBlock
 from library.utils import my_import
-from library2.read_blocks import DelegateBlock
-from .base import BaseFileSerializer
+from library2.read_blocks import DataBlock, DelegateBlock
+from serializers.base import BaseFileSerializer, DelegateBlockSerializer
 from .palettes import PaletteSerializer
 from .bitmaps import BitmapSerializer, BitmapWithPaletteSerializer
 from .fonts import FfnFontSerializer
@@ -12,15 +11,13 @@ from .geometries import OripGeometrySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
 from .videos import FfmpegSupportedVideoSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
-from .data_transfer import DataTransferSerializer
 
 
 def get_serializer(block: DataBlock, data) -> BaseFileSerializer:
     if isinstance(block, Exception):
         raise block
     if isinstance(block, DelegateBlock):
-        # TODO wrap into delegate serializer?
-        block = block.possible_blocks[data['choice_index']]
+        return DelegateBlockSerializer()
     serializer_class_name = settings.SERIALIZER_CLASSES.get(block.__class__.__name__)
     serializer_class = None
     if serializer_class_name:

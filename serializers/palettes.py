@@ -1,5 +1,3 @@
-from library.read_data import ReadData
-from resources.eac.palettes import BasePalette
 from serializers import BaseFileSerializer
 
 

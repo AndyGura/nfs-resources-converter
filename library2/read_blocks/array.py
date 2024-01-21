@@ -51,18 +51,22 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
             else:
                 return f'{length_doc}*{child_size_doc}'
 
-    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
-        return self.child, unpacked_data[int(name)]
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        res = []
-        self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
+    def resolve_length(self, ctx):
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
         if callable(self_len):
             self_len = self_len(ctx)
+        return self_len
+
+    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+        return self.child, unpacked_data[int(name)]
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        res = []
+        self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
+        self_len = self.resolve_length(ctx)
         if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
             res = list(buffer.read(self_len))
             if len(res) < self_len:
@@ -91,6 +95,65 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         for i, item in enumerate(data):
             res += self.child.pack(data=item, ctx=ctx, name=str(i))
         return res
+
+# TODO is it still needed?
+# class NamedArrayBlock(ArrayBlock):
+#
+#     def __init__(self, child: DataBlock, child_names, **kwargs):
+#         super().__init__(**kwargs, child=child, length=None)
+#         self.child_names = child_names
+#
+#     @property
+#     def schema(self) -> Dict:
+#         return {
+#             **super().schema,
+#             'block_description': f'Array of `{self.length_doc_str}` items',
+#             'child_schema': self.child.schema
+#         }
+#
+#     # For auto-generated documentation only
+#     @property
+#     def length_doc_str(self):
+#         if isinstance(self.child_names, tuple):
+#             (_, doc_str) = self.child_names
+#             return f'count({doc_str})'
+#         if callable(self.child_names):
+#             return "custom_func"
+#         return str(len(self.child_names))
+#
+#     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+#         return self.child, unpacked_data[int(name)]
+#
+#     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+#         res = []
+#         self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
+#         names = self.child_names
+#         if isinstance(names, tuple):
+#             # cut off the documentation
+#             (names, _) = names
+#         if callable(names):
+#             names = names(ctx)
+#         for i, name in enumerate(names):
+#             res.append({ 'name': name, 'data': self.child.unpack(buffer=buffer, ctx=self_ctx, name=f'{i}__{name}') })
+#         return res
+#
+#     def estimate_packed_size(self, data, ctx: WriteContext = None):
+#         res = 0
+#         for item in data:
+#             res += self.child.estimate_packed_size(data=item['data'], ctx=ctx)
+#         return res
+#
+#     def offset_to_child_when_packed(self, data, child_name: str, ctx: WriteContext = None):
+#         index = int(child_name)
+#         if index >= len(data):
+#             raise IndexError()
+#         return self.estimate_packed_size(data[:index], ctx)
+#
+#     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+#         res = bytes()
+#         for i, item in enumerate(data):
+#             res += self.child.pack(data=item['data'], ctx=ctx, name=f'{i}__{item["name"]}')
+#         return res
 
 
 class SubByteArrayBlock(DataBlock):
@@ -139,16 +202,20 @@ class SubByteArrayBlock(DataBlock):
         except ValueError:
             return f'ceil(({length_doc})*{self.bits_per_value}/8)'
 
-    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
-        return None, unpacked_data[int(name)]
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def resolve_length(self, ctx):
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
         if callable(self_len):
             self_len = self_len(ctx)
+        return self_len
+
+    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+        return None, unpacked_data[int(name)]
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        self_len = self.resolve_length(ctx)
         raw = buffer.read(ceil(self.bits_per_value * self_len / 8))
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])
         values = [int(bitstring[i * self.bits_per_value:(i + 1) * self.bits_per_value], 2)

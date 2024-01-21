@@ -68,7 +68,7 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
     } else {
       this.childResource = {
         ...this._resource,
-        id: this._resource.id + '/' + 'data',
+        id: this._resource.id + (this._resource.id.includes('__') ? '/' : '__') + 'data',
         data: this.choiceDataCaches[this._resource.data.choice_index],
         schema: this._resource.schema.possible_resource_schemas[this._resource.data.choice_index],
       };
