@@ -33,13 +33,17 @@ class UTF8Block(DataBlock):
             return "custom_func"
         return str(self._length)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def resolve_length(self, ctx):
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
         if callable(self_len):
             self_len = self_len(ctx)
+        return self_len
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        self_len = self.resolve_length(ctx)
         res = buffer.read(self_len).decode('utf-8')
         if len(res) < self_len:
             raise EndOfBufferException()

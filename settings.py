@@ -24,6 +24,7 @@ SERIALIZER_CLASSES = {
     'DashDeclarationFile': 'JsonSerializer',
     'FfnFont': 'FfnFontSerializer',
     'Palette16Bit': 'PaletteSerializer',
+    'Palette16BitDos': 'PaletteSerializer',
     'Palette24BitDos': 'PaletteSerializer',
     'Palette24Bit': 'PaletteSerializer',
     'Palette32Bit': 'PaletteSerializer',
@@ -36,21 +37,20 @@ SERIALIZER_CLASSES = {
     'EacsAudio': 'EacsAudioSerializer',
     'AsfAudio': 'FfmpegSupportedAudioSerializer',
     'TnfsConfigDat': 'JsonSerializer',
+    'ShpiText': 'ShpiTextSerializer',
 }
 # for debug: this option will dump all data, marked as "unknown" to json file besides the output
 export_unknown_values = False
 
-# save palette, which is a part of 8bit bitmap and not listed in SHPI block
-images__save_inline_palettes = False
 # skip saving palette, image positions
 images__save_images_only = False
 
 # for car sfx for engine, honk, additionally export long audio, where the sample repeated 16 times
-audio__save_car_sfx_loops = False
+audio__save_car_sfx_loops = True
 
 # saves each terrain mesh chunk as separate obj/blend file and main file with road path.
 # If false builds entire map into single file
-maps__save_as_chunked = False
+maps__save_as_chunked = True
 # places boxes with collision, where invisible wall is located
 maps__save_invisible_wall_collisions = False  # this one will consume time...
 maps__save_terrain_collisions = False
@@ -58,11 +58,11 @@ maps__save_terrain_collisions = False
 maps__save_spherical_skybox_texture = True
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
-geometry__save_obj = False
+geometry__save_obj = True
 # saves blender scene for each 3D scene
-geometry__save_blend = True
+geometry__save_blend = False
 # export to gg-web-engine https://github.com/AndyGura/gg-web-engine
-geometry__export_to_gg_web_engine = False
-# removes empty polygons, representing whels and their shadow. Places a dummy on the position where wheel axle
+geometry__export_to_gg_web_engine = True
+# removes empty polygons, representing wheels and their shadow. Places a dummy on the position where wheel axle
 # located and set wheel width, radius as custom properties of the dummy instead
 geometry__replace_car_wheel_with_dummies = True

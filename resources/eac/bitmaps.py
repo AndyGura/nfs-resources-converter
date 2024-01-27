@@ -1,15 +1,17 @@
 from typing import Dict
 
 from library.utils import transform_bitness
-from library2.read_blocks import DeclarativeCompoundBlock, IntegerBlock, SubByteArrayBlock, BytesBlock, ArrayBlock, \
-    SkipBlock, AutoDetectBlock
+from library2.read_blocks import (DeclarativeCompoundBlock,
+                                  IntegerBlock,
+                                  SubByteArrayBlock,
+                                  BytesBlock,
+                                  ArrayBlock)
 from resources.eac.fields.colors import (
     Color16Bit1555Block,
     Color16Bit0565Block,
     Color32BitBlock,
     Color24BitLittleEndianField
 )
-from resources.eac.palettes import Palette16Bit, Palette32Bit, Palette24Bit, Palette24BitDos, PaletteReference
 
 
 class AnyBitmapBlock(DeclarativeCompoundBlock):
@@ -21,8 +23,7 @@ class Bitmap16Bit0565(AnyBitmapBlock, DeclarativeCompoundBlock):
         resource_id = (IntegerBlock(length=1, required_value=0x78),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                      '"WRAP" SHPI directory it contains some different unknown data'})
+                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length'})
         width = (IntegerBlock(length=2),
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
@@ -53,8 +54,7 @@ class Bitmap4Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         resource_id = (IntegerBlock(length=1, required_value=0x7A),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                      '"WRAP" SHPI directory it contains some different unknown data'})
+                      {'description': 'Bitmap block size 16+width\\*height/2 + trailing bytes length'})
         # TODO ensure the value is even. At least for fonts
         width = (IntegerBlock(length=2),
                  {'description': 'Bitmap width in pixels. Has to be an even number (at least in the FFN font)'})
@@ -94,8 +94,7 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         resource_id = (IntegerBlock(length=1, required_value=0x7B),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                      '"WRAP" SHPI directory it contains some different unknown data'})
+                      {'description': 'Bitmap block size 16+width\\*height + trailing bytes length'})
         width = (IntegerBlock(length=2),
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
@@ -110,15 +109,6 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
                              length=(lambda ctx: ctx.data('width') * ctx.data('height'), 'width*height')),
                   {'description': 'Color indexes of bitmap pixels. The actual colors are '
                                   'in assigned to this bitmap palette'})
-        skip_bytes = BytesBlock(length=(lambda ctx: ctx.data('block_size') + ctx.read_start_offset - ctx.buffer.tell(),
-                                        'up to offset block_size'))
-        palette = (AutoDetectBlock(possible_blocks=[Palette24BitDos(),
-                                                    Palette24Bit(),
-                                                    Palette32Bit(),
-                                                    Palette16Bit(),
-                                                    PaletteReference(),
-                                                    SkipBlock()]),
-                   {'custom_offset': 'block_size'})
 
 
 class Bitmap32Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
@@ -126,8 +116,7 @@ class Bitmap32Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         resource_id = (IntegerBlock(length=1, required_value=0x7D),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                      '"WRAP" SHPI directory it contains some different unknown data'})
+                      {'description': 'Bitmap block size 16+4\\*width\\*height + trailing bytes length'})
         width = (IntegerBlock(length=2),
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
@@ -148,8 +137,7 @@ class Bitmap16Bit1555(AnyBitmapBlock, DeclarativeCompoundBlock):
         resource_id = (IntegerBlock(length=1, required_value=0x7E),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                      '"WRAP" SHPI directory it contains some different unknown data'})
+                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length'})
         width = (IntegerBlock(length=2),
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
@@ -170,8 +158,7 @@ class Bitmap24Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         resource_id = (IntegerBlock(length=1, required_value=0x7F),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length. For '
-                                      '"WRAP" SHPI directory it contains some different unknown data'})
+                      {'description': 'Bitmap block size 16+3\\*width\\*height + trailing bytes length'})
         width = (IntegerBlock(length=2),
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),

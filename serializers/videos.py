@@ -1,7 +1,5 @@
 import subprocess
 
-from library.read_data import ReadData
-from resources.eac.videos import FfmpegSupportedVideo
 from serializers import BaseFileSerializer
 
 

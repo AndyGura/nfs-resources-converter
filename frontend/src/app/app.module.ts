@@ -45,7 +45,6 @@ import { RunCustomActionDialogComponent } from './components/run-custom-action.d
 import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
 import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
 import { MatOptionModule } from '@angular/material/core';
-import { AliasedArrayBlockUiComponent } from './components/editor/library/array.block-ui/aliased-array.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -57,7 +56,6 @@ import { AliasedArrayBlockUiComponent } from './components/editor/library/array.
     StringBlockUiComponent,
     IntegerBlockUiComponent,
     ArrayBlockUiComponent,
-    AliasedArrayBlockUiComponent,
     BitmapBlockUiComponent,
     // PaletteBlockUiComponent,
     BinaryBlockUiComponent,

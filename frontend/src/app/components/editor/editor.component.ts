@@ -29,7 +29,6 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
 // import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { EelDelegateService } from '../../services/eel-delegate.service';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
-import { AliasedArrayBlockUiComponent } from './library/array.block-ui/aliased-array.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -41,8 +40,6 @@ export class EditorComponent implements OnDestroy {
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
     // AngleBlock: AngleBlockUiComponent,
     ArrayBlock: ArrayBlockUiComponent,
-    HeapBlock: AliasedArrayBlockUiComponent,
-    // NamedArrayBlock: AliasedArrayBlockUiComponent,
     SubByteArrayBlock: ArrayBlockUiComponent,
     // BitFlagsBlock: FlagsBlockUiComponent,
     BytesBlock: BinaryBlockUiComponent,

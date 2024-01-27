@@ -103,13 +103,19 @@ class BytesBlock(DataBlock):
             'block_description': descr,
         }
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def resolve_length(self, ctx):
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
         if callable(self_len):
             self_len = self_len(ctx)
+        return self_len
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        self_len = self.resolve_length(ctx)
+        if self_len < 0:
+            raise BlockDefinitionException('Cannot read bytes block with negative length')
         res = buffer.read(self_len)
         if len(res) < self_len:
             raise EndOfBufferException()
@@ -148,65 +154,3 @@ class SkipBlock(DataBlock):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return bytes()
-
-
-class HeapBlock(BytesBlock):
-    ### a heap, containing one or more blocks somewhere in it
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'Heap',
-            'child_schema': self.child.schema,
-        }
-
-    def estimate_packed_size(self, data, ctx: WriteContext = None):
-        packed_items = [(x['name'], self.child.estimate_packed_size(x['data'])) for x in data]
-        layout = self.layout_children([(*x, None) for x in packed_items])
-        last_i, (_, last_offset, _) = max(enumerate(layout), key=lambda d: d[1][1])
-        return last_offset + packed_items[last_i][1]
-
-    # for each item provide tuple with name and length
-    def default_layout(self, items: List[Tuple[str, int, bytes]]):
-        offset = 0
-        res = []
-        for (name, packed_data_size, bts) in items:
-            res.append((name, offset, bts))
-            offset += packed_data_size
-        return res
-
-    def __init__(self, child: DataBlock, children_descr: Callable, layout_children: Callable = None, **kwargs):
-        super().__init__(**kwargs)
-        self.child = child
-        self.children_descr = children_descr
-        self.layout_children = layout_children
-        if not self.layout_children:
-            self.layout_children = self.default_layout
-
-    def get_child_block_with_data(self, unpacked_data, name: str) -> Tuple['DataBlock', Any]:
-        return self.child, unpacked_data[int(name)]['data']
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        children = self.children_descr(ctx)
-        bts = super().read(buffer, ctx, name, read_bytes_amount)
-        res = []
-        self_ctx = ReadContext(buffer=buffer, data=res, name=name, block=self, parent=ctx,
-                               read_bytes_amount=read_bytes_amount)
-        for (name, offset, length) in children:
-            self_ctx.buffer = BytesIO(bts[offset:offset + length] if length is not None else bts[offset:])
-            res.append({ 'name': name, 'data': self.child.unpack(self_ctx.buffer, ctx=self_ctx, name=name, read_bytes_amount=length) })
-        return res
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        packed_items = [(x['name'], self.child.pack(x['data'])) for x in data]
-        res = b''
-        for (name, offset, bts) in sorted(self.layout_children([(name, len(bts), bts) for name, bts in packed_items]),
-                                          key=lambda d: d[1]):
-            if len(res) < offset:
-                res += bytes([0] * (offset - offset.size()))
-            elif len(res) > offset:
-                # TODO support
-                raise NotImplementedError('Intersecting blocks in heap not supported')
-            res += bts
-        return res

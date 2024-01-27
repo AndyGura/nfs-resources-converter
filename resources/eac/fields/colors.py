@@ -112,6 +112,31 @@ class Color16Bit0565Block(IntegerBlock):
         return super().write(value, ctx, name)
 
 
+class Color16BitDosBlock(IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': '16-bit color, not tested properly',
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(length=2, **kwargs)
+
+    # TODO colors not tested!
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        number = super().read(buffer, ctx, name)
+        value = transform_color_bitness(number, 0, 5, 6, 5)
+        return value
+
+    def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:
+        red = (value & 0xff000000) >> 27
+        green = (value & 0xff0000) >> 18
+        blue = (value & 0xff00) >> 11
+        value = red << 11 | green << 5 | blue
+        return super().write(value, ctx, name)
+
+
 class Color16Bit1555Block(IntegerBlock):
 
     @property

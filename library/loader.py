@@ -56,13 +56,18 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif resource_id == 0x24:
             from resources.eac.palettes import Palette24Bit
             return Palette24Bit
-        # TODO 41 (0x29) 16 bit dos palette
+        elif resource_id == 0x29:
+            from resources.eac.palettes import Palette16BitDos
+            return Palette16BitDos
         elif resource_id == 0x2A:
             from resources.eac.palettes import Palette32Bit
             return Palette32Bit
         elif resource_id == 0x2D:
             from resources.eac.palettes import Palette16Bit
             return Palette16Bit
+        elif resource_id == 0x6F:
+            from resources.eac.misc import ShpiText
+            return ShpiText
         elif resource_id == 0x78:
             from resources.eac.bitmaps import Bitmap16Bit0565
             return Bitmap16Bit0565

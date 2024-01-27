@@ -8,7 +8,7 @@ from resources.eac.fields.colors import (
     Color24BitBigEndianField,
     Color24BitDosBlock,
     Color32BitBlock,
-    Color16Bit0565Block,
+    Color16Bit0565Block, Color16BitDosBlock,
 )
 
 transparency_colors = [
@@ -129,6 +129,25 @@ class Palette24Bit(BasePalette):
                 {'is_unknown': True})
         colors = (ArrayBlock(length=(lambda ctx: ctx.data('colors_amount'), 'colors_amount'),
                              child=Color24BitBigEndianField()),
+                  {'description': 'Colors LUT'})
+
+
+class Palette16BitDos(BasePalette):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, required_value=0x29),
+                       {'description': 'Resource ID'})
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        colors_amount = (IntegerBlock(length=2),
+                         {'description': 'Amount of colors'})
+        unk1 = (BytesBlock(length=2),
+                {'is_unknown': True})
+        colors_amount1 = (IntegerBlock(length=2),
+                          {'description': 'Always equal to colors_amount?'})
+        unk2 = (BytesBlock(length=6),
+                {'is_unknown': True})
+        colors = (ArrayBlock(length=(lambda ctx: ctx.data('colors_amount'), 'colors_amount'),
+                             child=Color16BitDosBlock()),
                   {'description': 'Colors LUT'})
 
 

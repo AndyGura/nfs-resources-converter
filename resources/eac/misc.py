@@ -1,6 +1,30 @@
+from typing import Dict
+
 from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.atomic import Utf8Block
 from library.read_data import ReadData
+from library2.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
+
+
+class ShpiText(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'An entry, which sometimes can be seen in the SHPI archive block after bitmap, '
+                                 'contains some text. The purpose is unclear',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, required_value=0x6F),
+                       {'description': 'Resource ID'})
+        unk = (BytesBlock(length=3),
+               {'is_unknown': True})
+        length = (IntegerBlock(length=4),
+                  {'description': 'Text length'})
+        text = (UTF8Block(length=(lambda ctx: ctx.data('length'), 'length')),
+                {'description': 'Text itself'})
 
 
 class DashDeclarationFile(Utf8Block):

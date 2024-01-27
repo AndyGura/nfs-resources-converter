@@ -9,6 +9,7 @@ from library.utils import format_exception
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
+from resources.eac.palettes import PaletteReference, BasePalette
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
 
@@ -18,7 +19,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
     def setup_for_reversible_serialization(self) -> bool:
         self.patch_settings({
             'export_unknown_values': False,
-            'images__save_inline_palettes': False,
             'images__save_images_only': True,
         })
         return True
@@ -26,12 +26,24 @@ class ShpiArchiveSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
         children_field = block.field_blocks_map['children'].child
-        items = [(data['children'][i]['name'], data['children'][i]['data']['data'],
-                  children_field.possible_blocks[data['children'][i]['data']['choice_index']]) for i in
-                 range(data['children_count'])]
+        items = [(alias, child['data'], children_field.possible_blocks[child['choice_index']])
+                 for i, (alias, child) in enumerate(zip(data['children_aliases'], data['children']))]
         skipped_resources = []
         save_image_names = {}
-        for name, item_data, item_block in items:
+        unaliased_idx = 0
+        for i, (name, item_data, item_block) in enumerate(items):
+            if isinstance(item_block, PaletteReference):
+                continue
+            if name is None:
+                # that's a resource, assigned to the previous bitmap
+                if i > 0 and items[i - 1][0] is not None:
+                    suffix = 'extra'
+                    if isinstance(item_block, BasePalette):
+                        suffix = 'pal'
+                    name = f'{items[i - 1][0]}_{suffix}'
+                else:
+                    name = f'internal_{unaliased_idx}'
+                    unaliased_idx += 1
             if isinstance(item_data, Exception):
                 skipped_resources.append((name, format_exception(item_data)))
                 continue
@@ -47,7 +59,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                             i += 1
                     serializer.serialize(item_data, os.path.join(path, file_name),
                                          block=item_block,
-                                         id=join_id(id, 'children', name))
+                                         id=join_id(id, 'children', name, 'data'))
                     save_image_names[file_name] = True
             except Exception as ex:
                 if self.settings.print_errors:
@@ -57,13 +69,14 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             with open(os.path.join(path, 'positions.txt'), 'w') as f:
                 for name, item in [(name, data) for name, data, block in items if isinstance(block, AnyBitmapBlock)]:
                     f.write(f"{name}: {item['x']}, {item['y']}\n")
-        # if data.id and '.FAM__' in data.id and self.settings.maps__save_spherical_skybox_texture:
-        #     try:
-        #         horz_bitmap = next(x for name, x in items if name == 'horz')
-        #         nfs1_panorama_to_spherical(data.id[data.id.index('.FAM') - 7:data.id.index('.FAM') - 4],
-        #                                    os.path.join(path, 'horz.png'), os.path.join(path, 'spherical.png'))
-        #     except StopIteration:
-        #         pass
+        if '.FAM__' in id and self.settings.maps__save_spherical_skybox_texture:
+            try:
+                next(x for name, x, _ in items if name == 'horz')
+                from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
+                nfs1_panorama_to_spherical(id[id.index('.FAM') - 7:id.index('.FAM') - 4],
+                                           os.path.join(path, 'horz.png'), os.path.join(path, 'spherical.png'))
+            except StopIteration:
+                pass
         if skipped_resources:
             with open(os.path.join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
@@ -175,32 +188,37 @@ class WwwwArchiveSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
-        if data.id.endswith('.CFM') and data.children_count == 4:
+        if id.endswith('.CFM') and data['children_count'] == 4:
             # car CFM file
             names = ['high-poly', 'high-poly-assets', 'low-poly', 'low-poly-assets']
-        elif data.id.endswith('.FAM') and data.children_count == 4:
+        elif id.endswith('.FAM') and data['children_count'] == 4:
             # track FAM file
             names = ['background', 'foreground', 'skybox', 'props']
         else:
-            names = [str(i) for i in range(data.children_count.value)]
-        items = [(names[i], data.children[i]) for i in range(data.children_count.value)]
+            names = [str(i) for i in range(data['children_count'])]
+        items = list(zip(names, data['children']))
         skipped_resources = []
         # after orip skip shpi block. It will be exported by orip serializer
         skip_next_shpi = False
-        for name, item in [(name, item) for name, item in items]:
-            if isinstance(item, Exception):
-                skipped_resources.append((name, format_exception(item)))
+        for i, (name, item) in enumerate(items):
+            if item is None:
+                continue
+            item_block = block.child_block.possible_blocks[item['choice_index']]
+            item_data = item['data']
+            if isinstance(item_data, Exception):
+                skipped_resources.append((name, format_exception(item_data)))
                 continue
             if skip_next_shpi:
-                assert isinstance(item.block, ShpiBlock), \
+                assert isinstance(item_block, ShpiBlock), \
                     DataIntegrityException('After ORIP geometry in wwww archive only SHPI directory expected!')
                 skip_next_shpi = False
                 continue
-            if isinstance(item.block, OripGeometry):
+            if isinstance(item_block, OripGeometry):
                 skip_next_shpi = True
             try:
-                serializer = serializers.get_serializer(item.block, item)
-                serializer.serialize(item, os.path.join(path, name))
+                serializer = serializers.get_serializer(item_block, item_data)
+                serializer.serialize(item_data, os.path.join(path, name), block=item_block,
+                                     id=join_id(id, 'children', str(i), 'data'))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()

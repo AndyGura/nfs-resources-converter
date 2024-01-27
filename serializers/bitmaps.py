@@ -54,10 +54,6 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{escape_chars(path)}.png')
-        if self.settings.images__save_inline_palettes and data['palette'] and data['palette'] == (palette_block, palette_data):
-            from serializers import PaletteSerializer
-            palette_serializer = PaletteSerializer()
-            palette_serializer.serialize(data['palette'][1], f'{escape_chars(path)}_pal', block=data['palette'][0])
 
     def deserialize(self, path: str, resource: ReadData[Bitmap8Bit], palette=None, **kwargs) -> None:
         source = Image.open(escape_chars(path) + '.png')

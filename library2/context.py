@@ -17,8 +17,9 @@ class BaseContext:
     def data(self, local_path: str):
         data_path = local_path.split('/')
         entry = self._data
-        # TODO support paths, like ../amount
         for p in data_path:
+            if p == '..':
+                return self.parent.data('/'.join(data_path[1:]))
             entry = entry[p]
         return entry
 

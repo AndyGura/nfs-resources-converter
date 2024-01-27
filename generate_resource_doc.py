@@ -1,13 +1,12 @@
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
-from library2.read_blocks.basic import HeapBlock
-from resources.eac import archives, bitmaps, fonts, palettes
+from resources.eac import archives, bitmaps, fonts, palettes, misc
 
 EXPORT_RESOURCES = {
     'Archives': [
         archives.ShpiBlock(),
-        # archives.WwwwBlock(),
+        archives.WwwwBlock(),
         # archives.SoundBank(),
     ],
     'Geometries': [
@@ -51,6 +50,7 @@ EXPORT_RESOURCES = {
         palettes.Palette24Bit(),
         palettes.Palette32Bit(),
         palettes.Palette16Bit(),
+        palettes.Palette16BitDos(),
     ],
     'Audio': [
         # audios.AsfAudio(),
@@ -60,6 +60,7 @@ EXPORT_RESOURCES = {
         # configs.TnfsConfigDat(),
         # configs.TrackStats(),
         # configs.BestRaceRecord(),
+        misc.ShpiText(),
     ]
 }
 
@@ -74,7 +75,7 @@ def render_type(instance: DataBlock) -> str:
         return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_blocks])
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
-        if isinstance(instance, ArrayBlock) or isinstance(instance, HeapBlock):
+        if isinstance(instance, ArrayBlock):
             if not isinstance(instance.child, CompoundBlock) or instance.child.schema["inline_description"]:
                 size = render_value_doc_str(instance.child.size_doc_str)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')

@@ -11,7 +11,7 @@ from .geometries import OripGeometrySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
 from .videos import FfmpegSupportedVideoSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
-
+from .misc_serializers import ShpiTextSerializer
 
 def get_serializer(block: DataBlock, data) -> BaseFileSerializer:
     if isinstance(block, Exception):
