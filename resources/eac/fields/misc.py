@@ -74,7 +74,7 @@ class Point3D_32_4(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
-                                 + RationalNumber(length=4, fraction_bits=4, is_signed=True).block_description
+                                 + RationalNumber(length=4, fraction_bits=4, is_signed=True).schema['block_description']
                                  + '. The unit is meter',
             'inline_description': True,
         }
@@ -92,7 +92,7 @@ class Point3D_32_7(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
-                                 + RationalNumber(length=4, fraction_bits=7, is_signed=True).block_description
+                                 + RationalNumber(length=4, fraction_bits=7, is_signed=True).schema['block_description']
                                  + '. The unit is meter',
             'inline_description': True,
         }

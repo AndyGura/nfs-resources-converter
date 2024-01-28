@@ -47,7 +47,7 @@
 | 8 | **children_count** | 4 | 4-bytes unsigned integer (little endian) | An amount of items |
 | 12 | **shpi_directory** | 4 | UTF-8 string | One of: "LN32", "GIMX", "WRAP". The purpose is unknown |
 | 16 | **children_descriptions** | children_count\*8 | Array of `children_count` items<br/>Item size: 8 bytes<br/>Item type: 8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | An array of items, each of them represents name of SHPI item (image or palette) and offset to item data in file, relatively to SHPI block start (where resource id string is presented). Names are not always unique |
-| 16+children_count\*8 | **children** | ? | Array of `children_count + ?` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit)<br/>- [Bitmap16Bit0565](#bitmap16bit0565)<br/>- [Bitmap32Bit](#bitmap32bit)<br/>- [Bitmap16Bit1555](#bitmap16bit1555)<br/>- [Bitmap24Bit](#bitmap24bit)<br/>- [Palette24BitDos](#palette24bitdos)<br/>- [Palette24Bit](#palette24bit)<br/>- [Palette32Bit](#palette32bit)<br/>- [Palette16Bit](#palette16bit)<br/>- [Palette16BitDos](#palette16bitdos)<br/>- [PaletteReference](#palettereference)<br/>- [ShpiText](#shpitext)<br/>- Nothing, block skipped | A part of block, where items data is located. Offsets to some of the entries are defined in `children_descriptions` block. Between them there can be non-indexed entries (palettes and texts) |
+| 16 + children_count\*8 | **children** | ? | Array of `children_count + ?` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit)<br/>- [Bitmap16Bit0565](#bitmap16bit0565)<br/>- [Bitmap32Bit](#bitmap32bit)<br/>- [Bitmap16Bit1555](#bitmap16bit1555)<br/>- [Bitmap24Bit](#bitmap24bit)<br/>- [Palette24BitDos](#palette24bitdos)<br/>- [Palette24Bit](#palette24bit)<br/>- [Palette32Bit](#palette32bit)<br/>- [Palette16Bit](#palette16bit)<br/>- [Palette16BitDos](#palette16bitdos)<br/>- [PaletteReference](#palettereference)<br/>- [ShpiText](#shpitext)<br/>- Nothing, block skipped | A part of block, where items data is located. Offsets to some of the entries are defined in `children_descriptions` block. Between them there can be non-indexed entries (palettes and texts) |
 ### **WwwwBlock** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: A block-container with various data: image archives, geometries, other wwww blocks. If has ORIP 3D model, next item is always SHPI block with textures to this 3D model ####
@@ -56,7 +56,7 @@
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "wwww" | Resource ID |
 | 4 | **children_count** | 4 | 4-bytes unsigned integer (little endian) | An amount of items |
 | 8 | **children_offsets** | children_count\*4 | Array of `children_count` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file, relatively to wwww block start (where resource id string is presented) |
-| 8+children_count\*4 | **children** | ? | Array of `children_count` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [OripGeometry](#oripgeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [WwwwBlock](#wwwwblock)<br/>- Nothing, block skipped | A part of block, where items data is located. Offsets are defined in previous block, lengths are calculated: either up to next item offset, or up to the end of this block |
+| 8 + children_count\*4 | **children** | ? | Array of `children_count` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [ShpiBlock](#shpiblock)<br/>- [OripGeometry](#oripgeometry)<br/>- [WwwwBlock](#wwwwblock)<br/>- Nothing, block skipped | A part of block, where items data is located. Offsets are defined in previous block, lengths are calculated: either up to next item offset, or up to the end of this block |
 ### **SoundBank** ###
 #### **Size**: 512..? bytes ####
 #### **Description**: A pack of SFX samples (short audios). Used mostly for car engine sounds, crash sounds etc. ####
@@ -68,47 +68,43 @@
 ## **Geometries** ##
 ### **OripGeometry** ###
 #### **Size**: 112..? bytes ####
-#### **Description**: Geometry block for 3D model with few materials. The structure is fuzzy and hard to understand ¯\\_(ツ)_/¯. Offsets here can drift, data is not properly aligned, so it has explicitly defined offsets to some blocks ####
-<details>
-<summary>Click to see block specs (33 fields)</summary>
-
+#### **Description**: Geometry block for 3D model with few materials ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == ORIP | Resource ID |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "ORIP" | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Total ORIP block size |
 | 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian). Always == 0x2bc | Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type? |
 | 12 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 16 | **vertex_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices |
-| 20 | **unknowns0** | 4 | Array of 4 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 20 | **unk2** | 4 | Bytes | Unknown purpose |
 | 24 | **vertex_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_block |
 | 28 | **vertex_uvs_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex UV-s (texture coordinates) |
-| 32 | **vertex_uvs_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_uvs_block |
+| 32 | **vertex_uvs_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_uvs_block. Always equals to `112+polygon_count*12` |
 | 36 | **polygon_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of polygons |
-| 40 | **polygon_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to polygons block |
+| 40 | **polygon_block_offset** | 4 | 4-bytes unsigned integer (little endian). Always == 0x70 | An offset to polygons block |
 | 44 | **identifier** | 12 | UTF-8 string | Some ID of geometry, don't know the purpose |
 | 56 | **texture_names_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of texture names |
-| 60 | **texture_names_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture names block |
+| 60 | **texture_names_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture names block. Always equals to `112+polygon_count*12+vertex_uvs_count*8` |
 | 64 | **texture_number_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of texture numbers |
 | 68 | **texture_number_block_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture numbers block |
 | 72 | **render_order_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in render_order block |
-| 76 | **render_order_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block |
+| 76 | **render_order_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block. Always equals to `texture_number_block_offset+texture_number_count*20` |
 | 80 | **polygon_vertex_map_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of polygon_vertex_map block |
 | 84 | **labels0_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels0 block |
-| 88 | **labels0_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels0 block |
+| 88 | **labels0_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels0 block. Always equals to `texture_number_block_offset+texture_number_count*20+render_order_count*28` |
 | 92 | **labels_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels block |
-| 96 | **labels_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block |
-| 100 | **unknowns1** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112 | **polygons_block** | 12 * (polygon_count) | Array of polygon_count items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
-| 112..? | **vertex_uvs_block** | 8 * (vertex_uvs_count) | Array of vertex_uvs_count items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in polygon_vertex_map_block |
-| 112..? | **texture_names_block** | 20 * (texture_names_count) | Array of texture_names_count items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
-| 112..? | **texture_number_map_block** | 20 * (texture_number_count) | Array of texture_number_count items<br/>Item size: 20 bytes<br/>Item type: Array of 20 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| 112..? | **render_order_block** | 28 * (render_order_count) | Array of render_order_count items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
-| 112..? | **labels0_block** | 12 * (labels0_count) | Array of labels0_count items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Unclear |
-| 112..? | **labels_block** | 12 * (labels_count) | Array of labels_count items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on drifting, accelerating and braking in the place where texture is shown. 3DO version ORIP description: "Texture indexes referenced from records in block 10 and block 11th. Texture index shows that wheel or back light will be displayed on the polygon number defined in block 10." - the issue is that TNFSSE orip files consist of 9 blocks |
-| 112..? | **vertex_block** | 12 * (vertex_count) | Array of vertex_count items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices in 3D space. For cars it consists of 32:7 points, else 32:4 |
-| 112..? | **polygon_vertex_map_block** | 4 * ((up to end of block)) | Array of (up to end of block) items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertex_block or vertex_uvs_block. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertex_block. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs_block |
-</details>
-
+| 96 | **labels_block_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `texture_number_block_offset+texture_number_count*20+render_order_count*28+labels0_count*12` |
+| 100 | **unknowns1** | 12 | Bytes | Unknown purpose |
+| 112 | **polygons_block** | polygon_count\*12 | Array of `polygon_count` items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
+| vertex_uvs_block_offset | **vertex_uvs_block** | vertex_uvs_count\*8 | Array of `vertex_uvs_count` items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in polygon_vertex_map_block |
+| texture_names_block_offset | **texture_names_block** | texture_names_count\*20 | Array of `texture_names_count` items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
+| texture_names_block_offset + texture_names_count\*20 | **offset** | space up to offset `texture_number_block_offset` | Bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
+| texture_number_block_offset | **texture_number_map_block** | texture_number_count\*20 | Array of `texture_number_count` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| render_order_block_offset | **render_order_block** | render_order_count\*28 | Array of `render_order_count` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
+| labels0_block_offset | **labels0_block** | labels0_count\*12 | Array of `labels0_count` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Unclear |
+| labels_block_offset | **labels_block** | labels_count\*12 | Array of `labels_count` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on drifting, accelerating and braking in the place where texture is shown. 3DO version ORIP description: "Texture indexes referenced from records in block 10 and block 11th. Texture index shows that wheel or back light will be displayed on the polygon number defined in block 10." - the issue is that TNFSSE orip files consist of 9 blocks |
+| vertex_block_offset | **vertex_block** | vertex_count\*12 | Array of `vertex_count` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices in 3D space. For cars it consists of 32:7 points, else 32:4 |
+| polygon_vertex_map_block_offset | **polygon_vertex_map_block** | ?\*4 | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertex_block or vertex_uvs_block. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertex_block. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs_block |
 ### **OripPolygon** ###
 #### **Size**: 12 bytes ####
 #### **Description**: A geometry polygon ####
@@ -125,9 +121,9 @@
 #### **Description**: A settings of the texture. From what is known, contains name of bitmap ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **type** | 8 | NFS1 UTF-8 string with variable length, but static size in file. 0x00 means end of string, the rest is ignored | - |
-| 8 | **file_name** | 4 | NFS1 UTF-8 string with variable length, but static size in file. 0x00 means end of string, the rest is ignored | Name of bitmap in SHPI block |
-| 12 | **unknown** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 0 | **type** | 8 | UTF-8 string | - |
+| 8 | **file_name** | 4 | UTF-8 string | Name of bitmap in SHPI block |
+| 12 | **unknown** | 8 | Bytes | Unknown purpose |
 ### **RenderOrderBlock** ###
 #### **Size**: 28 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -446,7 +442,7 @@
 | 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 32 | **definitions** | symbols_amount\*11 | Array of `symbols_amount` items<br/>Item type: [SymbolDefinitionRecord](#symboldefinitionrecord) | Definitions of chars in this bitmap font |
-| 32+symbols_amount\*11 | **skip_bytes** | up to offset bitmap_data_pointer | Bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
+| 32 + symbols_amount\*11 | **skip_bytes** | up to offset bitmap_data_pointer | Bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
 | bitmap_data_pointer | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
 ### **SymbolDefinitionRecord** ###
 #### **Size**: 11 bytes ####

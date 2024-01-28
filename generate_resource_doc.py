@@ -1,7 +1,7 @@
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
-from resources.eac import archives, bitmaps, fonts, palettes, misc
+from resources.eac import archives, bitmaps, fonts, palettes, misc, geometries
 
 EXPORT_RESOURCES = {
     'Archives': [
@@ -10,10 +10,10 @@ EXPORT_RESOURCES = {
         # archives.SoundBank(),
     ],
     'Geometries': [
-        # geometries.OripGeometry(),
-        # geometries.OripPolygon(),
-        # geometries.OripTextureName(),
-        # geometries.RenderOrderBlock(),
+        geometries.OripGeometry(),
+        geometries.OripPolygon(),
+        geometries.OripTextureName(),
+        geometries.RenderOrderBlock(),
     ],
     'Maps': [
         # maps.TriMap(),
@@ -94,14 +94,10 @@ with open('resources/README.md', 'w') as f:
         f.write(f'\n## **{heading}** ##')
         for resource in resources:
             schema = resource.schema
-            collapse_table = len(resource.Fields.fields) > 20
             f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
             f.write(f'\n#### **Size**: {render_value_doc_str(resource.size_doc_str)} bytes ####')
             if schema['block_description']:
                 f.write(f'\n#### **Description**: {schema["block_description"]} ####')
-            if collapse_table:
-                f.write('\n<details>')
-                f.write(f'\n<summary>Click to see block specs ({len(resource.Fields.fields)} fields)</summary>\n')
             f.write(f'\n| Offset | Name | Size (bytes) | Type | Description |')
             f.write(f'\n| --- | --- | --- | --- | --- |')
             offset_int = 0
@@ -129,6 +125,4 @@ with open('resources/README.md', 'w') as f:
                 try:
                     offset_int += int(field.size_doc_str)
                 except (ValueError, TypeError):
-                    offset_lbl += '+' + field.size_doc_str
-            if collapse_table:
-                f.write('\n</details>\n')
+                    offset_lbl += ' + ' + field.size_doc_str

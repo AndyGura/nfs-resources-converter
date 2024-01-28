@@ -122,9 +122,7 @@ class OripGeometry(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Geometry block for 3D model with few materials. The structure is fuzzy and hard to '
-                                 'understand ¯\\\\_(ツ)_/¯. Offsets here can drift, data is not properly'
-                                 ' aligned, so it has explicitly defined offsets to some blocks',
+            'block_description': 'Geometry block for 3D model with few materials',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -138,81 +136,111 @@ class OripGeometry(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4, required_value=0),
                 {'is_unknown': True})
         vertex_count = (IntegerBlock(length=4),
-                        {'description': 'Amount of vertices'})
-        unknowns0 = (ArrayBlock(child=IntegerBlock(length=1), length=4),
-                     {'is_unknown': True})
+                        {'description': 'Amount of vertices',
+                         'programmatic_value': lambda ctx: len(ctx.data('vertex_block'))})
+        unk2 = (BytesBlock(length=4),
+                {'is_unknown': True})
         vertex_block_offset = (IntegerBlock(length=4),
-                               {'description': 'An offset to vertex_block'})
+                               {'description': 'An offset to vertex_block',
+                                'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(
+                                    ctx.get_full_data(), 'vertex_block')})
         vertex_uvs_count = (IntegerBlock(length=4),
-                            {'description': 'Amount of vertex UV-s (texture coordinates)'})
+                            {'description': 'Amount of vertex UV-s (texture coordinates)',
+                             'programmatic_value': lambda ctx: len(ctx.data('vertex_uvs_block'))})
         vertex_uvs_block_offset = (IntegerBlock(length=4),
-                                   {'description': 'An offset to vertex_uvs_block'})
+                                   {'description': 'An offset to vertex_uvs_block. Always equals to '
+                                                   '`112+polygon_count*12`',
+                                    'programmatic_value': lambda ctx: 112 + len(ctx.data('polygons_block')) * 12})
         polygon_count = (IntegerBlock(length=4),
-                         {'description': 'Amount of polygons'})
+                         {'description': 'Amount of polygons',
+                          'programmatic_value': lambda ctx: len(ctx.data('polygons_block'))})
         polygon_block_offset = (IntegerBlock(length=4, is_signed=False, required_value=112),
                                 {'description': 'An offset to polygons block'})
         identifier = (UTF8Block(length=12),
                       {'description': 'Some ID of geometry, don\'t know the purpose',
                        'is_unknown': True})
         texture_names_count = (IntegerBlock(length=4),
-                               {'description': 'Amount of texture names'})
+                               {'description': 'Amount of texture names',
+                                'programmatic_value': lambda ctx: len(ctx.data('texture_names_block'))})
         texture_names_block_offset = (IntegerBlock(length=4),
-                                      {'description': 'An offset to texture names block'})
+                                      {'description': 'An offset to texture names block. Always equals to '
+                                                      '`112+polygon_count*12+vertex_uvs_count*8`',
+                                       'programmatic_value': lambda ctx: 112 + len(ctx.data('polygons_block')) * 12
+                                                                         + len(ctx.data('vertex_uvs_block')) * 8})
         texture_number_count = (IntegerBlock(length=4),
-                                {'description': 'Amount of texture numbers'})
+                                {'description': 'Amount of texture numbers',
+                                 'programmatic_value': lambda ctx: len(ctx.data('texture_number_map_block'))})
         texture_number_block_offset = (IntegerBlock(length=4),
                                        {'description': 'An offset to texture numbers block'})
         render_order_count = (IntegerBlock(length=4),
-                              {'description': 'Amount of items in render_order block'})
+                              {'description': 'Amount of items in render_order block',
+                               'programmatic_value': lambda ctx: len(ctx.data('render_order_block'))})
         render_order_block_offset = (IntegerBlock(length=4),
-                                     {'description': 'Offset of render_order block'})
+                                     {'description': 'Offset of render_order block. Always equals to '
+                                                     '`texture_number_block_offset+texture_number_count*20`',
+                                      'programmatic_value': lambda ctx: ctx.data('texture_number_block_offset')
+                                                                        + len(
+                                          ctx.data('texture_number_map_block')) * 20})
         polygon_vertex_map_block_offset = (IntegerBlock(length=4),
-                                           {'description': 'Offset of polygon_vertex_map block'})
+                                           {'description': 'Offset of polygon_vertex_map block',
+                                            'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(
+                                                ctx.get_full_data(), 'polygon_vertex_map_block')})
         labels0_count = (IntegerBlock(length=4),
-                         {'description': 'Amount of items in labels0 block'})
+                         {'description': 'Amount of items in labels0 block',
+                          'programmatic_value': lambda ctx: len(ctx.data('labels0_block'))})
         labels0_block_offset = (IntegerBlock(length=4),
-                                {'description': 'Offset of labels0 block'})
+                                {'description': 'Offset of labels0 block. Always equals to `texture_number_block_offset'
+                                                '+texture_number_count*20+render_order_count*28`',
+                                 'programmatic_value': lambda ctx: ctx.data('texture_number_block_offset')
+                                                                   + len(ctx.data('texture_number_map_block')) * 20
+                                                                   + len(ctx.data('render_order_block')) * 28})
         labels_count = (IntegerBlock(length=4),
-                        {'description': 'Amount of items in labels block'})
+                        {'description': 'Amount of items in labels block',
+                         'programmatic_value': lambda ctx: len(ctx.data('labels_block'))})
         labels_block_offset = (IntegerBlock(length=4),
-                               {'description': 'Offset of labels block'})
+                               {'description': 'Offset of labels block. Always equals to `texture_number_block_offset'
+                                               '+texture_number_count*20+render_order_count*28+labels0_count*12`',
+                                'programmatic_value': lambda ctx: ctx.data('texture_number_block_offset')
+                                                                  + len(ctx.data('texture_number_map_block')) * 20
+                                                                  + len(ctx.data('render_order_block')) * 28
+                                                                  + len(ctx.data('labels0_block')) * 12})
         unknowns1 = (BytesBlock(length=12),
                      {'is_unknown': True})
         polygons_block = (ArrayBlock(child=OripPolygon(),
                                      length=(lambda ctx: ctx.data('polygon_count'), 'polygon_count')),
                           {'description': 'A block with polygons of the geometry. Probably should be a start '
                                           'point when building model from this file'})
-        ofst0 = BytesBlock(
-            length=lambda ctx: ctx.read_start_offset + ctx.data('vertex_uvs_block_offset') - ctx.buffer.tell())
         vertex_uvs_block = (ArrayBlock(child=OripVertexUV(),
                                        length=(lambda ctx: ctx.data('vertex_uvs_count'), 'vertex_uvs_count')),
                             {'description': 'A table of texture coordinates. Items are retrieved by index, '
-                                            'located in polygon_vertex_map_block'})
-        ofst1 = BytesBlock(
-            length=lambda ctx: ctx.read_start_offset + ctx.data('texture_names_block_offset') - ctx.buffer.tell())
+                                            'located in polygon_vertex_map_block',
+                             'custom_offset': 'vertex_uvs_block_offset'})
         texture_names_block = (ArrayBlock(child=OripTextureName(),
                                           length=(lambda ctx: ctx.data('texture_names_count'), 'texture_names_count')),
                                {'description': 'A table of texture references. Items are retrieved by index, '
-                                               'located in polygon item'})
-        ofst2 = BytesBlock(length=lambda ctx: ctx.read_start_offset + ctx.data('texture_number_block_offset') - ctx.buffer.tell(),
-                           allow_negative_length=True)
-        # TODO some entries left_turn and right_turn located here
+                                               'located in polygon item',
+                                'custom_offset': 'texture_names_block_offset'})
+        offset = (BytesBlock(
+            length=(lambda ctx: ctx.read_start_offset + ctx.data('texture_number_block_offset') - ctx.buffer.tell(),
+                    'space up to offset `texture_number_block_offset`'),
+            allow_negative_length=True),
+                  {
+                      'description': 'In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in '
+                                     'case of DIABLO.CFM it\'s length is equal to -3, meaning that last 3 bytes from texture'
+                                     ' names block are reused by next block'})
         texture_number_map_block = (ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=1), length=20),
                                                length=(lambda ctx: ctx.data('texture_number_count'),
                                                        'texture_number_count')),
-                                    {'is_unknown': True})
-        ofst3 = BytesBlock(
-            length=lambda ctx: ctx.read_start_offset + ctx.data('render_order_block_offset') - ctx.buffer.tell())
+                                    {'is_unknown': True,
+                                     'custom_offset': 'texture_number_block_offset'})
         render_order_block = (ArrayBlock(child=RenderOrderBlock(),
                                          length=(lambda ctx: ctx.data('render_order_count'), 'render_order_count')),
-                              {'description': 'Render order. The exact mechanism how it works is unknown'})
-        ofst4 = BytesBlock(
-            length=lambda ctx: ctx.read_start_offset + ctx.data('labels0_block_offset') - ctx.buffer.tell())
+                              {'description': 'Render order. The exact mechanism how it works is unknown',
+                               'custom_offset': 'render_order_block_offset'})
         labels0_block = (ArrayBlock(child=NamedIndex(),
                                     length=(lambda ctx: ctx.data('labels0_count'), 'labels0_count')),
-                         {'description': 'Unclear'})
-        ofst5 = BytesBlock(
-            length=lambda ctx: ctx.read_start_offset + ctx.data('labels_block_offset') - ctx.buffer.tell())
+                         {'description': 'Unclear',
+                          'custom_offset': 'labels0_block_offset'})
         labels_block = (ArrayBlock(child=NamedIndex(),
                                    length=(lambda ctx: ctx.data('labels_count'), 'labels_count')),
                         {'description': 'Describes tires, smoke and car lights. Smoke effect under the wheel will '
@@ -220,25 +248,24 @@ class OripGeometry(DeclarativeCompoundBlock):
                                         'texture is shown. 3DO version ORIP description: "Texture indexes referenced from '
                                         'records in block 10 and block 11th. Texture index shows that wheel '
                                         'or back light will be displayed on the polygon number defined in '
-                                        'block 10." - the issue is that TNFSSE orip files consist of 9 blocks'})
-        ofst6 = BytesBlock(
-            length=lambda ctx: ctx.read_start_offset + ctx.data('vertex_block_offset') - ctx.buffer.tell())
+                                        'block 10." - the issue is that TNFSSE orip files consist of 9 blocks',
+                         'custom_offset': 'labels_block_offset'})
         vertex_block = (ArrayBlock(child=DelegateBlock(possible_blocks=[Point3D_32_7(), Point3D_32_4()],
                                                        choice_index=lambda ctx: 0 if ctx.buffer.name.endswith(
                                                            '.CFM') else 1),
                                    length=(lambda ctx: ctx.data('vertex_count'), 'vertex_count')),
                         {'description': 'A table of mesh vertices in 3D space. For cars it consists of 32:7 points, '
-                                        'else 32:4'})
-        ofst7 = BytesBlock(
-            length=lambda ctx: ctx.read_start_offset + ctx.data('polygon_vertex_map_block_offset') - ctx.buffer.tell())
+                                        'else 32:4',
+                         'custom_offset': 'vertex_block_offset'})
         polygon_vertex_map_block = (ArrayBlock(child=IntegerBlock(length=4),
                                                length=(lambda ctx: floor((ctx.data(
                                                    'block_size') + ctx.read_start_offset - ctx.buffer.tell()) / 4),
-                                                       'up to block_size offset')),
+                                                       '?')),
                                     {'description': "A LUT for both 3D and 2D vertices. Every item is an index "
                                                     "of either item in vertex_block or vertex_uvs_block. When "
                                                     "building 3D vertex, polygon defines offset_3d, a lookup to "
                                                     "this table, and value from here is an index of item in "
                                                     "vertex_block. When building UV-s, polygon defines offset_2d,"
                                                     " a lookup to this table, and value from here is an index of "
-                                                    "item in vertex_uvs_block"})
+                                                    "item in vertex_uvs_block",
+                                     'custom_offset': 'polygon_vertex_map_block_offset'})
