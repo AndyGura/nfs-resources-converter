@@ -23,7 +23,7 @@ def _setup_vertex(model: SubMesh, block_data, vertices_file_indices_map, index_3
     except KeyError:
         pass
     # new vertex creation
-    vertex = block_data['vertex_block'][block_data['polygon_vertex_map_block'][index_3D]]['data']
+    vertex = block_data['vertices'][block_data['polygon_vmap'][index_3D]]['data']
     model.vertices.append([vertex['x'], vertex['y'], vertex['z']])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
@@ -32,8 +32,8 @@ def _setup_vertex(model: SubMesh, block_data, vertices_file_indices_map, index_3
         uv = {'u': default_uvs[index_in_polygon][0], 'v': default_uvs[index_in_polygon][1]}
     else:
         uv = {
-            'u': block_data['vertex_uvs_block'][block_data['polygon_vertex_map_block'][index_2D]]['u'],
-            'v': block_data['vertex_uvs_block'][block_data['polygon_vertex_map_block'][index_2D]]['v'],
+            'u': block_data['vertex_uvs'][block_data['polygon_vmap'][index_2D]]['u'],
+            'v': block_data['vertex_uvs'][block_data['polygon_vmap'][index_2D]]['v'],
         }
     model.vertex_uvs.append([uv['u'], uv['v']])
     return vertices_file_indices_map[model][index_3D]
@@ -74,10 +74,10 @@ for dummy in dummies:
         vertices_file_indices_map = defaultdict(lambda: dict())
         sub_models = defaultdict(SubMesh)
 
-        for polygon in data['polygons_block']:
+        for polygon in data['polygons']:
             polygon_type = polygon['polygon_type']
             mapping = polygon['mapping']
-            texture_id = data['texture_names_block'][polygon['texture_index']]['file_name']
+            texture_id = data['texture_names'][polygon['texture_index']]['file_name']
             sub_model = sub_models[texture_id]
             if not sub_model.name:
                 sub_model.name = texture_id
