@@ -6,7 +6,7 @@ from library.read_blocks.atomic import IntegerBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
 from library2.context import ReadContext
-from library2.read_blocks import UTF8Block
+from library2.read_blocks import UTF8Block, DeclarativeCompoundBlock
 from resources.eac.fields.numbers import RationalNumber
 
 
@@ -16,7 +16,8 @@ class Nfs1Utf8Block(UTF8Block):
     def schema(self) -> Dict:
         return {**super().schema,
                 'description': 'NFS1 UTF-8 string with variable length, but static size in file. 0x00 means end of '
-                               'string, the rest is ignored'}
+                               'string, the rest is ignored. Sometimes input string can cause UnicodeDecodeError, I '
+                               'ignore it here'}
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         return buffer.read(self.resolve_length(ctx)).decode('utf-8', errors='ignore')
@@ -24,7 +25,7 @@ class Nfs1Utf8Block(UTF8Block):
 
 class Point3D_16(CompoundBlock):
     block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(static_size=2, fraction_bits=8, is_signed=True).block_description \
+                        + RationalNumber(length=2, fraction_bits=8, is_signed=True).schema['block_description'] \
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
@@ -32,14 +33,14 @@ class Point3D_16(CompoundBlock):
         super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
-        x = RationalNumber(static_size=2, fraction_bits=8, is_signed=True)
-        y = RationalNumber(static_size=2, fraction_bits=8, is_signed=True)
-        z = RationalNumber(static_size=2, fraction_bits=8, is_signed=True)
+        x = RationalNumber(length=2, fraction_bits=8, is_signed=True)
+        y = RationalNumber(length=2, fraction_bits=8, is_signed=True)
+        z = RationalNumber(length=2, fraction_bits=8, is_signed=True)
 
 
 class Point3D_16_7(CompoundBlock):
     block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(static_size=2, fraction_bits=7, is_signed=True).block_description \
+                        + RationalNumber(length=2, fraction_bits=7, is_signed=True).schema['block_description'] \
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
@@ -47,14 +48,14 @@ class Point3D_16_7(CompoundBlock):
         super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
-        x = RationalNumber(static_size=2, fraction_bits=7, is_signed=True)
-        y = RationalNumber(static_size=2, fraction_bits=7, is_signed=True)
-        z = RationalNumber(static_size=2, fraction_bits=7, is_signed=True)
+        x = RationalNumber(length=2, fraction_bits=7, is_signed=True)
+        y = RationalNumber(length=2, fraction_bits=7, is_signed=True)
+        z = RationalNumber(length=2, fraction_bits=7, is_signed=True)
 
 
 class Point3D_32(CompoundBlock):
     block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(static_size=4, fraction_bits=16, is_signed=True).block_description \
+                        + RationalNumber(length=4, fraction_bits=16, is_signed=True).schema['block_description'] \
                         + '. The unit is meter'
 
     def __init__(self, **kwargs):
@@ -62,39 +63,44 @@ class Point3D_32(CompoundBlock):
         super().__init__(inline_description=True, **kwargs)
 
     class Fields(CompoundBlock.Fields):
-        x = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
-        y = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
-        z = RationalNumber(static_size=4, fraction_bits=16, is_signed=True)
+        x = RationalNumber(length=4, fraction_bits=16, is_signed=True)
+        y = RationalNumber(length=4, fraction_bits=16, is_signed=True)
+        z = RationalNumber(length=4, fraction_bits=16, is_signed=True)
 
 
-class Point3D_32_4(CompoundBlock):
-    block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(static_size=4, fraction_bits=4, is_signed=True).block_description \
-                        + '. The unit is meter'
+class Point3D_32_4(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
+                                 + RationalNumber(length=4, fraction_bits=4, is_signed=True).block_description
+                                 + '. The unit is meter',
+            'inline_description': True,
+        }
 
-    def __init__(self, **kwargs):
-        kwargs.pop('inline_description', None)
-        super().__init__(inline_description=True, **kwargs)
-
-    class Fields(CompoundBlock.Fields):
-        x = RationalNumber(static_size=4, fraction_bits=4, is_signed=True)
-        y = RationalNumber(static_size=4, fraction_bits=4, is_signed=True)
-        z = RationalNumber(static_size=4, fraction_bits=4, is_signed=True)
+    class Fields(DeclarativeCompoundBlock.Fields):
+        x = RationalNumber(length=4, fraction_bits=4, is_signed=True)
+        y = RationalNumber(length=4, fraction_bits=4, is_signed=True)
+        z = RationalNumber(length=4, fraction_bits=4, is_signed=True)
 
 
-class Point3D_32_7(CompoundBlock):
-    block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(static_size=4, fraction_bits=7, is_signed=True).block_description \
-                        + '. The unit is meter'
+class Point3D_32_7(DeclarativeCompoundBlock):
 
-    def __init__(self, **kwargs):
-        kwargs.pop('inline_description', None)
-        super().__init__(inline_description=True, **kwargs)
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
+                                 + RationalNumber(length=4, fraction_bits=7, is_signed=True).block_description
+                                 + '. The unit is meter',
+            'inline_description': True,
+        }
 
-    class Fields(CompoundBlock.Fields):
-        x = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
-        y = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
-        z = RationalNumber(static_size=4, fraction_bits=7, is_signed=True)
+    class Fields(DeclarativeCompoundBlock.Fields):
+        x = RationalNumber(length=4, fraction_bits=7, is_signed=True)
+        y = RationalNumber(length=4, fraction_bits=7, is_signed=True)
+        z = RationalNumber(length=4, fraction_bits=7, is_signed=True)
 
 
 class FenceType(IntegerBlock):

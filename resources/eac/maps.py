@@ -1,8 +1,9 @@
 from library.helpers.exceptions import DataIntegrityException
 from library.read_blocks.array import ArrayBlock
-from library.read_blocks.atomic import BitFlagsBlock, IntegerBlock, EnumByteBlock, Utf8Block
+from library.read_blocks.atomic import IntegerBlock, EnumByteBlock, Utf8Block
 from library.read_blocks.compound import CompoundBlock
 from library.read_blocks.literal import LiteralBlock
+from library2.read_blocks import BitFlagsBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1Interval
 
@@ -12,15 +13,15 @@ class RoadSplinePoint(CompoundBlock):
                         'OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1'
 
     class Fields(CompoundBlock.Fields):
-        left_verge_distance = RationalNumber(static_size=1, fraction_bits=3, is_signed=False,
+        left_verge_distance = RationalNumber(length=1, fraction_bits=3, is_signed=False,
                                              description='The distance to the left edge of road. After this point the '
                                                          'grip decreases')
-        right_verge_distance = RationalNumber(static_size=1, fraction_bits=3, is_signed=False,
+        right_verge_distance = RationalNumber(length=1, fraction_bits=3, is_signed=False,
                                               description='The distance to the right edge of road. After this point the '
                                                           'grip decreases')
-        left_barrier_distance = RationalNumber(static_size=1, fraction_bits=3, is_signed=False,
+        left_barrier_distance = RationalNumber(length=1, fraction_bits=3, is_signed=False,
                                                description='The distance to invisible wall on the left')
-        right_barrier_distance = RationalNumber(static_size=1, fraction_bits=3, is_signed=False,
+        right_barrier_distance = RationalNumber(length=1, fraction_bits=3, is_signed=False,
                                                 description='The distance to invisible wall on the right')
         unknowns0 = ArrayBlock(child=IntegerBlock(static_size=1), length=3)
         spline_item_mode = EnumByteBlock(enum_names=[(0, 'lane_split'),
@@ -94,13 +95,13 @@ class BitmapProxyObjectData(CompoundBlock):
                                                'cmat/auroux/nfs/nfsspecs.txt')
         proxy_number = IntegerBlock(static_size=1, is_signed=False,
                                     description='Seems to be always equal to own index * 4')
-        width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
+        width = RationalNumber(length=4, fraction_bits=16, is_signed=True, description='Width in meters')
         frame_count = IntegerBlock(static_size=1,
                                    description='Frame amount for animated object. Ignored if flag `is_animated` not set')
         animation_interval = Nfs1Interval(description='Interval between animation frames')
         unk0 = IntegerBlock(static_size=1, is_signed=False)
         unk1 = IntegerBlock(static_size=1, is_signed=False)
-        height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Height in meters')
+        height = RationalNumber(length=4, fraction_bits=16, is_signed=True, description='Height in meters')
 
         unknown_fields = ['unk0', 'unk1']
 
@@ -116,10 +117,10 @@ class TwoSidedBitmapProxyObjectData(CompoundBlock):
         resource_2_id = IntegerBlock(static_size=1,
                                      description='Texture id of second sprite, rotated 90 degrees. Logic to determine '
                                                  'texture name is the same as for resource_id')
-        width = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Width in meters')
-        width_2 = RationalNumber(static_size=4, fraction_bits=16, is_signed=True,
+        width = RationalNumber(length=4, fraction_bits=16, is_signed=True, description='Width in meters')
+        width_2 = RationalNumber(length=4, fraction_bits=16, is_signed=True,
                                  description='Width in meters of second bitmap')
-        height = RationalNumber(static_size=4, fraction_bits=16, is_signed=True, description='Height in meters')
+        height = RationalNumber(length=4, fraction_bits=16, is_signed=True, description='Height in meters')
 
 
 class UnknownProxyObjectData(CompoundBlock):

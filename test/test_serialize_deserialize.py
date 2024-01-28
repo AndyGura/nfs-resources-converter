@@ -24,8 +24,8 @@ class TestSerializeDeserialize(unittest.TestCase):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
     def test_cfm_should_remain_the_same(self):
-        car_fam = require_file('test/samples/LDIABL.CFM')
-        output = car_fam.to_bytes()
+        (name, block, res) = require_file('test/samples/LDIABL.CFM')
+        output = block.pack(res, name=name)
         with open('test/samples/LDIABL.CFM', 'rb') as bdata:
             original = bdata.read()
             self.assertEqual(len(original), len(output))

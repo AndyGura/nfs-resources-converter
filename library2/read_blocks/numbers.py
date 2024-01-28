@@ -1,5 +1,5 @@
 from io import BufferedReader, BytesIO
-from typing import Dict, Literal
+from typing import Dict, Literal, List, Tuple
 
 from library.helpers.exceptions import EndOfBufferException
 from library2.context import ReadContext, WriteContext
@@ -46,3 +46,34 @@ class IntegerBlock(DataBlock):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return data.to_bytes(self.length, byteorder=self.byte_order, signed=self.is_signed).ljust(self.length, b'\0')
+
+
+class BitFlagsBlock(IntegerBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': '8 flags container<br/><details><summary>flag names (from least to most significant)</summary>'
+                                     + '<br/>'.join(
+                    [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>'}
+
+    def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
+        super().__init__(length=1, is_signed=False, **kwargs)
+        self.flag_names = flag_names
+        self.flag_name_map = [str(i) for i in range(8)]
+        for value, name in self.flag_names:
+            self.flag_name_map[value] = name
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        value = super().read(buffer, ctx, name, read_bytes_amount)
+        res = {}
+        for i in range(8):
+            res[self.flag_name_map[i]] = bool(value & (1 if i == 0 else 1 << i))
+        return res
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        res = 0
+        for i in range(8):
+            if data[self.flag_name_map[i]]:
+                res = res | (1 << i)
+        return super().write(res, ctx, name)

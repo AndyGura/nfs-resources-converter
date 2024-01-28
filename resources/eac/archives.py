@@ -11,12 +11,13 @@ from library2.read_blocks import (CompoundBlock,
                                   IntegerBlock,
                                   ArrayBlock,
                                   AutoDetectBlock,
-                                  SkipBlock, BytesBlock)
+                                  SkipBlock)
 from resources.eac.audios import EacsAudio
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
+from resources.eac.geometries import OripGeometry
 from resources.eac.misc import ShpiText
 from resources.eac.palettes import (Palette24BitDos,
                                     Palette24Bit,
@@ -59,6 +60,7 @@ class Qfs3Block(CompressedBlock):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.algorithm = Qfs3Compression().uncompress
+
 
 class ShpiBlock(DeclarativeCompoundBlock):
 
@@ -128,7 +130,7 @@ class ShpiBlock(DeclarativeCompoundBlock):
             child = child_field.unpack(self_ctx.buffer, ctx=self_ctx)
             children.append(child)
             aliases.append(descr["name"])
-            if child['choice_index'] == bitmap8_choice:
+            if res['shpi_directory'] != 'WRAP' and child['choice_index'] == bitmap8_choice:
                 pal_offset = child['data']['block_size']
                 if pal_offset > 0:
                     pal_offset += descr["offset"]
@@ -150,7 +152,8 @@ class WwwwBlock(DeclarativeCompoundBlock):
         # this schema has recursion problem. Workaround applied here
         if getattr(self, 'schema_call_recv', False):
             return {
-                'block_class_mro': '__'.join([x.__name__ for x in self.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
+                'block_class_mro': '__'.join(
+                    [x.__name__ for x in self.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
                 'is_recursive_ref': True,
             }
         self.schema_call_recv = True
@@ -181,7 +184,7 @@ class WwwwBlock(DeclarativeCompoundBlock):
         super().__init__(**kwargs)
         # write array field child block for referencing self in possible blocks
         self.child_block = AutoDetectBlock(possible_blocks=[ShpiBlock(),
-                                                            # OripGeometry(),
+                                                            OripGeometry(),
                                                             self,
                                                             SkipBlock(error_strategy="return_exception")])
         self.field_blocks_map['children'].child = self.child_block

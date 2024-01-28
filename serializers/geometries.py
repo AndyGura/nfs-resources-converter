@@ -6,39 +6,36 @@ from copy import deepcopy
 from string import Template
 from typing import Literal, List, Tuple
 
-from library.helpers.data_wrapper import DataWrapper
 from library.helpers.exceptions import DataIntegrityException
-from library.read_data import ReadData
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
-from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
 
 default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
 
 
-def _setup_vertex(model: SubMesh, block: ReadData[OripGeometry], vertices_file_indices_map, index_3D, index_2D,
+def _setup_vertex(model: SubMesh, block_data, vertices_file_indices_map, index_3D, index_2D,
                   index_in_polygon):
     try:
         return vertices_file_indices_map[model][index_3D]
     except KeyError:
         pass
     # new vertex creation
-    vertex = block.vertex_block[block.polygon_vertex_map_block[index_3D].value]
-    model.vertices.append([vertex.x.value, vertex.y.value, vertex.z.value])
+    vertex = block_data['vertex_block'][block_data['polygon_vertex_map_block'][index_3D]]['data']
+    model.vertices.append([vertex['x'], vertex['y'], vertex['z']])
     vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
     # setup texture coordinate
     if index_2D is None:
         model.scaled_uvs.add(len(model.vertex_uvs))
-        uv = DataWrapper({'u': default_uvs[index_in_polygon][0], 'v': default_uvs[index_in_polygon][1]})
+        uv = {'u': default_uvs[index_in_polygon][0], 'v': default_uvs[index_in_polygon][1]}
     else:
-        uv = DataWrapper({
-            'u': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].u.value,
-            'v': block.vertex_uvs_block[block.polygon_vertex_map_block[index_2D].value].v.value,
-        })
-    model.vertex_uvs.append([uv.u, uv.v])
+        uv = {
+            'u': block_data['vertex_uvs_block'][block_data['polygon_vertex_map_block'][index_2D]]['u'],
+            'v': block_data['vertex_uvs_block'][block_data['polygon_vertex_map_block'][index_2D]]['v'],
+        }
+    model.vertex_uvs.append([uv['u'], uv['v']])
     return vertices_file_indices_map[model][index_3D]
 
 
@@ -63,29 +60,30 @@ for dummy in dummies:
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         # shpi is always next block
         from library import require_resource
-        textures_shpi_block, _ = require_resource(
-            '/'.join(data.id.split('/')[:-1] + [str(int(data.id.split('/')[-1]) + 1)]))
-        if not textures_shpi_block or not isinstance(textures_shpi_block.block, ShpiBlock):
+        shpi_id = id.split('/')
+        shpi_id[-2] = str(int(shpi_id[-2]) + 1)
+        (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource('/'.join(shpi_id))
+        if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
             raise DataIntegrityException('Cannot find SHPI archive for ORIP geometry')
 
         super().serialize(data, path, is_dir=True)
         try:
-            is_car = '.CFM__' in data.block_state['id']
+            is_car = '.CFM__' in id
         except:
             is_car = False
         vertices_file_indices_map = defaultdict(lambda: dict())
         sub_models = defaultdict(SubMesh)
 
-        for polygon in data.polygons_block:
-            polygon_type = polygon.polygon_type.value
-            mapping = polygon.mapping.value
-            texture_id = data.texture_names_block[polygon.texture_index.value].file_name.value
+        for polygon in data['polygons_block']:
+            polygon_type = polygon['polygon_type']
+            mapping = polygon['mapping']
+            texture_id = data['texture_names_block'][polygon['texture_index']]['file_name']
             sub_model = sub_models[texture_id]
             if not sub_model.name:
                 sub_model.name = texture_id
                 sub_model.texture_id = texture_id
-            offset_3D = polygon.offset_3d.value
-            offset_2D = polygon.offset_2d.value
+            offset_3D = polygon['offset_3d']
+            offset_2D = polygon['offset_2d']
 
             def _setup_polygon(offsets):
                 sub_model.polygons.append([_setup_vertex(sub_model,
@@ -139,7 +137,7 @@ for dummy in dummies:
                 centers = {}
                 shadow_centers = {}
                 for name, model in sub_models.items():
-                    if name not in ['tyr4', 'rty4', 'circ', '', 'tyre']:
+                    if name not in ['tyr4', 'rty4', 'circ', '\x00\x00\x00\x00', 'tyre']:
                         non_wheel_models[name] = model
                         continue
                     if len(model.polygons) > 8:
@@ -185,22 +183,23 @@ for dummy in dummies:
             f.write('mtllib material.mtl')
             face_index_increment = 1
             for sub_model in sub_models.values():
-                f.write(sub_model.to_obj(face_index_increment, True, textures_shpi_block))
+                f.write(sub_model.to_obj(face_index_increment, True, textures_shpi_block, textures_shpi_data))
                 face_index_increment += len(sub_model.vertices)
         with open(os.path.join(path, 'material.mtl'), 'w') as f:
-            for texture in textures_shpi_block.children:
-                if not isinstance(texture, ReadData) or not isinstance(texture.block, AnyBitmapBlock):
+            for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
+                texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[textures_shpi_data['children'][i]['choice_index']]
+                if not isinstance(texture_block, AnyBitmapBlock):
                     continue
-                f.write(f"""\n\nnewmtl {texture.id.split('/')[-1]}
+                f.write(f"""\n\nnewmtl {texture_name}
 Ka 1.000000 1.000000 1.000000
 Kd 1.000000 1.000000 1.000000
 Ks 0.000000 0.000000 0.000000
 illum 1
 Ns 0.000000
-map_Kd assets/{texture.id.split('/')[-1]}.png""")
+map_Kd assets/{texture_name}.png""")
         from serializers import ShpiArchiveSerializer
         shpi_serializer = ShpiArchiveSerializer()
-        shpi_serializer.serialize(textures_shpi_block, os.path.join(path, 'assets/'))
+        shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
         script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
                                                  'is_car': is_car,
                                                  'dummies': json.dumps(dummies)})

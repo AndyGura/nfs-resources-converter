@@ -28,7 +28,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
 
     @staticmethod
     def has_tail_lights(id: str):
-        return id[-4:] in ['rsid', 'lite'] and '.CFM' in id
+        return '.CFM' in id and id.split('/')[-2] in ['rsid', 'lite']
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=False, id=id, block=block)

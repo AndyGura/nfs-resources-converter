@@ -138,37 +138,6 @@ class Utf8Block(AtomicDataBlock):
         return value
 
 
-class BitFlagsBlock(IntegerBlock, ABC):
-    def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('is_signed', None)
-        super().__init__(static_size=1,
-                         is_signed=False,
-                         **kwargs)
-        self.flag_names = flag_names
-        self.flag_name_map = [str(i) for i in range(8)]
-        for value, name in self.flag_names:
-            self.flag_name_map[value] = name
-        self.block_description = (
-                '8 flags container<br/><details><summary>flag names (from least to most significant)</summary>'
-                + '<br/>'.join(
-            [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>')
-
-    def from_raw_value(self, raw: bytes, state: dict):
-        flags = super().from_raw_value(raw, state)
-        res = {}
-        for i in range(8):
-            res[self.flag_name_map[i]] = bool(flags & (1 if i == 0 else 1 << i))
-        return res
-
-    def to_raw_value(self, data: ReadData) -> bytes:
-        res = 0
-        for i in range(8):
-            if data[self.flag_name_map[i]]:
-                res = res | (1 << i)
-        return super().to_raw_value(self.wrap_result(res, data.block_state))
-
-
 class EnumByteBlock(IntegerBlock, ABC):
     def __init__(self, enum_names: List[Tuple[int, str]], **kwargs):
         kwargs.pop('static_size', None)

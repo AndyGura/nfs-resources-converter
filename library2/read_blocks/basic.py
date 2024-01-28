@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from io import BufferedReader, BytesIO
+from io import BufferedReader, BytesIO, SEEK_CUR
 from typing import Dict, Any, Tuple, Literal, Callable, List
 
 from library.helpers.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
@@ -78,9 +78,10 @@ class DataBlockWithChildren(ABC):
 
 class BytesBlock(DataBlock):
 
-    def __init__(self, length, **kwargs):
+    def __init__(self, length, allow_negative_length=False, **kwargs):
         super().__init__(**kwargs)
         self._length = length
+        self.allow_negative_length = allow_negative_length
 
     # For auto-generated documentation only
     @property
@@ -115,6 +116,9 @@ class BytesBlock(DataBlock):
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         if self_len < 0:
+            if self.allow_negative_length:
+                buffer.seek(self_len, SEEK_CUR)
+                return b''
             raise BlockDefinitionException('Cannot read bytes block with negative length')
         res = buffer.read(self_len)
         if len(res) < self_len:
