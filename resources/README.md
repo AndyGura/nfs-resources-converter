@@ -146,20 +146,20 @@
 | 8 | **unk0** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 10 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x6 | Unknown purpose |
 | 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Unknown purpose |
-| 24 | **unknowns0** | 12 | Array of 12 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 24 | **unknowns0** | 12 | Array of `12` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 36 | **terrain_block_size** | 4 | 4-bytes unsigned integer (little endian) | Size of terrain array in bytes (terrain_length * 0x120) |
 | 40 | **railing_texture_id** | 4 | 4-bytes unsigned integer (little endian) | Do not know what is "railing". Doesn't look like a fence texture id, tested in TR1_001.FAM |
-| 44 | **lookup_table** | 4 * (600) | Array of 600 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | 600 consequent numbers, each value is previous + 288. Looks like a space needed by the original NFS engine |
-| 2444 | **road_spline** | 36 * (2400) | Array of 2400 items<br/>Item type: [RoadSplinePoint](#roadsplinepoint) | Road spline is a series of points in 3D space, located at the center of road. Around this spline the track terrain mesh is built. TRI always has 2400 elements, however it uses only amount of vertices, equals to (terrain_length * 4), after them records filled with zeros. For opened tracks, finish line will be always located at spline point (terrain_length * 4 - 179) |
-| 88844 | **ai_info** | 3 * (600) | Array of 600 items<br/>Item type: [AIEntry](#aientry) | - |
+| 44 | **lookup_table** | 2400 | Array of `600` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | 600 consequent numbers, each value is previous + 288. Looks like a space needed by the original NFS engine |
+| 2444 | **road_spline** | 86400 | Array of `2400` items<br/>Item type: [RoadSplinePoint](#roadsplinepoint) | Road spline is a series of points in 3D space, located at the center of road. Around this spline the track terrain mesh is built. TRI always has 2400 elements, however it uses only amount of vertices, equals to (terrain_length * 4), after them records filled with zeros. For opened tracks, finish line will be always located at spline point (terrain_length * 4 - 179) |
+| 88844 | **ai_info** | 1800 | Array of `600` items<br/>Item type: [AIEntry](#aientry) | - |
 | 90644 | **proxy_objects_count** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 90648 | **proxy_object_instances_count** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 90652 | **object_header_text** | 4 | UTF-8 string. Always == SJBO | - |
+| 90652 | **object_header_text** | 4 | UTF-8 string. Always == "SJBO" | - |
 | 90656 | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x428c | Unknown purpose |
 | 90660 | **unk3** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 90664 | **proxy_objects** | 16 * (proxy_objects_count) | Array of proxy_objects_count items<br/>Item type: [ProxyObject](#proxyobject) | - |
-| 90664..? | **proxy_object_instances** | 16 * (proxy_object_instances_count) | Array of proxy_object_instances_count items<br/>Item type: [ProxyObjectInstance](#proxyobjectinstance) | - |
-| 90664..? | **terrain** | 288 * (terrain_length) | Array of terrain_length items<br/>Item type: [TerrainEntry](#terrainentry) | - |
+| 90664 | **proxy_objects** | proxy_objects_count\*16 | Array of `proxy_objects_count` items<br/>Item type: [ProxyObject](#proxyobject) | - |
+| 90664 + proxy_objects_count\*16 | **proxy_object_instances** | proxy_object_instances_count\*16 | Array of `proxy_object_instances_count` items<br/>Item type: [ProxyObjectInstance](#proxyobjectinstance) | - |
+| 90664 + proxy_objects_count\*16 + proxy_object_instances_count\*16 | **terrain** | terrain_length\*288 | Array of `terrain_length` items<br/>Item type: [TerrainEntry](#terrainentry) | - |
 ### **RoadSplinePoint** ###
 #### **Size**: 36 bytes ####
 #### **Description**: The description of one single point of road spline. Thank you jeff-1amstudios for your OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1 ####
@@ -169,17 +169,17 @@
 | 1 | **right_verge_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the right edge of road. After this point the grip decreases |
 | 2 | **left_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
 | 3 | **right_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
-| 4 | **unknowns0** | 3 | Array of 3 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 4 | **unk0** | 3 | Bytes | - |
 | 7 | **spline_item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>9: left_tunnel_A4_A7<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
-| 26 | **unknowns1** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 26 | **unk1** | 2 | Bytes | - |
 | 28 | **orientation_vector_x** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_vector_x == cos(orientation) * 32766 |
 | 30 | **slant_b** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
 | 32 | **orientation_vector_neg_z** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_vector_neg_z == -sin(orientation) * 32766 |
-| 34 | **unknowns2** | 2 | Array of 2 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 34 | **unk2** | 2 | Bytes | - |
 ### **ProxyObject** ###
 #### **Size**: 16 bytes ####
 #### **Description**: The description of map proxy object: everything except terrain (road signs, buildings etc.) Thanks to jeff-1amstudios and his OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202 ####
@@ -187,7 +187,7 @@
 | --- | --- | --- | --- | --- |
 | 0 | **flags** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>2: is_animated</details> | Different modes of proxy object |
 | 1 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: unk<br/>1: model<br/>4: bitmap<br/>6: two_sided_bitmap</details> | Type of proxy object |
-| 2 | **proxy_object_data** | 14 | One of types:<br/>- [ModelProxyObjectData](#modelproxyobjectdata)<br/>- [BitmapProxyObjectData](#bitmapproxyobjectdata)<br/>- [TwoSidedBitmapProxyObjectData](#twosidedbitmapproxyobjectdata)<br/>- [UnknownProxyObjectData](#unknownproxyobjectdata) | Settings of the prop. Block class picked according to <type> |
+| 2 | **proxy_object_data** | 14 | One of types:<br/>- [ModelProxyObjectData](#modelproxyobjectdata)<br/>- [BitmapProxyObjectData](#bitmapproxyobjectdata)<br/>- [TwoSidedBitmapProxyObjectData](#twosidedbitmapproxyobjectdata)<br/>- Bytes | Settings of the prop. Block class picked according to <type> |
 ### **ProxyObjectInstance** ###
 #### **Size**: 16 bytes ####
 #### **Description**: The occurrence of proxy object. For instance: exactly the same road sign used 5 times on the map. In this case file will have 1 ProxyObject for this road sign and 5 ProxyObjectInstances ####
@@ -203,13 +203,13 @@
 #### **Description**: The terrain model around 4 spline points. It has good explanation in original Denis Auroux NFS file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == TRKD | - |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "TRKD" | - |
 | 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
 | 12 | **unknown** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 13 | **fence** | 1 | TNFS fence type field. fence type: [lrtttttt]<br/>l - flag is add left fence<br/>r - flag is add right fence<br/>tttttt - texture id | - |
-| 14 | **texture_ids** | 10 | Array of 10 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
-| 24 | **rows** | 66 * (4) | Array of 4 items<br/>Item size: 66 bytes<br/>Item type: Array of 11 items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter | Terrain vertex positions |
+| 14 | **texture_ids** | 10 | Array of `10` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
+| 24 | **rows** | 264 | Array of `4` items<br/>Item size: 66 bytes<br/>Item type: Array of `11` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter | Terrain vertex positions |
 ### **AIEntry** ###
 #### **Size**: 3 bytes ####
 #### **Description**: The record describing AI behavior at given terrain chunk ####
@@ -224,7 +224,7 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer | An index of prop in the track FAM file |
-| 1 | **unknowns** | 13 | Array of 13 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 1 | **unknowns** | 13 | Bytes | Unknown purpose |
 ### **BitmapProxyObjectData** ###
 #### **Size**: 14 bytes ####
 #### **Description**: The proxy object settings if it is a bitmap ####
@@ -248,11 +248,6 @@
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **width_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters of second bitmap |
 | 10 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters |
-### **UnknownProxyObjectData** ###
-#### **Size**: 14 bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **unknowns** | 14 | Array of 14 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 ## **Physics** ##
 ### **CarPerformanceSpec** ###
 #### **Size**: 1912 bytes ####

@@ -5,7 +5,6 @@ from copy import deepcopy
 from string import Template
 from typing import List, Dict
 
-from library.helpers.data_wrapper import DataWrapper
 from library.helpers.json import resource_to_json
 from library.read_data import ReadData
 from library.utils.blender_scripts import get_blender_save_script, run_blender
@@ -77,32 +76,31 @@ class TriMapSerializer(BaseFileSerializer):
     class TerrainChunk:
 
         def get_fence_height(self, fence_texture_name):
-            try:
-                # TODO determine where to get fence height from resource file
-                # resource = self.tri_block.fam.resources[0]
-                # for path in fence_texture_name.split('/'):
-                #     resource = resource.get_resource_by_name(path)
-                if self.tri_block.id.split('/')[-1][:3] in ['TR1', 'TR3']:
-                    # TR1 texture height == 64; TR3: 51
-                    return 1
-                elif self.tri_block.id.split('/')[-1][:3] in ['AL1', 'TR2', 'TR6']:
-                    return 2  # TR2 95; TR6: 65; AL1: 64
-                elif self.tri_block.id.split('/')[-1][:3] in ['TR7']:
-                    return 1.5  # TR7: 47
-                # didn't test other tracks
+            # TODO determine where to get fence height from resource file
+            # resource = self.tri_block.fam.resources[0]
+            # for path in fence_texture_name.split('/'):
+            #     resource = resource.get_resource_by_name(path)
+            if self.tri_id.split('/')[-1][:3] in ['TR1', 'TR3']:
+                # TR1 texture height == 64; TR3: 51
                 return 1
-            except:
-                return 1
+            elif self.tri_id.split('/')[-1][:3] in ['AL1', 'TR2', 'TR6']:
+                return 2  # TR2 95; TR6: 65; AL1: 64
+            elif self.tri_id.split('/')[-1][:3] in ['TR7']:
+                return 1.5  # TR7: 47
+            # didn't test other tracks
+            return 1
 
-        def __init__(self, tri_block):
+        def __init__(self, tri_id, tri_block, tri_data):
+            self.tri_id = tri_id
             self.tri_block = tri_block
+            self.tri_data = tri_data
             self.next_chunk = None
             self.matrix = None
             self.fence_texture_name = None
             self.has_left_fence = False
             self.left_fence_polygon_index = 3
             # FIXME hardcode
-            if self.tri_block.id.split('/')[-1][:3] == 'TR3':
+            if self.tri_id.split('/')[-1][:3] == 'TR3':
                 self.left_fence_polygon_index = 2
             self.has_right_fence = False
             self.right_fence_polygon_index = 7
@@ -127,10 +125,10 @@ class TriMapSerializer(BaseFileSerializer):
                 sum((row[vertex_to_remove][i] - row[vertex_to_remove + 1][i]) ** 2 for i in ['x', 'y', 'z']))
             left_right_factor = distance_to_left_vertex / (distance_to_left_vertex + distance_to_right_vertex)
             # now vertex will be located on the straight line between neighbour vertices
-            row[vertex_to_remove] = DataWrapper({
-                i: row[vertex_to_remove - 1][i] * (1 - left_right_factor) + row[vertex_to_remove + 1][
-                    i] * left_right_factor
-                for i in ['x', 'y', 'z']})
+            row[vertex_to_remove] = {
+                i: row[vertex_to_remove - 1][i] * (1 - left_right_factor)
+                   + row[vertex_to_remove + 1][i] * left_right_factor
+                for i in ['x', 'y', 'z']}
             return build_matrix_row, com_matrix_row
 
         def read_matrix(self, rows, reference_points: List[RoadSplinePoint]):
@@ -149,9 +147,9 @@ class TriMapSerializer(BaseFileSerializer):
             self.matrix = [None] * 4
             for row_index in range(4):
                 A0 = rows[row_index][0]
-                A0.x += reference_points[row_index].position.x
-                A0.y += reference_points[row_index].position.y
-                A0.z += reference_points[row_index].position.z
+                A0['x'] += reference_points[row_index]['position']['x']
+                A0['y'] += reference_points[row_index]['position']['y']
+                A0['z'] += reference_points[row_index]['position']['z']
 
                 A15 = [rows[row_index][i + 1] for i in range(5)]
                 A610 = [rows[row_index][i + 6] for i in range(5)]
@@ -164,13 +162,13 @@ class TriMapSerializer(BaseFileSerializer):
                 self.matrix[3 - row_index] = A610 + [A0] + A15
             self.build_matrix = deepcopy(self.matrix)
             for row_index in range(4):
-                if reference_points[row_index].spline_item_mode == 'lane_split':
+                if reference_points[row_index]['spline_item_mode'] == 'lane_split':
                     self.build_matrix[3 - row_index], self.matrix[3 - row_index] = self._make_vertex_offset(
                         self.build_matrix[3 - row_index],
                         2, 6,
                         self.matrix[3 - row_index]
                     )
-                elif reference_points[row_index].spline_item_mode == 'lane_merge':
+                elif reference_points[row_index]['spline_item_mode'] == 'lane_merge':
                     assert row_index == 0, Exception('Unexpected lane merge position!')
                     self.lane_merge_initiated = True
 
@@ -188,13 +186,13 @@ class TriMapSerializer(BaseFileSerializer):
             for i in range(10):
                 inverted_matrix = [list(x) for x in zip(*matrix)]
                 model = SubMesh()
-                model.vertices = [[v.x, v.y, v.z] for v in sum(inverted_matrix[i:i + 2], [])]
+                model.vertices = [[v['x'], v['y'], v['z']] for v in sum(inverted_matrix[i:i + 2], [])]
                 # in some cases, first polygon is placed differently (tunnels in Vertigo Ridge and Coastal #2)
                 if i == 0:
                     for j in range(5):
                         vertices_matrix_indices = 0, 1
                         # we have 4 points, but 5 items in matrix. last should obey mode of 4th point
-                        mode = self.reference_points[min(j, 3)].spline_item_mode
+                        mode = self.reference_points[min(j, 3)]['spline_item_mode']
                         # matrix_indices mapped as follows:
                         # A10   A9  A8  A7  A6  A0  A1  A2  A3  A4  A5
                         # 0     1   2   3   4   5   6   7   8   9   10
@@ -208,14 +206,14 @@ class TriMapSerializer(BaseFileSerializer):
                             vertices_matrix_indices = 1, 7
                         if vertices_matrix_indices != (0, 1):
                             model.vertices[j] = [
-                                inverted_matrix[vertices_matrix_indices[0]][j].x,
-                                inverted_matrix[vertices_matrix_indices[0]][j].y,
-                                inverted_matrix[vertices_matrix_indices[0]][j].z
+                                inverted_matrix[vertices_matrix_indices[0]][j]['x'],
+                                inverted_matrix[vertices_matrix_indices[0]][j]['y'],
+                                inverted_matrix[vertices_matrix_indices[0]][j]['z']
                             ]
                             model.vertices[j + 5] = [
-                                inverted_matrix[vertices_matrix_indices[1]][j].x,
-                                inverted_matrix[vertices_matrix_indices[1]][j].y,
-                                inverted_matrix[vertices_matrix_indices[1]][j].z,
+                                inverted_matrix[vertices_matrix_indices[1]][j]['x'],
+                                inverted_matrix[vertices_matrix_indices[1]][j]['y'],
+                                inverted_matrix[vertices_matrix_indices[1]][j]['z'],
                             ]
                 polygons = [
                     [[i, int(len(model.vertices) / 2) + i, 1 + i], [int(len(model.vertices) / 2) + i,
@@ -248,15 +246,15 @@ class TriMapSerializer(BaseFileSerializer):
                 # shift a bit (20cm) fence to fix z-fighting specifically on transtropolis track.
                 # It has vertical walls, intersecting with fence
                 # FIXME remove this after finding a way to render with custom z-buffer, required for NFS1 wheels
-                if self.tri_block.id.split('/')[-1][:3] == 'TR7':
+                if self.tri_id.split('/')[-1][:3] == 'TR7':
                     neighbour_point = matrix[i][index + 1 if is_left else index - 1]
                     distance = math.sqrt(sum(pow(neighbour_point[c] - road_point[c], 2) for c in ['x', 'y', 'z']))
                     koef = 0.2 / distance
-                    road_point = DataWrapper(
-                        {c: road_point[c] * (1 - koef) + neighbour_point[c] * koef for c in ['x', 'y', 'z']})
-                model.vertices.append([road_point.x, road_point.y, road_point.z])
-                model.vertices.append(
-                    [road_point.x, road_point.y + self.get_fence_height(self.fence_texture_name), road_point.z])
+                    road_point = {c: road_point[c] * (1 - koef) + neighbour_point[c] * koef for c in ['x', 'y', 'z']}
+                model.vertices.append([road_point['x'], road_point['y'], road_point['z']])
+                model.vertices.append([road_point['x'],
+                                       road_point['y'] + self.get_fence_height(self.fence_texture_name),
+                                       road_point['z']])
             for i in range(len(matrix) - 1):
                 model.polygons.append([i * 2, i * 2 + 1, i * 2 + 3])
                 model.polygons.append([i * 2 + 2, i * 2, i * 2 + 3])
@@ -412,49 +410,49 @@ if $save_terrain_collisions:
 
     def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track,
                                     use_local_coordinates) -> Dict:
-        proxy_definition = data.proxy_objects[instance.proxy_object_index.value % len(data.proxy_objects)]
-        spline_index = instance.reference_road_spline_vertex.value
-        road_spline_vertex = data.road_spline[spline_index]
+        proxy_definition = data['proxy_objects'][instance['proxy_object_index'] % len(data['proxy_objects'])]
+        spline_index = instance['reference_road_spline_vertex']
+        road_spline_vertex = data['road_spline'][spline_index]
         res = {
-            'x': instance.position.x.value + road_spline_vertex.position.x.value,
-            'y': instance.position.y.value + road_spline_vertex.position.y.value,
-            'z': instance.position.z.value + road_spline_vertex.position.z.value,
-            'rotation_z': instance.rotation.value + road_spline_vertex.orientation.value,
-            'type': proxy_definition.type.value
+            'x': instance['position']['x'] + road_spline_vertex['position']['x'],
+            'y': instance['position']['y'] + road_spline_vertex['position']['y'],
+            'z': instance['position']['z'] + road_spline_vertex['position']['z'],
+            'rotation_z': instance['rotation'] + road_spline_vertex['orientation'],
+            'type': proxy_definition['type']
         }
         if use_local_coordinates:
             for axis in ['x', 'y', 'z']:
-                res[axis] -= getattr(data.road_spline[spline_index - (spline_index % 4)].position, axis).value
+                res[axis] -= data['road_spline'][spline_index - (spline_index % 4)]['position'][axis]
         if res['type'] == 'model':
             res = {
                 **res,
-                'model_ref_id': proxy_definition.proxy_object_data.resource_id.value
+                'model_ref_id': proxy_definition['proxy_object_data']['data']['resource_id']
             }
         elif res['type'] == 'bitmap':
             res = {
                 **res,
                 'texture': ';'.join(self._texture_ids(
-                    proxy_definition.proxy_object_data.resource_id.value,
-                    proxy_definition.proxy_object_data.frame_count.value
-                    if proxy_definition.flags['is_animated']
+                    proxy_definition['proxy_object_data']['data']['resource_id'],
+                    proxy_definition['proxy_object_data']['data']['frame_count']
+                    if proxy_definition['flags']['is_animated']
                     else 1,
                     is_opened_track)),
-                'width': proxy_definition.proxy_object_data.width.value,
-                'height': proxy_definition.proxy_object_data.height.value,
-                'animation_interval': proxy_definition.proxy_object_data.animation_interval.value
+                'width': proxy_definition['proxy_object_data']['data']['width'],
+                'height': proxy_definition['proxy_object_data']['data']['height'],
+                'animation_interval': proxy_definition['proxy_object_data']['data']['animation_interval']
             }
         elif res['type'] == 'two_sided_bitmap':
             res = {
                 **res,
                 'texture': ';'.join(
-                    self._texture_ids(proxy_definition.proxy_object_data.resource_id.value, 1,
+                    self._texture_ids(proxy_definition['proxy_object_data']['data']['resource_id'], 1,
                                       is_opened_track)),
                 'back_texture': ';'.join(
-                    self._texture_ids(proxy_definition.proxy_object_data.resource_2_id.value, 1,
+                    self._texture_ids(proxy_definition['proxy_object_data']['data']['resource_2_id'], 1,
                                       is_opened_track)),
-                'width': proxy_definition.proxy_object_data.width.value,
-                'back_width': proxy_definition.proxy_object_data.width_2.value,
-                'height': proxy_definition.proxy_object_data.height.value
+                'width': proxy_definition['proxy_object_data']['data']['width'],
+                'back_width': proxy_definition['proxy_object_data']['data']['width_2'],
+                'height': proxy_definition['proxy_object_data']['data']['height']
             }
         return res
 
@@ -477,33 +475,36 @@ if $save_terrain_collisions:
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
         is_opened_track = math.sqrt(
-            (data.road_spline[0].position.x.value - data.road_spline[len(data.terrain) * 4 - 1].position.x.value) ** 2
-            + (data.road_spline[0].position.y.value - data.road_spline[len(data.terrain) * 4 - 1].position.y.value) ** 2
-            + (data.road_spline[0].position.z.value - data.road_spline[len(data.terrain) * 4 - 1].position.z.value) ** 2
+            (data['road_spline'][0]['position']['x'] - data['road_spline'][len(data['terrain']) * 4 - 1]['position'][
+                'x']) ** 2
+            + (data['road_spline'][0]['position']['y'] - data['road_spline'][len(data['terrain']) * 4 - 1]['position'][
+                'y']) ** 2
+            + (data['road_spline'][0]['position']['z'] - data['road_spline'][len(data['terrain']) * 4 - 1]['position'][
+                'z']) ** 2
         ) > 100
 
         terrain_data = []
-        for terrain_entry in data.terrain:
+        for terrain_entry in data['terrain']:
             res = dict()
-            res['texture_names'] = [self._get_texture_name_from_id(is_opened_track, tid.value) for tid in
-                                    terrain_entry.texture_ids]
+            res['texture_names'] = [self._get_texture_name_from_id(is_opened_track, tid) for tid in
+                                    terrain_entry['texture_ids']]
             road_path_index = len(terrain_data) * 4
-            res['chunk'] = self.TerrainChunk(data)
-            res['chunk'].read_matrix(DataWrapper.wrap(resource_to_json(terrain_entry.rows)),
-                                     DataWrapper.wrap(
-                                         resource_to_json(data.road_spline[road_path_index:road_path_index + 4])))
-            if terrain_entry.fence.texture_id != 0 or terrain_entry.fence.has_left_fence or terrain_entry.fence.has_right_fence:
-                fence_texture_id = terrain_entry.fence.texture_id
+            res['chunk'] = self.TerrainChunk(id, block, data)
+            res['chunk'].read_matrix(resource_to_json(terrain_entry['rows']),
+                                     resource_to_json(data['road_spline'][road_path_index:road_path_index + 4]))
+            if terrain_entry['fence']['texture_id'] != 0 or terrain_entry['fence']['has_left_fence'] or \
+                    terrain_entry['fence']['has_right_fence']:
+                fence_texture_id = terrain_entry['fence']['texture_id']
                 if is_opened_track:
-                    if data.id.endswith('AL1.TRI') and fence_texture_id == 16:
+                    if id.endswith('AL1.TRI') and fence_texture_id == 16:
                         fence_texture_id = fence_texture_id * 3
                     res['chunk'].fence_texture_name = self._get_texture_name_from_id(is_opened_track, fence_texture_id)
                 else:
                     res['chunk'].fence_texture_name = ('0/GA00'
-                                                       if data.id.split('/')[-1] in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
+                                                       if id.split('/')[-1] in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
                                                        else '0/ga00')
-                res['chunk'].has_left_fence = terrain_entry.fence.has_left_fence
-                res['chunk'].has_right_fence = terrain_entry.fence.has_right_fence
+                res['chunk'].has_left_fence = terrain_entry['fence']['has_left_fence']
+                res['chunk'].has_right_fence = terrain_entry['fence']['has_right_fence']
             terrain_data.append(res)
         for i, terrain_data_entry in enumerate(terrain_data):
             terrain_data_entry['chunk'].next_chunk = terrain_data[i + 1]['chunk'] if (
@@ -515,15 +516,15 @@ if $save_terrain_collisions:
 
         if self.settings.maps__save_invisible_wall_collisions:
             left_barrier_points = self.BarrierPath(
-                [[rp.position.x.value + rp.left_barrier_distance.value * math.cos(rp.orientation.value + math.pi),
-                  rp.position.y.value,
-                  rp.position.z.value - rp.left_barrier_distance.value * math.sin(rp.orientation.value + math.pi)
-                  ] for rp in data.road_spline[:len(data.terrain) * 4]])
+                [[rp['position']['x'] + rp['left_barrier_distance'] * math.cos(rp['orientation'] + math.pi),
+                  rp['position']['y'],
+                  rp['position']['z'] - rp['left_barrier_distance'] * math.sin(rp['orientation'] + math.pi)
+                  ] for rp in data['road_spline'][:len(data['terrain']) * 4]])
             right_barrier_points = self.BarrierPath(
-                [[rp.position.x.value + rp.right_barrier_distance.value * math.cos(rp.orientation.value),
-                  rp.position.y.value,
-                  rp.position.z.value - rp.right_barrier_distance.value * math.sin(rp.orientation.value)
-                  ] for rp in data.road_spline[:len(data.terrain) * 4]])
+                [[rp['position']['x'] + rp['right_barrier_distance'] * math.cos(rp['orientation']),
+                  rp['position']['y'],
+                  rp['position']['z'] - rp['right_barrier_distance'] * math.sin(rp['orientation'])
+                  ] for rp in data['road_spline'][:len(data['terrain']) * 4]])
             if not is_opened_track:
                 left_barrier_points.points += [left_barrier_points.points[0]]
                 right_barrier_points.points += [right_barrier_points.points[0]]
@@ -538,12 +539,13 @@ if $save_terrain_collisions:
         for i, terrain_chunk in enumerate(terrain_data):
             for sub_model in terrain_chunk['meshes']:
                 sub_model.change_axes(new_z='y', new_y='z')
-        for obj in data.proxy_object_instances:
-            (obj.position.z, obj.position.y) = (obj.position.y, obj.position.z)
-            obj.rotation.value = -obj.rotation.value
-        for spline_point in data.road_spline[:len(data.terrain) * 4]:
-            (spline_point.position.z, spline_point.position.y) = (spline_point.position.y, spline_point.position.z)
-            spline_point.orientation.value = -spline_point.orientation.value
+        for obj in data['proxy_object_instances']:
+            (obj['position']['z'], obj['position']['y']) = (obj['position']['y'], obj['position']['z'])
+            obj['rotation'] = -obj['rotation']
+        for spline_point in data['road_spline'][:len(data['terrain']) * 4]:
+            (spline_point['position']['z'], spline_point['position']['y']) = (
+                spline_point['position']['y'], spline_point['position']['z'])
+            spline_point['orientation'] = -spline_point['orientation']
         if self.settings.maps__save_invisible_wall_collisions:
             if right_barrier_points:
                 right_barrier_points.points = [[p[0], p[2], p[1]] for p in right_barrier_points.points]
@@ -551,7 +553,7 @@ if $save_terrain_collisions:
             if left_barrier_points:
                 left_barrier_points.points = [[p[0], p[2], p[1]] for p in left_barrier_points.points]
                 left_barrier_points.z_up = True
-        self._save_mtl(terrain_data, path, data.id.split('/')[-1])
+        self._save_mtl(terrain_data, path, id.split('/')[-1])
         blender_script = "bpy.ops.wm.read_factory_settings(use_empty=True)"
         if self.settings.maps__save_as_chunked:
             for i, terrain_chunk in enumerate(terrain_data):
@@ -559,9 +561,9 @@ if $save_terrain_collisions:
                     face_index_increment = 1
                     for sub_model in terrain_chunk['meshes']:
                         f.write(sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=(
-                            data.road_spline[i * 4].position.x.value,
-                            data.road_spline[i * 4].position.y.value,
-                            data.road_spline[i * 4].position.z.value,
+                            data['road_spline'][i * 4]['position']['x'],
+                            data['road_spline'][i * 4]['position']['y'],
+                            data['road_spline'][i * 4]['position']['z'],
                         )))
                         face_index_increment = face_index_increment + len(sub_model.vertices)
                 blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
@@ -571,8 +573,8 @@ if $save_terrain_collisions:
                     'obj_name': f'terrain_chunk_{i}.obj',
                     'proxy_objects_json': json.dumps(
                         [self._proxy_object_instance_json(data, o, is_opened_track, True)
-                         for o in data.proxy_object_instances
-                         if (i + 1) * 4 > o.reference_road_spline_vertex.value >= i * 4]),
+                         for o in data['proxy_object_instances']
+                         if (i + 1) * 4 > o['reference_road_spline_vertex'] >= i * 4]),
                 })
                 if self.settings.geometry__save_blend:
                     blender_script += get_blender_save_script(
@@ -597,42 +599,43 @@ if $save_terrain_collisions:
                 'obj_name': 'terrain.obj',
                 'proxy_objects_json': json.dumps(
                     [self._proxy_object_instance_json(data, o, is_opened_track, False)
-                     for o in data.proxy_object_instances
-                     if len(data.terrain) * 4 > o.reference_road_spline_vertex.value >= 0]),
+                     for o in data['proxy_object_instances']
+                     if len(data['terrain']) * 4 > o['reference_road_spline_vertex'] >= 0]),
             })
         road_path_settings = {
-            'slope': [block.slope.value for block in data.road_spline[:len(data.terrain) * 4]],
-            'slant': [block.slant_a.value for block in data.road_spline[:len(data.terrain) * 4]],
-            'left_barrier_distance': [block.left_barrier_distance.value for block in
-                                      data.road_spline[:len(data.terrain) * 4]],
-            'right_barrier_distance': [block.right_barrier_distance.value for block in
-                                       data.road_spline[:len(data.terrain) * 4]],
+            'slope': [block['slope'] for block in data['road_spline'][:len(data['terrain']) * 4]],
+            'slant': [block['slant_a'] for block in data['road_spline'][:len(data['terrain']) * 4]],
+            'left_barrier_distance': [block['left_barrier_distance'] for block in
+                                      data['road_spline'][:len(data['terrain']) * 4]],
+            'right_barrier_distance': [block['right_barrier_distance'] for block in
+                                       data['road_spline'][:len(data['terrain']) * 4]],
         }
         if is_opened_track:
             # a terminal road path point: when go backwards, race ends after this point
             road_path_settings['start_point_index'] = 12
             # a finish road path point
-            road_path_settings['finish_point_index'] = data.terrain_length.value * 4 - 179
+            road_path_settings['finish_point_index'] = data['terrain_length'] * 4 - 179
         blender_script += '\n\n\n\n' + self.blender_map_script.substitute({
             'new_file': self.settings.maps__save_as_chunked,
             'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
             'save_terrain_collisions': self.settings.maps__save_terrain_collisions,
             'road_path_points': ', '.join(
-                [f'({block.position.x.value}, {block.position.y.value}, {block.position.z.value})' for block in
-                 data.road_spline[:len(data.terrain) * 4]]),
+                [f"({block['position']['x']}, {block['position']['y']}, {block['position']['z']})" for block in
+                 data['road_spline'][:len(data['terrain']) * 4]]),
             'road_path_settings': json.dumps(road_path_settings),
             # AL1, CL1, CY1, BS, VR - looks ok
             # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
             # FINISH POSITION IS UNKNOWN: CY1 road spline vertex #1740
             'player_start': json.dumps({
                 # 0.8 is an approximate average car half width
-                'x': max(data.road_spline[18].position.x.value - data.road_spline[18].left_barrier_distance.value + 0.8,
-                         min(data.road_spline[18].position.x.value + data.road_spline[
-                             18].right_barrier_distance.value - 0.8,
-                             2.5)),
-                'y': max(data.road_spline[18].position.y.value, 0),
-                'z': data.road_spline[18].position.z.value,
-                'rotation_x': data.road_spline[18].slope.value,
+                'x': max(
+                    data['road_spline'][18]['position']['x'] - data['road_spline'][18]['left_barrier_distance'] + 0.8,
+                    min(data['road_spline'][18]['position']['x'] + data['road_spline'][
+                        18]['right_barrier_distance'] - 0.8,
+                        2.5)),
+                'y': max(data['road_spline'][18]['position']['y'], 0),
+                'z': data['road_spline'][18]['position']['z'],
+                'rotation_x': data['road_spline'][18]['slope'],
             }),
             'is_opened_track': is_opened_track,
             'left_barrier': json.dumps({

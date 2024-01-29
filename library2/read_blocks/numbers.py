@@ -77,3 +77,27 @@ class BitFlagsBlock(IntegerBlock):
             if data[self.flag_name_map[i]]:
                 res = res | (1 << i)
         return super().write(res, ctx, name)
+
+
+class EnumByteBlock(IntegerBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Enum of 256 possible values<br/><details><summary>Value names:</summary>'
+                                     + '<br/>'.join([f'{i}: {x}'
+                                                     for i, x in enumerate(self.enum_name_map)
+                                                     if x != str(i)]) + '</details>'}
+
+    def __init__(self, enum_names: List[Tuple[int, str]], **kwargs):
+        super().__init__(length=1, **kwargs)
+        self.enum_names = enum_names
+        self.enum_name_map = [str(i) for i in range(256)]
+        for value, name in self.enum_names:
+            self.enum_name_map[value] = name
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        return self.enum_name_map[super().read(buffer, ctx, name, read_bytes_amount)]
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        return super().write(self.enum_name_map.index(data), ctx, name)

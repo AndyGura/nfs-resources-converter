@@ -1,53 +1,58 @@
+from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library.helpers.data_wrapper import DataWrapper
-from library.read_blocks.atomic import IntegerBlock
-from library.read_blocks.compound import CompoundBlock
-from library.read_data import ReadData
-from library2.read_blocks import DeclarativeCompoundBlock
+from library2.context import WriteContext, ReadContext
+from library2.read_blocks import DeclarativeCompoundBlock, IntegerBlock
 from resources.eac.fields.numbers import RationalNumber
 
 
-class Point3D_16(CompoundBlock):
-    block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(length=2, fraction_bits=8, is_signed=True).schema['block_description'] \
-                        + '. The unit is meter'
+class Point3D_16(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
+                                 + RationalNumber(length=2, fraction_bits=8, is_signed=True).schema['block_description']
+                                 + '. The unit is meter',
+            'inline_description': True,
+        }
 
-    def __init__(self, **kwargs):
-        kwargs.pop('inline_description', None)
-        super().__init__(inline_description=True, **kwargs)
-
-    class Fields(CompoundBlock.Fields):
+    class Fields(DeclarativeCompoundBlock.Fields):
         x = RationalNumber(length=2, fraction_bits=8, is_signed=True)
         y = RationalNumber(length=2, fraction_bits=8, is_signed=True)
         z = RationalNumber(length=2, fraction_bits=8, is_signed=True)
 
 
-class Point3D_16_7(CompoundBlock):
-    block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(length=2, fraction_bits=7, is_signed=True).schema['block_description'] \
-                        + '. The unit is meter'
+class Point3D_16_7(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
+                                 + RationalNumber(length=2, fraction_bits=7, is_signed=True).schema['block_description']
+                                 + '. The unit is meter',
+            'inline_description': True,
+        }
 
-    def __init__(self, **kwargs):
-        kwargs.pop('inline_description', None)
-        super().__init__(inline_description=True, **kwargs)
-
-    class Fields(CompoundBlock.Fields):
+    class Fields(DeclarativeCompoundBlock.Fields):
         x = RationalNumber(length=2, fraction_bits=7, is_signed=True)
         y = RationalNumber(length=2, fraction_bits=7, is_signed=True)
         z = RationalNumber(length=2, fraction_bits=7, is_signed=True)
 
 
-class Point3D_32(CompoundBlock):
-    block_description = 'Point in 3D space (x,y,z), where each coordinate is: ' \
-                        + RationalNumber(length=4, fraction_bits=16, is_signed=True).schema['block_description'] \
-                        + '. The unit is meter'
+class Point3D_32(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
+                                 + RationalNumber(length=4, fraction_bits=16, is_signed=True).schema[
+                                     'block_description']
+                                 + '. The unit is meter',
+            'inline_description': True,
+        }
 
-    def __init__(self, **kwargs):
-        kwargs.pop('inline_description', None)
-        super().__init__(inline_description=True, **kwargs)
-
-    class Fields(CompoundBlock.Fields):
+    class Fields(DeclarativeCompoundBlock.Fields):
         x = RationalNumber(length=4, fraction_bits=16, is_signed=True)
         y = RationalNumber(length=4, fraction_bits=16, is_signed=True)
         z = RationalNumber(length=4, fraction_bits=16, is_signed=True)
@@ -89,28 +94,31 @@ class Point3D_32_7(DeclarativeCompoundBlock):
 
 
 class FenceType(IntegerBlock):
-    def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('is_signed', None)
-        super().__init__(static_size=1, is_signed=False, **kwargs)
-        self.block_description = 'TNFS fence type field. fence type: [lrtttttt]' \
-                                 '<br/>l - flag is add left fence' \
-                                 '<br/>r - flag is add right fence' \
-                                 '<br/>tttttt - texture id'
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'TNFS fence type field. fence type: [lrtttttt]'
+                                 '<br/>l - flag is add left fence'
+                                 '<br/>r - flag is add right fence'
+                                 '<br/>tttttt - texture id',
+        }
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        fence_type = super().from_raw_value(raw, state)
-        return DataWrapper({
+    def __init__(self, **kwargs):
+        super().__init__(length=1, is_signed=False, **kwargs)
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        fence_type = super().read(buffer, ctx, name, read_bytes_amount)
+        return {
             'texture_id': fence_type & (0xff >> 2),
             'has_left_fence': (fence_type & (0x1 << 7)) != 0,
             'has_right_fence': (fence_type & (0x1 << 6)) != 0,
-        })
+        }
 
-    def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
-        byte = value['texture_id'] & (0xff >> 2)
-        if value['has_left_fence']:
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        byte = data['texture_id'] & (0xff >> 2)
+        if data['has_left_fence']:
             byte = byte | (0x1 << 7)
-        if value['has_right_fence']:
+        if data['has_right_fence']:
             byte = byte | (0x1 << 6)
-        return super().to_raw_value(self.wrap_result(byte, data.block_state))
+        return super().write(byte, ctx, name)

@@ -1,7 +1,7 @@
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
-from resources.eac import archives, bitmaps, fonts, palettes, misc, geometries
+from resources.eac import archives, bitmaps, fonts, palettes, misc, geometries, maps
 
 EXPORT_RESOURCES = {
     'Archives': [
@@ -16,16 +16,15 @@ EXPORT_RESOURCES = {
         geometries.RenderOrderBlock(),
     ],
     'Maps': [
-        # maps.TriMap(),
-        # maps.RoadSplinePoint(),
-        # maps.ProxyObject(),
-        # maps.ProxyObjectInstance(),
-        # maps.TerrainEntry(),
-        # maps.AIEntry(),
-        # maps.ModelProxyObjectData(),
-        # maps.BitmapProxyObjectData(),
-        # maps.TwoSidedBitmapProxyObjectData(),
-        # maps.UnknownProxyObjectData(),
+        maps.TriMap(),
+        maps.RoadSplinePoint(),
+        maps.ProxyObject(),
+        maps.ProxyObjectInstance(),
+        maps.TerrainEntry(),
+        maps.AIEntry(),
+        maps.ModelProxyObjectData(),
+        maps.BitmapProxyObjectData(),
+        maps.TwoSidedBitmapProxyObjectData(),
     ],
     'Physics': [
         # car_specs.CarPerformanceSpec(),

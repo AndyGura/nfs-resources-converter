@@ -41,68 +41,81 @@ class AngleBlock:
 
 
 class Nfs1Angle8(AngleBlock, IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees',
+        }
+
     def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('is_signed', None)
         super().__init__(length=1, is_signed=False, **kwargs)
-        self.block_description = 'EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees'
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        return float((super().from_raw_value(raw, state) / 256) * (math.pi * 2))
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        return float((super().read(buffer, ctx, name, read_bytes_amount) / 256) * (math.pi * 2))
 
-    def to_raw_value(self, data) -> bytes:
-        value = self.wrap_angle(self.unwrap_result(data))
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        value = self.wrap_angle(data)
         value = min(round(256 * value / (math.pi * 2)), 0xFF)
-        return super().to_raw_value(self.wrap_result(value, data.block_state))
+        return super().write(value, ctx, name)
 
 
 class Nfs1Angle14(AngleBlock, IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown'
+                                 ' data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees',
+        }
+
     def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('byte_order', None)
-        kwargs.pop('is_signed', None)
         super().__init__(length=2, byte_order='little', is_signed=False, **kwargs)
-        self.block_description = 'EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown' \
-                                 ' data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees'
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        return float(((super().from_raw_value(raw, state) & 0x3FFF) / 0x4000) * (math.pi * 2))
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        return float(((super().read(buffer, ctx, name, read_bytes_amount) & 0x3FFF) / 0x4000) * (math.pi * 2))
 
-    def to_raw_value(self, data) -> bytes:
-        value = self.wrap_angle(self.unwrap_result(data))
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        value = self.wrap_angle(data)
         value = min(round(0x4000 * value / (math.pi * 2)), 0x3FFF)
-        return super().to_raw_value(self.wrap_result(value, data.block_state))
+        return super().write(value, ctx, name)
 
 
 class Nfs1Angle16(AngleBlock, IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) ' \
+                                 'means 360 degrees',
+        }
+
     def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('byte_order', None)
-        kwargs.pop('is_signed', None)
         super().__init__(length=2, byte_order='little', is_signed=False, **kwargs)
-        self.block_description = 'EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) ' \
-                                 'means 360 degrees'
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        return float((super().from_raw_value(raw, state) / 0x10000) * (math.pi * 2))
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        return float((super().read(buffer, ctx, name, read_bytes_amount) / 0x10000) * (math.pi * 2))
 
-    def to_raw_value(self, data) -> bytes:
-        value = self.wrap_angle(self.unwrap_result(data))
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        value = self.wrap_angle(data)
         value = min(round(0x10000 * value / (math.pi * 2)), 0xFFFF)
-        return super().to_raw_value(self.wrap_result(value, data.block_state))
+        return super().write(value, ctx, name)
 
 
 class Nfs1Interval(IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games time interval field: 0 = 0ms, 256 = 4000ms (4 seconds). Max value (255) is 3984.375ms',
+        }
+
     def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('byte_order', None)
-        kwargs.pop('is_signed', None)
         super().__init__(length=1, byte_order='little', is_signed=False, **kwargs)
-        self.block_description = 'EA games time interval field: 0 = 0ms, 256 = 4000ms (4 seconds). Max value (255) is 3984.375ms'
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        return float(super().from_raw_value(raw, state)) * 15.625
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        return float(super().read(buffer, ctx, name, read_bytes_amount)) * 15.625
 
-    def to_raw_value(self, data) -> bytes:
-        value = round(self.unwrap_result(data) / 15.625)
-        return super().to_raw_value(self.wrap_result(value, data.block_state))
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        value = round(data / 15.625)
+        return super().write(value, ctx, name)

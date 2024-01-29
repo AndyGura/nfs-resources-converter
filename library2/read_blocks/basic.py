@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO, SEEK_CUR
-from typing import Dict, Any, Tuple, Literal, Callable, List
+from typing import Dict, Any, Tuple, Literal
 
 from library.helpers.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
 from library.utils import represent_value_as_str
