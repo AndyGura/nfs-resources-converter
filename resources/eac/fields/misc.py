@@ -1,26 +1,11 @@
-from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.helpers.data_wrapper import DataWrapper
 from library.read_blocks.atomic import IntegerBlock
 from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
-from library2.context import ReadContext
-from library2.read_blocks import UTF8Block, DeclarativeCompoundBlock
+from library2.read_blocks import DeclarativeCompoundBlock
 from resources.eac.fields.numbers import RationalNumber
-
-
-class Nfs1Utf8Block(UTF8Block):
-
-    @property
-    def schema(self) -> Dict:
-        return {**super().schema,
-                'description': 'NFS1 UTF-8 string with variable length, but static size in file. 0x00 means end of '
-                               'string, the rest is ignored. Sometimes input string can cause UnicodeDecodeError, I '
-                               'ignore it here'}
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        return buffer.read(self.resolve_length(ctx)).decode('utf-8', errors='ignore')
 
 
 class Point3D_16(CompoundBlock):

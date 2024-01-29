@@ -101,8 +101,8 @@
 | texture_names_offset + texture_names_count\*20 | **offset** | space up to offset `texture_numbers_offset` | Bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
 | texture_numbers_offset | **texture_numbers** | texture_numbers_count\*20 | Array of `texture_numbers_count` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | render_orders_offset | **render_orders** | render_orders_count\*28 | Array of `render_orders_count` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
-| labels0_offset | **labels0** | labels0_count\*12 | Array of `labels0_count` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Unclear |
-| labels_offset | **labels** | labels_count\*12 | Array of `labels_count` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on drifting, accelerating and braking in the place where texture is shown. 3DO version ORIP description: "Texture indexes referenced from records in block 10 and block 11th. Texture index shows that wheel or back light will be displayed on the polygon number defined in block 10." - the issue is that TNFSSE orip files consist of 9 blocks |
+| labels0_offset | **labels0** | labels0_count\*12 | Array of `labels0_count` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last 4 bytes is an unsigned integer (little-endian) | Unclear |
+| labels_offset | **labels** | labels_count\*12 | Array of `labels_count` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last 4 bytes is an unsigned integer (little-endian) | Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on drifting, accelerating and braking in the place where texture is shown. 3DO version ORIP description: "Texture indexes referenced from records in block 10 and block 11th. Texture index shows that wheel or back light will be displayed on the polygon number defined in block 10." - the issue is that TNFSSE orip files consist of 9 blocks |
 | vertices_offset | **vertices** | vertices_count\*12 | Array of `vertices_count` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4 |
 | polygon_vmap_offset | **polygon_vmap** | ?\*4 | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertices. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs |
 ### **OripPolygon** ###
@@ -118,10 +118,10 @@
 | 8 | **offset_2d** | 4 | 4-bytes unsigned integer (little endian) | The same as offset_3d, also points to polygon_vmap, but used for texture coordinates. Look at polygon_vmap description for more info |
 ### **OripTextureName** ###
 #### **Size**: 20 bytes ####
-#### **Description**: A settings of the texture. From what is known, contains name of bitmap ####
+#### **Description**: A settings of the texture. From what is known, contains name of bitmap (not always a correct UTF-8) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **type** | 8 | UTF-8 string | - |
+| 0 | **type** | 8 | Bytes | - |
 | 8 | **file_name** | 4 | UTF-8 string | Name of bitmap in SHPI block |
 | 12 | **unknown** | 8 | Bytes | Unknown purpose |
 ### **RenderOrderBlock** ###

@@ -4,7 +4,7 @@ from typing import Dict
 from library.read_blocks.array import ArrayBlock as ArrayBlockOld, ExplicitOffsetsArrayBlock, ByteArray
 from library.read_blocks.atomic import IntegerBlock as IntegerBlockOld
 from library.read_blocks.compound import CompoundBlock as CompoundBlockOld
-from library2.context import ReadContext
+from library2.context import ReadContext, WriteContext
 from library2.read_blocks import (CompoundBlock,
                                   DeclarativeCompoundBlock,
                                   UTF8Block,
@@ -111,6 +111,12 @@ class ShpiBlock(DeclarativeCompoundBlock):
                                     'defined in `children_descriptions` block. Between them there can be non-indexed '
                                     'entries (palettes and texts)'})
 
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        offsets_sum = 0
+        for offset in data['offset_payloads']:
+            offsets_sum += len(offset)
+        return super().estimate_packed_size(data, ctx) + offsets_sum
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         shpi_start = buffer.tell()
         res = super().read(buffer, ctx, name, read_bytes_amount)
@@ -125,23 +131,52 @@ class ShpiBlock(DeclarativeCompoundBlock):
                               isinstance(child_field.possible_blocks[i], Bitmap8Bit))
         children = []
         aliases = []
+        offset_payloads = []
         for i, descr in enumerate(abs_offsets):
-            buffer.seek(descr["offset"])
+            if descr['offset'] > buffer.tell():
+                offset_payloads.append(buffer.read(descr['offset'] - buffer.tell()))
+            else:
+                offset_payloads.append(b'')
+                buffer.seek(descr["offset"])
             child = child_field.unpack(self_ctx.buffer, ctx=self_ctx)
             children.append(child)
             aliases.append(descr["name"])
             if res['shpi_directory'] != 'WRAP' and child['choice_index'] == bitmap8_choice:
-                pal_offset = child['data']['block_size']
-                if pal_offset > 0:
-                    pal_offset += descr["offset"]
-                    if i == len(abs_offsets) - 1 or pal_offset < abs_offsets[i + 1]['offset']:
-                        buffer.seek(pal_offset)
-                        pal = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name=name)
-                        children.append(pal)
+                extra_offset = child['data']['block_size']
+                if extra_offset > 0:
+                    extra_offset += descr["offset"]
+                    if i == len(abs_offsets) - 1 or extra_offset < abs_offsets[i + 1]['offset']:
+                        offset_payloads.append(buffer.read(extra_offset - buffer.tell()))
+                        extra = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name=name)
+                        children.append(extra)
                         aliases.append(None)
+        if buffer.tell() < shpi_start + res['length']:
+            diff = shpi_start + res['length'] - buffer.tell()
+            offset_payloads.append(buffer.read(diff))
         buffer.seek(shpi_start + read_bytes_amount)
         res['children'] = children
         res['children_aliases'] = aliases
+        res['offset_payloads'] = offset_payloads
+        return res
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        # we customize logic to write children
+        self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
+        res = bytes()
+        for name, field in (x for x in self.field_blocks if x[0] != 'children'):
+            programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')
+            if programmatic_value_func is not None:
+                val = programmatic_value_func(self_ctx)
+            else:
+                val = data[name]
+            res += field.pack(data=val, ctx=self_ctx, name=name)
+        child_block = self.field_blocks_map['children'].child
+        for i, item in enumerate(data['children']):
+            res += data['offset_payloads'][i]
+            res += child_block.pack(data=item, ctx=ctx, name=str(i))
+        if len(data['offset_payloads']) > len(data['children']):
+            for i in range(len(data['children']), len(data['offset_payloads'])):
+                res += data['offset_payloads'][i]
         return res
 
 

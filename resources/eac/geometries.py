@@ -8,7 +8,7 @@ from library2.read_blocks import (DeclarativeCompoundBlock,
                                   BytesBlock,
                                   DelegateBlock,
                                   BitFlagsBlock)
-from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4, Nfs1Utf8Block
+from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4
 
 
 class OripPolygon(DeclarativeCompoundBlock):
@@ -69,12 +69,12 @@ class OripTextureName(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'A settings of the texture. From what is known, contains name of bitmap',
+            'block_description': 'A settings of the texture. From what is known, contains name of bitmap (not always a correct UTF-8)',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        type = Nfs1Utf8Block(length=8)
-        file_name = (Nfs1Utf8Block(length=4),
+        type = BytesBlock(length=8)
+        file_name = (UTF8Block(length=4),
                      {'description': 'Name of bitmap in SHPI block'})
         unknown = (BytesBlock(length=8),
                    {'is_unknown': True})
@@ -105,13 +105,13 @@ class NamedIndex(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': '12-bytes record, first 8 bytes is a UTF-8 string, last 4 bytes is an ' \
-                                 'unsigned integer (little-endian)',
+            'block_description': '12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last'
+                                 ' 4 bytes is an unsigned integer (little-endian)',
             'inline_description': True,
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        name = Nfs1Utf8Block(length=8)
+        name = BytesBlock(length=8)
         index = IntegerBlock(length=4)
 
 
