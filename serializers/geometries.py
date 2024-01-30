@@ -40,6 +40,10 @@ def _setup_vertex(model: SubMesh, block_data, vertices_file_indices_map, index_3
 
 
 class OripGeometrySerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
     blender_script = Template("""
 import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -66,7 +70,7 @@ for dummy in dummies:
         if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
             raise DataIntegrityException('Cannot find SHPI archive for ORIP geometry')
 
-        super().serialize(data, path, is_dir=True)
+        super().serialize(data, path)
         try:
             is_car = '.CFM__' in id
         except:

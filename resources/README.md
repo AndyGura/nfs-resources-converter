@@ -1,5 +1,5 @@
 # **TNFSSE file specs** #
-*Last time updated: 2024-01-30 00:07:03.707763+00:00*
+*Last time updated: 2024-01-30 18:43:48.096370+00:00*
 
 # **Info by file extensions** #
 
@@ -540,8 +540,8 @@
 | 24 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | When audio ends, it repeats in loop from here. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
-| 36 | **offset** | space up to offset `wave_data_offset` | Bytes | - |
-| wave_data_offset | **wave_data** | `wave_data_length` \* `sound_resolution` | Bytes | Wave data is here |
+| 36 | **offset** | space up to offset (wave_data_offset + 40) | Bytes | - |
+| wave_data_offset + 40 | **wave_data** | min(`remaining file bytes`, `wave_data_length` \* `sound_resolution`) | Bytes | Wave data is here |
 ### **EacsAudioFile** ###
 #### **Size**: 28..? bytes ####
 #### **Description**: A file with single EACS audio entry ####

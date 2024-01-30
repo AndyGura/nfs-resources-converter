@@ -24,7 +24,7 @@ class JsonSerializer(BaseFileSerializer):
         return res
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=False)
+        super().serialize(data, path)
         json_str = json.dumps(self.__make_dict(data), indent=4)
         if path.endswith('/') or path.endswith('\\'):
             path += data.id[data.id.rindex('/')+1:]

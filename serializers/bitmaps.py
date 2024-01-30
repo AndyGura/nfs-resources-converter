@@ -11,7 +11,7 @@ from serializers.misc.path_utils import escape_chars
 class BitmapSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=False, id=id, block=block)
+        super().serialize(data, path, id=id, block=block)
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in data['bitmap']])).save(f'{escape_chars(path)}.png')
@@ -31,7 +31,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         return '.CFM' in id and id.split('/')[-2] in ['rsid', 'lite']
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=False, id=id, block=block)
+        super().serialize(data, path, id=id, block=block)
         (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
         if palette_block is None:
             raise SerializationException('Palette not found for 8bit bitmap')

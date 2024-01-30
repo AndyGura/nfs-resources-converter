@@ -5,6 +5,9 @@ from serializers import BaseFileSerializer, BitmapSerializer
 
 class FfnFontSerializer(BaseFileSerializer):
 
+    def __init__(self):
+        super().__init__(is_dir=True)
+
     def setup_for_reversible_serialization(self) -> bool:
         self.patch_settings({
             'export_unknown_values': True,
@@ -12,7 +15,7 @@ class FfnFontSerializer(BaseFileSerializer):
         return True
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=True, id=id, block=None)
+        super().serialize(data, path, id=id, block=None)
         image_serializer = BitmapSerializer()
         image_serializer.serialize(data["bitmap"], os.path.join(path, 'bitmap'))
         with open(os.path.join(path, 'font.fnt'), 'w') as file:

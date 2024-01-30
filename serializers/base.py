@@ -39,6 +39,9 @@ class DelegateBlockSerializer(ResourceSerializer):
 
 class BaseFileSerializer(ResourceSerializer):
 
+    def __init__(self, is_dir=False):
+        self.is_dir = is_dir
+
     def get_unknowns_dict(self, data: ReadData):
         if not isinstance(data, ReadData):
             return None
@@ -71,8 +74,8 @@ class BaseFileSerializer(ResourceSerializer):
                         has_something = True
         return res if has_something else None
 
-    def serialize(self, data: dict, path: str, is_dir=False, id=None, block=None, **kwargs):
-        os.makedirs(path if is_dir else os.path.dirname(path), exist_ok=True)
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        os.makedirs(path if self.is_dir else os.path.dirname(path), exist_ok=True)
         # TODO restore this logic
         # if isinstance(block, DelegateBlock):
         #     block = block.delegated_block

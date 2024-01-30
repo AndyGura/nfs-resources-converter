@@ -75,11 +75,11 @@ class FfmpegSupportedAudioSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
         subprocess.run(
-            [self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", data.id, f'{path}.mp3'],
+            [self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", id, f'{path}.mp3'],
             check=True)
         with open(f'{path}.meta.json', 'w') as file:
-            loop_start_time_ms = 1000 * data.repeat_loop_beginning.value / data.sampling_rate.value
-            loop_end_time_ms = loop_start_time_ms + 1000 * data.repeat_loop_length.value / data.sampling_rate.value
+            loop_start_time_ms = 1000 * data['repeat_loop_beginning'] / data['sampling_rate']
+            loop_end_time_ms = loop_start_time_ms + 1000 * data['repeat_loop_length'] / data['sampling_rate']
             file.write(json.dumps({
                 "loop_start_time_ms": loop_start_time_ms,
                 "loop_end_time_ms": loop_end_time_ms

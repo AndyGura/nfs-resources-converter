@@ -16,6 +16,9 @@ from serializers.misc.path_utils import escape_chars
 
 class ShpiArchiveSerializer(BaseFileSerializer):
 
+    def __init__(self):
+        super().__init__(is_dir=True)
+
     def setup_for_reversible_serialization(self) -> bool:
         self.patch_settings({
             'export_unknown_values': False,
@@ -24,7 +27,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         return True
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=True)
+        super().serialize(data, path)
         children_field = block.field_blocks_map['children'].child
         items = [(alias, child['data'], children_field.possible_blocks[child['choice_index']])
                  for i, (alias, child) in enumerate(zip(data['children_aliases'], data['children']))]
@@ -186,8 +189,11 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
 class WwwwArchiveSerializer(BaseFileSerializer):
 
+    def __init__(self):
+        super().__init__(is_dir=True)
+
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=True)
+        super().serialize(data, path)
         if id.endswith('.CFM') and data['children_count'] == 4:
             # car CFM file
             names = ['high-poly', 'high-poly-assets', 'low-poly', 'low-poly-assets']
@@ -231,8 +237,11 @@ class WwwwArchiveSerializer(BaseFileSerializer):
 
 class SoundBankSerializer(BaseFileSerializer):
 
+    def __init__(self):
+        super().__init__(is_dir=True)
+
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=True)
+        super().serialize(data, path)
         if ((id.endswith('SW.BNK') or id.endswith('TRAFFC.BNK') or id.endswith('TESTBANK.BNK'))
                 and len(data['children']) == 4):
             # car soundbanks

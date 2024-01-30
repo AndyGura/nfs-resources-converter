@@ -14,6 +14,10 @@ from serializers import BaseFileSerializer
 
 
 class TriMapSerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
     class BarrierPath:
         def __init__(self, points: List[List[float]]) -> None:
             super().__init__()
@@ -473,7 +477,7 @@ if $save_terrain_collisions:
         map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path, is_dir=True)
+        super().serialize(data, path)
         is_opened_track = math.sqrt(
             (data['road_spline'][0]['position']['x'] - data['road_spline'][len(data['terrain']) * 4 - 1]['position'][
                 'x']) ** 2
