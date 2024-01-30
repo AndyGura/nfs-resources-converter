@@ -13,7 +13,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': 'The description of one single point of road spline. Thank you jeff-1amstudios for'
-                                     ' your OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1'}
+                                     ' your [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1) project'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         left_verge_distance = (RationalNumber(length=1, fraction_bits=3),
@@ -105,8 +105,9 @@ class BitmapProxyObjectData(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
-                       {'description': 'Represents texture id. How to get texture name from this value explained well '
-                                       'by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt'})
+                       {'description': 'Represents texture id. How to get texture name from this value [explained]'
+                                       '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
+                                       'by Denis Auroux'})
         proxy_number = (IntegerBlock(length=1),
                         {'description': 'Seems to be always equal to own index * 4'})
         width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
@@ -132,8 +133,9 @@ class TwoSidedBitmapProxyObjectData(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
-                       {'description': 'Represents texture id. How to get texture name from this value explained well '
-                                       'by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt'})
+                       {'description': 'Represents texture id. How to get texture name from this value [explained]'
+                                       '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
+                                       'by Denis Auroux'})
         resource_2_id = (IntegerBlock(length=1),
                          {'description': 'Texture id of second sprite, rotated 90 degrees. Logic to determine texture '
                                          'name is the same as for resource_id'})
@@ -151,9 +153,9 @@ class ProxyObject(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': 'The description of map proxy object: everything except terrain (road signs, '
-                                     'buildings etc.) Thanks to jeff-1amstudios and his OpenNFS1 project: '
-                                     'https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c54'
-                                     '91ecde79/OpenNFS1/Parsers/TriFile.cs#L202'}
+                                     'buildings etc.) Thanks to jeff-1amstudios and his [OpenNFS1](https://github.com'
+                                     '/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1'
+                                     '/Parsers/TriFile.cs#L202) project'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         flags = (BitFlagsBlock(flag_names=[(2, 'is_animated')]),
@@ -205,8 +207,8 @@ class TerrainEntry(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': 'The terrain model around 4 spline points. It has good explanation in original '
-                                     'Denis Auroux NFS file specs: '
-                                     'http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt'}
+                                     '[Denis Auroux NFS file specs](http://www.math.polytechnique.fr/cmat/auroux/nfs/'
+                                     'nfsspecs.txt)'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = UTF8Block(length=4, required_value='TRKD')

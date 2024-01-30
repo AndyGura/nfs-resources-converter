@@ -46,8 +46,8 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             from resources.eac.geometries import OripGeometry
             return OripGeometry
         elif header_str == 'EACS':
-            from resources.eac.audios import EacsAudio
-            return EacsAudio
+            from resources.eac.audios import EacsAudioFile
+            return EacsAudioFile
     try:
         resource_id = header_bytes[0]
         if resource_id == 0x22:

@@ -233,18 +233,19 @@ class SoundBankSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, is_dir=True)
-        if ((data.id.endswith('SW.BNK') or data.id.endswith('TRAFFC.BNK') or data.id.endswith('TESTBANK.BNK'))
-                and len(data.children) == 4):
+        if ((id.endswith('SW.BNK') or id.endswith('TRAFFC.BNK') or id.endswith('TESTBANK.BNK'))
+                and len(data['children']) == 4):
             # car soundbanks
             names = ['engine_on', 'engine_off', 'honk', 'gear']
         else:
-            names = [hex(x.value) for x in data.children_offsets if x.value > 0]
-        items = [(names[i], data.children[i]) for i in range(len(data.children))]
+            names = [hex(x) for x in data['children_offsets'] if x > 0]
+        items = zip(names, data['children'])
         skipped_resources = []
+        item_block = block.field_blocks_map['children'].child
         for name, item in [(name, item) for name, item in items]:
             try:
-                serializer = serializers.get_serializer(item.block, item)
-                serializer.serialize(item, os.path.join(path, name))
+                serializer = serializers.get_serializer(item_block, item)
+                serializer.serialize(item, os.path.join(path, name), id=join_id(id, 'children', name))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()

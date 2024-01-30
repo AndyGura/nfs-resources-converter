@@ -34,7 +34,7 @@ SERIALIZER_CLASSES = {
     'WwwwBlock': 'WwwwArchiveSerializer',
     'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',
     'SoundBank': 'SoundBankSerializer',
-    'EacsAudio': 'EacsAudioSerializer',
+    'EacsAudioFile': 'EacsAudioSerializer',
     'AsfAudio': 'FfmpegSupportedAudioSerializer',
     'TnfsConfigDat': 'JsonSerializer',
     'ShpiText': 'ShpiTextSerializer',

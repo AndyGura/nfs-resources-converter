@@ -1,13 +1,15 @@
+from datetime import datetime, timezone
+
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
-from resources.eac import archives, bitmaps, fonts, palettes, misc, geometries, maps
+from resources.eac import archives, bitmaps, fonts, palettes, misc, geometries, maps, audios
 
 EXPORT_RESOURCES = {
     'Archives': [
         archives.ShpiBlock(),
         archives.WwwwBlock(),
-        # archives.SoundBank(),
+        archives.SoundBank(),
     ],
     'Geometries': [
         geometries.OripGeometry(),
@@ -52,8 +54,9 @@ EXPORT_RESOURCES = {
         palettes.Palette16BitDos(),
     ],
     'Audio': [
-        # audios.AsfAudio(),
-        # audios.EacsAudio(),
+        audios.AsfAudio(),
+        audios.EacsAudioFile(),
+        audios.EacsAudioHeader(),
     ],
     'Misc': [
         # configs.TnfsConfigDat(),
@@ -85,7 +88,10 @@ def render_type(instance: DataBlock) -> str:
 
 
 with open('resources/README.md', 'w') as f:
-    f.write(f"""# **File specs** #
+    f.write(f"""# **TNFSSE file specs** #
+*Last time updated: {datetime.now(timezone.utc)}*
+
+# **Info by file extensions** #
 
 
 # **Block specs** #""")

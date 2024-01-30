@@ -1,9 +1,6 @@
 from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library.read_blocks.array import ArrayBlock as ArrayBlockOld, ExplicitOffsetsArrayBlock, ByteArray
-from library.read_blocks.atomic import IntegerBlock as IntegerBlockOld
-from library.read_blocks.compound import CompoundBlock as CompoundBlockOld
 from library2.context import ReadContext, WriteContext
 from library2.read_blocks import (CompoundBlock,
                                   DeclarativeCompoundBlock,
@@ -11,8 +8,9 @@ from library2.read_blocks import (CompoundBlock,
                                   IntegerBlock,
                                   ArrayBlock,
                                   AutoDetectBlock,
-                                  SkipBlock)
-from resources.eac.audios import EacsAudio
+                                  SkipBlock,
+                                  BytesBlock)
+from resources.eac.audios import EacsAudioHeader, EacsAudioFile
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
@@ -249,51 +247,51 @@ class WwwwBlock(DeclarativeCompoundBlock):
         return res
 
 
-class SoundBank(CompoundBlockOld):
-    block_description = 'A pack of SFX samples (short audios). Used mostly for car engine sounds, crash sounds etc.'
+class SoundBank(DeclarativeCompoundBlock):
 
-    class Fields(CompoundBlockOld.Fields):
-        children_offsets = ArrayBlockOld(child=IntegerBlockOld(static_size=4, is_signed=False), length=128,
-                                         description='An array of offsets to items data in file. Zero values seem to be '
-                                                     'ignored, but for some reason the very first offset is 0 in most '
-                                                     'files. The real audio data start is shifted 40 bytes forward for '
-                                                     'some reason, so EACS is located at {offset from this array} + 40')
-        children = ExplicitOffsetsArrayBlock(child=EacsAudio(),
-                                             description='EACS blocks are here, placed at offsets from previous block. '
-                                                         'Those EACS blocks don\'t have own wave data, there are 44 '
-                                                         'bytes of unknown data instead, offsets in them are pointed '
-                                                         'to wave data of this block')
-        wave_data = ExplicitOffsetsArrayBlock(child=ByteArray(length_strategy="read_available"),
-                                              description='A space, where wave data is located. Pointers are in '
-                                                          'children EACS')
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'A pack of SFX samples (short audios). Used mostly for car engine sounds, crash sounds etc.',
+        }
 
-    def __getattr__(self, name):
-        try:
-            return super().__getattr__(name)
-        except AttributeError as ex:
-            if name.isdigit() and self.children and len(self.children) > int(name):
-                return self.children[int(name)]
-            raise ex
+    class Fields(DeclarativeCompoundBlock.Fields):
+        children_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False), length=128),
+                            {'description': 'An array of offsets to items data in file. Zero values seem to be '
+                                            'ignored, but for some reason the very first offset is 0 in most '
+                                            'files. The real audio data start is shifted 40 bytes forward for '
+                                            'some reason, so EACS is located at {offset from this array} + 40'})
+        children = (ArrayBlock(child=EacsAudioFile(), length=(0, 'len(x for x in children_offsets if x > 0)')),
+                    {'description': 'Not a simple array of EACS audio file contents. Instead, it contains few '
+                                    '[EACS headers](#eacsaudioheader) separately, and then one big wave data, which '
+                                    'should be sliced into separate audios according to data in EACS headers. Parsing '
+                                    'single EACS audio still works in a simple way though, because in each header '
+                                    'global offset to wave data presented'})
 
-    def _after_children_offsets_read(self, data, total_size, state, initial_buffer_pointer, **kwargs):
-        for offset in data['children_offsets']:
-            if offset.value >= total_size:
-                raise Exception(f'Child cannot start at offset {offset.value}. Resource length: {total_size}')
-        # FIXME it is unknown what is + 40
-        if not state.get('children'):
-            state['children'] = {}
-        state['children']['offsets'] = [x.value + initial_buffer_pointer + 40
-                                        for x in data['children_offsets']
-                                        if x.value > 0]
-
-    def _after_children_read(self, data, initial_buffer_pointer, state, **kwargs):
-        if not state.get('wave_data'):
-            state['wave_data'] = {}
-        state['wave_data']['offsets'] = [x.wave_data_offset.value + initial_buffer_pointer
-                                         for x in data['children']]
-        state['wave_data']['lengths'] = [x.wave_data_length.value * x.sound_resolution.value
-                                         for x in data['children']]
-
-    def _after_wave_data_read(self, data, **kwargs):
-        for i, child in enumerate(data['children']):
-            child.value['wave_data'] = data['wave_data'][i]
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        bnk_start = buffer.tell()
+        res = super().read(buffer, ctx, name, read_bytes_amount)
+        abs_offsets = [bnk_start + x + 40 for x in res['children_offsets'] if x > 0]
+        self_ctx = [c for c in ctx.children if c.name == name][0] if ctx else ReadContext(buffer=buffer, data=res,
+                                                                                          name=name, block=self,
+                                                                                          parent=ctx,
+                                                                                          read_bytes_amount=read_bytes_amount)
+        child_header_block = EacsAudioHeader()
+        child_wave_data_block = BytesBlock(length=0)
+        for i, offset in enumerate(abs_offsets):
+            buffer.seek(offset)
+            # EacsAudioFile will store offset bytes between header and wave data. We don't want it here because
+            # *.BNK contains many headers first, and then has big sequence of wave data.
+            # Let's build result object artificially
+            header_data = child_header_block.unpack(buffer, ctx=self_ctx, name=str(i))
+            buffer.seek(header_data['wave_data_offset'])
+            child_wave_data_block._length = min(read_bytes_amount - buffer.tell(),
+                                                header_data['wave_data_length'] * header_data['sound_resolution'])
+            res['children'].append({
+                'header': header_data,
+                'offset': b'',
+                'wave_data': child_wave_data_block.unpack(buffer)
+            })
+        buffer.seek(bnk_start + read_bytes_amount)
+        return res

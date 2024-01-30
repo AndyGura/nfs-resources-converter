@@ -1,8 +1,11 @@
-# **File specs** #
+# **TNFSSE file specs** #
+*Last time updated: 2024-01-30 00:07:03.707763+00:00*
+
+# **Info by file extensions** #
 
 **\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
 
-**\*.AS4**, **\*.ASF**, **\*.EAS** audio + loop settings. [AsfAudio](#asfaudio)
+**\*.AS4**, **\*.ASF**, **\*.EAS** audio + loop settings. [AsfAudio](#asfaudio) or [EacsAudioFile](#eacsaudiofile)
 
 **\*.BNK** sound bank. [SoundBank](#soundbank)
 
@@ -62,9 +65,8 @@
 #### **Description**: A pack of SFX samples (short audios). Used mostly for car engine sounds, crash sounds etc. ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **children_offsets** | 4 * (128) | Array of 128 items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file. Zero values seem to be ignored, but for some reason the very first offset is 0 in most files. The real audio data start is shifted 40 bytes forward for some reason, so EACS is located at {offset from this array} + 40 |
-| 512 | **children** | ? | Array of ? items with custom offset to items<br/>Item type: [EacsAudio](#eacsaudio) | EACS blocks are here, placed at offsets from previous block. Those EACS blocks don't have own wave data, there are 44 bytes of unknown data instead, offsets in them are pointed to wave data of this block |
-| 512..? | **wave_data** | ? | Array of ? items with custom offset to items<br/>Item size: 0..? bytes<br/>Item type: Raw bytes sequence | A space, where wave data is located. Pointers are in children EACS |
+| 0 | **children_offsets** | 512 | Array of `128` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file. Zero values seem to be ignored, but for some reason the very first offset is 0 in most files. The real audio data start is shifted 40 bytes forward for some reason, so EACS is located at {offset from this array} + 40 |
+| 512 | **children** | ? | Array of `len(x for x in children_offsets if x > 0)` items<br/>Item type: [EacsAudioFile](#eacsaudiofile) | Not a simple array of EACS audio file contents. Instead, it contains few [EACS headers](#eacsaudioheader) separately, and then one big wave data, which should be sliced into separate audios according to data in EACS headers. Parsing single EACS audio still works in a simple way though, because in each header global offset to wave data presented |
 ## **Geometries** ##
 ### **OripGeometry** ###
 #### **Size**: 112..? bytes ####
@@ -162,7 +164,7 @@
 | 90664 + proxy_objects_count\*16 + proxy_object_instances_count\*16 | **terrain** | terrain_length\*288 | Array of `terrain_length` items<br/>Item type: [TerrainEntry](#terrainentry) | - |
 ### **RoadSplinePoint** ###
 #### **Size**: 36 bytes ####
-#### **Description**: The description of one single point of road spline. Thank you jeff-1amstudios for your OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1 ####
+#### **Description**: The description of one single point of road spline. Thank you jeff-1amstudios for your [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1) project ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **left_verge_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the left edge of road. After this point the grip decreases |
@@ -182,7 +184,7 @@
 | 34 | **unk2** | 2 | Bytes | - |
 ### **ProxyObject** ###
 #### **Size**: 16 bytes ####
-#### **Description**: The description of map proxy object: everything except terrain (road signs, buildings etc.) Thanks to jeff-1amstudios and his OpenNFS1 project: https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202 ####
+#### **Description**: The description of map proxy object: everything except terrain (road signs, buildings etc.) Thanks to jeff-1amstudios and his [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202) project ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **flags** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>2: is_animated</details> | Different modes of proxy object |
@@ -200,7 +202,7 @@
 | 10 | **position** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Position in 3D space, relative to position of referenced road spline vertex |
 ### **TerrainEntry** ###
 #### **Size**: 288 bytes ####
-#### **Description**: The terrain model around 4 spline points. It has good explanation in original Denis Auroux NFS file specs: http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt ####
+#### **Description**: The terrain model around 4 spline points. It has good explanation in original [Denis Auroux NFS file specs](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "TRKD" | - |
@@ -230,7 +232,7 @@
 #### **Description**: The proxy object settings if it is a bitmap ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value explained well by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value [explained](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well by Denis Auroux |
 | 1 | **proxy_number** | 1 | 1-byte unsigned integer | Seems to be always equal to own index * 4 |
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object. Ignored if flag `is_animated` not set |
@@ -243,7 +245,7 @@
 #### **Description**: The proxy object settings if it is a two-sided bitmap (fake 3D model) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value explained well by Denis Auroux http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value [explained](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well by Denis Auroux |
 | 1 | **resource_2_id** | 1 | 1-byte unsigned integer | Texture id of second sprite, rotated 90 degrees. Logic to determine texture name is the same as for resource_id |
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **width_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters of second bitmap |
@@ -524,37 +526,45 @@
 ## **Audio** ##
 ### **AsfAudio** ###
 #### **Size**: 36..? bytes ####
-#### **Description**: An audio file, which is supported by FFMPEG and can be converted using only it. Has some explanation here: https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2) . It is very similar to EACS audio, but has wave data in place, just after the header ####
+#### **Description**: An audio file, which is supported by FFMPEG and can be converted using only it. Has some explanation [here](https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == 1SNh | Resource ID |
-| 4 | **unknowns** | 8 | Array of 8 items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "1SNh" | Resource ID |
+| 4 | **unk0** | 8 | Bytes | Unknown purpose |
 | 12 | **sampling_rate** | 4 | 4-bytes unsigned integer (little endian) | Sampling rate of audio |
 | 16 | **sound_resolution** | 1 | 1-byte unsigned integer | How many bytes in one wave data entry |
 | 17 | **channels** | 1 | 1-byte unsigned integer | Channels amount. 1 is mono, 2 is stereo |
-| 18 | **compression** | 1 | 1-byte unsigned integer | If equals to 2, wave data is compressed with IMA ADPCM codec: https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)#IMA_ADPCM_Decompression_Algorithm |
-| 19 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 18 | **compression** | 1 | 1-byte unsigned integer | If equals to 2, wave data is compressed with [IMA ADPCM codec](https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)#IMA_ADPCM_Decompression_Algorithm) |
+| 19 | **unk1** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 20 | **wave_data_length** | 4 | 4-bytes unsigned integer (little endian) | Amount of wave data entries. Should be multiplied by sound_resolution to calculated the size of data in bytes |
 | 24 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | When audio ends, it repeats in loop from here. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
-| 36 | **wave_data** | 0..? | Raw bytes sequence | Wave data is here |
-### **EacsAudio** ###
+| 36 | **offset** | space up to offset `wave_data_offset` | Bytes | - |
+| wave_data_offset | **wave_data** | `wave_data_length` \* `sound_resolution` | Bytes | Wave data is here |
+### **EacsAudioFile** ###
 #### **Size**: 28..? bytes ####
-#### **Description**: An audio block, almost identical to AsfAudio, but can be included in single SoundBank file with multiple other EACS blocks and has detached wave data, which is located somewhere in the SoundBank file after all EACS blocks ####
+#### **Description**: A file with single EACS audio entry ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == EACS | Resource ID |
+| 0 | **header** | 28 | [EacsAudioHeader](#eacsaudioheader) | - |
+| 28 | **offset** | space up to offset `header.wave_data_offset` (global) | Bytes | - |
+| wave_data_offset (global) | **wave_data** | min(`remaining file bytes`, `header.wave_data_length` \* `header.sound_resolution`) | Bytes | Wave data is here. If header.sound_resolution == 1, contains signed bytes, else - unsigned |
+### **EacsAudioHeader** ###
+#### **Size**: 28 bytes ####
+#### **Description**: A header for EACS audio. It is almost identical to AsfAudio when it is the only sound in the file (*.EAS), but also can be included in single SoundBank file (*.BNK), which has multiple EACS headers and wave data located separately ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "EACS" | Resource ID |
 | 4 | **sampling_rate** | 4 | 4-bytes unsigned integer (little endian) | Sampling rate of audio |
 | 8 | **sound_resolution** | 1 | 1-byte unsigned integer | How many bytes in one wave data entry |
 | 9 | **channels** | 1 | 1-byte unsigned integer | Channels amount. 1 is mono, 2 is stereo |
-| 10 | **compression** | 1 | 1-byte unsigned integer | If equals to 2, wave data is compressed with IMA ADPCM codec: https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)#IMA_ADPCM_Decompression_Algorithm |
+| 10 | **compression** | 1 | 1-byte unsigned integer | If equals to 2, wave data is compressed with [IMA ADPCM](https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)#IMA_ADPCM_Decompression_Algorithm) codec |
 | 11 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 12 | **wave_data_length** | 4 | 4-bytes unsigned integer (little endian) | Amount of wave data entries. Should be multiplied by sound_resolution to calculated the size of data in bytes |
 | 16 | **repeat_loop_beginning** | 4 | 4-bytes unsigned integer (little endian) | When audio ends, it repeats in loop from here. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 20 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 24 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
-| - | **wave_data** | 0..? | Detached block, located somewhere in file, knowing it's offset.Does not take place inside parent block | Wave data, located somewhere in file at wave_data_offset. if sound_resolution == 1, contains signed bytes, else - unsigned |
 ## **Misc** ##
 ### **TnfsConfigDat** ###
 #### **Size**: 24402 bytes ####

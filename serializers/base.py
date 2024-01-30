@@ -8,7 +8,6 @@ from library.helpers.data_wrapper import DataWrapper
 from library.helpers.id import join_id
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
-from library.read_blocks.delegate import DelegateBlock
 from library.read_data import ReadData
 
 
@@ -74,10 +73,11 @@ class BaseFileSerializer(ResourceSerializer):
 
     def serialize(self, data: dict, path: str, is_dir=False, id=None, block=None, **kwargs):
         os.makedirs(path if is_dir else os.path.dirname(path), exist_ok=True)
-        if isinstance(block, DelegateBlock):
-            block = block.delegated_block
-        if self.settings.export_unknown_values and isinstance(block, CompoundBlock):
-            unknowns = self.get_unknowns_dict(data)
-            if unknowns:
-                with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
-                    file.write(json.dumps(unknowns, indent=4))
+        # TODO restore this logic
+        # if isinstance(block, DelegateBlock):
+        #     block = block.delegated_block
+        # if self.settings.export_unknown_values and isinstance(block, CompoundBlock):
+        #     unknowns = self.get_unknowns_dict(data)
+        #     if unknowns:
+        #         with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
+        #             file.write(json.dumps(unknowns, indent=4))

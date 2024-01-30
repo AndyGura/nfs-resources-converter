@@ -16,8 +16,8 @@ class CarPerformanceSpec(CompoundBlock):
     block_description = "This block describes full car physics specification for car that player can drive. Looks " \
                         "like it's not used for opponent cars and such files do not exist for traffic/cop cars " \
                         "at all. Big thanks to Five-Damned-Dollarz, he seems to be the only one guy who managed to " \
-                        "understand most of the fields in this block. His specification: " \
-                        "https://gist.github.com/Five-Damned-Dollarz/99e955994ebbcf970532406a197b580e"
+                        "understand most of the fields in this block. [His specification](" \
+                        "https://gist.github.com/Five-Damned-Dollarz/99e955994ebbcf970532406a197b580e)"
 
     class Fields(CompoundBlock.Fields):
         mass_front_axle = RationalNumber(length=4, fraction_bits=16, is_signed=True,
