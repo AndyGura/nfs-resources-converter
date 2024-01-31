@@ -154,6 +154,7 @@ def construct_blender_export_script(file_name, src_file="", export_materials="EX
         'export_materials': export_materials
     })
 
+
 if __name__ == "__main__":
     # will be invoked if this module is being run directly, but not via import
     skip_textures = sys.argv[1] == '--skip-textures'

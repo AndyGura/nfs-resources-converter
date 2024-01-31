@@ -1,17 +1,18 @@
 import settings
+from library.read_blocks import DataBlock, DelegateBlock
 from library.utils import my_import
-from library2.read_blocks import DataBlock, DelegateBlock
 from serializers.base import BaseFileSerializer, DelegateBlockSerializer
-from .palettes import PaletteSerializer
+from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
+from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 from .bitmaps import BitmapSerializer, BitmapWithPaletteSerializer
 from .fonts import FfnFontSerializer
+from .geometries import OripGeometrySerializer
 from .json import JsonSerializer
 from .maps import TriMapSerializer
-from .geometries import OripGeometrySerializer
-from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
-from .videos import FfmpegSupportedVideoSerializer
-from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 from .misc_serializers import ShpiTextSerializer
+from .palettes import PaletteSerializer
+from .videos import FfmpegSupportedVideoSerializer
+
 
 def get_serializer(block: DataBlock, data) -> BaseFileSerializer:
     if isinstance(block, Exception):

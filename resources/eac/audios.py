@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library2.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock
 
 
 class EacsAudioHeader(DeclarativeCompoundBlock):
@@ -54,14 +54,14 @@ class EacsAudioFile(DeclarativeCompoundBlock):
             length=(lambda ctx: ctx.data('header/wave_data_offset') - ctx.buffer.tell(),
                     'space up to offset `header.wave_data_offset` (global)'))
         wave_data = (
-        BytesBlock(length=(lambda ctx: min(ctx.read_start_offset + ctx.read_bytes_amount - ctx.buffer.tell(),
-                                           ctx.data('header/wave_data_length')
-                                           * ctx.data('header/sound_resolution')),
-                           'min(`remaining file bytes`, '
-                           '`header.wave_data_length` * `header.sound_resolution`)')),
-        {'description': 'Wave data is here. If header.sound_resolution == 1, contains signed bytes, '
-                        'else - unsigned',
-         'custom_offset': 'wave_data_offset (global)'})
+            BytesBlock(length=(lambda ctx: min(ctx.read_start_offset + ctx.read_bytes_amount - ctx.buffer.tell(),
+                                               ctx.data('header/wave_data_length')
+                                               * ctx.data('header/sound_resolution')),
+                               'min(`remaining file bytes`, '
+                               '`header.wave_data_length` * `header.sound_resolution`)')),
+            {'description': 'Wave data is here. If header.sound_resolution == 1, contains signed bytes, '
+                            'else - unsigned',
+             'custom_offset': 'wave_data_offset (global)'})
 
 
 class AsfAudio(DeclarativeCompoundBlock):
@@ -105,7 +105,7 @@ class AsfAudio(DeclarativeCompoundBlock):
                                             ' to start of the file itself'})
         offset = BytesBlock(
             length=(lambda ctx: ctx.read_start_offset + ctx.data('wave_data_offset') + 40 - ctx.buffer.tell(),
-                    'space up to offset (wave_data_offset + 40)'),)
+                    'space up to offset (wave_data_offset + 40)'), )
         wave_data = (BytesBlock(length=(lambda ctx: min(ctx.read_start_offset + ctx.read_bytes_amount
                                                         - ctx.buffer.tell(),
                                                         ctx.data('wave_data_length') * ctx.data('sound_resolution')),

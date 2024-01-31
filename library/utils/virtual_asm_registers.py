@@ -14,7 +14,6 @@ def register_maker(name):
 
 
 def child_register_maker(name, size_bytes, master_register, offset_bits):
-
     mask = ((1 << size_bytes * 8) - 1) << offset_bits
     reverse_mask = ((1 << 32) - 1) & ~mask
     max_val = (1 << (size_bytes * 8) - 1)
@@ -34,7 +33,9 @@ def child_register_maker(name, size_bytes, master_register, offset_bits):
 
 
 def create_asm_registers(classname):
-    class Class: pass
+    class Class:
+        pass
+
     Class.__name__ = classname
     setattr(Class, 'register_attrs', [
         'esi', 'edi', 'esp', 'ebp',

@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library2.read_blocks import DeclarativeCompoundBlock, IntegerBlock, ArrayBlock, CompoundBlock, BytesBlock
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, ArrayBlock, CompoundBlock, BytesBlock
 from resources.eac.fields.numbers import RationalNumber
 
 

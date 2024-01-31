@@ -39,8 +39,6 @@ SERIALIZER_CLASSES = {
     'TnfsConfigDat': 'JsonSerializer',
     'ShpiText': 'ShpiTextSerializer',
 }
-# for debug: this option will dump all data, marked as "unknown" to json file besides the output
-export_unknown_values = False
 
 # skip saving palette, image positions
 images__save_images_only = False

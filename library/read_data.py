@@ -1,6 +1,6 @@
+from copy import deepcopy
 from io import BufferedWriter
 from typing import TypeVar, Generic
-from copy import deepcopy
 
 T = TypeVar('T')
 
@@ -51,4 +51,3 @@ class ReadData(Generic[T]):
 
     def to_bytes(self):
         return self.block.to_raw_value(self)
-

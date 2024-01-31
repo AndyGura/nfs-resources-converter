@@ -1,12 +1,15 @@
 import os
 import tempfile
+
 import settings
+
 
 def get_log_throwaway_suffix():
     if os.name == 'nt':
         return " >NUL 2>&1"
     else:
         return " >/dev/null 2>&1"
+
 
 def get_blender_save_script(out_blend_name=None):
     temp_blend_name = out_blend_name.replace("\\", "/")

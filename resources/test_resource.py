@@ -1,4 +1,4 @@
-from library2.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, DelegateBlock
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, DelegateBlock
 
 
 # A test resource with common complications for testing read, write and GUI functionality
@@ -34,7 +34,8 @@ class TestResource(DeclarativeCompoundBlock):
         # TODO array with fixed length
         # TODO array with lookup length
         next_block_type = (IntegerBlock(length=1),
-                           {'programmatic_value': lambda ctx: len(ctx.data('delegate_block/data')) if isinstance(ctx.data('delegate_block/data'), str) else 0})
+                           {'programmatic_value': lambda ctx: len(ctx.data('delegate_block/data')) if isinstance(
+                               ctx.data('delegate_block/data'), str) else 0})
         delegate_block = DelegateBlock(possible_blocks=[IntegerBlock(length=4, is_signed=True),
                                                         UTF8Block(length=lambda ctx: ctx.data('next_block_type'))],
                                        choice_index=lambda ctx: 1 if ctx.data('next_block_type') > 0 else 0)

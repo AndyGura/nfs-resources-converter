@@ -1,7 +1,7 @@
 import unittest
 from io import BytesIO
 
-from library2.read_blocks import ArrayBlock, DeclarativeCompoundBlock, IntegerBlock, UTF8Block, CompoundBlock
+from library.read_blocks import ArrayBlock, DeclarativeCompoundBlock, IntegerBlock, UTF8Block, CompoundBlock
 
 
 class TestCompound(unittest.TestCase):

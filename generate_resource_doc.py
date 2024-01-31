@@ -1,8 +1,6 @@
 from datetime import datetime, timezone
 
-from library.read_blocks.array import ArrayBlock
-from library.read_blocks.compound import CompoundBlock
-from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
+from library.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
 from resources.eac import (archives,
                            bitmaps,
                            fonts,

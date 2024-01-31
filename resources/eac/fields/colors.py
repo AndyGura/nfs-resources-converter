@@ -1,9 +1,9 @@
 from io import BufferedReader, BytesIO
 from typing import Dict
 
+from library.context import ReadContext, WriteContext
+from library.read_blocks import IntegerBlock
 from library.utils import transform_bitness, transform_color_bitness
-from library2.context import ReadContext, WriteContext
-from library2.read_blocks import IntegerBlock
 
 
 class Color24BitDosBlock(IntegerBlock):

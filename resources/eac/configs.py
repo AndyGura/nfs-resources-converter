@@ -2,9 +2,9 @@ from io import BufferedReader, BytesIO
 from math import floor, ceil
 from typing import Dict
 
-from library2.context import WriteContext, ReadContext
-from library2.read_blocks import DeclarativeCompoundBlock, IntegerBlock, UTF8Block, BytesBlock, ArrayBlock
-from library2.read_blocks.numbers import EnumByteBlock
+from library.context import WriteContext, ReadContext
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, UTF8Block, BytesBlock, ArrayBlock
+from library.read_blocks.numbers import EnumByteBlock
 from resources.eac.fields.numbers import RationalNumber
 
 

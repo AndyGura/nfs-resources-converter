@@ -1,8 +1,8 @@
 from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library2.context import WriteContext, ReadContext
-from library2.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
+from library.context import WriteContext, ReadContext
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
 
 
 class ShpiText(DeclarativeCompoundBlock):

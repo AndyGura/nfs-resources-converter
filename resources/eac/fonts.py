@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library2.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock
+from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock
 from resources.eac.bitmaps import Bitmap4Bit
 
 

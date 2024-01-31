@@ -2,8 +2,8 @@ import math
 from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library2.context import ReadContext, WriteContext
-from library2.read_blocks import IntegerBlock
+from library.context import ReadContext, WriteContext
+from library.read_blocks import IntegerBlock
 
 
 class RationalNumber(IntegerBlock):

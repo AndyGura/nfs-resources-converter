@@ -191,7 +191,8 @@ for dummy in dummies:
                 face_index_increment += len(sub_model.vertices)
         with open(os.path.join(path, 'material.mtl'), 'w') as f:
             for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
-                texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[textures_shpi_data['children'][i]['choice_index']]
+                texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
+                    textures_shpi_data['children'][i]['choice_index']]
                 if not isinstance(texture_block, AnyBitmapBlock):
                     continue
                 f.write(f"""\n\nnewmtl {texture_name}

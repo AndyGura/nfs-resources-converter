@@ -21,7 +21,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
     def setup_for_reversible_serialization(self) -> bool:
         self.patch_settings({
-            'export_unknown_values': False,
             'images__save_images_only': True,
         })
         return True

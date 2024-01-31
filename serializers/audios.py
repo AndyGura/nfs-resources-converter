@@ -26,7 +26,8 @@ class EacsAudioSerializer(BaseFileSerializer):
             else:
                 wave_bytes = wave_bytes
         loop_start_time_ms = 1000 * data['header']['repeat_loop_beginning'] / data['header']['sampling_rate']
-        loop_end_time_ms = loop_start_time_ms + 1000 * (data['header']['repeat_loop_length'] - 1) / data['header']['sampling_rate']
+        loop_end_time_ms = loop_start_time_ms + 1000 * (data['header']['repeat_loop_length'] - 1) / data['header'][
+            'sampling_rate']
         loop_wave_data = None
         if self.settings.audio__save_car_sfx_loops:
             try:
@@ -34,7 +35,8 @@ class EacsAudioSerializer(BaseFileSerializer):
                 if 'SW.BNK' in id or 'TRAFFC.BNK' in id or 'TESTBANK.BNK' in id:
                     # aligning to channels. If not do that, some samples keep changing channels every loop
                     beginning = data['header']['sound_resolution'] * int(
-                        data['header']['repeat_loop_beginning'] / data['header']['channels']) * data['header']['channels']
+                        data['header']['repeat_loop_beginning'] / data['header']['channels']) * data['header'][
+                                    'channels']
                     ending = (data['header']['sound_resolution']
                               * int((data['header']['repeat_loop_beginning'] + data['header']['repeat_loop_length'])
                                     / data['header']['channels']) * data['header']['channels'])

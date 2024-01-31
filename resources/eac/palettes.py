@@ -2,8 +2,8 @@ from abc import ABC
 from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library2.context import ReadContext
-from library2.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock
+from library.context import ReadContext
+from library.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock
 from resources.eac.fields.colors import (
     Color24BitBigEndianField,
     Color24BitDosBlock,

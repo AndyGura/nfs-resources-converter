@@ -1,13 +1,13 @@
 from math import floor
 from typing import Dict
 
-from library2.read_blocks import (DeclarativeCompoundBlock,
-                                  UTF8Block,
-                                  IntegerBlock,
-                                  ArrayBlock,
-                                  BytesBlock,
-                                  DelegateBlock,
-                                  BitFlagsBlock)
+from library.read_blocks import (DeclarativeCompoundBlock,
+                                 UTF8Block,
+                                 IntegerBlock,
+                                 ArrayBlock,
+                                 BytesBlock,
+                                 DelegateBlock,
+                                 BitFlagsBlock)
 from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4
 
 

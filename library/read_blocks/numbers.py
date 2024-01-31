@@ -1,9 +1,9 @@
 from io import BufferedReader, BytesIO
 from typing import Dict, Literal, List, Tuple
 
+from library.context import ReadContext, WriteContext
 from library.helpers.exceptions import EndOfBufferException
-from library2.context import ReadContext, WriteContext
-from library2.read_blocks.basic import DataBlock
+from library.read_blocks.basic import DataBlock
 
 
 class IntegerBlock(DataBlock):

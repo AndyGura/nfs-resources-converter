@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO, SEEK_CUR
 from typing import Dict, Any, Tuple, Literal
 
+from library.context import ReadContext, WriteContext
 from library.helpers.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
 from library.utils import represent_value_as_str
-from library2.context import ReadContext, WriteContext
 
 
 class DataBlock(ABC):

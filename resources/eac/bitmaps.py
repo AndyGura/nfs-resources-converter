@@ -1,11 +1,11 @@
 from typing import Dict
 
+from library.read_blocks import (DeclarativeCompoundBlock,
+                                 IntegerBlock,
+                                 SubByteArrayBlock,
+                                 BytesBlock,
+                                 ArrayBlock)
 from library.utils import transform_bitness
-from library2.read_blocks import (DeclarativeCompoundBlock,
-                                  IntegerBlock,
-                                  SubByteArrayBlock,
-                                  BytesBlock,
-                                  ArrayBlock)
 from resources.eac.fields.colors import (
     Color16Bit1555Block,
     Color16Bit0565Block,

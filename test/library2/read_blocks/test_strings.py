@@ -2,7 +2,7 @@ import unittest
 from io import BytesIO
 
 from library.helpers.exceptions import DataIntegrityException
-from library2.read_blocks.strings import UTF8Block
+from library.read_blocks.strings import UTF8Block
 
 
 class TestStrings(unittest.TestCase):

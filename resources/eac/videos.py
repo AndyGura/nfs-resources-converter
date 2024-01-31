@@ -1,9 +1,9 @@
 from io import BufferedReader, BytesIO
 from typing import Dict
 
+from library.context import WriteContext, ReadContext
 from library.helpers.exceptions import BlockDefinitionException
-from library2.context import WriteContext, ReadContext
-from library2.read_blocks import DataBlock
+from library.read_blocks import DataBlock
 
 
 class FfmpegSupportedVideo(DataBlock):

@@ -1,9 +1,9 @@
 from io import BufferedReader, BytesIO
 from typing import List, Dict, Tuple, Any
 
+from library.context import ReadContext, WriteContext
 from library.helpers.exceptions import DataIntegrityException
-from library2.context import ReadContext, WriteContext
-from library2.read_blocks.basic import DataBlock, SkipBlock
+from library.read_blocks.basic import DataBlock, SkipBlock
 
 
 class DelegateBlock(DataBlock):
@@ -116,6 +116,6 @@ class AutoDetectBlock(DelegateBlock):
             for (i, block) in enumerate(self.possible_blocks):
                 if isinstance(block, block_class):
                     if block_class == SkipBlock and block.error_strategy == "return_exception":
-                        block.exception = exc # TODO do not write to block!
+                        block.exception = exc  # TODO do not write to block!
                     return i
         raise DataIntegrityException('Expectation failed for auto-detect block while reading: class not found')

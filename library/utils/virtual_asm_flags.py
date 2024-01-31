@@ -2,7 +2,6 @@ from collections import defaultdict
 
 
 class VirtualAsmFlags:
-
     CF = 0
     AF = 0
     ZF = 0
@@ -117,7 +116,8 @@ class VirtualFlags:
             else:
                 cf = 0
         elif self.mnemonic == "IMUL":
-            cf = int(not ((self.op1 < self.sign_mask and self.op2 == 0) or ((self.op1 & self.sign_mask) and self.op2 == self.mask)))
+            cf = int(not ((self.op1 < self.sign_mask and self.op2 == 0) or (
+                        (self.op1 & self.sign_mask) and self.op2 == self.mask)))
 
         elif self.mnemonic == "MUL":
             cf = int(self.op2 != 0)
@@ -141,7 +141,8 @@ class VirtualFlags:
         return af
 
     def get_ZF(self):
-        if self.mnemonic in ["LOGIC", "ADD", "ADC", "SUB", "CMP", "SBB", "NEG", "SAR", "SHR", "SHL", "SAR", "INC", "DEC"]:
+        if self.mnemonic in ["LOGIC", "ADD", "ADC", "SUB", "CMP", "SBB", "NEG", "SAR", "SHR", "SHL", "SAR", "INC",
+                             "DEC"]:
             zf = int(self.result == 0)
         elif self.mnemonic in ["IMUL", "MUL"]:
             zf = int(self.op1 == 0)
@@ -151,7 +152,8 @@ class VirtualFlags:
         return zf
 
     def get_SF(self):
-        if self.mnemonic in ["LOGIC", "ADD", "ADC", "SUB", "CMP", "SBB", "NEG", "SAR", "SHR", "SHL", "SAL", "INC", "DEC"]:
+        if self.mnemonic in ["LOGIC", "ADD", "ADC", "SUB", "CMP", "SBB", "NEG", "SAR", "SHR", "SHL", "SAL", "INC",
+                             "DEC"]:
             sf = int(self.result >= self.sign_mask)
         elif self.mnemonic in ["IMUL", "MUL"]:
             sf = int(self.op1 >= self.sign_mask)
@@ -190,7 +192,8 @@ class VirtualFlags:
             else:
                 of = int((((self.op1 << (self.op2 - 1)) ^ self.result) & self.sign_mask) > 0)
         elif self.mnemonic == "IMUL":
-            of = int(not ((self.op1 < self.sign_mask and self.op2 == 0) or ((self.op1 & self.sign_mask) and self.op2 == self.mask)))
+            of = int(not ((self.op1 < self.sign_mask and self.op2 == 0) or (
+                        (self.op1 & self.sign_mask) and self.op2 == self.mask)))
         elif self.mnemonic == "MUL":
             of = int(self.op2 != 0)
         elif self.mnemonic == "INC":
@@ -203,7 +206,8 @@ class VirtualFlags:
         return of
 
     def get_PF(self):
-        if self.mnemonic in ["LOGIC", "ADD", "ADC", "SUB", "CMP", "SBB", "NEG", "SAR", "SHR", "SHL", "SAR", "INC", "DEC"]:
+        if self.mnemonic in ["LOGIC", "ADD", "ADC", "SUB", "CMP", "SBB", "NEG", "SAR", "SHR", "SHL", "SAR", "INC",
+                             "DEC"]:
             pf = self.parity_lookup_table[self.result & 0xff]
         elif self.mnemonic in ["IMUL", "MUL"]:
             pf = self.parity_lookup_table[self.op1 & 0xff]

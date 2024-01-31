@@ -1,6 +1,3 @@
-from resources.eac.bitmaps import AnyBitmapBlock
-
-
 # Mesh with one single texture
 class SubMesh:
     def __init__(self):
@@ -11,7 +8,8 @@ class SubMesh:
         self.texture_id = None
         self.scaled_uvs = set()
 
-    def to_obj(self, face_index_increment, multiply_uvws=False, textures_shpi_block=None, textures_shpi_data=None, mtllib=None,
+    def to_obj(self, face_index_increment, multiply_uvws=False, textures_shpi_block=None, textures_shpi_data=None,
+               mtllib=None,
                pivot_offset=(0, 0, 0)) -> str:
         res = f'\n\no {self.name}'
         if mtllib is not None:

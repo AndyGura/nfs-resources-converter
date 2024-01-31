@@ -1,8 +1,8 @@
 from typing import Dict
 
-from library2.read_blocks import BitFlagsBlock, DeclarativeCompoundBlock, IntegerBlock, BytesBlock, ArrayBlock, \
+from library.read_blocks import BitFlagsBlock, DeclarativeCompoundBlock, IntegerBlock, BytesBlock, ArrayBlock, \
     UTF8Block, DelegateBlock
-from library2.read_blocks.numbers import EnumByteBlock
+from library.read_blocks.numbers import EnumByteBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1Interval
 
