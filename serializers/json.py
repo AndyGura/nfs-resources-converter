@@ -1,32 +1,37 @@
 import json
 
 from library.helpers.json import rec_dd, resource_to_json
-from library.read_blocks.compound import CompoundBlock
 from library.read_data import ReadData
+from library2.read_blocks import CompoundBlock
 from serializers import BaseFileSerializer
+from serializers.misc.json_utils import convert_bytes
 
 
 class JsonSerializer(BaseFileSerializer):
 
-    def __make_dict(self, data: ReadData):
+    def __make_dict(self, block, data):
         res = rec_dd()
-        for key, value in data.value.items():
-            if isinstance(data.block, CompoundBlock) and key in data.block.Fields.unknown_fields:
+        for key, value in data.items():
+            if isinstance(block, CompoundBlock) and block.field_extras_map[key].get('is_unknown'):
                 continue
             key_parts = key.split('__')
             dictionary = res
             for sub_key in key_parts[:-1]:
                 dictionary = res[sub_key]
-            if isinstance(value, ReadData) and isinstance(value.block, CompoundBlock):
-                dictionary[key_parts[-1]] = self.__make_dict(value)
+            try:
+                value_block, value = block.get_child_block_with_data(data, key)
+            except AttributeError:
+                value_block = None
+            if isinstance(value_block, CompoundBlock):
+                dictionary[key_parts[-1]] = self.__make_dict(value_block, value)
             else:
                 dictionary[key_parts[-1]] = resource_to_json(value)
         return res
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
-        json_str = json.dumps(self.__make_dict(data), indent=4)
+        json_str = json.dumps(convert_bytes(self.__make_dict(block, data)), indent=4)
         if path.endswith('/') or path.endswith('\\'):
-            path += data.id[data.id.rindex('/')+1:]
+            path += id[id.rindex('/')+1:]
         with open(f'{path}.json', 'w') as file:
             file.write(json_str)

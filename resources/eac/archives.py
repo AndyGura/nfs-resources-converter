@@ -12,6 +12,7 @@ from library2.read_blocks import (CompoundBlock,
                                   BytesBlock)
 from resources.eac.audios import EacsAudioHeader, EacsAudioFile
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
+from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
@@ -27,16 +28,17 @@ from resources.eac.palettes import (Palette24BitDos,
 class CompressedBlock(AutoDetectBlock):
 
     def __init__(self, **kwargs):
-        super().__init__(possible_blocks=[
-            ShpiBlock()
-        ], **kwargs)
+        super().__init__(possible_blocks=[ShpiBlock(),
+                                          CarSimplifiedPerformanceSpec(),
+                                          CarPerformanceSpec()],
+                         **kwargs)
         self.algorithm = None
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         uncompressed_bytes = self.algorithm(buffer, read_bytes_amount)
         uncompressed = BytesIO(uncompressed_bytes)
-        self_ctx = ReadContext(buffer=uncompressed, name=name, parent=ctx, read_bytes_amount=len(uncompressed_bytes))
-        return super().read(buffer=uncompressed, ctx=self_ctx, name=name, read_bytes_amount=len(uncompressed_bytes))
+        self_ctx = ReadContext(buffer=uncompressed, name=name+'_UNCOMPRESSED', parent=ctx, read_bytes_amount=len(uncompressed_bytes))
+        return super().read(buffer=uncompressed, ctx=self_ctx, read_bytes_amount=len(uncompressed_bytes))
 
 
 class RefPackBlock(CompressedBlock):

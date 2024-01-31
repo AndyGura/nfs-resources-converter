@@ -30,6 +30,13 @@ class ResourceSerializer(ABC):
 
 class DelegateBlockSerializer(ResourceSerializer):
 
+    def is_dir(self, block, data):
+        from serializers import get_serializer
+        sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']
+        serializer = get_serializer(sub_block, sub_data)
+        return serializer.is_dir
+
+
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> Dict:
         from serializers import get_serializer
         sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']

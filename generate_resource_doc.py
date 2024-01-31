@@ -3,7 +3,16 @@ from datetime import datetime, timezone
 from library.read_blocks.array import ArrayBlock
 from library.read_blocks.compound import CompoundBlock
 from library2.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
-from resources.eac import archives, bitmaps, fonts, palettes, misc, geometries, maps, audios
+from resources.eac import (archives,
+                           bitmaps,
+                           fonts,
+                           palettes,
+                           misc,
+                           geometries,
+                           maps,
+                           audios,
+                           configs,
+                           car_specs)
 
 EXPORT_RESOURCES = {
     'Archives': [
@@ -29,9 +38,8 @@ EXPORT_RESOURCES = {
         maps.TwoSidedBitmapProxyObjectData(),
     ],
     'Physics': [
-        # car_specs.CarPerformanceSpec(),
-        # car_specs.EngineTorqueRecord(),
-        # car_specs.CarSimplifiedPerformanceSpec(),
+        car_specs.CarPerformanceSpec(),
+        car_specs.CarSimplifiedPerformanceSpec(),
     ],
     'Bitmaps': [
         bitmaps.Bitmap16Bit0565(),
@@ -59,9 +67,9 @@ EXPORT_RESOURCES = {
         audios.EacsAudioHeader(),
     ],
     'Misc': [
-        # configs.TnfsConfigDat(),
-        # configs.TrackStats(),
-        # configs.BestRaceRecord(),
+        configs.TnfsConfigDat(),
+        configs.TrackStats(),
+        configs.BestRaceRecord(),
         misc.ShpiText(),
     ]
 }
@@ -91,7 +99,42 @@ with open('resources/README.md', 'w') as f:
     f.write(f"""# **TNFSSE file specs** #
 *Last time updated: {datetime.now(timezone.utc)}*
 
+
 # **Info by file extensions** #
+
+**\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
+
+**\*.AS4**, **\*.ASF**, **\*.EAS** audio + loop settings. {render_type(audios.AsfAudio())}
+
+**\*.BNK** sound bank. {render_type(archives.SoundBank())}
+
+**\*.CFM** car 3D model. {render_type(archives.WwwwBlock())} with 4 entries:
+- {render_type(geometries.OripGeometry())} high-poly 3D model
+- {render_type(archives.ShpiBlock())} textures for high-poly model
+- {render_type(geometries.OripGeometry())} low-poly 3D model
+- {render_type(archives.ShpiBlock())} textures for low-poly model
+
+**\*.FAM** track textures, props, skybox. {render_type(archives.WwwwBlock())} with 4 entries:
+- {render_type(archives.WwwwBlock())} (background) contains few {render_type(archives.ShpiBlock())} items, terrain textures
+- {render_type(archives.WwwwBlock())} (foreground) contains few {render_type(archives.ShpiBlock())} items, prop textures
+- {render_type(archives.ShpiBlock())} (skybox) contains horizon texture
+- {render_type(archives.WwwwBlock())} (props) contains a series of consecutive {render_type(geometries.OripGeometry())} + {render_type(archives.ShpiBlock())} items, 3D props
+
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+
+**\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+
+**\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+
+**\*.TGV** video, I just use ffmpeg to convert it
+
+**\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(maps.TriMap())}
+
+**GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(configs.TnfsConfigDat())}
 
 
 # **Block specs** #""")

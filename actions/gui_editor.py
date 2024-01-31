@@ -14,17 +14,7 @@ from library.loader import clear_file_cache
 from library.utils.file_utils import remove_file_or_directory
 from library.utils.file_utils import start_file
 from serializers import get_serializer
-
-
-def convert_bytes(data):
-    if isinstance(data, bytes):
-        return list(data)
-    elif isinstance(data, dict):
-        return {key: convert_bytes(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [convert_bytes(item) for item in data]
-    else:
-        return data
+from serializers.misc.json_utils import convert_bytes
 
 
 def __apply_delta_to_resource(resource_id, resource, changes: Dict):

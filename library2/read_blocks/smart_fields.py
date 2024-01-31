@@ -106,7 +106,9 @@ class AutoDetectBlock(DelegateBlock):
         from library import probe_block_class
         exc = None
         try:
-            block_class = probe_block_class(ctx.buffer, resources_to_pick=[x.__class__ for x in self.possible_blocks])
+            block_class = probe_block_class(ctx.buffer,
+                                            file_path=ctx.ctx_path,
+                                            resources_to_pick=[x.__class__ for x in self.possible_blocks])
         except NotImplementedError as ex:
             block_class = SkipBlock
             exc = ex

@@ -1,8 +1,7 @@
+from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library.helpers.data_wrapper import DataWrapper
-from library.read_blocks.atomic import Utf8Block
-from library.read_data import ReadData
+from library2.context import WriteContext, ReadContext
 from library2.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
 
 
@@ -27,10 +26,14 @@ class ShpiText(DeclarativeCompoundBlock):
                 {'description': 'Text itself'})
 
 
-class DashDeclarationFile(Utf8Block):
+class DashDeclarationFile(UTF8Block):
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        text = super().from_raw_value(raw, state)
+    def __init__(self, **kwargs):
+        super().__init__(length=0, **kwargs)
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        self._length = read_bytes_amount
+        text = super().read(buffer, ctx, name, read_bytes_amount)
         dictionary = {}
         values = text.splitlines()
         current_key = None
@@ -59,7 +62,7 @@ class DashDeclarationFile(Utf8Block):
                 value = value.split(' ')
                 value = value[0] if len(value) == 1 else value
                 dictionary[current_key] = value if not current_key_ended else [value]
-        return DataWrapper(dictionary)
+        return dictionary
 
-    def to_raw_value(self, data: ReadData) -> bytes:
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         raise NotImplementedError

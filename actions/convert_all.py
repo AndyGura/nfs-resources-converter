@@ -17,8 +17,13 @@ def export_file(base_input_path, path, out_path):
         (name, block, data) = require_file(path)
         serializer = get_serializer(block, data)
         rel_path = path[len(base_input_path):]
-        if not rel_path and not serializer.is_dir:
-            rel_path = path.split('/')[-1]
+        if not rel_path:
+            is_dir = serializer.is_dir
+            # DelegateBlock
+            if callable(is_dir):
+                is_dir = is_dir(block, data)
+            if is_dir:
+                rel_path = path.split('/')[-1]
         serializer.serialize(data, f'{out_path}/{rel_path}', id=name, block=block)
     except Exception as ex:
         if settings.print_errors:
