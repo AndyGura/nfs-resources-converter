@@ -8,7 +8,7 @@ class TestAsmQFS3Algorythm(unittest.TestCase):
 
     def test_0_al1(self):
         parser = Qfs3Compression()
-        file_name = 'games/nfs1/FRONTEND/ART/CHECK/AL1.QFS'
+        file_name = 'test/samples/AL1.QFS'
         with open(file_name, 'rb') as file:
             uncompressed = parser.uncompress(file, os.path.getsize(file_name))
             print('CHECKING OUTPUT....')
@@ -22,7 +22,7 @@ class TestAsmQFS3Algorythm(unittest.TestCase):
 
     def test_1_vertbst(self):
         parser = Qfs3Compression()
-        file_name = 'games/nfs1/FRONTEND/ART/TRACKSEL/VERTBST.QFS'
+        file_name = 'test/samples/VERTBST.QFS'
         with open(file_name, 'rb') as file:
             uncompressed = parser.uncompress(file, os.path.getsize(file_name))
             print('CHECKING OUTPUT....')
@@ -36,7 +36,7 @@ class TestAsmQFS3Algorythm(unittest.TestCase):
 
     def test_2_ldiabl_pbs(self):
         parser = Qfs3Compression()
-        file_name = 'games/nfs1/SIMDATA/CARSPECS/LDIABL.PBS'
+        file_name = 'test/samples/LDIABL.PBS'
         with open(file_name, 'rb') as file:
             uncompressed = parser.uncompress(file, os.path.getsize(file_name))
             print('CHECKING OUTPUT....')
@@ -50,7 +50,7 @@ class TestAsmQFS3Algorythm(unittest.TestCase):
 
     def test_3_gtitle(self):
         parser = Qfs3Compression()
-        file_name = 'games/nfs1/FRONTEND/GART/TITLE.QFS'
+        file_name = 'test/samples/GTITLE.QFS'
         with open(file_name, 'rb') as file:
             uncompressed = parser.uncompress(file, os.path.getsize(file_name))
             print('CHECKING OUTPUT....')
@@ -64,7 +64,7 @@ class TestAsmQFS3Algorythm(unittest.TestCase):
 
     def test_4_gvertbst(self):
         parser = Qfs3Compression()
-        file_name = 'games/nfs1/FRONTEND/GART/TRACKSEL/VERTBST.QFS'
+        file_name = 'test/samples/GVERTBST.QFS'
         with open(file_name, 'rb') as file:
             uncompressed = parser.uncompress(file, os.path.getsize(file_name))
             print('CHECKING OUTPUT....')
