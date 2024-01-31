@@ -55,7 +55,7 @@ def nfs1_panorama_to_spherical(track_id: str, file_name: str, out_file_name: str
     scale_y = scale_y * out_half_width / 1024
     pos_y = int(pos_y * out_half_width / 1024)
 
-    source_scaled = source.resize((int(source.size[0] * scale_x), int(source.size[1] * scale_y)), Image.ANTIALIAS)
+    source_scaled = source.resize((int(source.size[0] * scale_x), int(source.size[1] * scale_y)), Image.LANCZOS)
 
     # INFO files have some values for top and bottom color, but I don't understand what exactly colors do they mean
     top_line_color = tuple([int(x)
