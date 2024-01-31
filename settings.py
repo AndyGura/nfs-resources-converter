@@ -44,11 +44,11 @@ SERIALIZER_CLASSES = {
 images__save_images_only = False
 
 # for car sfx for engine, honk, additionally export long audio, where the sample repeated 16 times
-audio__save_car_sfx_loops = True
+audio__save_car_sfx_loops = False
 
 # saves each terrain mesh chunk as separate obj/blend file and main file with road path.
 # If false builds entire map into single file
-maps__save_as_chunked = True
+maps__save_as_chunked = False
 # places boxes with collision, where invisible wall is located
 maps__save_invisible_wall_collisions = False  # this one will consume time...
 maps__save_terrain_collisions = False
@@ -56,11 +56,11 @@ maps__save_terrain_collisions = False
 maps__save_spherical_skybox_texture = True
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
-geometry__save_obj = True
+geometry__save_obj = False
 # saves blender scene for each 3D scene
-geometry__save_blend = False
+geometry__save_blend = True
 # export to gg-web-engine https://github.com/AndyGura/gg-web-engine
-geometry__export_to_gg_web_engine = True
+geometry__export_to_gg_web_engine = False
 # removes empty polygons, representing wheels and their shadow. Places a dummy on the position where wheel axle
 # located and set wheel width, radius as custom properties of the dummy instead
 geometry__replace_car_wheel_with_dummies = True
