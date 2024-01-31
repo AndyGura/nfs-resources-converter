@@ -1,9 +1,8 @@
 import unittest
 from io import BytesIO
 
-from library.helpers.exceptions import DataIntegrityException
+from library.exceptions import DataIntegrityException
 from library.read_blocks.numbers import IntegerBlock
-from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8
 
 
 class TestByteNumber(unittest.TestCase):

@@ -5,11 +5,9 @@ from copy import deepcopy
 from string import Template
 from typing import List, Dict
 
-from library.helpers.json import resource_to_json
-from library.read_data import ReadData
 from library.utils.blender_scripts import get_blender_save_script, run_blender
 from library.utils.meshes import SubMesh
-from resources.eac.maps import RoadSplinePoint, TriMap
+from resources.eac.maps import RoadSplinePoint
 from serializers import BaseFileSerializer
 
 
@@ -412,7 +410,7 @@ if $save_terrain_collisions:
         return [f"{tex_id + i}/0000" if is_opened_track else f"0/{str(tex_id + i).rjust(2, '0')}00"
                 for i in range(max(frame_count, 1))]
 
-    def _proxy_object_instance_json(self, data: ReadData[TriMap], instance, is_opened_track,
+    def _proxy_object_instance_json(self, data: dict, instance, is_opened_track,
                                     use_local_coordinates) -> Dict:
         proxy_definition = data['proxy_objects'][instance['proxy_object_index'] % len(data['proxy_objects'])]
         spline_index = instance['reference_road_spline_vertex']
@@ -494,8 +492,8 @@ if $save_terrain_collisions:
                                     terrain_entry['texture_ids']]
             road_path_index = len(terrain_data) * 4
             res['chunk'] = self.TerrainChunk(id, block, data)
-            res['chunk'].read_matrix(resource_to_json(terrain_entry['rows']),
-                                     resource_to_json(data['road_spline'][road_path_index:road_path_index + 4]))
+            res['chunk'].read_matrix(terrain_entry['rows'],
+                                     data['road_spline'][road_path_index:road_path_index + 4])
             if terrain_entry['fence']['texture_id'] != 0 or terrain_entry['fence']['has_left_fence'] or \
                     terrain_entry['fence']['has_right_fence']:
                 fence_texture_id = terrain_entry['fence']['texture_id']

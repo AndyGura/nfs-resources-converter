@@ -172,3 +172,4 @@ with open('resources/README.md', 'w') as f:
                     offset_int += int(field.size_doc_str)
                 except (ValueError, TypeError):
                     offset_lbl += ' + ' + field.size_doc_str
+    f.write('\n')

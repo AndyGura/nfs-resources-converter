@@ -1,9 +1,13 @@
 import json
+from collections import defaultdict
 
-from library.helpers.json import rec_dd, resource_to_json
 from library.read_blocks import CompoundBlock
 from serializers import BaseFileSerializer
 from serializers.misc.json_utils import convert_bytes
+
+
+def rec_dd():
+    return defaultdict(rec_dd)
 
 
 class JsonSerializer(BaseFileSerializer):
@@ -24,7 +28,7 @@ class JsonSerializer(BaseFileSerializer):
             if isinstance(value_block, CompoundBlock):
                 dictionary[key_parts[-1]] = self.__make_dict(value_block, value)
             else:
-                dictionary[key_parts[-1]] = resource_to_json(value)
+                dictionary[key_parts[-1]] = value
         return res
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):

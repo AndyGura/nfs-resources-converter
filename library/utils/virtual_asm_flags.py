@@ -117,7 +117,7 @@ class VirtualFlags:
                 cf = 0
         elif self.mnemonic == "IMUL":
             cf = int(not ((self.op1 < self.sign_mask and self.op2 == 0) or (
-                        (self.op1 & self.sign_mask) and self.op2 == self.mask)))
+                    (self.op1 & self.sign_mask) and self.op2 == self.mask)))
 
         elif self.mnemonic == "MUL":
             cf = int(self.op2 != 0)
@@ -193,7 +193,7 @@ class VirtualFlags:
                 of = int((((self.op1 << (self.op2 - 1)) ^ self.result) & self.sign_mask) > 0)
         elif self.mnemonic == "IMUL":
             of = int(not ((self.op1 < self.sign_mask and self.op2 == 0) or (
-                        (self.op1 & self.sign_mask) and self.op2 == self.mask)))
+                    (self.op1 & self.sign_mask) and self.op2 == self.mask)))
         elif self.mnemonic == "MUL":
             of = int(self.op2 != 0)
         elif self.mnemonic == "INC":

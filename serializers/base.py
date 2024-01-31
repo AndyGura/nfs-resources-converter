@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 
 import settings
-from library.helpers.data_wrapper import DataWrapper
-from library.helpers.id import join_id
+from library.utils.class_dict import ClassDict
+from library.utils.id import join_id
 
 
 class ResourceSerializer(ABC):
-    settings = DataWrapper.wrap(settings.__dict__.copy())
+    settings = ClassDict.wrap(settings.__dict__.copy())
 
     def patch_settings(self, settings_patch: dict):
         self.settings.update(settings_patch)

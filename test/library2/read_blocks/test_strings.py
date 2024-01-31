@@ -1,7 +1,7 @@
 import unittest
 from io import BytesIO
 
-from library.helpers.exceptions import DataIntegrityException
+from library.exceptions import DataIntegrityException
 from library.read_blocks.strings import UTF8Block
 
 

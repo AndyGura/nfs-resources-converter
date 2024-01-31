@@ -2,10 +2,9 @@ import os
 import traceback
 
 import serializers
-from library.helpers.exceptions import DataIntegrityException
-from library.helpers.id import join_id
-from library.read_data import ReadData
+from library.exceptions import DataIntegrityException
 from library.utils import format_exception
+from library.utils.id import join_id
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from resources.eac.geometries import OripGeometry
@@ -84,7 +83,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)
 
-    def deserialize(self, path: str, resource: ReadData, quantize_new_palette=True, **kwargs) -> None:
+    def deserialize(self, path: str, resource, quantize_new_palette=True, **kwargs) -> None:
         # FIXME not supported operations listed below:
         # does not support adding/removing bitmaps
         # does not support changed image dimensions
@@ -172,10 +171,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     except ValueError:
                         palette[-2] = tail_lights_color
                 # write new palette to SHPI !PAL resource
-                shpi_pal.value.colors.value = [ReadData(value=x,
-                                                        block_state={'id': resource.id + '/palette/colors/' + str(i)},
-                                                        block=shpi_pal.block.instance_fields_map['colors'].child,
-                                                        ) for i, x in enumerate(palette)]
+                shpi_pal.value.colors.value = palette
             else:
                 # use SHPI !PAL resource
                 palette = [x.value for x in shpi_pal.colors]

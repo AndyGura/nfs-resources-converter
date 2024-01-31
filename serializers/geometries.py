@@ -6,7 +6,7 @@ from copy import deepcopy
 from string import Template
 from typing import Literal, List, Tuple
 
-from library.helpers.exceptions import DataIntegrityException
+from library.exceptions import DataIntegrityException
 from library.utils.blender_scripts import run_blender
 from library.utils.meshes import SubMesh
 from resources.eac.archives import ShpiBlock

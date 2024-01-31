@@ -3,7 +3,7 @@ from io import BufferedReader, BytesIO
 from typing import Dict, List, Tuple, Any
 
 from library.context import ReadContext, WriteContext
-from library.helpers.exceptions import BlockDefinitionException, DataIntegrityException
+from library.exceptions import BlockDefinitionException, DataIntegrityException
 from library.read_blocks.basic import DataBlock, DataBlockWithChildren
 
 

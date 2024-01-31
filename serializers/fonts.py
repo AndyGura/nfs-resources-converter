@@ -29,7 +29,7 @@ class FfnFontSerializer(BaseFileSerializer):
     def deserialize(self, data: dict, path: str, block=None, **kwargs) -> None:
         import re
         image_serializer = BitmapSerializer()
-        image_serializer.deserialize(os.path.join(path, 'bitmap'), data['bitmap'])
+        image_serializer.deserialize(data['bitmap'], os.path.join(path, 'bitmap'))
         with open(os.path.join(path, 'font.fnt')) as f:
             lines = [l.rstrip() for l in f]
             info_part = '\n'.join([l for l in lines if not l.startswith('char ')])

@@ -1,9 +1,7 @@
 from PIL import Image
 
-from library.helpers.exceptions import SerializationException
-from library.read_data import ReadData
-from resources.eac.bitmaps import Bitmap8Bit
-from resources.utils import determine_palette_for_8_bit_bitmap
+from library.exceptions import SerializationException
+from resources.eac.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
 
@@ -16,12 +14,12 @@ class BitmapSerializer(BaseFileSerializer):
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in data['bitmap']])).save(f'{escape_chars(path)}.png')
 
-    def deserialize(self, path: str, resource: ReadData, **kwargs) -> None:
+    def deserialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> None:
         image = Image.open(path + '.png')
         image_rgba = image.convert("RGBA")
-        resource['width'] = image.width
-        resource['height'] = image.height
-        resource['bitmap'] = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
+        data['width'] = image.width
+        data['height'] = image.height
+        data['bitmap'] = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
 
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
@@ -55,7 +53,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{escape_chars(path)}.png')
 
-    def deserialize(self, path: str, resource: ReadData[Bitmap8Bit], palette=None, **kwargs) -> None:
+    def deserialize(self, path: str, resource, palette=None, **kwargs) -> None:
         source = Image.open(escape_chars(path) + '.png')
         transparency = palette[254] if self.has_tail_lights(resource) else palette[255]
         im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24,
@@ -84,7 +82,6 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         if resource.value.trailing_bytes:
             resource.value.trailing_bytes.value = []
         # TODO rewrite code below for new library
-        # TODO wow, it's so complicated... Need a way to construct a new resource easily
         # block = Palette24BitDos()
         # resource.value.palette = ReadData(block=block,
         #                                   block_state={'id': resource.id + '/palette'},

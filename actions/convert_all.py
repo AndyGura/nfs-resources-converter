@@ -44,7 +44,8 @@ def convert_all(path, out_path):
     processes = cpu_count() if settings.multiprocess_processes_count == 0 else settings.multiprocess_processes_count
     with Pool(processes=processes) as pool:
         pbar = tqdm(total=len(files_to_open))
-        results = [pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update()) for f in files_to_open]
+        results = [pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update()) for
+                   f in files_to_open]
         results = list(result.get() for result in results)
     pbar.close()
 

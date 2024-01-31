@@ -4,7 +4,7 @@ from math import ceil
 from typing import Dict, Tuple, Any
 
 from library.context import ReadContext, WriteContext
-from library.helpers.exceptions import EndOfBufferException
+from library.exceptions import EndOfBufferException
 from library.read_blocks.basic import DataBlock, DataBlockWithChildren
 from library.read_blocks.numbers import IntegerBlock
 

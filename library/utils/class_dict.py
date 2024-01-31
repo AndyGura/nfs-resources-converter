@@ -2,15 +2,15 @@ from collections.abc import Iterable
 from copy import deepcopy
 
 
-class DataWrapper(dict):
+class ClassDict(dict):
     MARKER = object()
 
     @staticmethod
     def wrap(value):
         if isinstance(value, list):
-            return [DataWrapper.wrap(x) for x in value]
+            return [ClassDict.wrap(x) for x in value]
         elif isinstance(value, dict):
-            return DataWrapper(value)
+            return ClassDict(value)
         return value
 
     def __init__(self, value: dict = None):
@@ -23,12 +23,12 @@ class DataWrapper(dict):
             raise TypeError('expected dict')
 
     def __deepcopy__(self, memodict={}):
-        return DataWrapper(deepcopy(dict(self)))
+        return ClassDict(deepcopy(dict(self)))
 
     def __setitem__(self, key, value):
-        if isinstance(value, dict) and not isinstance(value, DataWrapper):
-            value = DataWrapper(value)
-        super(DataWrapper, self).__setitem__(key, value)
+        if isinstance(value, dict) and not isinstance(value, ClassDict):
+            value = ClassDict(value)
+        super(ClassDict, self).__setitem__(key, value)
 
     def __getitem__(self, key):
         return self.get(key, None)
@@ -36,18 +36,15 @@ class DataWrapper(dict):
     def to_dict(self):
         res = dict()
         for key, value in self.items():
-            from library.read_data import ReadData
-            if isinstance(value, ReadData):
-                value = value.value
-            if isinstance(value, DataWrapper):
+            if isinstance(value, ClassDict):
                 res[key] = value.to_dict()
             elif isinstance(value, bytes):
                 res[key] = list(value)
             elif isinstance(value, list):
                 res[key] = [x.to_dict()
-                            if isinstance(x, DataWrapper)
+                            if isinstance(x, ClassDict)
                             else dict(x) if isinstance(x, Iterable) else x
-                            for x in [v if not isinstance(v, ReadData) else v.value for v in value]]
+                            for x in value]
             elif isinstance(value, Iterable) and not isinstance(value, str):
                 res[key] = dict(value)
             else:

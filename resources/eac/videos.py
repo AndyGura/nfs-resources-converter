@@ -2,7 +2,7 @@ from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.helpers.exceptions import BlockDefinitionException
+from library.exceptions import BlockDefinitionException
 from library.read_blocks import DataBlock
 
 

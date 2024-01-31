@@ -12,10 +12,5 @@ class BlockDefinitionException(Exception):
     pass
 
 
-class MultiReadUnavailableException(Exception):
-    def __init__(self, message='Multi-read cannot be done for this data block'):
-        super().__init__(message)
-
-
 class SerializationException(Exception):
     pass

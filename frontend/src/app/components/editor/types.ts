@@ -24,18 +24,6 @@ type ReadError = {
   error_text: string;
 };
 
-// type ReadData = {
-//   block_class_mro: string;
-//   block: {
-//     custom_actions: CustomAction[];
-//     is_serializable_to_disk: boolean;
-//     unknown_fields?: string[];
-//   } & any;
-//   block_id: string;
-//   editor_validators: any;
-//   value: any;
-// };
-
 type CustomAction = {
   method: string;
   title: string;
