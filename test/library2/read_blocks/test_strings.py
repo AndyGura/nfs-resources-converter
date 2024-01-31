@@ -23,6 +23,26 @@ class TestStrings(unittest.TestCase):
         with self.assertRaises(DataIntegrityException):
             field.unpack(BytesIO(bytes([84, 101, 120, 116, 83])))
 
-    def test_estimate_packed_size_should_use_real_length(self):
-        field = UTF8Block(length=5)
+    def test_estimate_packed_size_not_static(self):
+        field = UTF8Block(length=lambda ctx: 5)
         self.assertEqual(field.estimate_packed_size('foo'), 3)
+
+    def test_estimate_packed_size_static(self):
+        field = UTF8Block(length=4)
+        size = field.estimate_packed_size("Te")
+        self.assertEqual(size, 4)
+
+    def test_estimate_packed_size_static_tuple(self):
+        field = UTF8Block(length=(4, 'static length'))
+        size = field.estimate_packed_size("Te")
+        self.assertEqual(size, 4)
+
+    def test_utf8_null_trailing_unpack(self):
+        field = UTF8Block(length=4)
+        val = field.unpack(BytesIO(bytes([84, 101, 0, 0])))
+        self.assertEqual(val, "Te")
+
+    def test_utf8_null_trailing_pack(self):
+        field = UTF8Block(length=4)
+        data = field.pack("Te")
+        self.assertEqual(data, bytes([84, 101, 0, 0]))

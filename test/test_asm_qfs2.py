@@ -323,7 +323,7 @@ class TestAsmQFS2Algorythm(unittest.TestCase):
         parser_py = Qfs2Compression()
         parser_asm = Qfs2ASMCompression()
         file_name = 'test/samples/AL2.QFS'
-        with open(file_name, 'rb', buffering=30) as file:
+        with open(file_name, 'rb') as file:
             uncompressed_py = parser_py.uncompress(file, os.path.getsize(file_name))
             file.seek(0)
             uncompressed_asm = parser_asm.uncompress(file, os.path.getsize(file_name))
