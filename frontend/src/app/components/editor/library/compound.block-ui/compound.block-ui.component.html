@@ -1,9 +1,8 @@
 <h2 *ngIf="resource?.name != (main.resource$ | async)?.name">{{ name }}</h2>
 <div class="container">
-  <div *ngFor="let f of fieldKeys; trackBy: fieldTrackBy"
-       class="field-container"
-       [matTooltip]="schema?.fields[f.index].description || ''" matTooltipPosition="above">
+  <ng-container *ngFor="let f of fieldKeys; trackBy: fieldTrackBy">
     <app-editor *ngIf="!(main.hideHiddenFields$ | async) || (!schema?.fields[f.index].is_unknown && !schema?.fields[f.index].is_programmatic)"
-                [resource]="{ id: resource!.id + (resource!.id.includes('__') ? '/' : '__') + f.key, name: f.key, data: data?.[f.key], schema: schema?.fields[f.index].schema }"></app-editor>
-  </div>
+                [resource]="{ id: resource!.id + (resource!.id.includes('__') ? '/' : '__') + f.key, name: f.key, data: data?.[f.key], schema: schema?.fields[f.index].schema }"
+                [resourceDescription]="schema?.fields[f.index].description || ''"></app-editor>
+  </ng-container>
 </div>

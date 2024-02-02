@@ -1,1 +1,3 @@
-<p>GUI component for block {{ (resource?.schema?.block_class_mro || '').split('__')[0] }} not implemented :(</p>
+<p [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}>
+  GUI component for block {{ (resource?.schema?.block_class_mro || '').split('__')[0] }} not implemented :(
+</p>

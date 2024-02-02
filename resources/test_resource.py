@@ -36,8 +36,9 @@ class TestResource(DeclarativeCompoundBlock):
         next_block_type = (IntegerBlock(length=1),
                            {'programmatic_value': lambda ctx: len(ctx.data('delegate_block/data')) if isinstance(
                                ctx.data('delegate_block/data'), str) else 0})
-        delegate_block = DelegateBlock(possible_blocks=[IntegerBlock(length=4, is_signed=True),
+        delegate_block = (DelegateBlock(possible_blocks=[IntegerBlock(length=4, is_signed=True),
                                                         UTF8Block(length=lambda ctx: ctx.data('next_block_type'))],
-                                       choice_index=lambda ctx: 1 if ctx.data('next_block_type') > 0 else 0)
+                                       choice_index=lambda ctx: 1 if ctx.data('next_block_type') > 0 else 0),
+                          { 'description': 'Block, which can be either string, or signed integer'})
         # TODO array with delegated compound blocks
         # TODO block with offsets in the heap, heap block

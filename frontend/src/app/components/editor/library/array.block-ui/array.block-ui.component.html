@@ -2,7 +2,7 @@
   *ngIf="showAsCollapsable"
   (opened)="onContentsTrigger(true)"
   (closed)="onContentsTrigger(false)">
-  <mat-expansion-panel-header>
+  <mat-expansion-panel-header [matTooltip]="resourceDescription" matTooltipPosition="above">
     <mat-panel-title>
       {{ name }}
     </mat-panel-title>
@@ -16,7 +16,7 @@
   <ng-template [ngTemplateOutlet]="contents"></ng-template>
 </mat-expansion-panel>
 <ng-container *ngIf="!showAsCollapsable">
-  <h2>{{ name }}</h2>
+  <h2 [matTooltip]="resourceDescription" matTooltipPosition="above">{{ name }}</h2>
   <div class="mat-expansion-panel-body">
     <ng-template [ngTemplateOutlet]="contents"></ng-template>
   </div>

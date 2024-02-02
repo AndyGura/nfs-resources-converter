@@ -10,6 +10,9 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 export class IntegerBlockUiComponent implements GuiComponentInterface {
   @Input() resource: Resource | null = null;
 
+  @Input()
+  resourceDescription: string = '';
+
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   constructor() {}

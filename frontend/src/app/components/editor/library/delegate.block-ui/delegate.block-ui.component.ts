@@ -44,6 +44,9 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
     this.updateChild();
   }
 
+  @Input()
+  resourceDescription: string = '';
+
   choiceResource: Resource | null = null;
   childResource: Resource | null = null;
   choiceDataCaches: BlockData[] = [];

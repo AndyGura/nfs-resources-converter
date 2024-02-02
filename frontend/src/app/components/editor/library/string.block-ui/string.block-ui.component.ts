@@ -20,6 +20,9 @@ export class StringBlockUiComponent implements GuiComponentInterface {
   }
   private _resource: Resource | null = null;
 
+  @Input()
+  resourceDescription: string = '';
+
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   minLength: number | null = null;

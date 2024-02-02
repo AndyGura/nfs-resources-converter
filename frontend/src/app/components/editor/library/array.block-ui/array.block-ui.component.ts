@@ -23,6 +23,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
     return this._resource;
   }
 
+  @Input()
+  resourceDescription: string = '';
+
   get resourceData(): BlockData | null {
     return this._resource?.data;
   }

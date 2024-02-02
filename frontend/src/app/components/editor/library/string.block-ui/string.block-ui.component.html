@@ -1,4 +1,5 @@
-<mat-form-field appearance="fill" *ngIf="resource">
+<mat-form-field appearance="fill" *ngIf="resource"
+                [matTooltip]="resourceDescription" matTooltipPosition="above">
     <mat-label>{{ resource.name }}</mat-label>
     <input matInput type="text"
            [disabled]="resource.schema.required_value !== undefined"

@@ -11,6 +11,9 @@ export class FallbackBlockUiComponent implements GuiComponentInterface {
   @Input() resource: Resource | null = null;
   name: string = '';
 
+  @Input()
+  resourceDescription: string = '';
+
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   constructor() {}

@@ -1,7 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function };
+declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function, _websocket: any };
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +15,16 @@ export class EelDelegateService {
   constructor(private readonly ngZone: NgZone) {
     eel.expose(this.wrapHandler(this.openFile), 'open_file');
     eel['on_angular_ready']();
+    // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
+    setTimeout(async () => {
+      while (true) {
+        if (eel._websocket) {
+          eel._websocket.onclose = () => window.close();
+          break;
+        }
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }, 0)
   }
 
   private wrapHandler(handler: (...args: any[]) => unknown) {
