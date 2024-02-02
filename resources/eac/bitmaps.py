@@ -66,12 +66,13 @@ class Bitmap4Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
              {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
         y = (IntegerBlock(length=2),
              {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
-        bitmap = (SubByteArrayBlock(bits_per_value=4,
-                                    length=(lambda ctx: ctx.data('width') * ctx.data('height'),
-                                            'width*height'),
-                                    value_deserialize_func=lambda x: 0xFFFFFF00 | transform_bitness(x, 4),
-                                    value_serialize_func=lambda x: (x & 0xFF) >> 4),
-                  {'description': 'Font atlas bitmap data'})
+        bitmap = (ArrayBlock(length=(lambda ctx: ctx.data('height'), 'height'),
+                             child=SubByteArrayBlock(bits_per_value=4,
+                                                     length=(lambda ctx: ctx.data('../width'), 'width'),
+                                                     value_deserialize_func=lambda x: 0xFFFFFF00
+                                                                                      | transform_bitness(x, 4),
+                                                     value_serialize_func=lambda x: (x & 0xFF) >> 4)),
+                  {'description': 'Font atlas bitmap data, array of bitmap rows'})
 
 
 class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):

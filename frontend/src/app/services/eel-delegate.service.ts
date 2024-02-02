@@ -1,7 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function, _websocket: any };
+declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
 
 @Injectable({
   providedIn: 'root',
@@ -24,7 +24,7 @@ export class EelDelegateService {
         }
         await new Promise(r => setTimeout(r, 0));
       }
-    }, 0)
+    }, 0);
   }
 
   private wrapHandler(handler: (...args: any[]) => unknown) {

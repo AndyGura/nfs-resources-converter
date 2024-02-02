@@ -10,7 +10,7 @@ import {
   Output,
   ViewChild,
 } from '@angular/core';
-import {GuiComponentInterface} from '../../gui-component.interface';
+import { GuiComponentInterface } from '../../gui-component.interface';
 
 declare var HexEditor: any;
 
@@ -34,8 +34,7 @@ interface HexEditorProps
     bytesPerLine: number;
     start: number;
     end: number;
-  }> {
-}
+  }> {}
 
 @Component({
   selector: 'app-binary-block-ui',
@@ -56,7 +55,7 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
     this._resource = value;
     if (this.editor) {
       this.editorProps.data = value ? new Uint8Array(value.data) : undefined;
-      this.editor.$set({props: {data: this.editorProps.data}});
+      this.editor.$set({ props: { data: this.editorProps.data } });
       this.cdr.markForCheck();
     }
   }
@@ -69,8 +68,7 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
   private editor: any;
   private editorProps: HexEditorProps = {};
 
-  constructor(private readonly cdr: ChangeDetectorRef) {
-  }
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
   ngAfterViewInit(): void {
     if (this.resource) {

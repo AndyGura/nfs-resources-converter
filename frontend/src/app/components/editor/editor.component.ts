@@ -8,27 +8,27 @@ import {
   Type,
   ViewChild,
 } from '@angular/core';
-import {DataBlockUIDirective} from './data-block-ui.directive';
-import {FallbackBlockUiComponent} from './library/fallback.block-ui/fallback.block-ui.component';
-import {GuiComponentInterface} from './gui-component.interface';
-import {CompoundBlockUiComponent} from './library/compound.block-ui/compound.block-ui.component';
-import {IntegerBlockUiComponent} from './library/integer.block-ui/integer.block-ui.component';
-import {StringBlockUiComponent} from './library/string.block-ui/string.block-ui.component';
-import {ArrayBlockUiComponent} from './library/array.block-ui/array.block-ui.component';
-import {BitmapBlockUiComponent} from './eac/bitmap.block-ui/bitmap.block-ui.component';
+import { DataBlockUIDirective } from './data-block-ui.directive';
+import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
+import { GuiComponentInterface } from './gui-component.interface';
+import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
+import { IntegerBlockUiComponent } from './library/integer.block-ui/integer.block-ui.component';
+import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
+import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
+import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
 // import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
-import {BinaryBlockUiComponent} from './library/binary.block-ui/binary.block-ui.component';
+import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 // import { AngleBlockUiComponent } from './library/angle.block-ui/angle.block-ui.component';
 // import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
 // import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 // import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 // import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
 // import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
-import {MainService} from '../../services/main.service';
-import {Subject, Subscription, takeUntil} from 'rxjs';
+import { MainService } from '../../services/main.service';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 // import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import {EelDelegateService} from '../../services/eel-delegate.service';
-import {DelegateBlockUiComponent} from './library/delegate.block-ui/delegate.block-ui.component';
+import { EelDelegateService } from '../../services/eel-delegate.service';
+import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -58,7 +58,7 @@ export class EditorComponent implements OnDestroy {
     // WwwwBlock: WwwwBlockUiComponent,
   };
 
-  @ViewChild(DataBlockUIDirective, {static: true}) dataBlockUiHost!: DataBlockUIDirective;
+  @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
 
   _component: ComponentRef<GuiComponentInterface> | null = null;
   _componentChangedSub: Subscription | null = null;
@@ -136,8 +136,7 @@ export class EditorComponent implements OnDestroy {
     readonly mainService: MainService,
     readonly eelDelegate: EelDelegateService,
     readonly cdr: ChangeDetectorRef,
-  ) {
-  }
+  ) {}
 
   async serializeBlockReversible() {
     const [files, isReversible] = await this.eelDelegate.serializeReversible(this.resource.name, []);

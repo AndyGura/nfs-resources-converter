@@ -1,5 +1,5 @@
 # **TNFSSE file specs** #
-*Last time updated: 2024-01-31 02:43:45.520232+00:00*
+*Last time updated: 2024-02-02 19:11:33.240002+00:00*
 
 
 # **Info by file extensions** #
@@ -357,7 +357,7 @@
 | 8 | **unk** | 4 | Bytes | Unknown purpose |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | ceil((width\*height)\*4/8) | Array of `width*height` sub-byte numbers. Each number consists of 4 bits | Font atlas bitmap data |
+| 16 | **bitmap** | height\*ceil((width)\*4/8) | Array of `height` items<br/>Item size: ceil((width)\*4/8) bytes<br/>Item type: Array of `width` sub-byte numbers. Each number consists of 4 bits | Font atlas bitmap data, array of bitmap rows |
 ### **Bitmap8Bit** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: 8bit bitmap can be serialized to image only with palette. Basically, for every pixel it uses 8-bit index of color in assigned palette. The tricky part is to determine how the game understands which palette to use. In most cases, if bitmap has embedded palette, it should be used, EXCEPT Autumn Valley fence texture: there embedded palette should be ignored. In all other cases it is tricky even more: it uses !pal or !PAL palette from own SHPI archive, if it is WWWW archive, palette can be in a different SHPI before this one. In CONTROL directory most of QFS files use !pal even from different QFS file! It is a mystery how to reliably pick palette ####

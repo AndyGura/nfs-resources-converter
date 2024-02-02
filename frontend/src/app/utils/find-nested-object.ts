@@ -1,8 +1,13 @@
 const isObject = (value: any) => {
-  return !!(value && typeof value === "object");
+  return !!(value && typeof value === 'object');
 };
 
-export const findNestedObjects: (obj: any, key: string, value: any, path?: Array<string | number>) => [any, Array<string | number>][] = (object = {}, keyToMatch, valueToMatch, path = []) => {
+export const findNestedObjects: (
+  obj: any,
+  key: string,
+  value: any,
+  path?: Array<string | number>,
+) => [any, Array<string | number>][] = (object = {}, keyToMatch, valueToMatch, path = []) => {
   const results: [any, Array<string | number>][] = [];
   if (isObject(object)) {
     const entries = Object.entries(object);

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
 import { cloneDeep, isEqual, isObject, merge } from 'lodash';
-import {findNestedObjects} from "../utils/find-nested-object";
+import { findNestedObjects } from '../utils/find-nested-object';
 
 @Injectable({
   providedIn: 'root',
