@@ -1,9 +1,12 @@
 <ng-container *ngIf="resourceData">
-  <h2 [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}</h2>
-  <mat-select [value]="resourceData.choice_index" (selectionChange)="setChoiceIndex($event.value)">
-    <mat-option *ngFor="let schema of resource!.schema.possible_resource_schemas; let i = index" [value]="i">
-      {{ schema.block_class_mro.split('__')[0] }}
-    </mat-option>
-  </mat-select>
+  <h2 *ngIf="resource?.name" [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}</h2>
+  <div id="resource-type-container">
+    <mat-label>Resource type:</mat-label>
+    <mat-select [value]="resourceData.choice_index" (selectionChange)="setChoiceIndex($event.value)">
+      <mat-option *ngFor="let schema of resource!.schema.possible_resource_schemas; let i = index" [value]="i">
+        {{ schema.block_class_mro.split('__')[0] }}
+      </mat-option>
+    </mat-select>
+  </div>
   <app-editor [resource]="this.childResource"></app-editor>
 </ng-container>

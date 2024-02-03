@@ -18,7 +18,7 @@ import { StringBlockUiComponent } from './components/editor/library/string.block
 import { IntegerBlockUiComponent } from './components/editor/library/integer.block-ui/integer.block-ui.component';
 import { ArrayBlockUiComponent } from './components/editor/library/array.block-ui/array.block-ui.component';
 import { BitmapBlockUiComponent } from './components/editor/eac/bitmap.block-ui/bitmap.block-ui.component';
-// import { PaletteBlockUiComponent } from './components/editor/eac/palette.block-ui/palette.block-ui.component';
+import { PaletteBlockUiComponent } from './components/editor/eac/palette.block-ui/palette.block-ui.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -27,9 +27,9 @@ import { BinaryBlockUiComponent } from './components/editor/library/binary.block
 import { MatPaginatorModule } from '@angular/material/paginator';
 // import { AngleBlockUiComponent } from './components/editor/library/angle.block-ui/angle.block-ui.component';
 import { SidenavResListComponent } from './components/editor/common/sidenav-res-list/sidenav-res-list.component';
-// import { ShpiBlockUiComponent } from './components/editor/eac/shpi.block-ui/shpi.block-ui.component';
+import { ShpiBlockUiComponent } from './components/editor/eac/shpi.block-ui/shpi.block-ui.component';
 import { MatListModule } from '@angular/material/list';
-// import { WwwwBlockUiComponent } from './components/editor/eac/wwww.block-ui/wwww.block-ui.component';
+import { WwwwBlockUiComponent } from './components/editor/eac/wwww.block-ui/wwww.block-ui.component';
 import { MatCardModule } from '@angular/material/card';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 // import { EnumBlockUiComponent } from './components/editor/library/enum.block-ui/enum.block-ui.component';
@@ -57,12 +57,12 @@ import { MatOptionModule } from '@angular/material/core';
     IntegerBlockUiComponent,
     ArrayBlockUiComponent,
     BitmapBlockUiComponent,
-    // PaletteBlockUiComponent,
+    PaletteBlockUiComponent,
     BinaryBlockUiComponent,
     // AngleBlockUiComponent,
     SidenavResListComponent,
-    // ShpiBlockUiComponent,
-    // WwwwBlockUiComponent,
+    ShpiBlockUiComponent,
+    WwwwBlockUiComponent,
     // EnumBlockUiComponent,
     // FlagsBlockUiComponent,
     ConfirmDialogComponent,

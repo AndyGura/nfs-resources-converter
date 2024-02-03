@@ -3,6 +3,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
 import { cloneDeep, isEqual, isObject, merge } from 'lodash';
 import { findNestedObjects } from '../utils/find-nested-object';
+import { joinId } from '../utils/join-id';
 
 @Injectable({
   providedIn: 'root',
@@ -69,14 +70,13 @@ export class MainService {
   private buildResourceDataSnapshot(res: Resource): { [key: string]: any } {
     const result: any = {};
     const recurse = (id: string, data: BlockData) => {
-      let joinStr = id.includes('__') ? '/' : '__';
       if (data instanceof Array) {
         for (let i = 0; i < data.length; i++) {
-          recurse(id + joinStr + i, data[i]);
+          recurse(joinId(id, i), data[i]);
         }
       } else if (isObject(data)) {
         for (const key in data) {
-          recurse(id + joinStr + key, (data as any)[key]);
+          recurse(joinId(id, key), (data as any)[key]);
         }
       } else {
         result[id] = data;

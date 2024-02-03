@@ -8,8 +8,12 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaletteBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: BlockData | null = null;
-  name: string = '';
+  @Input()
+  resource: Resource | null = null;
+
+  get resourceData(): BlockData | null {
+    return this.resource?.data;
+  }
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 

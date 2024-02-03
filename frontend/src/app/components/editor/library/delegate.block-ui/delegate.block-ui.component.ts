@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
+import { joinId } from '../../../../utils/join-id';
 
 type DelegateBlockData = { choice_index: number; data: BlockData };
 
@@ -71,8 +72,9 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
     } else {
       this.childResource = {
         ...this._resource,
-        id: this._resource.id + (this._resource.id.includes('__') ? '/' : '__') + 'data',
+        id: joinId(this._resource.id, 'data'),
         data: this.choiceDataCaches[this._resource.data.choice_index],
+        name: '', // name is displayed in this block, no need to duplicate
         schema: this._resource.schema.possible_resource_schemas[this._resource.data.choice_index],
       };
     }

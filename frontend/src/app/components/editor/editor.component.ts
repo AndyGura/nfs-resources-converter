@@ -16,11 +16,11 @@ import { IntegerBlockUiComponent } from './library/integer.block-ui/integer.bloc
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
-// import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
+import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 // import { AngleBlockUiComponent } from './library/angle.block-ui/angle.block-ui.component';
-// import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
-// import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
+import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
+import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 // import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 // import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
 // import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
@@ -51,11 +51,11 @@ export class EditorComponent implements OnDestroy {
     UTF8Block: StringBlockUiComponent,
     // // NFS1 blocks
     AnyBitmapBlock: BitmapBlockUiComponent,
-    // BasePalette: PaletteBlockUiComponent,
+    BasePalette: PaletteBlockUiComponent,
     // OripGeometry: OripGeometryBlockUiComponent,
-    // ShpiBlock: ShpiBlockUiComponent,
+    ShpiBlock: ShpiBlockUiComponent,
     // TriMap: TriMapBlockUiComponent,
-    // WwwwBlock: WwwwBlockUiComponent,
+    WwwwBlock: WwwwBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

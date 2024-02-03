@@ -1,6 +1,6 @@
 <mat-form-field appearance="fill" *ngIf="resource"
                 [matTooltip]="resourceDescription" matTooltipPosition="above">
-    <mat-label>{{ resource.name }}</mat-label>
+    <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
     <input matInput type="number"
            [max]="resource.schema.max_value"
            [min]="resource.schema.min_value"

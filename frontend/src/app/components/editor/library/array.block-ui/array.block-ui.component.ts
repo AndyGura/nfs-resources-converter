@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
+import { joinId } from '../../../../utils/join-id';
 
 @Component({
   selector: 'app-array-block-ui',
@@ -32,7 +33,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
 
   protected buildChildren(): void {
     this.children = (this.resourceData || []).map((d: BlockData, i: number) => ({
-      id: this._resource!.id + (this._resource!.id.includes('__') ? '/' : '__') + i,
+      id: joinId(this._resource!.id, i),
       name: '' + i,
       data: d,
       schema: this._resource!.schema.child_schema,

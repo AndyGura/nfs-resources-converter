@@ -6,14 +6,27 @@
 
   mat-selection-list {
     height: 100%;
-    overflow-y: auto;
-    width: 12rem;
     max-width: 33%;
     flex-shrink: 0;
+    padding: 0;
+
+    mat-list-option[aria-selected="true"] {
+      background-color: #e0e0e0;
+      &:focus {
+        background-color: unset;
+      }
+    }
+
+    ::ng-deep {
+      .mdc-radio {
+        display: none;
+      }
+    }
   }
 
   mat-card {
     width: 100%;
     height: 100%;
+    padding: 1rem;
   }
 }
