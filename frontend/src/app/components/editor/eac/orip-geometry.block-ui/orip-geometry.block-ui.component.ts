@@ -43,15 +43,16 @@ export const setupNfs1Texture = (texture: Texture) => {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OripGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  _resourceData$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
-  get resourceData(): BlockData | null {
-    return this._resourceData$.getValue();
-  }
-  @Input() set resourceData(value: BlockData | null) {
-    this._resourceData$.next(value);
+  get resource(): Resource | null {
+    return this._resource$.getValue();
   }
 
-  name: string = '';
+  @Input()
+  set resource(value: Resource | null) {
+    this._resource$.next(value);
+  }
+
+  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -100,8 +101,8 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     updateSize();
     this.world.start();
 
-    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
-      const paths = await this.loadPreviewFilePaths(data?.block_id);
+    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
+      const paths = await this.loadPreviewFilePaths(res?.id);
       if (paths) {
         await this.loadPreview(paths);
       }
@@ -109,12 +110,12 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     this.mainService.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceData && blockId.startsWith(this.resourceData!.block_id)),
+        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
         debounceTime(1500),
       )
       .subscribe(async () => {
         this.unloadPreview();
-        const paths = await this.postTmpUpdates(this.resourceData?.block_id);
+        const paths = await this.postTmpUpdates(this.resource?.id);
         if (paths) {
           await this.loadPreview(paths);
         }

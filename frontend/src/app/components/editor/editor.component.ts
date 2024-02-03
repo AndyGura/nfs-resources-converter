@@ -26,7 +26,7 @@ import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.c
 // import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
-// import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { EelDelegateService } from '../../services/eel-delegate.service';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { joinId } from '../../utils/join-id';
@@ -54,7 +54,7 @@ export class EditorComponent implements OnDestroy {
     AngleBlock: AngleBlockUiComponent,
     AnyBitmapBlock: BitmapBlockUiComponent,
     BasePalette: PaletteBlockUiComponent,
-    // OripGeometry: OripGeometryBlockUiComponent,
+    OripGeometry: OripGeometryBlockUiComponent,
     ShpiBlock: ShpiBlockUiComponent,
     // TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
