@@ -70,9 +70,6 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
         return res
 
 
-# TODO 41 (0x29) 16 bit dos palette
-
-
 class PaletteReference(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, required_value=0x7C),

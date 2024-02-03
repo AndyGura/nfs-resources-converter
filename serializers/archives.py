@@ -86,7 +86,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
     def deserialize(self, path: str, resource, quantize_new_palette=True, **kwargs) -> None:
         # FIXME not supported operations listed below:
         # does not support adding/removing bitmaps
-        # does not support changed image dimensions
         # does not support cases where 8-bitmaps use different palette (is it even possible?)
         # totally breaks car tail lights (TNFS)
         # tested with only 8bit images (TNFS shpi archives)

@@ -55,7 +55,6 @@ class Bitmap4Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+width\\*height/2 + trailing bytes length'})
-        # TODO ensure the value is even. At least for fonts
         width = (IntegerBlock(length=2),
                  {'description': 'Bitmap width in pixels. Has to be an even number (at least in the FFN font)'})
         height = (IntegerBlock(length=2),

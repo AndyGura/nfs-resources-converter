@@ -27,28 +27,12 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
         this.choiceDataCaches[this._resource.data.choice_index] = this._resource.data.data;
       }
     }
-    if (!this._resource) {
-      this.choiceResource = null;
-    } else {
-      this.choiceResource = {
-        id: this._resource.id + '/' + 'choice_index',
-        name: 'Block type choice',
-        data: this._resource.data.choice_index,
-        schema: {
-          block_class_mro: 'EnumBlock__IntegerBlock__DataBlock',
-          choices: [
-            // TODO finish EnumBlock and use another <app-editor here for correct file changes delta flow
-          ],
-        },
-      };
-    }
     this.updateChild();
   }
 
   @Input()
   resourceDescription: string = '';
 
-  choiceResource: Resource | null = null;
   childResource: Resource | null = null;
   choiceDataCaches: BlockData[] = [];
 
