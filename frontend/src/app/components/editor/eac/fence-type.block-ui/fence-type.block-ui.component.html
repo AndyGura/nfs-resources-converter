@@ -1,0 +1,25 @@
+<ng-container *ngIf="resource">
+  <mat-label *ngIf="resource.name"
+             [matTooltip]="resourceDescription" matTooltipPosition="above">
+    {{ resource.name }}
+  </mat-label>
+  <mat-selection-list (selectionChange)="onSelection($event)">
+    <mat-list-option value="has_left_fence"
+                     [selected]="resource.data.has_left_fence">
+      Left
+    </mat-list-option>
+    <mat-list-option value="has_right_fence"
+                     [selected]="resource.data.has_right_fence">
+      Right
+    </mat-list-option>
+  </mat-selection-list>
+  <mat-form-field appearance="fill">
+    <mat-label>Texture ID</mat-label>
+    <input matInput type="number"
+           [max]="63"
+           [min]="0"
+           [step]="1"
+           [(ngModel)]="resource.data.texture_id"
+           (change)="changed.emit()">
+  </mat-form-field>
+</ng-container>

@@ -45,6 +45,7 @@ import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geome
 import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
 import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
 import { MatOptionModule } from '@angular/material/core';
+import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.block-ui/fence-type.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -71,6 +72,7 @@ import { MatOptionModule } from '@angular/material/core';
     OripGeometryBlockUiComponent,
     MinimapComponent,
     DelegateBlockUiComponent,
+    FenceTypeBlockUiComponent,
   ],
   imports: [
     BrowserModule,

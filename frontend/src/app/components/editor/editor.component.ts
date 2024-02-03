@@ -31,6 +31,7 @@ import { EelDelegateService } from '../../services/eel-delegate.service';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { joinId } from '../../utils/join-id';
 import { isObject } from 'lodash';
+import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -58,6 +59,7 @@ export class EditorComponent implements OnDestroy {
     ShpiBlock: ShpiBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
+    FenceType: FenceTypeBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
