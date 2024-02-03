@@ -23,7 +23,7 @@ import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.componen
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
-// import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
+import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
@@ -56,7 +56,7 @@ export class EditorComponent implements OnDestroy {
     BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
     ShpiBlock: ShpiBlockUiComponent,
-    // TriMap: TriMapBlockUiComponent,
+    TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
   };
 

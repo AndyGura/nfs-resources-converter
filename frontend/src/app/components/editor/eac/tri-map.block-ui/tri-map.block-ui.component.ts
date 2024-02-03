@@ -50,6 +50,7 @@ import { MainService } from '../../../../services/main.service';
 import { GgCurve } from '@gg-web-engine/core/dist/3d/models/gg-meta';
 import { setupNfs1Texture } from '../orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
+import { joinId } from '../../../../utils/join-id';
 
 export enum MapPropType {
   ThreeModel = 'model',
@@ -224,15 +225,16 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
-  _resourceData$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
-
-  get resourceData(): BlockData | null {
-    return this._resourceData$.getValue();
+  get resource(): Resource | null {
+    return this._resource$.getValue();
   }
 
-  @Input() set resourceData(value: BlockData | null) {
-    this._resourceData$.next(value);
+  @Input()
+  set resource(value: Resource | null) {
+    this._resource$.next(value);
   }
+
+  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -244,9 +246,9 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
 
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
-  selectedSplineItem$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
-  selectedAiInfoItem$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
-  selectedTerrainItem$: BehaviorSubject<BlockData | null> = new BehaviorSubject<BlockData | null>(null);
+  selectedSplineItem$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  selectedAiInfoItem$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  selectedTerrainItem$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
 
   famPath: string = '';
   name: string = '';
@@ -267,7 +269,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   ) {}
 
   get previewFamPossibleLocations(): string[] {
-    const blockId = this.resourceData?.block_id;
+    const blockId = this.resource?.id;
     if (blockId) {
       return [
         blockId.substring(0, blockId.indexOf('MISC')) +
@@ -298,13 +300,9 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   get roadSpline(): Point3[] {
     return (
-      (this.resourceData?.value.road_spline.value || [])
-        .filter((_: any, i: number) => i < (this.resourceData?.value.terrain_length.value * 4 || 0))
-        .map((d: any) => ({
-          x: d.value.position.value.x.value,
-          y: d.value.position.value.y.value,
-          z: d.value.position.value.z.value,
-        })) || []
+      (this.resource?.data.road_spline || [])
+        .filter((_: any, i: number) => i < (this.resource?.data.terrain_length * 4 || 0))
+        .map((d: any) => d.position) || []
     );
   }
 
@@ -382,25 +380,25 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     updateSize();
     this.world.start();
 
-    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
+    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
       this.previewLoading$.next(true);
       if (this.previewFamPossibleLocations[0]) {
         this.previewFamLocation$.next(this.previewFamPossibleLocations[0]);
         await this.onFamSelected(this.previewFamPossibleLocations[0]);
       }
-      await this.loadPreviewGlbPath(data?.block_id);
+      await this.loadPreviewGlbPath(res?.id);
       await this.loadPreview();
       this.previewLoading$.next(false);
     });
     this.mainService.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceData && blockId.startsWith(this.resourceData!.block_id)),
+        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
         debounceTime(3000),
       )
       .subscribe(async () => {
         this.previewLoading$.next(true);
-        await this.postTmpUpdates(this.resourceData?.block_id);
+        await this.postTmpUpdates(this.resource?.id);
         await this.loadPreview();
         this.previewLoading$.next(false);
       });
@@ -412,7 +410,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
           return;
         }
         this.selectionSphere.position = point;
-        const orientation = this.resourceData!.value.road_spline.value[i].value.orientation.value;
+        const orientation = this.resource!.data.road_spline[i].orientation;
         if (this.renderer) {
           this.renderer.position = Pnt3.add(
             point,
@@ -422,16 +420,28 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         }
       }
       this.selectedSplineItem$.next({
-        block: this.resourceData!.value.road_spline.block,
-        ...this.resourceData!.value.road_spline.value[i],
+        id: joinId(this.resource!.id, `road_spline/${i}`),
+        data: this.resource!.data.road_spline[i],
+        schema: (this.resource!.schema.fields || []).find(
+          (x: { name: string; schema: BlockSchema }) => x.name === 'road_spline',
+        )?.schema.child_schema,
+        name: '',
       });
       this.selectedAiInfoItem$.next({
-        block: this.resourceData!.value.ai_info.block,
-        ...this.resourceData!.value.ai_info.value[Math.floor(i / 4)],
+        id: joinId(this.resource!.id, `ai_info/${Math.floor(i / 4)}`),
+        data: this.resource!.data.ai_info[Math.floor(i / 4)],
+        schema: (this.resource!.schema.fields || []).find(
+          (x: { name: string; schema: BlockSchema }) => x.name === 'ai_info',
+        )?.schema.child_schema,
+        name: '',
       });
       this.selectedTerrainItem$.next({
-        block: this.resourceData!.value.terrain.block,
-        ...this.resourceData!.value.terrain.value[Math.floor(i / 4)],
+        id: joinId(this.resource!.id, `terrain/${Math.floor(i / 4)}`),
+        data: this.resource!.data.terrain[Math.floor(i / 4)],
+        schema: (this.resource!.schema.fields || []).find(
+          (x: { name: string; schema: BlockSchema }) => x.name === 'terrain',
+        )?.schema.child_schema,
+        name: '',
       });
     });
   }
