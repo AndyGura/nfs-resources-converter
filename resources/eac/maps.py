@@ -27,7 +27,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         right_barrier_distance = (RationalNumber(length=1, fraction_bits=3),
                                   {'description': 'The distance to invisible wall on the right'})
         unk0 = (BytesBlock(length=3),
-                {'is_unkown': True})
+                {'is_unknown': True})
         spline_item_mode = (EnumByteBlock(enum_names=[(0, 'lane_split'),
                                                       (1, 'default_0'),
                                                       (2, 'lane_merge'),
@@ -55,7 +55,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                        {'description': 'Rotation of road path, if view from the top. Equals to '
                                        'atan2(next_x - x, next_z - z)'})
         unk1 = (BytesBlock(length=2),
-                {'is_unkown': True})
+                {'is_unknown': True})
         orientation_vector_x = (IntegerBlock(length=2, is_signed=True),
                                 {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
                                                 'angle == orientation field above, used for pseudo-3D effect on '
@@ -71,7 +71,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                                     'opponent cars. So orientation_vector_neg_z == '
                                                     '-sin(orientation) * 32766'})
         unk2 = (BytesBlock(length=2),
-                {'is_unkown': True})
+                {'is_unknown': True})
 
     def update_orientations(self, read_data, next_spline_point):
         from math import atan2, cos, sin

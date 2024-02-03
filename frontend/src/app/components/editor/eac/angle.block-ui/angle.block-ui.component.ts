@@ -18,8 +18,10 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AngleBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: BlockData | null = null;
-  name: string = '';
+  @Input() resource: Resource | null = null;
+
+  @Input()
+  resourceDescription: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -59,7 +61,7 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     if (mouseEvent.shiftKey) {
       newAngle = (Math.round((newAngle * 180) / Math.PI / 15) * 15 * Math.PI) / 180;
     }
-    this.resourceData!.value = newAngle;
+    this.resource!.data = newAngle;
     this.changed.emit();
     this.cdr.markForCheck();
   }

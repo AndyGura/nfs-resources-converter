@@ -25,16 +25,16 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BinaryBlockUiComponent } from './components/editor/library/binary.block-ui/binary.block-ui.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
-// import { AngleBlockUiComponent } from './components/editor/library/angle.block-ui/angle.block-ui.component';
+import { AngleBlockUiComponent } from './components/editor/eac/angle.block-ui/angle.block-ui.component';
 import { SidenavResListComponent } from './components/editor/common/sidenav-res-list/sidenav-res-list.component';
 import { ShpiBlockUiComponent } from './components/editor/eac/shpi.block-ui/shpi.block-ui.component';
 import { MatListModule } from '@angular/material/list';
 import { WwwwBlockUiComponent } from './components/editor/eac/wwww.block-ui/wwww.block-ui.component';
 import { MatCardModule } from '@angular/material/card';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
-// import { EnumBlockUiComponent } from './components/editor/library/enum.block-ui/enum.block-ui.component';
+import { EnumBlockUiComponent } from './components/editor/library/enum.block-ui/enum.block-ui.component';
 import { MatSelectModule } from '@angular/material/select';
-// import { FlagsBlockUiComponent } from './components/editor/library/flags.block-ui/flags.block-ui.component';
+import { FlagsBlockUiComponent } from './components/editor/library/flags.block-ui/flags.block-ui.component';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -59,12 +59,12 @@ import { MatOptionModule } from '@angular/material/core';
     BitmapBlockUiComponent,
     PaletteBlockUiComponent,
     BinaryBlockUiComponent,
-    // AngleBlockUiComponent,
+    AngleBlockUiComponent,
     SidenavResListComponent,
     ShpiBlockUiComponent,
     WwwwBlockUiComponent,
-    // EnumBlockUiComponent,
-    // FlagsBlockUiComponent,
+    EnumBlockUiComponent,
+    FlagsBlockUiComponent,
     ConfirmDialogComponent,
     // TriMapBlockUiComponent,
     RunCustomActionDialogComponent,

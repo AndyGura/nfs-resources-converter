@@ -11,6 +11,8 @@ import { MainService } from '../../../../services/main.service';
 export class CompoundBlockUiComponent implements GuiComponentInterface {
   @Input() resource: Resource | null = null;
 
+  @Input() resourceDescription: string = '';
+
   get name(): string | null {
     return this.resource && this.resource.name;
   }

@@ -84,6 +84,7 @@ class EnumByteBlock(IntegerBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema,
+                'enum_names': self.enum_names,
                 'block_description': 'Enum of 256 possible values<br/><details><summary>Value names:</summary>'
                                      + '<br/>'.join([f'{i}: {x}'
                                                      for i, x in enumerate(self.enum_name_map)

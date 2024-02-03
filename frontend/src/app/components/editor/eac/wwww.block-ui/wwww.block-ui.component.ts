@@ -18,7 +18,6 @@ export class WwwwBlockUiComponent implements GuiComponentInterface {
   set resource(value: Resource | null) {
     this._resource = value;
     this.resourceMap = {};
-    console.log(this._resource);
     const childSchema = (this._resource?.schema.fields || []).find(
       (x: { name: string; schema: BlockSchema }) => x.name === 'children',
     )?.schema.child_schema;

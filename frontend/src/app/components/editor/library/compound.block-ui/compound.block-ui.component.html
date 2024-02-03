@@ -1,4 +1,5 @@
-<h2 *ngIf="resource?.name != (main.resource$ | async)?.name">{{ name }}</h2>
+<h2 *ngIf="resource?.name != (main.resource$ | async)?.name"
+    [matTooltip]="resourceDescription" matTooltipPosition="above">{{ name }}</h2>
 <div class="container">
   <ng-container *ngFor="let f of fieldKeys; trackBy: fieldTrackBy">
     <app-editor *ngIf="!(main.hideHiddenFields$ | async) || (!schema?.fields[f.index].is_unknown && !schema?.fields[f.index].is_programmatic)"

@@ -18,17 +18,19 @@ import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.c
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
-// import { AngleBlockUiComponent } from './library/angle.block-ui/angle.block-ui.component';
+import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
 import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
-// import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
-// import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
+import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
+import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
 // import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 // import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { EelDelegateService } from '../../services/eel-delegate.service';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
+import { joinId } from '../../utils/join-id';
+import { isObject } from 'lodash';
 
 @Component({
   selector: 'app-editor',
@@ -38,18 +40,18 @@ import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.b
 })
 export class EditorComponent implements OnDestroy {
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
-    // AngleBlock: AngleBlockUiComponent,
     ArrayBlock: ArrayBlockUiComponent,
     SubByteArrayBlock: ArrayBlockUiComponent,
-    // BitFlagsBlock: FlagsBlockUiComponent,
+    BitFlagsBlock: FlagsBlockUiComponent,
     BytesBlock: BinaryBlockUiComponent,
     CompoundBlock: CompoundBlockUiComponent,
     DataBlock: FallbackBlockUiComponent,
     DelegateBlock: DelegateBlockUiComponent,
-    // EnumByteBlock: EnumBlockUiComponent,
+    EnumByteBlock: EnumBlockUiComponent,
     IntegerBlock: IntegerBlockUiComponent,
     UTF8Block: StringBlockUiComponent,
-    // // NFS1 blocks
+    // NFS1 blocks
+    AngleBlock: AngleBlockUiComponent,
     AnyBitmapBlock: BitmapBlockUiComponent,
     BasePalette: PaletteBlockUiComponent,
     // OripGeometry: OripGeometryBlockUiComponent,
@@ -123,7 +125,19 @@ export class EditorComponent implements OnDestroy {
             takeUntil(this.destroyed$),
             takeUntil(this.resourceSet$),
           ).subscribe(() => {
-            this.mainService.dataBlockChange$.next([this._resource!.id, this._resource!.data]);
+            const id = this._resource!.id;
+            const data = this._resource!.data;
+            if (data instanceof Array) {
+              for (let i = 0; i < data.length; i++) {
+                this.mainService.dataBlockChange$.next([joinId(id, i), data[i]]);
+              }
+            } else if (isObject(data)) {
+              for (const key in data) {
+                this.mainService.dataBlockChange$.next([joinId(id, key), (data as any)[key]]);
+              }
+            } else {
+              this.mainService.dataBlockChange$.next([id, data]);
+            }
           });
         }
         this._component!.instance.resource = this._resource;

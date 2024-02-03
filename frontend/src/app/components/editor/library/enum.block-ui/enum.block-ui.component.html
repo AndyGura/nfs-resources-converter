@@ -1,20 +1,22 @@
-<ng-container *ngIf="resourceData">
-    <mat-form-field *ngIf="isKnownEnumValue(resourceData.value); else unknownEnum" appearance="fill">
-        <mat-label>{{ name }}</mat-label>
-        <mat-select [(value)]="resourceData.value"
+<ng-container *ngIf="resource">
+    <mat-form-field *ngIf="isKnownEnumValue(resource.data); else unknownEnum" appearance="fill"
+                    [matTooltip]="resourceDescription" matTooltipPosition="above">
+        <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
+        <mat-select [(value)]="resource.data"
                     (selectionChange)="changed.emit()">
-            <mat-option *ngFor="let enumValue of resourceData.block.enum_names" [value]="enumValue[1]">
+            <mat-option *ngFor="let enumValue of resource.schema.enum_names" [value]="enumValue[1]">
                 {{enumValue[1]}}
             </mat-option>
         </mat-select>
     </mat-form-field>
     <ng-template #unknownEnum>
-        <mat-form-field appearance="fill">
-            <mat-label>{{ name }}</mat-label>
+        <mat-form-field appearance="fill"
+                        [matTooltip]="resourceDescription" matTooltipPosition="above">
+          <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
             <input matInput type="number"
                    [min]="0"
-                   [max]="(resourceData.block.static_size || 1) * 256 - 1"
-                   [(ngModel)]="resourceData.value"
+                   [max]="(resource.schema.length || 1) * 256 - 1"
+                   [(ngModel)]="resource.data"
                    (change)="changed.emit()">
         </mat-form-field>
     </ng-template>
