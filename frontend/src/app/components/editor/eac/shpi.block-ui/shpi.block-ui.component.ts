@@ -26,7 +26,7 @@ export class ShpiBlockUiComponent implements GuiComponentInterface {
     for (const [i, alias] of this.resourceData!.children_aliases.entries()) {
       let childName = alias || '__' + unaliasedCounter++;
       this.resourceMap[childName] = {
-        id: joinId(this._resource!.id, `children/${i}`),
+        id: joinId(this._resource?.id || '', `children/${i}`),
         data: this.resourceData?.children[i],
         schema: childSchema,
         name: '',

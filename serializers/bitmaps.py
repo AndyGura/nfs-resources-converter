@@ -1,3 +1,5 @@
+from typing import Any
+
 from PIL import Image
 
 from library.exceptions import SerializationException
@@ -18,15 +20,17 @@ class BitmapSerializer(BaseFileSerializer):
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(f'{escape_chars(path)}.png')
 
-    def deserialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> None:
+    def deserialize(self, path: str, id=None, block=None, **kwargs):
         image = Image.open(path + '.png')
         image_rgba = image.convert("RGBA")
+        data = block.new_data()
         data['width'] = image.width
         data['height'] = image.height
         bitmap = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
         if isinstance(block, Bitmap4Bit):
             bitmap = [bitmap[i:i + image.width] for i in range(0, len(bitmap), image.width)]
         data['bitmap'] = bitmap
+        return data
 
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
@@ -60,9 +64,9 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{escape_chars(path)}.png')
 
-    def deserialize(self, path: str, resource, palette=None, **kwargs) -> None:
-        source = Image.open(escape_chars(path) + '.png')
-        transparency = palette[254] if self.has_tail_lights(resource) else palette[255]
+    def deserialize(self, path: str, id=None, block=None, palette=None, **kwargs):
+        source = Image.open(path)
+        transparency = palette[254] if self.has_tail_lights(id) else palette[255]
         im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24,
                                             (transparency & 0xff0000) >> 16,
                                             (transparency & 0xff00) >> 8))
@@ -82,39 +86,8 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         #     # make it last
         #     palette_colors.remove(0xFF00FF00)
         #     palette_colors += [0xFF00FF00]
-        resource.value.block_size.value = 16 + im.width * im.height
-        resource.value.width.value = im.width
-        resource.value.height.value = im.height
-        resource.value.bitmap.value = list(im.getdata())
-        if resource.value.trailing_bytes:
-            resource.value.trailing_bytes.value = []
-        # TODO rewrite code below for new library
-        # block = Palette24BitDos()
-        # resource.value.palette = ReadData(block=block,
-        #                                   block_state={'id': resource.id + '/palette'},
-        #                                   value=DataWrapper({
-        #                                       'resource_id': ReadData(value=0x22,
-        #                                                               block=block.instance_fields_map['resource_id'],
-        #                                                               block_state={ 'id': resource.id + '/palette/resource_id' }),
-        #                                       'unknowns': ReadData(value=[0] * 15,
-        #                                                            block=block.instance_fields_map['unknowns'],
-        #                                                            block_state={ 'id': resource.id + '/palette/unknowns' }),
-        #                                       'colors': ReadData(value=[ReadData(value=x,
-        #                                                                          block_state={ 'id': resource.id + '/palette/colors/' + str(i) },
-        #                                                                          block=block.instance_fields_map['colors'].child,
-        #                                                                          ) for i, x in enumerate(palette_colors)],
-        #                                                          block=block.instance_fields_map['colors'],
-        #                                                          block_state={
-        #                                                              'id': resource.id + '/palette/colors'
-        #                                                          }),
-        #                                   }))
-        # TODO if single image in SHPI, should change this SHPI !pal resource probably
-        # from library import require_resource
-        # shpi, _ = require_resource(resource.id[:max(resource.id.rfind('__children'), resource.id.rfind('/children'))])
-        # palette = next(x for x in shpi.children if x.id[-4:] in ['!pal', '!PAL'])
-        # if len(palette_colors) < 256:
-        #     palette_colors += [0] * (256 - len(palette_colors))
-        # palette.value.colors.value = [ReadData(value=x,
-        #                                        block_state={'id': resource.id + '/palette/colors/' + str(i)},
-        #                                        block=palette.block.instance_fields_map['colors'].child,
-        #                                        ) for i, x in enumerate(palette_colors)]
+        data = block.new_data()
+        data['width'] = im.width
+        data['height'] = im.height
+        data['bitmap'] = list(im.getdata())
+        return data

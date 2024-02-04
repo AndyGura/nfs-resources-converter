@@ -64,6 +64,10 @@ class DelegateBlock(DataBlock):
         assert name == 'data'
         return self.possible_blocks[unpacked_data['choice_index']], unpacked_data['data']
 
+    def new_data(self):
+        return {'choice_index': 0,
+                'data': self.possible_blocks[0].new_data()}
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         delegated_block_index = self.choice_index
         if isinstance(delegated_block_index, tuple):

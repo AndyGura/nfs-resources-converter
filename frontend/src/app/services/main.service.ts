@@ -92,17 +92,17 @@ export class MainService {
     });
   }
 
-  private async processExternalChanges(call: () => Promise<BlockData | ReadError>): Promise<BlockData | ReadError> {
+  private async processExternalChanges(call: () => Promise<BlockData | ReadError>): Promise<void> {
     this.customActionRunning$.next(true);
     const res: BlockData | ReadError = await call();
     if (!!(res as ReadError).error_class) {
       this.customActionRunning$.next(false);
       throw res;
     }
-    merge(this.resource$.getValue()!, res);
+    this.resource$.getValue()!.data = res;
+    this.clearUnsavedChanges();
     this.changedDataBlocks['__has_external_changes__'] = 1;
     this.customActionRunning$.next(false);
-    return res;
   }
 
   public async runCustomAction(action: CustomAction, args: { [key: string]: any }) {

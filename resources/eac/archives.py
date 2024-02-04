@@ -118,6 +118,12 @@ class ShpiBlock(DeclarativeCompoundBlock):
             offsets_sum += len(offset)
         return super().estimate_packed_size(data, ctx) + offsets_sum
 
+    def new_data(self):
+        return {**super().new_data(),
+                'shpi_directory': 'LN32',
+                'children_aliases': [],
+                'offset_payloads': [b'']}
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         shpi_start = buffer.tell()
         res = super().read(buffer, ctx, name, read_bytes_amount)
@@ -161,7 +167,21 @@ class ShpiBlock(DeclarativeCompoundBlock):
         return res
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        # we customize logic to write children
+        children_heap = b''
+        child_offsets = {}
+        child_block = self.field_blocks_map['children'].child
+        for i, item in enumerate(data['children']):
+            children_heap += data['offset_payloads'][i]
+            if data['children_aliases'][i] is not None:
+                child_offsets[data['children_aliases'][i]] = len(children_heap)
+            children_heap += child_block.pack(data=item, ctx=ctx, name=str(i))
+        if len(data['offset_payloads']) > len(data['children']):
+            for i in range(len(data['children']), len(data['offset_payloads'])):
+                children_heap += data['offset_payloads'][i]
+        data['children_descriptions'] = [{'name': name, 'offset': offset} for (name, offset) in child_offsets.items()]
+        heap_offset = self.offset_to_child_when_packed(data, 'children')
+        for x in data['children_descriptions']:
+            x['offset'] += heap_offset
         self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
         res = bytes()
         for name, field in (x for x in self.field_blocks if x[0] != 'children'):
@@ -171,13 +191,7 @@ class ShpiBlock(DeclarativeCompoundBlock):
             else:
                 val = data[name]
             res += field.pack(data=val, ctx=self_ctx, name=name)
-        child_block = self.field_blocks_map['children'].child
-        for i, item in enumerate(data['children']):
-            res += data['offset_payloads'][i]
-            res += child_block.pack(data=item, ctx=ctx, name=str(i))
-        if len(data['offset_payloads']) > len(data['children']):
-            for i in range(len(data['children']), len(data['offset_payloads'])):
-                res += data['offset_payloads'][i]
+        res += children_heap
         return res
 
 

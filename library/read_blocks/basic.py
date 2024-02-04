@@ -30,6 +30,10 @@ class DataBlock(ABC):
             s['required_value'] = self.required_value
         return s
 
+    # creates empty data
+    def new_data(self):
+        return self.required_value
+
     @abstractmethod
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         pass
@@ -113,6 +117,17 @@ class BytesBlock(DataBlock):
             self_len = self_len(ctx)
         return self_len
 
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        self_len = self._length
+        if isinstance(self_len, tuple):
+            # cut off the documentation
+            (self_len, _) = self_len
+        if callable(self_len):
+            return b''
+        return bytes([0] * self_len)
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         if self_len < 0:
@@ -149,6 +164,9 @@ class SkipBlock(DataBlock):
     @property
     def size_doc_str(self):
         return '0'
+
+    def new_data(self):
+        return None
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         return self.exception if self.error_strategy == "return_exception" else None

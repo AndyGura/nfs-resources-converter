@@ -51,6 +51,11 @@ class UTF8Block(DataBlock):
             return None
         return self_len
 
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        return ""
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         res = buffer.read(self_len).decode('utf-8')

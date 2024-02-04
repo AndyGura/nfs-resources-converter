@@ -66,6 +66,12 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
                 unknown_size = True
         return str(min_acc) if not unknown_size else f'{min_acc}..?'
 
+    def new_data(self):
+        res = dict()
+        for name, field in self.field_blocks:
+            res[name] = field.new_data()
+        return res
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         res = dict()
         self_ctx = ReadContext(buffer=buffer, data=res, name=name, block=self, parent=ctx,

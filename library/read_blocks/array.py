@@ -68,6 +68,17 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return self.child, unpacked_data[int(name)]
 
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        self_len = self._length
+        if isinstance(self_len, tuple):
+            # cut off the documentation
+            (self_len, _) = self_len
+        if callable(self_len):
+            return []
+        return [self.child.new_data()] * self_len
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         res = []
         self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
@@ -159,6 +170,17 @@ class SubByteArrayBlock(DataBlock):
 
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return None, unpacked_data[int(name)]
+
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        self_len = self._length
+        if isinstance(self_len, tuple):
+            # cut off the documentation
+            (self_len, _) = self_len
+        if callable(self_len):
+            return []
+        return [0] * self_len
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)

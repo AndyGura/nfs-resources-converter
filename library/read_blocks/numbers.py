@@ -35,6 +35,11 @@ class IntegerBlock(DataBlock):
     def size_doc_str(self):
         return str(self.length)
 
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        return 0
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         raw = buffer.read(self.length)
         if len(raw) < self.length:
@@ -63,6 +68,9 @@ class BitFlagsBlock(IntegerBlock):
         self.flag_name_map = [str(i) for i in range(8)]
         for value, name in self.flag_names:
             self.flag_name_map[value] = name
+
+    def new_data(self):
+        return [False] * 8
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         value = super().read(buffer, ctx, name, read_bytes_amount)
@@ -96,6 +104,11 @@ class EnumByteBlock(IntegerBlock):
         self.enum_name_map = [str(i) for i in range(256)]
         for value, name in self.enum_names:
             self.enum_name_map[value] = name
+
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        return self.enum_name_map[0]
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         return self.enum_name_map[super().read(buffer, ctx, name, read_bytes_amount)]

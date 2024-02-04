@@ -17,10 +17,10 @@ class ResourceSerializer(ABC):
         return False
 
     @abstractmethod
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> Dict:
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         raise NotImplementedError
 
-    def deserialize(self, data: Any, path: str, id=None, block=None, **kwargs):
+    def deserialize(self, path: str, id=None, block=None, **kwargs):
         raise NotImplementedError
 
 

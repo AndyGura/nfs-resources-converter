@@ -1,5 +1,6 @@
 import os
 
+from library.read_blocks import DataBlock
 from serializers import BaseFileSerializer, BitmapSerializer
 
 
@@ -27,12 +28,12 @@ class FfnFontSerializer(BaseFileSerializer):
                            f'xoffset={symbol["x_offset"]}     yoffset={symbol["y_offset"]}     '
                            f'xadvance={symbol["x_advance"]}    page=0  chnl=0\n')
 
-    def deserialize(self, data: dict, path: str, block=None, **kwargs) -> None:
+    def deserialize(self, path: str, id=None, block: DataBlock = None, **kwargs):
         import re
+        data = block.new_data()
         image_serializer = BitmapSerializer()
-        image_serializer.deserialize(data['bitmap'],
-                                     os.path.join(path, 'bitmap'),
-                                     block=block.get_child_block_with_data(data, 'bitmap')[0])
+        data['bitmap'] = image_serializer.deserialize(os.path.join(path, 'bitmap'),
+                                                      block=block.get_child_block_with_data(data, 'bitmap')[0])
         with open(os.path.join(path, 'font.fnt')) as f:
             lines = [l.rstrip() for l in f]
             info_part = '\n'.join([l for l in lines if not l.startswith('char ')])
@@ -59,3 +60,4 @@ class FfnFontSerializer(BaseFileSerializer):
                     'y_offset': values[6],
                     'x_advance': values[7],
                 })
+        return data

@@ -24,7 +24,7 @@ export class WwwwBlockUiComponent implements GuiComponentInterface {
     if (!childSchema) return;
     for (let i = 0; i < this.resourceData!.children.length; i++) {
       this.resourceMap[i.toString()] = {
-        id: joinId(this._resource!.id, `children/${i}`),
+        id: joinId(this._resource?.id || '', `children/${i}`),
         data: this.resourceData!.children[i],
         schema: childSchema,
         name: '',
