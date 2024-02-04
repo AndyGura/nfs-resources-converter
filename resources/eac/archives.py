@@ -220,7 +220,8 @@ class WwwwBlock(DeclarativeCompoundBlock):
         resource_id = (UTF8Block(required_value='wwww', length=4),
                        {'description': 'Resource ID'})
         children_count = (IntegerBlock(length=4),
-                          {'description': 'An amount of items'})
+                          {'description': 'An amount of items',
+                           'programmatic_value': lambda ctx: len(ctx.data('children_offsets'))})
         children_offsets = (ArrayBlock(child=IntegerBlock(length=4),
                                        length=(lambda ctx: ctx.data('children_count'), 'children_count')),
                             {'description': 'An array of offsets to items data in file, relatively '
@@ -261,6 +262,27 @@ class WwwwBlock(DeclarativeCompoundBlock):
                                                            name=str(i),
                                                            read_bytes_amount=length))
         buffer.seek(wwww_start + read_bytes_amount)
+        return res
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        children_heap = b''
+        child_block = self.field_blocks_map['children'].child
+        data['children_offsets'] = []
+        for i, item in enumerate(data['children']):
+            data['children_offsets'].append(len(children_heap))
+            children_heap += child_block.pack(data=item, ctx=ctx, name=str(i))
+        heap_offset = self.offset_to_child_when_packed(data, 'children')
+        data['children_offsets'] = [x + heap_offset for x in data['children_offsets']]
+        self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
+        res = bytes()
+        for name, field in (x for x in self.field_blocks if x[0] != 'children'):
+            programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')
+            if programmatic_value_func is not None:
+                val = programmatic_value_func(self_ctx)
+            else:
+                val = data[name]
+            res += field.pack(data=val, ctx=self_ctx, name=name)
+        res += children_heap
         return res
 
 

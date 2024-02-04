@@ -29,7 +29,7 @@ export class AppComponent {
       ([id, _]) => id != '__has_external_changes__',
     );
     const [files, isReversible] = await this.eelDelegate.serializeReversible(
-      this.mainService.resource$.getValue()!.name,
+      this.mainService.resource$.getValue()!.id,
       changes.map(([id, value]) => {
         return { id, value };
       }),

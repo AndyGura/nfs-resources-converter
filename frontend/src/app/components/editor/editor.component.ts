@@ -73,7 +73,7 @@ export class EditorComponent implements OnDestroy {
   private resourceSet$: Subject<void> = new Subject<void>();
 
   private _resource: Resource | null = null;
-  get resource(): BlockData | ReadError | null {
+  get resource(): Resource | null {
     return this._resource;
   }
 
@@ -155,7 +155,11 @@ export class EditorComponent implements OnDestroy {
   ) {}
 
   async serializeBlockReversible() {
-    const [files, isReversible] = await this.eelDelegate.serializeReversible(this.resource.name, []);
+    if (!this.resource) {
+      return;
+    }
+    // TODO get local changes
+    const [files, isReversible] = await this.eelDelegate.serializeReversible(this.resource.id, []);
     const commonPathPart = files.reduce((commonBeginning, currentString) => {
       let j = 0;
       while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {
@@ -169,7 +173,10 @@ export class EditorComponent implements OnDestroy {
   }
 
   async deserialize() {
-    await this.mainService.deserializeResource(this.resource.name);
+    if (!this.resource) {
+      return;
+    }
+    await this.mainService.deserializeResource(this.resource.id);
     this.isInReversibleSerializationState = false;
     this.cdr.markForCheck();
   }

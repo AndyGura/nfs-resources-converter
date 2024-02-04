@@ -92,26 +92,42 @@ export class MainService {
     });
   }
 
-  private async processExternalChanges(call: () => Promise<BlockData | ReadError>): Promise<void> {
+  private async processExternalChanges(id: string, call: () => Promise<BlockData | ReadError>): Promise<void> {
     this.customActionRunning$.next(true);
     const res: BlockData | ReadError = await call();
     if (!!(res as ReadError).error_class) {
       this.customActionRunning$.next(false);
       throw res;
     }
-    this.resource$.getValue()!.data = res;
+    if (this.resource$.getValue()!.id === id) {
+      this.resource$.getValue()!.data = res;
+    } else {
+      let dataPath = id
+        .substring(this.resource$.getValue()!.id.length)
+        .replace('__', '/')
+        .split('/')
+        .filter(x => x);
+      let data: any = this.resource$.getValue()!.data;
+      for (const key of dataPath.slice(0, dataPath.length - 1)) {
+        data = data[key] || data[+key];
+      }
+      let lastKey: any = dataPath[dataPath.length - 1];
+      if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
+        lastKey = +lastKey;
+      }
+      data[lastKey] = res;
+    }
     this.clearUnsavedChanges();
     this.changedDataBlocks['__has_external_changes__'] = 1;
     this.customActionRunning$.next(false);
   }
 
   public async runCustomAction(action: CustomAction, args: { [key: string]: any }) {
-    return this.processExternalChanges(() =>
-      this.eelDelegate.runCustomAction(this.resource$.getValue()!.name, action, args),
-    );
+    let id = this.resource$.getValue()!.id;
+    return this.processExternalChanges(id, () => this.eelDelegate.runCustomAction(id, action, args));
   }
 
   public async deserializeResource(id: string) {
-    return this.processExternalChanges(() => this.eelDelegate.deserializeResource(id));
+    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id));
   }
 }
