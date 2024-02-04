@@ -85,12 +85,16 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
     def deserialize(self, path: str, id=None, block=None, quantize_new_palette=True, **kwargs) -> None:
         max_colors_amount = 255  # minus the last one, reserved for transparency
+        generate_palettes = ['!pal']
         if '.CFM' in id:
             # last 6 colors are somehow special for cars:
             # 250th - 253th seem to always be rendered black
             # 254th is replaced woith tail colors in the game
             # 255th is transparent
             max_colors_amount = 250
+            generate_palettes = ['!PAL', '!xxx']
+        if '.FAM' in id:
+            generate_palettes = ['!PAL']
         # build a new palette for SHPI
         from PIL import Image
         from collections import Counter
@@ -160,11 +164,12 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         img_block = Bitmap8Bit()
         pal = pal_block.new_data()
         pal['colors'] = palette
-        new_shpi['children'].append({'choice_index': next(i for i in range(len(child_field.possible_blocks)) if
-                                                          isinstance(child_field.possible_blocks[i], Palette24BitDos)),
-                                     'data': pal})
-        new_shpi['children_aliases'].append('!pal')
-        new_shpi['offset_payloads'].append(b'')
+        for pal_alias in generate_palettes:
+            new_shpi['children'].append({'choice_index': next(i for i in range(len(child_field.possible_blocks)) if
+                                                              isinstance(child_field.possible_blocks[i], Palette24BitDos)),
+                                         'data': pal})
+            new_shpi['children_aliases'].append(pal_alias)
+            new_shpi['offset_payloads'].append(b'')
         image_serializer = BitmapWithPaletteSerializer()
         bitmap8_choice = next(i for i in range(len(child_field.possible_blocks)) if
                               isinstance(child_field.possible_blocks[i], Bitmap8Bit))
