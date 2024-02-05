@@ -13,6 +13,8 @@ export class CompoundBlockUiComponent implements GuiComponentInterface {
 
   @Input() resourceDescription: string = '';
 
+  @Input() hideBlockActions: boolean = false;
+
   get name(): string | null {
     return this.resource && this.resource.name;
   }

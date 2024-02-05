@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
-import { cloneDeep, isEqual, isObject, merge } from 'lodash';
+import { cloneDeep, isEqual, isObject } from 'lodash';
 import { findNestedObjects } from '../utils/find-nested-object';
 import { joinId } from '../utils/join-id';
 
@@ -129,5 +129,22 @@ export class MainService {
 
   public async deserializeResource(id: string) {
     return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id));
+  }
+
+  public async reloadResource() {
+    const path = this.eelDelegate.openedResourcePath$.getValue();
+    if (path) {
+      this.eelDelegate.openFile(path, true).then();
+    }
+  }
+
+  public async saveResource() {
+    const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
+    await this.eelDelegate.saveFile(
+      changes.map(([id, value]) => {
+        return { id, value };
+      }),
+    );
+    this.clearUnsavedChanges();
   }
 }

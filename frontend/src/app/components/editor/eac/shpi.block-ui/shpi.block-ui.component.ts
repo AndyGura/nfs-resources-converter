@@ -38,6 +38,8 @@ export class ShpiBlockUiComponent implements GuiComponentInterface {
     return this._resource?.data;
   }
 
+  @Input() hideBlockActions: boolean = false;
+
   resourceMap: { [key: string]: Resource } = {};
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();

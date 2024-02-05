@@ -46,6 +46,7 @@ import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minim
 import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
 import { MatOptionModule } from '@angular/material/core';
 import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.block-ui/fence-type.block-ui.component';
+import { BlockActionsComponent } from './components/editor/common/block-actions/block-actions.component';
 
 @NgModule({
   declarations: [
@@ -73,6 +74,7 @@ import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.bl
     MinimapComponent,
     DelegateBlockUiComponent,
     FenceTypeBlockUiComponent,
+    BlockActionsComponent,
   ],
   imports: [
     BrowserModule,

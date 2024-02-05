@@ -1,21 +1,9 @@
 <div *ngIf="!resource || resourceError" id="error-spinner-wrapper">
-    <mat-error *ngIf="resourceError">
-        {{resourceError.data.error_class}}: {{resourceError.data.error_text}}
-    </mat-error>
-    <mat-spinner *ngIf="!resourceError" mode="indeterminate"></mat-spinner>
+  <mat-error *ngIf="resourceError">
+    {{ resourceError.data.error_class }}: {{ resourceError.data.error_text }}
+  </mat-error>
+  <mat-spinner *ngIf="!resourceError" mode="indeterminate"></mat-spinner>
 </div>
-<div *ngIf="resource?.schema?.serializable_to_disc && resource?.name != (mainService.resource$ | async)?.name" id="actionsOverlay">
-  <button mat-icon-button
-          *ngIf="isInReversibleSerializationState"
-          matTooltip="Deserialize back from common format"
-          (click)="deserialize()">
-    <mat-icon fontIcon="upload"></mat-icon>
-  </button>
-  <button mat-icon-button
-          [disabled]="isInReversibleSerializationState"
-          matTooltip="Serialize to common format"
-          (click)="serializeBlockReversible()">
-    <mat-icon fontIcon="download"></mat-icon>
-  </button>
-</div>
-<ng-template dataBlockUI></ng-template>
+
+<ng-template dataBlockUI>
+</ng-template>

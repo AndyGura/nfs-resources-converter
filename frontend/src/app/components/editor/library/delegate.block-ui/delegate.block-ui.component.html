@@ -1,5 +1,6 @@
 <ng-container *ngIf="resourceData">
-  <h2 *ngIf="resource?.name" [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}</h2>
+  <mat-label *ngIf="resource?.name" [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}
+  </mat-label>
   <div id="resource-type-container">
     <mat-label>Resource type:</mat-label>
     <mat-select [value]="resourceData.choice_index" (selectionChange)="setChoiceIndex($event.value)">
@@ -7,6 +8,7 @@
         {{ schema.block_class_mro.split('__')[0] }}
       </mat-option>
     </mat-select>
+    <app-block-actions *ngIf="!hideBlockActions" [resource]="this.childResource"></app-block-actions>
   </div>
-  <app-editor [resource]="this.childResource"></app-editor>
+  <app-editor [resource]="this.childResource" [hideBlockActions]="true"></app-editor>
 </ng-container>

@@ -1,13 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ComponentRef,
-  Input,
-  OnDestroy,
-  Type,
-  ViewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, ComponentRef, Input, OnDestroy, Type, ViewChild } from '@angular/core';
 import { DataBlockUIDirective } from './data-block-ui.directive';
 import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { GuiComponentInterface } from './gui-component.interface';
@@ -27,7 +18,6 @@ import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import { EelDelegateService } from '../../services/eel-delegate.service';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { joinId } from '../../utils/join-id';
 import { isObject } from 'lodash';
@@ -67,8 +57,6 @@ export class EditorComponent implements OnDestroy {
   _component: ComponentRef<GuiComponentInterface> | null = null;
   _componentChangedSub: Subscription | null = null;
 
-  isInReversibleSerializationState = false;
-
   private destroyed$: Subject<void> = new Subject<void>();
   private resourceSet$: Subject<void> = new Subject<void>();
 
@@ -85,8 +73,18 @@ export class EditorComponent implements OnDestroy {
   private _resourceDescription: string = '';
   @Input()
   set resourceDescription(value: string) {
+    this._resourceDescription = value;
     if (this._component) {
       this._component.instance.resourceDescription = value;
+    }
+  }
+
+  private _hideBlockActions: boolean = false;
+  @Input()
+  set hideBlockActions(value: boolean) {
+    this._hideBlockActions = value;
+    if (this._component) {
+      this._component.instance.hideBlockActions = value;
     }
   }
 
@@ -123,63 +121,32 @@ export class EditorComponent implements OnDestroy {
             this._componentChangedSub.unsubscribe();
           }
           this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
-          this._componentChangedSub = this._component!.instance.changed.pipe(
-            takeUntil(this.destroyed$),
-            takeUntil(this.resourceSet$),
-          ).subscribe(() => {
-            const id = this._resource!.id;
-            const data = this._resource!.data;
-            if (data instanceof Array) {
-              for (let i = 0; i < data.length; i++) {
-                this.mainService.dataBlockChange$.next([joinId(id, i), data[i]]);
+          this._componentChangedSub = this._component.instance.changed
+            .pipe(takeUntil(this.destroyed$), takeUntil(this.resourceSet$))
+            .subscribe(() => {
+              const id = this._resource!.id;
+              const data = this._resource!.data;
+              if (data instanceof Array) {
+                for (let i = 0; i < data.length; i++) {
+                  this.mainService.dataBlockChange$.next([joinId(id, i), data[i]]);
+                }
+              } else if (isObject(data)) {
+                for (const key in data) {
+                  this.mainService.dataBlockChange$.next([joinId(id, key), (data as any)[key]]);
+                }
+              } else {
+                this.mainService.dataBlockChange$.next([id, data]);
               }
-            } else if (isObject(data)) {
-              for (const key in data) {
-                this.mainService.dataBlockChange$.next([joinId(id, key), (data as any)[key]]);
-              }
-            } else {
-              this.mainService.dataBlockChange$.next([id, data]);
-            }
-          });
+            });
         }
         this._component!.instance.resource = this._resource;
         this._component!.instance.resourceDescription = this._resourceDescription;
+        this._component!.instance.hideBlockActions = this._hideBlockActions;
       }
     }
   }
 
-  constructor(
-    readonly mainService: MainService,
-    readonly eelDelegate: EelDelegateService,
-    readonly cdr: ChangeDetectorRef,
-  ) {}
-
-  async serializeBlockReversible() {
-    if (!this.resource) {
-      return;
-    }
-    // TODO get local changes
-    const [files, isReversible] = await this.eelDelegate.serializeReversible(this.resource.id, []);
-    const commonPathPart = files.reduce((commonBeginning, currentString) => {
-      let j = 0;
-      while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {
-        j++;
-      }
-      return commonBeginning.substring(0, j);
-    });
-    await this.eelDelegate.openFileWithSystemApp(commonPathPart);
-    this.isInReversibleSerializationState = isReversible;
-    this.cdr.markForCheck();
-  }
-
-  async deserialize() {
-    if (!this.resource) {
-      return;
-    }
-    await this.mainService.deserializeResource(this.resource.id);
-    this.isInReversibleSerializationState = false;
-    this.cdr.markForCheck();
-  }
+  constructor(readonly mainService: MainService) {}
 
   ngOnDestroy(): void {
     this.destroyed$.next();
