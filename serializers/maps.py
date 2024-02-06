@@ -659,11 +659,12 @@ if $save_terrain_collisions:
             blender_script += '\n' + construct_blender_export_script(
                 file_name=os.path.join(os.getcwd(), path, 'map'),
                 export_materials='NONE')
-        run_blender(path=path,
-                    script=blender_script,
-                    out_blend_name=os.path.join(
-                        os.getcwd(), path, 'map'
-                    ).replace('\\', '/') if self.settings.geometry__save_blend else None)
+        if self.settings.geometry__save_blend or self.settings.geometry__export_to_gg_web_engine:
+            run_blender(path=path,
+                        script=blender_script,
+                        out_blend_name=os.path.join(
+                            os.getcwd(), path, 'map'
+                        ).replace('\\', '/') if self.settings.geometry__save_blend else None)
         if not self.settings.geometry__save_obj:
             if self.settings.maps__save_as_chunked:
                 for i in range(len(terrain_data)):
