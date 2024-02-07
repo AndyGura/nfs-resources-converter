@@ -1,5 +1,5 @@
 # **TNFSSE (PC) file specs** #
-*Last time updated: 2024-02-07 14:16:04.372866+00:00*
+*Last time updated: 2024-02-07 23:03:42.536093+00:00*
 
 
 # **Info by file extensions** #
@@ -260,37 +260,38 @@
 | 0 | **mass_front_axle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
 | 4 | **mass_rear_axle** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The meaning is theoretical. For all cars value is mass / 2 |
 | 8 | **mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Car mass (kg) |
-| 12 | **unk0** | 16 | Bytes | Unknown purpose |
+| 12 | **unk0** | 12 | Bytes | Unknown purpose |
+| 24 | **unk1** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Does something with front wheels slipping or braking |
 | 28 | **brake_bias** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Bias for brake force (0.0-1.0), determines the amount of braking force applied to front and rear axles: 0.7 will distribute braking force 70% on the front, 30% on the rear |
-| 32 | **unk1** | 4 | Bytes | Unknown purpose |
+| 32 | **unk2** | 4 | Bytes | Unknown purpose |
 | 36 | **center_of_gravity** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | probably the height of mass center in meters |
-| 40 | **max_brake_decel** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 44 | **unk2** | 8 | Bytes | Unknown purpose |
-| 52 | **drag** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 56 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 40 | **brake_forces** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Brake forces, units are unknown. First number is responsible for braking on reverse, neutral and first gears, second number is responsible for braking on second gear. Interestingly, all gears > 2 use both numbers with unknown rules. Tested it on lamborghini |
+| 48 | **unk3** | 4 | Bytes | Unknown purpose |
+| 52 | **drag** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Drag force, units are unknown |
+| 56 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max vehicle speed in meters per second |
 | 60 | **efficiency** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 64 | **body__wheel_base** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen rear and front axles in meters |
 | 68 | **burnout_div** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 72 | **body__wheel_track** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen left and right wheels in meters |
-| 76 | **unk3** | 8 | Bytes | Unknown purpose |
+| 76 | **unk4** | 8 | Bytes | Unknown purpose |
 | 84 | **mps_to_rpm_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio) |
 | 88 | **transmission__gears_count** | 4 | 4-bytes unsigned integer (little endian) | Amount of drive gears + 2 (R,N?) |
 | 92 | **transmission__final_drive_ratio** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Final drive ratio |
 | 96 | **roll_radius** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 100 | **unk4** | 4 | Bytes | Unknown purpose |
+| 100 | **unk5** | 4 | Bytes | Unknown purpose |
 | 104 | **transmission__gear_ratios** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Only first <gear_count> values are used. First element is the reverse gear ratio, second one is unknown |
 | 136 | **engine__torque_count** | 4 | 4-bytes unsigned integer (little endian) | Torques LUT (lookup table) size |
 | 140 | **front_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 144 | **rear_roll_stiffness** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 148 | **roll_axis_height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 152 | **unk5** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube? |
+| 152 | **unk6** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube? |
 | 164 | **slip_angle_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 168 | **normal_coefficient_loss** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 172 | **engine__max_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine max RPM |
 | 176 | **engine__min_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine min RPM |
 | 180 | **engine__torques** | 480 | Array of `60` items<br/>Item size: 8 bytes<br/>Item type: Two 32bit unsigned integers (little-endian). First one is RPM, second is a torque | LUT (lookup table) of engine torque depending on RPM. <engine__torque_count> first elements used |
 | 660 | **transmission__upshifts** | 20 | Array of `5` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) |  |
-| 680 | **unk6** | 40 | Bytes | Unknown purpose |
+| 680 | **unk7** | 40 | Bytes | Unknown purpose |
 | 720 | **inertia_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 724 | **body_roll_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 728 | **body_pitch_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
@@ -308,7 +309,7 @@
 | 788 | **steering__auto_steer_ramp_mult_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 792 | **steering__auto_steer_ramp_div_shift** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 796 | **lateral_accel_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 800 | **unk7** | 52 | Bytes | Unknown purpose |
+| 800 | **unk8** | 52 | Bytes | Unknown purpose |
 | 852 | **engine_shifting__shift_timer** | 4 | 4-bytes unsigned integer (little endian) | Unknown exactly, but it seems to be ticks taken to shift. Tick is probably 16ms |
 | 856 | **engine_shifting__rpm_decel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 860 | **engine_shifting__rpm_accel** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
@@ -317,8 +318,8 @@
 | 872 | **body__clearance** | 4 | 32-bit real number (little-endian, signed), where last 7 bits is a fractional part | Body clearance in meters |
 | 876 | **body__height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Body height in meters |
 | 880 | **center_x** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
-| 884 | **unk8** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_front" is here, takes the same space |
-| 1396 | **unk9** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space |
+| 884 | **unk9** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_front" is here, takes the same space |
+| 1396 | **unk10** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space |
 | 1908 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents. Equals to sum of 1880 first bytes |
 ### **CarSimplifiedPerformanceSpec** ###
 #### **Size**: 460 bytes ####

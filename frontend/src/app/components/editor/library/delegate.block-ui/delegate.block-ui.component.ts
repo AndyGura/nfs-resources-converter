@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
+import { MainService } from '../../../../services/main.service';
 
 type DelegateBlockData = { choice_index: number; data: BlockData };
 
@@ -40,6 +41,8 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
   get resourceData(): DelegateBlockData | null {
     return this._resource?.data || null;
   }
+
+  constructor(readonly main: MainService) {}
 
   setChoiceIndex(newIndex: number): void {
     if (this._resource) {

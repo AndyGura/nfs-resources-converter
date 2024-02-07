@@ -1,5 +1,6 @@
 <ng-container *ngIf="resourceData">
-  <mat-label *ngIf="resource?.name" [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}
+  <mat-label *ngIf="resource?.name && resource?.name != (main.resource$ | async)?.name"
+             [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}
   </mat-label>
   <div id="resource-type-container">
     <mat-label>Resource type:</mat-label>

@@ -25,25 +25,31 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                            'description': 'The meaning is theoretical. For all cars value is mass / 2'})
         mass = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                 {'description': 'Car mass (kg)'})
-        unk0 = (BytesBlock(length=16),
+        unk0 = (BytesBlock(length=12),
                 {'is_unknown': True})
+        unk1 = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                {'is_unknown': True,
+                 'description': 'Does something with front wheels slipping or braking'})
         brake_bias = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
                       {'description': 'Bias for brake force (0.0-1.0), determines the amount of braking force '
                                       'applied to front and rear axles: 0.7 will distribute braking force 70% '
                                       'on the front, 30% on the rear'})
-        unk1 = (BytesBlock(length=4),
+        unk2 = (BytesBlock(length=4),
                 {'is_unknown': True})
         center_of_gravity = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                              {'is_unknown': True,
                               'description': 'probably the height of mass center in meters'})
-        max_brake_decel = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                           {'is_unknown': True})
-        unk2 = (BytesBlock(length=8),
+        brake_forces = (ArrayBlock(length=2, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),
+                        {'description': 'Brake forces, units are unknown. First number is responsible for braking on '
+                                        'reverse, neutral and first gears, second number is responsible for braking on '
+                                        'second gear. Interestingly, all gears > 2 use both numbers with unknown rules.'
+                                        ' Tested it on lamborghini'})
+        unk3 = (BytesBlock(length=4),
                 {'is_unknown': True})
         drag = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                {'is_unknown': True})
+                {'description': 'Drag force, units are unknown'})
         top_speed = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                     {'is_unknown': True})
+                     {'description': 'Max vehicle speed in meters per second'})
         efficiency = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                       {'is_unknown': True})
         body__wheel_base = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
@@ -52,7 +58,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                        {'is_unknown': True})
         body__wheel_track = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                              {'description': 'The distance betweeen left and right wheels in meters'})
-        unk3 = (BytesBlock(length=8),
+        unk4 = (BytesBlock(length=8),
                 {'is_unknown': True})
         mps_to_rpm_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                              {'description': 'Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio)'})
@@ -62,7 +68,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                                            {'description': 'Final drive ratio'})
         roll_radius = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                        {'is_unknown': True})
-        unk4 = (BytesBlock(length=4),
+        unk5 = (BytesBlock(length=4),
                 {'is_unknown': True})
         transmission__gear_ratios = (ArrayBlock(length=8, child=RationalNumber(length=4, fraction_bits=16,
                                                                                is_signed=True)),
@@ -76,7 +82,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                                {'is_unknown': True})
         roll_axis_height = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                             {'is_unknown': True})
-        unk5 = (ArrayBlock(length=3, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),
+        unk6 = (ArrayBlock(length=3, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),
                 {'is_unknown': True,
                  'description': 'those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube?'})
         slip_angle_cutoff = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
@@ -97,7 +103,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
         transmission__upshifts = ArrayBlock(length=5, child=IntegerBlock(length=4),
                                             description='RPM value, when automatic gear box should upshift. 1 element '
                                                         'per drive gear'), {'description': ''}
-        unk6 = (BytesBlock(length=40),
+        unk7 = (BytesBlock(length=40),
                 {'is_unknown': True})
         inertia_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                           {'is_unknown': True})
@@ -133,7 +139,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                                                {'is_unknown': True})
         lateral_accel_cutoff = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                                 {'is_unknown': True})
-        unk7 = (BytesBlock(length=52),
+        unk8 = (BytesBlock(length=52),
                 {'is_unknown': True})
         engine_shifting__shift_timer = (IntegerBlock(length=4),
                                         {'is_unknown': True,
@@ -153,12 +159,12 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                         {'description': 'Body height in meters'})
         center_x = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                     {'is_unknown': True})
-        unk8 = (ArrayBlock(child=IntegerBlock(length=1), length=512),
-                {'is_unknown': True,
-                 'description': 'Unknown values. in 3DO version "grip_curve_front" is here, takes the same space'})
         unk9 = (ArrayBlock(child=IntegerBlock(length=1), length=512),
                 {'is_unknown': True,
-                 'description': 'Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space'})
+                 'description': 'Unknown values. in 3DO version "grip_curve_front" is here, takes the same space'})
+        unk10 = (ArrayBlock(child=IntegerBlock(length=1), length=512),
+                 {'is_unknown': True,
+                  'description': 'Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space'})
         hash = (IntegerBlock(length=4),
                 {'programmatic_value': lambda ctx: sum(ctx.result[:1880]),
                  'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes'})

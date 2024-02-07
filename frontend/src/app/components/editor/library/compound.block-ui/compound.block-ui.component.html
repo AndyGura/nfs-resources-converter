@@ -1,4 +1,4 @@
-<h2 *ngIf="resource?.name != (main.resource$ | async)?.name"
+<h2 *ngIf="name && name != (main.resource$ | async)?.name"
     [matTooltip]="resourceDescription" matTooltipPosition="above">{{ name }}</h2>
 <app-block-actions *ngIf="!hideBlockActions" [resource]="this.resource"></app-block-actions>
 <div class="container">
