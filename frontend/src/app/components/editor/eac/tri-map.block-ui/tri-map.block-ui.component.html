@@ -39,13 +39,17 @@
     </div>
 </div>
 <h4>Road spline item</h4>
-<app-compound-block-ui [resource]="selectedSplineItem$ | async"></app-compound-block-ui>
+<app-compound-block-ui [resource]="selectedSplineItem$ | async"
+                       [hideBlockActions]="true"></app-compound-block-ui>
 <h4>AI info (block for 4 spline items)</h4>
-<app-compound-block-ui [resource]="selectedAiInfoItem$ | async"></app-compound-block-ui>
+<app-compound-block-ui [resource]="selectedAiInfoItem$ | async"
+                       [hideBlockActions]="true"></app-compound-block-ui>
 <h4>Terrain (block for 4 spline items)</h4>
-<app-compound-block-ui [resource]="selectedTerrainItem$ | async"></app-compound-block-ui>
+<app-compound-block-ui [resource]="selectedTerrainItem$ | async"
+                       [hideBlockActions]="true"></app-compound-block-ui>
 <h4>Common</h4>
 <app-compound-block-ui [resource]="_resource$ | async"
+                       [hideBlockActions]="true"
                        [fieldWhitelist]="[
                        'num_segments',
                        'terrain_length',

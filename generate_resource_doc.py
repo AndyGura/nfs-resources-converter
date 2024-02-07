@@ -94,7 +94,7 @@ def render_type(instance: DataBlock) -> str:
 
 
 with open('resources/README.md', 'w') as f:
-    f.write(f"""# **TNFSSE file specs** #
+    f.write(f"""# **TNFSSE (PC) file specs** #
 *Last time updated: {datetime.now(timezone.utc)}*
 
 

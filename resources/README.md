@@ -1,5 +1,5 @@
-# **TNFSSE file specs** #
-*Last time updated: 2024-02-02 19:11:33.240002+00:00*
+# **TNFSSE (PC) file specs** #
+*Last time updated: 2024-02-07 14:16:04.372866+00:00*
 
 
 # **Info by file extensions** #
@@ -172,17 +172,17 @@
 | 1 | **right_verge_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the right edge of road. After this point the grip decreases |
 | 2 | **left_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
 | 3 | **right_barrier_distance** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
-| 4 | **unk0** | 3 | Bytes | - |
+| 4 | **unk0** | 3 | Bytes | Unknown purpose |
 | 7 | **spline_item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>9: left_tunnel_A4_A7<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
-| 26 | **unk1** | 2 | Bytes | - |
+| 26 | **unk1** | 2 | Bytes | Unknown purpose |
 | 28 | **orientation_vector_x** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_vector_x == cos(orientation) * 32766 |
 | 30 | **slant_b** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
 | 32 | **orientation_vector_neg_z** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_vector_neg_z == -sin(orientation) * 32766 |
-| 34 | **unk2** | 2 | Bytes | - |
+| 34 | **unk2** | 2 | Bytes | Unknown purpose |
 ### **ProxyObject** ###
 #### **Size**: 16 bytes ####
 #### **Description**: The description of map proxy object: everything except terrain (road signs, buildings etc.) Thanks to jeff-1amstudios and his [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202) project ####
@@ -319,7 +319,7 @@
 | 880 | **center_x** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 884 | **unk8** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_front" is here, takes the same space |
 | 1396 | **unk9** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space |
-| 1908 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents |
+| 1908 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents. Equals to sum of 1880 first bytes |
 ### **CarSimplifiedPerformanceSpec** ###
 #### **Size**: 460 bytes ####
 #### **Description**: This block describes simpler version of car physics. Used by game for other cars ####

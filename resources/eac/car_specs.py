@@ -160,8 +160,8 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                 {'is_unknown': True,
                  'description': 'Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space'})
         hash = (IntegerBlock(length=4),
-                {'is_unknown': True,
-                 'description': 'Check sum of this block contents'})
+                {'programmatic_value': lambda ctx: sum(ctx.result[:1880]),
+                 'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes'})
 
 
 class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):

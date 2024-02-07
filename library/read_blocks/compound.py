@@ -98,15 +98,15 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
-        res = bytes()
+        self_ctx.result = bytes()
         for name, field in self.field_blocks:
             programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')
             if programmatic_value_func is not None:
                 val = programmatic_value_func(self_ctx)
             else:
                 val = data[name]
-            res += field.pack(data=val, ctx=self_ctx, name=name)
-        return res
+            self_ctx.result += field.pack(data=val, ctx=self_ctx, name=name)
+        return self_ctx.result
 
 
 class CompoundBlockFields(ABC):

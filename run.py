@@ -39,8 +39,8 @@ if __name__ == "__main__":
         if not args.out:
             raise Exception('--out argument has to be provided for custom command action')
         from library import require_file
-        resource = require_file(str(args.file))
-        action_func = getattr(resource.block, f'action_{args.custom_command}')
+        (name, block, resource) = require_file(str(args.file))
+        action_func = getattr(block, f'action_{args.custom_command}')
         action_func(resource, *args.custom_command_args)
         out_path = str(args.out)
         if os.path.isdir(args.out) or out_path[-4:] != str(args.file)[-4:]:
@@ -48,7 +48,7 @@ if __name__ == "__main__":
             out_path += '/' + str(args.file).split('/')[-1]
         f = open(out_path, 'wb')
         try:
-            f.write(resource.to_bytes())
+            f.write(block.pack(resource))
             print('Finished!')
             print(f'Support me :) >>>  https://www.buymeacoffee.com/andygura <<<')
         finally:
