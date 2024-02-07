@@ -11,18 +11,18 @@
           (click)="serializeBlockReversible()">
     <mat-icon fontIcon="download"></mat-icon>
   </button>
-  <button mat-icon-button
-          *ngIf="(mainService.resource$ | async)?.schema.custom_actions?.length > 0"
-          [matMenuTriggerFor]="customActionsMenu"
-          matTooltip="Run custom action">
-    <mat-icon fontIcon="bolt"></mat-icon>
-  </button>
 </ng-container>
+<button mat-icon-button
+        *ngIf="resource?.schema.custom_actions?.length > 0"
+        [matMenuTriggerFor]="customActionsMenu"
+        matTooltip="Run custom action">
+  <mat-icon fontIcon="bolt"></mat-icon>
+</button>
 
 <mat-menu #customActionsMenu="matMenu">
-  <button *ngFor="let action of ((mainService.resource$ | async)?.schema.custom_actions || [])"
+  <button *ngFor="let action of (resource?.schema.custom_actions || [])"
           mat-menu-item
           (click)="runCustomAction(action)">
-    <span>{{action.title}}</span>
+    <span>{{ action.title }}</span>
   </button>
 </mat-menu>

@@ -97,11 +97,7 @@ def run_gui_editor(file_path):
             (name, res_block, resource), _ = require_resource(resource_id)
             action_func = getattr(res_block, f'action_{action["method"]}')
             action_func(resource, **args)
-            return {
-                'name': name,
-                'schema': res_block.schema,
-                'data': convert_bytes(resource)
-            }
+            return convert_bytes(resource)
 
         @eel.expose
         def serialize_resource(id: str, settings_patch={}):

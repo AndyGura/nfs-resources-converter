@@ -75,11 +75,11 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
 
     def update_orientations(self, read_data, next_spline_point):
         from math import atan2, cos, sin
-        orientation = atan2(next_spline_point.position.x.value - read_data.position.x.value,
-                            next_spline_point.position.z.value - read_data.position.z.value)
-        read_data.orientation.value = orientation
-        read_data.orientation_vector_x.value = round(cos(orientation) * 32766)
-        read_data.orientation_vector_neg_z.value = round(-sin(orientation) * 32766)
+        orientation = atan2(next_spline_point['position']['x'] - read_data['position']['x'],
+                            next_spline_point['position']['z'] - read_data['position']['z'])
+        read_data['orientation'] = orientation
+        read_data['orientation_vector_x'] = round(cos(orientation) * 32766)
+        read_data['orientation_vector_neg_z'] = round(-sin(orientation) * 32766)
 
 
 class ModelProxyObjectData(DeclarativeCompoundBlock):
@@ -244,7 +244,27 @@ class TriMap(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'Map TRI file, represents terrain mesh, road itself, proxy object locations etc.'}
+            'custom_actions': [
+                {
+                    'method': 'reverse_track',
+                    'title': 'Reverse track',
+                    'description': 'Makes this track to go backwards',
+                    'args': [],
+                },
+                {
+                    'method': 'flatten_track',
+                    'title': 'Flatten track',
+                    'description': 'Makes track super flat: going forward without turns, slopes and slants',
+                    'args': [],
+                },
+                {
+                    'method': 'scale_track',
+                    'title': 'Scale track length',
+                    'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
+                    'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
+                },
+            ],
+            'block_description': 'Map TRI file, represents terrain mesh, road itself, proxy object locations etc.'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=4, required_value=0x11),
@@ -292,29 +312,6 @@ class TriMap(DeclarativeCompoundBlock):
         terrain = ArrayBlock(child=TerrainEntry(),
                              length=(lambda ctx: ctx.data('terrain_length'), 'terrain_length'))
 
-    def list_custom_actions(self):
-        return [
-            *super().list_custom_actions(),
-            {
-                'method': 'reverse_track',
-                'title': 'Reverse track',
-                'description': 'Makes this track to go backwards',
-                'args': [],
-            },
-            {
-                'method': 'flatten_track',
-                'title': 'Flatten track',
-                'description': 'Makes track super flat: going forward without turns, slopes and slants',
-                'args': [],
-            },
-            {
-                'method': 'scale_track',
-                'title': 'Scale track length',
-                'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
-                'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
-            },
-        ]
-
     def action_reverse_track(self, read_data):
         # FIXME lane merge/split are broken. Is it possible to fix?
         # FIXME tunnel walls are broken. Is it possible to fix?
@@ -329,21 +326,21 @@ class TriMap(DeclarativeCompoundBlock):
             qy = oy + sin(angle) * (px - ox) + cos(angle) * (py - oy)
             return qx, qy
 
-        road_spline_length = len(read_data.terrain) * 4
+        road_spline_length = len(read_data['terrain']) * 4
         # start happens at 18th road spline vertex
-        new_start_position = read_data.road_spline[road_spline_length - 19].position
-        new_start_next_position = read_data.road_spline[road_spline_length - 20].position
+        new_start_position = read_data['road_spline'][road_spline_length - 19]['position']
+        new_start_next_position = read_data['road_spline'][road_spline_length - 20]['position']
         # Y - up; X - left; Z - forward;
-        y_angle_to_rotate = pi - atan2(new_start_position.x.value - new_start_next_position.x.value,
-                                       new_start_position.z.value - new_start_next_position.z.value)
+        y_angle_to_rotate = pi - atan2(new_start_position['x'] - new_start_next_position['x'],
+                                       new_start_position['z'] - new_start_next_position['z'])
 
         lane_effects = []
-        start_x_road_offset = read_data.road_spline[18].position.x.value
-        for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
+        start_x_road_offset = read_data['road_spline'][18]['position']['x']
+        for i, vertex in enumerate(read_data['road_spline'][:road_spline_length]):
             # rotate so road at new start goes forward
-            vertex.position.z.value, vertex.position.x.value = rotate_point((0, 0),
-                                                                            (vertex.position.z.value,
-                                                                             vertex.position.x.value),
+            vertex['position']['z'], vertex['position']['x'] = rotate_point((0, 0),
+                                                                            (vertex['position']['z'],
+                                                                             vertex['position']['x']),
                                                                             y_angle_to_rotate)
 
         # translate so new start ==
@@ -351,110 +348,111 @@ class TriMap(DeclarativeCompoundBlock):
         # 0,
         # 6.25 * 18 (average value for start position on original tracks)
         position_offset = [
-            read_data.road_spline[road_spline_length - 19].position.x.value + start_x_road_offset,
-            read_data.road_spline[road_spline_length - 19].position.y.value,
-            read_data.road_spline[road_spline_length - 19].position.z.value - 6.25 * 18,
+            read_data['road_spline'][road_spline_length - 19]['position']['x'] + start_x_road_offset,
+            read_data['road_spline'][road_spline_length - 19]['position']['y'],
+            read_data['road_spline'][road_spline_length - 19]['position']['z'] - 6.25 * 18,
         ]
-        for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
-            vertex.position.x.value -= position_offset[0]
-            vertex.position.y.value -= position_offset[1]
-            vertex.position.z.value -= position_offset[2]
+        for i, vertex in enumerate(read_data['road_spline'][:road_spline_length]):
+            vertex['position']['x'] -= position_offset[0]
+            vertex['position']['y'] -= position_offset[1]
+            vertex['position']['z'] -= position_offset[2]
             # swap left and right
-            (vertex.left_verge_distance.value, vertex.right_verge_distance.value) = (
-                vertex.right_verge_distance.value, vertex.left_verge_distance.value)
-            (vertex.left_barrier_distance.value, vertex.right_barrier_distance.value) = (
-                vertex.right_barrier_distance.value, vertex.left_barrier_distance.value)
+            (vertex['left_verge_distance'], vertex['right_verge_distance']) = (
+                vertex['right_verge_distance'], vertex['left_verge_distance'])
+            (vertex['left_barrier_distance'], vertex['right_barrier_distance']) = (
+                vertex['right_barrier_distance'], vertex['left_barrier_distance'])
             # slope/slant are just reversed
-            vertex.slope.value = -vertex.slope.value
-            vertex.slant_a.value = -vertex.slant_a.value
-            vertex.slant_b.value = -vertex.slant_b.value
+            vertex['slope'] = -vertex['slope']
+            vertex['slant_a'] = -vertex['slant_a']
+            vertex['slant_b'] = -vertex['slant_b']
 
-            if vertex.spline_item_mode.value == 'lane_split':
-                vertex.spline_item_mode.value = 'lane_merge'
+            if vertex['spline_item_mode'] == 'lane_split':
+                vertex['spline_item_mode'] = 'lane_merge'
                 lane_effects.append(i)
-            elif vertex.spline_item_mode.value == 'lane_merge':
-                vertex.spline_item_mode.value = 'lane_split'
+            elif vertex['spline_item_mode'] == 'lane_merge':
+                vertex['spline_item_mode'] = 'lane_split'
                 # lane_effects.append(i)
 
         for index in lane_effects:
-            read_data.road_spline[index].spline_item_mode.value, read_data.road_spline[
-                index - 1].spline_item_mode.value = (
-                read_data.road_spline[index - 1].spline_item_mode.value,
-                read_data.road_spline[index].spline_item_mode.value)
+            (read_data['road_spline'][index]['spline_item_mode'],
+             read_data['road_spline'][index - 1]['spline_item_mode']) = (
+                read_data['road_spline'][index - 1]['spline_item_mode'],
+                read_data['road_spline'][index]['spline_item_mode'])
 
-        for chunk in read_data.terrain:
-            (chunk.fence.value.has_left_fence, chunk.fence.value.has_right_fence) = (
-                chunk.fence.value.has_right_fence, chunk.fence.value.has_left_fence)
-            chunk.texture_ids.value = chunk.texture_ids.value[5:] + chunk.texture_ids.value[:5]
-            chunk.rows.value = chunk.rows.value[::-1]
+        for chunk in read_data['terrain']:
+            (chunk['fence']['has_left_fence'], chunk['fence']['has_right_fence']) = (
+                chunk['fence']['has_right_fence'], chunk['fence']['has_left_fence'])
+            chunk['texture_ids'] = chunk['texture_ids'][5:] + chunk['texture_ids'][:5]
+            chunk['rows'] = chunk['rows'][::-1]
             for i in range(4):
-                chunk.rows[i].value = [chunk.rows[i].value[0]] + chunk.rows[i].value[6:] + chunk.rows[i].value[1:6]
+                chunk['rows'][i] = [chunk['rows'][i][0]] + chunk['rows'][i][6:] + chunk['rows'][i][1:6]
                 for j in range(11):
-                    chunk.rows[i][j].z.value, chunk.rows[i][j].x.value = rotate_point((0, 0),
-                                                                                      (chunk.rows[i][j].z.value,
-                                                                                       chunk.rows[i][j].x.value),
+                    chunk['rows'][i][j]['z'], chunk['rows'][i][j]['x'] = rotate_point((0, 0),
+                                                                                      (chunk['rows'][i][j]['z'],
+                                                                                       chunk['rows'][i][j]['x']),
                                                                                       y_angle_to_rotate)
 
-        amount_of_instances = [x.reference_road_spline_vertex.value for x in read_data.proxy_object_instances].index(-1)
-        for proxy_inst in read_data.proxy_object_instances[:amount_of_instances]:
-            proxy_inst.reference_road_spline_vertex.value = road_spline_length - 1 - proxy_inst.reference_road_spline_vertex.value
-            proxy_inst.rotation.value += pi
-            proxy_inst.position.z.value, proxy_inst.position.x.value = rotate_point((0, 0),
-                                                                                    (proxy_inst.position.z.value,
-                                                                                     proxy_inst.position.x.value),
+        amount_of_instances = [x['reference_road_spline_vertex'] for x in read_data['proxy_object_instances']].index(-1)
+        for proxy_inst in read_data['proxy_object_instances'][:amount_of_instances]:
+            proxy_inst['reference_road_spline_vertex'] = road_spline_length - 1 - proxy_inst[
+                'reference_road_spline_vertex']
+            proxy_inst['rotation'] += pi
+            proxy_inst['position']['z'], proxy_inst['position']['x'] = rotate_point((0, 0),
+                                                                                    (proxy_inst['position']['z'],
+                                                                                     proxy_inst['position']['x']),
                                                                                     y_angle_to_rotate)
 
-        read_data.road_spline.value = read_data.road_spline.value[:road_spline_length][
-                                      ::-1] + read_data.road_spline.value[
-                                              road_spline_length:]
-        read_data.terrain.value = read_data.terrain.value[::-1]
-        read_data.proxy_object_instances.value = (read_data.proxy_object_instances.value[:amount_of_instances][::-1]
-                                                  + read_data.proxy_object_instances.value[amount_of_instances:])
+        read_data['road_spline'] = read_data['road_spline'][:road_spline_length][::-1] + read_data['road_spline'][
+                                                                                         road_spline_length:]
+        read_data['terrain'] = read_data['terrain'][::-1]
+        read_data['proxy_object_instances'] = (read_data['proxy_object_instances'][:amount_of_instances][::-1]
+                                                  + read_data['proxy_object_instances'][amount_of_instances:])
         # update rotations
-        for i, vertex in enumerate(read_data.road_spline[:road_spline_length]):
-            vertex.block.update_orientations(vertex, read_data.road_spline[i + 1 if i < road_spline_length else 0])
+        v_block = RoadSplinePoint()
+        for i, vertex in enumerate(read_data['road_spline'][:road_spline_length]):
+            v_block.update_orientations(vertex, read_data['road_spline'][i + 1 if i < road_spline_length else 0])
 
-    def action_flatten_track(self, read_data):
+    def action_flatten_track(self, data):
         from math import cos, sin, pi
-        for i, terrain_chunk in enumerate(read_data.terrain):
+        for i, terrain_chunk in enumerate(data['terrain']):
             for j in range(4):
-                terrain_chunk.rows[j][0].y.value = 0.0
+                terrain_chunk['rows'][j][0]['y'] = 0.0
                 # rotate terrain mesh around first point
-                angle = read_data.road_spline[i * 4 + j].orientation.value
+                angle = data['road_spline'][i * 4 + j]['orientation']
                 cosine = cos(angle)
                 sine = sin(angle)
                 for k in range(1, 11):
-                    terrain_chunk.rows[j][k].x.value -= terrain_chunk.rows[j][0].x.value
-                    terrain_chunk.rows[j][k].z.value -= terrain_chunk.rows[j][0].z.value
-                    x_new = terrain_chunk.rows[j][k].x.value * cosine - terrain_chunk.rows[j][k].z.value * sine
-                    z_new = terrain_chunk.rows[j][k].x.value * sine + terrain_chunk.rows[j][k].z.value * cosine
-                    terrain_chunk.rows[j][k].x.value = x_new + terrain_chunk.rows[j][0].x.value
-                    terrain_chunk.rows[j][k].z.value = z_new + terrain_chunk.rows[j][0].z.value
+                    terrain_chunk['rows'][j][k]['x'] -= terrain_chunk['rows'][j][0]['x']
+                    terrain_chunk['rows'][j][k]['z'] -= terrain_chunk['rows'][j][0]['z']
+                    x_new = terrain_chunk['rows'][j][k]['x'] * cosine - terrain_chunk['rows'][j][k]['z'] * sine
+                    z_new = terrain_chunk['rows'][j][k]['x'] * sine + terrain_chunk['rows'][j][k]['z'] * cosine
+                    terrain_chunk['rows'][j][k]['x'] = x_new + terrain_chunk['rows'][j][0]['x']
+                    terrain_chunk['rows'][j][k]['z'] = z_new + terrain_chunk['rows'][j][0]['z']
         # fix props
-        for prop in read_data.proxy_object_instances:
-            road_vertex = read_data.road_spline[prop.reference_road_spline_vertex.value]
-            prop.rotation.value -= road_vertex.orientation.value
-            if prop.rotation.value < 0:
-                prop.rotation.value += 2 * pi
-            sine, cosine = sin(road_vertex.orientation.value), cos(road_vertex.orientation.value)
-            prop.position.x.value, prop.position.z.value = (
-                prop.position.x.value * cosine - prop.position.z.value * sine,
-                prop.position.x.value * sine + prop.position.z.value * cosine)
+        for prop in data['proxy_object_instances']:
+            road_vertex = data['road_spline'][prop['reference_road_spline_vertex']]
+            prop['rotation'] -= road_vertex['orientation']
+            if prop['rotation'] < 0:
+                prop['rotation'] += 2 * pi
+            sine, cosine = sin(road_vertex['orientation']), cos(road_vertex['orientation'])
+            prop['position']['x'], prop['position']['z'] = (
+                prop['position']['x'] * cosine - prop['position']['z'] * sine,
+                prop['position']['x'] * sine + prop['position']['z'] * cosine)
 
-        for i, road_vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
-            road_vertex.position.x.value = road_vertex.position.y.value = 0
-            road_vertex.position.z.value = i * 6.25
-            road_vertex.slope.value = 0
-            road_vertex.slant_a.value = 0
-            road_vertex.slant_b.value = 0
+        for i, road_vertex in enumerate(data['road_spline'][:len(data['terrain']) * 4]):
+            road_vertex['position']['x'] = road_vertex['position']['y'] = 0
+            road_vertex['position']['z'] = i * 6.25
+            road_vertex['slope'] = 0
+            road_vertex['slant_a'] = 0
+            road_vertex['slant_b'] = 0
         # update rotations
-        for i, vertex in enumerate(read_data.road_spline[:len(read_data.terrain) * 4]):
-            vertex.block.update_orientations(vertex,
-                                             read_data.road_spline[i + 1 if i < len(read_data.terrain) * 4 else 0])
+        v_block = RoadSplinePoint()
+        for i, vertex in enumerate(data['road_spline'][:len(data['terrain']) * 4]):
+            v_block.update_orientations(vertex, data['road_spline'][i + 1 if i < len(data['terrain']) * 4 else 0])
 
     def action_scale_track(self, read_data, scale: float):
         scale = float(scale)
-        for i, vertex in enumerate(read_data.road_spline):
-            vertex.position.x.value *= scale
-            vertex.position.y.value *= scale
-            vertex.position.z.value *= scale
+        for i, vertex in enumerate(read_data['road_spline']):
+            vertex['position']['x'] *= scale
+            vertex['position']['y'] *= scale
+            vertex['position']['z'] *= scale
