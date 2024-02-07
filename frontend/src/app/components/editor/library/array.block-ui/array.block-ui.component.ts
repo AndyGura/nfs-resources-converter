@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+} from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
+import { MainService } from '../../../../services/main.service';
+import { filter, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-array-block-ui',
@@ -8,7 +19,7 @@ import { joinId } from '../../../../utils/join-id';
   styleUrls: ['./array.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ArrayBlockUiComponent implements GuiComponentInterface {
+export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
   private _resource: Resource | null = null;
 
   @Input()
@@ -64,7 +75,33 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   goToIndex: number = 0;
   pageIndexes: number[] = [];
 
-  constructor(private readonly cdr: ChangeDetectorRef) {}
+  private readonly destroyed$: Subject<void> = new Subject<void>();
+
+  constructor(public main: MainService, private readonly cdr: ChangeDetectorRef) {}
+
+  ngAfterViewInit(): void {
+    this.main.dataBlockChange$
+      .pipe(
+        takeUntil(this.destroyed$),
+        // handle inner primitive fields (1 level deep) and update object with new values.
+        // this makes effect only locally in frontend
+        filter(
+          ([blockId, value]) =>
+            !!this.resource &&
+            blockId.startsWith(this.resource!.id) &&
+            !blockId.substring(this.resource!.id.length + 1).includes('/'),
+        ),
+      )
+      .subscribe(async ([blockId, value]) => {
+        const key = blockId.substring(this.resource!.id.length + 1);
+        this.resourceData[+key] = value;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
+  }
 
   onContentsTrigger(open: boolean): void {
     if (this.contentsTimeout !== undefined) {

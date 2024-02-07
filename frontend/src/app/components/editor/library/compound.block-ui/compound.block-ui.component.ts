@@ -1,6 +1,15 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+} from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { MainService } from '../../../../services/main.service';
+import { filter, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-compound-block-ui',
@@ -8,7 +17,7 @@ import { MainService } from '../../../../services/main.service';
   styleUrls: ['./compound.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CompoundBlockUiComponent implements GuiComponentInterface {
+export class CompoundBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
   @Input() resource: Resource | null = null;
 
   @Input() resourceDescription: string = '';
@@ -46,5 +55,31 @@ export class CompoundBlockUiComponent implements GuiComponentInterface {
     return item.index;
   }
 
+  private readonly destroyed$: Subject<void> = new Subject<void>();
+
   constructor(public main: MainService) {}
+
+  ngAfterViewInit(): void {
+    this.main.dataBlockChange$
+      .pipe(
+        takeUntil(this.destroyed$),
+        // handle inner primitive fields (1 level deep) and update object with new values.
+        // this makes effect only locally in frontend
+        filter(
+          ([blockId, value]) =>
+            !!this.resource &&
+            blockId.startsWith(this.resource!.id) &&
+            !blockId.substring(this.resource!.id.length + 1).includes('/'),
+        ),
+      )
+      .subscribe(async ([blockId, value]) => {
+        const key = blockId.substring(this.resource!.id.length + 1);
+        this.data[key] = value;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
+  }
 }
