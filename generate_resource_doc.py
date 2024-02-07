@@ -1,9 +1,16 @@
-from library.read_blocks.array import ArrayBlock
-from library.read_blocks.compound import CompoundBlock
-from library.read_blocks.data_block import DataBlock
-from library.read_blocks.detached import DetachedBlock
-from library.read_blocks.literal import LiteralBlock
-from resources.eac import palettes, bitmaps, fonts, car_specs, maps, geometries, audios, archives, configs
+from datetime import datetime, timezone
+
+from library.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
+from resources.eac import (archives,
+                           bitmaps,
+                           fonts,
+                           palettes,
+                           misc,
+                           geometries,
+                           maps,
+                           audios,
+                           configs,
+                           car_specs)
 
 EXPORT_RESOURCES = {
     'Archives': [
@@ -27,11 +34,9 @@ EXPORT_RESOURCES = {
         maps.ModelProxyObjectData(),
         maps.BitmapProxyObjectData(),
         maps.TwoSidedBitmapProxyObjectData(),
-        maps.UnknownProxyObjectData(),
     ],
     'Physics': [
         car_specs.CarPerformanceSpec(),
-        car_specs.EngineTorqueRecord(),
         car_specs.CarSimplifiedPerformanceSpec(),
     ],
     'Bitmaps': [
@@ -52,42 +57,35 @@ EXPORT_RESOURCES = {
         palettes.Palette24Bit(),
         palettes.Palette32Bit(),
         palettes.Palette16Bit(),
+        palettes.Palette16BitDos(),
     ],
     'Audio': [
         audios.AsfAudio(),
-        audios.EacsAudio(),
+        audios.EacsAudioFile(),
+        audios.EacsAudioHeader(),
     ],
     'Misc': [
         configs.TnfsConfigDat(),
         configs.TrackStats(),
         configs.BestRaceRecord(),
+        misc.ShpiText(),
     ]
 }
 
 
-def render_range(field, min: int, max: int, render_hex: bool) -> str:
-    if field is not None and isinstance(field, ArrayBlock) and field.length_label is not None:
-        if field.child.get_size({}) == 1:
-            return field.length_label
-        if field.child.get_size({}) is None:
-            return '?'
-        return f'{field.child.get_size({})} * ({field.length_label})'
-    if min == max:
-        return hex(min) if render_hex else str(min)
-    label = f'{hex(min) if render_hex else str(min)}..{hex(max) if render_hex else str(max)}'.replace('inf', '?')
-    if label == '?..?':
-        label = '?'
-    return label
+def render_value_doc_str(value: str) -> str:
+    return str(value).replace('*', '\*')
 
 
 def render_type(instance: DataBlock) -> str:
-    if isinstance(instance, LiteralBlock):
-        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_resources])
-    if not isinstance(instance, CompoundBlock) or instance.inline_description:
-        descr = instance.block_description
+    schema = instance.schema
+    if isinstance(instance, DelegateBlock):
+        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_blocks])
+    if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
+        descr = schema['block_description']
         if isinstance(instance, ArrayBlock):
-            if not isinstance(instance.child, CompoundBlock) or instance.child.inline_description:
-                size = render_range(None, instance.child.get_min_size({}), instance.child.get_max_size({}), False)
+            if not isinstance(instance.child, CompoundBlock) or instance.child.schema["inline_description"]:
+                size = render_value_doc_str(instance.child.size_doc_str)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
             descr += f'<br/>Item type: {render_type(instance.child)}'
         return descr
@@ -96,7 +94,11 @@ def render_type(instance: DataBlock) -> str:
 
 
 with open('resources/README.md', 'w') as f:
-    f.write(f"""# **File specs** #
+    f.write(f"""# **TNFSSE (PC) file specs** #
+*Last time updated: {datetime.now(timezone.utc)}*
+
+
+# **Info by file extensions** #
 
 **\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
 
@@ -137,26 +139,37 @@ with open('resources/README.md', 'w') as f:
     for (heading, resources) in EXPORT_RESOURCES.items():
         f.write(f'\n## **{heading}** ##')
         for resource in resources:
-            collapse_table = len(resource.Fields.fields) > 20
+            schema = resource.schema
             f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
-            f.write(f'\n#### **Size**: {render_range(None, resource.get_min_size({}), resource.get_max_size({}), False)} bytes ####')
-            if resource.block_description:
-                f.write(f'\n#### **Description**: {resource.block_description} ####')
-            if collapse_table:
-                f.write('\n<details>')
-                f.write(f'\n<summary>Click to see block specs ({len(resource.Fields.fields)} fields)</summary>\n')
+            f.write(f'\n#### **Size**: {render_value_doc_str(resource.size_doc_str)} bytes ####')
+            if schema['block_description']:
+                f.write(f'\n#### **Description**: {schema["block_description"]} ####')
             f.write(f'\n| Offset | Name | Size (bytes) | Type | Description |')
             f.write(f'\n| --- | --- | --- | --- | --- |')
-            offset_min = 0
-            offset_max = 0
-            for key, field in resource.Fields.fields:
-                f.write(f'\n| {"-" if isinstance(field, DetachedBlock) else render_range(None, offset_min, offset_max, False)} | '
-                        f'**{key}**{" (optional)" if key in resource.Fields.optional_fields else ""} | '
-                        f'{render_range(field, field.get_min_size({}), field.get_max_size({}), False)} | '
+            offset_int = 0
+            offset_lbl = ''
+            for key, field in resource.field_blocks:
+                extras = resource.field_extras_map[key]
+                if extras.get('custom_offset'):
+                    try:
+                        offset_int = int(extras.get('custom_offset'))
+                        offset_lbl = ''
+                    except (ValueError, TypeError):
+                        offset_int = 0
+                        offset_lbl = extras.get('custom_offset')
+                if offset_int == 0 and offset_lbl:
+                    offset = offset_lbl
+                    if offset.startswith('+'):
+                        offset = offset[1:]
+                else:
+                    offset = str(offset_int) + offset_lbl
+                f.write(f'\n| {"-" if False else render_value_doc_str(offset)} | '
+                        f'**{key}** | '
+                        f'{render_value_doc_str(field.size_doc_str)} | '
                         f'{render_type(field)} | '
-                        f'{field.description or ("Unknown purpose" if key in resource.Fields.unknown_fields else "-")} |')
-                if not isinstance(field, DetachedBlock):
-                    offset_min += field.get_min_size({}) or 0
-                    offset_max += field.get_max_size({}) or float('inf')
-            if collapse_table:
-                f.write('\n</details>\n')
+                        f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
+                try:
+                    offset_int += int(field.size_doc_str)
+                except (ValueError, TypeError):
+                    offset_lbl += ' + ' + field.size_doc_str
+    f.write('\n')

@@ -1,36 +1,52 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
-import { cloneDeep, forOwn, isEqual, isObject, merge } from 'lodash';
+import { cloneDeep, isEqual, isObject } from 'lodash';
+import { findNestedObjects } from '../utils/find-nested-object';
+import { joinId } from '../utils/join-id';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MainService {
   private dataSnapshot: any;
-  resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  resourceError$: BehaviorSubject<ReadError | null> = new BehaviorSubject<ReadError | null>(null);
+  resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
   customActionRunning$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   readonly changedDataBlocks: { [key: string]: any } = {};
   dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
 
-  public unknownsHidden$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
+  public hideHiddenFields$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
 
   constructor(readonly eelDelegate: EelDelegateService) {
     this.eelDelegate.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();
-      if (!value) {
-        this.resourceData$.next(null);
-        this.resourceError$.next(null);
-      } else if ((value as any).block_class_mro) {
-        this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot((value as ReadData).value));
-        this.resourceData$.next(value as ReadData);
-        this.resourceError$.next(null);
+      if (value?.data.error_class) {
+        this.error$.next(value);
+        this.resource$.next(null);
+      } else if (!value?.schema) {
+        this.resource$.next(null);
+        this.error$.next(null);
       } else {
-        this.resourceData$.next(null);
-        this.resourceError$.next(value as ReadError);
+        this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot(value));
+        // fix recursive schema
+        const recursiveSchemas = findNestedObjects(value.schema, 'is_recursive_ref', true);
+        for (const [val, path] of recursiveSchemas) {
+          const blockClass = val.block_class_mro;
+          let entry = value.schema;
+          let valueToSet = entry.block_class_mro === blockClass ? entry : undefined;
+          for (const key of path.slice(0, path.length - 1)) {
+            if (!valueToSet && entry[key]?.['block_class_mro'] === blockClass) {
+              valueToSet = entry[key];
+            }
+            entry = entry[key];
+          }
+          entry[path[path.length - 1]] = valueToSet;
+        }
+        this.resource$.next(value);
+        this.error$.next(null);
       }
     });
     this.dataBlockChange$.subscribe(([blockId, value]) => {
@@ -48,35 +64,25 @@ export class MainService {
   }
 
   private getInitialValueFromSnapshot(blockId: string): any {
-    let sub = this.dataSnapshot;
-    const blockPath = blockId.replace('__', '/').split('/');
-    for (let i = 0; i < blockPath.length - 1; i++) {
-      sub = sub[blockPath[i]];
-    }
-    return sub[blockPath[blockPath.length - 1]];
+    return this.dataSnapshot[blockId];
   }
 
-  private buildResourceDataSnapshot(readDataValue: any): { [key: string]: any } {
+  private buildResourceDataSnapshot(res: Resource): { [key: string]: any } {
     const result: any = {};
-    const recurse = (source: any) => {
-      forOwn(source, value => {
-        if (isObject(value)) {
-          if (value && (value as any).block_class_mro) {
-            const blockPath = (value as any).block_id.replace('__', '/').split('/');
-            let sub = result;
-            for (let i = 0; i < blockPath.length - 1; i++) {
-              if (!sub[blockPath[i]] || !sub[blockPath[i]].__snap__) {
-                sub[blockPath[i]] = { __snap__: true };
-              }
-              sub = sub[blockPath[i]];
-            }
-            sub[blockPath[blockPath.length - 1]] = (value as any).value;
-          }
-          recurse(value);
+    const recurse = (id: string, data: BlockData) => {
+      if (data instanceof Array) {
+        for (let i = 0; i < data.length; i++) {
+          recurse(joinId(id, i), data[i]);
         }
-      });
+      } else if (isObject(data)) {
+        for (const key in data) {
+          recurse(joinId(id, key), (data as any)[key]);
+        }
+      } else {
+        result[id] = data;
+      }
     };
-    recurse(readDataValue);
+    recurse(res.id, res.data);
     return result;
   }
 
@@ -86,26 +92,59 @@ export class MainService {
     });
   }
 
-  private async processExternalChanges(call: () => Promise<ReadData | ReadError>): Promise<ReadData | ReadError> {
+  private async processExternalChanges(id: string, call: () => Promise<BlockData | ReadError>): Promise<void> {
     this.customActionRunning$.next(true);
-    const res: ReadData | ReadError = await call();
+    const res: BlockData | ReadError = await call();
     if (!!(res as ReadError).error_class) {
       this.customActionRunning$.next(false);
       throw res;
     }
-    merge(this.resourceData$.getValue()!, res);
+    if (this.resource$.getValue()!.id === id) {
+      this.resource$.getValue()!.data = res;
+    } else {
+      let dataPath = id
+        .substring(this.resource$.getValue()!.id.length)
+        .replace('__', '/')
+        .split('/')
+        .filter(x => x);
+      let data: any = this.resource$.getValue()!.data;
+      for (const key of dataPath.slice(0, dataPath.length - 1)) {
+        data = data[key] || data[+key];
+      }
+      let lastKey: any = dataPath[dataPath.length - 1];
+      if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
+        lastKey = +lastKey;
+      }
+      data[lastKey] = res;
+    }
+    this.clearUnsavedChanges();
     this.changedDataBlocks['__has_external_changes__'] = 1;
     this.customActionRunning$.next(false);
-    return res;
   }
 
   public async runCustomAction(action: CustomAction, args: { [key: string]: any }) {
-    return this.processExternalChanges(() =>
-      this.eelDelegate.runCustomAction(this.resourceData$.getValue()!, action, args),
-    );
+    let id = this.resource$.getValue()!.id;
+    return this.processExternalChanges(id, () => this.eelDelegate.runCustomAction(id, action, args));
   }
 
   public async deserializeResource(id: string) {
-    return this.processExternalChanges(() => this.eelDelegate.deserializeResource(id));
+    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id));
+  }
+
+  public async reloadResource() {
+    const path = this.eelDelegate.openedResourcePath$.getValue();
+    if (path) {
+      this.eelDelegate.openFile(path, true).then();
+    }
+  }
+
+  public async saveResource() {
+    const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
+    await this.eelDelegate.saveFile(
+      changes.map(([id, value]) => {
+        return { id, value };
+      }),
+    );
+    this.clearUnsavedChanges();
   }
 }

@@ -17,7 +17,7 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
         # write compressed data to the beginning (almost)
         input_data = buffer.read(input_length)
         for i in range(input_length):
-            self.memstore(0x10 + i, int.from_bytes(input_data[i:i+1], signed=False, byteorder='little'), size=1)
+            self.memstore(0x10 + i, int.from_bytes(input_data[i:i + 1], signed=False, byteorder='little'), size=1)
 
         # set stack pointer after input length + offset for script variables
         self.esp = input_length + 0x10 + 0x550
@@ -25,7 +25,7 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
         self.define_variable('ptr_p4', 4, 4)  # pointer compressed data in memory 100%
         self.memstore(self.esp + 0x4, 0x10, size=4)
 
-        self.define_variable('ptr_p8', 8, 4)   # pointer where to save file
+        self.define_variable('ptr_p8', 8, 4)  # pointer where to save file
         self.memstore(self.esp + 0x8, input_length + 0x1000, size=4)
 
         self.define_variable('var_21C', -0x21C, 1)
@@ -34,7 +34,8 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
         self.define_variable('var_18', -0x18, 4)
         self.define_variable('var_14', -0x14, 4)
         self.define_variable('original_esp_pointer', 0, 4)  # original function esp
-        self.define_variable('patterns_index_table_pointer', 0, 4)  # ptr to var_11C, start of some 256 bytes index table, probably patterns
+        self.define_variable('patterns_index_table_pointer', 0,
+                             4)  # ptr to var_11C, start of some 256 bytes index table, probably patterns
         self.define_variable('ds:dword_53034C', 0, 4)  # ptr to var_21C, never reassigned
         self.define_variable('ds:dword_530348', 0, 4)
         self.define_variable('write_pointer', 0, 4)  # write pointer
@@ -323,7 +324,7 @@ class TestAsmQFS2Algorythm(unittest.TestCase):
         parser_py = Qfs2Compression()
         parser_asm = Qfs2ASMCompression()
         file_name = 'test/samples/AL2.QFS'
-        with open(file_name, 'rb', buffering=30) as file:
+        with open(file_name, 'rb') as file:
             uncompressed_py = parser_py.uncompress(file, os.path.getsize(file_name))
             file.seek(0)
             uncompressed_asm = parser_asm.uncompress(file, os.path.getsize(file_name))

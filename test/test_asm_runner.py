@@ -81,6 +81,7 @@ class TestAsmRunner(unittest.TestCase):
         self.assertEqual(runner.ebx, 0x1)
 
         # check that right bits did not go to al register
+
     def test_shr_lost_bits(self):
         runner = AsmRunner(asm_virtual_memory_size=128)
         runner.run_command('mov ah, 255')
@@ -216,7 +217,6 @@ class TestAsmRunner(unittest.TestCase):
         self.assertEqual(runner.edi, 8)
         self.assertEqual(runner.ecx, 0)
 
-
     def test_byte_ptr_if_in_variable(self):
         runner = AsmRunner(asm_virtual_memory_size=128)
         runner.run_command('mov [esp+4], 102030FBh')
@@ -227,7 +227,6 @@ class TestAsmRunner(unittest.TestCase):
         runner.define_variable('test_var', 0, 1)
         value, size = runner.get_value('[esp+4+test_var]')
         self.assertEqual(value, 0xFB)
-
 
     def test_byte_ptr_to_32bit_register(self):
         runner = AsmRunner(asm_virtual_memory_size=128)

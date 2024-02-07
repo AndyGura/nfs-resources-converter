@@ -1,124 +1,161 @@
-from library.read_blocks.atomic import IntegerBlock
-from library.read_data import ReadData
+from io import BufferedReader, BytesIO
+from typing import Dict
+
+from library.context import ReadContext, WriteContext
+from library.read_blocks import IntegerBlock
 from library.utils import transform_bitness, transform_color_bitness
 
 
 class Color24BitDosBlock(IntegerBlock):
-    def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('byte_order', None)
-        super().__init__(static_size=3, byte_order="big", **kwargs)
-        self.block_description = 'EA games 24-bit dos color, 00rrrrrr_00gggggg_00bbbbbb'
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 24-bit dos color, 00rrrrrr_00gggggg_00bbbbbb',
+        }
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        number = super().from_raw_value(raw, state)
+    def __init__(self, **kwargs):
+        super().__init__(length=3, byte_order="big", **kwargs)
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        number = super().read(buffer, ctx, name)
         red = transform_bitness((number & 0xFF0000) >> 16, 6)
         green = transform_bitness((number & 0xFF00) >> 8, 6)
         blue = transform_bitness(number & 0xFF, 6)
         return red << 24 | green << 16 | blue << 8 | 255
 
-    def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
-        red = (value & 0xff000000) >> 26
-        green = (value & 0xff0000) >> 18
-        blue = (value & 0xff00) >> 10
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        red = (data & 0xff000000) >> 26
+        green = (data & 0xff0000) >> 18
+        blue = (data & 0xff00) >> 10
         value = red << 16 | green << 8 | blue
-        return super().to_raw_value(self.wrap_result(value, data.block_state))
+        return super().write(value, ctx, name)
 
 
 class Color24BitBlock(IntegerBlock):
-    def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        super().__init__(static_size=3, **kwargs)
-        self.block_description = f'EA games 24-bit color ({self.byte_order}-endian), rrrrrrrr_gggggggg_bbbbbbbb'
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': f'EA games 24-bit color ({self.byte_order}-endian), rrrrrrrr_gggggggg_bbbbbbbb',
+        }
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        number = super().from_raw_value(raw, state)
+    def __init__(self, **kwargs):
+        super().__init__(length=3, **kwargs)
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        number = super().read(buffer, ctx, name)
         return number << 8 | 0xFF
 
-    def to_raw_value(self, data: ReadData) -> bytes:
-        return super().to_raw_value(self.wrap_result(self.unwrap_result(data) >> 8, data.block_state))
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        return super().write(data >> 8, ctx, name)
 
 
 class Color24BitBigEndianField(Color24BitBlock):
     def __init__(self, **kwargs):
-        kwargs.pop('byte_order', None)
         super().__init__(byte_order="big", **kwargs)
 
 
 class Color24BitLittleEndianField(Color24BitBlock):
-    def __init__(self, **kwargs):
-        kwargs.pop('byte_order', None)
-        super().__init__(byte_order="little", **kwargs)
+    pass
 
 
 class Color32BitBlock(IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb',
+        }
+
     def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('byte_order', None)
-        super().__init__(static_size=4, byte_order="little", **kwargs)
-        self.block_description = 'EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb'
+        super().__init__(length=4, **kwargs)
 
-    def get_size(self, state):
-        return 4
-
-    def from_raw_value(self, raw: bytes, state: dict):
-        number = super().from_raw_value(raw, state)
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        number = super().read(buffer, ctx, name)
         # ARGB => RGBA
         return (number & 0x00_ff_ff_ff) << 8 | (number & 0xff_00_00_00) >> 24
 
-    def to_raw_value(self, data: ReadData) -> bytes:
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         # RGBA => ARGB
-        value = self.unwrap_result(data)
-        value = (value & 0xff_ff_ff_00) >> 8 | (value & 0xff) << 24
-        return super().to_raw_value(self.wrap_result(value))
+        return super().write((data & 0xff_ff_ff_00) >> 8 | (data & 0xff) << 24, ctx, name)
 
 
 class Color16Bit0565Block(IntegerBlock):
-
     # Tested on NFS2 tracks
     transparent_color = 0x00_FB_00_FF
 
-    def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('byte_order', None)
-        super().__init__(static_size=2, byte_order="little", **kwargs)
-        self.block_description = 'EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent'
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent',
+        }
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        number = super().from_raw_value(raw, state)
+    def __init__(self, **kwargs):
+        super().__init__(length=2, **kwargs)
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        number = super().read(buffer, ctx, name)
         value = transform_color_bitness(number, 0, 5, 6, 5)
         if value == self.transparent_color:
             value = 0
         return value
 
-    def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
+    def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:
         if (value & 0xff) < 128:
             value = self.transparent_color
         red = (value & 0xff000000) >> 27
         green = (value & 0xff0000) >> 18
         blue = (value & 0xff00) >> 11
         value = red << 11 | green << 5 | blue
-        return super().to_raw_value(self.wrap_result(value, data.block_state))
+        return super().write(value, ctx, name)
+
+
+class Color16BitDosBlock(IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': '16-bit color, not tested properly',
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(length=2, **kwargs)
+
+    # TODO colors not tested!
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        number = super().read(buffer, ctx, name)
+        value = transform_color_bitness(number, 0, 5, 6, 5)
+        return value
+
+    def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:
+        red = (value & 0xff000000) >> 27
+        green = (value & 0xff0000) >> 18
+        blue = (value & 0xff00) >> 11
+        value = red << 11 | green << 5 | blue
+        return super().write(value, ctx, name)
 
 
 class Color16Bit1555Block(IntegerBlock):
-    def __init__(self, **kwargs):
-        kwargs.pop('static_size', None)
-        kwargs.pop('byte_order', None)
-        super().__init__(static_size=2, byte_order="little", **kwargs)
-        self.block_description = 'EA games 16-bit 1555 color, arrrrrgg_gggbbbbb'
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        number = super().from_raw_value(raw, state)
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 16-bit 1555 color, arrrrrgg_gggbbbbb',
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(length=2, **kwargs)
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        number = super().read(buffer, ctx, name)
         return transform_color_bitness(number, 1, 5, 5, 5)
 
-    def to_raw_value(self, data: ReadData) -> bytes:
-        value = self.unwrap_result(data)
+    def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:
         red = (value & 0xff000000) >> 27
         green = (value & 0xff0000) >> 18
         blue = (value & 0xff00) >> 11
         alpha = value & 0xff >> 7
-        value = alpha << 15 | red << 10 | green << 5 | blue
-        return super().to_raw_value(self.wrap_result(value, data.block_state))
+        return super().write(alpha << 15 | red << 10 | green << 5 | blue, ctx, name)

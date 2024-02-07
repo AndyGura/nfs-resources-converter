@@ -1,18 +1,15 @@
-import json
 import os
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Any
 
 import settings
-from library.read_blocks.array import ArrayBlock
-from library.read_blocks.compound import CompoundBlock
-from library.read_blocks.delegate import DelegateBlock
-from library.read_data import ReadData
-from library.helpers.data_wrapper import DataWrapper
+from library.utils.class_dict import ClassDict
+from library.utils.id import join_id
 
 
 class ResourceSerializer(ABC):
-    settings = DataWrapper.wrap(settings.__dict__.copy())
+    settings = ClassDict.wrap(settings.__dict__.copy())
+
     def patch_settings(self, settings_patch: dict):
         self.settings.update(settings_patch)
 
@@ -20,55 +17,32 @@ class ResourceSerializer(ABC):
         return False
 
     @abstractmethod
-    def serialize(self, data: ReadData) -> Dict:
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         raise NotImplementedError
 
-    def deserialize(self, data: Dict) -> ReadData:
+    def deserialize(self, path: str, id=None, block=None, **kwargs):
         raise NotImplementedError
+
+
+class DelegateBlockSerializer(ResourceSerializer):
+
+    def is_dir(self, block, data):
+        from serializers import get_serializer
+        sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']
+        serializer = get_serializer(sub_block, sub_data)
+        return serializer.is_dir
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> Dict:
+        from serializers import get_serializer
+        sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']
+        serializer = get_serializer(sub_block, sub_data)
+        return serializer.serialize(sub_data, path=path, id=join_id(id, 'data'), block=sub_block)
 
 
 class BaseFileSerializer(ResourceSerializer):
 
-    def get_unknowns_dict(self, data: ReadData):
-        if not isinstance(data, ReadData):
-            return None
-        from library.helpers.json import rec_dd, resource_to_json
-        res = rec_dd()
-        has_something = False
-        if isinstance(data.block, CompoundBlock) and data.value is not None:
-            for key, value in data.value.items():
-                if key not in data.block.instance_fields_map:
-                    continue
-                if key in data.block.Fields.unknown_fields:
-                    key_parts = key.split('__')
-                    dictionary = res
-                    for sub_key in key_parts[:-1]:
-                        dictionary = res[sub_key]
-                    dictionary[key_parts[-1]] = resource_to_json(value)
-                    has_something = True
-                elif isinstance(data.block.instance_fields_map[key], CompoundBlock):
-                    sub_data = self.get_unknowns_dict(data.block.instance_fields_map[key])
-                    if sub_data:
-                        res[key] = sub_data
-                        has_something = True
-                elif isinstance(data.block.instance_fields_map[key], ArrayBlock):
-                    custom_names = data[key].block_state.get('custom_names')
-                    sub_data = {i: x for i, x in {i if custom_names is None else custom_names[i]: self.get_unknowns_dict(x) for i, x in enumerate(value)}.items() if x is not None}
-                    if sub_data:
-                        res[key] = sub_data
-                        has_something = True
-        return res if has_something else None
+    def __init__(self, is_dir=False):
+        self.is_dir = is_dir
 
-    def serialize(self, data: ReadData, path: str, is_dir=False):
-        os.makedirs(path if is_dir else os.path.dirname(path), exist_ok=True)
-        block = data.block
-        if isinstance(block, DelegateBlock):
-            block = block.delegated_block
-        if self.settings.export_unknown_values and isinstance(block, CompoundBlock):
-            unknowns = self.get_unknowns_dict(data)
-            if unknowns:
-                with open(f'{path}{"__" if path.endswith("/") else ""}.unknowns.json', 'w') as file:
-                    file.write(json.dumps(unknowns, indent=4))
-
-    def deserialize(self, path: str, resource: ReadData, **kwargs) -> None:
-        raise NotImplementedError
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        os.makedirs(path if self.is_dir else os.path.dirname(path), exist_ok=True)

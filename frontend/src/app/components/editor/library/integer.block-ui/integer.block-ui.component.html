@@ -1,10 +1,11 @@
-<mat-form-field appearance="fill" *ngIf="resourceData">
-    <mat-label>{{ name }}</mat-label>
+<mat-form-field appearance="fill" *ngIf="resource"
+                [matTooltip]="resourceDescription" matTooltipPosition="above">
+    <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
     <input matInput type="number"
-           [max]="resourceData.editor_validators.max_value"
-           [min]="resourceData.editor_validators.min_value"
-           [step]="resourceData.editor_validators.value_interval"
-           [disabled]="resourceData.block?.required_value != null"
-           [(ngModel)]="resourceData.value"
+           [max]="resource.schema.max_value"
+           [min]="resource.schema.min_value"
+           [step]="resource.schema.value_interval"
+           [disabled]="resource.schema.required_value !== undefined"
+           [(ngModel)]="resource.data"
            (change)="changed.emit()">
 </mat-form-field>

@@ -1,4 +1,7 @@
-import os, sys, subprocess, shutil
+import os
+import shutil
+import subprocess
+import sys
 
 
 def start_file(filename):

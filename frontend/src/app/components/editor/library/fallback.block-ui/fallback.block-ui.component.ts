@@ -8,8 +8,11 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FallbackBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
+  @Input() resource: Resource | null = null;
   name: string = '';
+
+  @Input()
+  resourceDescription: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 

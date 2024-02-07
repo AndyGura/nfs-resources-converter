@@ -1,5 +1,5 @@
-numpy==1.22.3
-Pillow==9.1.1
-tqdm==4.64.0
-viztracer==0.15.3
-eel==0.14.0
+numpy==1.26.3
+Pillow==10.2.0
+tqdm==4.66.1
+viztracer==0.16.1
+eel==0.16.0

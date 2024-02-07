@@ -1,224 +1,208 @@
+from abc import ABC
 from io import BufferedReader, BytesIO
-from math import floor
-from typing import List, Literal
+from math import ceil
+from typing import Dict, Tuple, Any
 
-from library.helpers.exceptions import (BlockDefinitionException,
-                                        MultiReadUnavailableException,
-                                        EndOfBufferException,
-                                        SerializationException,
-                                        )
-from library.helpers.id import join_id
-from library.read_blocks.atomic import AtomicDataBlock
-from library.read_blocks.data_block import DataBlock
-from library.read_data import ReadData
+from library.context import ReadContext, WriteContext
+from library.exceptions import EndOfBufferException
+from library.read_blocks.basic import DataBlock, DataBlockWithChildren
+from library.read_blocks.numbers import IntegerBlock
 
 
-class ArrayBlock(DataBlock):
-    child = None
+class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
 
-    def get_size(self, state):
-        length = self.get_length(state)
-        if length is None:
-            return None
-        if isinstance(self.child, AtomicDataBlock):
-            return self.child.static_size * length
-        return sum(self.child.get_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
-
-    def get_min_size(self, state):
-        length = self.get_length(state)
-        if length is None:
-            return 0
-        if self.length_strategy == "strict":
-            if isinstance(self.child, AtomicDataBlock):
-                return self.child.static_size * length
-            try:
-                return sum(self.child.get_min_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
-            except TypeError:
-                return None
-        else:
-            return 0
-
-    def get_max_size(self, state):
-        length = self.get_length(state)
-        if length is None:
-            return float('inf')
-        if isinstance(self.child, AtomicDataBlock):
-            return self.child.static_size * length
-        return sum(self.child.get_max_size(state.get('children_states', {}).get(str(i), {})) for i in range(length))
-
-    def get_length(self, state):
-        return self._length if self._length is not None else state.get('length')
-
-    def __init__(self,
-                 child: DataBlock,
-                 length: int = None,
-                 length_strategy: Literal["strict", "read_available"] = "strict",
-                 length_label: str = None,
-                 **kwargs):
+    def __init__(self, child: DataBlock, length, **kwargs):
         super().__init__(**kwargs)
         self.child = child
         self._length = length
-        self.length_strategy = length_strategy
-        if length_label is None:
-            length = self.get_length({})
-            if length is None:
-                length_label = '?'
-            elif self.length_strategy == "read_available":
-                length_label = f'0..{length}'
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': f'Array of `{self.length_doc_str}` items',
+            'child_schema': self.child.schema
+        }
+
+    # For auto-generated documentation only
+    @property
+    def length_doc_str(self):
+        if isinstance(self._length, tuple):
+            (_, doc_str) = self._length
+            return doc_str
+        if callable(self._length):
+            return "custom_func"
+        return str(self._length)
+
+    # For auto-generated documentation only
+    @property
+    def size_doc_str(self):
+        if self._length == 0:
+            return '0'
+        # when set to 0 and added some label, assume that it has some custom logic
+        if isinstance(self._length, tuple) and self._length[0] == 0:
+            return '?'
+        child_size_doc = self.child.size_doc_str
+        if child_size_doc == '?':
+            return '?'
+        length_doc = self.length_doc_str
+        try:
+            return int(length_doc) * int(child_size_doc)
+        except ValueError:
+            if length_doc == '1':
+                return child_size_doc
+            elif child_size_doc == '1':
+                return length_doc
             else:
-                length_label = str(length)
-        self.length_label = length_label
-        self.block_description = f'Array of {length_label} items'
+                return f'{length_doc}*{child_size_doc}'
 
-    def from_raw_value(self, raw: List, state: dict):
-        return raw
+    def resolve_length(self, ctx):
+        self_len = self._length
+        if isinstance(self_len, tuple):
+            # cut off the documentation
+            (self_len, _) = self_len
+        if callable(self_len):
+            self_len = self_len(ctx)
+        return self_len
 
-    def to_raw_value(self, data: ReadData) -> bytes:
-        res = bytes()
+    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+        return self.child, unpacked_data[int(name)]
+
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        self_len = self._length
+        if isinstance(self_len, tuple):
+            # cut off the documentation
+            (self_len, _) = self_len
+        if callable(self_len):
+            return []
+        return [self.child.new_data()] * self_len
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        res = []
+        self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
+        self_len = self.resolve_length(ctx)
+        if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
+            res = list(buffer.read(self_len))
+            if len(res) < self_len:
+                raise EndOfBufferException()
+            return res
+        for i in range(self_len):
+            res.append(self.child.unpack(buffer=buffer, ctx=self_ctx, name=str(i)))
+        return res
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        res = 0
         for item in data:
-            if isinstance(item, Exception):
-                raise SerializationException('Cannot serialize block with errors')
-            res += self.child.to_raw_value(item)
+            res += self.child.estimate_packed_size(data=item, ctx=ctx)
         return res
 
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
-        res = []
-        amount = self.get_length(state)
-        if amount is None and self.length_strategy != "read_available":
-            raise BlockDefinitionException('Array field length is unknown')
-        if self.length_strategy == "read_available":
-            if isinstance(self.child, AtomicDataBlock):
-                amount = (min(amount, floor(size / self.child.static_size))
-                          if amount is not None
-                          else floor(size / self.child.static_size))
-            else:
-                calculated_amount = 0
-                size_left = size
-                while (amount is None) or (calculated_amount < amount):
-                    child_state = {}
-                    try:
-                        child_state = state['children_states'][str(calculated_amount)]
-                    except:
-                        pass
-                    size_left -= self.child.get_size(child_state)
-                    if size_left < 0:
-                        break
-                    calculated_amount += 1
-                amount = calculated_amount
-        id_prefix = join_id(state.get('id'), '')
-        if not self.child.simplified and not state.get('children_states'):
-            common_states = state.get('common_children_states', {})
-            state['children_states'] = {str(i): {'id': id_prefix + str(i), **common_states} for i in range(amount)}
-        start = buffer.tell()
-        try:
-            if isinstance(self.child, AtomicDataBlock):
-                res = self.child.read_multiple(buffer, size, [x for x in state.get('children_states', {}).values()], amount)
-                size -= (buffer.tell() - start)
-            else:
-                raise MultiReadUnavailableException('Supports only atomic data blocks')
-        except (MultiReadUnavailableException, AttributeError) as ex:
-            buffer.seek(start)
-            for i in range(amount):
-                start = buffer.tell()
-                try:
-                    if not self.child.simplified and not state['children_states'][str(i)]:
-                        state['children_states'][str(i)] = {'id': id_prefix + str(i)}
-                    res.append(self.child.read(buffer, size, {
-                        **state.get('common_children_states', {}),
-                        **state['children_states'][str(i)]
-                    } if not self.child.simplified else None))
-                except EndOfBufferException as ex:
-                    if self.length_strategy == "read_available":
-                        # assume this array is finished
-                        buffer.seek(start)
-                        return res
-                    else:
-                        raise ex
-                size -= (buffer.tell() - start)
-        return res
+    def offset_to_child_when_packed(self, data, child_name: str, ctx: WriteContext = None):
+        index = int(child_name)
+        if index >= len(data):
+            raise IndexError()
+        return self.estimate_packed_size(data[:index], ctx)
 
-
-# TODO probably not needed anymore. it is the array of detached blocks
-class ExplicitOffsetsArrayBlock(ArrayBlock):
-
-    def get_length(self, state):
-        base_length = super().get_length(state)
-        if base_length is None and state.get('offsets') is not None:
-            return len(state.get('offsets'))
-        return base_length
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.block_description += ' with custom offset to items'
-
-    def get_item_length(self, state, item_index, end_offset):
-        try:
-            return state['lengths'][item_index]
-        except (KeyError, IndexError):
-            pass
-        offset = state['offsets'][item_index]
-        return min(o for o in (state['offsets'] + [end_offset]) if o > offset) - offset
-
-    def _load_value(self, buffer: [BufferedReader, BytesIO], size: int, state: dict):
-        res = []
-        if state.get('offsets') is None:
-            raise BlockDefinitionException('Explicit offsets array field needs declaration of offsets')
-        end_offset = buffer.tell() + size
-        custom_names = state.get('custom_names')
-        offsets = state.get('offsets', [])
-        for i, offset in enumerate(offsets):
-            buffer.seek(offset)
-            try:
-                child_state = state.get('children_states', [])[i]
-            except IndexError:
-                child_state = {}
-            child_state = {
-                **state.get('common_children_states', {}),
-                **child_state,
-                'id': join_id(state.get('id'), (str(i) if not custom_names else custom_names[i])),
-            }
-            res.append(self.child.read(buffer, self.get_item_length(state, i, end_offset), child_state))
-        return res
-
-    def to_raw_value(self, data: ReadData) -> bytes:
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
+            return bytes(data)
         res = bytes()
-        # FIXME relativity of offsets is unknown here. For now assuming that first item starts immediately
-        relative_offsets = [x - data.block_state['offsets'][0] for x in data.block_state['offsets']]
-        for item, relative_offset in zip(data, relative_offsets):
-            if isinstance(item, Exception):
-                raise SerializationException('Cannot serialize block with errors')
-            if relative_offset > len(res):
-                res += bytes(relative_offset - len(res))
-            elif relative_offset < len(res):
-                raise SerializationException('ExplicitOffsetsArrayBlock: item data is bigger than possible')
-            res += self.child.to_raw_value(item)
+        for i, item in enumerate(data):
+            res += self.child.pack(data=item, ctx=ctx, name=str(i))
         return res
 
 
-class ByteArray(DataBlock):
-    block_description = "Raw bytes sequence"
+class SubByteArrayBlock(DataBlock):
 
     def __init__(self,
-                 length: int = None,
-                 length_strategy: Literal["strict", "read_available"] = "strict",
+                 length,
+                 bits_per_value: int,
+                 value_deserialize_func: callable = None,
+                 value_serialize_func: callable = None,
                  **kwargs):
         super().__init__(**kwargs)
-        self.length = length
-        self.length_strategy = length_strategy
+        self._length = length
+        self.bits_per_value = bits_per_value
+        self.value_deserialize_func = value_deserialize_func
+        self.value_serialize_func = value_serialize_func
 
-    def get_size(self, state):
-        return self.length
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': f'Array of `{self.length_doc_str}` sub-byte numbers. Each number consists of {self.bits_per_value} bits',
+            'child_schema': {
+                'block_class_mro': 'IntegerBlock__DataBlock',
+                'min_value': self.value_deserialize_func(0),
+                'max_value': self.value_deserialize_func((1 << self.bits_per_value) - 1),
+                'value_interval': self.value_deserialize_func(1) - self.value_deserialize_func(0),
+            }
+        }
 
-    def get_min_size(self, state):
-        return self.length if self.length is not None and self.length_strategy == "strict" else 0
+    # For auto-generated documentation only
+    @property
+    def length_doc_str(self):
+        if isinstance(self._length, tuple):
+            (_, doc_str) = self._length
+            return doc_str
+        if callable(self._length):
+            return "custom_func"
+        return str(self._length)
 
-    def get_max_size(self, state):
-        if self.length is None:
-            return float('inf')
-        return self.length
+    # For auto-generated documentation only
+    @property
+    def size_doc_str(self):
+        length_doc = self.length_doc_str
+        try:
+            return str(ceil(int(length_doc) * self.bits_per_value / 8))
+        except ValueError:
+            return f'ceil(({length_doc})*{self.bits_per_value}/8)'
 
-    def from_raw_value(self, raw: bytes, state: dict):
-        return raw
+    def resolve_length(self, ctx):
+        self_len = self._length
+        if isinstance(self_len, tuple):
+            # cut off the documentation
+            (self_len, _) = self_len
+        if callable(self_len):
+            self_len = self_len(ctx)
+        return self_len
 
-    def to_raw_value(self, data: ReadData) -> bytes:
-        return self.unwrap_result(data)
+    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+        return None, unpacked_data[int(name)]
+
+    def new_data(self):
+        if self.required_value:
+            return self.required_value
+        self_len = self._length
+        if isinstance(self_len, tuple):
+            # cut off the documentation
+            (self_len, _) = self_len
+        if callable(self_len):
+            return []
+        return [0] * self_len
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        self_len = self.resolve_length(ctx)
+        raw = buffer.read(ceil(self.bits_per_value * self_len / 8))
+        bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])
+        values = [int(bitstring[i * self.bits_per_value:(i + 1) * self.bits_per_value], 2)
+                  for i in range(self_len)]
+        if self.value_deserialize_func:
+            values = [self.value_deserialize_func(x) for x in values]
+        return values
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        return ceil(self.bits_per_value * len(data) / 8)
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        value_serialize_func = self.value_serialize_func if self.value_serialize_func else lambda x: x
+        bitstring = "".join(bin(value_serialize_func(item))[2:].rjust(self.bits_per_value, "0") for item in data)
+        padding = len(bitstring) % 8
+        if padding != 0:
+            bitstring += '0' * (8 - padding)
+        byte_array = bytearray()
+        for i in range(0, len(bitstring), 8):
+            byte = int(bitstring[i:i + 8], 2)
+            byte_array.append(byte)
+        return bytes(byte_array)

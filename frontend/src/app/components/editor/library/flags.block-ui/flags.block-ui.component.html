@@ -1,9 +1,9 @@
-<ng-container *ngIf="resourceData">
-    <mat-label>{{ name }}</mat-label>
+<ng-container *ngIf="resource" [matTooltip]="resourceDescription" matTooltipPosition="above">
+    <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
     <mat-selection-list (selectionChange)="onSelection($event)">
-        <mat-list-option *ngFor="let flag of (resourceData.value | keyvalue)"
+        <mat-list-option *ngFor="let flag of (resource.data | keyvalue)"
                          [value]="flag.key"
-                         [selected]="resourceData.value[$any(flag.key)]">
+                         [selected]="resource.data[$any(flag.key)]">
             {{flag.key}}
         </mat-list-option>
     </mat-selection-list>

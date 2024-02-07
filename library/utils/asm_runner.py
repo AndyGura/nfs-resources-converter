@@ -6,7 +6,7 @@ from library.utils.virtual_asm_registers import AsmRegisters
 
 class AsmRunner(AsmRegisters, VirtualAsmFlags):
 
-    def __init__(self, *args, asm_virtual_memory_size=1024*1024, **kwargs):    # 1mb may be enough for everyone :)
+    def __init__(self, *args, asm_virtual_memory_size=1024 * 1024, **kwargs):  # 1mb may be enough for everyone :)
         super().__init__(*args, **kwargs)
         self.asm_virtual_memory = bytearray(asm_virtual_memory_size)
         self.variables = dict()
@@ -21,7 +21,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
         size = self._get_variable_size_in_bytes(register_name)
         return (value
                 if (value & (1 << (size * 8 - 1))) == 0
-                else value - (1 << (size * 8))) # 255 must be -1, 254 -> -2, so -value + 255
+                else value - (1 << (size * 8)))  # 255 must be -1, 254 -> -2, so -value + 255
 
     def memstore(self, offset, value: int, size: int):
         b = value.to_bytes(length=size, byteorder='little', signed=False)
@@ -29,7 +29,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
             self.asm_virtual_memory[offset + i] = b[i]
 
     def memread(self, offset, size: int):
-        return int.from_bytes(self.asm_virtual_memory[offset:offset+size], 'little', signed=False)
+        return int.from_bytes(self.asm_virtual_memory[offset:offset + size], 'little', signed=False)
 
     def _push(self, value: int):
         self.esp = self.esp - 4
@@ -203,7 +203,8 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
             self.set_value(args[0], result, sizes[0])
             self.set_flags("ADD", values[0], values[1], result, sizes[0])
         elif operator == 'mov' or operator == 'movzx':
-            self.set_value(args[0], self.get_value(args[1], force_size=self._get_variable_size_in_bytes(args[0]))[0], size=self._get_variable_size_in_bytes(args[1]))
+            self.set_value(args[0], self.get_value(args[1], force_size=self._get_variable_size_in_bytes(args[0]))[0],
+                           size=self._get_variable_size_in_bytes(args[1]))
         elif operator == 'shl':
             countmask = 0x1f
             result = values[0]
@@ -282,7 +283,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
                     tempcount -= 1
                 self.CF = self.get_lsb(op1value)
                 if op2value == 1:
-                    self.OF = self.get_msb(op1value,  sizes[0]) ^ self.CF
+                    self.OF = self.get_msb(op1value, sizes[0]) ^ self.CF
             self.set_value(args[0], op1value)
         # Mnemonic        Condition tested  Description
         # jo              OF = 1            overflow

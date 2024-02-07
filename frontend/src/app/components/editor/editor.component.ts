@@ -1,13 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ComponentRef,
-  Input,
-  OnDestroy,
-  Type,
-  ViewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, ComponentRef, Input, OnDestroy, Type, ViewChild } from '@angular/core';
 import { DataBlockUIDirective } from './data-block-ui.directive';
 import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { GuiComponentInterface } from './gui-component.interface';
@@ -18,7 +9,7 @@ import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.c
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
-import { AngleBlockUiComponent } from './library/angle.block-ui/angle.block-ui.component';
+import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
 import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
@@ -27,7 +18,10 @@ import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import { EelDelegateService } from '../../services/eel-delegate.service';
+import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
+import { joinId } from '../../utils/join-id';
+import { isObject } from 'lodash';
+import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -37,24 +31,25 @@ import { EelDelegateService } from '../../services/eel-delegate.service';
 })
 export class EditorComponent implements OnDestroy {
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
-    AngleBlock: AngleBlockUiComponent,
     ArrayBlock: ArrayBlockUiComponent,
-    AtomicDataBlock: BinaryBlockUiComponent,
+    SubByteArrayBlock: ArrayBlockUiComponent,
     BitFlagsBlock: FlagsBlockUiComponent,
-    ByteArray: BinaryBlockUiComponent,
+    BytesBlock: BinaryBlockUiComponent,
     CompoundBlock: CompoundBlockUiComponent,
     DataBlock: FallbackBlockUiComponent,
+    DelegateBlock: DelegateBlockUiComponent,
     EnumByteBlock: EnumBlockUiComponent,
     IntegerBlock: IntegerBlockUiComponent,
-    Utf8Block: StringBlockUiComponent,
-    // TODO SubByteArrayBlock
+    UTF8Block: StringBlockUiComponent,
     // NFS1 blocks
+    AngleBlock: AngleBlockUiComponent,
     AnyBitmapBlock: BitmapBlockUiComponent,
     BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
     ShpiBlock: ShpiBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
+    FenceType: FenceTypeBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
@@ -62,97 +57,96 @@ export class EditorComponent implements OnDestroy {
   _component: ComponentRef<GuiComponentInterface> | null = null;
   _componentChangedSub: Subscription | null = null;
 
-  isInReversibleSerializationState = false;
-
   private destroyed$: Subject<void> = new Subject<void>();
+  private resourceSet$: Subject<void> = new Subject<void>();
 
-  private _name: string = '';
-  get name(): string {
-    return this._name;
+  private _resource: Resource | null = null;
+  get resource(): Resource | null {
+    return this._resource;
+  }
+
+  private _resourceError: ResourceError | null = null;
+  get resourceError(): ResourceError | null {
+    return this._resourceError;
+  }
+
+  private _resourceDescription: string = '';
+  @Input()
+  set resourceDescription(value: string) {
+    this._resourceDescription = value;
+    if (this._component) {
+      this._component.instance.resourceDescription = value;
+    }
+  }
+
+  private _hideBlockActions: boolean = false;
+  @Input()
+  set hideBlockActions(value: boolean) {
+    this._hideBlockActions = value;
+    if (this._component) {
+      this._component.instance.hideBlockActions = value;
+    }
   }
 
   @Input()
-  public set name(value: string) {
-    this._name = value;
-    if (this._component?.instance) {
-      this._component.instance.name = value;
+  public set resource(value: Resource | ResourceError | null) {
+    this.resourceSet$.next();
+    // TODO reusing components does not work for some reason. At least when child is compound block with the same schema
+    let reuseComponent = false; //!!this._component && value && this._resource && value.schema.block_class_mro === this._resource.schema.block_class_mro;
+    if (!value) {
+      this._resource = null;
+      this._resourceError = null;
+    } else if (value.data?.error_class) {
+      this._resourceError = value;
+      this._resource = null;
+    } else {
+      this._resource = value;
+      this._resourceError = null;
     }
-  }
-
-  private _resourceData: ReadData | ReadError | null = null;
-  get resourceData(): ReadData | ReadError | null {
-    return this._resourceData;
-  }
-
-  get error(): ReadError | null {
-    if ((this._resourceData as any)?.error_class) {
-      return this._resourceData as ReadError;
-    }
-    return null;
-  }
-
-  get data(): ReadData | null {
-    if ((this._resourceData as any)?.error_class) {
-      return null;
-    }
-    return this._resourceData as ReadData;
-  }
-
-  @Input()
-  public set resourceData(value: ReadData | ReadError | null) {
-    this._resourceData = value;
     this.dataBlockUiHost.viewContainerRef.clear();
-    if (this._resourceData) {
-      if ((this._resourceData as any).block_class_mro) {
-        const readData = this._resourceData as ReadData;
-        let component: Type<GuiComponentInterface> | undefined;
-        for (const className of readData.block_class_mro.split('__')) {
-          component = EditorComponent.DATA_BLOCK_COMPONENTS_MAP[className];
-          if (component) {
-            break;
+    if (this._resource) {
+      if (this._resource.schema.block_class_mro) {
+        if (!reuseComponent) {
+          let component: Type<GuiComponentInterface> | undefined;
+          for (const className of this._resource.schema.block_class_mro.split('__')) {
+            component = EditorComponent.DATA_BLOCK_COMPONENTS_MAP[className];
+            if (component) {
+              break;
+            }
           }
+          if (!component) {
+            throw new Error('Cannot find GUI component for block MRO ' + this._resource.schema.block_class_mro);
+          }
+          if (this._component && this._componentChangedSub) {
+            this._componentChangedSub.unsubscribe();
+          }
+          this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
+          this._componentChangedSub = this._component.instance.changed
+            .pipe(takeUntil(this.destroyed$), takeUntil(this.resourceSet$))
+            .subscribe(() => {
+              const id = this._resource!.id;
+              const data = this._resource!.data;
+              if (data instanceof Array) {
+                for (let i = 0; i < data.length; i++) {
+                  this.mainService.dataBlockChange$.next([joinId(id, i), data[i]]);
+                }
+              } else if (isObject(data)) {
+                for (const key in data) {
+                  this.mainService.dataBlockChange$.next([joinId(id, key), (data as any)[key]]);
+                }
+              } else {
+                this.mainService.dataBlockChange$.next([id, data]);
+              }
+            });
         }
-        if (!component) {
-          throw new Error('Cannot find GUI component for block MRO ' + readData.block_class_mro);
-        }
-        if (this._component && this._componentChangedSub) {
-          this._componentChangedSub.unsubscribe();
-        }
-        this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
-        this._component.instance.resourceData = readData;
-        this._component.instance.name = this._name;
-        this._componentChangedSub = this._component.instance.changed.pipe(takeUntil(this.destroyed$)).subscribe(() => {
-          this.mainService.dataBlockChange$.next([readData.block_id, readData.value]);
-        });
+        this._component!.instance.resource = this._resource;
+        this._component!.instance.resourceDescription = this._resourceDescription;
+        this._component!.instance.hideBlockActions = this._hideBlockActions;
       }
     }
   }
 
-  constructor(
-    readonly mainService: MainService,
-    readonly eelDelegate: EelDelegateService,
-    readonly cdr: ChangeDetectorRef,
-  ) {}
-
-  async serializeBlockReversible() {
-    const [files, isReversible] = await this.eelDelegate.serializeReversible(this.data!.block_id, []);
-    const commonPathPart = files.reduce((commonBeginning, currentString) => {
-      let j = 0;
-      while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {
-        j++;
-      }
-      return commonBeginning.substring(0, j);
-    });
-    await this.eelDelegate.openFileWithSystemApp(commonPathPart);
-    this.isInReversibleSerializationState = isReversible;
-    this.cdr.markForCheck();
-  }
-
-  async deserialize() {
-    await this.mainService.deserializeResource(this.data!.block_id);
-    this.isInReversibleSerializationState = false;
-    this.cdr.markForCheck();
-  }
+  constructor(readonly mainService: MainService) {}
 
   ngOnDestroy(): void {
     this.destroyed$.next();

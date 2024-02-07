@@ -1,8 +1,9 @@
 import { EventEmitter } from '@angular/core';
 
 export interface GuiComponentInterface {
-  resourceData: ReadData | null;
-  name: string;
+  resource: Resource | null;
+  resourceDescription?: string;
+  hideBlockActions?: boolean;
 
   changed: EventEmitter<void>;
 }

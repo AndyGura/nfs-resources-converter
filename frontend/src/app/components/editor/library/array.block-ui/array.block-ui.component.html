@@ -1,68 +1,59 @@
 <mat-expansion-panel
-        *ngIf="showAsCollapsable"
-        (opened)="onContentsTrigger(true)"
-        (closed)="onContentsTrigger(false)">
-    <mat-expansion-panel-header>
-        <mat-panel-title>
-            {{ name }}
-        </mat-panel-title>
-        <mat-panel-description *ngIf="(resourceData?.value || []).length > 0">
-            Click to view items (<b>{{(resourceData?.value || []).length}}</b>)
-        </mat-panel-description>
-        <mat-panel-description *ngIf="(resourceData?.value || []).length == 0">
-            Empty array
-        </mat-panel-description>
-    </mat-expansion-panel-header>
-    <ng-template [ngTemplateOutlet]="contents"></ng-template>
+  *ngIf="showAsCollapsable"
+  (opened)="onContentsTrigger(true)"
+  (closed)="onContentsTrigger(false)">
+  <mat-expansion-panel-header [matTooltip]="resourceDescription" matTooltipPosition="above">
+    <mat-panel-title>
+      {{ name }}
+    </mat-panel-title>
+    <mat-panel-description *ngIf="(resourceData || []).length > 0">
+      Click to view items (<b>{{ (resourceData || []).length }}</b>)
+    </mat-panel-description>
+    <mat-panel-description *ngIf="(resourceData || []).length == 0">
+      Empty array
+    </mat-panel-description>
+  </mat-expansion-panel-header>
+  <ng-template [ngTemplateOutlet]="contents"></ng-template>
 </mat-expansion-panel>
 <ng-container *ngIf="!showAsCollapsable">
-    <h2>{{ name }}</h2>
-    <div class="mat-expansion-panel-body">
-        <ng-template [ngTemplateOutlet]="contents"></ng-template>
-    </div>
+  <h2 [matTooltip]="resourceDescription" matTooltipPosition="above">{{ name }}</h2>
+  <div class="mat-expansion-panel-body">
+    <ng-template [ngTemplateOutlet]="contents"></ng-template>
+  </div>
 </ng-container>
 
 <ng-template #contents>
-    <ng-container *ngIf="(renderContents || !showAsCollapsable) && !resourceData?.block?.child?.simplified">
-        <ng-template [ngTemplateOutlet]="paginator"></ng-template>
-        <ng-container *ngFor="let data of this.renderItems, let i = index">
-            <div class="divider" *ngIf="data?.block_class_mro?.indexOf('Atomic') == -1">
-                <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
-                <span style="padding: 20px; font-weight: 500;">{{ data.block_id.split('__')[1] || i }}</span>
-                <mat-divider style="width: 50%; display: inline-block;"></mat-divider>
-            </div>
-            <app-editor [resourceData]="data"
-                        [name]="i.toString()"></app-editor>
-        </ng-container>
-        <ng-template [ngTemplateOutlet]="paginator"></ng-template>
-        <p *ngIf="(resourceData?.value || []).length == 0">Empty array</p>
+  <ng-container *ngIf="(renderContents || !showAsCollapsable)">
+    <ng-template [ngTemplateOutlet]="paginator"></ng-template>
+    <ng-container *ngFor="let i of this.renderIndexes">
+      <app-editor *ngIf="(pageIndex * pageSize + i) < children.length" [resource]="children[pageIndex * pageSize + i]"></app-editor>
     </ng-container>
-    <ng-container *ngIf="(renderContents || !showAsCollapsable) && resourceData?.block?.child?.simplified">
-        <p style="word-break: break-word; max-width: 100%;">[{{ (resourceData?.value || []).join(', ') }}]</p>
-    </ng-container>
+    <ng-template [ngTemplateOutlet]="paginator"></ng-template>
+    <p *ngIf="(resourceData || []).length == 0">Empty array</p>
+  </ng-container>
 </ng-template>
 
 <ng-template #paginator>
-    <div *ngIf="(resourceData?.value || []).length > 0"
-         id="pagination-wrapper"
-         [ngClass]="{ 'hidden': (resourceData?.value || []).length <= minPageSize }">
-        <mat-paginator [length]="(resourceData?.value || []).length"
-                       [pageSize]="pageSize"
-                       [pageIndex]="pageIndex"
-                       [pageSizeOptions]="pageSizeOptions"
-                       [showFirstLastButtons]="true"
-                       (page)="renderPage($event.pageIndex, $event.pageSize)"
-                       aria-label="Select page">
-        </mat-paginator>
-        <div class="go-to-container">
-            <div class="go-to-label">Go To: </div>
-            <mat-form-field>
-                <mat-select [(ngModel)]="goToIndex" (selectionChange)="renderPage(goToIndex, pageSize)">
-                    <mat-option *ngFor="let pageNumber of pageIndexes" [value]="pageNumber">
-                        {{pageNumber * pageSize}} - {{(pageNumber + 1) * pageSize - 1}}
-                    </mat-option>
-                </mat-select>
-            </mat-form-field>
-        </div>
+  <div *ngIf="(resourceData || []).length > 0"
+       id="pagination-wrapper"
+       [ngClass]="{ 'hidden': (resourceData || []).length <= minPageSize }">
+    <mat-paginator [length]="(resourceData || []).length"
+                   [pageSize]="pageSize"
+                   [pageIndex]="pageIndex"
+                   [pageSizeOptions]="pageSizeOptions"
+                   [showFirstLastButtons]="true"
+                   (page)="renderPage($event.pageIndex, $event.pageSize)"
+                   aria-label="Select page">
+    </mat-paginator>
+    <div class="go-to-container">
+      <div class="go-to-label">Go To:</div>
+      <mat-form-field>
+        <mat-select [(ngModel)]="goToIndex" (selectionChange)="renderPage(goToIndex, pageSize)">
+          <mat-option *ngFor="let pageNumber of pageIndexes" [value]="pageNumber">
+            {{ pageNumber * pageSize }} - {{ (pageNumber + 1) * pageSize - 1 }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
     </div>
+  </div>
 </ng-template>

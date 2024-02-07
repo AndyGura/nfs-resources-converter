@@ -12,12 +12,10 @@ import {
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import {
-  CachingStrategy,
   createInlineTickController,
   Entity3d,
   FreeCameraController,
   Gg3dWorld,
-  GgDummy,
   LoadResultWithProps,
   MapGraph,
   MapGraph3dEntity,
@@ -28,7 +26,7 @@ import {
   Qtrn,
   Renderer3dEntity,
 } from '@gg-web-engine/core';
-import { BehaviorSubject, debounceTime, filter, Subject, takeUntil, throttleTime } from 'rxjs';
+import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, takeUntil, throttleTime } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import {
   AmbientLight,
@@ -39,17 +37,19 @@ import {
   Material,
   Mesh,
   MeshBasicMaterial,
-  MeshStandardMaterial,
   Object3D,
   PlaneGeometry,
   RepeatWrapping,
   sRGBEncoding,
+  Texture,
   TextureLoader,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
-import { GgCurve } from '@gg-web-engine/core/dist/3d/models/gg-meta';
 import { setupNfs1Texture } from '../orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
+import { joinId } from '../../../../utils/join-id';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 
 export enum MapPropType {
   ThreeModel = 'model',
@@ -57,142 +57,267 @@ export enum MapPropType {
   TwoSidedBitmap = 'two_sided_bitmap',
 }
 
-export const fixGltfMaterialsForNfs1: (obj: Mesh, isCar: boolean) => void = (obj, isCar) => {
-  let materials = obj.material instanceof Array ? obj.material : [obj.material];
-  materials = materials.map(material => {
-    if (!(material instanceof MeshBasicMaterial)) {
-      // everything is unlit for NFS1
-      // TODO fix exporter so NFS1 models will already be unlit
-      material = new MeshBasicMaterial({
-        map: material instanceof MeshStandardMaterial ? material.map : null,
-        side: material.side,
-        transparent: !isCar || ['shad'].includes(obj.name),
-        alphaTest: !isCar || ['shad'].includes(obj.name) ? 0.5 : 1,
-      });
-    }
-    if (material instanceof MeshBasicMaterial && material.map) {
-      material.map.wrapS = ClampToEdgeWrapping;
-      material.map.wrapT = ClampToEdgeWrapping;
-      setupNfs1Texture(material.map);
-      material.map.needsUpdate = true;
-    }
-    return material;
-  });
-  obj.material = materials.length > 1 ? materials : materials[0];
-};
-
 export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo, any> {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
+  private readonly objLoader = new OBJLoader();
 
-  constructor(public override readonly mapGraph: MapGraph, public readonly famPath: string) {
-    super(mapGraph, { loadDepth: 50, inertia: 2 });
+  public resource: Resource | null = null;
+  public isOpenedTrack: boolean = false;
+
+  constructor(
+    public override readonly mapGraph: MapGraph,
+    public readonly famPath: string | null,
+    private readonly hideUnknownEntities$: BehaviorSubject<boolean>,
+  ) {
+    super(mapGraph, { loadDepth: 40, inertia: 2 });
+  }
+
+  private _placeholder: Texture | null = null;
+  private _placeholderPromise: Promise<Texture> | null = null;
+
+  unknownEntities: Set<Entity3d> = new Set<Entity3d>();
+
+  override onSpawned(world: Gg3dWorld<ThreeVisualTypeDocRepo, any>) {
+    super.onSpawned(world);
+    this.hideUnknownEntities$.pipe(distinctUntilChanged(), takeUntil(this._onRemoved$)).subscribe(hide => {
+      for (const e of this.unknownEntities) {
+        e.visible = !hide;
+      }
+    });
+  }
+
+  async getPlaceholderTexture(): Promise<Texture> {
+    if (this._placeholder) return this._placeholder;
+    if (!this._placeholderPromise) {
+      this._placeholderPromise = this.textureLoader.loadAsync('assets/placeholder_texture.png');
+    }
+    return this._placeholderPromise;
+  }
+
+  private _placeholderTerrain: Texture | null = null;
+  private _placeholderTerrainPromise: Promise<Texture> | null = null;
+
+  async getPlaceholderTerrainTexture(): Promise<Texture> {
+    if (this._placeholderTerrain) return this._placeholderTerrain;
+    if (!this._placeholderTerrainPromise) {
+      this._placeholderTerrainPromise = this.textureLoader.loadAsync('assets/placeholder_texture.png').then(texture => {
+        texture.wrapS = RepeatWrapping;
+        texture.wrapT = ClampToEdgeWrapping;
+        setupNfs1Texture(texture);
+        texture.flipY = true;
+        return texture;
+      });
+    }
+    return this._placeholderTerrainPromise;
   }
 
   protected override async loadChunk(
     node: MapGraphNodeType,
   ): Promise<[Entity3d<ThreeVisualTypeDocRepo, any>[], LoadResultWithProps<ThreeVisualTypeDocRepo, any>]> {
-    const [entities, loadResult] = await super.loadChunk(node);
-    for (const entity of entities) {
-      if (entity.object3D) {
-        entity.object3D.nativeMesh.traverse(node => {
-          if (node instanceof Mesh) {
-            node.material = this.getTerrainMaterial(
-              (node.userData['name'] || node.name)
-                .substr((node.userData['name'] || node.name).lastIndexOf('_') + 1)
-                .split('.')[0],
-            );
-          }
-        });
+    const object = await this.objLoader.loadAsync(node.path + '.obj');
+    object.position.set(node.position.x, node.position.y, node.position.z);
+    object.traverse(node => {
+      if (node instanceof Mesh) {
+        node.material = this.getTerrainMaterial(
+          (node.userData['name'] || node.name)
+            .substr((node.userData['name'] || node.name).lastIndexOf('_') + 1)
+            .split('.')[0],
+        );
       }
+    });
+    let chunkIndex = +node.path.split('_')[node.path.split('_').length - 1];
+    let proxyInstances = (this.resource!.data.proxy_object_instances || [])
+      .filter(
+        (x: any) =>
+          x.reference_road_spline_vertex >= chunkIndex * 4 && x.reference_road_spline_vertex < (chunkIndex + 1) * 4,
+      )
+      .map((x: any) => ({
+        ...x,
+        ...this.resource!.data.proxy_objects[x.proxy_object_index],
+        position: Pnt3.add(
+          { x: x.position.x, y: x.position.z, z: x.position.y },
+          {
+            x: this.resource!.data.road_spline[x.reference_road_spline_vertex].position.x,
+            y: this.resource!.data.road_spline[x.reference_road_spline_vertex].position.z,
+            z: this.resource!.data.road_spline[x.reference_road_spline_vertex].position.y,
+          },
+        ),
+        rotation: Qtrn.fromAngle(
+          Pnt3.nZ,
+          x.rotation + this.resource!.data.road_spline[x.reference_road_spline_vertex].orientation,
+        ),
+      }));
+    const props = (await Promise.all(proxyInstances.map((x: any) => this.loadPropInternal(x)))).filter(
+      p => !!p,
+    ) as Entity3d<ThreeVisualTypeDocRepo, any>[];
+    const entity: Entity3d<ThreeVisualTypeDocRepo, any> = new Entity3d(new ThreeDisplayObjectComponent(object));
+    this.addChildren(entity, ...props);
+    this.loaded.set(node, [entity, ...props]);
+    return [[entity, ...props], null!];
+  }
+
+  protected override disposeChunk(node: MapGraphNodeType) {
+    for (const c of this.loaded.get(node) || []) {
+      this.unknownEntities.delete(c as Entity3d);
     }
-    const props = (
-      await Promise.all(loadResult.meta.dummies.filter(x => x.is_prop).map(dummy => this.loadPropInternal(dummy)))
-    ).filter(p => !!p) as Entity3d<ThreeVisualTypeDocRepo, any>[];
-    for (const prop of props) {
-      prop.position = Pnt3.add(prop.position, node.position);
-    }
-    const updatedEntities = [...entities, ...props];
-    this.loaded.set(node, updatedEntities);
-    this.addChildren(...props);
-    return [updatedEntities, loadResult];
+    super.disposeChunk(node);
   }
 
   getTerrainMaterial(matId: string): Material {
     if (!this.terrainMaterials[matId]) {
       this.terrainMaterials[matId] = new MeshBasicMaterial({ side: DoubleSide, transparent: true, visible: false });
-      this.textureLoader
-        .loadAsync(`${this.famPath}/background/${matId}.png`)
-        .then(texture => {
-          texture.wrapS = RepeatWrapping;
-          texture.wrapT = ClampToEdgeWrapping;
-          setupNfs1Texture(texture);
-          texture.flipY = false;
+      if (this.famPath) {
+        this.textureLoader
+          .loadAsync(`${this.famPath}/background/${matId}.png`)
+          .then(texture => {
+            texture.wrapS = RepeatWrapping;
+            texture.wrapT = ClampToEdgeWrapping;
+            setupNfs1Texture(texture);
+            texture.flipY = true;
+            this.terrainMaterials[matId].map = texture;
+            this.terrainMaterials[matId].needsUpdate = true;
+            this.terrainMaterials[matId].visible = true;
+          })
+          .catch(err => {
+            console.warn(`Problem with loading terrain material ${matId}`);
+            this.getPlaceholderTerrainTexture().then(texture => {
+              this.terrainMaterials[matId].map = texture;
+              this.terrainMaterials[matId].needsUpdate = true;
+              this.terrainMaterials[matId].visible = true;
+            });
+          });
+      } else {
+        this.getPlaceholderTerrainTexture().then(texture => {
           this.terrainMaterials[matId].map = texture;
           this.terrainMaterials[matId].needsUpdate = true;
           this.terrainMaterials[matId].visible = true;
-        })
-        .catch(err => {
-          console.warn(`Problem with loading terrain material ${matId}`);
         });
+      }
     }
     return this.terrainMaterials[matId];
   }
 
-  protected async loadPropInternal(dummy: GgDummy): Promise<Entity3d<ThreeVisualTypeDocRepo, any> | null> {
+  protected async loadPropInternal(dummy: any): Promise<Entity3d<ThreeVisualTypeDocRepo, any> | null> {
+    let isUnknown = false;
     if (dummy.type == MapPropType.ThreeModel) {
       // 3D model
-      const {
-        entities: [proxy],
-      } = await this.world!.loader.loadGgGlb(`${this.famPath}/props/${dummy['model_ref_id']}/0/body`, {
-        loadProps: false,
-        cachingStrategy: CachingStrategy.Entities,
-      });
-      proxy.object3D!.nativeMesh.traverse(obj => {
-        if (obj instanceof Mesh) {
-          fixGltfMaterialsForNfs1(obj, false);
+      let object: ThreeDisplayObjectComponent;
+      try {
+        if (!this.famPath) throw new Error();
+        const mtlLoader = new MTLLoader();
+        const objLoader = new OBJLoader();
+        const mtl = await mtlLoader.loadAsync(
+          `${this.famPath}/props/${dummy.proxy_object_data.data.resource_id}/0/material.mtl`,
+        );
+        mtl.preload();
+        objLoader.setMaterials(mtl);
+        object = new ThreeDisplayObjectComponent(
+          await objLoader.loadAsync(`${this.famPath}/props/${dummy.proxy_object_data.data.resource_id}/0/geometry.obj`),
+        );
+      } catch (err) {
+        isUnknown = true;
+        object = this.world!.visualScene.factory.createPrimitive(
+          { shape: 'SPHERE', radius: 5 },
+          { diffuse: await this.getPlaceholderTexture() },
+        );
+      }
+      object.nativeMesh.traverse(x => {
+        if (x instanceof Mesh) {
+          const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
+          for (const m of materials) {
+            m.transparent = true;
+            m.alphaTest = 0.5;
+            if (m instanceof MeshBasicMaterial && m.map) {
+              m.map.wrapS = ClampToEdgeWrapping;
+              m.map.wrapT = ClampToEdgeWrapping;
+              setupNfs1Texture(m.map);
+              m.map.needsUpdate = true;
+            }
+          }
         }
       });
+      const proxy = new Entity3d<ThreeVisualTypeDocRepo>(object);
       proxy.position = dummy.position;
       proxy.rotation = dummy.rotation;
+      if (isUnknown) {
+        this.unknownEntities.add(proxy);
+        proxy.visible = !this.hideUnknownEntities$.getValue();
+      }
+      this.world!.addEntity(proxy);
       return proxy;
     } else if (dummy.type == MapPropType.Bitmap || dummy.type == MapPropType.TwoSidedBitmap) {
+      const textureIds = (resId: number, framesAmount: number) =>
+        new Array(framesAmount)
+          .fill(null)
+          .map((_, i) =>
+            this.isOpenedTrack
+              ? `${Math.floor(resId / 4) + i}/0000`
+              : `0/${(Math.floor(resId / 4) + i).toString().padStart(2, '0')}00`,
+          )
+          .join(';');
+
       const object: Object3D = new Group();
-      const plane = await this.loadTexturePlaneProp(
-        dummy['texture'],
+      const [plane, isUnknown] = await this.loadTexturePlaneProp(
+        textureIds(
+          dummy.proxy_object_data.data.resource_id,
+          dummy.flags.is_animated ? dummy.proxy_object_data.data.frame_count : 1,
+        ),
         {
-          x: dummy.width,
-          y: dummy.height,
+          x: dummy.proxy_object_data.data.width,
+          y: dummy.proxy_object_data.data.height,
         },
-        dummy['animation_interval'],
+        dummy.proxy_object_data.data.animation_interval,
       );
       object.add(plane);
       if (dummy.type == MapPropType.TwoSidedBitmap) {
-        const plane2 = await this.loadTexturePlaneProp(
-          dummy['back_texture'],
+        const [plane2, isUnknown] = await this.loadTexturePlaneProp(
+          textureIds(dummy.proxy_object_data.data.resource_2_id, 1),
           {
-            x: dummy.width,
-            y: dummy.height,
+            x: dummy.proxy_object_data.data.width_2,
+            y: dummy.proxy_object_data.data.height,
           },
-          dummy['animation_interval'],
+          dummy.proxy_object_data.data.animation_interval,
         );
         plane2.rotateY(Math.PI / 2);
-        plane2.position.x = plane2.position.y = dummy.width / 2;
+        plane2.position.x = dummy.proxy_object_data.data.width / 2;
+        plane2.position.y = dummy.proxy_object_data.data.width_2 / 2;
         object.add(plane2);
       }
       const entity = new Entity3d<ThreeVisualTypeDocRepo, any>(new ThreeDisplayObjectComponent(object), null);
       entity.position = dummy.position;
       entity.rotation = dummy.rotation;
+      if (isUnknown) {
+        this.unknownEntities.add(entity);
+        entity.visible = !this.hideUnknownEntities$.getValue();
+      }
       return entity;
     }
     return null;
   }
 
-  private async loadTexturePlaneProp(texture: string, size: Point2, animationInterval: number): Promise<Object3D> {
+  private async loadTexturePlaneProp(
+    texture: string,
+    size: Point2,
+    animationInterval: number,
+  ): Promise<[Object3D, boolean]> {
     const textures = texture.split(';');
-    const maps = await Promise.all(
-      textures.map(t => this.textureLoader.loadAsync(`${this.famPath}/foreground/${t}.png`)),
-    );
+    const placeholder = await this.getPlaceholderTexture();
+    let isUnknown = false;
+    let maps = [];
+    if (!this.famPath) {
+      isUnknown = true;
+      maps = textures.map(() => placeholder);
+    } else {
+      maps = await Promise.all(
+        textures.map(t =>
+          this.textureLoader.loadAsync(`${this.famPath}/foreground/${t}.png`).catch(() => {
+            isUnknown = true;
+            return placeholder;
+          }),
+        ),
+      );
+    }
     const materials = maps.map(map => {
       setupNfs1Texture(map);
       return new MeshBasicMaterial({ map, alphaTest: 0.5, transparent: true, side: DoubleSide });
@@ -210,7 +335,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
           plane.material = materials[i];
         });
     }
-    return plane;
+    return [plane, isUnknown];
   }
 }
 
@@ -224,37 +349,39 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
-  _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-
-  get resourceData(): ReadData | null {
-    return this._resourceData$.getValue();
+  get resource(): Resource | null {
+    return this._resource$.getValue();
   }
 
-  @Input() set resourceData(value: ReadData | null) {
-    this._resourceData$.next(value);
+  @Input()
+  set resource(value: Resource | null) {
+    this._resource$.next(value);
   }
+
+  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   previewFamLocation$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   previewFamLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-  private previewGlbPath: string | undefined;
+  private terrainChunksObjLocation: string | undefined;
 
   pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
 
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
-  selectedSplineItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  selectedAiInfoItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
-  selectedTerrainItem$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  selectedSplineItem$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  selectedAiInfoItem$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  selectedTerrainItem$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
 
-  famPath: string = '';
+  famPath: string | null = null;
   name: string = '';
   world!: Gg3dWorld<ThreeVisualTypeDocRepo, any, ThreeSceneComponent>;
   renderer: Renderer3dEntity<ThreeVisualTypeDocRepo> | null = null;
   map: Nfs1MapWorldEntity | null = null;
-  roadPath: GgCurve | null = null;
+  isOpenedTrack: boolean = true;
   controller!: FreeCameraController;
+  roadPath: Point3[] | null = null;
   skySphere!: Entity3d<ThreeVisualTypeDocRepo>;
   selectionSphere!: Entity3d<ThreeVisualTypeDocRepo>;
 
@@ -267,7 +394,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   ) {}
 
   get previewFamPossibleLocations(): string[] {
-    const blockId = this.resourceData?.block_id;
+    const blockId = this.resource?.id;
     if (blockId) {
       return [
         blockId.substring(0, blockId.indexOf('MISC')) +
@@ -298,13 +425,9 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   get roadSpline(): Point3[] {
     return (
-      (this.resourceData?.value.road_spline.value || [])
-        .filter((_: any, i: number) => i < (this.resourceData?.value.terrain_length.value * 4 || 0))
-        .map((d: any) => ({
-          x: d.value.position.value.x.value,
-          y: d.value.position.value.y.value,
-          z: d.value.position.value.z.value,
-        })) || []
+      (this.resource?.data.road_spline || [])
+        .filter((_: any, i: number) => i < (this.resource?.data.terrain_length * 4 || 0))
+        .map((d: any) => d.position) || []
     );
   }
 
@@ -382,37 +505,42 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     updateSize();
     this.world.start();
 
-    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
+    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
       this.previewLoading$.next(true);
+      await this.loadTerrainChunks(res?.id);
+      await this.loadPreview();
       if (this.previewFamPossibleLocations[0]) {
         this.previewFamLocation$.next(this.previewFamPossibleLocations[0]);
         await this.onFamSelected(this.previewFamPossibleLocations[0]);
       }
-      await this.loadPreviewGlbPath(data?.block_id);
-      await this.loadPreview();
       this.previewLoading$.next(false);
     });
     this.mainService.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceData && blockId.startsWith(this.resourceData!.block_id)),
+        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
         debounceTime(3000),
       )
       .subscribe(async () => {
         this.previewLoading$.next(true);
-        await this.postTmpUpdates(this.resourceData?.block_id);
+        await this.postTmpUpdates(this.resource?.id);
         await this.loadPreview();
         this.previewLoading$.next(false);
       });
 
     this.selectedSplineIndex$.pipe(takeUntil(this.destroyed$), debounceTime(250)).subscribe(i => {
-      if (this.roadPath) {
-        const point = this.roadPath.points[i];
-        if (!point) {
+      if (this.resource) {
+        const item = this.resource.data.road_spline[i];
+        if (!item) {
           return;
         }
+        const point = {
+          x: item.position.x,
+          y: item.position.z,
+          z: item.position.y,
+        };
         this.selectionSphere.position = point;
-        const orientation = this.resourceData!.value.road_spline.value[i].value.orientation.value;
+        const orientation = this.resource!.data.road_spline[i].orientation;
         if (this.renderer) {
           this.renderer.position = Pnt3.add(
             point,
@@ -422,16 +550,28 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         }
       }
       this.selectedSplineItem$.next({
-        block: this.resourceData!.value.road_spline.block,
-        ...this.resourceData!.value.road_spline.value[i],
+        id: joinId(this.resource!.id, `road_spline/${i}`),
+        data: this.resource!.data.road_spline[i],
+        schema: (this.resource!.schema.fields || []).find(
+          (x: { name: string; schema: BlockSchema }) => x.name === 'road_spline',
+        )?.schema.child_schema,
+        name: '',
       });
       this.selectedAiInfoItem$.next({
-        block: this.resourceData!.value.ai_info.block,
-        ...this.resourceData!.value.ai_info.value[Math.floor(i / 4)],
+        id: joinId(this.resource!.id, `ai_info/${Math.floor(i / 4)}`),
+        data: this.resource!.data.ai_info[Math.floor(i / 4)],
+        schema: (this.resource!.schema.fields || []).find(
+          (x: { name: string; schema: BlockSchema }) => x.name === 'ai_info',
+        )?.schema.child_schema,
+        name: '',
       });
       this.selectedTerrainItem$.next({
-        block: this.resourceData!.value.terrain.block,
-        ...this.resourceData!.value.terrain.value[Math.floor(i / 4)],
+        id: joinId(this.resource!.id, `terrain/${Math.floor(i / 4)}`),
+        data: this.resource!.data.terrain[Math.floor(i / 4)],
+        schema: (this.resource!.schema.fields || []).find(
+          (x: { name: string; schema: BlockSchema }) => x.name === 'terrain',
+        )?.schema.child_schema,
+        name: '',
       });
     });
   }
@@ -440,13 +580,12 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     if (path == 'custom' || this.famPath == path) {
       return;
     }
-    this.famPath = path;
     this.previewFamLoading$.next(true);
     try {
       const files = await this.eelDelegate.serializeResource(path, {
-        geometry__save_obj: false,
+        geometry__save_obj: true,
         geometry__save_blend: false,
-        geometry__export_to_gg_web_engine: true,
+        geometry__export_to_gg_web_engine: false,
       });
       const loader = new TextureLoader();
       const skyPath = files.find(x => x.endsWith('spherical.png'));
@@ -459,55 +598,64 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = null;
       }
       ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).needsUpdate = true;
+      this.famPath = path;
+    } catch (err) {
+      ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = null;
+      ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).needsUpdate = true;
+      this.famPath = null;
     } finally {
       this.previewFamLoading$.next(false);
     }
     await this.loadPreview();
   }
 
-  private async loadPreviewGlbPath(blockId: string | undefined) {
+  private async loadTerrainChunks(blockId: string | undefined) {
     if (blockId) {
       const paths = await this.eelDelegate.serializeResource(blockId, {
-        geometry__save_obj: false,
+        geometry__save_obj: true,
         geometry__save_blend: false,
-        geometry__export_to_gg_web_engine: true,
+        geometry__export_to_gg_web_engine: false,
         maps__save_as_chunked: true,
         maps__save_invisible_wall_collisions: false,
         maps__save_terrain_collisions: false,
         maps__save_spherical_skybox_texture: true,
       });
-      this.previewGlbPath = paths.find(x => x.endsWith('map.glb'))!;
+      this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
     } else {
-      this.previewGlbPath = undefined;
+      this.terrainChunksObjLocation = undefined;
     }
   }
 
   private async loadPreview() {
-    if (!this.previewGlbPath) {
+    this.roadPath =
+      this.resource?.data.road_spline
+        .map((p: any) => ({
+          x: p.position.x,
+          y: p.position.z,
+          z: p.position.y,
+        }))
+        .filter((_: any, i: number) => i % 4 === 0)
+        .slice(0, this.resource!.data.terrain_length) || null;
+    this.isOpenedTrack = !this.roadPath || Pnt3.dist(this.roadPath[0], this.roadPath[this.roadPath.length - 1]) > 100;
+    if (!this.terrainChunksObjLocation || !this.roadPath) {
       return;
     }
-    const { meta } = await this.world!.loader.loadGgGlb(
-      this.previewGlbPath.substring(0, this.previewGlbPath.length - 4),
-      {
-        loadProps: false,
-      },
-    );
-    this.roadPath = meta.curves.find(curve => curve.name === 'road_path')!;
     const chunksGraph = MapGraph.fromMapArray(
-      this.roadPath.points
-        .filter((_: any, i: number) => i % 4 === 0)
-        .map((position: Point3, i: number) => ({
-          path: `${this.previewGlbPath!.substring(0, this.previewGlbPath!.lastIndexOf('/'))}/terrain_chunk_${i}`,
-          position,
-          loadOptions: {
-            cachingStrategy: CachingStrategy.Nothing,
-            loadProps: false, // props loader is custom and defined in Nfs1MapWorldEntity
-          },
-        })) || [],
-      this.roadPath.cyclic,
+      this.roadPath.map((position: Point3, i: number) => ({
+        path: `${this.terrainChunksObjLocation}terrain_chunk_${i}`,
+        position,
+        loadOptions: {},
+      })) || [],
+      !this.isOpenedTrack,
     );
     this.unloadPreview();
-    this.map = new Nfs1MapWorldEntity(chunksGraph, 'resources/' + this.famPath);
+    this.map = new Nfs1MapWorldEntity(
+      chunksGraph,
+      this.famPath && 'resources/' + this.famPath,
+      this.mainService.hideHiddenFields$,
+    );
+    this.map.resource = this.resource;
+    this.map.isOpenedTrack = this.isOpenedTrack;
     this.map.loaderCursorEntity$.next(this.renderer);
     this.world.addEntity(this.map!);
     this.cdr.markForCheck();
@@ -532,18 +680,18 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
             return { id, value };
           }),
         {
-          geometry__save_obj: false,
+          geometry__save_obj: true,
           geometry__save_blend: false,
-          geometry__export_to_gg_web_engine: true,
+          geometry__export_to_gg_web_engine: false,
           maps__save_as_chunked: true,
           maps__save_invisible_wall_collisions: false,
           maps__save_terrain_collisions: false,
           maps__save_spherical_skybox_texture: true,
         },
       );
-      this.previewGlbPath = paths.find(x => x.endsWith('map.glb'))!;
+      this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
     } else {
-      this.previewGlbPath = undefined;
+      this.terrainChunksObjLocation = undefined;
     }
   }
 
@@ -551,7 +699,4 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.destroyed$.next();
     this.destroyed$.complete();
   }
-
-  protected readonly Math = Math;
-  protected readonly Object = Object;
 }

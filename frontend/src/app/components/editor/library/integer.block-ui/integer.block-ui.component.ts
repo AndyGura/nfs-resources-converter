@@ -8,8 +8,10 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IntegerBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
-  name: string = '';
+  @Input() resource: Resource | null = null;
+
+  @Input()
+  resourceDescription: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 

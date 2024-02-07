@@ -13,7 +13,8 @@ from library import require_file, require_resource
 from library.loader import clear_file_cache
 from library.utils.file_utils import remove_file_or_directory
 from library.utils.file_utils import start_file
-from serializers import get_serializer, DataTransferSerializer
+from serializers import get_serializer
+from serializers.misc.json_utils import convert_bytes
 
 
 def __apply_delta_to_resource(resource_id, resource, changes: Dict):
@@ -23,15 +24,15 @@ def __apply_delta_to_resource(resource_id, resource, changes: Dict):
             warning('Skipped change ' + delta['id'] + '. Wrong ID')
         sub_id = delta['id'][len(resource_id) + len(suffix):]
         field = resource
-        for subkey in sub_id.split('/'):
-            try:
-                field = getattr(field, subkey)
-            except AttributeError:
-                if isinstance(field.value, list):
-                    field = field[int(subkey)]
-                else:
-                    field = field[subkey]
-        field.value = delta['value']
+        for subkey in sub_id.split('/')[:-1]:
+            if isinstance(field, list):
+                field = field[int(subkey)]
+            else:
+                field = field.get(subkey)
+        if isinstance(field, list):
+            field[int(sub_id.split('/')[-1])] = delta['value']
+        else:
+            field[sub_id.split('/')[-1]] = delta['value']
 
 
 def run_gui_editor(file_path):
@@ -41,8 +42,9 @@ def run_gui_editor(file_path):
     copy_tree('frontend/dist/gui', static_path)
 
     # app state
-    current_file_id = None
-    current_file = None
+    current_file_name = None
+    current_file_data = None
+    current_file_block = None
 
     def init_eel_state():
 
@@ -52,17 +54,28 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def open_file(path: str, force_reload: bool = False):
-            nonlocal current_file
-            nonlocal current_file_id
+            nonlocal current_file_name
+            nonlocal current_file_data
+            nonlocal current_file_block
             try:
                 if (force_reload):
                     clear_file_cache(path)
-                current_file = require_file(path)
-                current_file_id = current_file.block_state['id']
+                (name, block, data) = require_file(path)
+                current_file_name = name
+                current_file_data = data
+                current_file_block = block
             except Exception as ex:
-                current_file = ex
-                current_file_id = path
-            return DataTransferSerializer().serialize(current_file)
+                current_file_data = {
+                    'error_class': ex.__class__.__name__,
+                    'error_text': str(ex),
+                }
+                current_file_name = path
+                current_file_block = None
+            return {
+                'name': current_file_name,
+                'schema': current_file_block.schema if current_file_block else None,
+                'data': convert_bytes(current_file_data)
+            }
 
         @eel.expose
         def open_file_with_system_app(path: str):
@@ -72,8 +85,8 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def save_file(path: str, changes: Dict):
-            __apply_delta_to_resource(current_file_id, current_file, changes)
-            bts = current_file.to_bytes()
+            __apply_delta_to_resource(current_file_name, current_file_data, changes)
+            bts = current_file_block.pack(current_file_data)
             f = open(path, 'wb')
             f.write(bts)
             f.close()
@@ -81,19 +94,19 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def run_custom_action(resource_id: str, action: Dict, args: Dict):
-            _, resource = require_resource(resource_id)
-            action_func = getattr(resource.block, f'action_{action["method"]}')
+            (name, res_block, resource), _ = require_resource(resource_id)
+            action_func = getattr(res_block, f'action_{action["method"]}')
             action_func(resource, **args)
-            return DataTransferSerializer().serialize(resource)
+            return convert_bytes(resource)
 
         @eel.expose
         def serialize_resource(id: str, settings_patch={}):
-            resource, top_level_resource = require_resource(id)
-            serializer = get_serializer(resource.block)
+            (_, res_block, res), (_, top_level_block, top_level_res) = require_resource(id)
+            serializer = get_serializer(res_block, res)
             path = os.path.join(static_path, 'resources', *id.split('/'))
             if settings_patch:
                 serializer.patch_settings(settings_patch)
-            serializer.serialize(resource, path)
+            serializer.serialize(res, path, id, res_block)
             normal_slashes_path = path.replace('\\', '/')
             exported_file_paths = [str(x)[len(static_path):]
                                    for x in chain(Path(normal_slashes_path).glob("**/*"),
@@ -108,13 +121,13 @@ def run_gui_editor(file_path):
         # serializes data in any case
         # returns file list and flag is it possible to deserialize files back
         def serialize_reversible(id: str, changes: Dict):
-            resource, _ = require_resource(id)
+            (id, res_block, resource), _ = require_resource(id)
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
-            serializer = get_serializer(resource.block)
+            serializer = get_serializer(res_block, resource)
             path = os.path.join(static_path, 'resources_edit', *id.split('/'))
             reverse_flag = serializer.setup_for_reversible_serialization()
-            serializer.serialize(resource, path)
+            serializer.serialize(resource, path, id, res_block)
             normal_slashes_path = path.replace('\\', '/')
             return [str(x)[len(static_path):]
                     for x in chain(Path(normal_slashes_path).glob("**/*"),
@@ -122,17 +135,16 @@ def run_gui_editor(file_path):
                                        normal_slashes_path[(normal_slashes_path.rindex('/') + 1):] + '.*'))
                     if not x.is_dir()], reverse_flag
 
-
         @eel.expose
         def serialize_resource_tmp(id: str, changes: Dict, settings_patch={}):
-            resource, _ = require_resource(id)
+            (_, res_block, resource), _ = require_resource(id)
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
-            serializer = get_serializer(resource.block)
+            serializer = get_serializer(res_block, resource)
             path = os.path.join(static_path, 'resources_tmp', *id.split('/'))
             if settings_patch:
                 serializer.patch_settings(settings_patch)
-            serializer.serialize(resource, path)
+            serializer.serialize(resource, path, id, res_block)
             normal_slashes_path = path.replace('\\', '/')
             return [str(x)[len(static_path):]
                     for x in chain(Path(normal_slashes_path).glob("**/*"),
@@ -142,14 +154,16 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def deserialize_resource(id: str):
-            resource, _ = require_resource(id)
-            serializer = get_serializer(resource.block)
+            (id, res_block, resource), _ = require_resource(id)
+            serializer = get_serializer(res_block, resource)
             path = os.path.join(static_path, 'resources_edit', *id.split('/'))
-            serializer.deserialize(path, resource)
+            updated_data = serializer.deserialize(path, id, res_block)
+            resource.clear()
+            resource.update(updated_data)
             remove_file_or_directory(os.path.join(static_path, 'resources', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_tmp', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_edit', *id.split('/')))
-            return DataTransferSerializer().serialize(current_file)
+            return convert_bytes(resource)
 
     eel.init(static_path)
     init_eel_state()

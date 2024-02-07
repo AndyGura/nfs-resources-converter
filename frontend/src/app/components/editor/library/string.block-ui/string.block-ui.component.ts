@@ -8,10 +8,25 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StringBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceData: ReadData | null = null;
-  name: string = '';
+  get resource(): Resource | null {
+    return this._resource;
+  }
+
+  @Input() set resource(value: Resource | null) {
+    this._resource = value;
+    if (!isNaN(+this._resource?.schema.length)) {
+      this.minLength = this.maxLength = +this._resource?.schema.length;
+    }
+  }
+  private _resource: Resource | null = null;
+
+  @Input()
+  resourceDescription: string = '';
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+
+  minLength: number | null = null;
+  maxLength: number | null = null;
 
   constructor() {}
 }

@@ -19,18 +19,16 @@ import { MainService } from '../../../../services/main.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewInit {
-  _resourceData$: BehaviorSubject<ReadData | null> = new BehaviorSubject<ReadData | null>(null);
+  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  @Input() set resourceData(value: ReadData | null) {
-    this._resourceData$.next(value);
+  @Input() set resource(value: Resource | null) {
+    this._resource$.next(value);
   }
 
-  get resourceData(): ReadData | null {
-    return this._resourceData$.getValue();
+  get resource(): Resource | null {
+    return this._resource$.getValue();
   }
-
-  name: string = '';
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -43,9 +41,9 @@ export class BitmapBlockUiComponent implements GuiComponentInterface, AfterViewI
   ) {}
 
   async ngAfterViewInit() {
-    this._resourceData$.pipe(takeUntil(this.destroyed$)).subscribe(async data => {
-      if (data) {
-        const paths = await this.eelDelegate.serializeResource(data.block_id);
+    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
+      if (res) {
+        const paths = await this.eelDelegate.serializeResource(res.id);
         this.imageUrl$.next(paths.find(x => x.endsWith('.png')) || null);
       } else {
         this.imageUrl$.next(null);

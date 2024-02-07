@@ -24,6 +24,7 @@ SERIALIZER_CLASSES = {
     'DashDeclarationFile': 'JsonSerializer',
     'FfnFont': 'FfnFontSerializer',
     'Palette16Bit': 'PaletteSerializer',
+    'Palette16BitDos': 'PaletteSerializer',
     'Palette24BitDos': 'PaletteSerializer',
     'Palette24Bit': 'PaletteSerializer',
     'Palette32Bit': 'PaletteSerializer',
@@ -33,15 +34,12 @@ SERIALIZER_CLASSES = {
     'WwwwBlock': 'WwwwArchiveSerializer',
     'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',
     'SoundBank': 'SoundBankSerializer',
-    'EacsAudio': 'EacsAudioSerializer',
+    'EacsAudioFile': 'EacsAudioSerializer',
     'AsfAudio': 'FfmpegSupportedAudioSerializer',
     'TnfsConfigDat': 'JsonSerializer',
+    'ShpiText': 'ShpiTextSerializer',
 }
-# for debug: this option will dump all data, marked as "unknown" to json file besides the output
-export_unknown_values = False
 
-# save palette, which is a part of 8bit bitmap and not listed in SHPI block
-images__save_inline_palettes = False
 # skip saving palette, image positions
 images__save_images_only = False
 
@@ -63,6 +61,6 @@ geometry__save_obj = False
 geometry__save_blend = True
 # export to gg-web-engine https://github.com/AndyGura/gg-web-engine
 geometry__export_to_gg_web_engine = False
-# removes empty polygons, representing whels and their shadow. Places a dummy on the position where wheel axle
+# removes empty polygons, representing wheels and their shadow. Places a dummy on the position where wheel axle
 # located and set wheel width, radius as custom properties of the dummy instead
 geometry__replace_car_wheel_with_dummies = True

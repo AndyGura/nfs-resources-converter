@@ -7,12 +7,12 @@ import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
   styleUrls: ['./sidenav-res-list.component.scss'],
 })
 export class SidenavResListComponent {
-  _resources: { [key: string]: ReadData | ReadError } = {};
-  get resources(): { [key: string]: ReadData | ReadError } {
+  _resources: { [key: string]: BlockData | ReadError } = {};
+  get resources(): { [key: string]: BlockData | ReadError } {
     return this._resources;
   }
 
-  @Input() set resources(value: { [key: string]: ReadData | ReadError }) {
+  @Input() set resources(value: { [key: string]: BlockData | ReadError }) {
     const listUpdated = !this._resources || !this.deep.deepEquals(Object.keys(this._resources), Object.keys(value));
     this._resources = value;
     if (listUpdated) {

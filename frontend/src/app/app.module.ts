@@ -25,7 +25,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BinaryBlockUiComponent } from './components/editor/library/binary.block-ui/binary.block-ui.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
-import { AngleBlockUiComponent } from './components/editor/library/angle.block-ui/angle.block-ui.component';
+import { AngleBlockUiComponent } from './components/editor/eac/angle.block-ui/angle.block-ui.component';
 import { SidenavResListComponent } from './components/editor/common/sidenav-res-list/sidenav-res-list.component';
 import { ShpiBlockUiComponent } from './components/editor/eac/shpi.block-ui/shpi.block-ui.component';
 import { MatListModule } from '@angular/material/list';
@@ -43,6 +43,10 @@ import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
+import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
+import { MatOptionModule } from '@angular/material/core';
+import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.block-ui/fence-type.block-ui.component';
+import { BlockActionsComponent } from './components/editor/common/block-actions/block-actions.component';
 
 @NgModule({
   declarations: [
@@ -68,6 +72,9 @@ import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minim
     RunCustomActionDialogComponent,
     OripGeometryBlockUiComponent,
     MinimapComponent,
+    DelegateBlockUiComponent,
+    FenceTypeBlockUiComponent,
+    BlockActionsComponent,
   ],
   imports: [
     BrowserModule,
@@ -91,6 +98,7 @@ import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minim
     MatProgressSpinnerModule,
     MatMenuModule,
     ReactiveFormsModule,
+    MatOptionModule,
   ],
   providers: [EelDelegateService, NgxDeepEqualsPureService],
   bootstrap: [AppComponent],

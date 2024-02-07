@@ -1,6 +1,3 @@
-from resources.eac.bitmaps import AnyBitmapBlock
-
-
 # Mesh with one single texture
 class SubMesh:
     def __init__(self):
@@ -11,7 +8,8 @@ class SubMesh:
         self.texture_id = None
         self.scaled_uvs = set()
 
-    def to_obj(self, face_index_increment, multiply_uvws=False, textures_shpi_block=None, mtllib=None,
+    def to_obj(self, face_index_increment, multiply_uvws=False, textures_shpi_block=None, textures_shpi_data=None,
+               mtllib=None,
                pivot_offset=(0, 0, 0)) -> str:
         res = f'\n\no {self.name}'
         if mtllib is not None:
@@ -23,11 +21,13 @@ class SubMesh:
         if multiply_uvws:
             uvs_scaled_to_texture = False
             if self.texture_id:
-                for texture in textures_shpi_block.children:
-                    if isinstance(texture.block, AnyBitmapBlock) and texture.id.split('/')[-1] == self.texture_id:
-                        u_multiplier, v_multiplier = 1 / texture.width.value, 1 / texture.height.value
-                        uvs_scaled_to_texture = True
-                        break
+                try:
+                    idx = textures_shpi_data['children_aliases'].index(self.texture_id)
+                    u_multiplier, v_multiplier = (1 / textures_shpi_data['children'][idx]['data']['width'],
+                                                  1 / textures_shpi_data['children'][idx]['data']['height'])
+                    uvs_scaled_to_texture = True
+                except ValueError:
+                    pass
             if not uvs_scaled_to_texture and self.vertex_uvs:
                 u_multiplier = 1 / max([x[0] for x in self.vertex_uvs])
                 v_multiplier = 1 / max([x[1] for x in self.vertex_uvs])

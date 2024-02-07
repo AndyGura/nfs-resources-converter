@@ -1,0 +1,15 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
+}
+
+#resource-type-container {
+  display: flex;
+  column-gap: 0.5rem;
+  align-items: center;
+
+  mat-label {
+    flex-shrink: 0;
+  }
+}

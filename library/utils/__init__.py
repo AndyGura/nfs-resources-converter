@@ -3,6 +3,7 @@ from .buffer_utils import read_int, read_short, read_3int, read_byte
 
 def memoize(function):
     memo = {}
+
     def wrapper(*args):
         if args in memo:
             return memo[args]
@@ -10,7 +11,9 @@ def memoize(function):
             rv = function(*args)
             memo[args] = rv
             return rv
+
     return wrapper
+
 
 def my_import(name):
     components = name.split('.')
@@ -42,9 +45,11 @@ def transform_bitness(value: int, bitness: int) -> int:
 def generate_bit_mask(length, right_offset=0) -> int:
     return (pow(2, length) - 1) << right_offset
 
+
 @memoize
 def extract_number(value, length, right_offset=0) -> int:
     return (value & generate_bit_mask(length, right_offset)) >> right_offset
+
 
 @memoize
 def extract_numbers_with_bitness(color, *bitnesses):

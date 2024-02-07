@@ -1,5 +1,17 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+} from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
+import { joinId } from '../../../../utils/join-id';
+import { MainService } from '../../../../services/main.service';
+import { filter, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-array-block-ui',
@@ -7,23 +19,47 @@ import { GuiComponentInterface } from '../../gui-component.interface';
   styleUrls: ['./array.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ArrayBlockUiComponent implements GuiComponentInterface {
-  private _resourceData: ReadData | null = null;
-  get resourceData(): ReadData | null {
-    return this._resourceData;
+export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
+  private _resource: Resource | null = null;
+
+  @Input()
+  set resource(value: Resource | null) {
+    this._resource = value;
+    this.showAsCollapsable = this._resource?.data?.length > 5;
+    this.buildChildren();
+    this.renderPage(0, this.minPageSize);
+    this.updatePageIndexes();
+  }
+
+  get resource(): Resource | null {
+    return this._resource;
   }
 
   @Input()
-  set resourceData(value: ReadData | null) {
-    this._resourceData = value;
-    this.showAsCollapsable = this._resourceData?.value?.length > 5;
-    this.updatePageIndexes();
-    this.renderPage(0, this.minPageSize);
+  resourceDescription: string = '';
+
+  get resourceData(): BlockData | null {
+    return this._resource?.data;
   }
 
-  name: string = '';
+  protected buildChildren(): void {
+    this.children = (this.resourceData || []).map((d: BlockData, i: number) => ({
+      id: joinId(this._resource!.id, i),
+      name: '' + i,
+      data: d,
+      schema: this._resource!.schema.child_schema,
+    }));
+  }
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+
+  get schema(): BlockSchema | null {
+    return this._resource?.schema;
+  }
+
+  get name(): string | null {
+    return this._resource?.name || null;
+  }
 
   showAsCollapsable: boolean = false;
   renderContents: boolean = false;
@@ -31,14 +67,41 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
 
   minPageSize: number = 10;
   pageIndex: number = 0;
-  pageSize: number = 10;
+  pageSize: number = 0;
   pageSizeOptions = [10, 25, 50, 100];
-  renderItems: any[] = [];
+  protected children: Resource[] = [];
 
+  renderIndexes: number[] = [];
   goToIndex: number = 0;
   pageIndexes: number[] = [];
 
-  constructor(private readonly cdr: ChangeDetectorRef) {}
+  private readonly destroyed$: Subject<void> = new Subject<void>();
+
+  constructor(public main: MainService, private readonly cdr: ChangeDetectorRef) {}
+
+  ngAfterViewInit(): void {
+    this.main.dataBlockChange$
+      .pipe(
+        takeUntil(this.destroyed$),
+        // handle inner primitive fields (1 level deep) and update object with new values.
+        // this makes effect only locally in frontend
+        filter(
+          ([blockId, value]) =>
+            !!this.resource &&
+            blockId.startsWith(this.resource!.id) &&
+            !blockId.substring(this.resource!.id.length + 1).includes('/'),
+        ),
+      )
+      .subscribe(async ([blockId, value]) => {
+        const key = blockId.substring(this.resource!.id.length + 1);
+        this.resourceData[+key] = value;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
+  }
 
   onContentsTrigger(open: boolean): void {
     if (this.contentsTimeout !== undefined) {
@@ -58,18 +121,19 @@ export class ArrayBlockUiComponent implements GuiComponentInterface {
   }
 
   renderPage(pageIndex: number, pageSize: number) {
+    if (this.pageSize !== pageSize) {
+      this.renderIndexes = new Array(pageSize).fill(null).map((_, i) => i);
+    }
     this.goToIndex = this.pageIndex = pageIndex;
     this.pageSize = pageSize;
-    this.renderItems = (this.resourceData?.value || [])
-      .slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
-      .map((x: ReadData) => (!!x['block'] ? x : { ...x, block: this.resourceData?.block.child }));
+
     this.cdr.markForCheck();
   }
 
   updatePageIndexes() {
     this.goToIndex = this.pageIndex;
     this.pageIndexes = [];
-    for (let i = 0; i < Math.ceil((this.resourceData?.value || []).length / this.pageSize); i++) {
+    for (let i = 0; i < Math.ceil((this.resourceData || []).length / this.pageSize); i++) {
       this.pageIndexes.push(i);
     }
   }

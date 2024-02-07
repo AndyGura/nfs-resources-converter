@@ -5,5 +5,5 @@
     </mat-list-option>
 </mat-selection-list>
 <mat-card *ngIf="selectedValue">
-    <app-editor [name]="selectedValue" [resourceData]="resources[selectedValue]"></app-editor>
+    <app-editor [resource]="resources[selectedValue]"></app-editor>
 </mat-card>
