@@ -33,7 +33,9 @@
                    [ngModel]="selectedSplineIndex$ | async"
                    (ngModelChange)="selectedSplineIndex$.next($event)">
         </mat-form-field>
-        <app-tri-minimap [roadSpline]="roadSpline" [pointer]="pointer$ | async"></app-tri-minimap>
+        <app-tri-minimap [roadSpline]="roadSpline"
+                         [pointer]="pointer$ | async"
+                         [splineClosed]="!isOpenedTrack"></app-tri-minimap>
     </div>
 </div>
 <h4>Road spline item</h4>
