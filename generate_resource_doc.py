@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from library.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock
+from library.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock, SkipBlock
 from resources.eac import (archives,
                            bitmaps,
                            fonts,
@@ -27,13 +27,13 @@ EXPORT_RESOURCES = {
     'Maps': [
         maps.TriMap(),
         maps.RoadSplinePoint(),
-        maps.ProxyObject(),
-        maps.ProxyObjectInstance(),
+        maps.PropDescr(),
+        maps.MapProp(),
         maps.TerrainEntry(),
         maps.AIEntry(),
-        maps.ModelProxyObjectData(),
-        maps.BitmapProxyObjectData(),
-        maps.TwoSidedBitmapProxyObjectData(),
+        maps.ModelPropDescrData(),
+        maps.BitmapPropDescrData(),
+        maps.TwoSidedBitmapPropDescrData(),
     ],
     'Physics': [
         car_specs.CarPerformanceSpec(),
@@ -49,7 +49,7 @@ EXPORT_RESOURCES = {
     ],
     'Fonts': [
         fonts.FfnFont(),
-        fonts.SymbolDefinitionRecord(),
+        fonts.GlyphDefinition(),
     ],
     'Palettes': [
         palettes.PaletteReference(),
@@ -80,7 +80,9 @@ def render_value_doc_str(value: str) -> str:
 def render_type(instance: DataBlock) -> str:
     schema = instance.schema
     if isinstance(instance, DelegateBlock):
-        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x) for x in instance.possible_blocks])
+        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x)
+                                                    for x in instance.possible_blocks
+                                                    if not isinstance(x, SkipBlock)])
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
         if isinstance(instance, ArrayBlock):

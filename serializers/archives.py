@@ -165,8 +165,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         pal = pal_block.new_data()
         pal['colors'] = palette
         for pal_alias in generate_palettes:
-            new_shpi['children'].append({'choice_index': next(i for i in range(len(child_field.possible_blocks)) if
-                                                              isinstance(child_field.possible_blocks[i], Palette24BitDos)),
+            new_shpi['children'].append({'choice_index': next(i for (i, b) in enumerate(child_field.possible_blocks) if
+                                                              isinstance(b, Palette24BitDos)),
                                          'data': pal})
             new_shpi['children_aliases'].append(pal_alias)
             new_shpi['offset_payloads'].append(b'')
@@ -192,14 +192,14 @@ class WwwwArchiveSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
-        if id.endswith('.CFM') and data['children_count'] == 4:
+        if id.endswith('.CFM') and data['num_items'] == 4:
             # car CFM file
             names = ['high-poly', 'high-poly-assets', 'low-poly', 'low-poly-assets']
-        elif id.endswith('.FAM') and data['children_count'] == 4:
+        elif id.endswith('.FAM') and data['num_items'] == 4:
             # track FAM file
             names = ['background', 'foreground', 'skybox', 'props']
         else:
-            names = [str(i) for i in range(data['children_count'])]
+            names = [str(i) for i in range(data['num_items'])]
         items = list(zip(names, data['children']))
         skipped_resources = []
         # after orip skip shpi block. It will be exported by orip serializer
@@ -245,7 +245,7 @@ class SoundBankSerializer(BaseFileSerializer):
             # car soundbanks
             names = ['engine_on', 'engine_off', 'honk', 'gear']
         else:
-            names = [hex(x) for x in data['children_offsets'] if x > 0]
+            names = [hex(x) for x in data['item_ptrs'] if x > 0]
         items = zip(names, data['children'])
         skipped_resources = []
         item_block = block.field_blocks_map['children'].child

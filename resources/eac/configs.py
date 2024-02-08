@@ -3,27 +3,9 @@ from math import floor, ceil
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, UTF8Block, BytesBlock, ArrayBlock
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock
 from library.read_blocks.numbers import EnumByteBlock
-from resources.eac.fields.numbers import RationalNumber
-
-
-class TnfsRecordTime(IntegerBlock):
-
-    @property
-    def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'TNFS time field (in physics ticks?). 4-bytes unsigned integer, little-endian, '
-                                     'equals to amount of ticks (amount of seconds * 60)'}
-
-    def __init__(self, **kwargs):
-        super().__init__(length=4, is_signed=False, **kwargs)
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        return float(super().read(buffer, ctx, name, read_bytes_amount)) / 60
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        return super().write(int(data * 60), ctx, name)
+from resources.eac.fields.numbers import RationalNumber, Nfs1TimeField
 
 
 class TnfsTopSpeed(RationalNumber):
@@ -79,7 +61,7 @@ class BestRaceRecord(DeclarativeCompoundBlock):
                   {'description': 'A car identifier. Last 4 options are unclear, names came from decompiled NFS.EXE'})
         unk1 = (BytesBlock(length=11),
                 {'is_unknown': True})
-        time = TnfsRecordTime(), {'description': 'Total track time'}
+        time = Nfs1TimeField(length=4), {'description': 'Total track time in seconds'}
         unk2 = (BytesBlock(length=1),
                 {'is_unknown': True})
         top_speed = TnfsTopSpeed(), {'description': 'Top speed'}

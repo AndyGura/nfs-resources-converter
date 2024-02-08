@@ -4,7 +4,7 @@ from library.read_blocks import BitFlagsBlock, DeclarativeCompoundBlock, Integer
     UTF8Block, DelegateBlock
 from library.read_blocks.numbers import EnumByteBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
-from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1Interval
+from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
 
 
 class RoadSplinePoint(DeclarativeCompoundBlock):
@@ -16,35 +16,34 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                      ' your [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1) project'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        left_verge_distance = (RationalNumber(length=1, fraction_bits=3),
-                               {'description': 'The distance to the left edge of road. After this point the grip '
-                                               'decreases'})
-        right_verge_distance = (RationalNumber(length=1, fraction_bits=3),
-                                {'description': 'The distance to the right edge of road. After this point the grip '
-                                                'decreases'})
-        left_barrier_distance = (RationalNumber(length=1, fraction_bits=3),
-                                 {'description': 'The distance to invisible wall on the left'})
-        right_barrier_distance = (RationalNumber(length=1, fraction_bits=3),
-                                  {'description': 'The distance to invisible wall on the right'})
+        left_verge = (RationalNumber(length=1, fraction_bits=3),
+                      {'description': 'The distance to the left edge of road. After this point the grip '
+                                      'decreases'})
+        right_verge = (RationalNumber(length=1, fraction_bits=3),
+                       {'description': 'The distance to the right edge of road. After this point the grip '
+                                       'decreases'})
+        left_barrier = (RationalNumber(length=1, fraction_bits=3),
+                        {'description': 'The distance to invisible wall on the left'})
+        right_barrier = (RationalNumber(length=1, fraction_bits=3),
+                         {'description': 'The distance to invisible wall on the right'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        spline_item_mode = (EnumByteBlock(enum_names=[(0, 'lane_split'),
-                                                      (1, 'default_0'),
-                                                      (2, 'lane_merge'),
-                                                      (3, 'default_1'),
-                                                      (4, 'tunnel'),
-                                                      (5, 'cobbled_road'),
-                                                      (7, 'right_tunnel_A9_A2'),
-                                                      (9, 'left_tunnel_A4_A7'),
-                                                      (12, 'left_tunnel_A4_A8'),
-                                                      (13, 'left_tunnel_A5_A8'),
-                                                      (14, 'waterfall_audio_left_channel'),
-                                                      (15, 'waterfall_audio_right_channel'),
-                                                      (17, 'transtropolis_noise_audio'),
-                                                      (18, 'water_audio'),
-                                                      ]),
-                            {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay '
-                                            'features'})
+        item_mode = (EnumByteBlock(enum_names=[(0, 'lane_split'),
+                                               (1, 'default_0'),
+                                               (2, 'lane_merge'),
+                                               (3, 'default_1'),
+                                               (4, 'tunnel'),
+                                               (5, 'cobbled_road'),
+                                               (7, 'right_tunnel_A9_A2'),
+                                               (9, 'left_tunnel_A4_A7'),
+                                               (12, 'left_tunnel_A4_A8'),
+                                               (13, 'left_tunnel_A5_A8'),
+                                               (14, 'waterfall_audio_left_channel'),
+                                               (15, 'waterfall_audio_right_channel'),
+                                               (17, 'transtropolis_noise_audio'),
+                                               (18, 'water_audio'),
+                                               ]),
+                     {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features'})
         position = (Point3D_32(),
                     {'description': 'Coordinates of this point in 3D space'})
         slope = (Nfs1Angle14(),
@@ -56,20 +55,19 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                        'atan2(next_x - x, next_z - z)'})
         unk1 = (BytesBlock(length=2),
                 {'is_unknown': True})
-        orientation_vector_x = (IntegerBlock(length=2, is_signed=True),
-                                {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
-                                                'angle == orientation field above, used for pseudo-3D effect on '
-                                                'opponent cars. So orientation_vector_x == cos(orientation) * 32766'})
+        orientation_x = (IntegerBlock(length=2, is_signed=True),
+                         {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
+                                         'angle == orientation field above, used for pseudo-3D effect on '
+                                         'opponent cars. So orientation_x == cos(orientation) * 32766'})
         slant_b = (Nfs1Angle16(),
                    {'description': 'has the same purpose as slant_a, but is a standard signed 16-bit value. Its value '
                                    'is positive for the left, negative for the right. The approximative relation '
                                    'between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is '
                                    '14-bit, though)'})
-        orientation_vector_neg_z = (IntegerBlock(length=2, is_signed=True),
-                                    {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
-                                                    'angle == orientation field above, used for pseudo-3D effect on '
-                                                    'opponent cars. So orientation_vector_neg_z == '
-                                                    '-sin(orientation) * 32766'})
+        orientation_nz = (IntegerBlock(length=2, is_signed=True),
+                          {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
+                                          'angle == orientation field above, used for pseudo-3D effect on '
+                                          'opponent cars. So orientation_nz == -sin(orientation) * 32766'})
         unk2 = (BytesBlock(length=2),
                 {'is_unknown': True})
 
@@ -78,16 +76,16 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         orientation = atan2(next_spline_point['position']['x'] - read_data['position']['x'],
                             next_spline_point['position']['z'] - read_data['position']['z'])
         read_data['orientation'] = orientation
-        read_data['orientation_vector_x'] = round(cos(orientation) * 32766)
-        read_data['orientation_vector_neg_z'] = round(-sin(orientation) * 32766)
+        read_data['orientation_x'] = round(cos(orientation) * 32766)
+        read_data['orientation_nz'] = round(-sin(orientation) * 32766)
 
 
-class ModelProxyObjectData(DeclarativeCompoundBlock):
+class ModelPropDescrData(DeclarativeCompoundBlock):
 
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'The proxy object settings if it is a 3D model'}
+                'block_description': 'Map prop settings if it is a 3D model'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
@@ -96,26 +94,26 @@ class ModelProxyObjectData(DeclarativeCompoundBlock):
                     {'is_unknown': True})
 
 
-class BitmapProxyObjectData(DeclarativeCompoundBlock):
+class BitmapPropDescrData(DeclarativeCompoundBlock):
 
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'The proxy object settings if it is a bitmap'}
+                'block_description': 'Map prop settings if it is a bitmap'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
                        {'description': 'Represents texture id. How to get texture name from this value [explained]'
                                        '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
                                        'by Denis Auroux'})
-        proxy_number = (IntegerBlock(length=1),
-                        {'description': 'Seems to be always equal to own index * 4'})
+        index = (IntegerBlock(length=1),
+                 {'description': 'Seems to be always equal to own index * 4'})
         width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                  {'description': 'Width in meters'})
         frame_count = (IntegerBlock(length=1),
                        {'description': 'Frame amount for animated object. Ignored if flag `is_animated` not set'})
-        animation_interval = (Nfs1Interval(),
-                              {'description': 'Interval between animation frames'})
+        animation_interval = (Nfs1TimeField(length=1),
+                              {'description': 'Interval between animation frames in seconds'})
         unk0 = (IntegerBlock(length=1, is_signed=False),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=1, is_signed=False),
@@ -124,12 +122,12 @@ class BitmapProxyObjectData(DeclarativeCompoundBlock):
                   {'description': 'Height in meters'})
 
 
-class TwoSidedBitmapProxyObjectData(DeclarativeCompoundBlock):
+class TwoSidedBitmapPropDescrData(DeclarativeCompoundBlock):
 
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'The proxy object settings if it is a two-sided bitmap (fake 3D model)'}
+                'block_description': 'Map prop settings if it is a two-sided bitmap (fake 3D model)'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
@@ -147,52 +145,53 @@ class TwoSidedBitmapProxyObjectData(DeclarativeCompoundBlock):
                   {'description': 'Height in meters'})
 
 
-class ProxyObject(DeclarativeCompoundBlock):
+class PropDescr(DeclarativeCompoundBlock):
 
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'The description of map proxy object: everything except terrain (road signs, '
+                'block_description': 'The description of map prop: everything except terrain (road signs, '
                                      'buildings etc.) Thanks to jeff-1amstudios and his [OpenNFS1](https://github.com'
                                      '/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1'
                                      '/Parsers/TriFile.cs#L202) project'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         flags = (BitFlagsBlock(flag_names=[(2, 'is_animated')]),
-                 {'description': 'Different modes of proxy object'})
+                 {'description': 'Different modes of prop'})
         type = (EnumByteBlock(enum_names=[(0, 'unk'), (1, 'model'), (4, 'bitmap'), (6, 'two_sided_bitmap')]),
-                {'description': 'Type of proxy object'})
-        proxy_object_data = (DelegateBlock(possible_blocks=[ModelProxyObjectData(),
-                                                            BitmapProxyObjectData(),
-                                                            TwoSidedBitmapProxyObjectData(),
-                                                            BytesBlock(length=14)],
-                                           choice_index=lambda ctx: 0 if ctx.data('type') == 'model' else (
-                                               1 if ctx.data('type') == 'bitmap' else (
-                                                   2 if ctx.data('type') == 'two_sided_bitmap' else 3
-                                               )
-                                           )),
-                             {'description': 'Settings of the prop. Block class picked according to <type>'})
+                {'description': 'Type of prop'})
+        data = (DelegateBlock(possible_blocks=[ModelPropDescrData(),
+                                               BitmapPropDescrData(),
+                                               TwoSidedBitmapPropDescrData(),
+                                               BytesBlock(length=14)],
+                              choice_index=lambda ctx: 0 if ctx.data('type') == 'model' else (
+                                  1 if ctx.data('type') == 'bitmap' else (
+                                      2 if ctx.data('type') == 'two_sided_bitmap' else 3
+                                  )
+                              )),
+                {'description': 'Settings of the prop. Block class picked according to `type`'})
 
 
-class ProxyObjectInstance(DeclarativeCompoundBlock):
+class MapProp(DeclarativeCompoundBlock):
 
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'The occurrence of proxy object. For instance: exactly the same road sign used 5 '
-                                     'times on the map. In this case file will have 1 ProxyObject for this road sign '
-                                     'and 5 ProxyObjectInstances'}
+                'block_description': 'The prop on the map. For instance: exactly the same road sign used 5 '
+                                     'times on the map. In this case file will have 1 PropDescr for this road sign '
+                                     'and 5 MapProps'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        reference_road_spline_vertex = (IntegerBlock(length=4, is_signed=True),
-                                        {'description': 'Sometimes has too big value, I skip those instances '
-                                                        'for now and it seems to look good. Probably should '
-                                                        'consider this value to be 16-bit integer, having some '
-                                                        'unknown 16-integer as next field. Also, why it is '
-                                                        'signed?'})
-        proxy_object_index = (IntegerBlock(length=1),
-                              {'description': 'Sometimes has too big value, I use object index % amount of '
-                                              'proxies for now and it seems to look good'})
+        road_point_idx = (IntegerBlock(length=4, is_signed=True),
+                          {'description': 'Index of point of the road path spline, where prop is located. Sometimes '
+                                          'has too big value, I skip those instances for now and it seems to look good.'
+                                          ' Probably should consider this value to be 16-bit integer, having some '
+                                          'unknown 16-integer as next field. Also, why it is '
+                                          'signed?'})
+        prop_descr_idx = (IntegerBlock(length=1),
+                          {'description': 'Index of prop description, which should be used for this prop. '
+                                          'Sometimes has too big value, I use object index % amount of prop '
+                                          'descriptions for now and it seems to look good'})
         rotation = (Nfs1Angle8(),
                     {'description': 'Y-rotation, relative to rotation of referenced road spline vertex'})
         flags = (IntegerBlock(length=4),
@@ -236,7 +235,7 @@ class AIEntry(DeclarativeCompoundBlock):
         unk = (IntegerBlock(length=1),
                {'is_unknown': True})
         max_traffic_speed = (IntegerBlock(length=1),
-                         {'description': 'Max traffic speed in m/s. Oncoming traffic does not obey it'})
+                             {'description': 'Max traffic speed in m/s. Oncoming traffic does not obey it'})
 
 
 class TriMap(DeclarativeCompoundBlock):
@@ -264,15 +263,15 @@ class TriMap(DeclarativeCompoundBlock):
                     'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
                 },
             ],
-            'block_description': 'Map TRI file, represents terrain mesh, road itself, proxy object locations etc.'}
+            'block_description': 'Map TRI file, represents terrain mesh, road itself, props locations etc.'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=4, required_value=0x11),
                        {'description': 'Resource ID'})
-        num_segments = (IntegerBlock(length=2),
-                        {'description': '0 for open tracks, num segments for closed'})
-        terrain_length = (IntegerBlock(length=2),
-                          {'description': 'number of terrain chunks (max 600)'})
+        num_segs = (IntegerBlock(length=2),
+                    {'description': '0 for open tracks, num segments for closed'})
+        num_chunks = (IntegerBlock(length=2),
+                      {'description': 'number of terrain chunks (max 600)'})
         unk0 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=2, required_value=6),
@@ -281,36 +280,35 @@ class TriMap(DeclarativeCompoundBlock):
                     {'is_unknown': True})
         unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, required_value=0), length=12),
                      {'is_unknown': True})
-        terrain_block_size = (IntegerBlock(length=4),
-                              {'description': 'Size of terrain array in bytes (terrain_length * 0x120)'})
-        railing_texture_id = (IntegerBlock(length=4),
-                              {'description': 'Do not know what is "railing". Doesn\'t look like a fence '
-                                              'texture id, tested in TR1_001.FAM', 'is_unknown': True})
+        chunks_size = (IntegerBlock(length=4),
+                       {'description': 'Size of terrain array in bytes (num_chunks * 0x120)'})
+        rail_tex_id = (IntegerBlock(length=4),
+                       {'description': 'Do not know what is "railing". Doesn\'t look like a fence '
+                                       'texture id, tested in TR1_001.FAM', 'is_unknown': True})
         lookup_table = (ArrayBlock(child=IntegerBlock(length=4), length=600),
-                        {'description': '600 consequent numbers, each value is previous + 288. Looks like a space'
-                                        ' needed by the original NFS engine'})
+                        {'description': '600 consequent numbers, each value is previous + 288. Looks like a space '
+                                        'needed by the original NFS engine'})
         road_spline = (ArrayBlock(child=RoadSplinePoint(), length=2400),
                        {'description': "Road spline is a series of points in 3D space, located at the center of "
                                        "road. Around this spline the track terrain mesh is built. TRI always has "
                                        "2400 elements, however it uses only amount of vertices, equals to "
-                                       "(terrain_length * 4), after them records filled with zeros. For opened "
+                                       "(num_chunks * 4), after them records filled with zeros. For opened "
                                        "tracks, finish line will be always located at spline point "
-                                       "(terrain_length * 4 - 179)"})
+                                       "(num_chunks * 4 - 179)"})
         ai_info = ArrayBlock(child=AIEntry(), length=600)
-        proxy_objects_count = IntegerBlock(length=4, is_signed=False)
-        proxy_object_instances_count = IntegerBlock(length=4, is_signed=False)
-        object_header_text = UTF8Block(length=4, required_value='SJBO')
+        num_prop_descr = IntegerBlock(length=4, is_signed=False)
+        num_props = IntegerBlock(length=4, is_signed=False)
+        objs_hdr = UTF8Block(length=4, required_value='SJBO')
         unk2 = (IntegerBlock(length=4, required_value=0x428c),
                 {'is_unknown': True})
         unk3 = (IntegerBlock(length=4, required_value=0),
                 {'is_unknown': True})
-        proxy_objects = ArrayBlock(child=ProxyObject(),
-                                   length=(lambda ctx: ctx.data('proxy_objects_count'), 'proxy_objects_count'))
-        proxy_object_instances = ArrayBlock(child=ProxyObjectInstance(),
-                                            length=(lambda ctx: ctx.data('proxy_object_instances_count'),
-                                                    'proxy_object_instances_count'))
+        prop_descr = ArrayBlock(child=PropDescr(),
+                                length=(lambda ctx: ctx.data('num_prop_descr'), 'num_prop_descr'))
+        props = ArrayBlock(child=MapProp(),
+                           length=(lambda ctx: ctx.data('num_props'), 'num_props'))
         terrain = ArrayBlock(child=TerrainEntry(),
-                             length=(lambda ctx: ctx.data('terrain_length'), 'terrain_length'))
+                             length=(lambda ctx: ctx.data('num_chunks'), 'num_chunks'))
 
     def action_reverse_track(self, read_data):
         # FIXME lane merge/split are broken. Is it possible to fix?
@@ -357,27 +355,25 @@ class TriMap(DeclarativeCompoundBlock):
             vertex['position']['y'] -= position_offset[1]
             vertex['position']['z'] -= position_offset[2]
             # swap left and right
-            (vertex['left_verge_distance'], vertex['right_verge_distance']) = (
-                vertex['right_verge_distance'], vertex['left_verge_distance'])
-            (vertex['left_barrier_distance'], vertex['right_barrier_distance']) = (
-                vertex['right_barrier_distance'], vertex['left_barrier_distance'])
+            (vertex['left_verge'], vertex['right_verge']) = (vertex['right_verge'], vertex['left_verge'])
+            (vertex['left_barrier'], vertex['right_barrier']) = (vertex['right_barrier'], vertex['left_barrier'])
             # slope/slant are just reversed
             vertex['slope'] = -vertex['slope']
             vertex['slant_a'] = -vertex['slant_a']
             vertex['slant_b'] = -vertex['slant_b']
 
-            if vertex['spline_item_mode'] == 'lane_split':
-                vertex['spline_item_mode'] = 'lane_merge'
+            if vertex['item_mode'] == 'lane_split':
+                vertex['item_mode'] = 'lane_merge'
                 lane_effects.append(i)
-            elif vertex['spline_item_mode'] == 'lane_merge':
-                vertex['spline_item_mode'] = 'lane_split'
+            elif vertex['item_mode'] == 'lane_merge':
+                vertex['item_mode'] = 'lane_split'
                 # lane_effects.append(i)
 
         for index in lane_effects:
-            (read_data['road_spline'][index]['spline_item_mode'],
-             read_data['road_spline'][index - 1]['spline_item_mode']) = (
-                read_data['road_spline'][index - 1]['spline_item_mode'],
-                read_data['road_spline'][index]['spline_item_mode'])
+            (read_data['road_spline'][index]['item_mode'],
+             read_data['road_spline'][index - 1]['item_mode']) = (
+                read_data['road_spline'][index - 1]['item_mode'],
+                read_data['road_spline'][index]['item_mode'])
 
         for chunk in read_data['terrain']:
             (chunk['fence']['has_left_fence'], chunk['fence']['has_right_fence']) = (
@@ -392,21 +388,20 @@ class TriMap(DeclarativeCompoundBlock):
                                                                                        chunk['rows'][i][j]['x']),
                                                                                       y_angle_to_rotate)
 
-        amount_of_instances = [x['reference_road_spline_vertex'] for x in read_data['proxy_object_instances']].index(-1)
-        for proxy_inst in read_data['proxy_object_instances'][:amount_of_instances]:
-            proxy_inst['reference_road_spline_vertex'] = road_spline_length - 1 - proxy_inst[
-                'reference_road_spline_vertex']
-            proxy_inst['rotation'] += pi
-            proxy_inst['position']['z'], proxy_inst['position']['x'] = rotate_point((0, 0),
-                                                                                    (proxy_inst['position']['z'],
-                                                                                     proxy_inst['position']['x']),
-                                                                                    y_angle_to_rotate)
+        amount_of_instances = [x['road_point_idx'] for x in read_data['props']].index(-1)
+        for prop in read_data['props'][:amount_of_instances]:
+            prop['road_point_idx'] = road_spline_length - 1 - prop['road_point_idx']
+            prop['rotation'] += pi
+            prop['position']['z'], prop['position']['x'] = rotate_point((0, 0),
+                                                                        (prop['position']['z'],
+                                                                         prop['position']['x']),
+                                                                        y_angle_to_rotate)
 
         read_data['road_spline'] = read_data['road_spline'][:road_spline_length][::-1] + read_data['road_spline'][
                                                                                          road_spline_length:]
         read_data['terrain'] = read_data['terrain'][::-1]
-        read_data['proxy_object_instances'] = (read_data['proxy_object_instances'][:amount_of_instances][::-1]
-                                               + read_data['proxy_object_instances'][amount_of_instances:])
+        read_data['props'] = (read_data['props'][:amount_of_instances][::-1]
+                              + read_data['props'][amount_of_instances:])
         # update rotations
         v_block = RoadSplinePoint()
         for i, vertex in enumerate(read_data['road_spline'][:road_spline_length]):
@@ -429,8 +424,8 @@ class TriMap(DeclarativeCompoundBlock):
                     terrain_chunk['rows'][j][k]['x'] = x_new + terrain_chunk['rows'][j][0]['x']
                     terrain_chunk['rows'][j][k]['z'] = z_new + terrain_chunk['rows'][j][0]['z']
         # fix props
-        for prop in data['proxy_object_instances']:
-            road_vertex = data['road_spline'][prop['reference_road_spline_vertex']]
+        for prop in data['props']:
+            road_vertex = data['road_spline'][prop['road_point_idx']]
             prop['rotation'] -= road_vertex['orientation']
             if prop['rotation'] < 0:
                 prop['rotation'] += 2 * pi

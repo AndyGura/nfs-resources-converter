@@ -127,28 +127,22 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
       }
     });
     let chunkIndex = +node.path.split('_')[node.path.split('_').length - 1];
-    let proxyInstances = (this.resource!.data.proxy_object_instances || [])
-      .filter(
-        (x: any) =>
-          x.reference_road_spline_vertex >= chunkIndex * 4 && x.reference_road_spline_vertex < (chunkIndex + 1) * 4,
-      )
+    let propInstances = (this.resource!.data.props || [])
+      .filter((x: any) => x.road_point_idx >= chunkIndex * 4 && x.road_point_idx < (chunkIndex + 1) * 4)
       .map((x: any) => ({
         ...x,
-        ...this.resource!.data.proxy_objects[x.proxy_object_index],
+        ...this.resource!.data.prop_descr[x.prop_descr_idx],
         position: Pnt3.add(
           { x: x.position.x, y: x.position.z, z: x.position.y },
           {
-            x: this.resource!.data.road_spline[x.reference_road_spline_vertex].position.x,
-            y: this.resource!.data.road_spline[x.reference_road_spline_vertex].position.z,
-            z: this.resource!.data.road_spline[x.reference_road_spline_vertex].position.y,
+            x: this.resource!.data.road_spline[x.road_point_idx].position.x,
+            y: this.resource!.data.road_spline[x.road_point_idx].position.z,
+            z: this.resource!.data.road_spline[x.road_point_idx].position.y,
           },
         ),
-        rotation: Qtrn.fromAngle(
-          Pnt3.nZ,
-          x.rotation + this.resource!.data.road_spline[x.reference_road_spline_vertex].orientation,
-        ),
+        rotation: Qtrn.fromAngle(Pnt3.nZ, x.rotation + this.resource!.data.road_spline[x.road_point_idx].orientation),
       }));
-    const props = (await Promise.all(proxyInstances.map((x: any) => this.loadPropInternal(x)))).filter(
+    const props = (await Promise.all(propInstances.map((x: any) => this.loadPropInternal(x)))).filter(
       p => !!p,
     ) as Entity3d<ThreeVisualTypeDocRepo, any>[];
     const entity: Entity3d<ThreeVisualTypeDocRepo, any> = new Entity3d(new ThreeDisplayObjectComponent(object));
@@ -207,13 +201,11 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
         if (!this.famPath) throw new Error();
         const mtlLoader = new MTLLoader();
         const objLoader = new OBJLoader();
-        const mtl = await mtlLoader.loadAsync(
-          `${this.famPath}/props/${dummy.proxy_object_data.data.resource_id}/0/material.mtl`,
-        );
+        const mtl = await mtlLoader.loadAsync(`${this.famPath}/props/${dummy.data.data.resource_id}/0/material.mtl`);
         mtl.preload();
         objLoader.setMaterials(mtl);
         object = new ThreeDisplayObjectComponent(
-          await objLoader.loadAsync(`${this.famPath}/props/${dummy.proxy_object_data.data.resource_id}/0/geometry.obj`),
+          await objLoader.loadAsync(`${this.famPath}/props/${dummy.data.data.resource_id}/0/geometry.obj`),
         );
       } catch (err) {
         isUnknown = true;
@@ -237,15 +229,15 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
           }
         }
       });
-      const proxy = new Entity3d<ThreeVisualTypeDocRepo>(object);
-      proxy.position = dummy.position;
-      proxy.rotation = dummy.rotation;
+      const prop = new Entity3d<ThreeVisualTypeDocRepo>(object);
+      prop.position = dummy.position;
+      prop.rotation = dummy.rotation;
       if (isUnknown) {
-        this.unknownEntities.add(proxy);
-        proxy.visible = !this.hideUnknownEntities$.getValue();
+        this.unknownEntities.add(prop);
+        prop.visible = !this.hideUnknownEntities$.getValue();
       }
-      this.world!.addEntity(proxy);
-      return proxy;
+      this.world!.addEntity(prop);
+      return prop;
     } else if (dummy.type == MapPropType.Bitmap || dummy.type == MapPropType.TwoSidedBitmap) {
       const textureIds = (resId: number, framesAmount: number) =>
         new Array(framesAmount)
@@ -259,29 +251,26 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
 
       const object: Object3D = new Group();
       const [plane, isUnknown] = await this.loadTexturePlaneProp(
-        textureIds(
-          dummy.proxy_object_data.data.resource_id,
-          dummy.flags.is_animated ? dummy.proxy_object_data.data.frame_count : 1,
-        ),
+        textureIds(dummy.data.data.resource_id, dummy.flags.is_animated ? dummy.data.data.frame_count : 1),
         {
-          x: dummy.proxy_object_data.data.width,
-          y: dummy.proxy_object_data.data.height,
+          x: dummy.data.data.width,
+          y: dummy.data.data.height,
         },
-        dummy.proxy_object_data.data.animation_interval,
+        dummy.data.data.animation_interval,
       );
       object.add(plane);
       if (dummy.type == MapPropType.TwoSidedBitmap) {
         const [plane2, isUnknown] = await this.loadTexturePlaneProp(
-          textureIds(dummy.proxy_object_data.data.resource_2_id, 1),
+          textureIds(dummy.data.data.resource_2_id, 1),
           {
-            x: dummy.proxy_object_data.data.width_2,
-            y: dummy.proxy_object_data.data.height,
+            x: dummy.data.data.width_2,
+            y: dummy.data.data.height,
           },
-          dummy.proxy_object_data.data.animation_interval,
+          dummy.data.data.animation_interval,
         );
         plane2.rotateY(Math.PI / 2);
-        plane2.position.x = dummy.proxy_object_data.data.width / 2;
-        plane2.position.y = dummy.proxy_object_data.data.width_2 / 2;
+        plane2.position.x = dummy.data.data.width / 2;
+        plane2.position.y = dummy.data.data.width_2 / 2;
         object.add(plane2);
       }
       const entity = new Entity3d<ThreeVisualTypeDocRepo, any>(new ThreeDisplayObjectComponent(object), null);
@@ -329,7 +318,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
       let i = -1;
       // TODO where to unsubscribe?
       createInlineTickController(this.world!)
-        .pipe(throttleTime(animationInterval && !isNaN(+animationInterval) ? +animationInterval : 250))
+        .pipe(throttleTime(animationInterval && !isNaN(+animationInterval) ? +animationInterval * 1000 : 250))
         .subscribe(() => {
           i = (i + 1) % materials.length;
           plane.material = materials[i];
@@ -426,7 +415,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   get roadSpline(): Point3[] {
     return (
       (this.resource?.data.road_spline || [])
-        .filter((_: any, i: number) => i < (this.resource?.data.terrain_length * 4 || 0))
+        .filter((_: any, i: number) => i < (this.resource?.data.num_chunks * 4 || 0))
         .map((d: any) => d.position) || []
     );
   }
@@ -635,7 +624,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
           z: p.position.y,
         }))
         .filter((_: any, i: number) => i % 4 === 0)
-        .slice(0, this.resource!.data.terrain_length) || null;
+        .slice(0, this.resource!.data.num_chunks) || null;
     this.isOpenedTrack = !this.roadPath || Pnt3.dist(this.roadPath[0], this.roadPath[this.roadPath.length - 1]) > 100;
     if (!this.terrainChunksObjLocation || !this.roadPath) {
       return;

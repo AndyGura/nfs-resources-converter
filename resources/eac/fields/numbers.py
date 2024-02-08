@@ -102,20 +102,16 @@ class Nfs1Angle16(AngleBlock, IntegerBlock):
         return super().write(value, ctx, name)
 
 
-class Nfs1Interval(IntegerBlock):
+class Nfs1TimeField(IntegerBlock):
+
     @property
     def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'EA games time interval field: 0 = 0ms, 256 = 4000ms (4 seconds). Max value (255) is 3984.375ms',
-        }
-
-    def __init__(self, **kwargs):
-        super().__init__(length=1, byte_order='little', is_signed=False, **kwargs)
+        return {**super().schema,
+                'block_description': f'TNFS time field. {super().schema["block_description"]}, '
+                                     'equals to amount of ticks (amount of seconds * 60)'}
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        return float(super().read(buffer, ctx, name, read_bytes_amount)) * 15.625
+        return float(super().read(buffer, ctx, name, read_bytes_amount)) / 60
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = round(data / 15.625)
-        return super().write(value, ctx, name)
+        return super().write(int(data * 60), ctx, name)

@@ -21,10 +21,10 @@ class FfnFontSerializer(BaseFileSerializer):
             file.write(f'info face="{id.split("/")[-1]}" size={data["font_size"]}\n')
             file.write(f'common lineHeight={data["line_height"]}\n')
             file.write(f'page id=0 file="bitmap.png"\n')
-            file.write(f'chars count={data["symbols_amount"]}\n')
+            file.write(f'chars count={data["num_glyphs"]}\n')
             for symbol in data["definitions"]:
-                file.write(f'char id={symbol["code"]}    x={symbol["glyph_x"]}     y={symbol["glyph_y"]}     '
-                           f'width={symbol["glyph_width"]}    height={symbol["glyph_height"]}   '
+                file.write(f'char id={symbol["code"]}    x={symbol["x"]}     y={symbol["y"]}     '
+                           f'width={symbol["width"]}    height={symbol["height"]}   '
                            f'xoffset={symbol["x_offset"]}     yoffset={symbol["y_offset"]}     '
                            f'xadvance={symbol["x_advance"]}    page=0  chnl=0\n')
 
@@ -39,9 +39,9 @@ class FfnFontSerializer(BaseFileSerializer):
             info_part = '\n'.join([l for l in lines if not l.startswith('char ')])
             data['font_size'] = int(re.search(r"\ssize=(\d+)", info_part).groups()[0])
             data['line_height'] = int(re.search(r"\slineHeight=(\d+)", info_part).groups()[0])
-            data['symbols_amount'] = int(re.search(r"\scount=(\d+)", info_part).groups()[0])
+            data['num_glyphs'] = int(re.search(r"\scount=(\d+)", info_part).groups()[0])
             glyph_def_lines = [l for l in lines if l.startswith('char ')]
-            assert len(glyph_def_lines) == data['symbols_amount']
+            assert len(glyph_def_lines) == data['num_glyphs']
             data['definitions'] = []
             for i, glyph_def in enumerate(glyph_def_lines):
                 m = re.search(
@@ -52,10 +52,10 @@ class FfnFontSerializer(BaseFileSerializer):
                 values = [int(x) for x in m.groups()]
                 data['definitions'].append({
                     'code': values[0],
-                    'glyph_x': values[1],
-                    'glyph_y': values[2],
-                    'glyph_width': values[3],
-                    'glyph_height': values[4],
+                    'x': values[1],
+                    'y': values[2],
+                    'width': values[3],
+                    'height': values[4],
                     'x_offset': values[5],
                     'y_offset': values[6],
                     'x_advance': values[7],
