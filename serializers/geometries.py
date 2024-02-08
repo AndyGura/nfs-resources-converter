@@ -81,7 +81,7 @@ for dummy in dummies:
         for polygon in data['polygons']:
             polygon_type = polygon['polygon_type']
             mapping = polygon['mapping']
-            texture_id = data['texture_names'][polygon['texture_index']]['file_name']
+            texture_id = data['tex_ids'][polygon['texture_index']]['file_name']
             sub_model = sub_models[texture_id]
             if not sub_model.name:
                 sub_model.name = texture_id

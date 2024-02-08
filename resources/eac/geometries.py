@@ -31,7 +31,7 @@ class OripPolygon(DeclarativeCompoundBlock):
                                              (4, 'use_uv')]),
                    {'description': 'Rendering properties of the polygon'})
         texture_index = (IntegerBlock(length=1),
-                         {'description': "The index of item in ORIP's texture_names block"})
+                         {'description': "The index of item in ORIP's tex_ids block"})
         unk = (IntegerBlock(length=1),
                {'is_unknown': True})
         offset_3d = (IntegerBlock(length=4),
@@ -148,7 +148,7 @@ class OripGeometry(DeclarativeCompoundBlock):
                    {'description': 'Amount of vertex UV-s (texture coordinates)',
                     'programmatic_value': lambda ctx: len(ctx.data('vertex_uvs'))})
         uvs_ptr = (IntegerBlock(length=4),
-                   {'description': 'An offset to vertex_uvs. Always equals to `112+num_polygons*12`',
+                   {'description': 'An offset to vertex_uvs. Always equals to `112 + num_polygons*12`',
                     'programmatic_value': lambda ctx: 112 + len(ctx.data('polygons')) * 12})
         num_polygons = (IntegerBlock(length=4),
                         {'description': 'Amount of polygons',
@@ -160,24 +160,24 @@ class OripGeometry(DeclarativeCompoundBlock):
                        'is_unknown': True})
         num_tex_ids = (IntegerBlock(length=4),
                        {'description': 'Amount of texture names',
-                        'programmatic_value': lambda ctx: len(ctx.data('texture_names'))})
+                        'programmatic_value': lambda ctx: len(ctx.data('tex_ids'))})
         tex_ids_ptr = (IntegerBlock(length=4),
                        {'description': 'An offset to texture names block. Always equals to '
-                                       '`112+num_polygons*12+num_uvs*8`',
+                                       '`112 + num_polygons*12 + num_uvs*8`',
                         'programmatic_value': lambda ctx: 112 + len(ctx.data('polygons')) * 12
                                                           + len(ctx.data('vertex_uvs')) * 8})
         num_tex_nmb = (IntegerBlock(length=4),
                        {'description': 'Amount of texture numbers',
-                        'programmatic_value': lambda ctx: len(ctx.data('texture_numbers'))})
+                        'programmatic_value': lambda ctx: len(ctx.data('tex_nmb'))})
         tex_nmb_ptr = (IntegerBlock(length=4),
                        {'description': 'An offset to texture numbers block'})
         num_ren_ord = (IntegerBlock(length=4),
                        {'description': 'Amount of items in render_order block',
-                        'programmatic_value': lambda ctx: len(ctx.data('render_orders'))})
+                        'programmatic_value': lambda ctx: len(ctx.data('render_order'))})
         ren_ord_ptr = (IntegerBlock(length=4),
-                       {'description': 'Offset of render_order block. Always equals to `tex_nmb_ptr+num_tex_nmb*20`',
+                       {'description': 'Offset of render_order block. Always equals to `tex_nmb_ptr + num_tex_nmb*20`',
                         'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
-                                                          + len(ctx.data('texture_numbers')) * 20})
+                                                          + len(ctx.data('tex_nmb')) * 20})
         vmap_ptr = (IntegerBlock(length=4),
                     {'description': 'Offset of polygon_vertex_map block',
                      'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(ctx.get_full_data(),
@@ -186,20 +186,20 @@ class OripGeometry(DeclarativeCompoundBlock):
                     {'description': 'Amount of items in labels0 block',
                      'programmatic_value': lambda ctx: len(ctx.data('labels0'))})
         lbl0_ptr = (IntegerBlock(length=4),
-                    {'description': 'Offset of labels0 block. Always equals to `tex_nmb_ptr'
-                                    '+num_tex_nmb*20+num_ren_ord*28`',
+                    {'description': 'Offset of labels0 block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + '
+                                    'num_ren_ord*28`',
                      'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
-                                                       + len(ctx.data('texture_numbers')) * 20
-                                                       + len(ctx.data('render_orders')) * 28})
+                                                       + len(ctx.data('tex_nmb')) * 20
+                                                       + len(ctx.data('render_order')) * 28})
         num_lbl = (IntegerBlock(length=4),
                    {'description': 'Amount of items in labels block',
                     'programmatic_value': lambda ctx: len(ctx.data('labels'))})
         lbl_ptr = (IntegerBlock(length=4),
                    {'description': 'Offset of labels block. Always equals to `tex_nmb_ptr'
-                                   '+num_tex_nmb*20+num_ren_ord*28+num_lbl0*12`',
+                                   ' + num_tex_nmb*20 + num_ren_ord*28 + num_lbl0*12`',
                     'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
-                                                      + len(ctx.data('texture_numbers')) * 20
-                                                      + len(ctx.data('render_orders')) * 28
+                                                      + len(ctx.data('tex_nmb')) * 20
+                                                      + len(ctx.data('render_order')) * 28
                                                       + len(ctx.data('labels0')) * 12})
         unknowns1 = (BytesBlock(length=12),
                      {'is_unknown': True})
@@ -211,11 +211,11 @@ class OripGeometry(DeclarativeCompoundBlock):
                                  length=(lambda ctx: ctx.data('num_uvs'), 'num_uvs')),
                       {'description': 'A table of texture coordinates. Items are retrieved by index, located in vmap',
                        'custom_offset': 'uvs_ptr'})
-        texture_names = (ArrayBlock(child=OripTextureName(),
-                                    length=(lambda ctx: ctx.data('num_tex_ids'), 'num_tex_ids')),
-                         {'description': 'A table of texture references. Items are retrieved by index, located in '
-                                         'polygon item',
-                          'custom_offset': 'tex_ids_ptr'})
+        tex_ids = (ArrayBlock(child=OripTextureName(),
+                              length=(lambda ctx: ctx.data('num_tex_ids'), 'num_tex_ids')),
+                   {'description': 'A table of texture references. Items are retrieved by index, located in '
+                                   'polygon item',
+                    'custom_offset': 'tex_ids_ptr'})
         offset = (BytesBlock(
             length=(lambda ctx: ctx.read_start_offset + ctx.data('tex_nmb_ptr') - ctx.buffer.tell(),
                     'space up to offset `tex_nmb_ptr`'),
@@ -223,14 +223,14 @@ class OripGeometry(DeclarativeCompoundBlock):
                   {'description': 'In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in'
                                   ' case of DIABLO.CFM it\'s length is equal to -3, meaning that last 3 bytes from '
                                   'texture names block are reused by next block'})
-        texture_numbers = (ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=1), length=20),
-                                      length=(lambda ctx: ctx.data('num_tex_nmb'), 'num_tex_nmb')),
-                           {'is_unknown': True,
-                            'custom_offset': 'tex_nmb_ptr'})
-        render_orders = (ArrayBlock(child=RenderOrderBlock(),
-                                    length=(lambda ctx: ctx.data('num_ren_ord'), 'num_ren_ord')),
-                         {'description': 'Render order. The exact mechanism how it works is unknown',
-                          'custom_offset': 'ren_ord_ptr'})
+        tex_nmb = (ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=1), length=20),
+                              length=(lambda ctx: ctx.data('num_tex_nmb'), 'num_tex_nmb')),
+                   {'is_unknown': True,
+                    'custom_offset': 'tex_nmb_ptr'})
+        render_order = (ArrayBlock(child=RenderOrderBlock(),
+                                   length=(lambda ctx: ctx.data('num_ren_ord'), 'num_ren_ord')),
+                        {'description': 'Render order. The exact mechanism how it works is unknown',
+                         'custom_offset': 'ren_ord_ptr'})
         labels0 = (ArrayBlock(child=NamedIndex(),
                               length=(lambda ctx: ctx.data('num_lbl0'), 'num_lbl0')),
                    {'description': 'Unclear',

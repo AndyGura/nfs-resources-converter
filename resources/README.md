@@ -1,5 +1,5 @@
 # **TNFSSE (PC) file specs** #
-*Last time updated: 2024-02-08 18:22:29.350117+00:00*
+*Last time updated: 2024-02-08 18:49:27.964016+00:00*
 
 
 # **Info by file extensions** #
@@ -82,28 +82,28 @@
 | 20 | **unk2** | 4 | Bytes | Unknown purpose |
 | 24 | **vrtx_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertices |
 | 28 | **num_uvs** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex UV-s (texture coordinates) |
-| 32 | **uvs_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_uvs. Always equals to `112+num_polygons*12` |
+| 32 | **uvs_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_uvs. Always equals to `112 + num_polygons*12` |
 | 36 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Amount of polygons |
 | 40 | **polygons_ptr** | 4 | 4-bytes unsigned integer (little endian). Always == 0x70 | An offset to polygons block |
 | 44 | **identifier** | 12 | UTF-8 string | Some ID of geometry, don't know the purpose |
 | 56 | **num_tex_ids** | 4 | 4-bytes unsigned integer (little endian) | Amount of texture names |
-| 60 | **tex_ids_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture names block. Always equals to `112+num_polygons*12+num_uvs*8` |
+| 60 | **tex_ids_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture names block. Always equals to `112 + num_polygons*12 + num_uvs*8` |
 | 64 | **num_tex_nmb** | 4 | 4-bytes unsigned integer (little endian) | Amount of texture numbers |
 | 68 | **tex_nmb_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture numbers block |
 | 72 | **num_ren_ord** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in render_order block |
-| 76 | **ren_ord_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block. Always equals to `tex_nmb_ptr+num_tex_nmb*20` |
+| 76 | **ren_ord_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block. Always equals to `tex_nmb_ptr + num_tex_nmb*20` |
 | 80 | **vmap_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of polygon_vertex_map block |
 | 84 | **num_lbl0** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels0 block |
-| 88 | **lbl0_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels0 block. Always equals to `tex_nmb_ptr+num_tex_nmb*20+num_ren_ord*28` |
+| 88 | **lbl0_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels0 block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28` |
 | 92 | **num_lbl** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels block |
-| 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `tex_nmb_ptr+num_tex_nmb*20+num_ren_ord*28+num_lbl0*12` |
+| 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28 + num_lbl0*12` |
 | 100 | **unknowns1** | 12 | Bytes | Unknown purpose |
 | 112 | **polygons** | num_polygons\*12 | Array of `num_polygons` items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
 | uvs_ptr | **vertex_uvs** | num_uvs\*8 | Array of `num_uvs` items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in vmap |
-| tex_ids_ptr | **texture_names** | num_tex_ids\*20 | Array of `num_tex_ids` items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
+| tex_ids_ptr | **tex_ids** | num_tex_ids\*20 | Array of `num_tex_ids` items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
 | tex_ids_ptr + num_tex_ids\*20 | **offset** | space up to offset `tex_nmb_ptr` | Bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
-| tex_nmb_ptr | **texture_numbers** | num_tex_nmb\*20 | Array of `num_tex_nmb` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| ren_ord_ptr | **render_orders** | num_ren_ord\*28 | Array of `num_ren_ord` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
+| tex_nmb_ptr | **tex_nmb** | num_tex_nmb\*20 | Array of `num_tex_nmb` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| ren_ord_ptr | **render_order** | num_ren_ord\*28 | Array of `num_ren_ord` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
 | lbl0_ptr | **labels0** | num_lbl0\*12 | Array of `num_lbl0` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last 4 bytes is an unsigned integer (little-endian) | Unclear |
 | lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last 4 bytes is an unsigned integer (little-endian) | Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on drifting, accelerating and braking in the place where texture is shown. 3DO version ORIP description: "Texture indexes referenced from records in block 10 and block 11th. Texture index shows that wheel or back light will be displayed on the polygon number defined in block 10." - the issue is that TNFSSE orip files consist of 9 blocks |
 | vrtx_ptr | **vertices** | num_vrtx\*12 | Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4 |
@@ -115,7 +115,7 @@
 | --- | --- | --- | --- | --- |
 | 0 | **polygon_type** | 1 | 1-byte unsigned integer | Huh, that's a srange field. From my tests, if it is xxx0_0011, the polygon is a triangle. If xxx0_0100 - it's a quad. Also there is only one polygon for entire TNFS with type == 2 in burnt sienna props. If ignore this polygon everything still looks great |
 | 1 | **mapping** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: two_sided<br/>1: flip_normal<br/>4: use_uv</details> | Rendering properties of the polygon |
-| 2 | **texture_index** | 1 | 1-byte unsigned integer | The index of item in ORIP's texture_names block |
+| 2 | **texture_index** | 1 | 1-byte unsigned integer | The index of item in ORIP's tex_ids block |
 | 3 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 4 | **offset_3d** | 4 | 4-bytes unsigned integer (little endian) | The index in vmap ORIP's table. This index represents first vertex of this polygon, so in order to determine all vertex we load next 2 or 3 (if quad) indexes from polygon_vertex_map. Look at vmap description for more info |
 | 8 | **offset_2d** | 4 | 4-bytes unsigned integer (little endian) | The same as offset_3d, also points to vmap, but used for texture coordinates. Look at vmap description for more info |
