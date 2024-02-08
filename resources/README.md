@@ -1,5 +1,5 @@
 # **TNFSSE (PC) file specs** #
-*Last time updated: 2024-02-07 23:03:42.536093+00:00*
+*Last time updated: 2024-02-08 00:31:26.966279+00:00*
 
 
 # **Info by file extensions** #
@@ -218,9 +218,9 @@
 #### **Description**: The record describing AI behavior at given terrain chunk ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **ai_speed** | 1 | 1-byte unsigned integer | Speed (m/h ?? ) of AI racer |
+| 0 | **max_ai_speed** | 1 | 1-byte unsigned integer | Max speed among all AI drivers in m/s |
 | 1 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 2 | **traffic_speed** | 1 | 1-byte unsigned integer | Speed (m/h ?? ) of traffic car |
+| 2 | **max_traffic_speed** | 1 | 1-byte unsigned integer | Max traffic speed in m/s. Oncoming traffic does not obey it |
 ### **ModelProxyObjectData** ###
 #### **Size**: 14 bytes ####
 #### **Description**: The proxy object settings if it is a 3D model ####

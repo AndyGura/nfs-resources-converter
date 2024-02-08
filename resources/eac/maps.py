@@ -231,12 +231,12 @@ class AIEntry(DeclarativeCompoundBlock):
                 'block_description': 'The record describing AI behavior at given terrain chunk'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        ai_speed = (IntegerBlock(length=1),
-                    {'description': 'Speed (m/h ?? ) of AI racer'})
+        max_ai_speed = (IntegerBlock(length=1),
+                        {'description': 'Max speed among all AI drivers in m/s'})
         unk = (IntegerBlock(length=1),
                {'is_unknown': True})
-        traffic_speed = (IntegerBlock(length=1),
-                         {'description': 'Speed (m/h ?? ) of traffic car'})
+        max_traffic_speed = (IntegerBlock(length=1),
+                         {'description': 'Max traffic speed in m/s. Oncoming traffic does not obey it'})
 
 
 class TriMap(DeclarativeCompoundBlock):
@@ -406,7 +406,7 @@ class TriMap(DeclarativeCompoundBlock):
                                                                                          road_spline_length:]
         read_data['terrain'] = read_data['terrain'][::-1]
         read_data['proxy_object_instances'] = (read_data['proxy_object_instances'][:amount_of_instances][::-1]
-                                                  + read_data['proxy_object_instances'][amount_of_instances:])
+                                               + read_data['proxy_object_instances'][amount_of_instances:])
         # update rotations
         v_block = RoadSplinePoint()
         for i, vertex in enumerate(read_data['road_spline'][:road_spline_length]):

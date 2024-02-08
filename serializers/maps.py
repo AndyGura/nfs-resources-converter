@@ -605,13 +605,16 @@ if $save_terrain_collisions:
                      for o in data['proxy_object_instances']
                      if len(data['terrain']) * 4 > o['reference_road_spline_vertex'] >= 0]),
             })
+        spline = data['road_spline'][:len(data['terrain']) * 4]
         road_path_settings = {
-            'slope': [block['slope'] for block in data['road_spline'][:len(data['terrain']) * 4]],
-            'slant': [block['slant_a'] for block in data['road_spline'][:len(data['terrain']) * 4]],
-            'left_barrier_distance': [block['left_barrier_distance'] for block in
-                                      data['road_spline'][:len(data['terrain']) * 4]],
-            'right_barrier_distance': [block['right_barrier_distance'] for block in
-                                       data['road_spline'][:len(data['terrain']) * 4]],
+            'slope': [x['slope'] for x in spline],
+            'slant': [x['slant_a'] for x in spline],
+            'left_barrier_distance': [x['left_barrier_distance'] for x in spline],
+            'right_barrier_distance': [x['right_barrier_distance'] for x in spline],
+            'max_ai_speed': [data['ai_info'][math.floor(i / 4)]['max_ai_speed'] for i in
+                             range(len(data['terrain']) * 4)],
+            'max_traffic_speed': [data['ai_info'][math.floor(i / 4)]['max_traffic_speed'] for i in
+                                  range(len(data['terrain']) * 4)],
         }
         if is_opened_track:
             # a terminal road path point: when go backwards, race ends after this point
