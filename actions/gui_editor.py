@@ -167,5 +167,5 @@ def run_gui_editor(file_path):
 
     eel.init(static_path)
     init_eel_state()
-    eel.start('index.html', port=8000)
+    eel.start('index.html', port=0)
     static_dir.cleanup()
