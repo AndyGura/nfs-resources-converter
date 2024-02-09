@@ -10,164 +10,174 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': "This block describes full car physics specification for car that player can "
-                                     "drive. Looks like it's not used for opponent cars and such files do not exist for"
-                                     " traffic/cop cars at all. Big thanks to Five-Damned-Dollarz, he seems to be the "
-                                     "only one guy who managed to understand most of the fields in this block. "
-                                     "[His specification](https://gist.github.com/Five-Damned-Dollarz/"
-                                     "99e955994ebbcf970532406a197b580e)"}
+                                     "drive. Thanks to [Five-Damned-Dollarz](https://gist.github.com/Five-Damned-"
+                                     "Dollarz/99e955994ebbcf970532406a197b580e) and [marcos2250](https://github.com/"
+                                     "marcos2250/tnfs-1995/blob/main/tnfs_files.c)"}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        mass_front_axle = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                           {'is_unknown': True,
-                            'description': 'The meaning is theoretical. For all cars value is mass / 2'})
-        mass_rear_axle = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                          {'is_unknown': True,
-                           'description': 'The meaning is theoretical. For all cars value is mass / 2'})
+        mass_front = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Mass applied to front axle (kg)'})
+        mass_rear = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                     {'description': 'Mass applied to rear axle (kg)'})
         mass = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                {'description': 'Car mass (kg)'})
-        unk0 = (BytesBlock(length=12),
-                {'is_unknown': True})
-        unk1 = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                {'is_unknown': True,
-                 'description': 'Does something with front wheels slipping or braking'})
-        brake_bias = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
-                      {'description': 'Bias for brake force (0.0-1.0), determines the amount of braking force '
-                                      'applied to front and rear axles: 0.7 will distribute braking force 70% '
+                {'description': 'Total car mass (kg). Always == `mass_front + mass_rear`',
+                 'programmatic_value': lambda ctx: ctx.data('mass_front') + ctx.data('mass_rear')})
+        inv_mass_f = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Inverted mass applied to front axle in kg, `1 / mass_front`',
+                       'programmatic_value': lambda ctx: 1 / ctx.data('mass_front')})
+        inv_mass_r = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Inverted mass applied to rear axle in kg, `1 / mass_rear`',
+                       'programmatic_value': lambda ctx: 1 / ctx.data('mass_rear')})
+        inv_mass = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                    {'description': 'Inverted mass in kg, `1 / mass`',
+                     'programmatic_value': lambda ctx: 1 / (ctx.data('mass_front') + ctx.data('mass_rear'))})
+        drive_bias = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                      {'description': 'Bias for drive force (0.0-1.0, where 0 is RWD, 1 is FWD), determines the amount '
+                                      'of force applied to front and rear axles: 0.7 will distribute force 70% '
                                       'on the front, 30% on the rear'})
-        unk2 = (BytesBlock(length=4),
-                {'is_unknown': True})
-        center_of_gravity = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                             {'is_unknown': True,
-                              'description': 'probably the height of mass center in meters'})
-        brake_forces = (ArrayBlock(length=2, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),
-                        {'description': 'Brake forces, units are unknown. First number is responsible for braking on '
-                                        'reverse, neutral and first gears, second number is responsible for braking on '
-                                        'second gear. Interestingly, all gears > 2 use both numbers with unknown rules.'
-                                        ' Tested it on lamborghini'})
-        unk3 = (BytesBlock(length=4),
+        brake_bias_f = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                        {'description': 'Bias for brake force (0.0-1.0), determines the amount of braking force '
+                                        'applied to front and rear axles: 0.7 will distribute braking force 70% '
+                                        'on the front, 30% on the rear'})
+        brake_bias_r = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                        {'description': 'Bias for brake force for rear axle. Always == `1 - brake_bias_f`',
+                         'programmatic_value': lambda ctx: 1 - ctx.data('brake_bias_f')})
+        mass_y = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                  {'description': 'Probably the height of mass center in meters'})
+        brake_force = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                       {'description': 'Brake force in unknown units'})
+        brake_force2 = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                        {'description': 'Brake force, equals to `brake_force`. Not clear why PBS has two of these, '
+                                        'first number is responsible for braking on reverse, neutral and first gears, '
+                                        'second number is responsible for braking on second gear. '
+                                        'Interestingly, all gears > 2 use both numbers with unknown rules. '
+                                        'Tested it on lamborghini',
+                         'programmatic_value': lambda ctx: ctx.data('brake_force')})
+        unk0 = (BytesBlock(length=4),
                 {'is_unknown': True})
         drag = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                 {'description': 'Drag force, units are unknown'})
         top_speed = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                      {'description': 'Max vehicle speed in meters per second'})
         efficiency = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                      {'is_unknown': True})
-        body__wheel_base = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                            {'description': 'The distance betweeen rear and front axles in meters'})
+                      {'description': ''})
+        wheel_base = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'The distance betweeen rear and front axles in meters'})
         burnout_div = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                       {'is_unknown': True})
-        body__wheel_track = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                             {'description': 'The distance betweeen left and right wheels in meters'})
-        unk4 = (BytesBlock(length=8),
+                       {'description': ''})
+        wheel_track = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                       {'description': 'The distance betweeen left and right wheels in meters'})
+        unk1 = (BytesBlock(length=8),
                 {'is_unknown': True})
-        mps_to_rpm_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                             {'description': 'Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio)'})
-        transmission__gears_count = (IntegerBlock(length=4),
-                                     {'description': 'Amount of drive gears + 2 (R,N?)'})
-        transmission__final_drive_ratio = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                           {'description': 'Final drive ratio'})
-        roll_radius = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                       {'is_unknown': True})
-        unk5 = (BytesBlock(length=4),
-                {'is_unknown': True})
-        transmission__gear_ratios = (ArrayBlock(length=8, child=RationalNumber(length=4, fraction_bits=16,
-                                                                               is_signed=True)),
-                                     {'description': "Only first <gear_count> values are used. First element is the "
-                                                     "reverse gear ratio, second one is unknown"})
-        engine__torque_count = (IntegerBlock(length=4),
-                                {'description': 'Torques LUT (lookup table) size'})
-        front_roll_stiffness = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                {'is_unknown': True})
-        rear_roll_stiffness = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                               {'is_unknown': True})
-        roll_axis_height = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                            {'is_unknown': True})
-        unk6 = (ArrayBlock(length=3, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),
+        mps_to_rpm = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio)'})
+        num_gears = (IntegerBlock(length=4),
+                     {'description': 'Amount of drive gears + 2 (R,N?)'})
+        final_drive = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                       {'description': 'Final drive ratio'})
+        wheel_radius = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                        {'description': 'Wheel radius in meters'})
+        inv_wheel_rad = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                         {'description': 'Inverted wheel radius in meters, `1 / wheel_radius`',
+                          'programmatic_value': lambda ctx: 1 / ctx.data('wheel_radius')})
+        gear_ratios = (ArrayBlock(length=8, child=RationalNumber(length=4, fraction_bits=16,
+                                                                 is_signed=True)),
+                       {'description': "Only first `num_gears` values are used. First element is the "
+                                       "reverse gear ratio, second one is unknown"})
+        num_torques = (IntegerBlock(length=4),
+                       {'description': 'Torques LUT (lookup table) size'})
+        roll_stiff_f = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                        {'description': 'Roll stiffness front axle'})
+        roll_stiff_r = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                        {'description': 'Roll stiffness rear axle'})
+        roll_axis_y = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                       {'description': 'Roll axis height'})
+        unk2 = (ArrayBlock(length=3, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),
                 {'is_unknown': True,
                  'description': 'those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube?'})
-        slip_angle_cutoff = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                             {'is_unknown': True})
-        normal_coefficient_loss = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                   {'is_unknown': True})
-        engine__max_rpm = (IntegerBlock(length=4),
-                           {'description': 'Engine max RPM'})
-        engine__min_rpm = (IntegerBlock(length=4),
-                           {'description': 'Engine min RPM'})
-        engine__torques = (ArrayBlock(child=CompoundBlock(fields=[('rpm', IntegerBlock(length=4), {}),
-                                                                  ('torque', IntegerBlock(length=4), {}), ],
-                                                          inline_description="Two 32bit unsigned integers (little-endian"
-                                                                             "). First one is RPM, second is a torque"),
-                                      length=60),
-                           {'description': "LUT (lookup table) of engine torque depending on RPM. "
-                                           "<engine__torque_count> first elements used"})
-        transmission__upshifts = ArrayBlock(length=5, child=IntegerBlock(length=4),
-                                            description='RPM value, when automatic gear box should upshift. 1 element '
-                                                        'per drive gear'), {'description': ''}
-        unk7 = (BytesBlock(length=40),
-                {'is_unknown': True})
+        slip_cutoff = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                       {'description': 'Slip angle cut-off'})
+        normal_loss = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                       {'description': 'Normal coefficient loss'})
+        max_rpm = (IntegerBlock(length=4),
+                   {'description': 'Engine max RPM'})
+        min_rpm = (IntegerBlock(length=4),
+                   {'description': 'Engine min RPM'})
+        torques = (ArrayBlock(length=60,
+                              child=CompoundBlock(fields=[('rpm', IntegerBlock(length=4), {}),
+                                                          ('torque', IntegerBlock(length=4), {}), ],
+                                                  inline_description="Two 32bit unsigned integers (little-endian). "
+                                                                     "First one is RPM, second is a torque")),
+                   {'description': "LUT of engine torque depending on RPM. `num_torques` first elements used"})
+        upshifts = (ArrayBlock(length=7, child=IntegerBlock(length=4)),
+                    {'description': 'RPM value, when automatic gear box should upshift. 1 element per drive gear'})
+        gear_efficiency = (ArrayBlock(length=8, child=IntegerBlock(length=4)),
+                           {'description': ''})
         inertia_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                          {'is_unknown': True})
-        body_roll_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                            {'is_unknown': True})
-        body_pitch_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                             {'is_unknown': True})
-        front_friction_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                 {'is_unknown': True})
-        rear_fricton_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                               {'is_unknown': True})
-        body__length = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                        {'description': 'Chassis body length in meters'})
-        body__width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                       {'description': 'Chassis body width in meters'})
-        steering__max_auto_steer_angle = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                          {'is_unknown': True})
-        steering__auto_steer_mult_shift = (IntegerBlock(length=4),
-                                           {'is_unknown': True})
-        steering__auto_steer_div_shift = (IntegerBlock(length=4),
-                                          {'is_unknown': True})
-        steering__steering_model = (IntegerBlock(length=4),
-                                    {'is_unknown': True})
-        steering__auto_steer_velocities = (ArrayBlock(length=4, child=IntegerBlock(length=4)),
-                                           {'is_unknown': True})
-        steering__auto_steer_velocity_ramp = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                              {'is_unknown': True})
-        steering__auto_steer_velocity_attenuation = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                                     {'is_unknown': True})
-        steering__auto_steer_ramp_mult_shift = (IntegerBlock(length=4),
-                                                {'is_unknown': True})
-        steering__auto_steer_ramp_div_shift = (IntegerBlock(length=4),
-                                               {'is_unknown': True})
-        lateral_accel_cutoff = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                {'is_unknown': True})
-        unk8 = (BytesBlock(length=52),
+                          {'description': ''})
+        roll_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                       {'description': 'Body roll factor'})
+        pitch_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                        {'description': 'Body pitch factor'})
+        friction_f = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Front axle friction factor'})
+        friction_r = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Rear axle friction factor'})
+        body_len = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                    {'description': 'Chassis body length in meters'})
+        body_width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Chassis body width in meters'})
+        auto_steer = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                      {'description': 'Max auto steer angle'})
+        steer_mult = (IntegerBlock(length=4),
+                      {'description': 'auto_steer_mult_shift'})
+        steer_div = (IntegerBlock(length=4),
+                     {'description': 'auto_steer_div_shift'})
+        steer_model = (IntegerBlock(length=4),
+                       {'description': 'Steering model'})
+        steer_vel = (ArrayBlock(length=4, child=IntegerBlock(length=4)),
+                     {'description': 'Auto steer velocities'})
+        steer_vel_ramp = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                          {'description': 'Auto steer velocity ramp'})
+        steer_vel_att = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                         {'description': 'Auto steer velocity attenuation'})
+        steer_ramp_mult = (IntegerBlock(length=4),
+                           {'description': 'auto_steer_ramp_mult_shift'})
+        steer_ramp_div = (IntegerBlock(length=4),
+                          {'description': 'auto_steer_ramp_div_shift'})
+        lat_acc_cutoff = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                          {'description': 'Lateral acceleration cut-off'})
+        unk3 = (BytesBlock(length=8),
                 {'is_unknown': True})
-        engine_shifting__shift_timer = (IntegerBlock(length=4),
-                                        {'is_unknown': True,
-                                         'description': 'Unknown exactly, but it seems to be ticks taken to shift. '
-                                                        'Tick is probably 16ms'})
-        engine_shifting__rpm_decel = (IntegerBlock(length=4),
-                                      {'is_unknown': True})
-        engine_shifting__rpm_accel = (IntegerBlock(length=4),
-                                      {'is_unknown': True})
-        engine_shifting__clutch_drop_decel = (IntegerBlock(length=4),
-                                              {'is_unknown': True})
-        engine_shifting__neg_torque = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                                       {'is_unknown': True})
-        body__clearance = (RationalNumber(length=4, fraction_bits=7, is_signed=True),
-                           {'description': 'Body clearance in meters'})
-        body__height = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                        {'description': 'Body height in meters'})
-        center_x = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
-                    {'is_unknown': True})
-        unk9 = (ArrayBlock(child=IntegerBlock(length=1), length=512),
-                {'is_unknown': True,
-                 'description': 'Unknown values. in 3DO version "grip_curve_front" is here, takes the same space'})
-        unk10 = (ArrayBlock(child=IntegerBlock(length=1), length=512),
-                 {'is_unknown': True,
-                  'description': 'Unknown values. in 3DO version "grip_curve_rear" is here, takes the same space'})
-        hash = (IntegerBlock(length=4),
-                {'programmatic_value': lambda ctx: sum(ctx.result[:1880]),
-                 'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes'})
+        final_ratio = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                       {'description': 'Final drive torque ratio'})
+        thrust_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                         {'description': 'Thrust to acceleration factor'})
+        unk4 = (BytesBlock(length=36),
+                {'is_unknown': True})
+        shift_timer = (IntegerBlock(length=4),
+                       {'description': 'Seems to be ticks taken to shift. Tick is 1 / 60 of a second'})
+        rpm_dec = (IntegerBlock(length=4),
+                   {'description': 'RPM decrease when gas pedal released'})
+        rpm_acc = (IntegerBlock(length=4),
+                   {'description': 'RPM increase when gas pedal pressed'})
+        drop_rpm_dec = (IntegerBlock(length=4),
+                        {'description': 'Clutch drop RPM decrease'})
+        drop_rpm_inc = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                        {'description': 'Clutch drop RPM increase'})
+        neg_torque = (RationalNumber(length=4, fraction_bits=7, is_signed=True),
+                      {'description': 'Negative torque'})
+        height = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                  {'description': 'Body height in meters'})
+        center_y = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+                    {'description': ''})
+        grip_table_f = (ArrayBlock(length=512, child=RationalNumber(length=1, fraction_bits=4)),
+                        {'description': 'Grip table for front axle. Unit is unknown'})
+        grip_table_r = (ArrayBlock(length=512, child=RationalNumber(length=1, fraction_bits=4)),
+                        {'description': 'Grip table for rear axle. Unit is unknown'})
+        checksum = (IntegerBlock(length=4),
+                    {'programmatic_value': lambda ctx: sum(ctx.result[:1880]),
+                     'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes'})
 
 
 class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):

@@ -12,23 +12,20 @@ def rec_dd():
 
 class JsonSerializer(BaseFileSerializer):
 
+    # data is already valid dict, but we want to filter out unknown fields here
     def __make_dict(self, block, data):
         res = rec_dd()
         for key, value in data.items():
             if isinstance(block, CompoundBlock) and block.field_extras_map[key].get('is_unknown'):
                 continue
-            key_parts = key.split('__')
-            dictionary = res
-            for sub_key in key_parts[:-1]:
-                dictionary = res[sub_key]
             try:
                 value_block, value = block.get_child_block_with_data(data, key)
             except AttributeError:
                 value_block = None
             if isinstance(value_block, CompoundBlock):
-                dictionary[key_parts[-1]] = self.__make_dict(value_block, value)
+                res[key] = self.__make_dict(value_block, value)
             else:
-                dictionary[key_parts[-1]] = value
+                res[key] = value
         return res
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
