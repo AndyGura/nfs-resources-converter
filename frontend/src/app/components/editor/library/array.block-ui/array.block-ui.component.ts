@@ -51,6 +51,8 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }));
   }
 
+  @Input() disabled: boolean = false;
+
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   get schema(): BlockSchema | null {

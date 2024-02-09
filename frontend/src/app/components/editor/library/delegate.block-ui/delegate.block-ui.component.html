@@ -4,12 +4,16 @@
   </mat-label>
   <div id="resource-type-container">
     <mat-label>Resource type:</mat-label>
-    <mat-select [value]="resourceData.choice_index" (selectionChange)="setChoiceIndex($event.value)">
-      <mat-option *ngFor="let schema of resource!.schema.possible_resource_schemas; let i = index" [value]="i">
+    <mat-select [value]="resourceData.choice_index"
+                (selectionChange)="setChoiceIndex($event.value)"
+                [disabled]="disabled">
+      <mat-option *ngFor="let schema of resource!.schema.possible_resource_schemas; let i = index"
+                  [value]="i"
+                  [disabled]="disabled">
         {{ schema.block_class_mro.split('__')[0] }}
       </mat-option>
     </mat-select>
     <app-block-actions *ngIf="!hideBlockActions" [resource]="this.childResource"></app-block-actions>
   </div>
-  <app-editor [resource]="this.childResource" [hideBlockActions]="true"></app-editor>
+  <app-editor [resource]="this.childResource" [hideBlockActions]="true" [disabled]="disabled"></app-editor>
 </ng-container>

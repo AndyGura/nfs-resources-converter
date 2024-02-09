@@ -63,6 +63,8 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
   @Input()
   resourceDescription: string = '';
 
+  @Input() disabled: boolean = false;
+
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   private editor: any;

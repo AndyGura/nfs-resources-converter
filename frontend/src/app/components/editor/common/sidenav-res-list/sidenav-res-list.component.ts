@@ -1,10 +1,11 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 
 @Component({
   selector: 'app-sidenav-res-list',
   templateUrl: './sidenav-res-list.component.html',
   styleUrls: ['./sidenav-res-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidenavResListComponent {
   _resources: { [key: string]: BlockData | ReadError } = {};

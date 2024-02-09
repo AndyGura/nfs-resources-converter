@@ -268,8 +268,9 @@ class TriMap(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=4, required_value=0x11),
                        {'description': 'Resource ID'})
-        num_segs = (IntegerBlock(length=2),
-                    {'description': '0 for open tracks, num segments for closed'})
+        loop_chunk = (IntegerBlock(length=2),
+                      {'description': 'Index of chunk, on which game should use chunk #0 again. So for closed tracks '
+                                      'this value should be equal to `num_chunks`, for open tracks it is 0'})
         num_chunks = (IntegerBlock(length=2),
                       {'description': 'number of terrain chunks (max 600)'})
         unk0 = (IntegerBlock(length=2, required_value=0),

@@ -3,8 +3,11 @@
                     [matTooltip]="resourceDescription" matTooltipPosition="above">
         <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
         <mat-select [(value)]="resource.data"
-                    (selectionChange)="changed.emit()">
-            <mat-option *ngFor="let enumValue of resource.schema.enum_names" [value]="enumValue[1]">
+                    (selectionChange)="changed.emit()"
+                    [disabled]="disabled">
+            <mat-option *ngFor="let enumValue of resource.schema.enum_names"
+                        [value]="enumValue[1]"
+                        [disabled]="disabled">
                 {{enumValue[1]}}
             </mat-option>
         </mat-select>

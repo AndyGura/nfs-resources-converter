@@ -3,9 +3,13 @@
   align-items: flex-start;
   column-gap: 1rem;
   height: inherit;
+  scroll-snap-align: start;
+  scroll-margin: 0.5rem;
 
   mat-selection-list {
     height: 100%;
+    max-height: calc(100vh - 54px - 1rem);
+    overflow-y: auto;
     max-width: 33%;
     flex-shrink: 0;
     padding: 0;

@@ -478,14 +478,7 @@ if $save_terrain_collisions:
         super().serialize(data, path)
         # this serializer mutates data when exchanging axis to Z-up
         data = deepcopy(data)
-        is_opened_track = math.sqrt(
-            (data['road_spline'][0]['position']['x'] - data['road_spline'][len(data['terrain']) * 4 - 1]['position'][
-                'x']) ** 2
-            + (data['road_spline'][0]['position']['y'] - data['road_spline'][len(data['terrain']) * 4 - 1]['position'][
-                'y']) ** 2
-            + (data['road_spline'][0]['position']['z'] - data['road_spline'][len(data['terrain']) * 4 - 1]['position'][
-                'z']) ** 2
-        ) > 100
+        is_opened_track = data['loop_chunk'] == 0
 
         terrain_data = []
         for terrain_entry in data['terrain']:

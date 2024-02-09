@@ -1,9 +1,11 @@
 <ng-container *ngIf="resource" [matTooltip]="resourceDescription" matTooltipPosition="above">
     <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
-    <mat-selection-list (selectionChange)="onSelection($event)">
+    <mat-selection-list (selectionChange)="onSelection($event)"
+                        [disabled]="disabled">
         <mat-list-option *ngFor="let flag of (resource.data | keyvalue)"
                          [value]="flag.key"
-                         [selected]="resource.data[$any(flag.key)]">
+                         [selected]="resource.data[$any(flag.key)]"
+                         [disabled]="disabled">
             {{flag.key}}
         </mat-list-option>
     </mat-selection-list>

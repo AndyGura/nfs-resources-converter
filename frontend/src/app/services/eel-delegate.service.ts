@@ -54,8 +54,16 @@ export class EelDelegateService {
     return eel['run_custom_action'](name, action, args)();
   }
 
-  public async saveFile(changes: { id: string; value: any }[]) {
-    return eel['save_file'](this.openedResourcePath$.getValue(), changes)();
+  public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
+    const current = this.openedResource$.getValue();
+    if (!current) return;
+    const updatedData = await eel['save_file'](this.openedResourcePath$.getValue(), changes)();
+    this.openedResource$.next({
+      id: current.id,
+      name: current.name,
+      schema: current.schema,
+      data: updatedData,
+    });
   }
 
   public async serializeResource(id: string, settingsPatch: any = {}): Promise<string[]> {

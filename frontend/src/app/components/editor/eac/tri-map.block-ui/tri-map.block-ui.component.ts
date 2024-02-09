@@ -625,7 +625,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         }))
         .filter((_: any, i: number) => i % 4 === 0)
         .slice(0, this.resource!.data.num_chunks) || null;
-    this.isOpenedTrack = !this.roadPath || Pnt3.dist(this.roadPath[0], this.roadPath[this.roadPath.length - 1]) > 100;
+    this.isOpenedTrack = this.resource?.data.loop_chunk === 0;
     if (!this.terrainChunksObjLocation || !this.roadPath) {
       return;
     }

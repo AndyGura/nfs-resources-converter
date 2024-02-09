@@ -13,6 +13,9 @@ export class EnumBlockUiComponent implements GuiComponentInterface {
   @Input()
   resourceDescription: string = '';
 
+  @Input()
+  disabled: boolean = false;
+
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   isKnownEnumValue(value: string): boolean {

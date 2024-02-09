@@ -23,6 +23,9 @@ export class StringBlockUiComponent implements GuiComponentInterface {
   @Input()
   resourceDescription: string = '';
 
+  @Input()
+  disabled: boolean = false;
+
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   minLength: number | null = null;

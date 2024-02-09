@@ -1,8 +1,13 @@
+import math
 from typing import Dict
 
 from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, ArrayBlock, CompoundBlock, BytesBlock
 from resources.eac.fields.numbers import RationalNumber
 
+# TNFS when saving some of the calculated values, uses `floor` instead of `round`
+def floor_16(value):
+    pow16 = 2 ** 16
+    return math.floor(value * pow16) / pow16
 
 class CarPerformanceSpec(DeclarativeCompoundBlock):
 
@@ -24,13 +29,13 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                  'programmatic_value': lambda ctx: ctx.data('mass_front') + ctx.data('mass_rear')})
         inv_mass_f = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                       {'description': 'Inverted mass applied to front axle in kg, `1 / mass_front`',
-                       'programmatic_value': lambda ctx: 1 / ctx.data('mass_front')})
+                       'programmatic_value': lambda ctx: floor_16(1 / ctx.data('mass_front'))})
         inv_mass_r = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                       {'description': 'Inverted mass applied to rear axle in kg, `1 / mass_rear`',
-                       'programmatic_value': lambda ctx: 1 / ctx.data('mass_rear')})
+                       'programmatic_value': lambda ctx: floor_16(1 / ctx.data('mass_rear'))})
         inv_mass = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                     {'description': 'Inverted mass in kg, `1 / mass`',
-                     'programmatic_value': lambda ctx: 1 / (ctx.data('mass_front') + ctx.data('mass_rear'))})
+                     'programmatic_value': lambda ctx: floor_16(1 / (ctx.data('mass_front') + ctx.data('mass_rear')))})
         drive_bias = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
                       {'description': 'Bias for drive force (0.0-1.0, where 0 is RWD, 1 is FWD), determines the amount '
                                       'of force applied to front and rear axles: 0.7 will distribute force 70% '
@@ -79,7 +84,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                         {'description': 'Wheel radius in meters'})
         inv_wheel_rad = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                          {'description': 'Inverted wheel radius in meters, `1 / wheel_radius`',
-                          'programmatic_value': lambda ctx: 1 / ctx.data('wheel_radius')})
+                          'programmatic_value': lambda ctx: floor_16(1 / ctx.data('wheel_radius'))})
         gear_ratios = (ArrayBlock(length=8, child=RationalNumber(length=4, fraction_bits=16,
                                                                  is_signed=True)),
                        {'description': "Only first `num_gears` values are used. First element is the "

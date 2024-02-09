@@ -88,6 +88,15 @@ export class EditorComponent implements OnDestroy {
     }
   }
 
+  private _disabled: boolean = false;
+  @Input()
+  set disabled(value: boolean) {
+    this._disabled = value;
+    if (this._component) {
+      this._component.instance.disabled = value;
+    }
+  }
+
   @Input()
   public set resource(value: Resource | ResourceError | null) {
     this.resourceSet$.next();
@@ -142,6 +151,7 @@ export class EditorComponent implements OnDestroy {
         this._component!.instance.resource = this._resource;
         this._component!.instance.resourceDescription = this._resourceDescription;
         this._component!.instance.hideBlockActions = this._hideBlockActions;
+        this._component!.instance.disabled = this._disabled;
       }
     }
   }

@@ -9,6 +9,14 @@
   overflow-y: auto;
   padding: 1rem;
   height: 100%;
+  scroll-snap-type: y proximity;
+
+  .scroll-bounds-snapper {
+    height: 0;
+    width: 100%;
+    scroll-snap-align: start;
+    scroll-margin: 1rem;
+  }
 }
 
 #bmac {

@@ -26,7 +26,9 @@
   <ng-container *ngIf="(renderContents || !showAsCollapsable)">
     <ng-template [ngTemplateOutlet]="paginator"></ng-template>
     <ng-container *ngFor="let i of this.renderIndexes">
-      <app-editor *ngIf="(pageIndex * pageSize + i) < children.length" [resource]="children[pageIndex * pageSize + i]"></app-editor>
+      <app-editor *ngIf="(pageIndex * pageSize + i) < children.length"
+                  [resource]="children[pageIndex * pageSize + i]"
+                  [disabled]="disabled"></app-editor>
     </ng-container>
     <ng-template [ngTemplateOutlet]="paginator"></ng-template>
     <p *ngIf="(resourceData || []).length == 0">Empty array</p>

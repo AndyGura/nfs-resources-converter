@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
-import { cloneDeep, isEqual, isObject } from 'lodash';
+import { cloneDeep, isEqual, isNumber, isObject } from 'lodash';
 import { findNestedObjects } from '../utils/find-nested-object';
 import { joinId } from '../utils/join-id';
 
@@ -50,7 +50,14 @@ export class MainService {
       }
     });
     this.dataBlockChange$.subscribe(([blockId, value]) => {
-      if (isEqual(value, this.getInitialValueFromSnapshot(blockId))) {
+      let equals: boolean;
+      const originalValue = this.getInitialValueFromSnapshot(blockId);
+      if (isNumber(value)) {
+        equals = Math.abs(value - originalValue) < 0.0000000001;
+      } else {
+        equals = isEqual(value, originalValue);
+      }
+      if (equals) {
         // change reverted
         delete this.changedDataBlocks[blockId];
       } else {

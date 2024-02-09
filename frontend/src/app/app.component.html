@@ -21,6 +21,7 @@
     </button>
 </mat-toolbar>
 <div id="content-wrapper">
+    <div class="scroll-bounds-snapper"></div>
     <app-editor [resource]="(mainService.customActionRunning$ | async)
     ? null
     : ((mainService.resource$ | async) || (mainService.error$ | async))"
@@ -30,4 +31,5 @@
                 src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee"
                 style="height: 60px !important;width: 217px !important;"></a>
     </div>
+    <div class="scroll-bounds-snapper"></div>
 </div>

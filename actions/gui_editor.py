@@ -87,10 +87,10 @@ def run_gui_editor(file_path):
         def save_file(path: str, changes: Dict):
             __apply_delta_to_resource(current_file_name, current_file_data, changes)
             bts = current_file_block.pack(current_file_data)
-            f = open(path, 'wb')
-            f.write(bts)
-            f.close()
+            with open(path, 'wb') as file:
+                file.write(bts)
             clear_file_cache(path)
+            return convert_bytes(current_file_data)
 
         @eel.expose
         def run_custom_action(resource_id: str, action: Dict, args: Dict):
@@ -167,5 +167,5 @@ def run_gui_editor(file_path):
 
     eel.init(static_path)
     init_eel_state()
-    eel.start('index.html', port=0)
+    eel.start('index.html', port=8000)
     static_dir.cleanup()

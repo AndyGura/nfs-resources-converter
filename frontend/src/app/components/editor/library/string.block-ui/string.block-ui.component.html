@@ -2,7 +2,7 @@
                 [matTooltip]="resourceDescription" matTooltipPosition="above">
     <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
     <input matInput type="text"
-           [disabled]="resource.schema.required_value !== undefined"
+           [disabled]="disabled || resource.schema.required_value !== undefined"
            [maxlength]="maxLength" [minlength]="minLength"
            [(ngModel)]="resource.data"
            (change)="changed.emit()">

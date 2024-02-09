@@ -1,5 +1,5 @@
 # **TNFSSE (PC) file specs** #
-*Last time updated: 2024-02-09 07:58:28.412495+00:00*
+*Last time updated: 2024-02-09 18:53:04.139516+00:00*
 
 
 # **Info by file extensions** #
@@ -144,7 +144,7 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x11 | Resource ID |
-| 4 | **num_segs** | 2 | 2-bytes unsigned integer (little endian) | 0 for open tracks, num segments for closed |
+| 4 | **loop_chunk** | 2 | 2-bytes unsigned integer (little endian) | Index of chunk, on which game should use chunk #0 again. So for closed tracks this value should be equal to `num_chunks`, for open tracks it is 0 |
 | 6 | **num_chunks** | 2 | 2-bytes unsigned integer (little endian) | number of terrain chunks (max 600) |
 | 8 | **unk0** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 10 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x6 | Unknown purpose |
