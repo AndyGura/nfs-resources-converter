@@ -1,7 +1,13 @@
 from typing import Dict
 
-from library.read_blocks import BitFlagsBlock, DeclarativeCompoundBlock, IntegerBlock, BytesBlock, ArrayBlock, \
-    UTF8Block, DelegateBlock
+from library.read_blocks import (BitFlagsBlock,
+                                 DeclarativeCompoundBlock,
+                                 IntegerBlock,
+                                 BytesBlock,
+                                 ArrayBlock,
+                                 UTF8Block,
+                                 DelegateBlock,
+                                 SubByteArrayBlock)
 from library.read_blocks.numbers import EnumByteBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
@@ -26,7 +32,10 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                         {'description': 'The distance to invisible wall on the left'})
         right_barrier = (RationalNumber(length=1, fraction_bits=3),
                          {'description': 'The distance to invisible wall on the right'})
-        unk0 = (BytesBlock(length=3),
+        lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
+                 {'description': 'Amount of lines. First number is amount of oncoming lanes, second number is amount '
+                                 'of ongoing ones'})
+        unk0 = (BytesBlock(length=2),
                 {'is_unknown': True})
         item_mode = (EnumByteBlock(enum_names=[(0, 'lane_split'),
                                                (1, 'default_0'),
@@ -35,11 +44,14 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                                (4, 'tunnel'),
                                                (5, 'cobbled_road'),
                                                (7, 'right_tunnel_A9_A2'),
+                                               (8, 'unk_cl3_forest'),
                                                (9, 'left_tunnel_A4_A7'),
+                                               (11, 'unk_autumn_valley_tribunes'),
                                                (12, 'left_tunnel_A4_A8'),
                                                (13, 'left_tunnel_A5_A8'),
                                                (14, 'waterfall_audio_left_channel'),
                                                (15, 'waterfall_audio_right_channel'),
+                                               (16, 'unk_al1_uphill'),
                                                (17, 'transtropolis_noise_audio'),
                                                (18, 'water_audio'),
                                                ]),
@@ -272,7 +284,8 @@ class TriMap(DeclarativeCompoundBlock):
                       {'description': 'Index of chunk, on which game should use chunk #0 again. So for closed tracks '
                                       'this value should be equal to `num_chunks`, for open tracks it is 0'})
         num_chunks = (IntegerBlock(length=2),
-                      {'description': 'number of terrain chunks (max 600)'})
+                      {'description': 'number of terrain chunks (max 600)',
+                       'programmatic_value': lambda ctx: len(ctx.data('terrain'))})
         unk0 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=2, required_value=6),
@@ -282,7 +295,8 @@ class TriMap(DeclarativeCompoundBlock):
         unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, required_value=0), length=12),
                      {'is_unknown': True})
         chunks_size = (IntegerBlock(length=4),
-                       {'description': 'Size of terrain array in bytes (num_chunks * 0x120)'})
+                       {'description': 'Size of terrain array in bytes (num_chunks * 0x120)',
+                        'programmatic_value': lambda ctx: len(ctx.data('terrain')) * 0x120})
         rail_tex_id = (IntegerBlock(length=4),
                        {'description': 'Do not know what is "railing". Doesn\'t look like a fence '
                                        'texture id, tested in TR1_001.FAM', 'is_unknown': True})

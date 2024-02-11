@@ -604,6 +604,10 @@ if $save_terrain_collisions:
             'slant': [x['slant_a'] for x in spline],
             'left_barrier_distance': [x['left_barrier'] for x in spline],
             'right_barrier_distance': [x['right_barrier'] for x in spline],
+            'left_verge_distance': [x['left_verge'] for x in spline],
+            'right_verge_distance': [x['right_verge'] for x in spline],
+            'lanes_backward': [x['lanes'][0] for x in spline],
+            'lanes_forward': [x['lanes'][1] for x in spline],
             'max_ai_speed': [data['ai_info'][math.floor(i / 4)]['max_ai_speed'] for i in
                              range(len(data['terrain']) * 4)],
             'max_traffic_speed': [data['ai_info'][math.floor(i / 4)]['max_traffic_speed'] for i in
@@ -624,7 +628,6 @@ if $save_terrain_collisions:
             'road_path_settings': json.dumps(road_path_settings),
             # AL1, CL1, CY1, BS, VR - looks ok
             # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
-            # FINISH POSITION IS UNKNOWN: CY1 road spline vertex #1740
             'player_start': json.dumps({
                 # 0.8 is an approximate average car half width
                 'x': max(

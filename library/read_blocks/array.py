@@ -134,9 +134,13 @@ class SubByteArrayBlock(DataBlock):
             'block_description': f'Array of `{self.length_doc_str}` sub-byte numbers. Each number consists of {self.bits_per_value} bits',
             'child_schema': {
                 'block_class_mro': 'IntegerBlock__DataBlock',
-                'min_value': self.value_deserialize_func(0),
-                'max_value': self.value_deserialize_func((1 << self.bits_per_value) - 1),
-                'value_interval': self.value_deserialize_func(1) - self.value_deserialize_func(0),
+                'min_value': self.value_deserialize_func(0) if self.value_deserialize_func else 0,
+                'max_value': self.value_deserialize_func((1 << self.bits_per_value) - 1)
+                if self.value_deserialize_func
+                else (1 << self.bits_per_value) - 1,
+                'value_interval': self.value_deserialize_func(1) - self.value_deserialize_func(0)
+                if self.value_deserialize_func
+                else 1,
             }
         }
 

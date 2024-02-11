@@ -1,5 +1,5 @@
 # **TNFSSE (PC) file specs** #
-*Last time updated: 2024-02-09 18:53:04.139516+00:00*
+*Last time updated: 2024-02-11 00:55:56.376993+00:00*
 
 
 # **Info by file extensions** #
@@ -172,8 +172,9 @@
 | 1 | **right_verge** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the right edge of road. After this point the grip decreases |
 | 2 | **left_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
 | 3 | **right_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
-| 4 | **unk0** | 3 | Bytes | Unknown purpose |
-| 7 | **item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>9: left_tunnel_A4_A7<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
+| 4 | **lanes** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Amount of lines. First number is amount of oncoming lanes, second number is amount of ongoing ones |
+| 5 | **unk0** | 2 | Bytes | Unknown purpose |
+| 7 | **item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>8: unk_cl3_forest<br/>9: left_tunnel_A4_A7<br/>11: unk_autumn_valley_tribunes<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>16: unk_al1_uphill<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |

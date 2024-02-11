@@ -316,10 +316,11 @@ class SoundBank(DeclarativeCompoundBlock):
         bnk_start = buffer.tell()
         res = super().read(buffer, ctx, name, read_bytes_amount)
         abs_offsets = [bnk_start + x + 40 for x in res['item_ptrs'] if x > 0]
-        self_ctx = [c for c in ctx.children if c.name == name][0] if ctx else ReadContext(buffer=buffer, data=res,
-                                                                                          name=name, block=self,
-                                                                                          parent=ctx,
-                                                                                          read_bytes_amount=read_bytes_amount)
+        self_ctx = ([c for c in ctx.children if c.name == name][0] if ctx
+                    else ReadContext(buffer=buffer, data=res,
+                                     name=name, block=self,
+                                     parent=ctx,
+                                     read_bytes_amount=read_bytes_amount))
         child_header_block = EacsAudioHeader()
         child_wave_data_block = BytesBlock(length=0)
         for i, offset in enumerate(abs_offsets):
