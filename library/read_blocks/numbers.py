@@ -117,7 +117,7 @@ class EnumByteBlock(IntegerBlock):
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
         raw = super().read(buffer, ctx, name, read_bytes_amount)
         if self.raise_error_on_unknown and self.enum_name_map[raw] is None:
-            raise DataIntegrityException(f'Unknown enum value {raw} at {ctx.ctx_path}/{name}')
+            raise DataIntegrityException(f'Unknown enum value {raw} at {ctx.ctx_path if ctx else ""}/{name}')
         return self.enum_name_map[raw]
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:

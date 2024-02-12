@@ -50,7 +50,8 @@ class DataBlock(ABC):
     def validate_after_read(self, value, ctx: ReadContext = None, name: str = ''):
         if self.required_value and value != self.required_value:
             raise DataIntegrityException(f'Expected {represent_value_as_str(self.required_value)}, '
-                                         f'found {represent_value_as_str(value)} at {ctx.ctx_path}/{name}')
+                                         f'found {represent_value_as_str(value)} '
+                                         f'at {ctx.ctx_path if ctx else ""}/{name}')
 
     ### final method, should never override
     def unpack(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '',

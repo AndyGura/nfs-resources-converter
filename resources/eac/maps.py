@@ -57,6 +57,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                                (4, 'tunnel'),
                                                (5, 'cobbled_road'),
                                                (7, 'right_tunnel_A9_A2'),
+                                               # OpenNFS1: left wall appeared to move across the track - snapped back as we got closer
                                                (8, 'unk_cl3_forest'),
                                                (9, 'left_tunnel_A4_A7'),
                                                (11, 'unk_autumn_valley_tribunes'),
@@ -65,8 +66,8 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                                (14, 'waterfall_audio_left_channel'),
                                                (15, 'waterfall_audio_right_channel'),
                                                (16, 'unk_al1_uphill'),
-                                               (17, 'transtropolis_noise_audio'),
-                                               (18, 'water_audio'),
+                                               (17, 'transtropolis_noise_audio'),  # OpenNFS1: water left channel
+                                               (18, 'water_audio'),  # OpenNFS1: water right channel
                                                ]),
                      {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features'})
         position = (Point3D_32(),
@@ -144,8 +145,7 @@ class BitmapPropDescrData(DeclarativeCompoundBlock):
                                        '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
                                        'by Denis Auroux'})
         resource_id_2 = (IntegerBlock(length=1),
-                         {'description': 'Seems to always be equal to `resource_id`',
-                          'programmatic_value': lambda ctx: ctx.data('resource_id')})
+                         {'description': 'Oftenly equals to `resource_id`, but can be different'})
         width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                  {'description': 'Width in meters'})
         frame_count = (IntegerBlock(length=1),
