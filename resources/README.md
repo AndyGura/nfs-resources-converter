@@ -1,5 +1,5 @@
 # **TNFSSE (PC) file specs** #
-*Last time updated: 2024-02-11 00:55:56.376993+00:00*
+*Last time updated: 2024-02-12 18:30:29.777161+00:00*
 
 
 # **Info by file extensions** #
@@ -172,18 +172,19 @@
 | 1 | **right_verge** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to the right edge of road. After this point the grip decreases |
 | 2 | **left_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
 | 3 | **right_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
-| 4 | **lanes** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Amount of lines. First number is amount of oncoming lanes, second number is amount of ongoing ones |
-| 5 | **unk0** | 2 | Bytes | Unknown purpose |
+| 4 | **num_lanes** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Amount of lanes. First number is amount of oncoming lanes, second number is amount of ongoing ones |
+| 5 | **lanes_unk0** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Something to do with lanes. Appears to be a pair of 4-bit numbers, just like `num_lanes`, since all maps have value one of [0, 1, 16, 17], which seems to be the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1]). I tried to swap numbers inside of those, swap `lanes_unk0` and `lanes_unk1`, do two those swaps at the same time, but I still can see ongoing traffic spawn on reversed CY1.TRI |
+| 6 | **lanes_unk1** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Something to do with lanes. Appears to be a pair of 4-bit numbers, just like `num_lanes`, since all maps have value one of [0, 2, 17, 34], which seems to be the combination of two values [0-2, 0-2]. Most common value is 34 ([2, 2]). City has value 0 through all the tracks, feels like it means do not spawn oncoming traffic |
 | 7 | **item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>8: unk_cl3_forest<br/>9: left_tunnel_A4_A7<br/>11: unk_autumn_valley_tribunes<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>16: unk_al1_uphill<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
-| 26 | **unk1** | 2 | Bytes | Unknown purpose |
+| 26 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 28 | **orientation_x** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_x == cos(orientation) * 32766 |
 | 30 | **slant_b** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
 | 32 | **orientation_nz** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_nz == -sin(orientation) * 32766 |
-| 34 | **unk2** | 2 | Bytes | Unknown purpose |
+| 34 | **unk2** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 ### **PropDescr** ###
 #### **Size**: 16 bytes ####
 #### **Description**: The description of map prop: everything except terrain (road signs, buildings etc.) Thanks to jeff-1amstudios and his [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1/blob/357fe6c3314a6f5bae47e243ca553c5491ecde79/OpenNFS1/Parsers/TriFile.cs#L202) project ####
@@ -228,14 +229,17 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer | An index of prop in the track FAM file |
-| 1 | **unknowns** | 13 | Bytes | Unknown purpose |
+| 1 | **resource_id_2** | 1 | 1-byte unsigned integer | Seems to always be equal to `resource_id`, except for one prop on map CL1, which is not used on map |
+| 2 | **unk0** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 1.5 | Unknown purpose |
+| 6 | **unk1** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | The purpose is unknown. Every single entry in TNFS files equals to 1.5 (0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken texture palette and which is not used on the map anyways |
+| 10 | **unk2** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 3 | Unknown purpose |
 ### **BitmapPropDescrData** ###
 #### **Size**: 14 bytes ####
 #### **Description**: Map prop settings if it is a bitmap ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value [explained](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well by Denis Auroux |
-| 1 | **index** | 1 | 1-byte unsigned integer | Seems to be always equal to own index * 4 |
+| 1 | **resource_id_2** | 1 | 1-byte unsigned integer | Seems to always be equal to `resource_id` |
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object. Ignored if flag `is_animated` not set |
 | 7 | **animation_interval** | 1 | TNFS time field. 1-byte unsigned integer, equals to amount of ticks (amount of seconds * 60) | Interval between animation frames in seconds |
@@ -248,7 +252,7 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value [explained](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well by Denis Auroux |
-| 1 | **resource_2_id** | 1 | 1-byte unsigned integer | Texture id of second sprite, rotated 90 degrees. Logic to determine texture name is the same as for resource_id |
+| 1 | **resource_id_2** | 1 | 1-byte unsigned integer | Texture id of second sprite, rotated 90 degrees. Logic to determine texture name is the same as for resource_id |
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **width_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters of second bitmap |
 | 10 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters |

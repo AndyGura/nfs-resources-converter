@@ -261,7 +261,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
       object.add(plane);
       if (dummy.type == MapPropType.TwoSidedBitmap) {
         const [plane2, isUnknown] = await this.loadTexturePlaneProp(
-          textureIds(dummy.data.data.resource_2_id, 1),
+          textureIds(dummy.data.data.resource_id_2, 1),
           {
             x: dummy.data.data.width_2,
             y: dummy.data.data.height,

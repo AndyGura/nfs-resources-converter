@@ -1,5 +1,7 @@
+from io import BufferedReader, BytesIO
 from typing import Dict
 
+from library.context import ReadContext
 from library.read_blocks import (BitFlagsBlock,
                                  DeclarativeCompoundBlock,
                                  IntegerBlock,
@@ -32,11 +34,22 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                         {'description': 'The distance to invisible wall on the left'})
         right_barrier = (RationalNumber(length=1, fraction_bits=3),
                          {'description': 'The distance to invisible wall on the right'})
-        lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
-                 {'description': 'Amount of lines. First number is amount of oncoming lanes, second number is amount '
-                                 'of ongoing ones'})
-        unk0 = (BytesBlock(length=2),
-                {'is_unknown': True})
+        num_lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
+                     {'description': 'Amount of lanes. First number is amount of oncoming lanes, second number is '
+                                     'amount of ongoing ones'})
+        lanes_unk0 = (SubByteArrayBlock(length=2, bits_per_value=4),
+                      {'description': 'Something to do with lanes. Appears to be a pair of 4-bit numbers, just like '
+                                      '`num_lanes`, since all maps have value one of [0, 1, 16, 17], which seems to be '
+                                      'the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1]). '
+                                      'I tried to swap numbers inside of those, swap `lanes_unk0` and `lanes_unk1`, '
+                                      'do two those swaps at the same time, but I still can see ongoing traffic spawn '
+                                      'on reversed CY1.TRI'})
+        lanes_unk1 = (SubByteArrayBlock(length=2, bits_per_value=4),
+                      {'description': 'Something to do with lanes. Appears to be a pair of 4-bit numbers, just like '
+                                      '`num_lanes`, since all maps have value one of [0, 2, 17, 34], which seems to be '
+                                      'the combination of two values [0-2, 0-2]. Most common value is 34 ([2, 2]). '
+                                      'City has value 0 through all the tracks, feels like it means do not spawn '
+                                      'oncoming traffic'})
         item_mode = (EnumByteBlock(enum_names=[(0, 'lane_split'),
                                                (1, 'default_0'),
                                                (2, 'lane_merge'),
@@ -65,7 +78,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         orientation = (Nfs1Angle14(),
                        {'description': 'Rotation of road path, if view from the top. Equals to '
                                        'atan2(next_x - x, next_z - z)'})
-        unk1 = (BytesBlock(length=2),
+        unk1 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
         orientation_x = (IntegerBlock(length=2, is_signed=True),
                          {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
@@ -80,7 +93,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                           {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
                                           'angle == orientation field above, used for pseudo-3D effect on '
                                           'opponent cars. So orientation_nz == -sin(orientation) * 32766'})
-        unk2 = (BytesBlock(length=2),
+        unk2 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
 
     def update_orientations(self, read_data, next_spline_point):
@@ -102,8 +115,20 @@ class ModelPropDescrData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
                        {'description': 'An index of prop in the track FAM file'})
-        unknowns = (BytesBlock(length=13),
-                    {'is_unknown': True})
+        resource_id_2 = (IntegerBlock(length=1),
+                         {'description': 'Seems to always be equal to `resource_id`, except for one prop on map CL1, '
+                                         'which is not used on map',
+                          'programmatic_value': lambda ctx: ctx.data('resource_id')})
+        unk0 = (RationalNumber(length=4, fraction_bits=16, required_value=1.5),
+                {'is_unknown': True})
+        unk1 = (RationalNumber(length=4, fraction_bits=16),
+                {'is_unknown': True,
+                 'programmatic_value': lambda _: 1.5,
+                 'description': 'The purpose is unknown. Every single entry in TNFS files equals to 1.5 '
+                                '(0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken '
+                                'texture palette and which is not used on the map anyways'})
+        unk2 = (RationalNumber(length=4, fraction_bits=16, required_value=3),
+                {'is_unknown': True})
 
 
 class BitmapPropDescrData(DeclarativeCompoundBlock):
@@ -118,8 +143,9 @@ class BitmapPropDescrData(DeclarativeCompoundBlock):
                        {'description': 'Represents texture id. How to get texture name from this value [explained]'
                                        '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
                                        'by Denis Auroux'})
-        index = (IntegerBlock(length=1),
-                 {'description': 'Seems to be always equal to own index * 4'})
+        resource_id_2 = (IntegerBlock(length=1),
+                         {'description': 'Seems to always be equal to `resource_id`',
+                          'programmatic_value': lambda ctx: ctx.data('resource_id')})
         width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                  {'description': 'Width in meters'})
         frame_count = (IntegerBlock(length=1),
@@ -146,7 +172,7 @@ class TwoSidedBitmapPropDescrData(DeclarativeCompoundBlock):
                        {'description': 'Represents texture id. How to get texture name from this value [explained]'
                                        '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
                                        'by Denis Auroux'})
-        resource_2_id = (IntegerBlock(length=1),
+        resource_id_2 = (IntegerBlock(length=1),
                          {'description': 'Texture id of second sprite, rotated 90 degrees. Logic to determine texture '
                                          'name is the same as for resource_id'})
         width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
@@ -210,6 +236,10 @@ class MapProp(DeclarativeCompoundBlock):
                  {'is_unknown': True})
         position = (Point3D_16(),
                     {'description': 'Position in 3D space, relative to position of referenced road spline vertex'})
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        data = super().read(buffer, ctx, name, read_bytes_amount)
+        return data
 
 
 class TerrainEntry(DeclarativeCompoundBlock):
@@ -326,10 +356,10 @@ class TriMap(DeclarativeCompoundBlock):
                              length=(lambda ctx: ctx.data('num_chunks'), 'num_chunks'))
 
     def action_reverse_track(self, read_data):
+        # FIXME lanes are a bit off: CY1.TRI now has both lanes oncoming, and racers drive on right verge. Traffic never appears
         # FIXME lane merge/split are broken. Is it possible to fix?
         # FIXME tunnel walls are broken. Is it possible to fix?
         # FIXME preserve 3D effect from two sided bitmaps (add math.pi to rotation, move base, switch side of side bitmap)
-        # FIXME AI speed inadequate
         # FIXME render order of props
         from math import cos, sin, pi, atan2
         def rotate_point(origin, point, angle):
@@ -372,7 +402,11 @@ class TriMap(DeclarativeCompoundBlock):
             # swap left and right
             (vertex['left_verge'], vertex['right_verge']) = (vertex['right_verge'], vertex['left_verge'])
             (vertex['left_barrier'], vertex['right_barrier']) = (vertex['right_barrier'], vertex['left_barrier'])
-            # slope/slant are just reversed
+            # swap lanes
+            vertex['num_lanes'] = [vertex['num_lanes'][1], vertex['num_lanes'][0]]
+            vertex['lanes_unk0'] = [vertex['lanes_unk1'][1], vertex['lanes_unk1'][0]]
+            vertex['lanes_unk1'] = [vertex['lanes_unk0'][1], vertex['lanes_unk0'][0]]
+            # change sign of slope/slant values
             vertex['slope'] = -vertex['slope']
             vertex['slant_a'] = -vertex['slant_a']
             vertex['slant_b'] = -vertex['slant_b']
@@ -412,8 +446,10 @@ class TriMap(DeclarativeCompoundBlock):
                                                                          prop['position']['x']),
                                                                         y_angle_to_rotate)
 
-        read_data['road_spline'] = read_data['road_spline'][:road_spline_length][::-1] + read_data['road_spline'][
-                                                                                         road_spline_length:]
+        read_data['road_spline'] = (read_data['road_spline'][:road_spline_length][::-1]
+                                    + read_data['road_spline'][road_spline_length:])
+        read_data['ai_info'] = (read_data['ai_info'][:read_data['num_chunks']][::-1]
+                                + read_data['ai_info'][read_data['num_chunks']:])
         read_data['terrain'] = read_data['terrain'][::-1]
         read_data['props'] = (read_data['props'][:amount_of_instances][::-1]
                               + read_data['props'][amount_of_instances:])
