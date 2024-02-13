@@ -1,5 +1,5 @@
 # **TNFSSE (PC) file specs** #
-*Last time updated: 2024-02-12 18:30:29.777161+00:00*
+*Last time updated: 2024-02-13 08:39:25.211239+00:00*
 
 
 # **Info by file extensions** #
@@ -173,8 +173,8 @@
 | 2 | **left_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
 | 3 | **right_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
 | 4 | **num_lanes** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Amount of lanes. First number is amount of oncoming lanes, second number is amount of ongoing ones |
-| 5 | **lanes_unk0** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Something to do with lanes. Appears to be a pair of 4-bit numbers, just like `num_lanes`, since all maps have value one of [0, 1, 16, 17], which seems to be the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1]). I tried to swap numbers inside of those, swap `lanes_unk0` and `lanes_unk1`, do two those swaps at the same time, but I still can see ongoing traffic spawn on reversed CY1.TRI |
-| 6 | **lanes_unk1** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Something to do with lanes. Appears to be a pair of 4-bit numbers, just like `num_lanes`, since all maps have value one of [0, 2, 17, 34], which seems to be the combination of two values [0-2, 0-2]. Most common value is 34 ([2, 2]). City has value 0 through all the tracks, feels like it means do not spawn oncoming traffic |
+| 5 | **lanes_unk** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Something to do with lanes. Appears to be a pair of 4-bit numbers, just like `num_lanes`, since all maps have value one of [0, 1, 16, 17], which seems to be the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1]) |
+| 6 | **verge_slide** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | A slidiness of road areas between verge distance and barrier. First number for left verge, second number for right verge. Values above 3 cause unbearable slide in the game and make it impossible to return back to road. High values around maximum (15) cause lags and even crashes |
 | 7 | **item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>8: unk_cl3_forest<br/>9: left_tunnel_A4_A7<br/>11: unk_autumn_valley_tribunes<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>16: unk_al1_uphill<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
@@ -239,7 +239,7 @@
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer | Represents texture id. How to get texture name from this value [explained](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well by Denis Auroux |
-| 1 | **resource_id_2** | 1 | 1-byte unsigned integer | Seems to always be equal to `resource_id` |
+| 1 | **resource_id_2** | 1 | 1-byte unsigned integer | Oftenly equals to `resource_id`, but can be different |
 | 2 | **width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters |
 | 6 | **frame_count** | 1 | 1-byte unsigned integer | Frame amount for animated object. Ignored if flag `is_animated` not set |
 | 7 | **animation_interval** | 1 | TNFS time field. 1-byte unsigned integer, equals to amount of ticks (amount of seconds * 60) | Interval between animation frames in seconds |

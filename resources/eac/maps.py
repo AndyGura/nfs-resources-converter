@@ -37,19 +37,15 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         num_lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
                      {'description': 'Amount of lanes. First number is amount of oncoming lanes, second number is '
                                      'amount of ongoing ones'})
-        lanes_unk0 = (SubByteArrayBlock(length=2, bits_per_value=4),
-                      {'description': 'Something to do with lanes. Appears to be a pair of 4-bit numbers, just like '
-                                      '`num_lanes`, since all maps have value one of [0, 1, 16, 17], which seems to be '
-                                      'the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1]). '
-                                      'I tried to swap numbers inside of those, swap `lanes_unk0` and `lanes_unk1`, '
-                                      'do two those swaps at the same time, but I still can see ongoing traffic spawn '
-                                      'on reversed CY1.TRI'})
-        lanes_unk1 = (SubByteArrayBlock(length=2, bits_per_value=4),
-                      {'description': 'Something to do with lanes. Appears to be a pair of 4-bit numbers, just like '
-                                      '`num_lanes`, since all maps have value one of [0, 2, 17, 34], which seems to be '
-                                      'the combination of two values [0-2, 0-2]. Most common value is 34 ([2, 2]). '
-                                      'City has value 0 through all the tracks, feels like it means do not spawn '
-                                      'oncoming traffic'})
+        lanes_unk = (SubByteArrayBlock(length=2, bits_per_value=4),
+                     {'description': 'Something to do with lanes. Appears to be a pair of 4-bit numbers, just like '
+                                     '`num_lanes`, since all maps have value one of [0, 1, 16, 17], which seems to be '
+                                     'the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1])'})
+        verge_slide = (SubByteArrayBlock(length=2, bits_per_value=4),
+                       {'description': 'A slidiness of road areas between verge distance and barrier. First number for '
+                                       'left verge, second number for right verge. Values above 3 cause unbearable slide '
+                                       'in the game and make it impossible to return back to road. High values around '
+                                       'maximum (15) cause lags and even crashes'})
         item_mode = (EnumByteBlock(enum_names=[(0, 'lane_split'),
                                                (1, 'default_0'),
                                                (2, 'lane_merge'),
@@ -404,8 +400,8 @@ class TriMap(DeclarativeCompoundBlock):
             (vertex['left_barrier'], vertex['right_barrier']) = (vertex['right_barrier'], vertex['left_barrier'])
             # swap lanes
             vertex['num_lanes'] = [vertex['num_lanes'][1], vertex['num_lanes'][0]]
-            vertex['lanes_unk0'] = [vertex['lanes_unk1'][1], vertex['lanes_unk1'][0]]
-            vertex['lanes_unk1'] = [vertex['lanes_unk0'][1], vertex['lanes_unk0'][0]]
+            vertex['lanes_unk'] = [vertex['lanes_unk'][1], vertex['lanes_unk'][0]]
+            vertex['verge_slide'] = [vertex['verge_slide'][1], vertex['verge_slide'][0]]
             # change sign of slope/slant values
             vertex['slope'] = -vertex['slope']
             vertex['slant_a'] = -vertex['slant_a']
