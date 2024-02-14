@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock, ArrayBlock
 
 
 class EacsAudioHeader(DeclarativeCompoundBlock):
@@ -25,7 +25,8 @@ class EacsAudioHeader(DeclarativeCompoundBlock):
                        {'description': 'If equals to 2, wave data is compressed with [IMA ADPCM]('
                                        'https://wiki.multimedia.cx/index.php/Electronic_Arts_Formats_(2)'
                                        '#IMA_ADPCM_Decompression_Algorithm) codec'})
-        unk0 = IntegerBlock(length=1), {'is_unknown': True}
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
         wave_data_length = (IntegerBlock(length=4),
                             {'description': 'Amount of wave data entries. Should be multiplied by '
                                             'sound_resolution to calculated the size of data in bytes'})
@@ -39,6 +40,21 @@ class EacsAudioHeader(DeclarativeCompoundBlock):
         wave_data_offset = (IntegerBlock(length=4),
                             {'description': 'Offset of wave data start in current file, relative'
                                             ' to start of the file itself'})
+        unk1 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+
+
+class SoundBankHeaderEntry(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Uknown wrapper around EACS header block, which is used in *.BNK files'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk = (ArrayBlock(child=IntegerBlock(length=4), length=10),
+               {'is_unknown': True})
+        eacs_header = EacsAudioHeader()
 
 
 class EacsAudioFile(DeclarativeCompoundBlock):
@@ -46,13 +62,20 @@ class EacsAudioFile(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'A file with single EACS audio entry'}
+                'block_description': 'A file with single EACS audio entry',
+                'custom_actions': [{
+                    'method': 'silence',
+                    'title': 'Silence',
+                    'description': 'Makes this audio sample completely silent',
+                    'args': [],
+                }]}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         header = EacsAudioHeader()
-        offset = BytesBlock(
+        offset = (BytesBlock(
             length=(lambda ctx: ctx.data('header/wave_data_offset') - ctx.buffer.tell(),
-                    'space up to offset `header.wave_data_offset` (global)'))
+                    'space up to offset `header.wave_data_offset` (global)')),
+                  {'is_unknown': True})
         wave_data = (
             BytesBlock(length=(lambda ctx: min(ctx.read_start_offset + ctx.read_bytes_amount - ctx.buffer.tell(),
                                                ctx.data('header/wave_data_length')
@@ -62,6 +85,9 @@ class EacsAudioFile(DeclarativeCompoundBlock):
             {'description': 'Wave data is here. If header.sound_resolution == 1, contains signed bytes, '
                             'else - unsigned',
              'custom_offset': 'wave_data_offset (global)'})
+
+    def action_silence(self, data):
+        data['wave_data'] = b'\x00' * len(data['wave_data'])
 
 
 class AsfAudio(DeclarativeCompoundBlock):
@@ -103,6 +129,8 @@ class AsfAudio(DeclarativeCompoundBlock):
         wave_data_offset = (IntegerBlock(length=4),
                             {'description': 'Offset of wave data start in current file, relative'
                                             ' to start of the file itself'})
+        unk2 = (IntegerBlock(length=4),
+                {'is_unknown': True})
         offset = BytesBlock(
             length=(lambda ctx: ctx.read_start_offset + ctx.data('wave_data_offset') + 40 - ctx.buffer.tell(),
                     'space up to offset (wave_data_offset + 40)'), )

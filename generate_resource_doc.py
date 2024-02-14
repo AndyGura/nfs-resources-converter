@@ -62,6 +62,7 @@ EXPORT_RESOURCES = {
     'Audio': [
         audios.AsfAudio(),
         audios.EacsAudioFile(),
+        audios.SoundBankHeaderEntry(),
         audios.EacsAudioHeader(),
     ],
     'Misc': [

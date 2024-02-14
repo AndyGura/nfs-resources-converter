@@ -245,7 +245,7 @@ class SoundBankSerializer(BaseFileSerializer):
             # car soundbanks
             names = ['engine_on', 'engine_off', 'honk', 'gear']
         else:
-            names = [hex(x) for x in data['item_ptrs'] if x > 0]
+            names = [hex(i) for (i, x) in enumerate(data['item_ptrs']) if x > 0]
         items = zip(names, data['children'])
         skipped_resources = []
         item_block = block.field_blocks_map['children'].child

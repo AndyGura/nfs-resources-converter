@@ -55,7 +55,8 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
     this._resource = value;
     if (this.editor) {
       this.editorProps.data = value ? new Uint8Array(value.data) : undefined;
-      this.editor.$set({ props: { data: this.editorProps.data } });
+      this.editorProps.height = Math.min(24, Math.ceil((value?.data || []).length / 8) * 1.5) + 'rem';
+      this.editor.$set({ props: this.editorProps });
       this.cdr.markForCheck();
     }
   }
@@ -68,13 +69,18 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   private editor: any;
-  private editorProps: HexEditorProps = {};
+  private editorProps: HexEditorProps = {
+    showHeader: false,
+    height: '10rem',
+    readonly: false,
+  };
 
   constructor(private readonly cdr: ChangeDetectorRef) {}
 
   ngAfterViewInit(): void {
     if (this.resource) {
       this.editorProps.data = new Uint8Array(this.resource.data);
+      this.editorProps.height = Math.min(24, Math.ceil(this.resource.data.length / 8) * 1.5) + 'rem';
     }
     this.editor = new HexEditor({
       target: this.editorDiv?.nativeElement,

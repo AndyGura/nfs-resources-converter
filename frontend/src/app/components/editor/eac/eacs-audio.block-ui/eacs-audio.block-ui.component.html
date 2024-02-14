@@ -1,0 +1,17 @@
+<div id="header">
+  <mat-label *ngIf="resource?.name && resource?.name != (main.resource$ | async)?.name"
+             [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}
+  </mat-label>
+  <audio controls *ngIf="audioUrl$ | async">
+    <source [src]="audioUrl$ | async">
+    Your browser does not support the audio element.
+  </audio>
+  <mat-spinner *ngIf="resource && !(audioUrl$ | async)" mode="indeterminate"></mat-spinner>
+  <div class="flex-spacer"></div>
+  <app-block-actions *ngIf="!hideBlockActions" [resource]="this.resource"></app-block-actions>
+</div>
+<app-compound-block-ui [resource]="_resource$ | async"
+                       [hideBlockActions]="true"
+                       [fieldBlacklist]="[
+                        'wave_data',
+                       ]"></app-compound-block-ui>
