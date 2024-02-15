@@ -1,7 +1,13 @@
 from typing import Dict
 
-from library.read_blocks import BitFlagsBlock, DeclarativeCompoundBlock, IntegerBlock, BytesBlock, ArrayBlock, \
-    UTF8Block, DelegateBlock
+from library.read_blocks import (BitFlagsBlock,
+                                 DeclarativeCompoundBlock,
+                                 IntegerBlock,
+                                 BytesBlock,
+                                 ArrayBlock,
+                                 UTF8Block,
+                                 DelegateBlock,
+                                 SubByteArrayBlock)
 from library.read_blocks.numbers import EnumByteBlock
 from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
@@ -26,8 +32,20 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                         {'description': 'The distance to invisible wall on the left'})
         right_barrier = (RationalNumber(length=1, fraction_bits=3),
                          {'description': 'The distance to invisible wall on the right'})
-        unk0 = (BytesBlock(length=3),
-                {'is_unknown': True})
+        num_lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
+                     {'description': 'Amount of lanes. First number is amount of oncoming lanes, second number is '
+                                     'amount of ongoing ones'})
+        unk0 = (SubByteArrayBlock(length=2, bits_per_value=4),
+                {'description': 'Unknown, DOS version of TNFS SE does not seem to read from this address at all. '
+                                'Appears to be a pair of 4-bit numbers, just like `num_lanes` and `verge_slide`, '
+                                'since all maps have value one of [0, 1, 16, 17], which seems to be the combination of '
+                                'two values [0-1, 0-1]. Most common value is 17 ([1, 1])',
+                 'is_unknown': True})
+        verge_slide = (SubByteArrayBlock(length=2, bits_per_value=4),
+                       {'description': 'A slidiness of road areas between verge distance and barrier. First number for '
+                                       'left verge, second number for right verge. Values above 3 cause unbearable slide '
+                                       'in the game and make it impossible to return back to road. High values around '
+                                       'maximum (15) cause lags and even crashes'})
         item_mode = (EnumByteBlock(enum_names=[(0, 'lane_split'),
                                                (1, 'default_0'),
                                                (2, 'lane_merge'),
@@ -35,13 +53,17 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                                (4, 'tunnel'),
                                                (5, 'cobbled_road'),
                                                (7, 'right_tunnel_A9_A2'),
+                                               # OpenNFS1: left wall appeared to move across the track - snapped back as we got closer
+                                               (8, 'unk_cl3_forest'),
                                                (9, 'left_tunnel_A4_A7'),
+                                               (11, 'unk_autumn_valley_tribunes'),
                                                (12, 'left_tunnel_A4_A8'),
                                                (13, 'left_tunnel_A5_A8'),
                                                (14, 'waterfall_audio_left_channel'),
                                                (15, 'waterfall_audio_right_channel'),
-                                               (17, 'transtropolis_noise_audio'),
-                                               (18, 'water_audio'),
+                                               (16, 'unk_al1_uphill'),
+                                               (17, 'transtropolis_noise_audio'),  # OpenNFS1: water left channel
+                                               (18, 'water_audio'),  # OpenNFS1: water right channel
                                                ]),
                      {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features'})
         position = (Point3D_32(),
@@ -53,7 +75,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         orientation = (Nfs1Angle14(),
                        {'description': 'Rotation of road path, if view from the top. Equals to '
                                        'atan2(next_x - x, next_z - z)'})
-        unk1 = (BytesBlock(length=2),
+        unk1 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
         orientation_x = (IntegerBlock(length=2, is_signed=True),
                          {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
@@ -68,7 +90,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                           {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
                                           'angle == orientation field above, used for pseudo-3D effect on '
                                           'opponent cars. So orientation_nz == -sin(orientation) * 32766'})
-        unk2 = (BytesBlock(length=2),
+        unk2 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
 
     def update_orientations(self, read_data, next_spline_point):
@@ -90,8 +112,20 @@ class ModelPropDescrData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
                        {'description': 'An index of prop in the track FAM file'})
-        unknowns = (BytesBlock(length=13),
-                    {'is_unknown': True})
+        resource_id_2 = (IntegerBlock(length=1),
+                         {'description': 'Seems to always be equal to `resource_id`, except for one prop on map CL1, '
+                                         'which is not used on map',
+                          'programmatic_value': lambda ctx: ctx.data('resource_id')})
+        unk0 = (RationalNumber(length=4, fraction_bits=16, required_value=1.5),
+                {'is_unknown': True})
+        unk1 = (RationalNumber(length=4, fraction_bits=16),
+                {'is_unknown': True,
+                 'programmatic_value': lambda _: 1.5,
+                 'description': 'The purpose is unknown. Every single entry in TNFS files equals to 1.5 '
+                                '(0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken '
+                                'texture palette and which is not used on the map anyways'})
+        unk2 = (RationalNumber(length=4, fraction_bits=16, required_value=3),
+                {'is_unknown': True})
 
 
 class BitmapPropDescrData(DeclarativeCompoundBlock):
@@ -106,8 +140,8 @@ class BitmapPropDescrData(DeclarativeCompoundBlock):
                        {'description': 'Represents texture id. How to get texture name from this value [explained]'
                                        '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
                                        'by Denis Auroux'})
-        index = (IntegerBlock(length=1),
-                 {'description': 'Seems to be always equal to own index * 4'})
+        resource_id_2 = (IntegerBlock(length=1),
+                         {'description': 'Oftenly equals to `resource_id`, but can be different'})
         width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                  {'description': 'Width in meters'})
         frame_count = (IntegerBlock(length=1),
@@ -134,7 +168,7 @@ class TwoSidedBitmapPropDescrData(DeclarativeCompoundBlock):
                        {'description': 'Represents texture id. How to get texture name from this value [explained]'
                                        '(http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) well '
                                        'by Denis Auroux'})
-        resource_2_id = (IntegerBlock(length=1),
+        resource_id_2 = (IntegerBlock(length=1),
                          {'description': 'Texture id of second sprite, rotated 90 degrees. Logic to determine texture '
                                          'name is the same as for resource_id'})
         width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
@@ -272,7 +306,8 @@ class TriMap(DeclarativeCompoundBlock):
                       {'description': 'Index of chunk, on which game should use chunk #0 again. So for closed tracks '
                                       'this value should be equal to `num_chunks`, for open tracks it is 0'})
         num_chunks = (IntegerBlock(length=2),
-                      {'description': 'number of terrain chunks (max 600)'})
+                      {'description': 'number of terrain chunks (max 600)',
+                       'programmatic_value': lambda ctx: len(ctx.data('terrain'))})
         unk0 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=2, required_value=6),
@@ -282,7 +317,8 @@ class TriMap(DeclarativeCompoundBlock):
         unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, required_value=0), length=12),
                      {'is_unknown': True})
         chunks_size = (IntegerBlock(length=4),
-                       {'description': 'Size of terrain array in bytes (num_chunks * 0x120)'})
+                       {'description': 'Size of terrain array in bytes (num_chunks * 0x120)',
+                        'programmatic_value': lambda ctx: len(ctx.data('terrain')) * 0x120})
         rail_tex_id = (IntegerBlock(length=4),
                        {'description': 'Do not know what is "railing". Doesn\'t look like a fence '
                                        'texture id, tested in TR1_001.FAM', 'is_unknown': True})
@@ -312,10 +348,10 @@ class TriMap(DeclarativeCompoundBlock):
                              length=(lambda ctx: ctx.data('num_chunks'), 'num_chunks'))
 
     def action_reverse_track(self, read_data):
+        # FIXME lanes are a bit off: CY1.TRI now has both lanes oncoming, and racers drive on right verge. Traffic never appears
         # FIXME lane merge/split are broken. Is it possible to fix?
         # FIXME tunnel walls are broken. Is it possible to fix?
         # FIXME preserve 3D effect from two sided bitmaps (add math.pi to rotation, move base, switch side of side bitmap)
-        # FIXME AI speed inadequate
         # FIXME render order of props
         from math import cos, sin, pi, atan2
         def rotate_point(origin, point, angle):
@@ -358,7 +394,11 @@ class TriMap(DeclarativeCompoundBlock):
             # swap left and right
             (vertex['left_verge'], vertex['right_verge']) = (vertex['right_verge'], vertex['left_verge'])
             (vertex['left_barrier'], vertex['right_barrier']) = (vertex['right_barrier'], vertex['left_barrier'])
-            # slope/slant are just reversed
+            # swap lanes
+            vertex['num_lanes'] = [vertex['num_lanes'][1], vertex['num_lanes'][0]]
+            vertex['lanes_unk'] = [vertex['lanes_unk'][1], vertex['lanes_unk'][0]]
+            vertex['verge_slide'] = [vertex['verge_slide'][1], vertex['verge_slide'][0]]
+            # change sign of slope/slant values
             vertex['slope'] = -vertex['slope']
             vertex['slant_a'] = -vertex['slant_a']
             vertex['slant_b'] = -vertex['slant_b']
@@ -398,8 +438,10 @@ class TriMap(DeclarativeCompoundBlock):
                                                                          prop['position']['x']),
                                                                         y_angle_to_rotate)
 
-        read_data['road_spline'] = read_data['road_spline'][:road_spline_length][::-1] + read_data['road_spline'][
-                                                                                         road_spline_length:]
+        read_data['road_spline'] = (read_data['road_spline'][:road_spline_length][::-1]
+                                    + read_data['road_spline'][road_spline_length:])
+        read_data['ai_info'] = (read_data['ai_info'][:read_data['num_chunks']][::-1]
+                                + read_data['ai_info'][read_data['num_chunks']:])
         read_data['terrain'] = read_data['terrain'][::-1]
         read_data['props'] = (read_data['props'][:amount_of_instances][::-1]
                               + read_data['props'][amount_of_instances:])

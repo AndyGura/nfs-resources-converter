@@ -2,7 +2,7 @@ from io import BufferedReader, BytesIO
 from typing import Dict, Literal, List, Tuple
 
 from library.context import ReadContext, WriteContext
-from library.exceptions import EndOfBufferException
+from library.exceptions import EndOfBufferException, DataIntegrityException
 from library.read_blocks.basic import DataBlock
 
 
@@ -21,7 +21,10 @@ class IntegerBlock(DataBlock):
         if self.length > 1:
             descr += f' ({self.byte_order} endian)'
         if self.required_value is not None:
-            descr += f'. Always == {hex(self.required_value)}'
+            if isinstance(self.required_value, int):
+                descr += f'. Always == {hex(self.required_value)}'
+            else:
+                descr += f'. Always == {self.required_value}'
         return {
             **super().schema,
             'block_description': descr,
@@ -98,20 +101,24 @@ class EnumByteBlock(IntegerBlock):
                                                      for i, x in enumerate(self.enum_name_map)
                                                      if x != str(i)]) + '</details>'}
 
-    def __init__(self, enum_names: List[Tuple[int, str]], **kwargs):
+    def __init__(self, enum_names: List[Tuple[int, str]], raise_error_on_unknown=False, **kwargs):
         super().__init__(length=1, **kwargs)
         self.enum_names = enum_names
-        self.enum_name_map = [str(i) for i in range(256)]
+        self.raise_error_on_unknown = raise_error_on_unknown
+        self.enum_name_map = [str(i) if not self.raise_error_on_unknown else None for i in range(256)]
         for value, name in self.enum_names:
             self.enum_name_map[value] = name
 
     def new_data(self):
         if self.required_value:
             return self.required_value
-        return self.enum_name_map[0]
+        return next(x for x in self.enum_name_map if x is not None)
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        return self.enum_name_map[super().read(buffer, ctx, name, read_bytes_amount)]
+        raw = super().read(buffer, ctx, name, read_bytes_amount)
+        if self.raise_error_on_unknown and self.enum_name_map[raw] is None:
+            raise DataIntegrityException(f'Unknown enum value {raw} at {ctx.ctx_path if ctx else ""}/{name}')
+        return self.enum_name_map[raw]
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return super().write(self.enum_name_map.index(data), ctx, name)

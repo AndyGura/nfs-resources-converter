@@ -10,14 +10,17 @@ class RationalNumber(IntegerBlock):
     @property
     def schema(self) -> Dict:
         super_schema = super().schema
+        descr = (f'{self.length * 8}-bit real number ({self.byte_order}-endian, '
+                f'{"" if self.is_signed else "not "}signed), where last {self.fraction_bits} '
+                f'bits is a fractional part')
+        if self.required_value is not None:
+            descr += f'. Always == {self.required_value}'
         return {
             **super_schema,
             'min_value': float(super_schema['min_value'] / (1 << self.fraction_bits)),
             'max_value': float(super_schema['max_value'] / (1 << self.fraction_bits)),
             'value_interval': float(super_schema['value_interval'] / (1 << self.fraction_bits)),
-            'block_description': f'{self.length * 8}-bit real number ({self.byte_order}-endian, '
-                                 f'{"" if self.is_signed else "not "}signed), where last {self.fraction_bits} '
-                                 f'bits is a fractional part',
+            'block_description': descr,
         }
 
     def __init__(self, fraction_bits: int, **kwargs):
