@@ -22,6 +22,8 @@ import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.b
 import { joinId } from '../../utils/join-id';
 import { isObject } from 'lodash';
 import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
+import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
+import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -50,6 +52,8 @@ export class EditorComponent implements OnDestroy {
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
     FenceType: FenceTypeBlockUiComponent,
+    SoundBank: SoundbankBlockUiComponent,
+    EacsAudioFile: EacsAudioBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

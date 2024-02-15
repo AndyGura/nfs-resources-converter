@@ -48,3 +48,15 @@ class TestWwwwBlock(unittest.TestCase):
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
+
+
+class TestSoundBankBlock(unittest.TestCase):
+
+    def test_bnk_should_remain_the_same(self):
+        (name, block, res) = require_file('test/samples/DIABLOSW.BNK')
+        output = block.pack(res, name=name)
+        with open('test/samples/DIABLOSW.BNK', 'rb') as bdata:
+            original = bdata.read()
+            self.assertEqual(len(original), len(output))
+            for i, x in enumerate(original):
+                self.assertEqual(x, output[i], f"Wrong value at index {i}")

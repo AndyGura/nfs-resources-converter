@@ -76,7 +76,7 @@ export class BlockActionsComponent {
       return;
     }
     try {
-      await this.mainService.runCustomAction(action, args);
+      await this.mainService.runCustomAction(this.resource!.id, action, args);
       this.snackBar.open('Action performed!', 'OK', { duration: 1500 });
     } catch (err: any) {
       this.mainService.clearUnsavedChanges();

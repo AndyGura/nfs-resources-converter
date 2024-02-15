@@ -47,6 +47,8 @@ import { DelegateBlockUiComponent } from './components/editor/library/delegate.b
 import { MatOptionModule } from '@angular/material/core';
 import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.block-ui/fence-type.block-ui.component';
 import { BlockActionsComponent } from './components/editor/common/block-actions/block-actions.component';
+import { SoundbankBlockUiComponent } from './components/editor/eac/soundbank.block-ui/soundbank.block-ui.component';
+import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -75,6 +77,8 @@ import { BlockActionsComponent } from './components/editor/common/block-actions/
     DelegateBlockUiComponent,
     FenceTypeBlockUiComponent,
     BlockActionsComponent,
+    SoundbankBlockUiComponent,
+    EacsAudioBlockUiComponent,
   ],
   imports: [
     BrowserModule,

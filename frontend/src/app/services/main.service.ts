@@ -129,8 +129,7 @@ export class MainService {
     this.customActionRunning$.next(false);
   }
 
-  public async runCustomAction(action: CustomAction, args: { [key: string]: any }) {
-    let id = this.resource$.getValue()!.id;
+  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
     return this.processExternalChanges(id, () => this.eelDelegate.runCustomAction(id, action, args));
   }
 
