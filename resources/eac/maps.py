@@ -1,7 +1,5 @@
-from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library.context import ReadContext
 from library.read_blocks import (BitFlagsBlock,
                                  DeclarativeCompoundBlock,
                                  IntegerBlock,
@@ -37,10 +35,12 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         num_lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
                      {'description': 'Amount of lanes. First number is amount of oncoming lanes, second number is '
                                      'amount of ongoing ones'})
-        lanes_unk = (SubByteArrayBlock(length=2, bits_per_value=4),
-                     {'description': 'Something to do with lanes. Appears to be a pair of 4-bit numbers, just like '
-                                     '`num_lanes`, since all maps have value one of [0, 1, 16, 17], which seems to be '
-                                     'the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1])'})
+        unk0 = (SubByteArrayBlock(length=2, bits_per_value=4),
+                {'description': 'Unknown, DOS version of TNFS SE does not seem to read from this address at all. '
+                                'Appears to be a pair of 4-bit numbers, just like `num_lanes` and `verge_slide`, '
+                                'since all maps have value one of [0, 1, 16, 17], which seems to be the combination of '
+                                'two values [0-1, 0-1]. Most common value is 17 ([1, 1])',
+                 'is_unknown': True})
         verge_slide = (SubByteArrayBlock(length=2, bits_per_value=4),
                        {'description': 'A slidiness of road areas between verge distance and barrier. First number for '
                                        'left verge, second number for right verge. Values above 3 cause unbearable slide '
@@ -232,10 +232,6 @@ class MapProp(DeclarativeCompoundBlock):
                  {'is_unknown': True})
         position = (Point3D_16(),
                     {'description': 'Position in 3D space, relative to position of referenced road spline vertex'})
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        data = super().read(buffer, ctx, name, read_bytes_amount)
-        return data
 
 
 class TerrainEntry(DeclarativeCompoundBlock):
