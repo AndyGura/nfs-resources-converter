@@ -37,24 +37,31 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     # For auto-generated documentation only
     @property
     def size_doc_str(self):
+        def _multiply_docs(len_doc, size_doc):
+            if len_doc == '?' or size_doc == '?':
+                return '?'
+            try:
+                return int(len_doc) * int(size_doc)
+            except ValueError:
+                if len_doc == '1':
+                    return size_doc
+                elif size_doc == '1':
+                    return len_doc
+                elif (isinstance(size_doc, str) and '..' in size_doc) or (isinstance(len_doc, str) and '..' in len_doc):
+                    [mnld, mxld] = len_doc.split('..') if ('..' in len_doc) else [len_doc, len_doc]
+                    [mnsd, mxsd] = size_doc.split('..') if ('..' in size_doc) else [size_doc, size_doc]
+                    return f'{_multiply_docs(mnld, mnsd)}..{_multiply_docs(mxld, mxsd)}'
+                else:
+                    return f'{len_doc}*{size_doc}'
+
         if self._length == 0:
             return '0'
         # when set to 0 and added some label, assume that it has some custom logic
         if isinstance(self._length, tuple) and self._length[0] == 0:
             return '?'
         child_size_doc = self.child.size_doc_str
-        if child_size_doc == '?':
-            return '?'
         length_doc = self.length_doc_str
-        try:
-            return int(length_doc) * int(child_size_doc)
-        except ValueError:
-            if length_doc == '1':
-                return child_size_doc
-            elif child_size_doc == '1':
-                return length_doc
-            else:
-                return f'{length_doc}*{child_size_doc}'
+        return _multiply_docs(length_doc, child_size_doc)
 
     def resolve_length(self, ctx):
         self_len = self._length
