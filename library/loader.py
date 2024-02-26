@@ -23,6 +23,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif file_path.endswith('CONFIG.DAT'):
             from resources.eac.configs import TnfsConfigDat
             return TnfsConfigDat
+        elif file_path.endswith('.GEO'):
+            from resources.eac.geometries import GeoGeometry
+            return GeoGeometry
     if header_str:
         if file_path and header_str == '#ver' and file_path.endswith('INFO'):
             from resources.eac.misc import DashDeclarationFile

@@ -235,3 +235,6 @@ map_Kd assets/{texture_name}.png""")
         if not self.settings.geometry__save_obj:
             os.unlink(os.path.join(path, 'material.mtl'))
             os.unlink(os.path.join(path, 'geometry.obj'))
+
+class GeoGeometrySerializer(BaseFileSerializer):
+    pass

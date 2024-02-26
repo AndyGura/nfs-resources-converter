@@ -6,7 +6,7 @@ from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 from .bitmaps import BitmapSerializer, BitmapWithPaletteSerializer
 from .fonts import FfnFontSerializer
-from .geometries import OripGeometrySerializer
+from .geometries import OripGeometrySerializer, GeoGeometrySerializer
 from .json import JsonSerializer
 from .maps import TriMapSerializer
 from .misc_serializers import ShpiTextSerializer

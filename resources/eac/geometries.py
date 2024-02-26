@@ -7,7 +7,8 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  BytesBlock,
                                  DelegateBlock,
-                                 BitFlagsBlock)
+                                 BitFlagsBlock,
+                                 CompoundBlock)
 from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4
 
 
@@ -259,3 +260,51 @@ class OripGeometry(DeclarativeCompoundBlock):
                                 "When building UV-s, polygon defines offset_2d, a lookup to this table, and "
                                 "value from here is an index of item in vertex_uvs",
                  'custom_offset': 'vmap_ptr'})
+
+
+class GeoCarPart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        num_vrtx = (IntegerBlock(length=4),
+                    {'description': 'number of vertices in block'})
+        num_plgn = (IntegerBlock(length=4),
+                    {'description': 'number of polygons in block'})
+        pos_x = (IntegerBlock(length=4),
+                 {'description': 'absolute X coordinate of block'})
+        pos_y = (IntegerBlock(length=4),
+                 {'description': 'absolute Y coordinate of block'})
+        pos_z = (IntegerBlock(length=4),
+                 {'description': 'absolute Z coordinate of block'})
+        unk0 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+        unk1 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+        unk2 = (IntegerBlock(length=8, required_value=0),
+                {'is_unknown': True})
+        unk3 = (IntegerBlock(length=8, required_value=1),
+                {'is_unknown': True})
+        unk4 = (IntegerBlock(length=8, required_value=1),
+                {'is_unknown': True})
+        vertices = (ArrayBlock(length=(lambda ctx: ctx.data('num_vrtx'), 'num_vrtx'),
+                               child=CompoundBlock(fields=[('x', IntegerBlock(length=2), {}),
+                                                           ('y', IntegerBlock(length=2), {}),
+                                                           ('z', IntegerBlock(length=2), {}), ],
+                                                   inline_description="3 16-bit integers coordinates")),
+                    {'description': 'Vertex coordinates'})
+        polygons = (ArrayBlock(length=(lambda ctx: ctx.data('num_plgn'), 'num_plgn'),
+                               child=CompoundBlock(fields=[('unk0', IntegerBlock(length=4), {}),
+                                                           ('vertex_indices', ArrayBlock(child=IntegerBlock(length=1),
+                                                                                         length=4), {}),
+                                                           ('texture_name', UTF8Block(length=4), {})],
+                                                   inline_description='')),
+                    {'description': ''})
+
+
+class GeoGeometry(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+        unk1 = (ArrayBlock(child=IntegerBlock(length=4), length=32),
+                {'is_unknown': True})
+        unk2 = (IntegerBlock(length=8, required_value=0),
+                {'is_unknown': True})
+        parts = ArrayBlock(length=32, child=GeoCarPart())
