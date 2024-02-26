@@ -16,29 +16,6 @@ from serializers import BaseFileSerializer
 default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
 
 
-def _setup_vertex(model: SubMesh, block_data, vertices_file_indices_map, index_3D, index_2D,
-                  index_in_polygon):
-    try:
-        return vertices_file_indices_map[model][index_3D]
-    except KeyError:
-        pass
-    # new vertex creation
-    vertex = block_data['vertices'][block_data['vmap'][index_3D]]['data']
-    model.vertices.append([vertex['x'], vertex['y'], vertex['z']])
-    vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
-    # setup texture coordinate
-    if index_2D is None:
-        model.scaled_uvs.add(len(model.vertex_uvs))
-        uv = {'u': default_uvs[index_in_polygon][0], 'v': default_uvs[index_in_polygon][1]}
-    else:
-        uv = {
-            'u': block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'],
-            'v': block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'],
-        }
-    model.vertex_uvs.append([uv['u'], uv['v']])
-    return vertices_file_indices_map[model][index_3D]
-
-
 class OripGeometrySerializer(BaseFileSerializer):
 
     def __init__(self):
@@ -60,6 +37,40 @@ for dummy in dummies:
         o[key] = value
 
     """)
+
+    def _setup_vertex(self,
+                      model: SubMesh,
+                      block_data,
+                      vertices_file_indices_map,
+                      index_3D,
+                      index_2D,
+                      index_in_polygon,
+                      textures_shpi_data):
+        try:
+            return vertices_file_indices_map[model][index_3D]
+        except KeyError:
+            pass
+        # new vertex creation
+        vertex = block_data['vertices'][block_data['vmap'][index_3D]]['data']
+        model.vertices.append([vertex['x'], vertex['y'], vertex['z']])
+        vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
+        # setup texture coordinate
+        if index_2D is None:
+            model.vertex_uvs.append([default_uvs[index_in_polygon][0],
+                                     default_uvs[index_in_polygon][1]])
+        else:
+            u_multiplier, v_multiplier = 1, 1
+            if model.texture_id:
+                try:
+                    idx = textures_shpi_data['children_aliases'].index(model.texture_id)
+                    u_multiplier, v_multiplier = (1 / textures_shpi_data['children'][idx]['data']['width'],
+                                                  1 / textures_shpi_data['children'][idx]['data']['height'])
+
+                except ValueError:
+                    pass
+            model.vertex_uvs.append([block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'] * u_multiplier,
+                                     block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier])
+        return vertices_file_indices_map[model][index_3D]
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         # shpi is always next block
@@ -90,12 +101,13 @@ for dummy in dummies:
             offset_2D = polygon['offset_2d']
 
             def _setup_polygon(offsets):
-                sub_model.polygons.append([_setup_vertex(sub_model,
-                                                         data,
-                                                         vertices_file_indices_map,
-                                                         offset_3D + offset,
-                                                         (offset_2D + offset) if mapping['use_uv'] else None,
-                                                         offset)
+                sub_model.polygons.append([self._setup_vertex(sub_model,
+                                                              data,
+                                                              vertices_file_indices_map,
+                                                              offset_3D + offset,
+                                                              (offset_2D + offset) if mapping['use_uv'] else None,
+                                                              offset,
+                                                              textures_shpi_data)
                                            for offset in offsets])
 
             if (polygon_type & (0xff >> 5)) == 3:
@@ -187,7 +199,7 @@ for dummy in dummies:
             f.write('mtllib material.mtl')
             face_index_increment = 1
             for sub_model in sub_models.values():
-                f.write(sub_model.to_obj(face_index_increment, True, textures_shpi_block, textures_shpi_data))
+                f.write(sub_model.to_obj(face_index_increment))
                 face_index_increment += len(sub_model.vertices)
         with open(os.path.join(path, 'material.mtl'), 'w') as f:
             for i, texture_name in enumerate(textures_shpi_data['children_aliases']):

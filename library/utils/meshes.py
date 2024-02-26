@@ -6,36 +6,15 @@ class SubMesh:
         self.polygons = []
         self.vertex_uvs = []
         self.texture_id = None
-        self.scaled_uvs = set()
 
-    def to_obj(self, face_index_increment, multiply_uvws=False, textures_shpi_block=None, textures_shpi_data=None,
-               mtllib=None,
-               pivot_offset=(0, 0, 0)) -> str:
+    def to_obj(self, face_index_increment, mtllib=None, pivot_offset=(0, 0, 0)) -> str:
         res = f'\n\no {self.name}'
         if mtllib is not None:
             res += f'\nmtllib {mtllib}'
         res += '\n' + '\n'.join(['v ' + ' '.join(
             [str(coordinates[i] - pivot_offset[i]) for i in range(3)]
         ) for coordinates in self.vertices])
-        u_multiplier, v_multiplier = 1, 1
-        if multiply_uvws:
-            uvs_scaled_to_texture = False
-            if self.texture_id:
-                try:
-                    idx = textures_shpi_data['children_aliases'].index(self.texture_id)
-                    u_multiplier, v_multiplier = (1 / textures_shpi_data['children'][idx]['data']['width'],
-                                                  1 / textures_shpi_data['children'][idx]['data']['height'])
-                    uvs_scaled_to_texture = True
-                except ValueError:
-                    pass
-            if not uvs_scaled_to_texture and self.vertex_uvs:
-                u_multiplier = 1 / max([x[0] for x in self.vertex_uvs])
-                v_multiplier = 1 / max([x[1] for x in self.vertex_uvs])
-        uvs = [[
-            uv[0] * u_multiplier if i not in self.scaled_uvs else uv[0],
-            uv[1] * v_multiplier if i not in self.scaled_uvs else uv[1]
-        ] for i, uv in enumerate(self.vertex_uvs)]
-        res += '\n' + '\n'.join([f'vt {uv[0]} {1 - uv[1]}' for uv in uvs])
+        res += '\n' + '\n'.join([f'vt {uv[0]} {1 - uv[1]}' for uv in self.vertex_uvs])
         if self.texture_id:
             res += '\nusemtl ' + self.texture_id
         res += '\n' + '\n'.join(
