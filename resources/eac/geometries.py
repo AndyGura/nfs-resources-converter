@@ -1,6 +1,8 @@
+from io import BufferedReader, BytesIO
 from math import floor
 from typing import Dict
 
+from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
@@ -9,7 +11,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  DelegateBlock,
                                  BitFlagsBlock,
                                  CompoundBlock)
-from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4
+from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4, Point3D_16, Point3D_32
 
 
 class OripPolygon(DeclarativeCompoundBlock):
@@ -268,12 +270,8 @@ class GeoCarPart(DeclarativeCompoundBlock):
                     {'description': 'number of vertices in block'})
         num_plgn = (IntegerBlock(length=4),
                     {'description': 'number of polygons in block'})
-        pos_x = (IntegerBlock(length=4),
-                 {'description': 'absolute X coordinate of block'})
-        pos_y = (IntegerBlock(length=4),
-                 {'description': 'absolute Y coordinate of block'})
-        pos_z = (IntegerBlock(length=4),
-                 {'description': 'absolute Z coordinate of block'})
+        pos = (Point3D_32(),
+               {'description': 'position of part in 3d space'})
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=4),
@@ -285,17 +283,16 @@ class GeoCarPart(DeclarativeCompoundBlock):
         unk4 = (IntegerBlock(length=8, required_value=1),
                 {'is_unknown': True})
         vertices = (ArrayBlock(length=(lambda ctx: ctx.data('num_vrtx'), 'num_vrtx'),
-                               child=CompoundBlock(fields=[('x', IntegerBlock(length=2), {}),
-                                                           ('y', IntegerBlock(length=2), {}),
-                                                           ('z', IntegerBlock(length=2), {}), ],
-                                                   inline_description="3 16-bit integers coordinates")),
+                               child=Point3D_16()),
                     {'description': 'Vertex coordinates'})
         polygons = (ArrayBlock(length=(lambda ctx: ctx.data('num_plgn'), 'num_plgn'),
-                               child=CompoundBlock(fields=[('unk0', IntegerBlock(length=4), {}),
-                                                           ('vertex_indices', ArrayBlock(child=IntegerBlock(length=1),
-                                                                                         length=4), {}),
-                                                           ('texture_name', UTF8Block(length=4), {})],
-                                                   inline_description='')),
+                               child=CompoundBlock(
+                                   fields=[('mapping', BitFlagsBlock(flag_names=[(2, 'flip_normal')]), {}),
+                                           ('unk0', IntegerBlock(length=3), {}),
+                                           ('vertex_indices', ArrayBlock(child=IntegerBlock(length=1),
+                                                                         length=4), {}),
+                                           ('texture_name', UTF8Block(length=4), {})],
+                                   inline_description='')),
                     {'description': ''})
 
 
@@ -308,3 +305,39 @@ class GeoGeometry(DeclarativeCompoundBlock):
         unk2 = (IntegerBlock(length=8, required_value=0),
                 {'is_unknown': True})
         parts = ArrayBlock(length=32, child=GeoCarPart())
+        # "High Additional Body Part",
+        # "High Main Body Part",
+        # "High Ground Part",
+        # "High Front Part",
+        # "High Back Part",
+        # "High Left Side Part",
+        # "High Right Side Part",
+        # "High Additional Left Side Part",
+        # "High Additional Right Side Part",
+        # "High Spoiler Part",
+        # "High Additional Part",
+        # "High Backlights",
+        # "High Front Right Wheel",
+        # "High Front Right Wheel Part",
+        # "High Front Left Wheel",
+        # "High Front Left Wheel Part",
+        # "High Rear Right Wheel",
+        # "High Rear Right Wheel Part",
+        # "High Rear Left Wheel",
+        # "High Rear Left Wheel Part",
+        # "Medium Additional Body Part",
+        # "Medium Main Body Part",
+        # "Medium Ground Part",
+        # "Low Wheel Part",
+        # "Low Main Part",
+        # "Low Side Part",
+        # "Reserved",
+        # "Reserved",
+        # "Reserved",
+        # "Reserved",
+        # "Reserved",
+        # "Reserved",
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        a = super().read(buffer, ctx, name, read_bytes_amount)
+        return a

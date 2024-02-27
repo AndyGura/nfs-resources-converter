@@ -13,10 +13,9 @@ from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
 
-default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-
 
 class OripGeometrySerializer(BaseFileSerializer):
+    default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
 
     def __init__(self):
         super().__init__(is_dir=True)
@@ -56,8 +55,8 @@ for dummy in dummies:
         vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
         # setup texture coordinate
         if index_2D is None:
-            model.vertex_uvs.append([default_uvs[index_in_polygon][0],
-                                     default_uvs[index_in_polygon][1]])
+            model.vertex_uvs.append([self.default_uvs[index_in_polygon][0],
+                                     self.default_uvs[index_in_polygon][1]])
         else:
             u_multiplier, v_multiplier = 1, 1
             if model.texture_id:
@@ -236,5 +235,94 @@ map_Kd assets/{texture_name}.png""")
             os.unlink(os.path.join(path, 'material.mtl'))
             os.unlink(os.path.join(path, 'geometry.obj'))
 
+
 class GeoGeometrySerializer(BaseFileSerializer):
-    pass
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    blender_script = Template("""
+import json
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
+
+dummies = json.loads('$dummies')
+for dummy in dummies:
+    o = bpy.data.objects.new( dummy['name'], None )
+    bpy.context.scene.collection.objects.link(o)
+    o.location = dummy['position']
+    for key, value in dummy.items():
+        if key in ['position', 'name']:
+            continue
+        o[key] = value
+
+    """)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        # shpi is always next block
+        from library import require_resource
+        (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource(id[:-4] + '.QFS')
+        # unwrap QFS
+        shpi_id += '__data'
+        (textures_shpi_block, textures_shpi_data) = textures_shpi_block.get_child_block_with_data(textures_shpi_data,
+                                                                                                  'data')
+        if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
+            raise DataIntegrityException('Cannot find QFS archive for GEO geometry')
+        super().serialize(data, path)
+        sub_models = []
+        for part in data['parts']:
+            if not part['num_plgn']:
+                continue
+            mesh = SubMesh()
+            mesh.vertices = [[v['x'], v['y'], v['z']] for v in part['vertices']]
+            mesh.polygons = [p['vertex_indices'][::-1]
+                             if p['mapping']['flip_normal']
+                             else p['vertex_indices']
+                             for p in part['polygons']]
+            mesh.texture_id = part['polygons'][0]['texture_name']
+            mesh.pivot_offset = (part['pos']['x'], part['pos']['y'], part['pos']['z'])
+            sub_models.append(mesh)
+        for sub_model in sub_models:
+            sub_model.change_axes(new_z='y', new_y='-z')
+            px, py, pz = sub_model.pivot_offset
+            sub_model.pivot_offset = (px, -pz, py)
+        with open(os.path.join(path, 'geometry.obj'), 'w') as f:
+            f.write('mtllib material.mtl')
+            face_index_increment = 1
+            for sub_model in sub_models:
+                f.write(sub_model.to_obj(face_index_increment))
+                face_index_increment += len(sub_model.vertices)
+        with open(os.path.join(path, 'material.mtl'), 'w') as f:
+            for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
+                texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
+                    textures_shpi_data['children'][i]['choice_index']]
+                if not isinstance(texture_block, AnyBitmapBlock):
+                    continue
+                f.write(f"""\n\nnewmtl {texture_name}
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+illum 1
+Ns 0.000000
+map_Kd assets/{texture_name}.png""")
+        from serializers import ShpiArchiveSerializer
+        shpi_serializer = ShpiArchiveSerializer()
+        shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
+        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
+                                                 'is_car': True,
+                                                 'dummies': json.dumps([])})
+        if self.settings.geometry__export_to_gg_web_engine:
+            from serializers.misc.build_blender_scene import construct_blender_export_script
+            script += '\n' + construct_blender_export_script(
+                file_name=os.path.join(os.getcwd(), path, 'body'),
+                export_materials='EXPORT')
+        # skip running blender if it does not save anything
+        if self.settings.geometry__export_to_gg_web_engine or self.settings.geometry__save_blend:
+            run_blender(path=path,
+                        script=script,
+                        out_blend_name=os.path.join(os.getcwd(), path, 'body')
+                        if self.settings.geometry__save_blend
+                        else None)
+        if not self.settings.geometry__save_obj:
+            os.unlink(os.path.join(path, 'material.mtl'))
+            os.unlink(os.path.join(path, 'geometry.obj'))

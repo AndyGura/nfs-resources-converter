@@ -6,8 +6,11 @@ class SubMesh:
         self.polygons = []
         self.vertex_uvs = []
         self.texture_id = None
+        self.pivot_offset = (0, 0, 0)
 
-    def to_obj(self, face_index_increment, mtllib=None, pivot_offset=(0, 0, 0)) -> str:
+    def to_obj(self, face_index_increment, mtllib=None, pivot_offset=None) -> str:
+        if pivot_offset is None:
+            pivot_offset = self.pivot_offset
         res = f'\n\no {self.name}'
         if mtllib is not None:
             res += f'\nmtllib {mtllib}'
