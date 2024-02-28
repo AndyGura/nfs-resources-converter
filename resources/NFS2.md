@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2024-02-28 10:22:16.775277+00:00*
+*Last time updated: 2024-02-28 10:35:35.293459+00:00*
 
 
 # **Info by file extensions** #
@@ -10,6 +10,9 @@
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
 **\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+Did not find what you need or some given data is wrong? Please submit an
+[issue](https://github.com/AndyGura/nfs-resources-converter/issues)
 
 
 # **Block specs** #

@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2024-02-28 10:22:16.698287+00:00*
+*Last time updated: 2024-02-28 10:35:35.222270+00:00*
 
 
 # **Info by file extensions** #
@@ -38,6 +38,9 @@
 **\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. [TriMap](#trimap)
 
 **GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. [TnfsConfigDat](#tnfsconfigdat)
+
+Did not find what you need or some given data is wrong? Please submit an
+[issue](https://github.com/AndyGura/nfs-resources-converter/issues)
 
 
 # **Block specs** #

@@ -197,6 +197,9 @@ for game in EXPORT_RESOURCES.values():
 
 {game['file_list']}
 
+Did not find what you need or some given data is wrong? Please submit an
+[issue](https://github.com/AndyGura/nfs-resources-converter/issues)
+
 
 # **Block specs** #""")
         for (heading, resources) in game['blocks'].items():
