@@ -184,7 +184,7 @@ EXPORT_RESOURCES = {
 with open('resources/README.md', 'w') as f:
     f.write(f"# **File specs per game** #\n\n")
     for game in EXPORT_RESOURCES.values():
-        f.write(f"[{game['title']}]({game['file_name']})\n")
+        f.write(f"- [{game['title']}]({game['file_name']})\n\n")
 
 for game in EXPORT_RESOURCES.values():
     with open('resources/' + game['file_name'], 'w') as f:
