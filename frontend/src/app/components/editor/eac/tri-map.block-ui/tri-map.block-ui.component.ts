@@ -45,11 +45,11 @@ import {
   TextureLoader,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
-import { setupNfs1Texture } from '../orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
 import { joinId } from '../../../../utils/join-id';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 
 export enum MapPropType {
   ThreeModel = 'model',

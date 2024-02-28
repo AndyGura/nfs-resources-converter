@@ -50,6 +50,7 @@ import { BlockActionsComponent } from './components/editor/common/block-actions/
 import { SoundbankBlockUiComponent } from './components/editor/eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
+import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-viewer.component';
 
 @NgModule({
   declarations: [
@@ -81,6 +82,7 @@ import { GeoGeometryBlockUiComponent } from './components/editor/eac/geo-geometr
     SoundbankBlockUiComponent,
     EacsAudioBlockUiComponent,
     GeoGeometryBlockUiComponent,
+    ObjViewerComponent,
   ],
   imports: [
     BrowserModule,
