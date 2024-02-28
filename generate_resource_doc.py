@@ -12,67 +12,6 @@ from resources.eac import (archives,
                            configs,
                            car_specs)
 
-EXPORT_RESOURCES = {
-    'Archives': [
-        archives.ShpiBlock(),
-        archives.WwwwBlock(),
-        archives.SoundBank(),
-    ],
-    'Geometries': [
-        geometries.OripGeometry(),
-        geometries.OripPolygon(),
-        geometries.OripTextureName(),
-        geometries.RenderOrderBlock(),
-    ],
-    'Maps': [
-        maps.TriMap(),
-        maps.RoadSplinePoint(),
-        maps.PropDescr(),
-        maps.MapProp(),
-        maps.TerrainEntry(),
-        maps.AIEntry(),
-        maps.ModelPropDescrData(),
-        maps.BitmapPropDescrData(),
-        maps.TwoSidedBitmapPropDescrData(),
-    ],
-    'Physics': [
-        car_specs.CarPerformanceSpec(),
-        car_specs.CarSimplifiedPerformanceSpec(),
-    ],
-    'Bitmaps': [
-        bitmaps.Bitmap16Bit0565(),
-        bitmaps.Bitmap4Bit(),
-        bitmaps.Bitmap8Bit(),
-        bitmaps.Bitmap32Bit(),
-        bitmaps.Bitmap16Bit1555(),
-        bitmaps.Bitmap24Bit(),
-    ],
-    'Fonts': [
-        fonts.FfnFont(),
-        fonts.GlyphDefinition(),
-    ],
-    'Palettes': [
-        palettes.PaletteReference(),
-        palettes.Palette24BitDos(),
-        palettes.Palette24Bit(),
-        palettes.Palette32Bit(),
-        palettes.Palette16Bit(),
-        palettes.Palette16BitDos(),
-    ],
-    'Audio': [
-        audios.AsfAudio(),
-        audios.EacsAudioFile(),
-        audios.SoundBankHeaderEntry(),
-        audios.EacsAudioHeader(),
-    ],
-    'Misc': [
-        configs.TnfsConfigDat(),
-        configs.TrackStats(),
-        configs.BestRaceRecord(),
-        misc.ShpiText(),
-    ]
-}
-
 
 def render_value_doc_str(value: str) -> str:
     return str(value).replace('*', '\*')
@@ -96,14 +35,11 @@ def render_type(instance: DataBlock) -> str:
     return f'[{name}](#{name.lower()})'
 
 
-with open('resources/README.md', 'w') as f:
-    f.write(f"""# **TNFSSE (PC) file specs** #
-*Last time updated: {datetime.now(timezone.utc)}*
-
-
-# **Info by file extensions** #
-
-**\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
+EXPORT_RESOURCES = {
+    'tnfsse': {
+        'file_name': 'TNFS_SE.md',
+        'title': 'TNFSSE (PC) file specs',
+        'file_list': f"""**\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
 
 **\*.AS4**, **\*.ASF**, **\*.EAS** audio + loop settings. {render_type(audios.AsfAudio())}
 
@@ -125,54 +61,178 @@ with open('resources/README.md', 'w') as f:
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+**\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
-**\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+**\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not docummented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
 **\*.TGV** video, I just use ffmpeg to convert it
 
 **\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(maps.TriMap())}
 
-**GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(configs.TnfsConfigDat())}
+**GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(configs.TnfsConfigDat())}""",
+        'blocks': {
+            'Archives': [
+                archives.ShpiBlock(),
+                archives.WwwwBlock(),
+                archives.SoundBank(),
+            ],
+            'Geometries': [
+                geometries.OripGeometry(),
+                geometries.OripPolygon(),
+                geometries.OripTextureName(),
+                geometries.RenderOrderBlock(),
+            ],
+            'Maps': [
+                maps.TriMap(),
+                maps.RoadSplinePoint(),
+                maps.PropDescr(),
+                maps.MapProp(),
+                maps.TerrainEntry(),
+                maps.AIEntry(),
+                maps.ModelPropDescrData(),
+                maps.BitmapPropDescrData(),
+                maps.TwoSidedBitmapPropDescrData(),
+            ],
+            'Physics': [
+                car_specs.CarPerformanceSpec(),
+                car_specs.CarSimplifiedPerformanceSpec(),
+            ],
+            'Bitmaps': [
+                bitmaps.Bitmap16Bit0565(),
+                bitmaps.Bitmap4Bit(),
+                bitmaps.Bitmap8Bit(),
+                bitmaps.Bitmap32Bit(),
+                bitmaps.Bitmap16Bit1555(),
+                bitmaps.Bitmap24Bit(),
+            ],
+            'Fonts': [
+                fonts.FfnFont(),
+                fonts.GlyphDefinition(),
+            ],
+            'Palettes': [
+                palettes.PaletteReference(),
+                palettes.Palette24BitDos(),
+                palettes.Palette24Bit(),
+                palettes.Palette32Bit(),
+                palettes.Palette16Bit(),
+                palettes.Palette16BitDos(),
+            ],
+            'Audio': [
+                audios.AsfAudio(),
+                audios.EacsAudioFile(),
+                audios.SoundBankHeaderEntry(),
+                audios.EacsAudioHeader(),
+            ],
+            'Misc': [
+                configs.TnfsConfigDat(),
+                configs.TrackStats(),
+                configs.BestRaceRecord(),
+                misc.ShpiText(),
+            ]
+        },
+    },
+    'nfs2': {
+        'file_name': 'NFS2.md',
+        'title': 'NFS2 file specs',
+        'file_list': f"""**\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
+        
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)""",
+        'blocks': {
+            'Archives': [
+                archives.ShpiBlock(),
+            ],
+            'Geometries': [
+                geometries.GeoGeometry(),
+                geometries.GeoCarPart(),
+            ],
+            # 'Maps': [
+            # ],
+            # 'Physics': [
+            # ],
+            'Bitmaps': [
+                bitmaps.Bitmap16Bit0565(),
+                bitmaps.Bitmap4Bit(),
+                bitmaps.Bitmap8Bit(),
+                bitmaps.Bitmap32Bit(),
+                bitmaps.Bitmap16Bit1555(),
+                bitmaps.Bitmap24Bit(),
+            ],
+            'Fonts': [
+                fonts.FfnFont(),
+                fonts.GlyphDefinition(),
+            ],
+            'Palettes': [
+                palettes.PaletteReference(),
+                palettes.Palette24BitDos(),
+                palettes.Palette24Bit(),
+                palettes.Palette32Bit(),
+                palettes.Palette16Bit(),
+                palettes.Palette16BitDos(),
+            ],
+            # 'Audio': [
+            # ],
+            # 'Misc': [
+            # ]
+        },
+    },
+}
+
+with open('resources/README.md', 'w') as f:
+    f.write(f"# **File specs per game** #\n\n")
+    for game in EXPORT_RESOURCES.values():
+        f.write(f"[{game['title']}]({game['file_name']})\n")
+
+for game in EXPORT_RESOURCES.values():
+    with open('resources/' + game['file_name'], 'w') as f:
+        f.write(f"""# **{game['title']}** #
+
+*Last time updated: {datetime.now(timezone.utc)}*
+
+
+# **Info by file extensions** #
+
+{game['file_list']}
 
 
 # **Block specs** #""")
-    for (heading, resources) in EXPORT_RESOURCES.items():
-        f.write(f'\n## **{heading}** ##')
-        for resource in resources:
-            schema = resource.schema
-            f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
-            f.write(f'\n#### **Size**: {render_value_doc_str(resource.size_doc_str)} bytes ####')
-            if schema['block_description']:
-                f.write(f'\n#### **Description**: {schema["block_description"]} ####')
-            f.write(f'\n| Offset | Name | Size (bytes) | Type | Description |')
-            f.write(f'\n| --- | --- | --- | --- | --- |')
-            offset_int = 0
-            offset_lbl = ''
-            for key, field in resource.field_blocks:
-                extras = resource.field_extras_map[key]
-                if extras.get('custom_offset'):
+        for (heading, resources) in game['blocks'].items():
+            f.write(f'\n## **{heading}** ##')
+            for resource in resources:
+                schema = resource.schema
+                f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
+                f.write(f'\n#### **Size**: {render_value_doc_str(resource.size_doc_str)} bytes ####')
+                if schema['block_description']:
+                    f.write(f'\n#### **Description**: {schema["block_description"]} ####')
+                f.write(f'\n| Offset | Name | Size (bytes) | Type | Description |')
+                f.write(f'\n| --- | --- | --- | --- | --- |')
+                offset_int = 0
+                offset_lbl = ''
+                for key, field in resource.field_blocks:
+                    extras = resource.field_extras_map[key]
+                    if extras.get('custom_offset'):
+                        try:
+                            offset_int = int(extras.get('custom_offset'))
+                            offset_lbl = ''
+                        except (ValueError, TypeError):
+                            offset_int = 0
+                            offset_lbl = extras.get('custom_offset')
+                    if offset_int == 0 and offset_lbl:
+                        offset = offset_lbl
+                        if offset.startswith('+'):
+                            offset = offset[1:]
+                    else:
+                        offset = str(offset_int) + offset_lbl
+                    f.write(f'\n| {"-" if False else render_value_doc_str(offset)} | '
+                            f'**{key}** | '
+                            f'{render_value_doc_str(field.size_doc_str)} | '
+                            f'{render_type(field)} | '
+                            f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
                     try:
-                        offset_int = int(extras.get('custom_offset'))
-                        offset_lbl = ''
+                        offset_int += int(field.size_doc_str)
                     except (ValueError, TypeError):
-                        offset_int = 0
-                        offset_lbl = extras.get('custom_offset')
-                if offset_int == 0 and offset_lbl:
-                    offset = offset_lbl
-                    if offset.startswith('+'):
-                        offset = offset[1:]
-                else:
-                    offset = str(offset_int) + offset_lbl
-                f.write(f'\n| {"-" if False else render_value_doc_str(offset)} | '
-                        f'**{key}** | '
-                        f'{render_value_doc_str(field.size_doc_str)} | '
-                        f'{render_type(field)} | '
-                        f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
-                try:
-                    offset_int += int(field.size_doc_str)
-                except (ValueError, TypeError):
-                    offset_lbl += ' + ' + field.size_doc_str
-    f.write('\n')
+                        offset_lbl += ' + ' + field.size_doc_str
+        f.write('\n')
