@@ -40,7 +40,7 @@
 **GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. [TnfsConfigDat](#tnfsconfigdat)
 
 Did not find what you need or some given data is wrong? Please submit an
-[issue](https://github.com/AndyGura/nfs-resources-converter/issues)
+[issue](https://github.com/AndyGura/nfs-resources-converter/issues/new)
 
 
 # **Block specs** #

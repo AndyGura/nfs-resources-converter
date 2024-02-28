@@ -140,7 +140,11 @@ EXPORT_RESOURCES = {
         
 **\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)""",
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+**\*.UV** video, I just use ffmpeg to convert it""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -175,8 +179,9 @@ EXPORT_RESOURCES = {
             ],
             # 'Audio': [
             # ],
-            # 'Misc': [
-            # ]
+            'Misc': [
+                misc.ShpiText(),
+            ]
         },
     },
 }
@@ -198,7 +203,7 @@ for game in EXPORT_RESOURCES.values():
 {game['file_list']}
 
 Did not find what you need or some given data is wrong? Please submit an
-[issue](https://github.com/AndyGura/nfs-resources-converter/issues)
+[issue](https://github.com/AndyGura/nfs-resources-converter/issues/new)
 
 
 # **Block specs** #""")

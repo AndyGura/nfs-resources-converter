@@ -9,10 +9,14 @@
         
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
+**\*.FSH** image archive. [ShpiBlock](#shpiblock)
+
 **\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
+**\*.UV** video, I just use ffmpeg to convert it
+
 Did not find what you need or some given data is wrong? Please submit an
-[issue](https://github.com/AndyGura/nfs-resources-converter/issues)
+[issue](https://github.com/AndyGura/nfs-resources-converter/issues/new)
 
 
 # **Block specs** #
@@ -229,3 +233,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to num_colors? |
 | 10 | **unk2** | 6 | Bytes | Unknown purpose |
 | 16 | **colors** | num_colors\*2 | Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 16-bit color, not tested properly | Colors LUT |
+## **Misc** ##
+### **ShpiText** ###
+#### **Size**: 8..? bytes ####
+#### **Description**: An entry, which sometimes can be seen in the SHPI archive block after bitmap, contains some text. The purpose is unclear ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x6f | Resource ID |
+| 1 | **unk** | 3 | Bytes | Unknown purpose |
+| 4 | **length** | 4 | 4-bytes unsigned integer (little endian) | Text length |
+| 8 | **text** | length | UTF-8 string | Text itself |
