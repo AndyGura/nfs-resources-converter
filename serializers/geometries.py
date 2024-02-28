@@ -275,10 +275,15 @@ for dummy in dummies:
                 continue
             mesh = SubMesh()
             mesh.vertices = [[v['x'], v['y'], v['z']] for v in part['vertices']]
+            mesh.vertex_uvs = [[0, 0] for _ in range(len(mesh.vertices))]
             mesh.polygons = [p['vertex_indices'][::-1]
                              if p['mapping']['flip_normal']
                              else p['vertex_indices']
                              for p in part['polygons']]
+            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
+            for polygon in mesh.polygons:
+                for i, vi in enumerate(polygon):
+                    mesh.vertex_uvs[vi] = uvs[i]
             mesh.texture_id = part['polygons'][0]['texture_name']
             mesh.pivot_offset = (part['pos']['x'], part['pos']['y'], part['pos']['z'])
             sub_models.append(mesh)
