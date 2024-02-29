@@ -14,12 +14,7 @@ from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
 
 
-class OripGeometrySerializer(BaseFileSerializer):
-    default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-
-    def __init__(self):
-        super().__init__(is_dir=True)
-
+class ObjExporter:
     blender_script = Template("""
 import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -36,6 +31,35 @@ for dummy in dummies:
         o[key] = value
 
     """)
+
+    def handle_obj(self, settings, path, obj_name='geometry.obj', mtl_name='material.mtl', dummies=None, is_car=False):
+        if dummies is None:
+            dummies = []
+        script = self.blender_script.substitute({'obj_file_path': obj_name,
+                                                 'is_car': is_car,
+                                                 'dummies': json.dumps(dummies)})
+        if settings.geometry__export_to_gg_web_engine:
+            from serializers.misc.build_blender_scene import construct_blender_export_script
+            script += '\n' + construct_blender_export_script(
+                file_name=os.path.join(os.getcwd(), path, 'body'),
+                export_materials='EXPORT')
+        # skip running blender if it does not save anything
+        if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:
+            run_blender(path=path,
+                        script=script,
+                        out_blend_name=os.path.join(os.getcwd(), path, 'body')
+                        if settings.geometry__save_blend
+                        else None)
+        if not settings.geometry__save_obj:
+            os.unlink(os.path.join(path, mtl_name))
+            os.unlink(os.path.join(path, obj_name))
+
+
+class OripGeometrySerializer(BaseFileSerializer):
+    default_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
+
+    def __init__(self):
+        super().__init__(is_dir=True)
 
     def _setup_vertex(self,
                       model: SubMesh,
@@ -216,47 +240,13 @@ map_Kd assets/{texture_name}.png""")
         from serializers import ShpiArchiveSerializer
         shpi_serializer = ShpiArchiveSerializer()
         shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
-        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
-                                                 'is_car': is_car,
-                                                 'dummies': json.dumps(dummies)})
-        if self.settings.geometry__export_to_gg_web_engine:
-            from serializers.misc.build_blender_scene import construct_blender_export_script
-            script += '\n' + construct_blender_export_script(
-                file_name=os.path.join(os.getcwd(), path, 'body'),
-                export_materials='EXPORT')
-        # skip running blender if it does not save anything
-        if self.settings.geometry__export_to_gg_web_engine or self.settings.geometry__save_blend:
-            run_blender(path=path,
-                        script=script,
-                        out_blend_name=os.path.join(os.getcwd(), path, 'body')
-                        if self.settings.geometry__save_blend
-                        else None)
-        if not self.settings.geometry__save_obj:
-            os.unlink(os.path.join(path, 'material.mtl'))
-            os.unlink(os.path.join(path, 'geometry.obj'))
+        ObjExporter().handle_obj(settings=self.settings, path=path, dummies=dummies, is_car=is_car)
 
 
 class GeoGeometrySerializer(BaseFileSerializer):
 
     def __init__(self):
         super().__init__(is_dir=True)
-
-    blender_script = Template("""
-import json
-bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
-
-dummies = json.loads('$dummies')
-for dummy in dummies:
-    o = bpy.data.objects.new( dummy['name'], None )
-    bpy.context.scene.collection.objects.link(o)
-    o.location = dummy['position']
-    for key, value in dummy.items():
-        if key in ['position', 'name']:
-            continue
-        o[key] = value
-
-    """)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         # shpi is always next block
@@ -313,21 +303,4 @@ map_Kd assets/{texture_name}.png""")
         from serializers import ShpiArchiveSerializer
         shpi_serializer = ShpiArchiveSerializer()
         shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
-        script = self.blender_script.substitute({'obj_file_path': 'geometry.obj',
-                                                 'is_car': True,
-                                                 'dummies': json.dumps([])})
-        if self.settings.geometry__export_to_gg_web_engine:
-            from serializers.misc.build_blender_scene import construct_blender_export_script
-            script += '\n' + construct_blender_export_script(
-                file_name=os.path.join(os.getcwd(), path, 'body'),
-                export_materials='EXPORT')
-        # skip running blender if it does not save anything
-        if self.settings.geometry__export_to_gg_web_engine or self.settings.geometry__save_blend:
-            run_blender(path=path,
-                        script=script,
-                        out_blend_name=os.path.join(os.getcwd(), path, 'body')
-                        if self.settings.geometry__save_blend
-                        else None)
-        if not self.settings.geometry__save_obj:
-            os.unlink(os.path.join(path, 'material.mtl'))
-            os.unlink(os.path.join(path, 'geometry.obj'))
+        ObjExporter().handle_obj(settings=self.settings, path=path, is_car=True)
