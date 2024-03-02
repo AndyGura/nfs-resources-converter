@@ -11,4 +11,35 @@
   canvas {
     position: absolute;
   }
+
+  #controls {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+    background-color: #333333;
+    color: white;
+    max-height: calc(100% - 8px);
+    overflow-y: auto;
+
+    &:empty {
+      display: none;
+    }
+
+    > div {
+      width: 100%;
+      display: flex;
+
+      > span {
+        flex-grow: 1;
+      }
+
+      > label {
+        flex-grow: 1;
+      }
+    }
+  }
 }

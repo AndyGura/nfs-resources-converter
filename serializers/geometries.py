@@ -261,10 +261,11 @@ class GeoGeometrySerializer(BaseFileSerializer):
             raise DataIntegrityException('Cannot find QFS archive for GEO geometry')
         super().serialize(data, path)
         meshes = []
-        for part in data['parts']:
+        for i, part in enumerate(data['parts']):
             if not part['num_plgn']:
                 continue
             mesh = Mesh()
+            mesh.name = str(i)
             mesh.vertices = [[v['x'], v['y'], v['z']] for v in part['vertices']]
             mesh.vertex_uvs = [[0, 0] for _ in range(len(mesh.vertices))]
             mesh.polygons = [p['vertex_indices'][::-1]

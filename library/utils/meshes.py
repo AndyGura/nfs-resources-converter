@@ -89,7 +89,7 @@ class Mesh(BaseMesh):
         res = []
         for texture_id in texture_ids:
             sm = SubMesh()
-            sm.name = texture_id # (self.name or '') + '__' + (texture_id or '')
+            sm.name = (self.name or 'None') + '__' + (texture_id or 'None')
             sm.pivot_offset = self.pivot_offset
             sm.texture_id = texture_id
             vertex_indices = []

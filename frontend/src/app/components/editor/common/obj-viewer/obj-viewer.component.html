@@ -1,4 +1,13 @@
 <div class="previewCanvasContainer" #previewCanvasContainer>
   <canvas #previewCanvas width="640" height="480"></canvas>
+  <div id="controls">
+    <ng-container *ngIf="visibilityControls">
+      <h4>Objects visibility</h4>
+      <div *ngFor="let mesh of meshes">
+        <label [for]="'visibility_' + mesh.name">{{mesh.name}}</label>
+        <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible" (change)="mesh.visible = $any($event.currentTarget).checked">
+      </div>
+    </ng-container>
+  </div>
   <mat-spinner *ngIf="!entity" mode="indeterminate"></mat-spinner>
 </div>

@@ -11,7 +11,16 @@ import {
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { Entity3d, Gg3dWorld, OrbitCameraController, Pnt3, Point2, Renderer3dEntity } from '@gg-web-engine/core';
 import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
-import { AmbientLight, ClampToEdgeWrapping, Material, Mesh, MeshBasicMaterial, NearestFilter, Texture } from 'three';
+import {
+  AmbientLight,
+  ClampToEdgeWrapping,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  NearestFilter,
+  Object3D,
+  Texture,
+} from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 
@@ -38,6 +47,8 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     this._paths$.next(value);
   }
 
+  @Input() visibilityControls: boolean = true;
+
   _paths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
@@ -48,6 +59,8 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   renderer!: Renderer3dEntity<ThreeVisualTypeDocRepo>;
   entity: Entity3d<ThreeVisualTypeDocRepo> | null = null;
   controller!: OrbitCameraController;
+
+  meshes: Object3D[] = [];
 
   constructor(private readonly cdr: ChangeDetectorRef) {}
 
@@ -86,6 +99,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         this.world.removeEntity(this.entity);
         this.entity.dispose();
         this.entity = null;
+        this.meshes = [];
         this.cdr.markForCheck();
       }
       if (paths) {
@@ -96,6 +110,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         mtl.preload();
         objLoader.setMaterials(mtl);
         const object = await objLoader.loadAsync(objPath);
+        this.meshes = object.children;
         object.traverse(x => {
           if (x instanceof Mesh) {
             const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
