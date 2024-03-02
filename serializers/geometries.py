@@ -283,7 +283,9 @@ class GeoGeometrySerializer(BaseFileSerializer):
                     p_part = part['polygons'][polygon_idx_map[i]]
                     uvs = [*base_uvs]
                     if p_part['mapping']['flip_normal']:
-                        uvs =[uvs[2], uvs[3], uvs[0], uvs[1]]
+                        uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
+                    if p_part['mapping']['uv_flip_1'] and p_part['mapping']['uv_flip_3']:
+                        uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
                     for i, vi in enumerate(polygon):
                         submesh.vertex_uvs[vi] = uvs[i]
                     if p_part['mapping']['double_sided']:

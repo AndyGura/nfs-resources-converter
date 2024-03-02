@@ -14,6 +14,7 @@ import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRep
 import {
   AmbientLight,
   ClampToEdgeWrapping,
+  Group,
   Material,
   Mesh,
   MeshBasicMaterial,
@@ -110,6 +111,22 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         mtl.preload();
         objLoader.setMaterials(mtl);
         const object = await objLoader.loadAsync(objPath);
+        // merge to groups
+        const groups: { [prefix: string]: Object3D[] } = {};
+        for (const c of object.children) {
+          const [prefix] = c.name.split('__');
+          if (!groups[prefix]) {
+            groups[prefix] = [];
+          }
+          groups[prefix].push(c);
+        }
+        for (const prefix of Object.keys(groups)) {
+          const g = new Group();
+          g.add(...groups[prefix]);
+          g.name = prefix;
+          object.remove(...groups[prefix]);
+          object.add(g);
+        }
         this.meshes = object.children;
         object.traverse(x => {
           if (x instanceof Mesh) {
