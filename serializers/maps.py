@@ -556,12 +556,13 @@ if $save_terrain_collisions:
                 with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
                     face_index_increment = 1
                     for sub_model in terrain_chunk['meshes']:
-                        f.write(sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=(
+                        obj, fii = sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=(
                             data['road_spline'][i * 4]['position']['x'],
                             data['road_spline'][i * 4]['position']['y'],
                             data['road_spline'][i * 4]['position']['z'],
-                        )))
-                        face_index_increment = face_index_increment + len(sub_model.vertices)
+                        ))
+                        f.write(obj)
+                        face_index_increment += fii
                 blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                     'new_file': True,
                     'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
@@ -585,8 +586,9 @@ if $save_terrain_collisions:
                 face_index_increment = 1
                 for i, terrain_chunk in enumerate(terrain_data):
                     for sub_model in terrain_chunk['meshes']:
-                        f.write(sub_model.to_obj(face_index_increment, mtllib='terrain.mtl'))
-                        face_index_increment = face_index_increment + len(sub_model.vertices)
+                        obj, fii = sub_model.to_obj(face_index_increment, mtllib='terrain.mtl')
+                        f.write(obj)
+                        face_index_increment += fii
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,

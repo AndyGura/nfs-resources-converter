@@ -287,7 +287,8 @@ class GeoCarPart(DeclarativeCompoundBlock):
                     {'description': 'Vertex coordinates'})
         polygons = (ArrayBlock(length=(lambda ctx: ctx.data('num_plgn'), 'num_plgn'),
                                child=CompoundBlock(
-                                   fields=[('mapping', BitFlagsBlock(flag_names=[(2, 'flip_normal')]), {}),
+                                   fields=[('mapping', BitFlagsBlock(flag_names=[(2, 'flip_normal'),
+                                                                                 (4, 'double_sided')]), {}),
                                            ('unk0', IntegerBlock(length=3), {}),
                                            ('vertex_indices', ArrayBlock(child=IntegerBlock(length=1),
                                                                          length=4), {}),

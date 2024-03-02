@@ -113,8 +113,11 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         });
         this.entity = new Entity3d<ThreeVisualTypeDocRepo>(new ThreeDisplayObjectComponent(object), null);
         this.world.addEntity(this.entity);
-
-        const bounds = this.entity.object3D!.getBoundings();
+        let bounds = { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } };
+        const calculatedBounds = this.entity.object3D!.getBoundings();
+        if (!isNaN(calculatedBounds.min.x) && !isNaN(calculatedBounds.max.x)) {
+          bounds = calculatedBounds;
+        }
         this.controller.target = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
         this.controller.radius = Pnt3.dist(bounds.min, bounds.max);
         this.controller.theta = -1.32;

@@ -8,7 +8,7 @@ from typing import Literal, List, Tuple
 
 from library.exceptions import DataIntegrityException
 from library.utils.blender_scripts import run_blender
-from library.utils.meshes import SubMesh
+from library.utils.meshes import SubMesh, Mesh
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
@@ -222,8 +222,9 @@ class OripGeometrySerializer(BaseFileSerializer):
             f.write('mtllib material.mtl')
             face_index_increment = 1
             for sub_model in sub_models.values():
-                f.write(sub_model.to_obj(face_index_increment))
-                face_index_increment += len(sub_model.vertices)
+                obj, fii = sub_model.to_obj(face_index_increment)
+                f.write(obj)
+                face_index_increment += fii
         with open(os.path.join(path, 'material.mtl'), 'w') as f:
             for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
                 texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
@@ -259,34 +260,46 @@ class GeoGeometrySerializer(BaseFileSerializer):
         if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
             raise DataIntegrityException('Cannot find QFS archive for GEO geometry')
         super().serialize(data, path)
-        sub_models = []
+        meshes = []
         for part in data['parts']:
             if not part['num_plgn']:
                 continue
-            mesh = SubMesh()
+            mesh = Mesh()
             mesh.vertices = [[v['x'], v['y'], v['z']] for v in part['vertices']]
             mesh.vertex_uvs = [[0, 0] for _ in range(len(mesh.vertices))]
             mesh.polygons = [p['vertex_indices'][::-1]
                              if p['mapping']['flip_normal']
                              else p['vertex_indices']
                              for p in part['polygons']]
-            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-            for polygon in mesh.polygons:
-                for i, vi in enumerate(polygon):
-                    mesh.vertex_uvs[vi] = uvs[i]
-            mesh.texture_id = part['polygons'][0]['texture_name']
+            mesh.texture_ids = [p['texture_name'] for p in part['polygons']]
             mesh.pivot_offset = (part['pos']['x'], part['pos']['y'], part['pos']['z'])
-            sub_models.append(mesh)
-        for sub_model in sub_models:
-            sub_model.change_axes(new_z='y', new_y='-z')
-            px, py, pz = sub_model.pivot_offset
-            sub_model.pivot_offset = (px, -pz, py)
+
+            sub_meshes = mesh.split_by_texture_ids()
+            base_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
+            for submesh, _, polygon_idx_map in sub_meshes:
+                double_side_polygons = []
+                for i, polygon in enumerate(submesh.polygons):
+                    p_part = part['polygons'][polygon_idx_map[i]]
+                    uvs = [*base_uvs]
+                    if p_part['mapping']['flip_normal']:
+                        uvs =[uvs[2], uvs[3], uvs[0], uvs[1]]
+                    for i, vi in enumerate(polygon):
+                        submesh.vertex_uvs[vi] = uvs[i]
+                    if p_part['mapping']['double_sided']:
+                        double_side_polygons.append(polygon[::-1])
+                submesh.polygons.extend(double_side_polygons)
+                meshes.append(submesh)
+        for mesh in meshes:
+            mesh.change_axes(new_z='y', new_y='-z')
+            px, py, pz = mesh.pivot_offset
+            mesh.pivot_offset = (px, -pz, py)
         with open(os.path.join(path, 'geometry.obj'), 'w') as f:
             f.write('mtllib material.mtl')
             face_index_increment = 1
-            for sub_model in sub_models:
-                f.write(sub_model.to_obj(face_index_increment))
-                face_index_increment += len(sub_model.vertices)
+            for mesh in meshes:
+                obj, fii = mesh.to_obj(face_index_increment)
+                f.write(obj)
+                face_index_increment += fii
         with open(os.path.join(path, 'material.mtl'), 'w') as f:
             for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
                 texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
