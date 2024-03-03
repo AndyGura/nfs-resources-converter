@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2024-03-03 18:12:59.272280+00:00*
+*Last time updated: 2024-03-03 18:51:09.707138+00:00*
 
 
 # **Info by file extensions** #
@@ -85,7 +85,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 36 | **unk3** | 8 | 8-bytes unsigned integer (little endian). Always == 0x1 | Unknown purpose |
 | 44 | **unk4** | 8 | 8-bytes unsigned integer (little endian). Always == 0x1 | Unknown purpose |
 | 52 | **vertices** | num_vrtx\*6 | Array of `num_vrtx` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Vertex coordinates |
-| 52 + num_vrtx\*6 | **polygons** | num_plgn\*12 | Array of `num_plgn` items<br/>Item size: 12 bytes<br/>Item type:  |  |
+| 52 + num_vrtx\*6 | **offset** | (num_vrtx % 2) ? 6 : 0 | Bytes | Data offset, happens when `num_vrtx` is odd |
+| 52 + ceil(num_vrtx/2)\*12 | **polygons** | num_plgn\*12 | Array of `num_plgn` items<br/>Item size: 12 bytes<br/>Item type:  |  |
 ## **Bitmaps** ##
 ### **Bitmap16Bit0565** ###
 #### **Size**: 16..? bytes ####

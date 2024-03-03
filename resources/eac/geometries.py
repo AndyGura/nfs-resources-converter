@@ -283,6 +283,8 @@ class GeoCarPart(DeclarativeCompoundBlock):
         vertices = (ArrayBlock(length=(lambda ctx: ctx.data('num_vrtx'), 'num_vrtx'),
                                child=Point3D_16()),
                     {'description': 'Vertex coordinates'})
+        offset = (BytesBlock(length=(lambda ctx: 0 if ctx.data('num_vrtx') % 2 == 0 else 6, '(num_vrtx % 2) ? 6 : 0')),
+                  {'description': 'Data offset, happens when `num_vrtx` is odd'})
         polygons = (ArrayBlock(length=(lambda ctx: ctx.data('num_plgn'), 'num_plgn'),
                                child=CompoundBlock(
                                    fields=[('mapping', BitFlagsBlock(flag_names=[(0, 'is_triangle'),
@@ -294,7 +296,8 @@ class GeoCarPart(DeclarativeCompoundBlock):
                                                                          length=4), {}),
                                            ('texture_name', UTF8Block(length=4), {})],
                                    inline_description='')),
-                    {'description': ''})
+                    {'description': '',
+                     'custom_offset': '52 + ceil(num_vrtx/2)*12'})
 
 
 class GeoGeometry(DeclarativeCompoundBlock):
