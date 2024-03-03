@@ -3,7 +3,6 @@ import math
 import os
 from collections import defaultdict
 from copy import deepcopy
-from logging import error
 from string import Template
 from typing import Literal, List, Tuple
 
@@ -288,9 +287,9 @@ class GeoGeometrySerializer(BaseFileSerializer):
                             uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
                     else:
                         if p_part['mapping']['uv_flip']:
-                            uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
+                            uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
                         else:
-                            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
+                            uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
                     # flip normal flag does not change uv-s, it's required for our exported obj, because in order to
                     # achieve negated normal, we inverted list of vertex indices in the polygon
                     if p_part['mapping']['flip_normal']:

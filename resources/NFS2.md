@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2024-03-03 18:51:09.707138+00:00*
+*Last time updated: 2024-03-03 19:17:11.704418+00:00*
 
 
 # **Info by file extensions** #
@@ -35,6 +35,7 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Geometries** ##
 ### **GeoGeometry** ###
 #### **Size**: 1804..? bytes ####
+#### **Description**: A set of 3D meshes, used for cars and props. Contains multiple meshes with high details, medium and low LOD-s. Below `part_hp_x` is a high-poly part, `part_mp_x` and `part_lp_x` are medium and low-poly parts respectively ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
@@ -74,6 +75,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1752..? | **part_res_5** | 52..? | [GeoCarPart](#geocarpart) | Reserved space for part |
 ### **GeoCarPart** ###
 #### **Size**: 52..? bytes ####
+#### **Description**: A single mesh, can use multiple textures ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **num_vrtx** | 4 | 4-bytes unsigned integer (little endian) | number of vertices in block |
@@ -86,7 +88,16 @@ Did not find what you need or some given data is wrong? Please submit an
 | 44 | **unk4** | 8 | 8-bytes unsigned integer (little endian). Always == 0x1 | Unknown purpose |
 | 52 | **vertices** | num_vrtx\*6 | Array of `num_vrtx` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Vertex coordinates |
 | 52 + num_vrtx\*6 | **offset** | (num_vrtx % 2) ? 6 : 0 | Bytes | Data offset, happens when `num_vrtx` is odd |
-| 52 + ceil(num_vrtx/2)\*12 | **polygons** | num_plgn\*12 | Array of `num_plgn` items<br/>Item size: 12 bytes<br/>Item type:  |  |
+| 52 + ceil(num_vrtx/2)\*12 | **polygons** | num_plgn\*12 | Array of `num_plgn` items<br/>Item type: [GeoPolygon](#geopolygon) | Array of mesh polygons |
+### **GeoPolygon** ###
+#### **Size**: 12 bytes ####
+#### **Description**: A single polygon of the mesh. Texture coordinates seem to be hardcoded in game:for triangles `[[0, 0], [1, 0], [1, 1]]` if "uv_flip" else `[[0, 1], [1, 1], [1, 0]]`, for quads `[[0, 1], [1, 1], [1, 0], [0, 0]]` if "uv_flip" else `[[0, 0], [1, 0], [1, 1], [0, 1]]` ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **mapping** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: is_triangle<br/>1: uv_flip<br/>2: flip_normal<br/>4: double_sided</details> | Polygon properties. "is_triangle" means that 3th and 4th vertices in the polygon are the same, "uv_flip" changes texture coordinates, "flip normal" inverts normal vector of the polygon, "double-sided" makes polygon visible from the other side. |
+| 1 | **unk0** | 3 | 3-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **vertex_indices** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Indexes of vertices |
+| 8 | **texture_name** | 4 | UTF-8 string | ID of texture from neighbouring QFS file |
 ## **Bitmaps** ##
 ### **Bitmap16Bit0565** ###
 #### **Size**: 16..? bytes ####

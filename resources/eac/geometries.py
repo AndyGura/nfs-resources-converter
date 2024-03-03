@@ -7,8 +7,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  BytesBlock,
                                  DelegateBlock,
-                                 BitFlagsBlock,
-                                 CompoundBlock)
+                                 BitFlagsBlock)
 from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4, Point3D_16, Point3D_32
 
 
@@ -262,7 +261,37 @@ class OripGeometry(DeclarativeCompoundBlock):
                  'custom_offset': 'vmap_ptr'})
 
 
+class GeoPolygon(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'A single polygon of the mesh. Texture coordinates seem to be hardcoded in game:'
+                                     'for triangles `[[0, 0], [1, 0], [1, 1]]` if "uv_flip" else '
+                                     '`[[0, 1], [1, 1], [1, 0]]`, for quads `[[0, 1], [1, 1], [1, 0], [0, 0]]` if '
+                                     '"uv_flip" else `[[0, 0], [1, 0], [1, 1], [0, 1]]`'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        mapping = (BitFlagsBlock(flag_names=[(0, 'is_triangle'),
+                                             (1, 'uv_flip'),
+                                             (2, 'flip_normal'),
+                                             (4, 'double_sided')]),
+                   {'description': 'Polygon properties. "is_triangle" means that 3th and 4th vertices in the polygon '
+                                   'are the same, "uv_flip" changes texture coordinates, "flip normal" inverts normal '
+                                   'vector of the polygon, "double-sided" makes polygon visible from the other side.'})
+        unk0 = (IntegerBlock(length=3),
+                {'is_unknown': True})
+        vertex_indices = (ArrayBlock(child=IntegerBlock(length=1), length=4),
+                          {'description': 'Indexes of vertices'})
+        texture_name = (UTF8Block(length=4),
+                        {'description': 'ID of texture from neighbouring QFS file'})
+
+
 class GeoCarPart(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'A single mesh, can use multiple textures'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         num_vrtx = (IntegerBlock(length=4),
                     {'description': 'number of vertices in block'})
@@ -286,21 +315,20 @@ class GeoCarPart(DeclarativeCompoundBlock):
         offset = (BytesBlock(length=(lambda ctx: 0 if ctx.data('num_vrtx') % 2 == 0 else 6, '(num_vrtx % 2) ? 6 : 0')),
                   {'description': 'Data offset, happens when `num_vrtx` is odd'})
         polygons = (ArrayBlock(length=(lambda ctx: ctx.data('num_plgn'), 'num_plgn'),
-                               child=CompoundBlock(
-                                   fields=[('mapping', BitFlagsBlock(flag_names=[(0, 'is_triangle'),
-                                                                                 (1, 'uv_flip'),
-                                                                                 (2, 'flip_normal'),
-                                                                                 (4, 'double_sided')]), {}),
-                                           ('unk0', IntegerBlock(length=3), {}),
-                                           ('vertex_indices', ArrayBlock(child=IntegerBlock(length=1),
-                                                                         length=4), {}),
-                                           ('texture_name', UTF8Block(length=4), {})],
-                                   inline_description='')),
-                    {'description': '',
+                               child=GeoPolygon()),
+                    {'description': 'Array of mesh polygons',
                      'custom_offset': '52 + ceil(num_vrtx/2)*12'})
 
 
 class GeoGeometry(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'A set of 3D meshes, used for cars and props. Contains multiple meshes with '
+                                     'high details, medium and low LOD-s. Below `part_hp_x` is a high-poly part, '
+                                     '`part_mp_x` and `part_lp_x` are medium and low-poly parts respectively'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})

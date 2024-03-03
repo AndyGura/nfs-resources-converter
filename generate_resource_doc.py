@@ -152,6 +152,7 @@ EXPORT_RESOURCES = {
             'Geometries': [
                 geometries.GeoGeometry(),
                 geometries.GeoCarPart(),
+                geometries.GeoPolygon(),
             ],
             # 'Maps': [
             # ],
