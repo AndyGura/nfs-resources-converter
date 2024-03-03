@@ -49,6 +49,8 @@ import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.bl
 import { BlockActionsComponent } from './components/editor/common/block-actions/block-actions.component';
 import { SoundbankBlockUiComponent } from './components/editor/eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
+import { GeoGeometryBlockUiComponent } from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
+import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-viewer.component';
 
 @NgModule({
   declarations: [
@@ -79,6 +81,8 @@ import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.bl
     BlockActionsComponent,
     SoundbankBlockUiComponent,
     EacsAudioBlockUiComponent,
+    GeoGeometryBlockUiComponent,
+    ObjViewerComponent,
   ],
   imports: [
     BrowserModule,

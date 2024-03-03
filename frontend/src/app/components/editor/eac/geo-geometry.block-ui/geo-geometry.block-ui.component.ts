@@ -13,12 +13,12 @@ import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
 
 @Component({
-  selector: 'app-orip-geometry-block-ui',
-  templateUrl: './orip-geometry.block-ui.component.html',
-  styleUrls: ['./orip-geometry.block-ui.component.scss'],
+  selector: 'app-geo-geometry.block-ui',
+  templateUrl: './geo-geometry.block-ui.component.html',
+  styleUrls: ['./geo-geometry.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class OripGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
+export class GeoGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
   get resource(): Resource | null {
     return this._resource$.getValue();
   }
@@ -83,6 +83,20 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;
+  }
+
+  previewObjectGroupFunc(objectName: string): string {
+    if (objectName.startsWith('part_hp')) {
+      return 'High-poly';
+    } else if (objectName.startsWith('part_mp')) {
+      return 'Medium-poly';
+    } else if (objectName.startsWith('part_lp')) {
+      return 'Low-poly';
+    } else if (objectName.startsWith('part_res')) {
+      return 'Reserved';
+    } else {
+      return objectName;
+    }
   }
 
   ngOnDestroy(): void {

@@ -30,6 +30,7 @@ SERIALIZER_CLASSES = {
     'Palette32Bit': 'PaletteSerializer',
     'TriMap': 'TriMapSerializer',
     'OripGeometry': 'OripGeometrySerializer',
+    'GeoGeometry': 'GeoGeometrySerializer',
     'ShpiBlock': 'ShpiArchiveSerializer',
     'WwwwBlock': 'WwwwArchiveSerializer',
     'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',

@@ -24,6 +24,7 @@ import { isObject } from 'lodash';
 import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
+import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -48,6 +49,7 @@ export class EditorComponent implements OnDestroy {
     AnyBitmapBlock: BitmapBlockUiComponent,
     BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
+    GeoGeometry: GeoGeometryBlockUiComponent,
     ShpiBlock: ShpiBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
