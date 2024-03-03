@@ -283,50 +283,35 @@ class GeoGeometrySerializer(BaseFileSerializer):
                 for i, polygon in enumerate(submesh.polygons):
                     p_part = part['polygons'][polygon_idx_map[i]]
                     uvs = [*base_uvs]
-                    # TODO fix UV-s. There are many mistakes now
-                    t, f1, f2, f3 = (p_part['mapping']['is_triangle'],
-                                     p_part['mapping']['uv_flip_1'],
-                                     p_part['mapping']['flip_normal'],
-                                     p_part['mapping']['uv_flip_3'])
+                    f1, f3 = (p_part['mapping']['uv_flip_1'], p_part['mapping']['uv_flip_3'])
                     try:
-                        if not t and not f1 and not f2 and not f3:
-                            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-                        elif not t and f1 and not f2 and not f3:
-                            uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
-                        elif not t and not f1 and f2 and not f3:
-                            uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
-                        elif not t and not f1 and not f2 and f3:
-                            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-                        elif not t and f1 and f2 and not f3:
-                            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-                        elif not t and f1 and not f2 and f3:
-                            uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
-                        elif not t and not f1 and f2 and f3:
-                            uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
-                        elif not t and f1 and f2 and f3:
-                            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-                        elif t and not f1 and not f2 and not f3:
-                            uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
-                        elif t and f1 and not f2 and not f3:
-                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
-                        elif t and not f1 and f2 and not f3:
-                            uvs = [[1, 0], [1, 0], [1, 1], [0, 1]]
-                        elif t and not f1 and not f2 and f3:
-                            uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
-                        elif t and f1 and f2 and not f3:
-                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
-                        elif t and f1 and not f2 and f3:
-                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
-                        elif t and not f1 and f2 and f3:
-                            uvs = [[1, 0], [1, 0], [1, 1], [0, 1]]
-                        elif t and f1 and f2 and f3:
-                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
+                        if p_part['mapping']['is_triangle']:
+                            if not f1 and not f3:
+                                uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
+                            elif f1 and not f3:
+                                raise NotImplementedError(f"UV: {f1} {f3}")
+                            elif not f1 and f3:
+                                uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
+                            elif f1 and f3:
+                                raise NotImplementedError(f"UV: {f1} {f3}")
                         else:
-                            raise Exception('???')
+                            if not f1 and not f3:
+                                uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
+                            elif f1 and not f3:
+                                uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
+                            elif not f1 and f3:
+                                uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
+                            elif f1 and f3:
+                                uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
                     except NotImplementedError as ex:
                         print(p_part)
                         error(ex)
                         uvs = [[0, 0]] * 4
+
+                    # flip normal flag does not change uv-s, it's required for our exported obj, because in order to
+                    # achieve negated normal, we inverted list of vertex indices in the polygon
+                    if p_part['mapping']['flip_normal']:
+                        uvs = uvs[::-1]
 
                     for i, vi in enumerate(polygon):
                         submesh.vertex_uvs[vi] = uvs[i]
