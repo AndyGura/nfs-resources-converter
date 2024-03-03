@@ -288,9 +288,8 @@ class GeoCarPart(DeclarativeCompoundBlock):
         polygons = (ArrayBlock(length=(lambda ctx: ctx.data('num_plgn'), 'num_plgn'),
                                child=CompoundBlock(
                                    fields=[('mapping', BitFlagsBlock(flag_names=[(0, 'is_triangle'),
-                                                                                 (1, 'uv_flip_1'),
+                                                                                 (1, 'uv_flip'),
                                                                                  (2, 'flip_normal'),
-                                                                                 (3, 'uv_flip_3'),
                                                                                  (4, 'double_sided')]), {}),
                                            ('unk0', IntegerBlock(length=3), {}),
                                            ('vertex_indices', ArrayBlock(child=IntegerBlock(length=1),

@@ -277,42 +277,24 @@ class GeoGeometrySerializer(BaseFileSerializer):
             mesh.pivot_offset = (part['pos']['x'], part['pos']['y'], part['pos']['z'])
 
             sub_meshes = mesh.split_by_texture_ids()
-            base_uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
             for submesh, _, polygon_idx_map in sub_meshes:
                 double_side_polygons = []
                 for i, polygon in enumerate(submesh.polygons):
                     p_part = part['polygons'][polygon_idx_map[i]]
-                    uvs = [*base_uvs]
-                    f1, f3 = (p_part['mapping']['uv_flip_1'], p_part['mapping']['uv_flip_3'])
-                    try:
-                        if p_part['mapping']['is_triangle']:
-                            if not f1 and not f3:
-                                uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
-                            elif f1 and not f3:
-                                raise NotImplementedError(f"UV: {f1} {f3}")
-                            elif not f1 and f3:
-                                uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
-                            elif f1 and f3:
-                                raise NotImplementedError(f"UV: {f1} {f3}")
+                    if p_part['mapping']['is_triangle']:
+                        if p_part['mapping']['uv_flip']:
+                            uvs = [[0, 0], [1, 0], [1, 1], [1, 1]]
                         else:
-                            if not f1 and not f3:
-                                uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-                            elif f1 and not f3:
-                                uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
-                            elif not f1 and f3:
-                                uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
-                            elif f1 and f3:
-                                uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
-                    except NotImplementedError as ex:
-                        print(p_part)
-                        error(ex)
-                        uvs = [[0, 0]] * 4
-
+                            uvs = [[0, 1], [1, 1], [1, 0], [1, 0]]
+                    else:
+                        if p_part['mapping']['uv_flip']:
+                            uvs = [(0, 1), (1, 1), (1, 0), (0, 0)]
+                        else:
+                            uvs = [(0, 0), (1, 0), (1, 1), (0, 1)]
                     # flip normal flag does not change uv-s, it's required for our exported obj, because in order to
                     # achieve negated normal, we inverted list of vertex indices in the polygon
                     if p_part['mapping']['flip_normal']:
                         uvs = uvs[::-1]
-
                     for i, vi in enumerate(polygon):
                         submesh.vertex_uvs[vi] = uvs[i]
                     if p_part['mapping']['double_sided']:
