@@ -242,5 +242,21 @@ Did not find what you need or some given data is wrong? Please submit an
                     try:
                         offset_int += int(field.size_doc_str)
                     except (ValueError, TypeError):
-                        offset_lbl += ' + ' + field.size_doc_str
+                        if '..' in field.size_doc_str and (offset_lbl == '' or '..' in offset_lbl):
+                            [fmn, fmx] = field.size_doc_str.split('..')
+                            if offset_lbl == '':
+                                if offset_int == 0:
+                                    offset_lbl = field.size_doc_str
+                                else:
+                                    mn = str(int(fmn) + offset_int)
+                                    mx = str(int(fmx) + offset_int) if fmx != '?' else '?'
+                                    offset_int = 0
+                                    offset_lbl = f'{mn}..{mx}'
+                            else:
+                                [omn, omx] = offset_lbl.split('..')
+                                mn = str(int(fmn) + int(omn))
+                                mx = str(int(fmx) + int(omx)) if (fmx != '?' and omx != '?') else '?'
+                                offset_lbl = f'{mn}..{mx}'
+                        else:
+                            offset_lbl += ' + ' + field.size_doc_str
         f.write('\n')

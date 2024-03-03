@@ -1,8 +1,6 @@
-from io import BufferedReader, BytesIO
 from math import floor
 from typing import Dict
 
-from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
@@ -307,40 +305,67 @@ class GeoGeometry(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk2 = (IntegerBlock(length=8, required_value=0),
                 {'is_unknown': True})
-        parts = ArrayBlock(length=32, child=GeoCarPart())
-        # "High Additional Body Part",
-        # "High Main Body Part",
-        # "High Ground Part",
-        # "High Front Part",
-        # "High Back Part",
-        # "High Left Side Part",
-        # "High Right Side Part",
-        # "High Additional Left Side Part",
-        # "High Additional Right Side Part",
-        # "High Spoiler Part",
-        # "High Additional Part",
-        # "High Backlights",
-        # "High Front Right Wheel",
-        # "High Front Right Wheel Part",
-        # "High Front Left Wheel",
-        # "High Front Left Wheel Part",
-        # "High Rear Right Wheel",
-        # "High Rear Right Wheel Part",
-        # "High Rear Left Wheel",
-        # "High Rear Left Wheel Part",
-        # "Medium Additional Body Part",
-        # "Medium Main Body Part",
-        # "Medium Ground Part",
-        # "Low Wheel Part",
-        # "Low Main Part",
-        # "Low Side Part",
-        # "Reserved",
-        # "Reserved",
-        # "Reserved",
-        # "Reserved",
-        # "Reserved",
-        # "Reserved",
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        a = super().read(buffer, ctx, name, read_bytes_amount)
-        return a
+        part_hp_0 = (GeoCarPart(),
+                     {'description': 'High-Poly Additional Body Part'})
+        part_hp_1 = (GeoCarPart(),
+                     {'description': 'High-Poly Main Body Part'})
+        part_hp_2 = (GeoCarPart(),
+                     {'description': 'High-Poly Ground Part'})
+        part_hp_3 = (GeoCarPart(),
+                     {'description': 'High-Poly Front Part'})
+        part_hp_4 = (GeoCarPart(),
+                     {'description': 'High-Poly Back Part'})
+        part_hp_5 = (GeoCarPart(),
+                     {'description': 'High-Poly Left Side Part'})
+        part_hp_6 = (GeoCarPart(),
+                     {'description': 'High-Poly Right Side Part'})
+        part_hp_7 = (GeoCarPart(),
+                     {'description': 'High-Poly Additional Left Side Part'})
+        part_hp_8 = (GeoCarPart(),
+                     {'description': 'High-Poly Additional Right Side Part'})
+        part_hp_9 = (GeoCarPart(),
+                     {'description': 'High-Poly Spoiler Part'})
+        part_hp_10 = (GeoCarPart(),
+                      {'description': 'High-Poly Additional Part'})
+        part_hp_11 = (GeoCarPart(),
+                      {'description': 'High-Poly Backlights'})
+        part_hp_12 = (GeoCarPart(),
+                      {'description': 'High-Poly Front Right Wheel'})
+        part_hp_13 = (GeoCarPart(),
+                      {'description': 'High-Poly Front Right Wheel Part'})
+        part_hp_14 = (GeoCarPart(),
+                      {'description': 'High-Poly Front Left Wheel'})
+        part_hp_15 = (GeoCarPart(),
+                      {'description': 'High-Poly Front Left Wheel Part'})
+        part_hp_16 = (GeoCarPart(),
+                      {'description': 'High-Poly Rear Right Wheel'})
+        part_hp_17 = (GeoCarPart(),
+                      {'description': 'High-Poly Rear Right Wheel Part'})
+        part_hp_18 = (GeoCarPart(),
+                      {'description': 'High-Poly Rear Left Wheel'})
+        part_hp_19 = (GeoCarPart(),
+                      {'description': 'High-Poly Rear Left Wheel Part'})
+        part_mp_0 = (GeoCarPart(),
+                     {'description': 'Medium-Poly Additional Body Part'})
+        part_mp_1 = (GeoCarPart(),
+                     {'description': 'Medium-Poly Main Body Part'})
+        part_mp_2 = (GeoCarPart(),
+                     {'description': 'Medium-Poly Ground Part'})
+        part_lp_0 = (GeoCarPart(),
+                     {'description': 'Low-Poly Wheel Part'})
+        part_lp_1 = (GeoCarPart(),
+                     {'description': 'Low-Poly Main Part'})
+        part_lp_2 = (GeoCarPart(),
+                     {'description': 'Low-Poly Side Part'})
+        part_res_0 = (GeoCarPart(),
+                      {'description': 'Reserved space for part'})
+        part_res_1 = (GeoCarPart(),
+                      {'description': 'Reserved space for part'})
+        part_res_2 = (GeoCarPart(),
+                      {'description': 'Reserved space for part'})
+        part_res_3 = (GeoCarPart(),
+                      {'description': 'Reserved space for part'})
+        part_res_4 = (GeoCarPart(),
+                      {'description': 'Reserved space for part'})
+        part_res_5 = (GeoCarPart(),
+                      {'description': 'Reserved space for part'})

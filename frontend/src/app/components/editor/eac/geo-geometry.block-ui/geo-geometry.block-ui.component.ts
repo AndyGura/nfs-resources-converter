@@ -86,17 +86,16 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
   }
 
   previewObjectGroupFunc(objectName: string): string {
-    const [partNumber] = objectName.split('__');
-    if (isNaN(+partNumber)) {
-      return objectName;
-    } else if (+partNumber > 25) {
-      return 'Reserved';
-    } else if (+partNumber > 22) {
-      return 'Low-poly';
-    } else if (+partNumber > 19) {
-      return 'Medium-poly';
-    } else {
+    if (objectName.startsWith('part_hp')) {
       return 'High-poly';
+    } else if (objectName.startsWith('part_mp')) {
+      return 'Medium-poly';
+    } else if (objectName.startsWith('part_lp')) {
+      return 'Low-poly';
+    } else if (objectName.startsWith('part_res')) {
+      return 'Reserved';
+    } else {
+      return objectName;
     }
   }
 
