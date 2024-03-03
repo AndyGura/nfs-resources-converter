@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2024-03-03 19:17:11.704418+00:00*
+*Last time updated: 2024-03-03 19:19:32.547680+00:00*
 
 
 # **Info by file extensions** #
@@ -41,39 +41,39 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 4 | **unk1** | 128 | Array of `32` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 132 | **unk2** | 8 | 8-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 140 | **part_hp_0** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Additional Body Part |
-| 192..? | **part_hp_1** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Main Body Part |
-| 244..? | **part_hp_2** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Ground Part |
-| 296..? | **part_hp_3** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Front Part |
-| 348..? | **part_hp_4** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Back Part |
-| 400..? | **part_hp_5** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Left Side Part |
-| 452..? | **part_hp_6** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Right Side Part |
-| 504..? | **part_hp_7** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Additional Left Side Part |
-| 556..? | **part_hp_8** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Additional Right Side Part |
-| 608..? | **part_hp_9** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Spoiler Part |
-| 660..? | **part_hp_10** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Additional Part |
-| 712..? | **part_hp_11** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Backlights |
-| 764..? | **part_hp_12** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Front Right Wheel |
-| 816..? | **part_hp_13** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Front Right Wheel Part |
-| 868..? | **part_hp_14** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Front Left Wheel |
-| 920..? | **part_hp_15** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Front Left Wheel Part |
-| 972..? | **part_hp_16** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Rear Right Wheel |
-| 1024..? | **part_hp_17** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Rear Right Wheel Part |
-| 1076..? | **part_hp_18** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Rear Left Wheel |
-| 1128..? | **part_hp_19** | 52..? | [GeoCarPart](#geocarpart) | High-Poly Rear Left Wheel Part |
-| 1180..? | **part_mp_0** | 52..? | [GeoCarPart](#geocarpart) | Medium-Poly Additional Body Part |
-| 1232..? | **part_mp_1** | 52..? | [GeoCarPart](#geocarpart) | Medium-Poly Main Body Part |
-| 1284..? | **part_mp_2** | 52..? | [GeoCarPart](#geocarpart) | Medium-Poly Ground Part |
-| 1336..? | **part_lp_0** | 52..? | [GeoCarPart](#geocarpart) | Low-Poly Wheel Part |
-| 1388..? | **part_lp_1** | 52..? | [GeoCarPart](#geocarpart) | Low-Poly Main Part |
-| 1440..? | **part_lp_2** | 52..? | [GeoCarPart](#geocarpart) | Low-Poly Side Part |
-| 1492..? | **part_res_0** | 52..? | [GeoCarPart](#geocarpart) | Reserved space for part |
-| 1544..? | **part_res_1** | 52..? | [GeoCarPart](#geocarpart) | Reserved space for part |
-| 1596..? | **part_res_2** | 52..? | [GeoCarPart](#geocarpart) | Reserved space for part |
-| 1648..? | **part_res_3** | 52..? | [GeoCarPart](#geocarpart) | Reserved space for part |
-| 1700..? | **part_res_4** | 52..? | [GeoCarPart](#geocarpart) | Reserved space for part |
-| 1752..? | **part_res_5** | 52..? | [GeoCarPart](#geocarpart) | Reserved space for part |
-### **GeoCarPart** ###
+| 140 | **part_hp_0** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Body Part |
+| 192..? | **part_hp_1** | 52..? | [GeoMesh](#geomesh) | High-Poly Main Body Part |
+| 244..? | **part_hp_2** | 52..? | [GeoMesh](#geomesh) | High-Poly Ground Part |
+| 296..? | **part_hp_3** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Part |
+| 348..? | **part_hp_4** | 52..? | [GeoMesh](#geomesh) | High-Poly Back Part |
+| 400..? | **part_hp_5** | 52..? | [GeoMesh](#geomesh) | High-Poly Left Side Part |
+| 452..? | **part_hp_6** | 52..? | [GeoMesh](#geomesh) | High-Poly Right Side Part |
+| 504..? | **part_hp_7** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Left Side Part |
+| 556..? | **part_hp_8** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Right Side Part |
+| 608..? | **part_hp_9** | 52..? | [GeoMesh](#geomesh) | High-Poly Spoiler Part |
+| 660..? | **part_hp_10** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Part |
+| 712..? | **part_hp_11** | 52..? | [GeoMesh](#geomesh) | High-Poly Backlights |
+| 764..? | **part_hp_12** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Right Wheel |
+| 816..? | **part_hp_13** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Right Wheel Part |
+| 868..? | **part_hp_14** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Left Wheel |
+| 920..? | **part_hp_15** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Left Wheel Part |
+| 972..? | **part_hp_16** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Right Wheel |
+| 1024..? | **part_hp_17** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Right Wheel Part |
+| 1076..? | **part_hp_18** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Left Wheel |
+| 1128..? | **part_hp_19** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Left Wheel Part |
+| 1180..? | **part_mp_0** | 52..? | [GeoMesh](#geomesh) | Medium-Poly Additional Body Part |
+| 1232..? | **part_mp_1** | 52..? | [GeoMesh](#geomesh) | Medium-Poly Main Body Part |
+| 1284..? | **part_mp_2** | 52..? | [GeoMesh](#geomesh) | Medium-Poly Ground Part |
+| 1336..? | **part_lp_0** | 52..? | [GeoMesh](#geomesh) | Low-Poly Wheel Part |
+| 1388..? | **part_lp_1** | 52..? | [GeoMesh](#geomesh) | Low-Poly Main Part |
+| 1440..? | **part_lp_2** | 52..? | [GeoMesh](#geomesh) | Low-Poly Side Part |
+| 1492..? | **part_res_0** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
+| 1544..? | **part_res_1** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
+| 1596..? | **part_res_2** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
+| 1648..? | **part_res_3** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
+| 1700..? | **part_res_4** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
+| 1752..? | **part_res_5** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
+### **GeoMesh** ###
 #### **Size**: 52..? bytes ####
 #### **Description**: A single mesh, can use multiple textures ####
 | Offset | Name | Size (bytes) | Type | Description |

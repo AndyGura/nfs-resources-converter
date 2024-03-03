@@ -286,7 +286,7 @@ class GeoPolygon(DeclarativeCompoundBlock):
                         {'description': 'ID of texture from neighbouring QFS file'})
 
 
-class GeoCarPart(DeclarativeCompoundBlock):
+class GeoMesh(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema,
@@ -336,67 +336,67 @@ class GeoGeometry(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk2 = (IntegerBlock(length=8, required_value=0),
                 {'is_unknown': True})
-        part_hp_0 = (GeoCarPart(),
+        part_hp_0 = (GeoMesh(),
                      {'description': 'High-Poly Additional Body Part'})
-        part_hp_1 = (GeoCarPart(),
+        part_hp_1 = (GeoMesh(),
                      {'description': 'High-Poly Main Body Part'})
-        part_hp_2 = (GeoCarPart(),
+        part_hp_2 = (GeoMesh(),
                      {'description': 'High-Poly Ground Part'})
-        part_hp_3 = (GeoCarPart(),
+        part_hp_3 = (GeoMesh(),
                      {'description': 'High-Poly Front Part'})
-        part_hp_4 = (GeoCarPart(),
+        part_hp_4 = (GeoMesh(),
                      {'description': 'High-Poly Back Part'})
-        part_hp_5 = (GeoCarPart(),
+        part_hp_5 = (GeoMesh(),
                      {'description': 'High-Poly Left Side Part'})
-        part_hp_6 = (GeoCarPart(),
+        part_hp_6 = (GeoMesh(),
                      {'description': 'High-Poly Right Side Part'})
-        part_hp_7 = (GeoCarPart(),
+        part_hp_7 = (GeoMesh(),
                      {'description': 'High-Poly Additional Left Side Part'})
-        part_hp_8 = (GeoCarPart(),
+        part_hp_8 = (GeoMesh(),
                      {'description': 'High-Poly Additional Right Side Part'})
-        part_hp_9 = (GeoCarPart(),
+        part_hp_9 = (GeoMesh(),
                      {'description': 'High-Poly Spoiler Part'})
-        part_hp_10 = (GeoCarPart(),
+        part_hp_10 = (GeoMesh(),
                       {'description': 'High-Poly Additional Part'})
-        part_hp_11 = (GeoCarPart(),
+        part_hp_11 = (GeoMesh(),
                       {'description': 'High-Poly Backlights'})
-        part_hp_12 = (GeoCarPart(),
+        part_hp_12 = (GeoMesh(),
                       {'description': 'High-Poly Front Right Wheel'})
-        part_hp_13 = (GeoCarPart(),
+        part_hp_13 = (GeoMesh(),
                       {'description': 'High-Poly Front Right Wheel Part'})
-        part_hp_14 = (GeoCarPart(),
+        part_hp_14 = (GeoMesh(),
                       {'description': 'High-Poly Front Left Wheel'})
-        part_hp_15 = (GeoCarPart(),
+        part_hp_15 = (GeoMesh(),
                       {'description': 'High-Poly Front Left Wheel Part'})
-        part_hp_16 = (GeoCarPart(),
+        part_hp_16 = (GeoMesh(),
                       {'description': 'High-Poly Rear Right Wheel'})
-        part_hp_17 = (GeoCarPart(),
+        part_hp_17 = (GeoMesh(),
                       {'description': 'High-Poly Rear Right Wheel Part'})
-        part_hp_18 = (GeoCarPart(),
+        part_hp_18 = (GeoMesh(),
                       {'description': 'High-Poly Rear Left Wheel'})
-        part_hp_19 = (GeoCarPart(),
+        part_hp_19 = (GeoMesh(),
                       {'description': 'High-Poly Rear Left Wheel Part'})
-        part_mp_0 = (GeoCarPart(),
+        part_mp_0 = (GeoMesh(),
                      {'description': 'Medium-Poly Additional Body Part'})
-        part_mp_1 = (GeoCarPart(),
+        part_mp_1 = (GeoMesh(),
                      {'description': 'Medium-Poly Main Body Part'})
-        part_mp_2 = (GeoCarPart(),
+        part_mp_2 = (GeoMesh(),
                      {'description': 'Medium-Poly Ground Part'})
-        part_lp_0 = (GeoCarPart(),
+        part_lp_0 = (GeoMesh(),
                      {'description': 'Low-Poly Wheel Part'})
-        part_lp_1 = (GeoCarPart(),
+        part_lp_1 = (GeoMesh(),
                      {'description': 'Low-Poly Main Part'})
-        part_lp_2 = (GeoCarPart(),
+        part_lp_2 = (GeoMesh(),
                      {'description': 'Low-Poly Side Part'})
-        part_res_0 = (GeoCarPart(),
+        part_res_0 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
-        part_res_1 = (GeoCarPart(),
+        part_res_1 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
-        part_res_2 = (GeoCarPart(),
+        part_res_2 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
-        part_res_3 = (GeoCarPart(),
+        part_res_3 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
-        part_res_4 = (GeoCarPart(),
+        part_res_4 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
-        part_res_5 = (GeoCarPart(),
+        part_res_5 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
