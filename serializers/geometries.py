@@ -3,6 +3,7 @@ import math
 import os
 from collections import defaultdict
 from copy import deepcopy
+from logging import error
 from string import Template
 from typing import Literal, List, Tuple
 
@@ -282,19 +283,48 @@ class GeoGeometrySerializer(BaseFileSerializer):
                 for i, polygon in enumerate(submesh.polygons):
                     p_part = part['polygons'][polygon_idx_map[i]]
                     uvs = [*base_uvs]
-                    # TODO ARMY.GEO/SNOW.GEO a bit wrong UVS (triangles?)
-                    # TODO TREX.GEO wrong UVs (triangles?)
-                    # TODO MONO.GEO banner, ARMY.GEO windshield
-                    if p_part['mapping']['flip_normal']:
-                        uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
-                    if p_part['mapping']['uv_flip_1'] and p_part['mapping']['uv_flip_3']:
-                        uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
-                    # fixes MONO.GEO banner, ARMY.GEO windshield, breaks BMW5.GEO windshield, BUG.GEO
-                    # if p_part['mapping']['uv_flip_1'] and not p_part['mapping']['uv_flip_3']:
-                    #     if p_part['mapping']['flip_normal']:
-                    #         uvs =[uvs[2], uvs[3], uvs[0], uvs[1]]
-                    #     else:
-                    #         uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
+                    # TODO fix UV-s. There are many mistakes now
+                    t, f1, f2, f3 = p_part['mapping']['is_triangle'], p_part['mapping']['uv_flip_1'], p_part['mapping']['flip_normal'], p_part['mapping']['uv_flip_3']
+                    try:
+                        if not t and not f1 and not f2 and not f3:
+                            pass
+                        elif not t and f1 and not f2 and not f3:
+                            pass
+                        elif not t and not f1 and f2 and not f3:
+                            uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
+                        elif not t and not f1 and not f2 and f3:
+                            pass
+                        elif not t and f1 and f2 and not f3:
+                            uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
+                        elif not t and f1 and not f2 and f3:
+                            uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
+                        elif not t and not f1 and f2 and f3:
+                            uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
+                        elif not t and f1 and f2 and f3:
+                            pass
+                        elif t and not f1 and not f2 and not f3:
+                            uvs =[[0, 1], [1, 1], [1, 0], [1, 0]]
+                        elif t and f1 and not f2 and not f3:
+                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
+                        elif t and not f1 and f2 and not f3:
+                            uvs =[[1, 0], [1, 0], [1, 1], [0, 1]]
+                        elif t and not f1 and not f2 and f3:
+                            uvs =[[0, 1], [1, 1], [1, 0], [1, 0]]
+                        elif t and f1 and f2 and not f3:
+                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
+                        elif t and f1 and not f2 and f3:
+                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
+                        elif t and not f1 and f2 and f3:
+                            uvs =[[1, 0], [1, 0], [1, 1], [0, 1]]
+                        elif t and f1 and f2 and f3:
+                            raise NotImplementedError(f"UV: {t} {f1} {f2} {f3}")
+                        else:
+                            raise Exception('???')
+                    except NotImplementedError as ex:
+                        print(p_part)
+                        error(ex)
+                        uvs = [[0, 0]] * 4
+
                     for i, vi in enumerate(polygon):
                         submesh.vertex_uvs[vi] = uvs[i]
                     if p_part['mapping']['double_sided']:
