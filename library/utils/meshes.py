@@ -76,12 +76,13 @@ class Mesh(BaseMesh):
 
     # splits mesh to few single-texture meshes. Returns list of tuples: ( mesh, vertex index map, polygon index map )
     def split_by_texture_ids(self) -> List[Tuple[SubMesh, List[int], List[int]]]:
-        texture_ids = {x for x in self.texture_ids}
+        texture_ids = list({x for x in self.texture_ids})
+        texture_ids.sort()
         if len(texture_ids) == 1:
             sm = SubMesh()
             sm.name = self.name
             sm.pivot_offset = self.pivot_offset
-            sm.texture_id = next(iter(texture_ids))
+            sm.texture_id = texture_ids[0]
             sm.vertices = self.vertices
             sm.vertex_uvs = self.vertex_uvs
             sm.polygons = self.polygons
