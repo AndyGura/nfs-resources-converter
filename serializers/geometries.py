@@ -282,10 +282,19 @@ class GeoGeometrySerializer(BaseFileSerializer):
                 for i, polygon in enumerate(submesh.polygons):
                     p_part = part['polygons'][polygon_idx_map[i]]
                     uvs = [*base_uvs]
+                    # TODO ARMY.GEO/SNOW.GEO a bit wrong UVS (triangles?)
+                    # TODO TREX.GEO wrong UVs (triangles?)
+                    # TODO MONO.GEO banner, ARMY.GEO windshield
                     if p_part['mapping']['flip_normal']:
                         uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
                     if p_part['mapping']['uv_flip_1'] and p_part['mapping']['uv_flip_3']:
                         uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
+                    # fixes MONO.GEO banner, ARMY.GEO windshield, breaks BMW5.GEO windshield, BUG.GEO
+                    # if p_part['mapping']['uv_flip_1'] and not p_part['mapping']['uv_flip_3']:
+                    #     if p_part['mapping']['flip_normal']:
+                    #         uvs =[uvs[2], uvs[3], uvs[0], uvs[1]]
+                    #     else:
+                    #         uvs =[uvs[3], uvs[2], uvs[1], uvs[0]]
                     for i, vi in enumerate(polygon):
                         submesh.vertex_uvs[vi] = uvs[i]
                     if p_part['mapping']['double_sided']:

@@ -50,6 +50,8 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   @Input() visibilityControls: boolean = true;
 
+  @Input() groupFunction: ((objectName: string) => string) | null = null;
+
   _paths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
@@ -112,20 +114,22 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         objLoader.setMaterials(mtl);
         const object = await objLoader.loadAsync(objPath);
         // merge to groups
-        const groups: { [prefix: string]: Object3D[] } = {};
-        for (const c of object.children) {
-          const [prefix] = c.name.split('__');
-          if (!groups[prefix]) {
-            groups[prefix] = [];
+        if (this.groupFunction) {
+          const groups: { [prefix: string]: Object3D[] } = {};
+          for (const c of object.children) {
+            const groupId = this.groupFunction(c.name);
+            if (!groups[groupId]) {
+              groups[groupId] = [];
+            }
+            groups[groupId].push(c);
           }
-          groups[prefix].push(c);
-        }
-        for (const prefix of Object.keys(groups)) {
-          const g = new Group();
-          g.add(...groups[prefix]);
-          g.name = prefix;
-          object.remove(...groups[prefix]);
-          object.add(g);
+          for (const groupId of Object.keys(groups)) {
+            const g = new Group();
+            g.add(...groups[groupId]);
+            g.name = groupId;
+            object.remove(...groups[groupId]);
+            object.add(g);
+          }
         }
         this.meshes = object.children;
         object.traverse(x => {
