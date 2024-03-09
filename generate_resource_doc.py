@@ -142,12 +142,70 @@ EXPORT_RESOURCES = {
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
+**\*.MSK** archive with some data. {render_type(archives.VivBlock())}
+
 **\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
-**\*.UV** video, I just use ffmpeg to convert it""",
+**\*.UV** video, I just use ffmpeg to convert it
+
+**\*.VIV** archive with some data. {render_type(archives.VivBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
+                archives.VivBlock(),
+            ],
+            'Geometries': [
+                geometries.GeoGeometry(),
+                geometries.GeoMesh(),
+                geometries.GeoPolygon(),
+            ],
+            # 'Maps': [
+            # ],
+            # 'Physics': [
+            # ],
+            'Bitmaps': [
+                bitmaps.Bitmap16Bit0565(),
+                bitmaps.Bitmap4Bit(),
+                bitmaps.Bitmap8Bit(),
+                bitmaps.Bitmap32Bit(),
+                bitmaps.Bitmap16Bit1555(),
+                bitmaps.Bitmap24Bit(),
+            ],
+            'Fonts': [
+                fonts.FfnFont(),
+                fonts.GlyphDefinition(),
+            ],
+            'Palettes': [
+                palettes.PaletteReference(),
+                palettes.Palette24BitDos(),
+                palettes.Palette24Bit(),
+                palettes.Palette32Bit(),
+                palettes.Palette16Bit(),
+                palettes.Palette16BitDos(),
+            ],
+            # 'Audio': [
+            # ],
+            'Misc': [
+                misc.ShpiText(),
+            ]
+        },
+    },
+    'nfs2se': {
+        'file_name': 'NFS2_SE.md',
+        'title': 'NFS2SE file specs',
+        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+**\*.UV** video, I just use ffmpeg to convert it
+
+**\*.VIV** archive with some data. {render_type(archives.VivBlock())}""",
+        'blocks': {
+            'Archives': [
+                archives.ShpiBlock(),
+                archives.VivBlock(),
             ],
             'Geometries': [
                 geometries.GeoGeometry(),
@@ -249,10 +307,14 @@ Did not find what you need or some given data is wrong? Please submit an
                                 if offset_int == 0:
                                     offset_lbl = field.size_doc_str
                                 else:
-                                    mn = str(int(fmn) + offset_int)
-                                    mx = str(int(fmx) + offset_int) if fmx != '?' else '?'
-                                    offset_int = 0
-                                    offset_lbl = f'{mn}..{mx}'
+                                    try:
+                                        mn = str(int(fmn) + offset_int)
+                                        mx = str(int(fmx) + offset_int) if fmx != '?' else '?'
+                                        offset_int = 0
+                                        offset_lbl = f'{mn}..{mx}'
+                                    except:
+                                        offset_int = 0
+                                        offset_lbl = '?'
                             else:
                                 [omn, omx] = offset_lbl.split('..')
                                 mn = str(int(fmn) + int(omn))

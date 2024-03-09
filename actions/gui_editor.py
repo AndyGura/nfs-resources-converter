@@ -14,7 +14,7 @@ from library.loader import clear_file_cache
 from library.utils.file_utils import remove_file_or_directory
 from library.utils.file_utils import start_file
 from serializers import get_serializer
-from serializers.misc.json_utils import convert_bytes
+from serializers.misc.json_utils import convert_bytes, serialize_exceptions
 
 
 def __apply_delta_to_resource(resource_id, resource, changes: Dict):
@@ -46,6 +46,9 @@ def run_gui_editor(file_path):
     current_file_data = None
     current_file_block = None
 
+    def render_data(data):
+        return convert_bytes(serialize_exceptions(data))
+
     def init_eel_state():
 
         @eel.expose
@@ -74,7 +77,7 @@ def run_gui_editor(file_path):
             return {
                 'name': current_file_name,
                 'schema': current_file_block.schema if current_file_block else None,
-                'data': convert_bytes(current_file_data)
+                'data': render_data(current_file_data)
             }
 
         @eel.expose
@@ -90,14 +93,14 @@ def run_gui_editor(file_path):
             with open(path, 'wb') as file:
                 file.write(bts)
             clear_file_cache(path)
-            return convert_bytes(current_file_data)
+            return render_data(current_file_data)
 
         @eel.expose
         def run_custom_action(resource_id: str, action: Dict, args: Dict):
             (name, res_block, resource), _ = require_resource(resource_id)
             action_func = getattr(res_block, f'action_{action["method"]}')
             action_func(resource, **args)
-            return convert_bytes(resource)
+            return render_data(resource)
 
         @eel.expose
         def serialize_resource(id: str, settings_patch={}):
@@ -163,7 +166,7 @@ def run_gui_editor(file_path):
             remove_file_or_directory(os.path.join(static_path, 'resources', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_tmp', *id.split('/')))
             remove_file_or_directory(os.path.join(static_path, 'resources_edit', *id.split('/')))
-            return convert_bytes(resource)
+            return render_data(resource)
 
     eel.init(static_path)
     init_eel_state()

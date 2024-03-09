@@ -30,7 +30,9 @@ export class MainService {
         this.resource$.next(null);
         this.error$.next(null);
       } else {
+        const start = Date.now();
         this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot(value));
+        console.log(`Snapshot built in ${Date.now() - start} ms`);
         // fix recursive schema
         const recursiveSchemas = findNestedObjects(value.schema, 'is_recursive_ref', true);
         for (const [val, path] of recursiveSchemas) {
@@ -78,8 +80,12 @@ export class MainService {
     const result: any = {};
     const recurse = (id: string, data: BlockData) => {
       if (data instanceof Array) {
-        for (let i = 0; i < data.length; i++) {
-          recurse(joinId(id, i), data[i]);
+        if (isNumber(data[0])) {
+          Object.assign(result, Object.fromEntries(data.map((x, i) => [joinId(id, i), x])));
+        } else {
+          for (let i = 0; i < data.length; i++) {
+            recurse(joinId(id, i), data[i]);
+          }
         }
       } else if (isObject(data)) {
         for (const key in data) {

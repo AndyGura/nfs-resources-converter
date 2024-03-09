@@ -2,7 +2,7 @@ import settings
 from library.read_blocks import DataBlock, DelegateBlock
 from library.utils import my_import
 from serializers.base import BaseFileSerializer, DelegateBlockSerializer
-from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer
+from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer, VivArchiveSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 from .bitmaps import BitmapSerializer, BitmapWithPaletteSerializer
 from .fonts import FfnFontSerializer
