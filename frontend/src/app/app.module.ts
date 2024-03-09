@@ -27,7 +27,7 @@ import { BinaryBlockUiComponent } from './components/editor/library/binary.block
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { AngleBlockUiComponent } from './components/editor/eac/angle.block-ui/angle.block-ui.component';
 import { SidenavResListComponent } from './components/editor/common/sidenav-res-list/sidenav-res-list.component';
-import { ShpiBlockUiComponent } from './components/editor/eac/shpi.block-ui/shpi.block-ui.component';
+import { NamedItemsArchiveBlockUiComponent } from './components/editor/eac/named-items-archive/block-ui/named-items-archive-block-ui.component';
 import { MatListModule } from '@angular/material/list';
 import { WwwwBlockUiComponent } from './components/editor/eac/wwww.block-ui/wwww.block-ui.component';
 import { MatCardModule } from '@angular/material/card';
@@ -67,7 +67,7 @@ import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-vi
     BinaryBlockUiComponent,
     AngleBlockUiComponent,
     SidenavResListComponent,
-    ShpiBlockUiComponent,
+    NamedItemsArchiveBlockUiComponent,
     WwwwBlockUiComponent,
     EnumBlockUiComponent,
     FlagsBlockUiComponent,

@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
-import { joinId } from '../../../../utils/join-id';
+import { GuiComponentInterface } from '../../../gui-component.interface';
+import { joinId } from '../../../../../utils/join-id';
 
 @Component({
-  selector: 'app-shpi-block-ui',
-  templateUrl: './shpi.block-ui.component.html',
-  styleUrls: ['./shpi.block-ui.component.scss'],
+  selector: 'app-named-archive-block-ui',
+  templateUrl: './named-items-archive-block-ui.component.html',
+  styleUrls: ['./named-items-archive-block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ShpiBlockUiComponent implements GuiComponentInterface {
+export class NamedItemsArchiveBlockUiComponent implements GuiComponentInterface {
   private _resource: Resource | null = null;
   get resource(): Resource | null {
     return this._resource;

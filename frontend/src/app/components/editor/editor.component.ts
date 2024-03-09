@@ -10,7 +10,7 @@ import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.co
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
-import { ShpiBlockUiComponent } from './eac/shpi.block-ui/shpi.block-ui.component';
+import { NamedItemsArchiveBlockUiComponent } from './eac/named-items-archive/block-ui/named-items-archive-block-ui.component';
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
@@ -50,7 +50,7 @@ export class EditorComponent implements OnDestroy {
     BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
     GeoGeometry: GeoGeometryBlockUiComponent,
-    ShpiBlock: ShpiBlockUiComponent,
+    NamedItemsArchiveBlock: NamedItemsArchiveBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
     FenceType: FenceTypeBlockUiComponent,

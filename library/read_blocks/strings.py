@@ -76,3 +76,36 @@ class UTF8Block(DataBlock):
         if static_length is not None and len(data) < static_length:
             data += '\x00' * (static_length - len(data))
         return data.encode('utf-8')
+
+
+class NullTerminatedUTF8Block(DataBlock):
+
+    def __init__(self, length, **kwargs):
+        super().__init__(**kwargs)
+        self._length = length
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Null-terminated UTF-8 string. Ends with first occurrence of zero byte',
+                'length': self.size_doc_str}
+
+    # For auto-generated documentation only
+    @property
+    def size_doc_str(self):
+        return '?'
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        res = b''
+        while True:
+            nxt = buffer.read(1)
+            if nxt == b'\00':
+                break
+            res += nxt
+        return res.decode('utf-8')
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        return len(data) + 1
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        return data.encode('utf-8') + b'\00'

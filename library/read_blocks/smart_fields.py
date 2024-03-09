@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple, Any
 from library.context import ReadContext, WriteContext
 from library.exceptions import DataIntegrityException
 from library.read_blocks.basic import DataBlock, SkipBlock
+from library.utils.id import join_id
 
 
 class DelegateBlock(DataBlock):
@@ -74,7 +75,7 @@ class DelegateBlock(DataBlock):
             # cut off the documentation
             (delegated_block_index, _) = delegated_block_index
         if callable(delegated_block_index):
-            delegated_block_index = delegated_block_index(ctx)
+            delegated_block_index = delegated_block_index(ctx, name=name)
         return {
             'choice_index': delegated_block_index,
             'data': self.possible_blocks[delegated_block_index].read(buffer, ctx=ctx, name=name,
@@ -106,12 +107,15 @@ class AutoDetectBlock(DelegateBlock):
             'choice_index': 'Auto-detect'
         }
 
-    def detect(self, ctx):
+    def detect(self, ctx, name=None):
         from library import probe_block_class
         exc = None
         try:
+            file_path = ctx.ctx_path
+            if name and not file_path.endswith(name):
+                file_path = join_id(file_path, name)
             block_class = probe_block_class(ctx.buffer,
-                                            file_path=ctx.ctx_path,
+                                            file_path=file_path,
                                             resources_to_pick=[x.__class__ for x in self.possible_blocks])
         except NotImplementedError as ex:
             block_class = SkipBlock

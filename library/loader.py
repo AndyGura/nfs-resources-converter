@@ -23,7 +23,7 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif file_path.endswith('CONFIG.DAT'):
             from resources.eac.configs import TnfsConfigDat
             return TnfsConfigDat
-        elif file_path.endswith('.GEO'):
+        elif file_path.upper().endswith('.GEO'):
             from resources.eac.geometries import GeoGeometry
             return GeoGeometry
     if header_str:
@@ -51,6 +51,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif header_str == 'EACS':
             from resources.eac.audios import EacsAudioFile
             return EacsAudioFile
+        elif header_str == 'BIGF':
+            from resources.eac.archives import VivBlock
+            return VivBlock
     try:
         resource_id = header_bytes[0]
         if resource_id == 0x22:

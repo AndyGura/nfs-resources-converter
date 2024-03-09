@@ -3,6 +3,7 @@ import math
 import os
 from collections import defaultdict
 from copy import deepcopy
+from os.path import join
 from string import Template
 from typing import Literal, List, Tuple
 
@@ -250,9 +251,18 @@ class GeoGeometrySerializer(BaseFileSerializer):
         super().__init__(is_dir=True)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        # shpi is always next block
         from library import require_resource
-        (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource(id[:-4] + '.QFS')
+        if 'CARDATA.VIV' in id:
+            # NFS2 SE
+            local_id = id[id.index('__children/')+11:]
+            idx = int(local_id[:local_id.index('/')])
+            (_, _, viv_data), _ = require_resource(id[:id.find('__children')])
+            qfs_name = viv_data['children_aliases'][idx].upper()
+            qfs_id = join(id[:id.find('CARDATA.VIV')], f'../../CARMODEL/PC/{qfs_name[:-4]}.QFS')
+        else:
+            # NFS2
+            qfs_id = id[:-4] + '.QFS'
+        (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource(qfs_id)
         # unwrap QFS
         shpi_id += '__data'
         (textures_shpi_block, textures_shpi_data) = textures_shpi_block.get_child_block_with_data(textures_shpi_data,

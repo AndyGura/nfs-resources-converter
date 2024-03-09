@@ -245,8 +245,9 @@ class OripGeometry(DeclarativeCompoundBlock):
                                   'consist of 9 blocks',
                    'custom_offset': 'lbl_ptr'})
         vertices = (ArrayBlock(child=DelegateBlock(possible_blocks=[Point3D_32_7(), Point3D_32_4()],
-                                                   choice_index=lambda ctx: (0 if ctx.buffer.name.endswith('.CFM')
-                                                                             else 1)),
+                                                   choice_index=lambda ctx, **_: (
+                                                       0 if ctx.buffer.name.endswith('.CFM')
+                                                       else 1)),
                                length=(lambda ctx: ctx.data('num_vrtx'), 'num_vrtx')),
                     {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4',
                      'custom_offset': 'vrtx_ptr'})

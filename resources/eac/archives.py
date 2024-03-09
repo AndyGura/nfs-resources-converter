@@ -11,13 +11,14 @@ from library.read_blocks import (CompoundBlock,
                                  AutoDetectBlock,
                                  SkipBlock,
                                  BytesBlock)
+from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
-from resources.eac.geometries import OripGeometry
+from resources.eac.geometries import OripGeometry, GeoGeometry
 from resources.eac.misc import ShpiText
 from resources.eac.palettes import (Palette24BitDos,
                                     Palette24Bit,
@@ -65,7 +66,84 @@ class Qfs3Block(CompressedBlock):
         self.algorithm = Qfs3Compression().uncompress
 
 
-class ShpiBlock(DeclarativeCompoundBlock):
+class NamedItemsArchiveBlock(DeclarativeCompoundBlock):
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        offsets_sum = 0
+        for offset in data['offset_payloads']:
+            offsets_sum += len(offset)
+        return super().estimate_packed_size(data, ctx) + offsets_sum
+
+    def new_data(self):
+        return {**super().new_data(),
+                'children_aliases': [],
+                'offset_payloads': [b'']}
+
+    def handle_archive_child(self, abs_offsets, buffer, i, descr, self_ctx):
+        if descr['offset'] > buffer.tell():
+            offset_payload = buffer.read(descr['offset'] - buffer.tell())
+        else:
+            offset_payload = b''
+            buffer.seek(descr["offset"])
+        child = self.field_blocks_map['children'].child.unpack(self_ctx.buffer, ctx=self_ctx, name=descr["name"])
+        return [offset_payload], [descr["name"]], [child]
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+        block_start = buffer.tell()
+        res = super().read(buffer, ctx, name, read_bytes_amount)
+        self_ctx = ([c for c in ctx.children if c.name == name][0] if ctx
+                    else ReadContext(buffer=buffer, data=res,
+                                     name=name, block=self,
+                                     parent=ctx,
+                                     read_bytes_amount=read_bytes_amount))
+        abs_offsets = [{'name': x['name'], 'offset': block_start + x['offset']} for x in res['items_descr']]
+        children = []
+        aliases = []
+        offset_payloads = []
+        for i, descr in enumerate(abs_offsets):
+            (op, a, c) = self.handle_archive_child(abs_offsets, buffer, i, descr, self_ctx)
+            offset_payloads.extend(op)
+            aliases.extend(a)
+            children.extend(c)
+        if buffer.tell() < block_start + res['length']:
+            diff = block_start + res['length'] - buffer.tell()
+            offset_payloads.append(buffer.read(diff))
+        buffer.seek(block_start + read_bytes_amount)
+        res['children'] = children
+        res['children_aliases'] = aliases
+        res['offset_payloads'] = offset_payloads
+        return res
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        children_heap = b''
+        child_offsets = {}
+        child_block = self.field_blocks_map['children'].child
+        for i, item in enumerate(data['children']):
+            children_heap += data['offset_payloads'][i]
+            if data['children_aliases'][i] is not None:
+                child_offsets[data['children_aliases'][i]] = len(children_heap)
+            children_heap += child_block.pack(data=item, ctx=ctx, name=str(i))
+        if len(data['offset_payloads']) > len(data['children']):
+            for i in range(len(data['children']), len(data['offset_payloads'])):
+                children_heap += data['offset_payloads'][i]
+        data['items_descr'] = [{'name': name, 'offset': offset} for (name, offset) in child_offsets.items()]
+        heap_offset = self.offset_to_child_when_packed(data, 'children')
+        for x in data['items_descr']:
+            x['offset'] += heap_offset
+        self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
+        res = bytes()
+        for name, field in (x for x in self.field_blocks if x[0] != 'children'):
+            programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')
+            if programmatic_value_func is not None:
+                val = programmatic_value_func(self_ctx)
+            else:
+                val = data[name]
+            res += field.pack(data=val, ctx=self_ctx, name=name)
+        res += children_heap
+        return res
+
+
+class ShpiBlock(NamedItemsArchiveBlock):
 
     @property
     def schema(self) -> Dict:
@@ -114,88 +192,24 @@ class ShpiBlock(DeclarativeCompoundBlock):
                                     'defined in `items_descr` block. Between them there can be non-indexed '
                                     'entries (palettes and texts)'})
 
-    def estimate_packed_size(self, data, ctx: WriteContext = None):
-        offsets_sum = 0
-        for offset in data['offset_payloads']:
-            offsets_sum += len(offset)
-        return super().estimate_packed_size(data, ctx) + offsets_sum
-
     def new_data(self):
-        return {**super().new_data(),
-                'shpi_dir': 'LN32',
-                'children_aliases': [],
-                'offset_payloads': [b'']}
+        return {**super().new_data(), 'shpi_dir': 'LN32'}
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
-        shpi_start = buffer.tell()
-        res = super().read(buffer, ctx, name, read_bytes_amount)
-        self_ctx = ([c for c in ctx.children if c.name == name][0] if ctx
-                    else ReadContext(buffer=buffer, data=res,
-                                     name=name, block=self,
-                                     parent=ctx,
-                                     read_bytes_amount=read_bytes_amount))
-
-        abs_offsets = [{'name': x['name'], 'offset': shpi_start + x['offset']} for x in res['items_descr']]
+    def handle_archive_child(self, abs_offsets, buffer, i, descr, self_ctx):
+        (offset_payloads, aliases, children) = super().handle_archive_child(abs_offsets, buffer, i, descr, self_ctx)
         child_field = self.field_blocks_map['children'].child
         bitmap8_choice = next(i for i in range(len(child_field.possible_blocks)) if
                               isinstance(child_field.possible_blocks[i], Bitmap8Bit))
-        children = []
-        aliases = []
-        offset_payloads = []
-        for i, descr in enumerate(abs_offsets):
-            if descr['offset'] > buffer.tell():
-                offset_payloads.append(buffer.read(descr['offset'] - buffer.tell()))
-            else:
-                offset_payloads.append(b'')
-                buffer.seek(descr["offset"])
-            child = child_field.unpack(self_ctx.buffer, ctx=self_ctx)
-            children.append(child)
-            aliases.append(descr["name"])
-            if res['shpi_dir'] != 'WRAP' and child['choice_index'] == bitmap8_choice:
-                extra_offset = child['data']['block_size']
-                if extra_offset > 0:
-                    extra_offset += descr["offset"]
-                    if i == len(abs_offsets) - 1 or extra_offset < abs_offsets[i + 1]['offset']:
-                        offset_payloads.append(buffer.read(extra_offset - buffer.tell()))
-                        extra = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name=name)
-                        children.append(extra)
-                        aliases.append(None)
-        if buffer.tell() < shpi_start + res['length']:
-            diff = shpi_start + res['length'] - buffer.tell()
-            offset_payloads.append(buffer.read(diff))
-        buffer.seek(shpi_start + read_bytes_amount)
-        res['children'] = children
-        res['children_aliases'] = aliases
-        res['offset_payloads'] = offset_payloads
-        return res
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        children_heap = b''
-        child_offsets = {}
-        child_block = self.field_blocks_map['children'].child
-        for i, item in enumerate(data['children']):
-            children_heap += data['offset_payloads'][i]
-            if data['children_aliases'][i] is not None:
-                child_offsets[data['children_aliases'][i]] = len(children_heap)
-            children_heap += child_block.pack(data=item, ctx=ctx, name=str(i))
-        if len(data['offset_payloads']) > len(data['children']):
-            for i in range(len(data['children']), len(data['offset_payloads'])):
-                children_heap += data['offset_payloads'][i]
-        data['items_descr'] = [{'name': name, 'offset': offset} for (name, offset) in child_offsets.items()]
-        heap_offset = self.offset_to_child_when_packed(data, 'children')
-        for x in data['items_descr']:
-            x['offset'] += heap_offset
-        self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
-        res = bytes()
-        for name, field in (x for x in self.field_blocks if x[0] != 'children'):
-            programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')
-            if programmatic_value_func is not None:
-                val = programmatic_value_func(self_ctx)
-            else:
-                val = data[name]
-            res += field.pack(data=val, ctx=self_ctx, name=name)
-        res += children_heap
-        return res
+        if self_ctx.data('shpi_dir') != 'WRAP' and children[0]['choice_index'] == bitmap8_choice:
+            extra_offset = children[0]['data']['block_size']
+            if extra_offset > 0:
+                extra_offset += descr["offset"]
+                if i == len(abs_offsets) - 1 or extra_offset < abs_offsets[i + 1]['offset']:
+                    offset_payloads.append(buffer.read(extra_offset - buffer.tell()))
+                    extra = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name=self_ctx.name)
+                    children.append(extra)
+                    aliases.append(None)
+        return offset_payloads, aliases, children
 
 
 class WwwwBlock(DeclarativeCompoundBlock):
@@ -363,3 +377,25 @@ class SoundBank(DeclarativeCompoundBlock):
         data_to_write['wave_data'] = wave_data_heap
         data_to_write['children'] = []
         return super().write(data_to_write, ctx, name)
+
+
+class VivBlock(NamedItemsArchiveBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (UTF8Block(length=4, required_value='BIGF'),
+                       {'description': 'Resource ID'})
+        length = (IntegerBlock(length=4, byte_order='big'),
+                  {'description': 'The length of this VIV block in bytes',
+                   'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        num_items = (IntegerBlock(length=4, byte_order='big'),
+                     {'description': 'An amount of items',
+                      'programmatic_value': lambda ctx: len(ctx.data('items_descr'))})
+        unk0 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+        items_descr = ArrayBlock(length=(lambda ctx: ctx.data('num_items'), 'num_items'),
+                                 child=CompoundBlock(fields=[('offset', IntegerBlock(length=4, byte_order='big'), {}),
+                                                             ('length', IntegerBlock(length=4, byte_order='big'), {}),
+                                                             ('name', NullTerminatedUTF8Block(length=8), {})]))
+        children = (ArrayBlock(length=(0, 'num_items'),
+                               child=AutoDetectBlock(possible_blocks=[GeoGeometry(),
+                                                                      SkipBlock(error_strategy="return_exception")])),
+                    {'description': ''})
