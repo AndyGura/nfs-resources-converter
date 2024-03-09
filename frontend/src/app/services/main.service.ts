@@ -80,12 +80,8 @@ export class MainService {
     const result: any = {};
     const recurse = (id: string, data: BlockData) => {
       if (data instanceof Array) {
-        if (isNumber(data[0])) {
-          Object.assign(result, Object.fromEntries(data.map((x, i) => [joinId(id, i), x])));
-        } else {
-          for (let i = 0; i < data.length; i++) {
-            recurse(joinId(id, i), data[i]);
-          }
+        for (let i = 0; i < data.length; i++) {
+          recurse(joinId(id, i), data[i]);
         }
       } else if (isObject(data)) {
         for (const key in data) {

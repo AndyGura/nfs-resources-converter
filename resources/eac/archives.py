@@ -108,7 +108,8 @@ class NamedItemsArchiveBlock(DeclarativeCompoundBlock):
         if buffer.tell() < block_start + res['length']:
             diff = block_start + res['length'] - buffer.tell()
             offset_payloads.append(buffer.read(diff))
-        buffer.seek(block_start + read_bytes_amount)
+        if read_bytes_amount is not None:
+            buffer.seek(block_start + read_bytes_amount)
         res['children'] = children
         res['children_aliases'] = aliases
         res['offset_payloads'] = offset_payloads
@@ -397,5 +398,6 @@ class VivBlock(NamedItemsArchiveBlock):
                                                              ('name', NullTerminatedUTF8Block(length=8), {})]))
         children = (ArrayBlock(length=(0, 'num_items'),
                                child=AutoDetectBlock(possible_blocks=[GeoGeometry(),
+                                                                      ShpiBlock(),
                                                                       SkipBlock(error_strategy="return_exception")])),
                     {'description': ''})

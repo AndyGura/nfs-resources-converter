@@ -1,5 +1,6 @@
 import os
 import tempfile
+import traceback
 from copy import deepcopy
 from distutils.dir_util import copy_tree
 from itertools import chain
@@ -9,6 +10,7 @@ from typing import Dict
 
 import eel
 
+import settings
 from library import require_file, require_resource
 from library.loader import clear_file_cache
 from library.utils.file_utils import remove_file_or_directory
@@ -68,6 +70,8 @@ def run_gui_editor(file_path):
                 current_file_data = data
                 current_file_block = block
             except Exception as ex:
+                if settings.print_errors:
+                    traceback.print_exc()
                 current_file_data = {
                     'error_class': ex.__class__.__name__,
                     'error_text': str(ex),
