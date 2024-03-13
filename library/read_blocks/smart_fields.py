@@ -3,7 +3,7 @@ from typing import List, Dict, Tuple, Any
 
 from library.context import ReadContext, WriteContext
 from library.exceptions import DataIntegrityException
-from library.read_blocks.basic import DataBlock, SkipBlock
+from library.read_blocks.basic import DataBlock, SkipBlock, BytesBlock
 from library.utils.id import join_id
 
 
@@ -69,7 +69,8 @@ class DelegateBlock(DataBlock):
         return {'choice_index': 0,
                 'data': self.possible_blocks[0].new_data()}
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         delegated_block_index = self.choice_index
         if isinstance(delegated_block_index, tuple):
             # cut off the documentation
@@ -90,7 +91,7 @@ class DelegateBlock(DataBlock):
         delegated_block, data = self.possible_blocks[data['choice_index']], data['data']
         return delegated_block.write(data, ctx=ctx, name=name)
 
-    def validate_after_read(self, value, ctx: ReadContext = None, name: str = ''):
+    def validate_after_read(self, value, ctx: ReadContext = DataBlock.root_read_ctx, name: str = ''):
         delegated_block, data = self.possible_blocks[value['choice_index']], value['data']
         return delegated_block.validate_after_read(data, ctx=ctx, name=name)
 
@@ -110,6 +111,7 @@ class AutoDetectBlock(DelegateBlock):
     def detect(self, ctx, name=None):
         from library import probe_block_class
         exc = None
+        block_class = None
         try:
             file_path = ctx.ctx_path
             if name and not file_path.endswith(name):
@@ -118,12 +120,13 @@ class AutoDetectBlock(DelegateBlock):
                                             file_path=file_path,
                                             resources_to_pick=[x.__class__ for x in self.possible_blocks])
         except NotImplementedError as ex:
-            block_class = SkipBlock
             exc = ex
-        if block_class:
-            for (i, block) in enumerate(self.possible_blocks):
-                if isinstance(block, block_class):
-                    if block_class == SkipBlock and block.error_strategy == "return_exception":
-                        block.exception = exc  # TODO do not write to block!
-                    return i
+        for (i, block) in enumerate(self.possible_blocks):
+            match = (isinstance(block, block_class)
+                     if block_class
+                     else (isinstance(block, SkipBlock) or isinstance(block, BytesBlock)))
+            if match:
+                if isinstance(block, SkipBlock) and block.error_strategy == "return_exception":
+                    block.exception = exc  # TODO do not write to block!
+                return i
         raise DataIntegrityException('Expectation failed for auto-detect block while reading: class not found')

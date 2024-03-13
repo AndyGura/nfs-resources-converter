@@ -2,7 +2,7 @@ from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block, DataBlock
 
 
 class ShpiText(DeclarativeCompoundBlock):
@@ -31,7 +31,8 @@ class DashDeclarationFile(UTF8Block):
     def __init__(self, **kwargs):
         super().__init__(length=0, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         self._length = read_bytes_amount
         text = super().read(buffer, ctx, name, read_bytes_amount)
         dictionary = {}

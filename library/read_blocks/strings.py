@@ -56,7 +56,8 @@ class UTF8Block(DataBlock):
             return self.required_value
         return ""
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         res = buffer.read(self_len).decode('utf-8')
         if len(res) < self_len:
@@ -95,7 +96,8 @@ class NullTerminatedUTF8Block(DataBlock):
     def size_doc_str(self):
         return '?'
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         res = b''
         while True:
             nxt = buffer.read(1)

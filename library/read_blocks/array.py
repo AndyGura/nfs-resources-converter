@@ -86,7 +86,8 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
             return []
         return [self.child.new_data()] * self_len
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         res = []
         self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
         self_len = self.resolve_length(ctx)
@@ -193,7 +194,8 @@ class SubByteArrayBlock(DataBlock):
             return []
         return [0] * self_len
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         raw = buffer.read(ceil(self.bits_per_value * self_len / 8))
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])

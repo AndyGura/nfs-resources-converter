@@ -3,7 +3,7 @@ from math import floor, ceil
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, DataBlock
 from library.read_blocks.numbers import EnumByteBlock
 from resources.eac.fields.numbers import RationalNumber, Nfs1TimeField
 
@@ -24,7 +24,8 @@ class TnfsTopSpeed(RationalNumber):
     def __init__(self, **kwargs):
         super().__init__(length=3, is_signed=False, byte_order="little", fraction_bits=8, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         value = super().read(buffer, ctx, name, read_bytes_amount)
         int_part = floor(value)
         frac_part = value - int_part

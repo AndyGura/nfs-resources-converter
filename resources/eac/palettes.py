@@ -3,7 +3,7 @@ from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock
+from library.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock, DataBlock
 from resources.eac.fields.colors import (
     Color24BitBigEndianField,
     Color24BitDosBlock,
@@ -61,7 +61,8 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
         return {**super().new_data(),
                 'last_color_transparent': False}
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         res = super().read(buffer, ctx, name)
         if res.get('num_colors') is not None:
             assert res['num_colors'] == res['num_colors1']

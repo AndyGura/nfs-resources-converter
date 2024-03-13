@@ -9,8 +9,8 @@ from library.read_blocks import (CompoundBlock,
                                  IntegerBlock,
                                  ArrayBlock,
                                  AutoDetectBlock,
-                                 SkipBlock,
-                                 BytesBlock)
+                                 BytesBlock,
+                                 DataBlock)
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
@@ -37,7 +37,8 @@ class CompressedBlock(AutoDetectBlock):
                          **kwargs)
         self.algorithm = None
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         uncompressed_bytes = self.algorithm(buffer, read_bytes_amount)
         uncompressed = BytesIO(uncompressed_bytes)
         self_ctx = ReadContext(buffer=uncompressed, name=name + '_UNCOMPRESSED', parent=ctx,
@@ -88,14 +89,11 @@ class NamedItemsArchiveBlock(DeclarativeCompoundBlock):
         child = self.field_blocks_map['children'].child.unpack(self_ctx.buffer, ctx=self_ctx, name=descr["name"])
         return [offset_payload], [descr["name"]], [child]
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         block_start = buffer.tell()
         res = super().read(buffer, ctx, name, read_bytes_amount)
-        self_ctx = ([c for c in ctx.children if c.name == name][0] if ctx
-                    else ReadContext(buffer=buffer, data=res,
-                                     name=name, block=self,
-                                     parent=ctx,
-                                     read_bytes_amount=read_bytes_amount))
+        self_ctx = next(c for c in ctx.children if c.name == name)
         abs_offsets = [{'name': x['name'], 'offset': block_start + x['offset']} for x in res['items_descr']]
         children = []
         aliases = []
@@ -175,20 +173,25 @@ class ShpiBlock(NamedItemsArchiveBlock):
                                        ' and offset to item data in file, relatively to SHPI block start (where '
                                        'resource id string is presented). Names are not always unique'})
         children = (ArrayBlock(length=(0, 'num_items + ?'),
-                               child=AutoDetectBlock(possible_blocks=[Bitmap4Bit(),
-                                                                      Bitmap8Bit(),
-                                                                      Bitmap16Bit0565(),
-                                                                      Bitmap32Bit(),
-                                                                      Bitmap16Bit1555(),
-                                                                      Bitmap24Bit(),
-                                                                      Palette24BitDos(),
-                                                                      Palette24Bit(),
-                                                                      Palette32Bit(),
-                                                                      Palette16Bit(),
-                                                                      Palette16BitDos(),
-                                                                      PaletteReference(),
-                                                                      ShpiText(),
-                                                                      SkipBlock(error_strategy="return_exception")])),
+                               child=AutoDetectBlock(possible_blocks=[
+                                   Bitmap4Bit(),
+                                   Bitmap8Bit(),
+                                   Bitmap16Bit0565(),
+                                   Bitmap32Bit(),
+                                   Bitmap16Bit1555(),
+                                   Bitmap24Bit(),
+                                   Palette24BitDos(),
+                                   Palette24Bit(),
+                                   Palette32Bit(),
+                                   Palette16Bit(),
+                                   Palette16BitDos(),
+                                   PaletteReference(),
+                                   ShpiText(),
+                                   BytesBlock(length=(lambda ctx: next(x for x in (
+                                       x['offset'] + ctx.read_start_offset - ctx.buffer.tell()
+                                       for x in (sorted(ctx.data('items_descr'), key=lambda x: x['offset'])
+                                                 + [{'offset': ctx.read_bytes_amount}])
+                                   ) if x > 0), 'item_length'))])),
                     {'description': 'A part of block, where items data is located. Offsets to some of the entries are '
                                     'defined in `items_descr` block. Between them there can be non-indexed '
                                     'entries (palettes and texts)'})
@@ -252,21 +255,22 @@ class WwwwBlock(DeclarativeCompoundBlock):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # write array field child block for referencing self in possible blocks
-        self.child_block = AutoDetectBlock(possible_blocks=[ShpiBlock(),
-                                                            OripGeometry(),
-                                                            self,
-                                                            SkipBlock(error_strategy="return_exception")])
+        self.child_block = AutoDetectBlock(possible_blocks=[
+            ShpiBlock(),
+            OripGeometry(),
+            self,
+            BytesBlock(length=(lambda ctx: next(x for x in (
+                x + ctx.read_start_offset - ctx.buffer.tell()
+                for x in (sorted(ctx.data('item_ptrs')) + [ctx.read_bytes_amount])
+            ) if x > 0), 'item_length'))])
         self.field_blocks_map['children'].child = self.child_block
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         wwww_start = buffer.tell()
         res = super().read(buffer, ctx, name, read_bytes_amount)
         abs_offsets = [wwww_start + x for x in res['item_ptrs']]
-        self_ctx = ([c for c in ctx.children if c.name == name][0] if ctx
-                    else ReadContext(buffer=buffer, data=res,
-                                     name=name, block=self,
-                                     parent=ctx,
-                                     read_bytes_amount=read_bytes_amount))
+        self_ctx = next(c for c in ctx.children if c.name == name)
         for i, offset in enumerate(abs_offsets):
             if offset == wwww_start:
                 res['children'].append(None)
@@ -332,7 +336,8 @@ class SoundBank(DeclarativeCompoundBlock):
                                     'structure is dispersed across the file',
                      'custom_offset': 'N/A'})
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         bnk_start = buffer.tell()
         res = super().read(buffer, ctx, name, read_bytes_amount)
 
@@ -397,7 +402,13 @@ class VivBlock(NamedItemsArchiveBlock):
                                                              ('length', IntegerBlock(length=4, byte_order='big'), {}),
                                                              ('name', NullTerminatedUTF8Block(length=8), {})]))
         children = (ArrayBlock(length=(0, 'num_items'),
-                               child=AutoDetectBlock(possible_blocks=[GeoGeometry(),
-                                                                      ShpiBlock(),
-                                                                      SkipBlock(error_strategy="return_exception")])),
+                               child=AutoDetectBlock(possible_blocks=[
+                                   GeoGeometry(),
+                                   ShpiBlock(),
+                                   BytesBlock(
+                                       length=(lambda ctx:
+                                               next(x for x in ctx.data('items_descr')
+                                                    if x['offset'] == ctx.buffer.tell() - ctx.read_start_offset
+                                                    )['length'],
+                                               'item_length'))])),
                     {'description': ''})
