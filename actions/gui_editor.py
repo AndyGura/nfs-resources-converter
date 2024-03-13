@@ -85,6 +85,11 @@ def run_gui_editor(file_path):
             }
 
         @eel.expose
+        def retrieve_value(resource_id: str):
+            (_, _, resource), _ = require_resource(resource_id)
+            return render_data(resource)
+
+        @eel.expose
         def open_file_with_system_app(path: str):
             if path.startswith('/') or path.startswith('\\'):
                 path = path[1:]

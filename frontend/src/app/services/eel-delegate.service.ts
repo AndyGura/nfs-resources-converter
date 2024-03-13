@@ -50,6 +50,10 @@ export class EelDelegateService {
     await eel['open_file_with_system_app'](path)();
   }
 
+  public async retrieveValue<T = any>(id: string): Promise<T> {
+    return await eel['retrieve_value'](id)();
+  }
+
   public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
     return eel['run_custom_action'](name, action, args)();
   }
