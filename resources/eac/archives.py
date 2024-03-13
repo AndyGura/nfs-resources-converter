@@ -386,6 +386,26 @@ class SoundBank(DeclarativeCompoundBlock):
 
 
 class VivBlock(NamedItemsArchiveBlock):
+
+    @property
+    def schema(self) -> Dict:
+        # this schema has recursion problem. Workaround applied here
+        if getattr(self, 'schema_call_recv', False):
+            return {
+                'block_class_mro': '__'.join(
+                    [x.__name__ for x in self.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
+                'is_recursive_ref': True,
+            }
+        self.schema_call_recv = True
+        schema = {
+            **super().schema,
+            'block_description': 'A block-container with various data: image archives, GEO geometries, sound banks, '
+                                 'other VIV blocks...',
+            'serializable_to_disc': False,
+        }
+        delattr(self, 'schema_call_recv')
+        return schema
+
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, required_value='BIGF'),
                        {'description': 'Resource ID'})
@@ -401,14 +421,19 @@ class VivBlock(NamedItemsArchiveBlock):
                                  child=CompoundBlock(fields=[('offset', IntegerBlock(length=4, byte_order='big'), {}),
                                                              ('length', IntegerBlock(length=4, byte_order='big'), {}),
                                                              ('name', NullTerminatedUTF8Block(length=8), {})]))
-        children = (ArrayBlock(length=(0, 'num_items'),
-                               child=AutoDetectBlock(possible_blocks=[
-                                   GeoGeometry(),
-                                   ShpiBlock(),
-                                   BytesBlock(
-                                       length=(lambda ctx:
-                                               next(x for x in ctx.data('items_descr')
-                                                    if x['offset'] == ctx.buffer.tell() - ctx.read_start_offset
-                                                    )['length'],
-                                               'item_length'))])),
+        children = (ArrayBlock(length=(0, 'num_items'), child=None),
                     {'description': ''})
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # write array field child block for referencing self in possible blocks
+        child_block = AutoDetectBlock(possible_blocks=[
+            GeoGeometry(),
+            ShpiBlock(),
+            self,
+            BytesBlock(
+                length=(lambda ctx:
+                        next(x for x in ctx.data('items_descr')
+                             if x['offset'] == ctx.buffer.tell() - ctx.read_start_offset)['length'],
+                        'item_length'))])
+        self.field_blocks_map['children'].child = child_block
