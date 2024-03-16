@@ -52,8 +52,8 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             from resources.eac.audios import EacsAudioFile
             return EacsAudioFile
         elif header_str == 'BIGF':
-            from resources.eac.archives import VivBlock
-            return VivBlock
+            from resources.eac.archives import BigfBlock
+            return BigfBlock
     try:
         resource_id = header_bytes[0]
         if resource_id == 0x22:

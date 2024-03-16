@@ -7,7 +7,7 @@ ffmpeg_executable = 'ffmpeg'
 # 0 means "use the amount of CPU cores"
 multiprocess_processes_count = 0
 
-print_errors = False
+print_errors = True
 print_blender_log = False
 
 # ================================================= CONVERTING OPTIONS =================================================
@@ -33,7 +33,7 @@ SERIALIZER_CLASSES = {
     'GeoGeometry': 'GeoGeometrySerializer',
     'ShpiBlock': 'ShpiArchiveSerializer',
     'WwwwBlock': 'WwwwArchiveSerializer',
-    'VivBlock': 'VivArchiveSerializer',
+    'BigfBlock': 'BigfArchiveSerializer',
     'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',
     'SoundBank': 'SoundBankSerializer',
     'EacsAudioFile': 'EacsAudioSerializer',

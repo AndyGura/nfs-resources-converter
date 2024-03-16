@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2024-03-13 12:36:01.994066+00:00*
+*Last time updated: 2024-03-16 16:07:19.891879+00:00*
 
 
 # **Info by file extensions** #
@@ -13,7 +13,7 @@
 
 **\*.UV** video, I just use ffmpeg to convert it
 
-**\*.VIV** archive with some data. [VivBlock](#vivblock)
+**\*.VIV** archive with some data. [BigfBlock](#bigfblock)
 
 Did not find what you need or some given data is wrong? Please submit an
 [issue](https://github.com/AndyGura/nfs-resources-converter/issues/new)
@@ -32,17 +32,17 @@ Did not find what you need or some given data is wrong? Please submit an
 | 12 | **shpi_dir** | 4 | UTF-8 string | One of: "LN32", "GIMX", "WRAP". The purpose is unknown |
 | 16 | **items_descr** | num_items\*8 | Array of `num_items` items<br/>Item size: 8 bytes<br/>Item type: 8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | An array of items, each of them represents name of SHPI item (image or palette) and offset to item data in file, relatively to SHPI block start (where resource id string is presented). Names are not always unique |
 | 16 + num_items\*8 | **children** | ? | Array of `num_items + ?` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit)<br/>- [Bitmap16Bit0565](#bitmap16bit0565)<br/>- [Bitmap32Bit](#bitmap32bit)<br/>- [Bitmap16Bit1555](#bitmap16bit1555)<br/>- [Bitmap24Bit](#bitmap24bit)<br/>- [Palette24BitDos](#palette24bitdos)<br/>- [Palette24Bit](#palette24bit)<br/>- [Palette32Bit](#palette32bit)<br/>- [Palette16Bit](#palette16bit)<br/>- [Palette16BitDos](#palette16bitdos)<br/>- [PaletteReference](#palettereference)<br/>- [ShpiText](#shpitext)<br/>- Bytes | A part of block, where items data is located. Offsets to some of the entries are defined in `items_descr` block. Between them there can be non-indexed entries (palettes and texts) |
-### **VivBlock** ###
+### **BigfBlock** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: A block-container with various data: image archives, GEO geometries, sound banks, other VIV blocks... ####
+#### **Description**: A block-container with various data: image archives, GEO geometries, sound banks, other BIGF blocks... ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "BIGF" | Resource ID |
-| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this VIV block in bytes |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
-| ? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [VivBlock](#vivblock)<br/>- Bytes |  |
+| ? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
 ## **Geometries** ##
 ### **GeoGeometry** ###
 #### **Size**: 1804..? bytes ####

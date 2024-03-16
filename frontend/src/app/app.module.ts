@@ -27,7 +27,6 @@ import { BinaryBlockUiComponent } from './components/editor/library/binary.block
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { AngleBlockUiComponent } from './components/editor/eac/angle.block-ui/angle.block-ui.component';
 import { SidenavResListComponent } from './components/editor/common/sidenav-res-list/sidenav-res-list.component';
-import { NamedItemsArchiveBlockUiComponent } from './components/editor/eac/named-items-archive/block-ui/named-items-archive-block-ui.component';
 import { MatListModule } from '@angular/material/list';
 import { WwwwBlockUiComponent } from './components/editor/eac/wwww.block-ui/wwww.block-ui.component';
 import { MatCardModule } from '@angular/material/card';
@@ -51,6 +50,7 @@ import { SoundbankBlockUiComponent } from './components/editor/eac/soundbank.blo
 import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-viewer.component';
+import { BaseArchiveBlockUiComponent } from './components/editor/eac/base-archive.block-ui/base-archive.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -67,7 +67,7 @@ import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-vi
     BinaryBlockUiComponent,
     AngleBlockUiComponent,
     SidenavResListComponent,
-    NamedItemsArchiveBlockUiComponent,
+    BaseArchiveBlockUiComponent,
     WwwwBlockUiComponent,
     EnumBlockUiComponent,
     FlagsBlockUiComponent,

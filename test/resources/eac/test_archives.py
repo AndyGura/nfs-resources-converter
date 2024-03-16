@@ -39,7 +39,7 @@ class TestWwwwBlock(unittest.TestCase):
 
     def test_cfm_should_reconstruct_offsets(self):
         (name, block, res) = require_file('test/samples/LDIABL.CFM')
-        res['item_ptrs'] = []
+        res['items_descr'] = []
         res['num_items'] = 0
         res['children'][1]['data']['items_descr'] = []
         output = block.pack(res, name=name)
@@ -56,6 +56,18 @@ class TestSoundBankBlock(unittest.TestCase):
         (name, block, res) = require_file('test/samples/DIABLOSW.BNK')
         output = block.pack(res, name=name)
         with open('test/samples/DIABLOSW.BNK', 'rb') as bdata:
+            original = bdata.read()
+            self.assertEqual(len(original), len(output))
+            for i, x in enumerate(original):
+                self.assertEqual(x, output[i], f"Wrong value at index {i}")
+
+
+class TestBigfBlock(unittest.TestCase):
+
+    def test_bigf_should_remain_the_same(self):
+        (name, block, res) = require_file('test/samples/CARDATA.VIV')
+        output = block.pack(res, name=name)
+        with open('test/samples/CARDATA.VIV', 'rb') as bdata:
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):

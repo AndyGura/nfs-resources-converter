@@ -10,7 +10,6 @@ import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.co
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
-import { NamedItemsArchiveBlockUiComponent } from './eac/named-items-archive/block-ui/named-items-archive-block-ui.component';
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
@@ -25,6 +24,7 @@ import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
+import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -50,7 +50,7 @@ export class EditorComponent implements OnDestroy {
     BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
     GeoGeometry: GeoGeometryBlockUiComponent,
-    NamedItemsArchiveBlock: NamedItemsArchiveBlockUiComponent,
+    BaseArchiveBlock: BaseArchiveBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
     FenceType: FenceTypeBlockUiComponent,

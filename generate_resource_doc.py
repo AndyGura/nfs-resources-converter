@@ -142,17 +142,17 @@ EXPORT_RESOURCES = {
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.MSK** archive with some data. {render_type(archives.VivBlock())}
+**\*.MSK** archive with some data. {render_type(archives.BigfBlock())}
 
 **\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
 **\*.UV** video, I just use ffmpeg to convert it
 
-**\*.VIV** archive with some data. {render_type(archives.VivBlock())}""",
+**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
-                archives.VivBlock(),
+                archives.BigfBlock(),
             ],
             'Geometries': [
                 geometries.GeoGeometry(),
@@ -201,11 +201,11 @@ EXPORT_RESOURCES = {
 
 **\*.UV** video, I just use ffmpeg to convert it
 
-**\*.VIV** archive with some data. {render_type(archives.VivBlock())}""",
+**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
-                archives.VivBlock(),
+                archives.BigfBlock(),
             ],
             'Geometries': [
                 geometries.GeoGeometry(),
