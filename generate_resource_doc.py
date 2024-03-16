@@ -243,6 +243,54 @@ EXPORT_RESOURCES = {
             ]
         },
     },
+    'nfs3': {
+        'file_name': 'NFS3.md',
+        'title': 'NFS 3 Hot Pursuit file specs',
+        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+        'blocks': {
+            'Archives': [
+                archives.ShpiBlock(),
+                archives.BigfBlock(),
+            ],
+            # 'Geometries': [
+            # ],
+            # 'Maps': [
+            # ],
+            # 'Physics': [
+            # ],
+            'Bitmaps': [
+                bitmaps.Bitmap16Bit0565(),
+                bitmaps.Bitmap4Bit(),
+                bitmaps.Bitmap8Bit(),
+                bitmaps.Bitmap32Bit(),
+                bitmaps.Bitmap16Bit1555(),
+                bitmaps.Bitmap24Bit(),
+            ],
+            'Fonts': [
+                fonts.FfnFont(),
+                fonts.GlyphDefinition(),
+            ],
+            'Palettes': [
+                palettes.PaletteReference(),
+                palettes.Palette24BitDos(),
+                palettes.Palette24Bit(),
+                palettes.Palette32Bit(),
+                palettes.Palette16Bit(),
+                palettes.Palette16BitDos(),
+            ],
+            # 'Audio': [
+            # ],
+            'Misc': [
+                misc.ShpiText(),
+            ]
+        },
+    },
 }
 
 with open('resources/README.md', 'w') as f:

@@ -6,3 +6,5 @@
 
 - [NFS2SE file specs](NFS2_SE.md)
 
+- [NFS 3 Hot Pursuit file specs](NFS3.md)
+
