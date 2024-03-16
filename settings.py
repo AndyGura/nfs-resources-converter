@@ -7,7 +7,7 @@ ffmpeg_executable = 'ffmpeg'
 # 0 means "use the amount of CPU cores"
 multiprocess_processes_count = 0
 
-print_errors = True
+print_errors = False
 print_blender_log = False
 
 # ================================================= CONVERTING OPTIONS =================================================
