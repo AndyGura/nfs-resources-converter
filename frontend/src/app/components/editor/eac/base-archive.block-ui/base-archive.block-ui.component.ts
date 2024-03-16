@@ -3,12 +3,12 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
 
 @Component({
-  selector: 'app-shpi-block-ui',
-  templateUrl: './shpi.block-ui.component.html',
-  styleUrls: ['./shpi.block-ui.component.scss'],
+  selector: 'app-base-archive-block-ui',
+  templateUrl: './base-archive.block-ui.component.html',
+  styleUrls: ['./base-archive.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ShpiBlockUiComponent implements GuiComponentInterface {
+export class BaseArchiveBlockUiComponent implements GuiComponentInterface {
   private _resource: Resource | null = null;
   get resource(): Resource | null {
     return this._resource;

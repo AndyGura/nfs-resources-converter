@@ -43,7 +43,8 @@ class IntegerBlock(DataBlock):
             return self.required_value
         return 0
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         raw = buffer.read(self.length)
         if len(raw) < self.length:
             raise EndOfBufferException()
@@ -75,7 +76,8 @@ class BitFlagsBlock(IntegerBlock):
     def new_data(self):
         return [False] * 8
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         value = super().read(buffer, ctx, name, read_bytes_amount)
         res = {}
         for i in range(8):
@@ -114,10 +116,11 @@ class EnumByteBlock(IntegerBlock):
             return self.required_value
         return next(x for x in self.enum_name_map if x is not None)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         raw = super().read(buffer, ctx, name, read_bytes_amount)
         if self.raise_error_on_unknown and self.enum_name_map[raw] is None:
-            raise DataIntegrityException(f'Unknown enum value {raw} at {ctx.ctx_path if ctx else ""}/{name}')
+            raise DataIntegrityException(f'Unknown enum value {raw} at {ctx.ctx_path}/{name}')
         return self.enum_name_map[raw]
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:

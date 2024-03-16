@@ -245,7 +245,7 @@ class SoundBankSerializer(BaseFileSerializer):
             # car soundbanks
             names = ['engine_on', 'engine_off', 'honk', 'gear']
         else:
-            names = [hex(i) for (i, x) in enumerate(data['item_ptrs']) if x > 0]
+            names = [hex(i) for (i, x) in enumerate(data['items_descr']) if x > 0]
         items = zip(names, data['children'])
         skipped_resources = []
         item_block = block.field_blocks_map['children'].child
@@ -253,6 +253,45 @@ class SoundBankSerializer(BaseFileSerializer):
             try:
                 serializer = serializers.get_serializer(item_block, item)
                 serializer.serialize(item, os.path.join(path, name), id=join_id(id, 'children', name))
+            except Exception as ex:
+                if self.settings.print_errors:
+                    traceback.print_exc()
+                skipped_resources.append((name, format_exception(ex)))
+        if skipped_resources:
+            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
+                for item in skipped_resources:
+                    f.write("%s\t\t%s\n" % item)
+
+
+class BigfArchiveSerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path)
+        children_field = block.field_blocks_map['children'].child
+        items = [(alias, child['data'], children_field.possible_blocks[child['choice_index']])
+                 for i, (alias, child) in enumerate(zip(data['children_aliases'], data['children']))]
+        skipped_resources = []
+        save_image_names = {}
+        for i, (name, item_data, item_block) in enumerate(items):
+            if isinstance(item_data, Exception):
+                skipped_resources.append((name, format_exception(item_data)))
+                continue
+            try:
+                serializer = serializers.get_serializer(item_block, item_data)
+                file_name = escape_chars(name).replace('/', '_')
+                if save_image_names.get(file_name):
+                    original_file_name = file_name
+                    i = 0
+                    while save_image_names.get(file_name):
+                        file_name = f'{original_file_name}{i}'
+                        i += 1
+                serializer.serialize(item_data, os.path.join(path, file_name),
+                                     block=item_block,
+                                     id=join_id(id, 'children', str(i), 'data'))
+                save_image_names[file_name] = True
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()

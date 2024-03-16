@@ -13,7 +13,8 @@ class FfmpegSupportedVideo(DataBlock):
         return {**super().schema,
                 'block_description': 'A video file, which is supported by FFMPEG and can be converted using only it'}
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         return name
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:

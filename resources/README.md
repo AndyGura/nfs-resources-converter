@@ -4,3 +4,5 @@
 
 - [NFS2 file specs](NFS2.md)
 
+- [NFS2SE file specs](NFS2_SE.md)
+

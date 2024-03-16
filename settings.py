@@ -33,6 +33,7 @@ SERIALIZER_CLASSES = {
     'GeoGeometry': 'GeoGeometrySerializer',
     'ShpiBlock': 'ShpiArchiveSerializer',
     'WwwwBlock': 'WwwwArchiveSerializer',
+    'BigfBlock': 'BigfArchiveSerializer',
     'FfmpegSupportedVideo': 'FfmpegSupportedVideoSerializer',
     'SoundBank': 'SoundBankSerializer',
     'EacsAudioFile': 'EacsAudioSerializer',

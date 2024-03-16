@@ -1,5 +1,5 @@
 <mat-toolbar color="primary">
-    <span>{{(mainService.resource$ | async)?.name || '...'}}{{mainService.hasUnsavedChanges ? '*' : ''}}</span>
+    <span>{{(mainService.resource$ | async)?.name || '...'}}{{(mainService.hasUnsavedChanges$ | async) ? '*' : ''}}</span>
     <span class="flex-spacer"></span>
     <button mat-icon-button (click)="toggleUnknownsVisibility()"
             matTooltip="Show/hide hidden fields">
@@ -15,7 +15,7 @@
     </button>
     <mat-divider vertical></mat-divider>
     <button mat-icon-button (click)="saveResource()"
-            [disabled]="!(mainService.resource$ | async) || !mainService.hasUnsavedChanges"
+            [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async)"
             matTooltip="Save changes to file">
         <mat-icon fontIcon="save"></mat-icon>
     </button>

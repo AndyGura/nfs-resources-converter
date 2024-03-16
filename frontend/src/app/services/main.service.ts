@@ -1,15 +1,14 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
-import { cloneDeep, isEqual, isNumber, isObject } from 'lodash';
+import { isEqual, isNumber } from 'lodash';
 import { findNestedObjects } from '../utils/find-nested-object';
-import { joinId } from '../utils/join-id';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MainService {
-  private dataSnapshot: any;
+  private readonly _hasUnsavedChanges$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
@@ -30,7 +29,6 @@ export class MainService {
         this.resource$.next(null);
         this.error$.next(null);
       } else {
-        this.dataSnapshot = cloneDeep(this.buildResourceDataSnapshot(value));
         // fix recursive schema
         const recursiveSchemas = findNestedObjects(value.schema, 'is_recursive_ref', true);
         for (const [val, path] of recursiveSchemas) {
@@ -49,54 +47,38 @@ export class MainService {
         this.error$.next(null);
       }
     });
-    this.dataBlockChange$.subscribe(([blockId, value]) => {
-      let equals: boolean;
-      const originalValue = this.getInitialValueFromSnapshot(blockId);
-      if (isNumber(value)) {
-        equals = Math.abs(value - originalValue) < 0.0000000001;
-      } else {
-        equals = isEqual(value, originalValue);
+    this.dataBlockChange$.subscribe(async ([blockId, value]) => {
+      this.changedDataBlocks[blockId] = value;
+      this.updateUnsavedChanges();
+      const originalValue = await this.eelDelegate.retrieveValue(blockId);
+      // if was changed by another concurrent call during awaiting
+      if (this.changedDataBlocks[blockId] != value) {
+        return;
       }
-      if (equals) {
+      if (isNumber(value) ? Math.abs(value - originalValue) < 0.0000000001 : isEqual(value, originalValue)) {
         // change reverted
         delete this.changedDataBlocks[blockId];
-      } else {
-        this.changedDataBlocks[blockId] = value;
+        this.updateUnsavedChanges();
       }
     });
   }
 
+  private updateUnsavedChanges() {
+    this._hasUnsavedChanges$.next(Object.keys(this.changedDataBlocks).length > 0);
+  }
+  get hasUnsavedChanges$(): Observable<boolean> {
+    return this._hasUnsavedChanges$.asObservable();
+  }
+
   get hasUnsavedChanges(): boolean {
-    return Object.keys(this.changedDataBlocks).length > 0;
-  }
-
-  private getInitialValueFromSnapshot(blockId: string): any {
-    return this.dataSnapshot[blockId];
-  }
-
-  private buildResourceDataSnapshot(res: Resource): { [key: string]: any } {
-    const result: any = {};
-    const recurse = (id: string, data: BlockData) => {
-      if (data instanceof Array) {
-        for (let i = 0; i < data.length; i++) {
-          recurse(joinId(id, i), data[i]);
-        }
-      } else if (isObject(data)) {
-        for (const key in data) {
-          recurse(joinId(id, key), (data as any)[key]);
-        }
-      } else {
-        result[id] = data;
-      }
-    };
-    recurse(res.id, res.data);
-    return result;
+    return this._hasUnsavedChanges$.getValue();
   }
 
   clearUnsavedChanges() {
     Object.keys(this.changedDataBlocks).forEach(key => {
       delete this.changedDataBlocks[key];
     });
+    this.updateUnsavedChanges();
   }
 
   private async processExternalChanges(id: string, call: () => Promise<BlockData | ReadError>): Promise<void> {
@@ -126,6 +108,7 @@ export class MainService {
     }
     this.clearUnsavedChanges();
     this.changedDataBlocks['__has_external_changes__'] = 1;
+    this.updateUnsavedChanges();
     this.customActionRunning$.next(false);
   }
 

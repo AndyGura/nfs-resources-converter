@@ -22,7 +22,7 @@ export class SoundbankBlockUiComponent implements GuiComponentInterface {
       (x: { name: string; schema: BlockSchema }) => x.name === 'children',
     )?.schema.child_schema;
     if (!childSchema) return;
-    let idxs = (this.resourceData!.item_ptrs as number[])
+    let idxs = (this.resourceData!.items_descr as number[])
       .map((x, i) => [x, i])
       .filter(([x, i]) => x > 0)
       .map(([x, i]) => i);

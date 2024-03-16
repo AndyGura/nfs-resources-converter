@@ -198,7 +198,7 @@ class PropDescr(DeclarativeCompoundBlock):
                                                BitmapPropDescrData(),
                                                TwoSidedBitmapPropDescrData(),
                                                BytesBlock(length=14)],
-                              choice_index=lambda ctx: 0 if ctx.data('type') == 'model' else (
+                              choice_index=lambda ctx, **_: 0 if ctx.data('type') == 'model' else (
                                   1 if ctx.data('type') == 'bitmap' else (
                                       2 if ctx.data('type') == 'two_sided_bitmap' else 3
                                   )

@@ -1,17 +1,13 @@
-# **NFS2 file specs** #
+# **NFS2SE file specs** #
 
-*Last time updated: 2024-03-16 16:07:19.818711+00:00*
+*Last time updated: 2024-03-16 16:07:19.891879+00:00*
 
 
 # **Info by file extensions** #
 
-**\*.GEO** car 3D model. [GeoGeometry](#geogeometry)
-        
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
-
-**\*.MSK** archive with some data. [BigfBlock](#bigfblock)
 
 **\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 

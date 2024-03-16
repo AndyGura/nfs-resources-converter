@@ -62,7 +62,10 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             except ValueError:
                 # if inner compound block with size range
                 if '..?' in field_size_doc:
-                    min_acc += int(field_size_doc[:field_size_doc.index('..?')])
+                    try:
+                        min_acc += int(field_size_doc[:field_size_doc.index('..?')])
+                    except:
+                        pass
                 unknown_size = True
         return str(min_acc) if not unknown_size else f'{min_acc}..?'
 
@@ -72,7 +75,8 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             res[name] = field.new_data()
         return res
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         res = dict()
         self_ctx = ReadContext(buffer=buffer, data=res, name=name, block=self, parent=ctx,
                                read_bytes_amount=read_bytes_amount)

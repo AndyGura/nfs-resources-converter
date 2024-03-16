@@ -2,7 +2,7 @@ from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, DataBlock
 from resources.eac.fields.numbers import RationalNumber
 
 
@@ -107,7 +107,8 @@ class FenceType(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=1, is_signed=False, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = None, name: str = '', read_bytes_amount=None):
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
         fence_type = super().read(buffer, ctx, name, read_bytes_amount)
         return {
             'texture_id': fence_type & (0xff >> 2),
