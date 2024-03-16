@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from os.path import getsize
+from typing import Dict
 
 import settings
 from library.utils.class_dict import ClassDict
@@ -46,3 +47,23 @@ class BaseFileSerializer(ResourceSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         os.makedirs(path if self.is_dir else os.path.dirname(path), exist_ok=True)
+
+
+class PlainBinarySerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=False)
+
+    def setup_for_reversible_serialization(self) -> bool:
+        return True
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        if path.endswith('/') or path.endswith('\\'):
+            path += id[id.rindex('/') + 1:]
+        super().serialize(data, path)
+        with open(f'{path}.bin', 'wb') as file:
+            file.write(data)
+
+    def deserialize(self, path: str, id=None, block=None, **kwargs):
+        with open(f'{path}.bin', 'rb') as file:
+            return file.read(getsize(f'{path}.bin'))

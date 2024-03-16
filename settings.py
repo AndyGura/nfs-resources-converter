@@ -40,6 +40,7 @@ SERIALIZER_CLASSES = {
     'AsfAudio': 'FfmpegSupportedAudioSerializer',
     'TnfsConfigDat': 'JsonSerializer',
     'ShpiText': 'ShpiTextSerializer',
+    'BytesBlock': 'PlainBinarySerializer',
 }
 
 # skip saving palette, image positions

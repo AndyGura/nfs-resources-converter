@@ -29,9 +29,9 @@ class JsonSerializer(BaseFileSerializer):
         return res
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-        super().serialize(data, path)
-        json_str = json.dumps(convert_bytes(self.__make_dict(block, data)), indent=4)
         if path.endswith('/') or path.endswith('\\'):
             path += id[id.rindex('/') + 1:]
+        super().serialize(data, path)
+        json_str = json.dumps(convert_bytes(self.__make_dict(block, data)), indent=4)
         with open(f'{path}.json', 'w') as file:
             file.write(json_str)
