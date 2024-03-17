@@ -17,19 +17,25 @@ def render_value_doc_str(value: str) -> str:
     return str(value).replace('*', '\*')
 
 
-def render_type(instance: DataBlock) -> str:
+def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
     schema = instance.schema
     if isinstance(instance, DelegateBlock):
-        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x)
-                                                    for x in instance.possible_blocks
-                                                    if not isinstance(x, SkipBlock)])
+        # cleanup: remove SkipBlock and blocks which should be referenced by link but do not exist in documentation
+        # for this game. For instance SHPI archive in NFS2 has greater variety of possible image resources than TNFS
+        possible_blocks = [x for x in instance.possible_blocks
+                           if not isinstance(x, SkipBlock) and (
+                                   not possible_blocks_filter
+                                   or x.__class__ in possible_blocks_filter
+                                   or (not isinstance(x, CompoundBlock) or x.schema["inline_description"]))]
+        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x, possible_blocks_filter)
+                                                    for x in possible_blocks])
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
         if isinstance(instance, ArrayBlock):
             if not isinstance(instance.child, CompoundBlock) or instance.child.schema["inline_description"]:
                 size = render_value_doc_str(instance.child.size_doc_str)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
-            descr += f'<br/>Item type: {render_type(instance.child)}'
+            descr += f'<br/>Item type: {render_type(instance.child, possible_blocks_filter)}'
         return descr
     name = instance.__class__.__name__.replace("Resource", "")
     return f'[{name}](#{name.lower()})'
@@ -100,12 +106,8 @@ EXPORT_RESOURCES = {
                 car_specs.CarSimplifiedPerformanceSpec(),
             ],
             'Bitmaps': [
-                bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap4Bit(),
                 bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap32Bit(),
-                bitmaps.Bitmap16Bit1555(),
-                bitmaps.Bitmap24Bit(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -115,9 +117,6 @@ EXPORT_RESOURCES = {
                 palettes.PaletteReference(),
                 palettes.Palette24BitDos(),
                 palettes.Palette24Bit(),
-                palettes.Palette32Bit(),
-                palettes.Palette16Bit(),
-                palettes.Palette16BitDos(),
             ],
             'Audio': [
                 audios.AsfAudio(),
@@ -129,7 +128,6 @@ EXPORT_RESOURCES = {
                 configs.TnfsConfigDat(),
                 configs.TrackStats(),
                 configs.BestRaceRecord(),
-                misc.ShpiText(),
             ]
         },
     },
@@ -164,12 +162,11 @@ EXPORT_RESOURCES = {
             # 'Physics': [
             # ],
             'Bitmaps': [
-                bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap4Bit(),
                 bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap32Bit(),
-                bitmaps.Bitmap16Bit1555(),
+                bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap24Bit(),
+                bitmaps.Bitmap32Bit(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -177,11 +174,8 @@ EXPORT_RESOURCES = {
             ],
             'Palettes': [
                 palettes.PaletteReference(),
-                palettes.Palette24BitDos(),
                 palettes.Palette24Bit(),
                 palettes.Palette32Bit(),
-                palettes.Palette16Bit(),
-                palettes.Palette16BitDos(),
             ],
             # 'Audio': [
             # ],
@@ -217,12 +211,12 @@ EXPORT_RESOURCES = {
             # 'Physics': [
             # ],
             'Bitmaps': [
-                bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap4Bit(),
                 bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap32Bit(),
+                bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap16Bit1555(),
                 bitmaps.Bitmap24Bit(),
+                bitmaps.Bitmap32Bit(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -230,11 +224,10 @@ EXPORT_RESOURCES = {
             ],
             'Palettes': [
                 palettes.PaletteReference(),
-                palettes.Palette24BitDos(),
+                palettes.Palette16BitDos(),
+                palettes.Palette16Bit(),
                 palettes.Palette24Bit(),
                 palettes.Palette32Bit(),
-                palettes.Palette16Bit(),
-                palettes.Palette16BitDos(),
             ],
             # 'Audio': [
             # ],
@@ -265,11 +258,11 @@ EXPORT_RESOURCES = {
             # 'Physics': [
             # ],
             'Bitmaps': [
-                bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap4Bit(),
                 bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap32Bit(),
+                bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap16Bit1555(),
+                bitmaps.Bitmap32Bit(),
                 bitmaps.Bitmap24Bit(),
             ],
             'Fonts': [
@@ -277,18 +270,13 @@ EXPORT_RESOURCES = {
                 fonts.GlyphDefinition(),
             ],
             'Palettes': [
-                palettes.PaletteReference(),
-                palettes.Palette24BitDos(),
-                palettes.Palette24Bit(),
-                palettes.Palette32Bit(),
                 palettes.Palette16Bit(),
-                palettes.Palette16BitDos(),
+                palettes.Palette32Bit(),
             ],
             # 'Audio': [
             # ],
-            'Misc': [
-                misc.ShpiText(),
-            ]
+            # 'Misc': [
+            # ]
         },
     },
 }
@@ -314,6 +302,7 @@ Did not find what you need or some given data is wrong? Please submit an
 
 
 # **Block specs** #""")
+        possible_blocks_filter = [res.__class__ for resources in game['blocks'].values() for res in resources]
         for (heading, resources) in game['blocks'].items():
             f.write(f'\n## **{heading}** ##')
             for resource in resources:
@@ -344,7 +333,7 @@ Did not find what you need or some given data is wrong? Please submit an
                     f.write(f'\n| {"-" if False else render_value_doc_str(offset)} | '
                             f'**{key}** | '
                             f'{render_value_doc_str(field.size_doc_str)} | '
-                            f'{render_type(field)} | '
+                            f'{render_type(field, possible_blocks_filter)} | '
                             f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
                     try:
                         offset_int += int(field.size_doc_str)

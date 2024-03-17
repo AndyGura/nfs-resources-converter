@@ -205,15 +205,15 @@ class ShpiBlock(BaseArchiveBlock):
                                    Bitmap4Bit(),
                                    Bitmap8Bit(),
                                    Bitmap16Bit0565(),
-                                   Bitmap32Bit(),
                                    Bitmap16Bit1555(),
                                    Bitmap24Bit(),
+                                   Bitmap32Bit(),
+                                   PaletteReference(),
+                                   Palette16BitDos(),
+                                   Palette16Bit(),
                                    Palette24BitDos(),
                                    Palette24Bit(),
                                    Palette32Bit(),
-                                   Palette16Bit(),
-                                   Palette16BitDos(),
-                                   PaletteReference(),
                                    ShpiText(),
                                    BytesBlock(length=(lambda ctx: next(x for x in (
                                        x['offset'] + ctx.read_start_offset - ctx.buffer.tell()
@@ -234,8 +234,11 @@ class ShpiBlock(BaseArchiveBlock):
         (offset_payloads, aliases, children) = super().handle_archive_child(buffer, abs_offsets, i, self_ctx)
         (alias, offset, length) = abs_offsets[i]
         child_field = self.field_blocks_map['children'].child
-        bitmap8_choice = next(i for i in range(len(child_field.possible_blocks)) if
-                              isinstance(child_field.possible_blocks[i], Bitmap8Bit))
+        try:
+            bitmap8_choice = next(i for i in range(len(child_field.possible_blocks)) if
+                                  isinstance(child_field.possible_blocks[i], Bitmap8Bit))
+        except StopIteration:
+            bitmap8_choice = -1
         if self_ctx.data('shpi_dir') != 'WRAP' and children[0]['choice_index'] == bitmap8_choice:
             extra_offset = children[0]['data']['block_size']
             if extra_offset > 0:
