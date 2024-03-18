@@ -1,6 +1,6 @@
-# **NFS 3 Hot Pursuit file specs** #
+# **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2024-03-18 09:11:00.727030+00:00*
+*Last time updated: 2024-03-18 09:11:00.782611+00:00*
 
 
 # **Info by file extensions** #
@@ -29,7 +29,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (little endian) | An amount of items |
 | 12 | **shpi_dir** | 4 | UTF-8 string | One of: "LN32", "GIMX", "WRAP". The purpose is unknown |
 | 16 | **items_descr** | num_items\*8 | Array of `num_items` items<br/>Item size: 8 bytes<br/>Item type: 8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | An array of items, each of them represents name of SHPI item (image or palette) and offset to item data in file, relatively to SHPI block start (where resource id string is presented). Names are not always unique |
-| 16 + num_items\*8 | **children** | ? | Array of `num_items + ?` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit)<br/>- [Bitmap16Bit0565](#bitmap16bit0565)<br/>- [Bitmap16Bit1555](#bitmap16bit1555)<br/>- [Bitmap24Bit](#bitmap24bit)<br/>- [Bitmap32Bit](#bitmap32bit)<br/>- [Palette16Bit](#palette16bit)<br/>- [Palette32Bit](#palette32bit)<br/>- Bytes | A part of block, where items data is located. Offsets to some of the entries are defined in `items_descr` block. Between them there can be non-indexed entries (palettes and texts) |
+| 16 + num_items\*8 | **children** | ? | Array of `num_items + ?` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit)<br/>- [Bitmap16Bit0565](#bitmap16bit0565)<br/>- [Bitmap16Bit1555](#bitmap16bit1555)<br/>- [Bitmap24Bit](#bitmap24bit)<br/>- [Bitmap32Bit](#bitmap32bit)<br/>- [Palette16BitDos](#palette16bitdos)<br/>- [Palette16Bit](#palette16bit)<br/>- [Palette32Bit](#palette32bit)<br/>- Bytes | A part of block, where items data is located. Offsets to some of the entries are defined in `items_descr` block. Between them there can be non-indexed entries (palettes and texts) |
 ### **BigfBlock** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: A block-container with various data: image archives, GEO geometries, sound banks, other BIGF blocks... ####
@@ -150,6 +150,18 @@ Did not find what you need or some given data is wrong? Please submit an
 | 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
 ## **Palettes** ##
+### **Palette16BitDos** ###
+#### **Size**: 16..? bytes ####
+#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x29 | Resource ID |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
+| 6 | **unk1** | 2 | Bytes | Unknown purpose |
+| 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to num_colors? |
+| 10 | **unk2** | 6 | Bytes | Unknown purpose |
+| 16 | **colors** | num_colors\*2 | Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 16-bit color, not tested properly | Colors LUT |
 ### **Palette16Bit** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####

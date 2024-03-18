@@ -8,3 +8,5 @@
 
 - [NFS 3 Hot Pursuit file specs](NFS3.md)
 
+- [NFS 4 High Stakes file specs](NFS4.md)
+

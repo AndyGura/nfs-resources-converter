@@ -262,14 +262,58 @@ EXPORT_RESOURCES = {
                 bitmaps.Bitmap8Bit(),
                 bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap16Bit1555(),
-                bitmaps.Bitmap32Bit(),
                 bitmaps.Bitmap24Bit(),
+                bitmaps.Bitmap32Bit(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
             ],
             'Palettes': [
+                palettes.Palette16Bit(),
+                palettes.Palette32Bit(),
+            ],
+            # 'Audio': [
+            # ],
+            # 'Misc': [
+            # ]
+        },
+    },
+    'nfs4': {
+        'file_name': 'NFS4.md',
+        'title': 'NFS 4 High Stakes file specs',
+        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+        'blocks': {
+            'Archives': [
+                archives.ShpiBlock(),
+                archives.BigfBlock(),
+            ],
+            # 'Geometries': [
+            # ],
+            # 'Maps': [
+            # ],
+            # 'Physics': [
+            # ],
+            'Bitmaps': [
+                bitmaps.Bitmap4Bit(),
+                bitmaps.Bitmap8Bit(),
+                bitmaps.Bitmap16Bit0565(),
+                bitmaps.Bitmap16Bit1555(),
+                bitmaps.Bitmap24Bit(),
+                bitmaps.Bitmap32Bit(),
+            ],
+            'Fonts': [
+                fonts.FfnFont(),
+                fonts.GlyphDefinition(),
+            ],
+            'Palettes': [
+                palettes.Palette16BitDos(),
                 palettes.Palette16Bit(),
                 palettes.Palette32Bit(),
             ],
