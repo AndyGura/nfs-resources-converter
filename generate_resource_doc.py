@@ -362,6 +362,38 @@ EXPORT_RESOURCES = {
             # ]
         },
     },
+    'nfs6': {
+        'file_name': 'NFS6.md',
+        'title': 'NFS 6 Hot Pursuit 2 file specs',
+        'file_list': f"""**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+
+**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+        'blocks': {
+            'Archives': [
+                archives.ShpiBlock(),
+                archives.BigfBlock(),
+            ],
+            # 'Geometries': [
+            # ],
+            # 'Maps': [
+            # ],
+            # 'Physics': [
+            # ],
+            'Bitmaps': [
+                bitmaps.Bitmap8Bit(),
+                bitmaps.Bitmap32Bit(),
+            ],
+            # 'Fonts': [
+            # ],
+            'Palettes': [
+                palettes.Palette32Bit(),
+            ],
+            # 'Audio': [
+            # ],
+            # 'Misc': [
+            # ]
+        },
+    },
 }
 
 with open('resources/README.md', 'w') as f:

@@ -12,3 +12,5 @@
 
 - [NFS 5 Porsche Unleashed file specs](NFS5.md)
 
+- [NFS 6 Hot Pursuit 2 file specs](NFS6.md)
+
