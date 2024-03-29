@@ -283,7 +283,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
                              else p['vertex_indices']
                              for p in part['polygons']]
             mesh.texture_ids = [p['texture_name'] for p in part['polygons']]
-            mesh.pivot_offset = (part['pos']['x'], part['pos']['y'], part['pos']['z'])
+            mesh.pivot_offset = (-part['pos']['x'], -part['pos']['y'], -part['pos']['z'])
 
             sub_meshes = mesh.split_by_texture_ids()
             for submesh, _, polygon_idx_map in sub_meshes:
