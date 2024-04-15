@@ -608,6 +608,15 @@ if $save_terrain_collisions:
                             continue
                         descr = data['prop_descr'][p['prop_descr_idx']]
                         spline_point = data['road_spline'][p['road_point_idx']]
+
+                        def position_mesh(mesh):
+                            mesh.rotate_z(p['rotation'] + spline_point['orientation'])
+                            mesh.pivot_offset = (
+                                -(p['position']['x'] + spline_point['position']['x']),
+                                -(p['position']['y'] + spline_point['position']['y']),
+                                -(p['position']['z'] + spline_point['position']['z']),
+                            )
+
                         if descr['type'] in ['bitmap', 'two_sided_bitmap']:
                             width = descr['data']['data']['width']
                             height = descr['data']['data']['height']
@@ -619,14 +628,9 @@ if $save_terrain_collisions:
                                 [width / 2, 0, 0],
                                 [-width / 2, 0, 0],
                             ]
-                            mesh.rotate_z(p['rotation'] + spline_point['orientation'])
                             mesh.vertex_uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
                             mesh.polygons = [[0, 2, 3], [0, 1, 2]]
-                            mesh.pivot_offset = (
-                                -(p['position']['x'] + spline_point['position']['x']),
-                                -(p['position']['y'] + spline_point['position']['y']),
-                                -(p['position']['z'] + spline_point['position']['z']),
-                            )
+                            position_mesh(mesh)
                             mesh.texture_id = 'foreground/' + self._texture_ids(descr['data']['data']['resource_id'], 1,
                                                                                 is_opened_track)[0]
                             obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
@@ -642,21 +646,29 @@ if $save_terrain_collisions:
                                     [width / 2, width_2, 0],
                                     [width / 2, 0, 0],
                                 ]
-                                mesh.rotate_z(p['rotation'] + spline_point['orientation'])
                                 mesh.vertex_uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
                                 mesh.polygons = [[0, 2, 3], [0, 1, 2]]
-                                mesh.pivot_offset = (
-                                    -(p['position']['x'] + spline_point['position']['x']),
-                                    -(p['position']['y'] + spline_point['position']['y']),
-                                    -(p['position']['z'] + spline_point['position']['z']),
-                                )
+                                position_mesh(mesh)
                                 mesh.texture_id = 'foreground/' + self._texture_ids(descr['data']['data']['resource_id_2'], 1,
                                                                                     is_opened_track)[0]
                                 obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
                                 f.write(obj)
                                 face_index_increment += fii
                         else:
-                            print()
+                            from library import require_resource
+                            (prop_id, prop_block, prop_data), _ = require_resource(
+                                os.path.join('/'.join(id.split('/')[:-2]),
+                                             f'ETRACKFM/{id.split("/")[-1][:3]}_001.FAM__children/3/data/children'
+                                             f'/{descr["data"]["data"]["resource_id"]}/data/children/0/data')
+                            )
+                            from serializers import OripGeometrySerializer
+                            _, _, shpi_data, sub_models, _, _ = OripGeometrySerializer().build_mesh(prop_data, prop_id)
+                            for mesh in sub_models.values():
+                                mesh.name = f'prop_{i}_' + mesh.name
+                                position_mesh(mesh)
+                                obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
+                                f.write(obj)
+                                face_index_increment += fii
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,

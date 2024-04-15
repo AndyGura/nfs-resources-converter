@@ -96,7 +96,7 @@ class OripGeometrySerializer(BaseFileSerializer):
                                      block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier])
         return vertices_file_indices_map[model][index_3D]
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def require_shpi(self, id):
         # shpi is always next block
         from library import require_resource
         shpi_id = id.split('/')
@@ -104,8 +104,10 @@ class OripGeometrySerializer(BaseFileSerializer):
         (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource('/'.join(shpi_id))
         if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
             raise DataIntegrityException('Cannot find SHPI archive for ORIP geometry')
+        return (shpi_id, textures_shpi_block, textures_shpi_data)
 
-        super().serialize(data, path)
+    def build_mesh(self, data: dict, id=None):
+        (shpi_id, textures_shpi_block, textures_shpi_data) = self.require_shpi(id)
         try:
             is_car = '.CFM__' in id
         except:
@@ -219,6 +221,11 @@ class OripGeometrySerializer(BaseFileSerializer):
             sub_model.change_axes(new_z='y', new_y='z')
         for dummy in dummies:
             dummy['position'] = [dummy['position'][0], dummy['position'][2], dummy['position'][1]]
+        return shpi_id, textures_shpi_block, textures_shpi_data, sub_models, dummies, is_car
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path)
+        shpi_id, textures_shpi_block, textures_shpi_data, sub_models, dummies, is_car = self.build_mesh(data, id)
         with open(os.path.join(path, 'geometry.obj'), 'w') as f:
             f.write('mtllib material.mtl')
             face_index_increment = 1
