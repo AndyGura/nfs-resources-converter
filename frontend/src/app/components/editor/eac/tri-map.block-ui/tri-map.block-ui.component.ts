@@ -608,6 +608,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         maps__save_invisible_wall_collisions: false,
         maps__save_terrain_collisions: false,
         maps__save_spherical_skybox_texture: true,
+        maps__add_props_to_obj: false,
       });
       this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
     } else {
@@ -676,6 +677,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
           maps__save_invisible_wall_collisions: false,
           maps__save_terrain_collisions: false,
           maps__save_spherical_skybox_texture: true,
+          maps__add_props_to_obj: false,
         },
       );
       this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));

@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 from typing import Tuple, List
 
@@ -9,6 +10,11 @@ class BaseMesh(ABC):
         self.polygons = []
         self.vertex_uvs = []
         self.pivot_offset = (0, 0, 0)
+
+    def rotate_z(self, angle):
+        c, s = math.cos(angle), math.sin(angle)
+        self.vertices = [[p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]]
+                         for p in self.vertices]
 
     @abstractmethod
     def to_obj(self, face_index_increment, mtllib=None, pivot_offset=None) -> Tuple[str, int]:

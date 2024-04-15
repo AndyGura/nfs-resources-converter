@@ -458,12 +458,25 @@ if $save_terrain_collisions:
             }
         return res
 
-    def _save_mtl(self, terrain_data, path: str, name):
+    def _save_mtl(self, full_data, terrain_data, path: str, name):
         with open(os.path.join(path, 'terrain.mtl'), 'w') as f:
             texture_names = list(set(
                 sum([x['texture_names'] for x in terrain_data], [])
                 + [x['chunk'].fence_texture_name for x in terrain_data if x['chunk'].fence_texture_name]
             ))
+            if self.settings.maps__add_props_to_obj:
+                texture_names += list(set(
+                    ['foreground/' + self._texture_ids(x['data']['data']['resource_id'],
+                                                       1,
+                                                       full_data['loop_chunk'] == 0)[0]
+                     for x in full_data['prop_descr']
+                     if x['type'] in ['bitmap', 'two_sided_bitmap']]
+                    + ['foreground/' + self._texture_ids(x['data']['data']['resource_id_2'],
+                                                         1,
+                                                         full_data['loop_chunk'] == 0)[0]
+                       for x in full_data['prop_descr']
+                       if x['type'] == 'two_sided_bitmap']
+                ))
             texture_names.sort()
             for texture_name in texture_names:
                 f.write(f"""\n\nnewmtl {texture_name}
@@ -472,7 +485,7 @@ if $save_terrain_collisions:
         Ks 0.000000 0.000000 0.000000
         illum 1
         Ns 0.000000
-        map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
+        map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/{texture_name if texture_name.startswith('foreground') else 'background/' + texture_name}.png""")
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
@@ -549,7 +562,7 @@ if $save_terrain_collisions:
             if left_barrier_points:
                 left_barrier_points.points = [[p[0], p[2], p[1]] for p in left_barrier_points.points]
                 left_barrier_points.z_up = True
-        self._save_mtl(terrain_data, path, id.split('/')[-1])
+        self._save_mtl(data, terrain_data, path, id.split('/')[-1])
         blender_script = "bpy.ops.wm.read_factory_settings(use_empty=True)"
         if self.settings.maps__save_as_chunked:
             for i, terrain_chunk in enumerate(terrain_data):
@@ -589,6 +602,61 @@ if $save_terrain_collisions:
                         obj, fii = sub_model.to_obj(face_index_increment, mtllib='terrain.mtl')
                         f.write(obj)
                         face_index_increment += fii
+                if self.settings.maps__add_props_to_obj:
+                    for i, p in enumerate(data['props']):
+                        if p['road_point_idx'] > len(data['terrain']) * 4 or p['road_point_idx'] < 0:
+                            continue
+                        descr = data['prop_descr'][p['prop_descr_idx']]
+                        spline_point = data['road_spline'][p['road_point_idx']]
+                        if descr['type'] in ['bitmap', 'two_sided_bitmap']:
+                            width = descr['data']['data']['width']
+                            height = descr['data']['data']['height']
+                            mesh = SubMesh()
+                            mesh.name = f'prop_{i}'
+                            mesh.vertices = [
+                                [-width / 2, 0, height],
+                                [width / 2, 0, height],
+                                [width / 2, 0, 0],
+                                [-width / 2, 0, 0],
+                            ]
+                            mesh.rotate_z(p['rotation'] + spline_point['orientation'])
+                            mesh.vertex_uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
+                            mesh.polygons = [[0, 2, 3], [0, 1, 2]]
+                            mesh.pivot_offset = (
+                                -(p['position']['x'] + spline_point['position']['x']),
+                                -(p['position']['y'] + spline_point['position']['y']),
+                                -(p['position']['z'] + spline_point['position']['z']),
+                            )
+                            mesh.texture_id = 'foreground/' + self._texture_ids(descr['data']['data']['resource_id'], 1,
+                                                                                is_opened_track)[0]
+                            obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
+                            f.write(obj)
+                            face_index_increment += fii
+                            if descr['type'] == 'two_sided_bitmap':
+                                width_2 = descr['data']['data']['width_2']
+                                mesh = SubMesh()
+                                mesh.name = f'prop_{i}_2'
+                                mesh.vertices = [
+                                    [width / 2, 0, height],
+                                    [width / 2, width_2, height],
+                                    [width / 2, width_2, 0],
+                                    [width / 2, 0, 0],
+                                ]
+                                mesh.rotate_z(p['rotation'] + spline_point['orientation'])
+                                mesh.vertex_uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
+                                mesh.polygons = [[0, 2, 3], [0, 1, 2]]
+                                mesh.pivot_offset = (
+                                    -(p['position']['x'] + spline_point['position']['x']),
+                                    -(p['position']['y'] + spline_point['position']['y']),
+                                    -(p['position']['z'] + spline_point['position']['z']),
+                                )
+                                mesh.texture_id = 'foreground/' + self._texture_ids(descr['data']['data']['resource_id_2'], 1,
+                                                                                    is_opened_track)[0]
+                                obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
+                                f.write(obj)
+                                face_index_increment += fii
+                        else:
+                            print()
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,
