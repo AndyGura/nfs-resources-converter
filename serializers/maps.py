@@ -474,7 +474,7 @@ if $save_terrain_collisions:
         Ns 0.000000
         map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
 
-    def render_props_to_obj(self, id, f, path, data, face_index_increment, is_opened_track):
+    def mtl_append_foreground_textures(self, data, path, name):
         foreground_texture_names = list(set(
             ['foreground/' + self._texture_ids(x['data']['data']['resource_id'],
                                                1,
@@ -488,17 +488,19 @@ if $save_terrain_collisions:
                if x['type'] == 'two_sided_bitmap']
         ))
         foreground_texture_names.sort()
-        for texture_name in foreground_texture_names:
-            with open(os.path.join(path, 'terrain.mtl'), 'a') as mtl:
+        with open(os.path.join(path, 'terrain.mtl'), 'a') as mtl:
+            for texture_name in foreground_texture_names:
                 mtl.write(f"""\n\nnewmtl {texture_name}
-            Ka 1.000000 1.000000 1.000000
-            Kd 1.000000 1.000000 1.000000
-            Ks 0.000000 0.000000 0.000000
-            illum 1
-            Ns 0.000000
-            map_Kd ../../ETRACKFM/{id.split("/")[-1][:3]}_001.FAM/{texture_name}.png""")
+                Ka 1.000000 1.000000 1.000000
+                Kd 1.000000 1.000000 1.000000
+                Ks 0.000000 0.000000 0.000000
+                illum 1
+                Ns 0.000000
+                map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/{texture_name}.png""")
+
+    def render_props_to_obj(self, id, f, path, data, face_index_increment, is_opened_track, min_id, max_id, pivot=(0, 0, 0)):
         for i, p in enumerate(data['props']):
-            if p['road_point_idx'] > len(data['terrain']) * 4 or p['road_point_idx'] < 0:
+            if p['road_point_idx'] > max_id or p['road_point_idx'] < min_id:
                 continue
             descr = data['prop_descr'][p['prop_descr_idx']]
             spline_point = data['road_spline'][p['road_point_idx']]
@@ -506,9 +508,9 @@ if $save_terrain_collisions:
             def position_mesh(mesh):
                 mesh.rotate_z(p['rotation'] + spline_point['orientation'])
                 mesh.pivot_offset = (
-                    -(p['position']['x'] + spline_point['position']['x']),
-                    -(p['position']['y'] + spline_point['position']['y']),
-                    -(p['position']['z'] + spline_point['position']['z']),
+                    pivot[0] - (p['position']['x'] + spline_point['position']['x']),
+                    pivot[1] - (p['position']['y'] + spline_point['position']['y']),
+                    pivot[2] - (p['position']['z'] + spline_point['position']['z']),
                 )
 
             if descr['type'] in ['bitmap', 'two_sided_bitmap']:
@@ -656,19 +658,24 @@ if $save_terrain_collisions:
                 left_barrier_points.points = [[p[0], p[2], p[1]] for p in left_barrier_points.points]
                 left_barrier_points.z_up = True
         self._save_mtl(terrain_data, path, id.split('/')[-1])
+        if self.settings.maps__add_props_to_obj:
+            self.mtl_append_foreground_textures(data, path, id.split('/')[-1])
         blender_script = "bpy.ops.wm.read_factory_settings(use_empty=True)"
         if self.settings.maps__save_as_chunked:
             for i, terrain_chunk in enumerate(terrain_data):
                 with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
                     face_index_increment = 1
+                    pivot = (
+                        data['road_spline'][i * 4]['position']['x'],
+                        data['road_spline'][i * 4]['position']['y'],
+                        data['road_spline'][i * 4]['position']['z'],
+                    )
                     for sub_model in terrain_chunk['meshes']:
-                        obj, fii = sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=(
-                            data['road_spline'][i * 4]['position']['x'],
-                            data['road_spline'][i * 4]['position']['y'],
-                            data['road_spline'][i * 4]['position']['z'],
-                        ))
+                        obj, fii = sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=pivot)
                         f.write(obj)
                         face_index_increment += fii
+                    if self.settings.maps__add_props_to_obj:
+                        self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, i * 4, i * 4 + 3, pivot)
                 blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                     'new_file': True,
                     'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
@@ -696,7 +703,7 @@ if $save_terrain_collisions:
                         f.write(obj)
                         face_index_increment += fii
                 if self.settings.maps__add_props_to_obj:
-                    self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track)
+                    self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, 0, len(data['terrain']) * 4 - 1)
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,
