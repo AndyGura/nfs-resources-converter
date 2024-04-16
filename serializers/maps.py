@@ -662,13 +662,28 @@ if $save_terrain_collisions:
                                              f'/{descr["data"]["data"]["resource_id"]}/data/children/0/data')
                             )
                             from serializers import OripGeometrySerializer
-                            _, _, shpi_data, sub_models, _, _ = OripGeometrySerializer().build_mesh(prop_data, prop_id)
+                            _, shpi_block, shpi_data, sub_models, _, _ = OripGeometrySerializer().build_mesh(prop_data, prop_id)
                             for mesh in sub_models.values():
                                 mesh.name = f'prop_{i}_' + mesh.name
+                                mesh.texture_id = f"prop/{descr['data']['data']['resource_id']}/assets/" + mesh.texture_id
                                 position_mesh(mesh)
                                 obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
                                 f.write(obj)
                                 face_index_increment += fii
+                            with open(os.path.join(path, 'terrain.mtl'), 'a') as mtl:
+                                for ti, texture_name in enumerate(shpi_data['children_aliases']):
+                                    texture_block = shpi_block.field_blocks_map['children'].child.possible_blocks[
+                                        shpi_data['children'][ti]['choice_index']]
+                                    from resources.eac.bitmaps import AnyBitmapBlock
+                                    if not isinstance(texture_block, AnyBitmapBlock):
+                                        continue
+                                    mtl.write(f"""\n\nnewmtl prop/{descr['data']['data']['resource_id']}/assets/{texture_name}
+                                        Ka 1.000000 1.000000 1.000000
+                                        Kd 1.000000 1.000000 1.000000
+                                        Ks 0.000000 0.000000 0.000000
+                                        illum 1
+                                        Ns 0.000000
+                                        map_Kd ../../ETRACKFM/{id.split('/')[-1][:3]}_001.FAM/props/{descr['data']['data']['resource_id']}/0/assets/{texture_name}.png""")
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,
