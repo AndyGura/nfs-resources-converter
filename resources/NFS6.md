@@ -1,6 +1,6 @@
 # **NFS 6 Hot Pursuit 2 file specs** #
 
-*Last time updated: 2024-04-15 15:49:29.111774+00:00*
+*Last time updated: 2024-03-19 08:44:55.111615+00:00*
 
 
 # **Info by file extensions** #
