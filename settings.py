@@ -57,9 +57,11 @@ maps__save_invisible_wall_collisions = False  # this one will consume time...
 maps__save_terrain_collisions = False
 # alongside with horz.png, save spherical.png, suitable to be used as sky spherical texture
 maps__save_spherical_skybox_texture = True
+# NFS1: put props to exported map obj file. Props will be retrieved from ../ETRACKFM/<map_id>_001.FAM file
+maps__add_props_to_obj = False
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
-geometry__save_obj = False
+geometry__save_obj = True
 # saves blender scene for each 3D scene
 geometry__save_blend = True
 # export to gg-web-engine https://github.com/AndyGura/gg-web-engine
