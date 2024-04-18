@@ -1,6 +1,6 @@
 from abc import ABC
 from io import BufferedReader, BytesIO
-from typing import Dict
+from typing import Dict, Tuple, Any
 
 from library.context import ReadContext
 from library.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock, DataBlock
@@ -10,38 +10,6 @@ from resources.eac.fields.colors import (
     Color32BitBlock,
     Color16Bit0565Block, Color16BitDosBlock,
 )
-
-transparency_colors = [
-    # default
-    0xFF_00_FF_FF,
-    0x00_FF_00_FF,
-    0x00_00_FF_FF,
-    # green-ish
-    0x00_EA_1C_FF,  # TNFS lost vegas map props
-    0x00_EB_1C_FF,  # TNFS lost vegas map props
-    # 0x00_FB_00_FF,  # NFS2 GAMEDATA/TRACKS/SE/TR050M, not working, there is Bitmap 0565 without alpha
-    0x04_FF_00_FF,
-    0x0C_FF_00_FF,
-    0x24_ff_10_FF,  # TNFS TRAFFC.CFM
-    0x28_FF_28_FF,
-    0x28_FF_2C_FF,
-    # blue
-    0x00_00_FC_FF,  # TNFS Porsche 911 CFM
-    # light blue
-    0x00_FF_FF_FF,
-    0x1a_ff_ff_ff,  # NFS2SE TRACKS/PC/TR000M.QFS
-    0x48_ff_ff_FF,  # NFS2SE TRACKS/PC/TR020M.QFS
-    # purple
-    0xCE_1C_C6_FF,  # some TNFS map props
-    0xF2_00_FF_FF,
-    0xFF_00_F7_FF,  # TNFS AL2 map props
-    0xFF_00_F6_FF,  # TNFS NTRACKFM/AL3_T01.FAM map props
-    0xFF_31_59_FF,  # TNFS ETRACKFM/CL3_001.FAM road sign
-    # gray
-    0x28_28_28_FF,  # car wheels
-    0xFF_FF_FF_FF,  # map props
-    0x00_00_00_FF,  # some menu items: SHOW/DIABLO.QFS
-]
 
 
 class BasePalette(DeclarativeCompoundBlock, ABC):
@@ -61,6 +29,11 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
         return {**super().new_data(),
                 'last_color_transparent': False}
 
+    def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
+        if name == 'last_color_transparent':
+            return None, unpacked_data['last_color_transparent']
+        return super().get_child_block_with_data(unpacked_data, name)
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
         res = super().read(buffer, ctx, name)
@@ -68,7 +41,9 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
             assert res['num_colors'] == res['num_colors1']
         res['last_color_transparent'] = False
         try:
-            if self.can_use_last_color_as_transparent and res['colors'][255] in transparency_colors:
+            # I'm not sure how game decides whether it should draw 255th color transparent or not.
+            # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
+            if self.can_use_last_color_as_transparent and len(res['colors']) >= 256 and 'SLIDES/' not in ctx.ctx_path:
                 res['last_color_transparent'] = True
         except IndexError:
             pass

@@ -3,7 +3,7 @@ from typing import Dict
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import IntegerBlock, DataBlock
-from library.utils import transform_bitness, transform_color_bitness
+from library.utils import transform_color_bitness
 
 
 class Color24BitDosBlock(IntegerBlock):
@@ -20,17 +20,11 @@ class Color24BitDosBlock(IntegerBlock):
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
         number = super().read(buffer, ctx, name)
-        red = transform_bitness((number & 0xFF0000) >> 16, 6)
-        green = transform_bitness((number & 0xFF00) >> 8, 6)
-        blue = transform_bitness(number & 0xFF, 6)
-        return red << 24 | green << 16 | blue << 8 | 255
+        return (number & 0x3F3F3F) << 10 | 255
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        red = (data & 0xff000000) >> 26
-        green = (data & 0xff0000) >> 18
-        blue = (data & 0xff00) >> 10
-        value = red << 16 | green << 8 | blue
-        return super().write(value, ctx, name)
+        number = (data & 0xFCFCFC00) >> 10
+        return super().write(number, ctx, name)
 
 
 class Color24BitBlock(IntegerBlock):

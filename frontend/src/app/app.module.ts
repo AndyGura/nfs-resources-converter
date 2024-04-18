@@ -51,6 +51,11 @@ import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.bl
 import { GeoGeometryBlockUiComponent } from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-viewer.component';
 import { BaseArchiveBlockUiComponent } from './components/editor/eac/base-archive.block-ui/base-archive.block-ui.component';
+import {
+  MAT_COLOR_FORMATS,
+  NGX_MAT_COLOR_FORMATS,
+  NgxMatColorPickerModule,
+} from '@angular-material-components/color-picker';
 
 @NgModule({
   declarations: [
@@ -107,8 +112,13 @@ import { BaseArchiveBlockUiComponent } from './components/editor/eac/base-archiv
     MatMenuModule,
     ReactiveFormsModule,
     MatOptionModule,
+    NgxMatColorPickerModule,
   ],
-  providers: [EelDelegateService, NgxDeepEqualsPureService],
+  providers: [
+    EelDelegateService,
+    NgxDeepEqualsPureService,
+    { provide: MAT_COLOR_FORMATS, useValue: NGX_MAT_COLOR_FORMATS },
+  ],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

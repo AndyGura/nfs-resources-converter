@@ -3,5 +3,8 @@
 <div id="colors-container">
     <div *ngFor="let color of resourceData?.colors; let i = index" class="color-box"
          [ngStyle]="{'background-color': '#' + lpad(color.toString(16), '0', 8) }"
-         [matTooltip]="i + ': #' + color.toString(16)"></div>
+         [matTooltip]="i + ': #' + color.toString(16)"
+         (click)="onColorClicked($any($event.currentTarget!), i)"></div>
 </div>
+<input class="hidden" matInput [ngxMatColorPicker]="picker" (colorChange)="onColorChange($event.value)">
+<ngx-mat-color-picker #picker></ngx-mat-color-picker>
