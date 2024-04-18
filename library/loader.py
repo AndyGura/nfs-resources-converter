@@ -131,9 +131,17 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_path: str = N
     raise NotImplementedError('Don`t have parser for such resource')
 
 
+def path_to_name(path: str) -> str:
+    return path.replace('\\', '/').replace(':', '---DRIVE')
+
+
+def id_to_path(id: str) -> str:
+    return id.split('__')[0].replace('---DRIVE', ':')
+
+
 # id example: /media/data/nfs/SIMDATA/CARFAMS/LDIABL.CFM__1/frnt
 def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str, "DataBlock", dict]]:
-    file_path = id.split('__')[0].replace('---DRIVE', ':')
+    file_path = id_to_path(id)
     (file_id, block, data) = require_file(file_path)
     if not data:
         return (id, None, None), (file_id, None, None)
@@ -154,13 +162,16 @@ files_cache = {}
 
 def clear_file_cache(path: str):
     try:
-        del files_cache[path.replace('\\', '/')]
+        name = path_to_name(path)
+        del files_cache[name]
+        from library.read_blocks import DataBlock
+        DataBlock.root_read_ctx.children = [c for c in DataBlock.root_read_ctx.children if c.name != name]
     except KeyError:
         pass
 
 
 def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
-    name = path.replace('\\', '/').replace(':', '---DRIVE')
+    name = path_to_name(path)
     (block, data) = files_cache.get(name, (None, None))
     if block is None or data is None:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:

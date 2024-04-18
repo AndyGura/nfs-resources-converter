@@ -1,6 +1,6 @@
 from abc import ABC
 from io import BufferedReader, BytesIO
-from typing import Dict
+from typing import Dict, Tuple, Any
 
 from library.context import ReadContext
 from library.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock, DataBlock
@@ -28,6 +28,11 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
     def new_data(self):
         return {**super().new_data(),
                 'last_color_transparent': False}
+
+    def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
+        if name == 'last_color_transparent':
+            return None, unpacked_data['last_color_transparent']
+        return super().get_child_block_with_data(unpacked_data, name)
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
