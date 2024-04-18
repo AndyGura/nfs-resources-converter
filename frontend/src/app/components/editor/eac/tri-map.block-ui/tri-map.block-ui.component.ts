@@ -40,7 +40,6 @@ import {
   Object3D,
   PlaneGeometry,
   RepeatWrapping,
-  sRGBEncoding,
   Texture,
   TextureLoader,
 } from 'three';
@@ -580,7 +579,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       const skyPath = files.find(x => x.endsWith('spherical.png'));
       if (skyPath) {
         const tex = await loader.loadAsync(skyPath);
-        tex.encoding = sRGBEncoding;
+        tex.colorSpace = 'srgb';
         tex.mapping = CubeReflectionMapping;
         ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = tex;
       } else {
@@ -610,7 +609,8 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         maps__save_spherical_skybox_texture: true,
         maps__add_props_to_obj: false,
       });
-      this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
+      let anyObjPath = paths.find(x => x.endsWith('.obj')) || '';
+      this.terrainChunksObjLocation = anyObjPath.substring(0, anyObjPath.indexOf('terrain_chunk_'));
     } else {
       this.terrainChunksObjLocation = undefined;
     }
