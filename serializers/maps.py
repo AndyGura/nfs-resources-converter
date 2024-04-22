@@ -558,7 +558,7 @@ if $save_terrain_collisions:
                                  f'/{descr["data"]["data"]["resource_id"]}/data/children/0/data')
                 )
                 from serializers import OripGeometrySerializer
-                _, shpi_block, shpi_data, sub_models, _, _ = OripGeometrySerializer().build_mesh(prop_data, prop_id)
+                _, shpi_block, shpi_data, sub_models = OripGeometrySerializer().build_mesh(prop_data, prop_id)
                 for mesh in sub_models.values():
                     mesh.name = f'prop_{i}_' + mesh.name
                     mesh.texture_id = f"prop/{descr['data']['data']['resource_id']}/assets/" + mesh.texture_id

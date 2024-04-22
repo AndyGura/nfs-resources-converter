@@ -58,7 +58,6 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     geometry__save_obj: true,
     geometry__save_blend: false,
     geometry__export_to_gg_web_engine: false,
-    geometry__replace_car_wheel_with_dummies: false,
   };
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
