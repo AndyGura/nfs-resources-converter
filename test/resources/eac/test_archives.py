@@ -29,21 +29,21 @@ class TestShpiBlock(unittest.TestCase):
 class TestWwwwBlock(unittest.TestCase):
 
     def test_cfm_should_remain_the_same(self):
-        (name, block, res) = require_file('test/samples/LDIABL.CFM')
+        (name, block, res) = require_file('test/samples/TSUPRA.CFM')
         output = block.pack(res, name=name)
-        with open('test/samples/LDIABL.CFM', 'rb') as bdata:
+        with open('test/samples/TSUPRA.CFM', 'rb') as bdata:
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
     def test_cfm_should_reconstruct_offsets(self):
-        (name, block, res) = require_file('test/samples/LDIABL.CFM')
+        (name, block, res) = require_file('test/samples/TSUPRA.CFM')
         res['items_descr'] = []
         res['num_items'] = 0
         res['children'][1]['data']['items_descr'] = []
         output = block.pack(res, name=name)
-        with open('test/samples/LDIABL.CFM', 'rb') as bdata:
+        with open('test/samples/TSUPRA.CFM', 'rb') as bdata:
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
