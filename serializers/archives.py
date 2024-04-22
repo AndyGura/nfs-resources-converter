@@ -87,9 +87,10 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         max_colors_amount = 255  # minus the last one, reserved for transparency
         generate_palettes = ['!pal']
         if '.CFM' in id:
-            # last 6 colors are somehow special for cars:
-            # 250th - 253th seem to always be rendered black
-            # 254th is replaced woith tail colors in the game
+            # last 6 colors are special for cars:
+            # 250th, 251th - cop red blinker
+            # 252th, 253th - cop blue blinker
+            # 254th is replaced with tail colors in the game
             # 255th is transparent
             max_colors_amount = 250
             generate_palettes = ['!PAL', '!xxx']
@@ -98,7 +99,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         # build a new palette for SHPI
         from PIL import Image
         from collections import Counter
-        from resources.eac.palettes import transparency_colors
         from serializers.bitmaps import BitmapWithPaletteSerializer
         individual_palettes = []
         file_names = [x for x in os.listdir(path)]
@@ -110,7 +110,14 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                               for _, x in src.getcolors(src.size[0] * src.size[1])})
         # pick transparent color
         transparent = 0xff
-        for c in transparency_colors:
+        for c in [0xFF_00_00_FF,
+                  0x00_FF_00_FF,
+                  0x00_00_FF_FF,
+                  0xFF_FF_00_FF,
+                  0xFF_00_FF_FF,
+                  0x00_FF_FF_FF,
+                  0xFF_FF_FF_FF,
+                  0x00_00_00_FF]:
             if c not in all_colors:
                 transparent = c
                 break
