@@ -114,23 +114,12 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             if c not in all_colors:
                 transparent = c
                 break
-        tail_lights_color = 0
-        if any(BitmapWithPaletteSerializer.has_tail_lights(join_id(id, f'children/{file_name[:-4]}/data')) for file_name
-               in file_names):
-            for c in transparency_colors:
-                if c not in all_colors and c != transparent:
-                    tail_lights_color = c
-                    break
         # quantize all images, transparency replaced with solid color, picked above
         for i, src in enumerate(images):
             img = Image.new(
                 "RGB",
                 src.size,
-                ((tail_lights_color & 0xff000000) >> 24, (tail_lights_color & 0xff0000) >> 16,
-                 (tail_lights_color & 0xff00) >> 8)
-                if BitmapWithPaletteSerializer.has_tail_lights(join_id(id, f'children/{file_names[i][:-4]}/data'))
-                else (
-                    (transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16,
+                ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16,
                     (transparent & 0xff00) >> 8)
             )
             img.paste(src, mask=(None if src.mode == 'RGB' else src.split()[3]))
@@ -152,12 +141,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             palette = palette[:idx] + palette[(idx + 1):] + [transparent]
         except ValueError:
             palette[-1] = transparent
-        if tail_lights_color:
-            try:
-                idx = palette.index(tail_lights_color)
-                palette = palette[:idx] + palette[(idx + 1):-1] + [tail_lights_color, transparent]
-            except ValueError:
-                palette[-2] = tail_lights_color
         child_field = block.field_blocks_map['children'].child
         new_shpi = block.new_data()
         pal_block = Palette24BitDos()

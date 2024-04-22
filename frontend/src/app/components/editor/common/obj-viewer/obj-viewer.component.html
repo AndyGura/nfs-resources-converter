@@ -1,9 +1,28 @@
 <div class="previewCanvasContainer" #previewCanvasContainer>
   <canvas #previewCanvas width="640" height="480"></canvas>
   <div id="controls">
+    <ng-container *ngFor="let customControl of customControls; let i = index">
+      <h4>{{customControl.title}}</h4>
+      <div class="controls-list" *ngFor="let c of customControl.controls; let j = index">
+        <ng-container *ngIf="c.type === 'checkbox'">
+          <label [for]="'custom_control_' + i + '_' + j">{{c.label}}</label>
+          <input [id]="'custom_control_' + i + '_' + j" [type]="c.type" [checked]="c.value" (change)="c.value = $any($event.currentTarget).checked; c.change(c.value);">
+        </ng-container>
+        <div style="width: 100%" *ngIf="c.type === 'radio'">
+          <label>{{c.label}}</label>
+          <div class="controls-list" *ngFor="let option of c.options">
+            <label [for]="'custom_control_' + i + '_' + j + '_' + option">{{option}}</label>
+            <input [id]="'custom_control_' + i + '_' + j + '_' + option"
+                   type="radio"
+                   [checked]="c.value === option"
+                   (change)="c.value = option; c.change(c.value);">
+          </div>
+        </div>
+      </div>
+    </ng-container>
     <ng-container *ngIf="visibilityControls">
       <h4>Objects visibility</h4>
-      <div *ngFor="let mesh of meshes">
+      <div class="controls-list" *ngFor="let mesh of meshes">
         <label [for]="'visibility_' + mesh.name">{{mesh.name}}</label>
         <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible" (change)="mesh.visible = $any($event.currentTarget).checked">
       </div>
