@@ -104,7 +104,7 @@ class NullTerminatedUTF8Block(DataBlock):
             if nxt == b'\00':
                 break
             res += nxt
-        return res.decode('utf-8')
+        return res.decode('utf-8', errors="ignore")
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         return len(data) + 1

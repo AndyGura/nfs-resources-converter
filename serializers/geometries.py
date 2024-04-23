@@ -33,11 +33,10 @@ for dummy in dummies:
 
     """)
 
-    def handle_obj(self, settings, path, obj_name='geometry.obj', mtl_name='material.mtl', dummies=None, is_car=False):
+    def handle_obj(self, settings, path, obj_name='geometry.obj', mtl_name='material.mtl', dummies=None):
         if dummies is None:
             dummies = []
         script = self.blender_script.substitute({'obj_file_path': obj_name,
-                                                 'is_car': is_car,
                                                  'dummies': json.dumps(dummies)})
         if settings.geometry__export_to_gg_web_engine:
             from serializers.misc.build_blender_scene import construct_blender_export_script
@@ -108,20 +107,26 @@ class OripGeometrySerializer(BaseFileSerializer):
 
     def build_mesh(self, data: dict, id=None):
         (shpi_id, textures_shpi_block, textures_shpi_data) = self.require_shpi(id)
-        try:
-            is_car = '.CFM__' in id
-        except:
-            is_car = False
         vertices_file_indices_map = defaultdict(lambda: dict())
         sub_models = defaultdict(SubMesh)
 
-        for polygon in data['polygons']:
+        for pi, polygon in enumerate(data['polygons']):
             polygon_type = polygon['polygon_type']
             mapping = polygon['mapping']
             texture_id = data['tex_ids'][polygon['texture_index']]['file_name']
-            sub_model = sub_models[texture_id]
+            label = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['labels'])] or [None])[0]
+            fx_name = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['fx_polys'])] or [None])[0]
+            if label and fx_name:
+                sub_model_id = 'lbl__' + label + '__fx__' + fx_name
+            elif label:
+                sub_model_id = 'lbl__' + label
+            elif fx_name:
+                sub_model_id = 'fx__' + fx_name
+            else:
+                sub_model_id = texture_id
+            sub_model = sub_models[sub_model_id]
             if not sub_model.name:
-                sub_model.name = texture_id
+                sub_model.name = sub_model_id
                 sub_model.texture_id = texture_id
             offset_3D = polygon['offset_3d']
             offset_2D = polygon['offset_2d']
@@ -154,78 +159,14 @@ class OripGeometrySerializer(BaseFileSerializer):
                 continue
             else:
                 raise NotImplementedError(f'Unknown polygon: {polygon_type}')
-        dummies = []
-        if is_car:
-            if self.settings.geometry__replace_car_wheel_with_dummies:
-                # receives wheel vertices (4 items), returns center vertex and radius
-                def get_wheel_display_info(vertices: List[List[float]]) -> Tuple[List[float], float]:
-                    center = [sum([v[i] for v in vertices]) / len(vertices) for i in range(3)]
-                    distances = [math.sqrt(sum((v[i] - center[i]) ** 2 for i in range(3))) for v in vertices]
-                    return center, (sum(distances) / len(distances)) / math.sqrt(2)
-
-                def get_wheel_polygon_key(polygon) -> Literal['fl', 'fr', 'rl', 'rr', None]:
-                    vertices = [model.vertices[i] for i in polygon]
-                    wheel_key = None
-                    for vert in vertices:
-                        key = (None
-                               if abs(vert[2]) < 0.1 or abs(vert[0]) < 0.1
-                               else f"{'f' if vert[2] > 0 else 'r'}{'l' if vert[0] < 0 else 'r'}")
-                        if not key or (wheel_key is not None and key != wheel_key):
-                            return None
-                        wheel_key = key
-                    return wheel_key
-
-                non_wheel_models = {}
-                centers = {}
-                shadow_centers = {}
-                for name, model in sub_models.items():
-                    if name not in ['tyr4', 'rty4', 'circ', '', 'tyre']:
-                        non_wheel_models[name] = model
-                        continue
-                    if len(model.polygons) > 8:
-                        # save non-wheel part of model (F512TR)
-                        model_without_wheels = deepcopy(model)
-                        model_without_wheels.polygons = [p for p in model_without_wheels.polygons if
-                                                         not get_wheel_polygon_key(p)]
-                        model_without_wheels.remove_orphaned_vertices()
-                        non_wheel_models[name] = model_without_wheels
-                        # remove non wheel part from current model to process
-                        model.polygons = [p for p in model.polygons if get_wheel_polygon_key(p)]
-                        model.remove_orphaned_vertices()
-                    wheel_polygons_map = {'fl': [], 'fr': [], 'rl': [], 'rr': []}
-                    for polygon in model.polygons:
-                        try:
-                            wheel_polygons_map[get_wheel_polygon_key(polygon)].append(polygon)
-                        except KeyError:
-                            pass
-                    for key, polygons in wheel_polygons_map.items():
-                        vertex_indices = list({x for p in polygons for x in p})
-                        if not vertex_indices:
-                            continue
-                        assert len(vertex_indices) == 4, DataIntegrityException('Wheel square vertices count != 4')
-                        (shadow_centers if name == 'circ' else centers)[key] = get_wheel_display_info(
-                            [model.vertices[i] for i in vertex_indices])
-                if centers and not shadow_centers:
-                    # warrior car does not have shadow
-                    shadow_centers = {key: ([(p[0] - 0.3 if p[0] > 0 else p[0] + 0.3), p[1], p[2]], radius) for
-                                      key, (p, radius) in centers.items()}
-                dummies = [{
-                    'name': f'wheel_{key}',
-                    'position': position,
-                    'radius': centers[key][1],
-                    'width': abs(position[0] - centers[key][0][0])
-                } for (key, (position, radius)) in shadow_centers.items()]
-                sub_models = non_wheel_models
         # not sure why, but seems like Z should be inverted in all geometries
         for sub_model in sub_models.values():
             sub_model.change_axes(new_z='y', new_y='z')
-        for dummy in dummies:
-            dummy['position'] = [dummy['position'][0], dummy['position'][2], dummy['position'][1]]
-        return shpi_id, textures_shpi_block, textures_shpi_data, sub_models, dummies, is_car
+        return shpi_id, textures_shpi_block, textures_shpi_data, sub_models
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
-        shpi_id, textures_shpi_block, textures_shpi_data, sub_models, dummies, is_car = self.build_mesh(data, id)
+        shpi_id, textures_shpi_block, textures_shpi_data, sub_models = self.build_mesh(data, id)
         with open(os.path.join(path, 'geometry.obj'), 'w') as f:
             f.write('mtllib material.mtl')
             face_index_increment = 1
@@ -249,7 +190,7 @@ map_Kd assets/{texture_name}.png""")
         from serializers import ShpiArchiveSerializer
         shpi_serializer = ShpiArchiveSerializer()
         shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
-        ObjExporter().handle_obj(settings=self.settings, path=path, dummies=dummies, is_car=is_car)
+        ObjExporter().handle_obj(settings=self.settings, path=path)
 
 
 class GeoGeometrySerializer(BaseFileSerializer):
@@ -344,4 +285,4 @@ map_Kd assets/{texture_name}.png""")
         from serializers import ShpiArchiveSerializer
         shpi_serializer = ShpiArchiveSerializer()
         shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
-        ObjExporter().handle_obj(settings=self.settings, path=path, is_car=True)
+        ObjExporter().handle_obj(settings=self.settings, path=path)

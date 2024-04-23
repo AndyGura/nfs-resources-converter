@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
@@ -11,6 +12,9 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
+import { Object3D } from 'three';
+import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
+import { Nfs1CarMeshController } from './nfs1-car-mesh-controller';
 
 @Component({
   selector: 'app-orip-geometry-block-ui',
@@ -36,7 +40,13 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(private readonly eelDelegate: EelDelegateService, private readonly mainService: MainService) {}
+  customControls: ObjViewerCustomControl[] = [];
+
+  constructor(
+    private readonly eelDelegate: EelDelegateService,
+    private readonly mainService: MainService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
@@ -54,11 +64,56 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
       });
   }
 
+  async onObjectLoaded(obj: Object3D) {
+    if ((this._resource$.value?.id || '').includes('.CFM__')) {
+      try {
+        const idParts = this.resource?.id.split('/')!;
+        idParts.pop();
+        idParts[idParts.length - 1] = '' + (+idParts[idParts.length - 1] + 1);
+        const shpiData = await this.eelDelegate.retrieveValue(idParts.join('/') + '/data');
+        const paletteIndex = shpiData.children_aliases.findIndex((x: string) => x === '!PAL');
+        if (paletteIndex == -1) throw new Error('Not a car');
+        const nfs1CarMesh = new Nfs1CarMeshController(
+          obj,
+          shpiData.children[paletteIndex],
+          this._resource$.value!.id,
+          this.previewPaths$.value![0],
+        );
+        this.customControls = [
+          {
+            title: 'TNFS car features',
+            controls: [
+              {
+                label: 'Brake lights on',
+                type: 'checkbox',
+                value: false,
+                change: v => {
+                  nfs1CarMesh.tailLightsOn = v;
+                },
+              },
+              {
+                label: 'Car speed',
+                type: 'radio',
+                options: ['idle', 'slow', 'fast'],
+                value: 'idle',
+                change: v => {
+                  nfs1CarMesh.speed = v as any;
+                },
+              },
+            ],
+          },
+        ];
+        this.cdr.markForCheck();
+      } catch (err) {
+        // pass
+      }
+    }
+  }
+
   private serializerSettings = {
     geometry__save_obj: true,
     geometry__save_blend: false,
     geometry__export_to_gg_web_engine: false,
-    geometry__replace_car_wheel_with_dummies: false,
   };
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {

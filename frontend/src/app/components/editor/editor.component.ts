@@ -44,6 +44,7 @@ export class EditorComponent implements OnDestroy {
     EnumByteBlock: EnumBlockUiComponent,
     IntegerBlock: IntegerBlockUiComponent,
     UTF8Block: StringBlockUiComponent,
+    NullTerminatedUTF8Block: StringBlockUiComponent,
     // NFS1 blocks
     AngleBlock: AngleBlockUiComponent,
     AnyBitmapBlock: BitmapBlockUiComponent,

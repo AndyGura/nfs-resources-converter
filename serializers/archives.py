@@ -87,9 +87,10 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         max_colors_amount = 255  # minus the last one, reserved for transparency
         generate_palettes = ['!pal']
         if '.CFM' in id:
-            # last 6 colors are somehow special for cars:
-            # 250th - 253th seem to always be rendered black
-            # 254th is replaced woith tail colors in the game
+            # last 6 colors are special for cars:
+            # 250th, 251th - cop red blinker
+            # 252th, 253th - cop blue blinker
+            # 254th is replaced with tail colors in the game
             # 255th is transparent
             max_colors_amount = 250
             generate_palettes = ['!PAL', '!xxx']
@@ -98,7 +99,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         # build a new palette for SHPI
         from PIL import Image
         from collections import Counter
-        from resources.eac.palettes import transparency_colors
         from serializers.bitmaps import BitmapWithPaletteSerializer
         individual_palettes = []
         file_names = [x for x in os.listdir(path)]
@@ -110,27 +110,23 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                               for _, x in src.getcolors(src.size[0] * src.size[1])})
         # pick transparent color
         transparent = 0xff
-        for c in transparency_colors:
+        for c in [0xFF_00_00_FF,
+                  0x00_FF_00_FF,
+                  0x00_00_FF_FF,
+                  0xFF_FF_00_FF,
+                  0xFF_00_FF_FF,
+                  0x00_FF_FF_FF,
+                  0xFF_FF_FF_FF,
+                  0x00_00_00_FF]:
             if c not in all_colors:
                 transparent = c
                 break
-        tail_lights_color = 0
-        if any(BitmapWithPaletteSerializer.has_tail_lights(join_id(id, f'children/{file_name[:-4]}/data')) for file_name
-               in file_names):
-            for c in transparency_colors:
-                if c not in all_colors and c != transparent:
-                    tail_lights_color = c
-                    break
         # quantize all images, transparency replaced with solid color, picked above
         for i, src in enumerate(images):
             img = Image.new(
                 "RGB",
                 src.size,
-                ((tail_lights_color & 0xff000000) >> 24, (tail_lights_color & 0xff0000) >> 16,
-                 (tail_lights_color & 0xff00) >> 8)
-                if BitmapWithPaletteSerializer.has_tail_lights(join_id(id, f'children/{file_names[i][:-4]}/data'))
-                else (
-                    (transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16,
+                ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16,
                     (transparent & 0xff00) >> 8)
             )
             img.paste(src, mask=(None if src.mode == 'RGB' else src.split()[3]))
@@ -152,12 +148,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             palette = palette[:idx] + palette[(idx + 1):] + [transparent]
         except ValueError:
             palette[-1] = transparent
-        if tail_lights_color:
-            try:
-                idx = palette.index(tail_lights_color)
-                palette = palette[:idx] + palette[(idx + 1):-1] + [tail_lights_color, transparent]
-            except ValueError:
-                palette[-2] = tail_lights_color
         child_field = block.field_blocks_map['children'].child
         new_shpi = block.new_data()
         pal_block = Palette24BitDos()

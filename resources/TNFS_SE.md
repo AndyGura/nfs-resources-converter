@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2024-03-17 22:29:34.105080+00:00*
+*Last time updated: 2024-04-22 07:12:53.499345+00:00*
 
 
 # **Info by file extensions** #
@@ -99,10 +99,10 @@ Did not find what you need or some given data is wrong? Please submit an
 | 72 | **num_ren_ord** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in render_order block |
 | 76 | **ren_ord_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block. Always equals to `tex_nmb_ptr + num_tex_nmb*20` |
 | 80 | **vmap_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of polygon_vertex_map block |
-| 84 | **num_lbl0** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels0 block |
-| 88 | **lbl0_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels0 block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28` |
+| 84 | **num_fxp** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in fx_polys block |
+| 88 | **fxp_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of fx_polys block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28` |
 | 92 | **num_lbl** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels block |
-| 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28 + num_lbl0*12` |
+| 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28 + num_fxp*12` |
 | 100 | **unknowns1** | 12 | Bytes | Unknown purpose |
 | 112 | **polygons** | num_polygons\*12 | Array of `num_polygons` items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
 | uvs_ptr | **vertex_uvs** | num_uvs\*8 | Array of `num_uvs` items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in vmap |
@@ -110,8 +110,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | tex_ids_ptr + num_tex_ids\*20 | **offset** | space up to offset `tex_nmb_ptr` | Bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
 | tex_nmb_ptr | **tex_nmb** | num_tex_nmb\*20 | Array of `num_tex_nmb` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
 | ren_ord_ptr | **render_order** | num_ren_ord\*28 | Array of `num_ren_ord` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
-| lbl0_ptr | **labels0** | num_lbl0\*12 | Array of `num_lbl0` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last 4 bytes is an unsigned integer (little-endian) | Unclear |
-| lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last 4 bytes is an unsigned integer (little-endian) | Describes tires, smoke and car lights. Smoke effect under the wheel will be displayed on drifting, accelerating and braking in the place where texture is shown. 3DO version ORIP description: "Texture indexes referenced from records in block 10 and block 11th. Texture index shows that wheel or back light will be displayed on the polygon number defined in block 10." - the issue is that TNFSSE orip files consist of 9 blocks |
+| fxp_ptr | **fx_polys** | num_fxp\*12 | Array of `num_fxp` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Indexes of polygons which participate in visual effects such as engine smoke, dust particles, tyre trails? Presented in car CFM-s.  |
+| lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Marks special polygons for the game, where it should change texture on runtime such as tyres, tail lights |
 | vrtx_ptr | **vertices** | num_vrtx\*12 | Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4 |
 | vmap_ptr | **vmap** | ? | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertices. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs |
 ### **OripPolygon** ###

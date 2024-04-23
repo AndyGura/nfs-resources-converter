@@ -8,6 +8,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  BytesBlock,
                                  DelegateBlock,
                                  BitFlagsBlock)
+from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4, Point3D_16, Point3D_32
 
 
@@ -105,13 +106,21 @@ class NamedIndex(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': '12-bytes record, first 8 bytes is a UTF-8 string (sometimes encoding is broken), last'
+            'block_description': '12-bytes record, first 8 bytes is null-terminated UTF-8 string, last'
                                  ' 4 bytes is an unsigned integer (little-endian)',
             'inline_description': True,
         }
 
+    @property
+    def size_doc_str(self):
+        return '12'
+
     class Fields(DeclarativeCompoundBlock.Fields):
-        name = BytesBlock(length=8)
+        name = NullTerminatedUTF8Block(length=8)
+        offset = (ArrayBlock(child=IntegerBlock(length=1),
+                             length=(lambda ctx: 8 - ctx.buffer.tell() + ctx.read_start_offset, '7 - len(name)')), {
+                      'programmatic_value': lambda ctx: [0] * (7 - len(ctx.data('name')))
+                  })
         index = IntegerBlock(length=4)
 
 
@@ -182,11 +191,11 @@ class OripGeometry(DeclarativeCompoundBlock):
                     {'description': 'Offset of polygon_vertex_map block',
                      'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(ctx.get_full_data(),
                                                                                              'vmap')})
-        num_lbl0 = (IntegerBlock(length=4),
-                    {'description': 'Amount of items in labels0 block',
-                     'programmatic_value': lambda ctx: len(ctx.data('labels0'))})
-        lbl0_ptr = (IntegerBlock(length=4),
-                    {'description': 'Offset of labels0 block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + '
+        num_fxp = (IntegerBlock(length=4),
+                   {'description': 'Amount of items in fx_polys block',
+                    'programmatic_value': lambda ctx: len(ctx.data('fx_polys'))})
+        fxp_ptr = (IntegerBlock(length=4),
+                   {'description': 'Offset of fx_polys block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + '
                                     'num_ren_ord*28`',
                      'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
                                                        + len(ctx.data('tex_nmb')) * 20
@@ -196,11 +205,11 @@ class OripGeometry(DeclarativeCompoundBlock):
                     'programmatic_value': lambda ctx: len(ctx.data('labels'))})
         lbl_ptr = (IntegerBlock(length=4),
                    {'description': 'Offset of labels block. Always equals to `tex_nmb_ptr'
-                                   ' + num_tex_nmb*20 + num_ren_ord*28 + num_lbl0*12`',
+                                   ' + num_tex_nmb*20 + num_ren_ord*28 + num_fxp*12`',
                     'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
                                                       + len(ctx.data('tex_nmb')) * 20
                                                       + len(ctx.data('render_order')) * 28
-                                                      + len(ctx.data('labels0')) * 12})
+                                                      + len(ctx.data('fx_polys')) * 12})
         unknowns1 = (BytesBlock(length=12),
                      {'is_unknown': True})
         polygons = (ArrayBlock(child=OripPolygon(),
@@ -231,18 +240,15 @@ class OripGeometry(DeclarativeCompoundBlock):
                                    length=(lambda ctx: ctx.data('num_ren_ord'), 'num_ren_ord')),
                         {'description': 'Render order. The exact mechanism how it works is unknown',
                          'custom_offset': 'ren_ord_ptr'})
-        labels0 = (ArrayBlock(child=NamedIndex(),
-                              length=(lambda ctx: ctx.data('num_lbl0'), 'num_lbl0')),
-                   {'description': 'Unclear',
-                    'custom_offset': 'lbl0_ptr'})
+        fx_polys = (ArrayBlock(child=NamedIndex(),
+                               length=(lambda ctx: ctx.data('num_fxp'), 'num_fxp')),
+                    {'description': 'Indexes of polygons which participate in visual effects such as engine smoke, '
+                                    'dust particles, tyre trails? Presented in car CFM-s. ',
+                     'custom_offset': 'fxp_ptr'})
         labels = (ArrayBlock(child=NamedIndex(),
                              length=(lambda ctx: ctx.data('num_lbl'), 'num_lbl')),
-                  {'description': 'Describes tires, smoke and car lights. Smoke effect under the wheel will be '
-                                  'displayed on drifting, accelerating and braking in the place where texture is shown.'
-                                  ' 3DO version ORIP description: "Texture indexes referenced from records in block 10 '
-                                  'and block 11th. Texture index shows that wheel or back light will be displayed on '
-                                  'the polygon number defined in block 10." - the issue is that TNFSSE orip files '
-                                  'consist of 9 blocks',
+                  {'description': 'Marks special polygons for the game, where it should change texture on runtime such '
+                                  'as tyres, tail lights',
                    'custom_offset': 'lbl_ptr'})
         vertices = (ArrayBlock(child=DelegateBlock(possible_blocks=[Point3D_32_7(), Point3D_32_4()],
                                                    choice_index=lambda ctx, **_: (

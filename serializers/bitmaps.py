@@ -35,10 +35,6 @@ class BitmapSerializer(BaseFileSerializer):
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
-    @staticmethod
-    def has_tail_lights(id: str):
-        return '.CFM' in id and id.split('/')[-2] in ['rsid', 'lite']
-
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, id=id, block=block)
         (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
@@ -48,13 +44,6 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         palette_colors = [c for c in palette_data['colors']]
         if palette_data['last_color_transparent']:
             palette_colors[255] = 0
-        if self.has_tail_lights(id):
-            # NFS1 car tail lights: make transparent
-            try:
-                palette_colors[254] = 0
-            except IndexError:
-                print('WARN: car tail lights problem: palette is too short')
-                pass
         for index in data['bitmap']:
             try:
                 colors.append(palette_colors[index])
@@ -66,7 +55,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
 
     def deserialize(self, path: str, id=None, block=None, palette=None, **kwargs):
         source = Image.open(path)
-        transparency = palette[254] if self.has_tail_lights(id) else palette[255]
+        transparency = palette[255]
         im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24,
                                             (transparency & 0xff0000) >> 16,
                                             (transparency & 0xff00) >> 8))

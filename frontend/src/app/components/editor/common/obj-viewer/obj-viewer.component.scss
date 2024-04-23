@@ -29,9 +29,15 @@
       display: none;
     }
 
-    > div {
+    > h4 {
+      margin: 0;
+    }
+
+    .controls-list {
       width: 100%;
       display: flex;
+      user-select: none;
+      align-items: center;
 
       > span {
         flex-grow: 1;

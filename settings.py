@@ -66,6 +66,3 @@ geometry__save_obj = True
 geometry__save_blend = True
 # export to gg-web-engine https://github.com/AndyGura/gg-web-engine
 geometry__export_to_gg_web_engine = False
-# removes empty polygons, representing wheels and their shadow. Places a dummy on the position where wheel axle
-# located and set wheel width, radius as custom properties of the dummy instead
-geometry__replace_car_wheel_with_dummies = True

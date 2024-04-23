@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
@@ -11,6 +12,9 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
+import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
+import { Object3D } from 'three';
+import { Nfs2CarMeshController } from './nfs2-car-mesh-controller';
 
 @Component({
   selector: 'app-geo-geometry.block-ui',
@@ -32,11 +36,17 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
+  customControls: ObjViewerCustomControl[] = [];
+
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(private readonly eelDelegate: EelDelegateService, private readonly mainService: MainService) {}
+  constructor(
+    private readonly eelDelegate: EelDelegateService,
+    private readonly mainService: MainService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
@@ -54,11 +64,50 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
       });
   }
 
+  async onObjectLoaded(obj: Object3D) {
+    try {
+      const controller = new Nfs2CarMeshController(obj);
+      let timeout: number | null = null;
+      const setColor = (color: number) => {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+        timeout = setTimeout(() => (controller.color = color), 50);
+      };
+      this.customControls = [
+        {
+          title: 'NFS2 car features',
+          controls: [
+            {
+              label: 'Car color',
+              type: 'color',
+              value: 0x00ff00,
+              change: c => setColor(c),
+            },
+          ],
+        },
+      ];
+      if (controller.hasWheels) {
+        this.customControls[0].controls.push({
+          label: 'Car speed',
+          type: 'radio',
+          options: ['idle', 'slow', 'fast'],
+          value: 'idle',
+          change: v => {
+            controller.speed = v as any;
+          },
+        });
+      }
+      this.cdr.markForCheck();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   private serializerSettings = {
     geometry__save_obj: true,
     geometry__save_blend: false,
     geometry__export_to_gg_web_engine: false,
-    geometry__replace_car_wheel_with_dummies: false,
   };
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {

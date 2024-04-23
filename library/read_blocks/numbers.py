@@ -1,5 +1,5 @@
 from io import BufferedReader, BytesIO
-from typing import Dict, Literal, List, Tuple
+from typing import Dict, Literal, List, Tuple, Any
 
 from library.context import ReadContext, WriteContext
 from library.exceptions import EndOfBufferException, DataIntegrityException
@@ -72,6 +72,9 @@ class BitFlagsBlock(IntegerBlock):
         self.flag_name_map = [str(i) for i in range(8)]
         for value, name in self.flag_names:
             self.flag_name_map[value] = name
+
+    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
+        return None, unpacked_data.get(name)
 
     def new_data(self):
         return [False] * 8
