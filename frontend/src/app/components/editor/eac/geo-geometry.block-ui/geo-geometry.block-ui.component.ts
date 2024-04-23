@@ -87,6 +87,17 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
           ],
         },
       ];
+      if (controller.hasWheels) {
+        this.customControls[0].controls.push({
+          label: 'Car speed',
+          type: 'radio',
+          options: ['idle', 'slow', 'fast'],
+          value: 'idle',
+          change: v => {
+            controller.speed = v as any;
+          },
+        });
+      }
       this.cdr.markForCheck();
     } catch (err) {
       console.error(err);
