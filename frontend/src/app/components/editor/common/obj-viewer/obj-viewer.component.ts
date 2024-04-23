@@ -26,6 +26,7 @@ import {
 } from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { Color } from '@angular-material-components/color-picker';
 
 export const setupNfs1Texture = (texture: Texture) => {
   texture.colorSpace = 'srgb';
@@ -47,6 +48,12 @@ type Control =
       options: string[];
       value: string;
       change: (value: string) => void;
+    }
+  | {
+      label: string;
+      type: 'color';
+      value: number;
+      change: (value: number) => void;
     };
 
 export type ObjViewerCustomControl = {
@@ -189,6 +196,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  public toRGB(color: Color | null): number {
+    return ((color?.r || 0) << 16) | ((color?.g || 0) << 8) | (color?.b || 0);
   }
 
   ngOnDestroy(): void {

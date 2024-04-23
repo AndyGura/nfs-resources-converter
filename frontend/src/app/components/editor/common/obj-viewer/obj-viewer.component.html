@@ -18,6 +18,13 @@
                    (change)="c.value = option; c.change(c.value);">
           </div>
         </div>
+        <ng-container *ngIf="c.type === 'color'">
+          <label [for]="'custom_control_' + i + '_' + j">{{c.label}}</label>
+          <input class="hidden" matInput [ngxMatColorPicker]="picker"
+                 (colorChange)="c.value = toRGB($event.value); c.change(c.value);">
+          <ngx-mat-color-toggle matSuffix [for]="picker"></ngx-mat-color-toggle>
+          <ngx-mat-color-picker #picker></ngx-mat-color-picker>
+        </ng-container>
       </div>
     </ng-container>
     <ng-container *ngIf="visibilityControls">

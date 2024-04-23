@@ -1,7 +1,7 @@
 import { ClampToEdgeWrapping, Mesh, MeshBasicMaterial, Object3D, Texture, TextureLoader } from 'three';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { sleep } from '../../../../utils/sleep';
-import { recolorImage } from '../../../../utils/recolor-image';
+import { replaceColor } from '../../../../utils/recolor-image';
 
 export class Nfs1CarMeshController {
   // original texture
@@ -117,7 +117,7 @@ export class Nfs1CarMeshController {
       if (!!this.originalTexWithTailLights.source.data) break;
       await sleep(50);
     }
-    recolorImage(
+    replaceColor(
       this.originalTexWithTailLights.source.data,
       this.tailLightsTexColor,
       newColor,

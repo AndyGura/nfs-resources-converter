@@ -13,7 +13,7 @@
         {{ schema.block_class_mro.split('__')[0] }}
       </mat-option>
     </mat-select>
-    <app-block-actions *ngIf="!hideBlockActions" [resource]="this.childResource"></app-block-actions>
+    <app-block-actions [resource]="this.childResource"></app-block-actions>
   </div>
   <app-editor [resource]="this.childResource" [hideBlockActions]="true" [disabled]="disabled"></app-editor>
 </ng-container>

@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
@@ -11,6 +12,9 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
+import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
+import { Object3D } from 'three';
+import { Nfs2CarMeshController } from './nfs2-car-mesh-controller';
 
 @Component({
   selector: 'app-geo-geometry.block-ui',
@@ -32,11 +36,17 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
+  customControls: ObjViewerCustomControl[] = [];
+
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(private readonly eelDelegate: EelDelegateService, private readonly mainService: MainService) {}
+  constructor(
+    private readonly eelDelegate: EelDelegateService,
+    private readonly mainService: MainService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
@@ -52,6 +62,35 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
         this.previewPaths$.next(null);
         this.previewPaths$.next(await this.postTmpUpdates(this.resource?.id));
       });
+  }
+
+  async onObjectLoaded(obj: Object3D) {
+    try {
+      const controller = new Nfs2CarMeshController(obj);
+      let timeout: number | null = null;
+      const setColor = (color: number) => {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+        timeout = setTimeout(() => (controller.color = color), 50);
+      };
+      this.customControls = [
+        {
+          title: 'NFS2 car features',
+          controls: [
+            {
+              label: 'Car color',
+              type: 'color',
+              value: 0x00ff00,
+              change: c => setColor(c),
+            },
+          ],
+        },
+      ];
+      this.cdr.markForCheck();
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   private serializerSettings = {
