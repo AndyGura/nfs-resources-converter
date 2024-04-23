@@ -127,11 +127,11 @@ export class Nfs2CarMeshController {
       recolorImageSmart(
         ot.source.data,
         (data, i) => {
-          if (data[i] == 0 && data[i + 2] == 0) {
+          if (data[i] + data[i + 2] < data[i + 1]) {
             const greenComponent = data[i + 1];
-            data[i] = Math.round((newRed * greenComponent) / 255);
+            data[i] = Math.min(255, Math.round((newRed * greenComponent) / 255) + data[i]);
             data[i + 1] = Math.round((newGreen * greenComponent) / 255);
-            data[i + 2] = Math.round((newBlue * greenComponent) / 255);
+            data[i + 2] = Math.min(Math.round((newBlue * greenComponent) / 255) + data[i + 2]);
           }
         },
         dt.source.data,
