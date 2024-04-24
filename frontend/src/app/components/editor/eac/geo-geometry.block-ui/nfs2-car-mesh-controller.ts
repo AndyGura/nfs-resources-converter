@@ -74,6 +74,7 @@ export class Nfs2CarMeshController {
     // create textures
     this.textures = Array.from(textures).map(t => {
       const newTex = new Texture(document.createElement('img'));
+      newTex.flipY = t.flipY;
       setupNfs1Texture(newTex);
       return [t, newTex];
     });

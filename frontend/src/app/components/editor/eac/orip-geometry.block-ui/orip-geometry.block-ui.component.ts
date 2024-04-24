@@ -75,9 +75,8 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
         if (paletteIndex == -1) throw new Error('Not a car');
         const nfs1CarMesh = new Nfs1CarMeshController(
           obj,
-          shpiData.children[paletteIndex],
-          this._resource$.value!.id,
-          this.previewPaths$.value![0],
+          shpiData.children[paletteIndex].data.colors[254] >>> 8,
+          this.previewPaths$.value![0].substring(0, this.previewPaths$.value![0].lastIndexOf('/')) + `/assets`,
         );
         this.customControls = [
           {

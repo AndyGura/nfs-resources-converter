@@ -6,7 +6,6 @@ import { replaceColor } from '../../../../utils/recolor-image';
 export class Nfs1CarMeshController {
   // original texture
   originalTexWithTailLights: Texture | null = null;
-  tailLightsTexColor: number = 0;
   tyreMaterial: MeshBasicMaterial | null = null;
 
   // runtime texture
@@ -48,7 +47,7 @@ export class Nfs1CarMeshController {
           this.tyreMaterial!.map = this.tyreTextures[flag ? 1 : 2];
           this.tyreMaterial!.needsUpdate = true;
           flag = !flag;
-        }, 16);
+        }, 16) as any;
         break;
       case 'fast':
         this.tyreMaterial!.map = this.tyreTextures[3];
@@ -59,9 +58,8 @@ export class Nfs1CarMeshController {
 
   constructor(
     private readonly mesh: Object3D,
-    private readonly palette: BlockData,
-    private readonly resourceId: string,
-    private readonly previewObjPath: string,
+    private readonly tailLightsTexColor: number,
+    private readonly assetsPath: string,
   ) {
     const wheelObjects: Mesh[] = [];
     const headlightsObjects: Mesh[] = [];
@@ -72,7 +70,7 @@ export class Nfs1CarMeshController {
       if (o.name.startsWith('lbl__lt_') || o.name.startsWith('lbl__rt_')) {
         wheelObjects.push(o);
       }
-      if (['rsid', 'lite'].includes(o.name)) {
+      if (['lbl__bkll', 'lbl__bklr', 'lite'].includes(o.name)) {
         headlightsObjects.push(o);
         this.originalTexWithTailLights = o.material.map;
       }
@@ -81,11 +79,11 @@ export class Nfs1CarMeshController {
       throw new Error('Not a driveable NFS1 car');
     }
 
-    this.tailLightsTexColor = palette.data.colors[254] >>> 8;
     // TODO colors seem to be different for different cars, but I don't know how it is defined in the game
-    this.tailLightColors = resourceId.includes('TRAFFC.CFM') ? [0x911c0f, 0xff0000] : [0x310502, 0xf81414];
+    this.tailLightColors = assetsPath.includes('TRAFFC.CFM') ? [0x911c0f, 0xff0000] : [0x310502, 0xf81414];
     this.texWithTailLightsImg = document.createElement('img');
     this.texWithTailLights = new Texture(this.texWithTailLightsImg);
+    this.texWithTailLights.flipY = this.originalTexWithTailLights.flipY;
     setupNfs1Texture(this.texWithTailLights);
     this.recolorTailLights(this.tailLightColors[0]).then();
     for (const o of headlightsObjects) {
@@ -93,9 +91,7 @@ export class Nfs1CarMeshController {
     }
 
     const loader = new TextureLoader();
-    this.tyreTextures = [1, 2, 3, 4].map(i =>
-      loader.load(previewObjPath.substring(0, previewObjPath.lastIndexOf('/')) + `/assets/tyr${i}.png`),
-    );
+    this.tyreTextures = [1, 2, 3, 4].map(i => loader.load(`${assetsPath}/tyr${i}.png`));
     for (const t of this.tyreTextures) {
       setupNfs1Texture(t);
     }
@@ -124,5 +120,23 @@ export class Nfs1CarMeshController {
       this.texWithTailLightsImg,
     );
     this.texWithTailLights.needsUpdate = true;
+  }
+
+  public dispose() {
+    if (this.texWithTailLightsImg) {
+      this.texWithTailLightsImg.remove();
+      this.texWithTailLightsImg = null;
+    }
+    if (this.texWithTailLights) {
+      this.texWithTailLights.dispose();
+      this.texWithTailLights = null;
+    }
+    if (this.tyreTextureUpdateTimer) {
+      clearInterval(this.tyreTextureUpdateTimer);
+    }
+    if (this.tyreMaterial) {
+      this.tyreMaterial.dispose();
+      this.tyreMaterial = null;
+    }
   }
 }
