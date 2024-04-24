@@ -7,6 +7,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/.angular" />
       <excludeFolder url="file://$MODULE_DIR$/win_venv" />
+      <excludeFolder url="file://$MODULE_DIR$/games" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

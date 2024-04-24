@@ -116,14 +116,14 @@ class OripGeometrySerializer(BaseFileSerializer):
             texture_id = data['tex_ids'][polygon['texture_index']]['file_name']
             label = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['labels'])] or [None])[0]
             fx_name = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['fx_polys'])] or [None])[0]
-            if label and fx_name:
-                sub_model_id = 'lbl__' + label + '__fx__' + fx_name
-            elif label:
-                sub_model_id = 'lbl__' + label
-            elif fx_name:
-                sub_model_id = 'fx__' + fx_name
-            else:
-                sub_model_id = texture_id
+            sub_model_parts = []
+            if label:
+                sub_model_parts.append('lbl__' + label)
+            if fx_name:
+                sub_model_parts.append('fx__' + fx_name)
+            if texture_id:
+                sub_model_parts.append(texture_id)
+            sub_model_id = '__'.join(sub_model_parts)
             sub_model = sub_models[sub_model_id]
             if not sub_model.name:
                 sub_model.name = sub_model_id

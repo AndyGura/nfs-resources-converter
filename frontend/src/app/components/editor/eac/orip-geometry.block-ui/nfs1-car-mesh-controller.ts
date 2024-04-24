@@ -70,7 +70,7 @@ export class Nfs1CarMeshController {
       if (o.name.startsWith('lbl__lt_') || o.name.startsWith('lbl__rt_')) {
         wheelObjects.push(o);
       }
-      if (['lbl__bkll', 'lbl__bklr', 'lite'].includes(o.name)) {
+      if (o.name.includes('rsid') || o.name.includes('lite')) {
         headlightsObjects.push(o);
         this.originalTexWithTailLights = o.material.map;
       }
