@@ -43,7 +43,7 @@ export class Nfs2CarMeshController {
           this.tyreMaterial!.map = this.tyreTextures[flag ? 1 : 2];
           this.tyreMaterial!.needsUpdate = true;
           flag = !flag;
-        }, 16);
+        }, 16) as any;
         break;
       case 'fast':
         this.tyreMaterial!.map = this.tyreTextures[3];
@@ -52,18 +52,20 @@ export class Nfs2CarMeshController {
     this.tyreMaterial!.needsUpdate = true;
   }
 
+  wheelObjects: Mesh[] = [];
+
   get hasWheels(): boolean {
-    return !!this.tyreMaterial;
+    return this.wheelObjects.length > 0;
   }
 
-  constructor(private readonly mesh: Object3D) {
+  constructor(private readonly mesh: Object3D, private readonly assetsPath: string) {
     let textures: Set<Texture> = new Set();
     mesh.traverse(o => {
       if (!(o instanceof Mesh)) {
         return;
       }
       if (['part_hp_12', 'part_hp_14', 'part_hp_16', 'part_hp_18'].includes(o.name)) {
-        this.tyreMaterial = o.material;
+        this.wheelObjects.push(o);
         return;
       }
       const t = (o.material as MeshBasicMaterial).map;
@@ -92,27 +94,21 @@ export class Nfs2CarMeshController {
       }
     });
     if (this.hasWheels) {
-      this.tyreTextures = [this.tyreMaterial!.map!, null!, null!, null!];
-      setTimeout(async () => {
-        for (let i = 100; i > 0; i--) {
-          if (!!this.tyreMaterial?.map?.source.data) break;
-          await sleep(50);
-        }
-        const url = this.tyreMaterial?.map?.source.data.src || '';
-        const loader = new TextureLoader();
-        this.tyreTextures[1] = loader.load(url.replace('000', '100'));
-        this.tyreTextures[2] = loader.load(url.replace('000', '200'));
-        this.tyreTextures[3] = loader.load(url.replace('000', '300'));
-        for (const t of this.tyreTextures) {
-          setupNfs1Texture(t);
-        }
-        this.tyreMaterial!.transparent = true;
-        this.tyreMaterial!.alphaTest = 0.5;
-        this.tyreMaterial!.map!.wrapS = ClampToEdgeWrapping;
-        this.tyreMaterial!.map!.wrapT = ClampToEdgeWrapping;
-        this.tyreMaterial!.polygonOffset = true;
-        this.tyreMaterial!.polygonOffsetFactor = -4;
-      }, 0);
+      const loader = new TextureLoader();
+      this.tyreTextures = [0, 1, 2, 3].map(i => loader.load(`${assetsPath}/m${i}00.png`));
+      for (const t of this.tyreTextures) {
+        setupNfs1Texture(t);
+      }
+      this.tyreMaterial = new MeshBasicMaterial({ map: this.tyreTextures[0] });
+      this.tyreMaterial.transparent = true;
+      this.tyreMaterial.alphaTest = 0.5;
+      this.tyreMaterial.map!.wrapS = ClampToEdgeWrapping;
+      this.tyreMaterial.map!.wrapT = ClampToEdgeWrapping;
+      this.tyreMaterial.polygonOffset = true;
+      this.tyreMaterial.polygonOffsetFactor = -4;
+      for (const o of this.wheelObjects) {
+        o.material = this.tyreMaterial;
+      }
     }
     this.color = 0x00ff00;
     this.recolorCar().then();
@@ -139,5 +135,9 @@ export class Nfs2CarMeshController {
       );
       dt.needsUpdate = true;
     }
+  }
+
+  dispose() {
+    // TODO
   }
 }

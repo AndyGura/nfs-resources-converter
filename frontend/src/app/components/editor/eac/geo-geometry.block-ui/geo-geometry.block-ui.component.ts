@@ -66,7 +66,10 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   async onObjectLoaded(obj: Object3D) {
     try {
-      const controller = new Nfs2CarMeshController(obj);
+      const controller = new Nfs2CarMeshController(
+        obj,
+        this.previewPaths$.value![0].substring(0, this.previewPaths$.value![0].lastIndexOf('/')) + `/assets`,
+      );
       let timeout: number | null = null;
       const setColor = (color: number) => {
         if (timeout) {
