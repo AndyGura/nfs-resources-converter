@@ -226,9 +226,9 @@ class GeoGeometrySerializer(BaseFileSerializer):
             mesh.name = key
             mesh.vertices = [[v['x'], v['y'], v['z']] for v in part['vertices']]
             mesh.vertex_uvs = [[0, 0] for _ in range(len(mesh.vertices))]
-            mesh.polygons = [p['vertex_indices'][::-1]
+            mesh.polygons = [p['vertex_indices']
                              if p['mapping']['flip_normal']
-                             else p['vertex_indices']
+                             else p['vertex_indices'][::-1]
                              for p in part['polygons']]
             mesh.texture_ids = [p['texture_name'] for p in part['polygons']]
             mesh.pivot_offset = (-part['pos']['x'], -part['pos']['y'], -part['pos']['z'])
@@ -250,7 +250,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
                             uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
                     # flip normal flag does not change uv-s, it's required for our exported obj, because in order to
                     # achieve negated normal, we inverted list of vertex indices in the polygon
-                    if p_part['mapping']['flip_normal']:
+                    if not p_part['mapping']['flip_normal']:
                         uvs = uvs[::-1]
                     for i, vi in enumerate(polygon):
                         submesh.vertex_uvs[vi] = uvs[i]
@@ -259,9 +259,9 @@ class GeoGeometrySerializer(BaseFileSerializer):
                 submesh.polygons.extend(double_side_polygons)
                 meshes.append(submesh)
         for mesh in meshes:
-            mesh.change_axes(new_z='y', new_y='-z')
+            mesh.change_axes(new_z='y', new_y='z')
             px, py, pz = mesh.pivot_offset
-            mesh.pivot_offset = (px, -pz, py)
+            mesh.pivot_offset = (px, pz, py)
         with open(os.path.join(path, 'geometry.obj'), 'w') as f:
             f.write('mtllib material.mtl')
             face_index_increment = 1
