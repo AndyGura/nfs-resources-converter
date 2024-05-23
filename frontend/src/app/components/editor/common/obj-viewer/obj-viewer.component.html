@@ -25,6 +25,12 @@
           <ngx-mat-color-toggle matSuffix [for]="picker"></ngx-mat-color-toggle>
           <ngx-mat-color-picker #picker></ngx-mat-color-picker>
         </ng-container>
+        <ng-container *ngIf="c.type === 'slider'">
+          <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+          <input [id]="'custom_control_' + i + '_' + j" type="range"
+                 [min]="c.minValue" [max]="c.maxValue" [step]="c.valueStep"
+                 [value]="c.value" (change)="c.value = $any($event.currentTarget).value; c.change(c.value);">
+        </ng-container>
       </div>
     </ng-container>
     <ng-container *ngIf="visibilityControls">

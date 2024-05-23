@@ -2,6 +2,7 @@ import { ClampToEdgeWrapping, Mesh, MeshBasicMaterial, Object3D, Texture, Textur
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { sleep } from '../../../../utils/sleep';
 import { recolorImageSmart } from '../../../../utils/recolor-image';
+import { Pnt3, Point3 } from '@gg-web-engine/core';
 
 export class Nfs2CarMeshController {
   // original/patched texture pairs
@@ -52,10 +53,27 @@ export class Nfs2CarMeshController {
     this.tyreMaterial!.needsUpdate = true;
   }
 
-  wheelObjects: Mesh[] = [];
+  private _steeringAngle: number = 0;
+  get steeringAngle(): number {
+    return this._steeringAngle;
+  }
+
+  set steeringAngle(value: number) {
+    if (value === this._steeringAngle) return;
+    this._steeringAngle = value;
+    for (const wheel of this.frontWheels) {
+      wheel.rotation.set(0, 0, value);
+    }
+  }
+
+  // order: front right, front left, rear right, rear left
+  public wheels: Mesh[] = [];
+  public wheelIdlePositions: Point3[] = [];
+  // order: right, left
+  public frontWheels: Mesh[] = [];
 
   get hasWheels(): boolean {
-    return this.wheelObjects.length > 0;
+    return this.wheels.length > 0;
   }
 
   constructor(private readonly mesh: Object3D, private readonly assetsPath: string) {
@@ -64,8 +82,32 @@ export class Nfs2CarMeshController {
       if (!(o instanceof Mesh)) {
         return;
       }
-      if (['part_hp_12', 'part_hp_14', 'part_hp_16', 'part_hp_18'].includes(o.name)) {
-        this.wheelObjects.push(o);
+      let wheelIndex = -1;
+      if (o.name.startsWith('part_hp_12')) {
+        wheelIndex = 0;
+      } else if (o.name.startsWith('part_hp_14')) {
+        wheelIndex = 1;
+      } else if (o.name.startsWith('part_hp_16')) {
+        wheelIndex = 2;
+      } else if (o.name.startsWith('part_hp_18')) {
+        wheelIndex = 3;
+      }
+      if (wheelIndex > -1) {
+        if (!o.geometry.boundingBox) {
+          o.geometry.computeBoundingBox();
+        }
+        let wheelPos = Pnt3.avg(o.geometry.boundingBox!.min, o.geometry.boundingBox!.max);
+        if (wheelIndex == 0 || wheelIndex == 2) {
+          wheelPos = { x: wheelPos.x, y: wheelPos.y, z: wheelPos.z + 1.5 };
+        }
+        o.geometry!.translate(...Pnt3.spr(Pnt3.neg(wheelPos)));
+        o.position.set(...Pnt3.spr(wheelPos));
+        this.wheelIdlePositions[wheelIndex] = wheelPos;
+
+        this.wheels.push(o);
+        if (wheelIndex < 2) {
+          this.frontWheels.push(o);
+        }
         return;
       }
       const t = (o.material as MeshBasicMaterial).map;
@@ -106,7 +148,7 @@ export class Nfs2CarMeshController {
       this.tyreMaterial.map!.wrapT = ClampToEdgeWrapping;
       this.tyreMaterial.polygonOffset = true;
       this.tyreMaterial.polygonOffsetFactor = -4;
-      for (const o of this.wheelObjects) {
+      for (const o of this.wheels) {
         o.material = this.tyreMaterial;
       }
     }

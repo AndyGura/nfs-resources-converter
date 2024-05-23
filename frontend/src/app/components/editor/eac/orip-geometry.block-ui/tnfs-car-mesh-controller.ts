@@ -2,8 +2,9 @@ import { ClampToEdgeWrapping, Mesh, MeshBasicMaterial, Object3D, Texture, Textur
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { sleep } from '../../../../utils/sleep';
 import { replaceColor } from '../../../../utils/recolor-image';
+import { Pnt3, Point3 } from '@gg-web-engine/core';
 
-export class Nfs1CarMeshController {
+export class TnfsCarMeshController {
   // original texture
   originalTexWithTailLights: Texture | null = null;
   tyreMaterial: MeshBasicMaterial | null = null;
@@ -14,6 +15,12 @@ export class Nfs1CarMeshController {
   tailLightColors: [number, number] = [0, 0];
   tyreTextures: Texture[] = [];
   tyreTextureUpdateTimer: number | undefined = undefined;
+
+  // order: front right, front left, rear right, rear left
+  public wheels: Mesh[] = [];
+  public wheelIdlePositions: Point3[] = [];
+  // order: right, left
+  public frontWheels: Mesh[] = [];
 
   private _tailLightsOn: boolean = false;
   get tailLightsOn(): boolean {
@@ -56,19 +63,53 @@ export class Nfs1CarMeshController {
     this.tyreMaterial!.needsUpdate = true;
   }
 
+  private _steeringAngle: number = 0;
+  get steeringAngle(): number {
+    return this._steeringAngle;
+  }
+
+  set steeringAngle(value: number) {
+    if (value === this._steeringAngle) return;
+    this._steeringAngle = value;
+    for (const wheel of this.frontWheels) {
+      wheel.rotation.set(0, 0, value);
+    }
+  }
+
   constructor(
     private readonly mesh: Object3D,
     private readonly tailLightsTexColor: number,
     private readonly assetsPath: string,
   ) {
-    const wheelObjects: Mesh[] = [];
     const headlightsObjects: Mesh[] = [];
+    this.wheels = [null!, null!, null!, null!];
+    this.frontWheels = [null!, null!];
     mesh.traverse(o => {
       if (!(o instanceof Mesh)) {
         return;
       }
-      if (o.name.startsWith('lbl__lt_') || o.name.startsWith('lbl__rt_')) {
-        wheelObjects.push(o);
+      let wheelIndex = -1;
+      if (o.name.startsWith('lbl__rt_frnt')) {
+        wheelIndex = 0;
+      } else if (o.name.startsWith('lbl__lt_frnt')) {
+        wheelIndex = 1;
+      } else if (o.name.startsWith('lbl__rt_rear')) {
+        wheelIndex = 2;
+      } else if (o.name.startsWith('lbl__lt_rear')) {
+        wheelIndex = 3;
+      }
+      if (wheelIndex > -1) {
+        this.wheels[wheelIndex] = o;
+        if (wheelIndex < 2) {
+          this.frontWheels[wheelIndex] = o;
+        }
+        if (!o.geometry.boundingBox) {
+          o.geometry.computeBoundingBox();
+        }
+        const wheelPos = Pnt3.avg(o.geometry.boundingBox!.min, o.geometry.boundingBox!.max);
+        o.geometry!.translate(...Pnt3.spr(Pnt3.neg(wheelPos)));
+        o.position.set(...Pnt3.spr(wheelPos));
+        this.wheelIdlePositions[wheelIndex] = wheelPos;
       }
       if (o.name.includes('rsid') || o.name.includes('lite')) {
         headlightsObjects.push(o);
@@ -102,7 +143,7 @@ export class Nfs1CarMeshController {
     this.tyreMaterial.map!.wrapT = ClampToEdgeWrapping;
     this.tyreMaterial.polygonOffset = true;
     this.tyreMaterial.polygonOffsetFactor = -4;
-    for (const o of wheelObjects) {
+    for (const o of this.wheels) {
       o.material = this.tyreMaterial;
     }
   }

@@ -14,7 +14,7 @@ import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
 import { Object3D } from 'three';
 import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
-import { Nfs1CarMeshController } from './nfs1-car-mesh-controller';
+import { TnfsCarMeshController } from './tnfs-car-mesh-controller';
 
 @Component({
   selector: 'app-orip-geometry-block-ui',
@@ -73,7 +73,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
         const shpiData = await this.eelDelegate.retrieveValue(idParts.join('/') + '/data');
         const paletteIndex = shpiData.children_aliases.findIndex((x: string) => x === '!PAL');
         if (paletteIndex == -1) throw new Error('Not a car');
-        const nfs1CarMesh = new Nfs1CarMeshController(
+        const meshController = new TnfsCarMeshController(
           obj,
           shpiData.children[paletteIndex].data.colors[254] >>> 8,
           this.previewPaths$.value![0].substring(0, this.previewPaths$.value![0].lastIndexOf('/')) + `/assets`,
@@ -87,7 +87,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
                 type: 'checkbox',
                 value: false,
                 change: v => {
-                  nfs1CarMesh.tailLightsOn = v;
+                  meshController.tailLightsOn = v;
                 },
               },
               {
@@ -96,7 +96,18 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
                 options: ['idle', 'slow', 'fast'],
                 value: 'idle',
                 change: v => {
-                  nfs1CarMesh.speed = v as any;
+                  meshController.speed = v as any;
+                },
+              },
+              {
+                label: 'Steering angle',
+                type: 'slider',
+                minValue: -0.7,
+                maxValue: 0.7,
+                valueStep: 0.05,
+                value: 0,
+                change: v => {
+                  meshController.steeringAngle = v;
                 },
               },
             ],

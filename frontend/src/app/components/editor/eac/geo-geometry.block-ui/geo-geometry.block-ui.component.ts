@@ -44,7 +44,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   constructor(
     private readonly eelDelegate: EelDelegateService,
-    private readonly mainService: MainService,
+    public readonly main: MainService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
@@ -52,7 +52,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
       this.previewPaths$.next(await this.loadPreviewFilePaths(res?.id));
     });
-    this.mainService.dataBlockChange$
+    this.main.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
         filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
@@ -66,7 +66,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   async onObjectLoaded(obj: Object3D) {
     try {
-      const controller = new Nfs2CarMeshController(
+      const meshController = new Nfs2CarMeshController(
         obj,
         this.previewPaths$.value![0].substring(0, this.previewPaths$.value![0].lastIndexOf('/')) + `/assets`,
       );
@@ -75,7 +75,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
         if (timeout) {
           clearTimeout(timeout);
         }
-        timeout = setTimeout(() => (controller.color = color), 50);
+        timeout = setTimeout(() => (meshController.color = color), 50);
       };
       this.customControls = [
         {
@@ -90,16 +90,29 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
           ],
         },
       ];
-      if (controller.hasWheels) {
-        this.customControls[0].controls.push({
-          label: 'Car speed',
-          type: 'radio',
-          options: ['idle', 'slow', 'fast'],
-          value: 'idle',
-          change: v => {
-            controller.speed = v as any;
+      if (meshController.hasWheels) {
+        this.customControls[0].controls.push(
+          {
+            label: 'Car speed',
+            type: 'radio',
+            options: ['idle', 'slow', 'fast'],
+            value: 'idle',
+            change: v => {
+              meshController.speed = v as any;
+            },
           },
-        });
+          {
+            label: 'Steering angle',
+            type: 'slider',
+            minValue: -0.7,
+            maxValue: 0.7,
+            valueStep: 0.05,
+            value: 0,
+            change: v => {
+              meshController.steeringAngle = v;
+            },
+          },
+        );
       }
       this.cdr.markForCheck();
     } catch (err) {
@@ -117,7 +130,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     if (blockId) {
       const paths = await this.eelDelegate.serializeResourceTmp(
         blockId,
-        Object.entries(this.mainService.changedDataBlocks)
+        Object.entries(this.main.changedDataBlocks)
           .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
           .map(([id, value]) => {
             return { id, value };

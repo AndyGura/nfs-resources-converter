@@ -2,4 +2,4 @@
                 [groupFunction]="previewObjectGroupFunc"
                 [customControls]="customControls"
                 (onObjectLoaded)="onObjectLoaded($event)"></app-obj-viewer>
-<app-compound-block-ui [resource]="_resource$ | async"></app-compound-block-ui>
+<app-compound-block-ui *ngIf="!(main.hideHiddenFields$ | async)" [resource]="_resource$ | async"></app-compound-block-ui>

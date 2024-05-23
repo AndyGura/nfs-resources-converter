@@ -54,6 +54,15 @@ type Control =
       type: 'color';
       value: number;
       change: (value: number) => void;
+    }
+  | {
+      label: string;
+      type: 'slider';
+      value: number;
+      minValue: number;
+      maxValue: number;
+      valueStep: number;
+      change: (value: number) => void;
     };
 
 export type ObjViewerCustomControl = {
