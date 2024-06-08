@@ -33,9 +33,8 @@ class TnfsTopSpeed(RationalNumber):
         return int_part + frac_part
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = self.unwrap_result(data)
-        int_part = floor(value)
-        frac_part = value - int_part
+        int_part = floor(data)
+        frac_part = data - int_part
         int_part = floor(int_part / 2.24)
         return super().write(int_part + frac_part, ctx, name)
 
