@@ -369,10 +369,10 @@ for index, prop in enumerate(props):
     bpy.context.collection.objects.link(o)
     o.location = (prop['x'], prop['y'], prop['z'])
     o.rotation_mode = 'QUATERNION'
-    o.rotation_quaternion = Euler((0, 0, prop['rotation_own'] + prop['rotation_road']), 'XYZ').to_quaternion()
+    o.rotation_quaternion = Euler((0, 0, prop['rotation_z']), 'XYZ').to_quaternion()
     o['is_prop'] = True
     for k, v in prop.items():
-        if k in ['x', 'y', 'z']:
+        if k in ['x', 'y', 'z', 'rotation_z']:
             continue
         o[k] = v
     
@@ -416,12 +416,12 @@ if $save_terrain_collisions:
         spline_index = instance['road_point_idx']
         road_spline_vertex = data['road_spline'][spline_index]
         res = {
+            'type': prop_definition['type'],
+            'road_index': spline_index,
             'x': instance['position']['x'] + road_spline_vertex['position']['x'],
             'y': instance['position']['y'] + road_spline_vertex['position']['y'],
             'z': instance['position']['z'] + road_spline_vertex['position']['z'],
-            'rotation_own': instance['rotation'],
-            'rotation_road': road_spline_vertex['orientation'],
-            'type': prop_definition['type'],
+            'rotation_z': instance['rotation'] + road_spline_vertex['orientation'],
         }
         if use_local_coordinates:
             for axis in ['x', 'y', 'z']:
