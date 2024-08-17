@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2024-04-22 07:12:53.499345+00:00*
+*Last time updated: 2024-08-17 03:48:24.321198+00:00*
 
 
 # **Info by file extensions** #
@@ -323,7 +323,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 788 | **steer_ramp_mult** | 4 | 4-bytes unsigned integer (little endian) | auto_steer_ramp_mult_shift |
 | 792 | **steer_ramp_div** | 4 | 4-bytes unsigned integer (little endian) | auto_steer_ramp_div_shift |
 | 796 | **lat_acc_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Lateral acceleration cut-off |
-| 800 | **unk3** | 8 | Bytes | Unknown purpose |
+| 800 | **unk3** | 8 | Bytes | First 4 bytes is integer number, and TNFS after reading file divides it in half at 0x00440364 |
 | 808 | **final_ratio** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Final drive torque ratio |
 | 812 | **thrust_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Thrust to acceleration factor |
 | 816 | **unk4** | 36 | Bytes | Unknown purpose |
@@ -336,8 +336,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 876 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Body height in meters |
 | 880 | **center_y** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part |  |
 | 884 | **grip_table_f** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 8-bit real number (little-endian, not signed), where last 4 bits is a fractional part | Grip table for front axle. Unit is unknown |
-| 1396 | **grip_table_r** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 8-bit real number (little-endian, not signed), where last 4 bits is a fractional part | Grip table for rear axle. Unit is unknown |
-| 1908 | **checksum** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents. Equals to sum of 1880 first bytes |
+| 1396 | **grip_table_r** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 8-bit real number (little-endian, not signed), where last 4 bits is a fractional part | Grip table for rear axle. Unit is unknown. Windows version overwrites this table with values from "grip_table_f" at 0x00440349 |
+| 1908 | **checksum** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents. Equals to sum of 1880 first bytes. If wrong, game sets field "efficiency" to zero |
 ### **CarSimplifiedPerformanceSpec** ###
 #### **Size**: 460 bytes ####
 #### **Description**: This block describes simpler version of car physics. Used by game for other cars ####
@@ -373,7 +373,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+width\*height + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 4 | Bytes | Unknown purpose |
+| 8 | **unk** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 10 | **pivot_y** | 2 | 2-bytes unsigned integer (little endian) | For "horz" bitmap in TNFS FAM files: Y coordinate of the horizon line on the image. Higher value = image as horizon will be put higher on the screen. Seems to affect only open tracks |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | width\*height | Array of `width*height` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Color indexes of bitmap pixels. The actual colors are in assigned to this bitmap palette |

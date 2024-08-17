@@ -99,8 +99,12 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
                   {'description': 'Bitmap height in pixels'})
-        unk = (BytesBlock(length=4),
+        unk = (IntegerBlock(length=2),
                {'is_unknown': True})
+        pivot_y = (IntegerBlock(length=2),
+                       {'description': 'For "horz" bitmap in TNFS FAM files: Y coordinate of the horizon line on '
+                                       'the image. Higher value = image as horizon will be put higher on the screen. '
+                                       'Seems to affect only open tracks'})
         x = (IntegerBlock(length=2),
              {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
         y = (IntegerBlock(length=2),

@@ -72,10 +72,12 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     f.write(f"{name}: {item['x']}, {item['y']}\n")
         if '.FAM__' in id and self.settings.maps__save_spherical_skybox_texture:
             try:
-                next(x for name, x, _ in items if name == 'horz')
+                horz = next(x for name, x, _ in items if name == 'horz')
                 from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
                 nfs1_panorama_to_spherical(id[id.index('.FAM') - 7:id.index('.FAM') - 4],
-                                           os.path.join(path, 'horz.png'), os.path.join(path, 'spherical.png'))
+                                           os.path.join(path, 'horz.png'),
+                                           os.path.join(path, 'spherical.png'),
+                                           horz['pivot_y'])
             except StopIteration:
                 pass
         if skipped_resources:

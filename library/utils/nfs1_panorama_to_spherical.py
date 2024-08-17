@@ -1,4 +1,4 @@
-def nfs1_panorama_to_spherical(track_id: str, file_name: str, out_file_name: str):
+def nfs1_panorama_to_spherical(track_id: str, file_name: str, out_file_name: str, pivot_y: int):
     from PIL import Image, ImageOps
     from numpy import average
     source = Image.open(file_name)
@@ -7,12 +7,18 @@ def nfs1_panorama_to_spherical(track_id: str, file_name: str, out_file_name: str
     out_half_height = int(out_half_width / 2)
 
     scale_x = out_half_width / source.size[0]
-    mirror_x = track_id in ['TR3', 'TR7']
-    # It is a mystery how NFS decides how to position horizon. I tried everything in {track_id}INFO files,
-    # but no stable correlations detected. NFS horizon is not a sphere, it is a separate 2D layer under 3D stage,
+    mirror_x = track_id in ['TR3', 'TR5', 'TR7', 'TR8']
+
+    # when putting NTRACKFM/TR1_T01.FAM into ETRACKFM/TR1_001.FAM, the game does not mirror image as it does when selecting custom time of a day
+    # so mirror info is not located in FAM file, it's in the MISC/*INFO, TRI file or hardcoded in the game executable
+    if 'T01' in file_name:
+        mirror_x = track_id in ['CL3', 'TR1', 'TR2', 'TR6', 'TR7']
+
+    # NFS horizon is not a sphere, it is a separate 2D layer under 3D stage,
     # so output sky texture is approximate for FOV == 65
+
+    # TODO it is not exactly clear how game decides how to draw horizon: it's scale, mirroring and position
     scale_y = 2.12
-    pos_y = 0
     if track_id in ['TR3', 'TR4']:
         scale_y = 1
     elif track_id == 'TR1':
@@ -21,25 +27,9 @@ def nfs1_panorama_to_spherical(track_id: str, file_name: str, out_file_name: str
         scale_y = 0.86
     elif track_id == 'TR6':
         scale_y = 2.2
-    if track_id == 'AL1':
-        pos_y = 351
-    elif track_id == 'AL2':
-        pos_y = 336
-    elif track_id == 'AL3':
-        pos_y = 365
-    elif track_id == 'CL1':
-        pos_y = 375
-    elif track_id == 'CL2':
-        pos_y = 349
-    elif track_id == 'CL3':
-        pos_y = 374
-    elif track_id == 'CY1':
-        pos_y = 328
-    elif track_id == 'CY2':
-        pos_y = 294
-    elif track_id == 'CY3':
-        pos_y = 343
-    elif track_id == 'TR1':
+
+    pos_y = out_half_height - pivot_y * scale_y
+    if track_id == 'TR1':
         pos_y = 324
     elif track_id == 'TR2':
         pos_y = 308

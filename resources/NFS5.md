@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2024-03-19 08:14:22.143386+00:00*
+*Last time updated: 2024-08-17 03:48:24.598592+00:00*
 
 
 # **Info by file extensions** #
@@ -49,7 +49,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+width\*height + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 4 | Bytes | Unknown purpose |
+| 8 | **unk** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 10 | **pivot_y** | 2 | 2-bytes unsigned integer (little endian) | For "horz" bitmap in TNFS FAM files: Y coordinate of the horizon line on the image. Higher value = image as horizon will be put higher on the screen. Seems to affect only open tracks |
 | 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
 | 16 | **bitmap** | width\*height | Array of `width*height` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Color indexes of bitmap pixels. The actual colors are in assigned to this bitmap palette |

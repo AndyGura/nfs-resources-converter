@@ -153,7 +153,8 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
         lat_acc_cutoff = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                           {'description': 'Lateral acceleration cut-off'})
         unk3 = (BytesBlock(length=8),
-                {'is_unknown': True})
+                {'is_unknown': True,
+                 'description': 'First 4 bytes is integer number, and TNFS after reading file divides it in half at 0x00440364'})
         final_ratio = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                        {'description': 'Final drive torque ratio'})
         thrust_factor = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
@@ -179,10 +180,12 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
         grip_table_f = (ArrayBlock(length=512, child=RationalNumber(length=1, fraction_bits=4)),
                         {'description': 'Grip table for front axle. Unit is unknown'})
         grip_table_r = (ArrayBlock(length=512, child=RationalNumber(length=1, fraction_bits=4)),
-                        {'description': 'Grip table for rear axle. Unit is unknown'})
+                        {'description': 'Grip table for rear axle. Unit is unknown. Windows version overwrites this '
+                                        'table with values from "grip_table_f" at 0x00440349'})
         checksum = (IntegerBlock(length=4),
                     {'programmatic_value': lambda ctx: sum(ctx.result[:1880]),
-                     'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes'})
+                     'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes. If wrong, '
+                                    'game sets field "efficiency" to zero'})
 
 
 class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):
