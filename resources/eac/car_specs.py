@@ -4,6 +4,7 @@ from typing import Dict
 from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, ArrayBlock, CompoundBlock, BytesBlock
 from resources.eac.fields.numbers import RationalNumber
 
+
 # TNFS when saving some of the calculated values, uses `floor` instead of `round`
 def floor_16(value):
     pow16 = 2 ** 16
@@ -196,13 +197,20 @@ class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):
                 'block_description': "This block describes simpler version of car physics. Used by game for other cars"}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        unknowns0 = (BytesBlock(length=12),
-                     {'description': 'Unknown. Some values for playable cars, always zeros for non-playable',
-                      'is_unknown': True})
+        col_size_x = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                      {'description': 'Collision model size (x) in meters. Zero for all non-playable cars'})
+        col_size_y = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                      {'description': 'Collision model size (y) in meters. Zero for all non-playable cars'})
+        col_size_z = (RationalNumber(length=4, fraction_bits=16, is_signed=False),
+                      {'description': 'Collision model size (z) in meters. Zero for all non-playable cars'})
         moment_of_inertia = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
                              {'description': 'Not clear how to interpret'})
-        unknowns1 = (BytesBlock(length=12),
-                     {'is_unknown': True})
+        mass = (RationalNumber(length=4, fraction_bits=6, is_signed=False),
+                {'description': 'Vehicle mass (kg?)'})
+        unk0 = (IntegerBlock(length=4, is_signed=False),
+                {'is_unknown': True})
+        unk1 = (IntegerBlock(length=4, is_signed=False),
+                {'is_unknown': True})
         power_curve = (ArrayBlock(length=100, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),
                        {'description': 'Not clear how to interpret'})
         top_speeds = (ArrayBlock(length=6, child=RationalNumber(length=4, fraction_bits=16, is_signed=True)),

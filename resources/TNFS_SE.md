@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2024-08-17 03:48:24.321198+00:00*
+*Last time updated: 2024-09-29 22:39:07.690861+00:00*
 
 
 # **Info by file extensions** #
@@ -343,9 +343,13 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: This block describes simpler version of car physics. Used by game for other cars ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unknowns0** | 12 | Bytes | Unknown. Some values for playable cars, always zeros for non-playable |
+| 0 | **col_size_x** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Collision model size (x) in meters. Zero for all non-playable cars |
+| 4 | **col_size_y** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Collision model size (y) in meters. Zero for all non-playable cars |
+| 8 | **col_size_z** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Collision model size (z) in meters. Zero for all non-playable cars |
 | 12 | **moment_of_inertia** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
-| 16 | **unknowns1** | 12 | Bytes | Unknown purpose |
+| 16 | **mass** | 4 | 32-bit real number (little-endian, not signed), where last 6 bits is a fractional part | Vehicle mass (kg?) |
+| 20 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 24 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 28 | **power_curve** | 400 | Array of `100` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
 | 428 | **top_speeds** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Maximum car speed (m/s) per gear |
 | 452 | **max_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max engine RPM |
