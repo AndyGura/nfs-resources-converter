@@ -432,7 +432,6 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.world.visualScene.factory.createPrimitive({ shape: 'SPHERE', radius: 1000 }, { color: 0xffffff }),
     );
     ((this.skySphere.object3D!.nativeMesh as Mesh).material as Material).side = DoubleSide;
-    this.skySphere.rotation = Qtrn.fromEuler({ x: Math.PI / 2, y: 0, z: 0 }); // make it face towards Z
     this.world.addEntity(this.skySphere);
     this.selectionSphere = new Entity3d(
       this.world.visualScene.factory.createPrimitive(
@@ -478,7 +477,10 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         pointerLock: true,
       },
       keymap: 'wasd+arrows',
-      movementOptions: { speed: 1 },
+      cameraLinearSpeed: 40,
+      cameraBoostMultiplier: 3,
+      cameraMovementElasticity: 100,
+      cameraRotationElasticity: 30,
       ignoreMouseUnlessPointerLocked: true,
       ignoreKeyboardUnlessPointerLocked: true,
     });
@@ -646,7 +648,14 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     );
     this.map.resource = this.resource;
     this.map.isOpenedTrack = this.isOpenedTrack;
-    this.map.loaderCursorEntity$.next(this.renderer);
+
+    createInlineTickController(this.world)
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe(() => {
+        if (this.map && this.renderer) {
+          this.map.loaderCursor$.next(this.renderer.position);
+        }
+      });
     this.world.addEntity(this.map!);
     this.cdr.markForCheck();
   }

@@ -127,6 +127,8 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     );
     this.controller = new OrbitCameraController(this.renderer, {
       mouseOptions: { canvas: this.previewCanvas.nativeElement },
+      orbiting: { sensitivityX: 2, sensitivityY: 2 },
+      orbitingElasticity: 30,
     });
     this.world.addEntity(this.controller);
     const updateSize = () => {
