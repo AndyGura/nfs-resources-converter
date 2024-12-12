@@ -193,7 +193,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
           }
         });
         this.onObjectLoaded.next(object);
-        this.entity = new Entity3d<ThreeVisualTypeDocRepo>(new ThreeDisplayObjectComponent(object), null);
+        this.entity = new Entity3d<ThreeVisualTypeDocRepo>({ object3D: new ThreeDisplayObjectComponent(object) });
         this.world.addEntity(this.entity);
         let bounds = { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } };
         const calculatedBounds = this.entity.object3D!.getBoundings();
@@ -201,9 +201,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
           bounds = calculatedBounds;
         }
         this.controller.target = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
-        this.controller.radius = Pnt3.dist(bounds.min, bounds.max);
-        this.controller.theta = -1.32;
-        this.controller.phi = 1.22;
+        this.controller.spherical = { phi: 1.22, theta: -1.32, radius: Pnt3.dist(bounds.min, bounds.max) };
         this.cdr.markForCheck();
       }
     });

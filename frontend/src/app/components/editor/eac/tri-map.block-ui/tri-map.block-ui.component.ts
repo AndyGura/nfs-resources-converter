@@ -144,7 +144,9 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
     const props = (await Promise.all(propInstances.map((x: any) => this.loadPropInternal(x)))).filter(
       p => !!p,
     ) as Entity3d<ThreeVisualTypeDocRepo, any>[];
-    const entity: Entity3d<ThreeVisualTypeDocRepo, any> = new Entity3d(new ThreeDisplayObjectComponent(object));
+    const entity: Entity3d<ThreeVisualTypeDocRepo, any> = new Entity3d({
+      object3D: new ThreeDisplayObjectComponent(object),
+    });
     this.addChildren(entity, ...props);
     this.loaded.set(node, [entity, ...props]);
     return [[entity, ...props], null!];
@@ -228,7 +230,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
           }
         }
       });
-      const prop = new Entity3d<ThreeVisualTypeDocRepo>(object);
+      const prop = new Entity3d<ThreeVisualTypeDocRepo>({ object3D: object });
       prop.position = dummy.position;
       prop.rotation = dummy.rotation;
       if (isUnknown) {
@@ -272,7 +274,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
         plane2.position.y = dummy.data.data.width_2 / 2;
         object.add(plane2);
       }
-      const entity = new Entity3d<ThreeVisualTypeDocRepo, any>(new ThreeDisplayObjectComponent(object), null);
+      const entity = new Entity3d<ThreeVisualTypeDocRepo, any>({ object3D: new ThreeDisplayObjectComponent(object) });
       entity.position = dummy.position;
       entity.rotation = dummy.rotation;
       if (isUnknown) {
@@ -428,20 +430,26 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       },
     } as any);
     await this.world.init();
-    this.skySphere = new Entity3d(
-      this.world.visualScene.factory.createPrimitive({ shape: 'SPHERE', radius: 1000 }, { color: 0xffffff }),
-    );
+    this.skySphere = new Entity3d({
+      object3D: this.world.visualScene.factory.createPrimitive(
+        {
+          shape: 'SPHERE',
+          radius: 1000,
+        },
+        { color: 0xffffff },
+      ),
+    });
     ((this.skySphere.object3D!.nativeMesh as Mesh).material as Material).side = DoubleSide;
     this.world.addEntity(this.skySphere);
-    this.selectionSphere = new Entity3d(
-      this.world.visualScene.factory.createPrimitive(
+    this.selectionSphere = new Entity3d({
+      object3D: this.world.visualScene.factory.createPrimitive(
         { shape: 'SPHERE', radius: 0.5 },
         {
           color: 0xff0000,
           shading: 'unlit',
         },
       ),
-    );
+    });
     ((this.selectionSphere.object3D!.nativeMesh as Mesh).material as Material).opacity = 0.4;
     ((this.selectionSphere.object3D!.nativeMesh as Mesh).material as Material).transparent = true;
     this.world.addEntity(this.selectionSphere);
@@ -478,7 +486,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       },
       keymap: 'wasd+arrows',
       cameraLinearSpeed: 40,
-      cameraBoostMultiplier: 3,
+      cameraBoostMultiplier: 4,
       cameraMovementElasticity: 100,
       cameraRotationElasticity: 30,
       ignoreMouseUnlessPointerLocked: true,
@@ -537,6 +545,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
             Pnt3.rotAround({ x: 10, y: -12, z: 5 }, { x: 0, y: 0, z: 1 }, -orientation),
           );
           this.renderer.rotation = Qtrn.lookAt(this.renderer.position, point, { x: 0, y: 0, z: 1 });
+          this.controller.reset();
         }
       }
       this.selectedSplineItem$.next({
