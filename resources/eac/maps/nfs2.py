@@ -23,8 +23,8 @@ class TrkBlock(DeclarativeCompoundBlock):
                         {'description': 'Block size (duplicated)'})
         num_extrablocks = (IntegerBlock(length=2, is_signed=False),
                            {'description': 'number of extrablocks'})
-        unk = (IntegerBlock(length=2, is_signed=False),
-               {'is_unknown': True})
+        unk0 = (IntegerBlock(length=2, is_signed=False),
+                {'is_unknown': True})
         block_idx = (IntegerBlock(length=4, is_signed=False),
                      {'description': 'Block index (serial number)'})
         bounds = (ArrayBlock(child=Point3D_32(), length=4),
@@ -39,12 +39,14 @@ class TrkBlock(DeclarativeCompoundBlock):
                {'description': ''})
         nv1 = (IntegerBlock(length=2, is_signed=False),
                {'description': ''})
-        np4 = (IntegerBlock(length=4, is_signed=False),
+        np4 = (IntegerBlock(length=2, is_signed=False),
                {'description': ''})
-        np2 = (IntegerBlock(length=4, is_signed=False),
+        np2 = (IntegerBlock(length=2, is_signed=False),
                {'description': ''})
-        np1 = (IntegerBlock(length=4, is_signed=False),
+        np1 = (IntegerBlock(length=2, is_signed=False),
                {'description': ''})
+        unk1 = (IntegerBlock(length=6),
+                {'is_unknown': True})
         vertices = ArrayBlock(child=Point3D_16(),
                               length=(lambda ctx: ctx.data('nv8') + ctx.data('nv1'), 'nv8+nv1'))
         polygons = ArrayBlock(child=TrkPolygon(),
