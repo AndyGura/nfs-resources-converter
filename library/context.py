@@ -21,7 +21,10 @@ class BaseContext:
         for p in data_path:
             if p == '..':
                 return self.parent.data('/'.join(data_path[1:]))
-            entry = entry[p]
+            if isinstance(entry, list):
+                entry = entry[int(p)]
+            else:
+                entry = entry[p]
         return entry
 
     def get_full_data(self):

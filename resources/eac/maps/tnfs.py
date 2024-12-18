@@ -333,8 +333,10 @@ class TriMap(DeclarativeCompoundBlock):
                                        "tracks, finish line will be always located at spline point "
                                        "(num_chunks * 4 - 179)"})
         ai_info = ArrayBlock(child=AIEntry(), length=600)
-        num_prop_descr = IntegerBlock(length=4, is_signed=False)
-        num_props = IntegerBlock(length=4, is_signed=False)
+        num_prop_descr = (IntegerBlock(length=4, is_signed=False),
+                          {'programmatic_value': lambda ctx: len(ctx.data('prop_descr'))})
+        num_props = (IntegerBlock(length=4, is_signed=False),
+                     {'programmatic_value': lambda ctx: len(ctx.data('props'))})
         objs_hdr = UTF8Block(length=4, required_value='SJBO')
         unk2 = (IntegerBlock(length=4, required_value=0x428c),
                 {'is_unknown': True})

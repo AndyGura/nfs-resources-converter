@@ -6,9 +6,10 @@ from string import Template
 from typing import List, Dict
 
 from library.utils.blender_scripts import get_blender_save_script, run_blender
-from library.utils.meshes import SubMesh
+from library.utils.meshes import SubMesh, Mesh
 from resources.eac.maps import RoadSplinePoint
 from serializers import BaseFileSerializer
+from serializers.geometries import ObjExporter
 
 
 class TriMapSerializer(BaseFileSerializer):
@@ -499,7 +500,8 @@ if $save_terrain_collisions:
                 Ns 0.000000
                 map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/{texture_name}.png""")
 
-    def render_props_to_obj(self, id, f, path, data, face_index_increment, is_opened_track, min_id, max_id, pivot=(0, 0, 0)):
+    def render_props_to_obj(self, id, f, path, data, face_index_increment, is_opened_track, min_id, max_id,
+                            pivot=(0, 0, 0)):
         for i, p in enumerate(data['props']):
             if p['road_point_idx'] > max_id or p['road_point_idx'] < min_id:
                 continue
@@ -676,7 +678,8 @@ if $save_terrain_collisions:
                         f.write(obj)
                         face_index_increment += fii
                     if self.settings.maps__add_props_to_obj:
-                        self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, i * 4, i * 4 + 3, pivot)
+                        self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, i * 4,
+                                                 i * 4 + 3, pivot)
                 blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                     'new_file': True,
                     'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
@@ -704,7 +707,8 @@ if $save_terrain_collisions:
                         f.write(obj)
                         face_index_increment += fii
                 if self.settings.maps__add_props_to_obj:
-                    self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, 0, len(data['terrain']) * 4 - 1)
+                    self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, 0,
+                                             len(data['terrain']) * 4 - 1)
 
             blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
                 'new_file': False,
@@ -788,3 +792,62 @@ if $save_terrain_collisions:
             else:
                 os.unlink(os.path.join(os.getcwd(), path, 'terrain.obj'))
             os.unlink(os.path.join(os.getcwd(), path, 'terrain.mtl'))
+
+
+class TrkMapSerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path, id, block, **kwargs)
+        blocks = []
+        for sb in data['superblocks']:
+            blocks += sb['blocks']
+        chunks = []
+        for block in blocks:
+            model = Mesh()
+            pivot = data['block_positions'][block['block_idx']]
+            next_pivot = data['block_positions'][
+                block['block_idx'] + 1
+                if block['block_idx'] < len(blocks) - 1
+                else 0
+            ]
+            model.pivot_offset = (pivot['x'], pivot['y'], pivot['z'])
+            model.vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
+            for v in model.vertices[:block['nv8']]:
+                v[0] += next_pivot['x'] - pivot['x']
+                v[1] += next_pivot['y'] - pivot['y']
+                v[2] += next_pivot['z'] - pivot['z']
+            for p in block['polygons'][(block['np4'] + block['np2']):]:
+                model.polygons.append([p['vertices'][0], p['vertices'][1], p['vertices'][2]])
+                model.polygons.append([p['vertices'][2], p['vertices'][0], p['vertices'][3]])
+            model.vertex_uvs = [[0, 0] for _ in block['vertices']]
+            model.texture_ids = [0 for _ in block['polygons']]
+            chunks.append(model)
+
+        for mesh in chunks:
+            mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
+            mesh.change_axes(new_z='y', new_y='z')
+        if self.settings.maps__save_as_chunked:
+            for i, chunk in enumerate(chunks):
+                with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
+                    chunk.pivot_offset = (0, 0, 0)
+                    obj, fii = chunk.to_obj(1)
+                    f.write(obj)
+            # TODO export to gg here
+            if not self.settings.geometry__save_obj:
+                if self.settings.maps__save_as_chunked:
+                    for i in range(len(chunks)):
+                        os.unlink(os.path.join(os.getcwd(), path, f'terrain_chunk_{i}.obj'))
+                else:
+                    os.unlink(os.path.join(os.getcwd(), path, 'terrain.obj'))
+                os.unlink(os.path.join(os.getcwd(), path, 'terrain.mtl'))
+        else:
+            with open(os.path.join(path, 'terrain.obj'), 'w') as f:
+                face_index_increment = 1
+                for chunk in chunks:
+                    obj, fii = chunk.to_obj(face_index_increment)
+                    f.write(obj)
+                    face_index_increment += fii
+            ObjExporter().handle_obj(settings=self.settings, path=path, obj_name='terrain.obj')

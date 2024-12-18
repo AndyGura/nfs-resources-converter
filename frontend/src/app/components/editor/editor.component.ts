@@ -25,6 +25,7 @@ import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.bl
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
+import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -50,13 +51,15 @@ export class EditorComponent implements OnDestroy {
     AnyBitmapBlock: BitmapBlockUiComponent,
     BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
-    GeoGeometry: GeoGeometryBlockUiComponent,
     BaseArchiveBlock: BaseArchiveBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
     FenceType: FenceTypeBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
     EacsAudioFile: EacsAudioBlockUiComponent,
+    // NFS2 blocks
+    GeoGeometry: GeoGeometryBlockUiComponent,
+    TrkMap: TrkMapBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

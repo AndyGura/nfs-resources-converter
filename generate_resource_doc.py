@@ -144,6 +144,8 @@ EXPORT_RESOURCES = {
 
 **\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
+**\*.TRK** main track file. {render_type(maps.TrkMap())}
+
 **\*.UV** video, I just use ffmpeg to convert it
 
 **\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
@@ -157,8 +159,12 @@ EXPORT_RESOURCES = {
                 geometries.GeoMesh(),
                 geometries.GeoPolygon(),
             ],
-            # 'Maps': [
-            # ],
+            'Maps': [
+                maps.TrkMap(),
+                maps.TrkSuperBlock(),
+                maps.TrkBlock(),
+                maps.TrkPolygon(),
+            ],
             # 'Physics': [
             # ],
             'Bitmaps': [
