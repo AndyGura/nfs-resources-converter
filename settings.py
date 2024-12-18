@@ -29,6 +29,7 @@ SERIALIZER_CLASSES = {
     'Palette24Bit': 'PaletteSerializer',
     'Palette32Bit': 'PaletteSerializer',
     'TriMap': 'TriMapSerializer',
+    'TrkMap': 'TrkMapSerializer',
     'OripGeometry': 'OripGeometrySerializer',
     'GeoGeometry': 'GeoGeometrySerializer',
     'ShpiBlock': 'ShpiArchiveSerializer',
