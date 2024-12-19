@@ -35,7 +35,7 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
 
   get trackLength$(): Observable<number> {
     return this._roadSpline$.pipe(
-      map((s) => {
+      map(s => {
         let ret = 0;
         for (let i = 1; i < s.length; i++) {
           ret += Pnt3.dist(s[i], s[i - 1]);
@@ -47,8 +47,7 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(private readonly ref: ElementRef) {
-  }
+  constructor(private readonly ref: ElementRef) {}
 
   ngAfterViewInit() {
     this._roadSpline$

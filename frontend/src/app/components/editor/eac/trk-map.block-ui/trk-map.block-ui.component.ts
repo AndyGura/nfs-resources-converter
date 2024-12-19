@@ -31,6 +31,7 @@ import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import {
   AmbientLight,
   ClampToEdgeWrapping,
+  CubeReflectionMapping,
   DoubleSide,
   Group,
   Material,
@@ -54,7 +55,7 @@ export enum MapPropType {
   TwoSidedBitmap = 'two_sided_bitmap',
 }
 
-export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo, any> {
+export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo, any> {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
   private readonly objLoader = new OBJLoader();
@@ -64,7 +65,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
 
   constructor(
     public override readonly mapGraph: MapGraph,
-    public readonly famPath: string | null,
+    public readonly qfsPath: string | null,
     private readonly hideUnknownEntities$: BehaviorSubject<boolean>,
   ) {
     super(mapGraph, { loadDepth: 40, inertia: 2 });
@@ -160,9 +161,9 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
   getTerrainMaterial(matId: string): Material {
     if (!this.terrainMaterials[matId]) {
       this.terrainMaterials[matId] = new MeshBasicMaterial({ side: DoubleSide, transparent: true, visible: false });
-      if (this.famPath) {
+      if (this.qfsPath) {
         this.textureLoader
-          .loadAsync(`${this.famPath}/background/${matId}.png`)
+          .loadAsync(`${this.qfsPath}/${matId}.png`)
           .then(texture => {
             texture.wrapS = RepeatWrapping;
             texture.wrapT = ClampToEdgeWrapping;
@@ -197,14 +198,14 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
       // 3D model
       let object: ThreeDisplayObjectComponent;
       try {
-        if (!this.famPath) throw new Error();
+        if (!this.qfsPath) throw new Error();
         const mtlLoader = new MTLLoader();
         const objLoader = new OBJLoader();
-        const mtl = await mtlLoader.loadAsync(`${this.famPath}/props/${dummy.data.data.resource_id}/0/material.mtl`);
+        const mtl = await mtlLoader.loadAsync(`${this.qfsPath}/props/${dummy.data.data.resource_id}/0/material.mtl`);
         mtl.preload();
         objLoader.setMaterials(mtl);
         object = new ThreeDisplayObjectComponent(
-          await objLoader.loadAsync(`${this.famPath}/props/${dummy.data.data.resource_id}/0/geometry.obj`),
+          await objLoader.loadAsync(`${this.qfsPath}/props/${dummy.data.data.resource_id}/0/geometry.obj`),
         );
       } catch (err) {
         isUnknown = true;
@@ -293,13 +294,13 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
     const placeholder = await this.getPlaceholderTexture();
     let isUnknown = false;
     let maps = [];
-    if (!this.famPath) {
+    if (!this.qfsPath) {
       isUnknown = true;
       maps = textures.map(() => placeholder);
     } else {
       maps = await Promise.all(
         textures.map(t =>
-          this.textureLoader.loadAsync(`${this.famPath}/foreground/${t}.png`).catch(() => {
+          this.textureLoader.loadAsync(`${this.qfsPath}/foreground/${t}.png`).catch(() => {
             isUnknown = true;
             return placeholder;
           }),
@@ -351,15 +352,18 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
+  previewQfsLocation$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+  previewQfsLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   private terrainChunksObjLocation: string | undefined;
 
   pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
 
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  qfsPath: string | null = null;
   name: string = '';
   world!: Gg3dWorld<ThreeVisualTypeDocRepo, any, ThreeSceneComponent>;
   renderer: Renderer3dEntity<ThreeVisualTypeDocRepo> | null = null;
-  map: Nfs1MapWorldEntity | null = null;
+  map: Nfs2MapWorldEntity | null = null;
   controller!: FreeCameraController;
   roadPath: Point3[] | null = null;
   skySphere!: Entity3d<ThreeVisualTypeDocRepo>;
@@ -371,19 +375,16 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
-  ) {
-  }
+  ) {}
 
   get roadSpline(): Point3[] {
-    return (this.resource?.data.block_positions || []);
+    return this.resource?.data.block_positions || [];
   }
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld(new ThreeSceneComponent(), {
-      init: async () => {
-      },
-      simulate: () => {
-      },
+      init: async () => {},
+      simulate: () => {},
       loader: {
         loadFromGgGlb: async (...args: any[]) => [],
       },
@@ -464,8 +465,14 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
       this.previewLoading$.next(true);
-      await this.loadTerrainChunks(res?.id);
-      await this.loadPreview();
+      if (res) {
+        this.previewQfsLocation$.next(res.id.substring(0, res.id.indexOf('.TRK')) + '0.QFS');
+        await this.loadTerrainChunks(res.id);
+        await this.onQfsSelected(this.previewQfsLocation$.value!);
+      } else {
+        await this.loadTerrainChunks();
+        await this.loadPreview();
+      }
       this.previewLoading$.next(false);
     });
     this.mainService.dataBlockChange$
@@ -502,7 +509,36 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     });
   }
 
-  private async loadTerrainChunks(blockId: string | undefined) {
+  async onQfsSelected(path: string) {
+    if (this.qfsPath == path) {
+      return;
+    }
+    this.previewQfsLoading$.next(true);
+    try {
+      const files = await this.eelDelegate.serializeResource(path);
+      const loader = new TextureLoader();
+      const skyPath = files.find(x => x.endsWith('spherical.png'));
+      if (skyPath) {
+        const tex = await loader.loadAsync(skyPath);
+        tex.colorSpace = 'srgb';
+        tex.mapping = CubeReflectionMapping;
+        ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = tex;
+      } else {
+        ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = null;
+      }
+      ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).needsUpdate = true;
+      this.qfsPath = path;
+    } catch (err) {
+      ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).map = null;
+      ((this.skySphere.object3D!.nativeMesh as Mesh).material as MeshBasicMaterial).needsUpdate = true;
+      this.qfsPath = null;
+    } finally {
+      this.previewQfsLoading$.next(false);
+    }
+    await this.loadPreview();
+  }
+
+  private async loadTerrainChunks(blockId?: string) {
     if (blockId) {
       const paths = await this.eelDelegate.serializeResource(blockId, {
         geometry__save_obj: true,
@@ -522,13 +558,11 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   private async loadPreview() {
-    this.roadPath =
-      this.resource?.data.block_positions
-        .map((p: Point3) => ({
-          x: p.x,
-          y: p.z,
-          z: p.y,
-        }));
+    this.roadPath = this.resource?.data.block_positions.map((p: Point3) => ({
+      x: p.x,
+      y: p.z,
+      z: p.y,
+    }));
     if (!this.terrainChunksObjLocation || !this.roadPath) {
       return;
     }
@@ -541,9 +575,9 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       true,
     );
     this.unloadPreview();
-    this.map = new Nfs1MapWorldEntity(
+    this.map = new Nfs2MapWorldEntity(
       chunksGraph,
-      '',
+      this.qfsPath && 'resources/' + this.qfsPath,
       this.mainService.hideHiddenFields$,
     );
     this.map.resource = this.resource;

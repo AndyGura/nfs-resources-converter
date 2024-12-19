@@ -821,9 +821,10 @@ class TrkMapSerializer(BaseFileSerializer):
                 v[2] += next_pivot['z'] - pivot['z']
             for p in block['polygons'][(block['np4'] + block['np2']):]:
                 model.polygons.append([p['vertices'][0], p['vertices'][1], p['vertices'][2]])
+                model.texture_ids.append(f"{p['texture']:04}")
                 model.polygons.append([p['vertices'][2], p['vertices'][0], p['vertices'][3]])
-            model.vertex_uvs = [[0, 0] for _ in block['vertices']]
-            model.texture_ids = [0 for _ in block['polygons']]
+                model.texture_ids.append(f"{p['texture']:04}")
+            model.vertex_uvs = [[0 if i % 4 in [0, 3] else 1, 0 if i % 4 in [0, 1] else 1] for i, _ in enumerate(block['vertices'])]
             chunks.append(model)
 
         for mesh in chunks:
