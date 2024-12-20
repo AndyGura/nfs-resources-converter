@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2024-08-17 03:48:24.377814+00:00*
+*Last time updated: 2024-12-19 01:27:46.630683+00:00*
 
 
 # **Info by file extensions** #
@@ -14,6 +14,8 @@
 **\*.MSK** archive with some data. [BigfBlock](#bigfblock)
 
 **\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+**\*.TRK** main track file. [TrkMap](#trkmap)
 
 **\*.UV** video, I just use ffmpeg to convert it
 
@@ -113,6 +115,58 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1 | **unk0** | 3 | 3-bytes unsigned integer (little endian) | Unknown purpose |
 | 4 | **vertex_indices** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Indexes of vertices |
 | 8 | **texture_name** | 4 | UTF-8 string | ID of texture from neighbouring QFS file |
+## **Maps** ##
+### **TrkMap** ###
+#### **Size**: 32..? bytes ####
+#### **Description**: Main track file ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "TRAC" | Resource ID |
+| 4 | **unk0** | 20 | Bytes | Unknown purpose |
+| 24 | **num_superblocks** | 4 | 4-bytes unsigned integer (little endian) | Number of superblocks (nsblk) |
+| 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks (nblk) |
+| 32 | **superblock_offsets** | num_superblocks\*4 | Array of `num_superblocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+| 32 + num_superblocks\*4 | **block_positions** | num_blocks\*12 | Array of `num_blocks` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of road spline points in 3D space |
+| 32 + num_superblocks\*4 + num_blocks\*12 | **skip_bytes** | up to offset superblock_offsets[0] | Bytes | Useless padding |
+| superblock_offsets[0] | **superblocks** | num_superblocks\*12..? | Array of `num_superblocks` items<br/>Item type: [TrkSuperBlock](#trksuperblock) | Superblocks |
+### **TrkSuperBlock** ###
+#### **Size**: 12..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Superblock size |
+| 4 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks in this superblock. Usually 8 or less in the last superblock |
+| 8 | **unk** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **block_offsets** | num_blocks\*4 | Array of `num_blocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+| 12 + num_blocks\*4 | **blocks** | num_blocks\*88..? | Array of `num_blocks` items<br/>Item type: [TrkBlock](#trkblock) | Blocks |
+### **TrkBlock** ###
+#### **Size**: 88..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Block size |
+| 4 | **block_size_2** | 4 | 4-bytes unsigned integer (little endian) | Block size (duplicated) |
+| 8 | **num_extrablocks** | 2 | 2-bytes unsigned integer (little endian) | number of extrablocks |
+| 10 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **block_idx** | 4 | 4-bytes unsigned integer (little endian) | Block index (serial number) |
+| 16 | **bounds** | 48 | Array of `4` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Block bounding rectangle |
+| 64 | **extrablocks_offset** | 4 | 4-bytes unsigned integer (little endian) |  |
+| 68 | **nv8** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 70 | **nv4** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 72 | **nv2** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 74 | **nv1** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 76 | **np4** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 78 | **np2** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 80 | **np1** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 82 | **unk1** | 6 | 6-bytes unsigned integer (little endian) | Unknown purpose |
+| 88 | **vertices** | (nv8+nv1)\*6 | Array of `(nv8+nv1)` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | - |
+| 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `(np4+np2+np1)` items<br/>Item type: [TrkPolygon](#trkpolygon) | - |
+| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **tmp** | custom_func | Bytes | - |
+### **TrkPolygon** ###
+#### **Size**: 8 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **texture** | 2 | 2-bytes unsigned integer (little endian) | Texture number |
+| 2 | **texture2** | 2 | 2-bytes signed integer (little endian) | 255 (texture number for the other side == none ?) |
+| 4 | **vertices** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
 ## **Bitmaps** ##
 ### **Bitmap4Bit** ###
 #### **Size**: 16..? bytes ####

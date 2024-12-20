@@ -1,8 +1,11 @@
+from io import BufferedReader, BytesIO
 from typing import Dict
 
+from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock,
-                                 UTF8Block, BytesBlock, ArrayBlock)
+                                 UTF8Block, BytesBlock, ArrayBlock, DataBlock, DelegateBlock)
+from library.read_blocks.numbers import EnumByteBlock
 from resources.eac.fields.misc import Point3D_32, Point3D_16
 
 
@@ -13,6 +16,37 @@ class TrkPolygon(DeclarativeCompoundBlock):
         texture2 = (IntegerBlock(length=2, is_signed=True),
                     {'description': '255 (texture number for the other side == none ?)'})
         vertices = ArrayBlock(child=IntegerBlock(length=1, is_signed=False), length=4)
+
+
+class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        texture_number = IntegerBlock(length=2, is_signed=False)
+        alignment_data = IntegerBlock(length=2, is_signed=False)
+        rgb0 = IntegerBlock(length=3, is_signed=False)
+        rgb1 = IntegerBlock(length=3, is_signed=False)
+
+
+class TrkExtraBlock(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        block_size = (IntegerBlock(length=4, is_signed=False),
+                      {'description': 'Block size'})
+        type = EnumByteBlock(enum_names=[(2, 'textures_map'),
+                                         (4, 'block_numbers'),
+                                         (5, 'polygon_modifier'),
+                                         (6, 'median_polygons'),
+                                         (7, 'objects_7'),
+                                         (8, '3d_structures'),
+                                         (9, 'lanes'),
+                                         (13, 'virtual'),
+                                         (15, 'positions'),
+                                         (18, 'objects_18'),
+                                         ])
+        unk = IntegerBlock(length=1, required_value=0)
+        num_data_records = IntegerBlock(length=2)
+        data_records = DelegateBlock(possible_blocks=[ArrayBlock(child=TexturesMapExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                                                      BytesBlock(length=lambda ctx: ctx.data('block_size') - 8)],
+                                     choice_index=lambda ctx, **_: 0 if ctx.data('type') == 'textures_map' else 1
+                                     )
 
 
 class TrkBlock(DeclarativeCompoundBlock):
@@ -48,12 +82,29 @@ class TrkBlock(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=6),
                 {'is_unknown': True})
         vertices = ArrayBlock(child=Point3D_16(),
-                              length=(lambda ctx: ctx.data('nv8') + ctx.data('nv1'), 'nv8+nv1'))
+                              length=(lambda ctx: ctx.data('nv8') + ctx.data('nv1'), '(nv8+nv1)'))
         polygons = ArrayBlock(child=TrkPolygon(),
-                              length=(lambda ctx: ctx.data('np4') + ctx.data('np2') + ctx.data('np1'), 'np4+np2+np1'))
-        tmp = BytesBlock(
-            length=lambda ctx: ctx.data('block_size') - 88 - 6 * (ctx.data('nv8') + ctx.data('nv1')) - 8 * (
-                    ctx.data('np4') + ctx.data('np2') + ctx.data('np1')))
+                              length=(lambda ctx: ctx.data('np4') + ctx.data('np2') + ctx.data('np1'), '(np4+np2+np1)'))
+        # extrablocks = ArrayBlock(child=TrkExtraBlock(), length=(lambda ctx: ctx.data('num_extrablocks'), 'num_extrablocks'))
+        unk2 = BytesBlock(
+            length=lambda ctx: 64 + ctx.data('extrablocks_offset') + ctx.read_start_offset - ctx.buffer.tell())
+        extrablock_offsets = ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
+                                        length=(lambda ctx: ctx.data('num_extrablocks'), 'num_extrablocks'))
+        extrablocks = ArrayBlock(length=(0, 'num_extrablocks'), child=TrkExtraBlock())
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
+        start_offset = buffer.tell()
+        data = super().read(buffer, ctx, name, read_bytes_amount)
+        extrablocks_offset = buffer.tell() - start_offset
+        extrablocks_buf = BytesIO(buffer.read(data['block_size'] - (buffer.tell() - start_offset)))
+        child_block = self.field_blocks_map.get('extrablocks').child
+        self_ctx = ReadContext(buffer=buffer, data=data, name=name, block=self, parent=ctx,
+                               read_bytes_amount=read_bytes_amount)
+        for offset in data['extrablock_offsets']:
+            extrablocks_buf.seek(offset - extrablocks_offset)
+            data['extrablocks'].append(child_block.read(extrablocks_buf, self_ctx))
+        return data
 
 
 class TrkSuperBlock(DeclarativeCompoundBlock):
@@ -100,3 +151,32 @@ class TrkMap(DeclarativeCompoundBlock):
                                   length=(lambda ctx: ctx.data('num_superblocks'), 'num_superblocks')),
                        {'description': 'Superblocks',
                         'custom_offset': 'superblock_offsets[0]'})
+
+
+class TrkMapCol(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (UTF8Block(length=4, required_value='COLL'),
+                       {'description': 'Resource ID'})
+        unk = IntegerBlock(length=4, required_value=11)
+        block_size = (IntegerBlock(length=4, is_signed=False),
+                      {'description': 'File size'})
+        # TODO it is almost the same as we have in wwww. Share logic somehow?
+        num_extrablocks = (IntegerBlock(length=4, is_signed=False),
+                           {'description': 'Number of extrablocks'})
+        extrablock_offsets = ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
+                                        length=(lambda ctx: ctx.data('num_extrablocks'), 'num_extrablocks'))
+        extrablocks = ArrayBlock(length=(0, 'num_extrablocks'), child=TrkExtraBlock())
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
+        start_offset = buffer.tell()
+        data = super().read(buffer, ctx, name, read_bytes_amount)
+        extrablocks_offset = 16
+        extrablocks_buf = BytesIO(buffer.read(data['block_size'] - (buffer.tell() - start_offset)))
+        child_block = self.field_blocks_map.get('extrablocks').child
+        self_ctx = ReadContext(buffer=buffer, data=data, name=name, block=self, parent=ctx,
+                               read_bytes_amount=read_bytes_amount)
+        for offset in data['extrablock_offsets']:
+            extrablocks_buf.seek(offset - extrablocks_offset)
+            data['extrablocks'].append(child_block.read(extrablocks_buf, self_ctx))
+        return data

@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import traceback
 from copy import deepcopy
 from string import Template
 from typing import List, Dict
@@ -801,6 +802,19 @@ class TrkMapSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, id, block, **kwargs)
+        from library import require_resource
+        try:
+            (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
+
+            def get_texture(tex):
+                return f"{texture_map[tex]['texture_number']:04}", texture_map[tex]['alignment_data']
+        except Exception:
+            if self.settings.print_errors:
+                traceback.print_exc()
+            texture_map = []
+
+            def get_texture(tex):
+                return f"{tex:04}", 0
         blocks = []
         for sb in data['superblocks']:
             blocks += sb['blocks']
@@ -815,16 +829,21 @@ class TrkMapSerializer(BaseFileSerializer):
             ]
             model.pivot_offset = (pivot['x'], pivot['y'], pivot['z'])
             model.vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
+            model.vertex_uvs = [[0, 0] for _ in range(len(model.vertices))]
             for v in model.vertices[:block['nv8']]:
                 v[0] += next_pivot['x'] - pivot['x']
                 v[1] += next_pivot['y'] - pivot['y']
                 v[2] += next_pivot['z'] - pivot['z']
             for p in block['polygons'][(block['np4'] + block['np2']):]:
+                texture_name, _ = get_texture(p['texture'])
                 model.polygons.append([p['vertices'][0], p['vertices'][1], p['vertices'][2]])
-                model.texture_ids.append(f"{p['texture']:04}")
+                model.texture_ids.append(texture_name)
                 model.polygons.append([p['vertices'][2], p['vertices'][0], p['vertices'][3]])
-                model.texture_ids.append(f"{p['texture']:04}")
-            model.vertex_uvs = [[0 if i % 4 in [0, 3] else 1, 0 if i % 4 in [0, 1] else 1] for i, _ in enumerate(block['vertices'])]
+                model.texture_ids.append(texture_name)
+                model.vertex_uvs[p['vertices'][0]] = [0, 0]
+                model.vertex_uvs[p['vertices'][1]] = [0, 1]
+                model.vertex_uvs[p['vertices'][2]] = [1, 1]
+                model.vertex_uvs[p['vertices'][3]] = [1, 0]
             chunks.append(model)
 
         for mesh in chunks:

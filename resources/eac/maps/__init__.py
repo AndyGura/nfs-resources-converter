@@ -1,7 +1,9 @@
 from .nfs2 import (TrkMap,
                    TrkSuperBlock,
+                   TrkExtraBlock,
                    TrkBlock,
                    TrkPolygon,
+                   TrkMapCol,
                    )
 from .tnfs import (RoadSplinePoint,
                    ModelPropDescrData,

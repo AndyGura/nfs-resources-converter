@@ -57,6 +57,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif header_str == 'TRAC':
             from resources.eac.maps import TrkMap
             return TrkMap
+        elif header_str == 'COLL':
+            from resources.eac.maps import TrkMapCol
+            return TrkMapCol
     try:
         resource_id = header_bytes[0]
         if resource_id == 0x22:
