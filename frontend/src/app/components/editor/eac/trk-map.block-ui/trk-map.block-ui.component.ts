@@ -101,9 +101,8 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
     if (!this._placeholderTerrainPromise) {
       this._placeholderTerrainPromise = this.textureLoader.loadAsync('assets/placeholder_texture.png').then(texture => {
         texture.wrapS = RepeatWrapping;
-        texture.wrapT = ClampToEdgeWrapping;
+        texture.wrapT = RepeatWrapping;
         setupNfs1Texture(texture);
-        texture.flipY = true;
         return texture;
       });
     }
@@ -166,9 +165,8 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
           .loadAsync(`${this.qfsPath}/${matId}.png`)
           .then(texture => {
             texture.wrapS = RepeatWrapping;
-            texture.wrapT = ClampToEdgeWrapping;
+            texture.wrapT = RepeatWrapping;
             setupNfs1Texture(texture);
-            texture.flipY = true;
             this.terrainMaterials[matId].map = texture;
             this.terrainMaterials[matId].needsUpdate = true;
             this.terrainMaterials[matId].visible = true;
@@ -221,8 +219,8 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
             m.transparent = true;
             m.alphaTest = 0.5;
             if (m instanceof MeshBasicMaterial && m.map) {
-              m.map.wrapS = ClampToEdgeWrapping;
-              m.map.wrapT = ClampToEdgeWrapping;
+              m.map.wrapS = RepeatWrapping;
+              m.map.wrapT = RepeatWrapping;
               setupNfs1Texture(m.map);
               m.map.needsUpdate = true;
             }

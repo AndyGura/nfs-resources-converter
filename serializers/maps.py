@@ -9,6 +9,7 @@ from typing import List, Dict
 from library.utils.blender_scripts import get_blender_save_script, run_blender
 from library.utils.meshes import SubMesh, Mesh
 from resources.eac.maps import RoadSplinePoint
+from resources.eac.utils import rotate_list
 from serializers import BaseFileSerializer
 from serializers.geometries import ObjExporter
 
@@ -834,27 +835,39 @@ class TrkMapSerializer(BaseFileSerializer):
                 v[0] += next_pivot['x'] - pivot['x']
                 v[1] += next_pivot['y'] - pivot['y']
                 v[2] += next_pivot['z'] - pivot['z']
+            texture_alignments = []
             for p in block['polygons'][(block['np4'] + block['np2']):]:
-                texture_name, _ = get_texture(p['texture'])
-                model.polygons.append([p['vertices'][0], p['vertices'][1], p['vertices'][2]])
+                texture_name, texture_alignment = get_texture(p['texture'])
+                model.polygons.append([p['vertices'][0], p['vertices'][1], p['vertices'][2], p['vertices'][3]])
                 model.texture_ids.append(texture_name)
-                model.polygons.append([p['vertices'][2], p['vertices'][0], p['vertices'][3]])
-                model.texture_ids.append(texture_name)
-                model.vertex_uvs[p['vertices'][0]] = [0, 0]
-                model.vertex_uvs[p['vertices'][1]] = [0, 1]
-                model.vertex_uvs[p['vertices'][2]] = [1, 1]
-                model.vertex_uvs[p['vertices'][3]] = [1, 0]
-            chunks.append(model)
-
-        for mesh in chunks:
-            mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
-            mesh.change_axes(new_z='y', new_y='z')
+                texture_alignments.append(texture_alignment)
+            sub_meshes = model.split_by_texture_ids()
+            # TODO UV-s are completely wrong
+            for submesh, _, polygon_idx_map in sub_meshes:
+                for i, polygon in enumerate(submesh.polygons):
+                    uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
+                    alignment = texture_alignments[polygon_idx_map[i]]
+                    rotate_i = (alignment >> 9) & 1
+                    n_rotate = ((alignment >> 11) & 3) - rotate_i
+                    uvs = rotate_list(uvs, n_rotate)
+                    if i % 2:
+                        uvs = uvs[::-1] # flip
+                    for i, vi in enumerate(polygon):
+                        submesh.vertex_uvs[vi] = uvs[i]
+            chunks.append([m for m, _, _ in sub_meshes])
+        for meshes in chunks:
+            for mesh in meshes:
+                mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
+                mesh.change_axes(new_z='y', new_y='z')
         if self.settings.maps__save_as_chunked:
             for i, chunk in enumerate(chunks):
                 with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
-                    chunk.pivot_offset = (0, 0, 0)
-                    obj, fii = chunk.to_obj(1)
-                    f.write(obj)
+                    face_index_increment = 1
+                    for mesh in chunk:
+                        mesh.pivot_offset = (0, 0, 0)
+                        obj, fii = mesh.to_obj(face_index_increment)
+                        f.write(obj)
+                        face_index_increment += fii
             # TODO export to gg here
             if not self.settings.geometry__save_obj:
                 if self.settings.maps__save_as_chunked:
@@ -867,7 +880,8 @@ class TrkMapSerializer(BaseFileSerializer):
             with open(os.path.join(path, 'terrain.obj'), 'w') as f:
                 face_index_increment = 1
                 for chunk in chunks:
-                    obj, fii = chunk.to_obj(face_index_increment)
-                    f.write(obj)
-                    face_index_increment += fii
+                    for mesh in chunk:
+                        obj, fii = mesh.to_obj(face_index_increment)
+                        f.write(obj)
+                        face_index_increment += fii
             ObjExporter().handle_obj(settings=self.settings, path=path, obj_name='terrain.obj')
