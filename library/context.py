@@ -43,3 +43,45 @@ class WriteContext(BaseContext):
         super().__init__(name=name, data=data, block=block, parent=parent)
         self.result = result
         self.write_start_offset = len(result)
+
+
+class DocumentationCtxData:
+    def __init__(self, label):
+        self.label = label
+
+    def __str__(self):
+        return self.label
+
+    def __add__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a}+{b}')
+
+    def __radd__(self, other):
+        a = str(other)
+        b = str(self)
+        return DocumentationCtxData(f'{a}+{b}')
+
+    def __mul__(self, other):
+        a = str(self)
+        b = str(other)
+        if '+' in a or '-' in a:
+            a = f'({a})'
+        if '+' in b or '-' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a}*{b}')
+
+    def __rmul__(self, other):
+        a = str(other)
+        b = str(self)
+        if '+' in a or '-' in a:
+            a = f'({a})'
+        if '+' in b or '-' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a}*{b}')
+
+
+class DocumentationContext(BaseContext):
+
+    def data(self, local_path: str):
+        return DocumentationCtxData(local_path.replace('../', '^'))

@@ -68,7 +68,7 @@ class BindingBlockWithDoc(DeclarativeCompoundBlock):
         len = (IntegerBlock(length=1),
                {'description': "A length of `val` array",
                 'programmatic_value': lambda ctx: len(ctx.data('val'))})
-        val = ArrayBlock(child=IntegerBlock(length=1), length=(lambda ctx: ctx.data('len'), "len"))
+        val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
 
 
 class TestDeclarativeCompound(unittest.TestCase):

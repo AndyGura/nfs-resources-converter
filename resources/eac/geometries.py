@@ -213,15 +213,15 @@ class OripGeometry(DeclarativeCompoundBlock):
         unknowns1 = (BytesBlock(length=12),
                      {'is_unknown': True})
         polygons = (ArrayBlock(child=OripPolygon(),
-                               length=(lambda ctx: ctx.data('num_polygons'), 'num_polygons')),
+                               length=lambda ctx: ctx.data('num_polygons')),
                     {'description': 'A block with polygons of the geometry. Probably should be a start point when '
                                     'building model from this file'})
         vertex_uvs = (ArrayBlock(child=OripVertexUV(),
-                                 length=(lambda ctx: ctx.data('num_uvs'), 'num_uvs')),
+                                 length=lambda ctx: ctx.data('num_uvs')),
                       {'description': 'A table of texture coordinates. Items are retrieved by index, located in vmap',
                        'custom_offset': 'uvs_ptr'})
         tex_ids = (ArrayBlock(child=OripTextureName(),
-                              length=(lambda ctx: ctx.data('num_tex_ids'), 'num_tex_ids')),
+                              length=lambda ctx: ctx.data('num_tex_ids')),
                    {'description': 'A table of texture references. Items are retrieved by index, located in '
                                    'polygon item',
                     'custom_offset': 'tex_ids_ptr'})
@@ -233,20 +233,20 @@ class OripGeometry(DeclarativeCompoundBlock):
                                   ' case of DIABLO.CFM it\'s length is equal to -3, meaning that last 3 bytes from '
                                   'texture names block are reused by next block'})
         tex_nmb = (ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=1), length=20),
-                              length=(lambda ctx: ctx.data('num_tex_nmb'), 'num_tex_nmb')),
+                              length=lambda ctx: ctx.data('num_tex_nmb')),
                    {'is_unknown': True,
                     'custom_offset': 'tex_nmb_ptr'})
         render_order = (ArrayBlock(child=RenderOrderBlock(),
-                                   length=(lambda ctx: ctx.data('num_ren_ord'), 'num_ren_ord')),
+                                   length=lambda ctx: ctx.data('num_ren_ord')),
                         {'description': 'Render order. The exact mechanism how it works is unknown',
                          'custom_offset': 'ren_ord_ptr'})
         fx_polys = (ArrayBlock(child=NamedIndex(),
-                               length=(lambda ctx: ctx.data('num_fxp'), 'num_fxp')),
+                               length=lambda ctx: ctx.data('num_fxp')),
                     {'description': 'Indexes of polygons which participate in visual effects such as engine smoke, '
                                     'dust particles, tyre trails? Presented in car CFM-s. ',
                      'custom_offset': 'fxp_ptr'})
         labels = (ArrayBlock(child=NamedIndex(),
-                             length=(lambda ctx: ctx.data('num_lbl'), 'num_lbl')),
+                             length=lambda ctx: ctx.data('num_lbl')),
                   {'description': 'Marks special polygons for the game, where it should change texture on runtime such '
                                   'as tyres, tail lights',
                    'custom_offset': 'lbl_ptr'})
@@ -254,7 +254,7 @@ class OripGeometry(DeclarativeCompoundBlock):
                                                    choice_index=lambda ctx, **_: (
                                                        0 if ctx.buffer.name.endswith('.CFM')
                                                        else 1)),
-                               length=(lambda ctx: ctx.data('num_vrtx'), 'num_vrtx')),
+                               length=lambda ctx: ctx.data('num_vrtx')),
                     {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4',
                      'custom_offset': 'vrtx_ptr'})
         vmap = (ArrayBlock(child=IntegerBlock(length=4),
@@ -316,12 +316,12 @@ class GeoMesh(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk4 = (IntegerBlock(length=8, required_value=1),
                 {'is_unknown': True})
-        vertices = (ArrayBlock(length=(lambda ctx: ctx.data('num_vrtx'), 'num_vrtx'),
+        vertices = (ArrayBlock(length=lambda ctx: ctx.data('num_vrtx'),
                                child=Point3D_16()),
                     {'description': 'Vertex coordinates'})
         offset = (BytesBlock(length=(lambda ctx: 0 if ctx.data('num_vrtx') % 2 == 0 else 6, '(num_vrtx % 2) ? 6 : 0')),
                   {'description': 'Data offset, happens when `num_vrtx` is odd'})
-        polygons = (ArrayBlock(length=(lambda ctx: ctx.data('num_plgn'), 'num_plgn'),
+        polygons = (ArrayBlock(length=lambda ctx: ctx.data('num_plgn'),
                                child=GeoPolygon()),
                     {'description': 'Array of mesh polygons',
                      'custom_offset': '52 + ceil(num_vrtx/2)*12'})
