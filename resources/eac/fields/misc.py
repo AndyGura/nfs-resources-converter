@@ -1,3 +1,4 @@
+import math
 from io import BufferedReader, BytesIO
 from typing import Dict
 
@@ -38,6 +39,34 @@ class Point3D_16_7(DeclarativeCompoundBlock):
         x = RationalNumber(length=2, fraction_bits=7, is_signed=True)
         y = RationalNumber(length=2, fraction_bits=7, is_signed=True)
         z = RationalNumber(length=2, fraction_bits=7, is_signed=True)
+
+
+class Point3D_16_15_Normalized(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
+                                 + RationalNumber(length=2, fraction_bits=15, is_signed=True).schema['block_description']
+                                 + ', normalized. The unit is meter',
+            'inline_description': True,
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        x = RationalNumber(length=2, fraction_bits=15, is_signed=True)
+        y = RationalNumber(length=2, fraction_bits=15, is_signed=True)
+        z = RationalNumber(length=2, fraction_bits=15, is_signed=True)
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        length = math.sqrt(data['x']**2 + data['y']**2 + data['z']**2)
+        if length == 0:
+            data['z'] = 1.0
+        elif length != 1:
+            data['x'] /= length
+            data['y'] /= length
+            data['z'] /= length
+        return super().write(data, ctx, name)
 
 
 class Point3D_32(DeclarativeCompoundBlock):

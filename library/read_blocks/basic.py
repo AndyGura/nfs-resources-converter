@@ -41,7 +41,7 @@ class DataBlock(ABC):
         pass
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        raise BlockDefinitionException('Cannot estimate packed size of data block ' +
+        raise BlockDefinitionException(ctx, 'Cannot estimate packed size of data block ' +
                                        "__".join([x.__name__ for x in self.__class__.mro() if
                                                   x.__name__ not in ["object", "ABC"]]))
 
@@ -138,7 +138,7 @@ class BytesBlock(DataBlock):
             if self.allow_negative_length:
                 buffer.seek(self_len, SEEK_CUR)
                 return b''
-            raise BlockDefinitionException('Cannot read bytes block with negative length')
+            raise BlockDefinitionException(ctx, 'Cannot read bytes block with negative length')
         res = buffer.read(self_len)
         if len(res) < self_len:
             raise EndOfBufferException()

@@ -9,7 +9,11 @@ class DataIntegrityException(Exception):
 
 
 class BlockDefinitionException(Exception):
-    pass
+    def __init__(self, ctx, message):
+        if ctx is not None:
+            super().__init__(ctx.ctx_path + ': ' + message)
+        else:
+            super().__init__(message)
 
 
 class SerializationException(Exception):
