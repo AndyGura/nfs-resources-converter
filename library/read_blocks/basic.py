@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from io import BufferedReader, BytesIO, SEEK_CUR
 from typing import Dict, Any, Tuple, Literal
 
-from library.context import ReadContext, WriteContext
+from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
 from library.utils import represent_value_as_str
 
@@ -97,7 +97,10 @@ class BytesBlock(DataBlock):
             (_, doc_str) = self._length
             return doc_str
         if callable(self._length):
-            return "custom_func"
+            try:
+                return str(self._length(DocumentationContext()))
+            except:
+                return 'custom_func'
         else:
             return str(self._length)
 

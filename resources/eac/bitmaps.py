@@ -35,7 +35,7 @@ class Bitmap16Bit0565(AnyBitmapBlock, DeclarativeCompoundBlock):
         y = (IntegerBlock(length=2),
              {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
         bitmap = (ArrayBlock(child=Color16Bit0565Block(simplified=True),
-                             length=(lambda ctx: ctx.data('width') * ctx.data('height'), 'width*height')),
+                             length=lambda ctx: ctx.data('width') * ctx.data('height')),
                   {'description': 'Colors of bitmap pixels'})
 
 
@@ -65,9 +65,9 @@ class Bitmap4Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
              {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
         y = (IntegerBlock(length=2),
              {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
-        bitmap = (ArrayBlock(length=(lambda ctx: ctx.data('height'), 'height'),
+        bitmap = (ArrayBlock(length=lambda ctx: ctx.data('height'),
                              child=SubByteArrayBlock(bits_per_value=4,
-                                                     length=(lambda ctx: ctx.data('../width'), 'width'),
+                                                     length=lambda ctx: ctx.data('../width'),
                                                      value_deserialize_func=lambda x: 0xFFFFFF00
                                                                                       | transform_bitness(x, 4),
                                                      value_serialize_func=lambda x: (x & 0xFF) >> 4)),
@@ -102,15 +102,15 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         unk = (IntegerBlock(length=2),
                {'is_unknown': True})
         pivot_y = (IntegerBlock(length=2),
-                       {'description': 'For "horz" bitmap in TNFS FAM files: Y coordinate of the horizon line on '
-                                       'the image. Higher value = image as horizon will be put higher on the screen. '
-                                       'Seems to affect only open tracks'})
+                   {'description': 'For "horz" bitmap in TNFS FAM files: Y coordinate of the horizon line on '
+                                   'the image. Higher value = image as horizon will be put higher on the screen. '
+                                   'Seems to affect only open tracks'})
         x = (IntegerBlock(length=2),
              {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
         y = (IntegerBlock(length=2),
              {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
         bitmap = (ArrayBlock(child=IntegerBlock(length=1),
-                             length=(lambda ctx: ctx.data('width') * ctx.data('height'), 'width*height')),
+                             length=lambda ctx: ctx.data('width') * ctx.data('height')),
                   {'description': 'Color indexes of bitmap pixels. The actual colors are '
                                   'in assigned to this bitmap palette'})
 
@@ -132,7 +132,7 @@ class Bitmap32Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         y = (IntegerBlock(length=2),
              {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
         bitmap = (ArrayBlock(child=Color32BitBlock(),
-                             length=(lambda ctx: ctx.data('width') * ctx.data('height'), 'width*height')),
+                             length=lambda ctx: ctx.data('width') * ctx.data('height')),
                   {'description': 'Colors of bitmap pixels'})
 
 
@@ -153,7 +153,7 @@ class Bitmap16Bit1555(AnyBitmapBlock, DeclarativeCompoundBlock):
         y = (IntegerBlock(length=2),
              {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
         bitmap = (ArrayBlock(child=Color16Bit1555Block(),
-                             length=(lambda ctx: ctx.data('width') * ctx.data('height'), 'width*height')),
+                             length=lambda ctx: ctx.data('width') * ctx.data('height')),
                   {'description': 'Colors of bitmap pixels'})
 
 
@@ -174,5 +174,5 @@ class Bitmap24Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         y = (IntegerBlock(length=2),
              {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
         bitmap = (ArrayBlock(child=Color24BitLittleEndianField(),
-                             length=(lambda ctx: ctx.data('width') * ctx.data('height'), 'width*height')),
+                             length=lambda ctx: ctx.data('width') * ctx.data('height')),
                   {'description': 'Colors of bitmap pixels'})

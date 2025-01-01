@@ -1,7 +1,7 @@
 from io import BufferedReader, BytesIO
 from typing import Dict
 
-from library.context import ReadContext, WriteContext
+from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import EndOfBufferException
 from library.read_blocks.basic import DataBlock
 
@@ -30,7 +30,10 @@ class UTF8Block(DataBlock):
             (_, doc_str) = self._length
             return doc_str
         if callable(self._length):
-            return "custom_func"
+            try:
+                return str(self._length(DocumentationContext()))
+            except:
+                return 'custom_func'
         return str(self._length)
 
     def resolve_length(self, ctx):

@@ -27,7 +27,7 @@ class TestResource(DeclarativeCompoundBlock):
                           {'description': 'Variable string length',
                            'programmatic_value': lambda ctx: len(ctx.data('var_str'))})
         # TODO Should automatically determine min_length, max_length
-        var_str = (UTF8Block(length=(lambda ctx: ctx.data('var_str_length'), 'var_str_length')),
+        var_str = (UTF8Block(length=lambda ctx: ctx.data('var_str_length')),
                    {'description': 'Test text field with variable length'})
 
         # TODO nested compound block

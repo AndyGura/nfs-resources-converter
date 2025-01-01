@@ -64,7 +64,7 @@ class FfnFont(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk6 = (IntegerBlock(length=1, required_value=0),
                 {'is_unknown': True})
-        definitions = (ArrayBlock(child=GlyphDefinition(), length=(lambda ctx: ctx.data('num_glyphs'), 'num_glyphs')),
+        definitions = (ArrayBlock(child=GlyphDefinition(), length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})
         skip_bytes = (BytesBlock(length=(lambda ctx: ctx.data('bdata_ptr') - ctx.buffer.tell(),
                                          'up to offset bdata_ptr')),

@@ -22,7 +22,7 @@ class ShpiText(DeclarativeCompoundBlock):
                {'is_unknown': True})
         length = (IntegerBlock(length=4),
                   {'description': 'Text length'})
-        text = (UTF8Block(length=(lambda ctx: ctx.data('length'), 'length')),
+        text = (UTF8Block(length=lambda ctx: ctx.data('length')),
                 {'description': 'Text itself'})
 
 
