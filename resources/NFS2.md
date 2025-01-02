@@ -1,10 +1,12 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2024-12-19 01:27:46.630683+00:00*
+*Last time updated: 2025-01-02 00:18:29.011197+00:00*
 
 
 # **Info by file extensions** #
 
+**\*.COL** track additional data. [TrkMapCol](#trkmapcol)
+        
 **\*.GEO** car 3D model. [GeoGeometry](#geogeometry)
         
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
@@ -116,6 +118,16 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **vertex_indices** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Indexes of vertices |
 | 8 | **texture_name** | 4 | UTF-8 string | ID of texture from neighbouring QFS file |
 ## **Maps** ##
+### **TrkMapCol** ###
+#### **Size**: 16..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "COLL" | Resource ID |
+| 4 | **unk** | 4 | 4-bytes unsigned integer (little endian). Always == 0xb | - |
+| 8 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | File size |
+| 12 | **num_extrablocks** | 4 | 4-bytes unsigned integer (little endian) | Number of extrablocks |
+| 16 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+| 16 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [TrkExtraBlock](#trkextrablock) | - |
 ### **TrkMap** ###
 #### **Size**: 32..? bytes ####
 #### **Description**: Main track file ####
@@ -157,9 +169,58 @@ Did not find what you need or some given data is wrong? Please submit an
 | 78 | **np2** | 2 | 2-bytes unsigned integer (little endian) |  |
 | 80 | **np1** | 2 | 2-bytes unsigned integer (little endian) |  |
 | 82 | **unk1** | 6 | 6-bytes unsigned integer (little endian) | Unknown purpose |
-| 88 | **vertices** | (nv8+nv1)\*6 | Array of `(nv8+nv1)` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | - |
-| 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `(np4+np2+np1)` items<br/>Item type: [TrkPolygon](#trkpolygon) | - |
-| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **tmp** | custom_func | Bytes | - |
+| 88 | **vertices** | (nv8+nv1)\*6 | Array of `nv8+nv1` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | - |
+| 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `np4+np2+np1` items<br/>Item type: [TrkPolygon](#trkpolygon) | - |
+| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **unk2** | custom_func | Bytes | - |
+| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 + custom_func | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 + custom_func + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [TrkExtraBlock](#trkextrablock) | - |
+### **TrkExtraBlock** ###
+#### **Size**: 8..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Block size |
+| 4 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>2: textures_map<br/>4: block_numbers<br/>5: polygon_map<br/>6: median_polygons<br/>7: props_7<br/>8: prop_descriptions<br/>9: lanes<br/>13: road_vectors<br/>15: positions<br/>18: props_18</details> | - |
+| 5 | **unk** | 1 | 1-byte unsigned integer. Always == 0x0 | - |
+| 6 | **num_data_records** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 8 | **data_records** | ? | One of types:<br/>- Array of `num_data_records` items<br/>Item type: [TexturesMapExtraDataRecord](#texturesmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_data_records` items<br/>Item type: [PolygonMapExtraDataRecord](#polygonmapextradatarecord)<br/>- Bytes<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropDescriptionExtraDataRecord](#propdescriptionextradatarecord)<br/>- Bytes<br/>- Array of `num_data_records` items<br/>Item type: [RoadVectorsExtraDataRecord](#roadvectorsextradatarecord)<br/>- Bytes<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Bytes | - |
+### **TexturesMapExtraDataRecord** ###
+#### **Size**: 10 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **texture_number** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 2 | **alignment_data** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 4 | **rgb0** | 3 | 3-bytes unsigned integer (little endian) | - |
+| 7 | **rgb1** | 3 | 3-bytes unsigned integer (little endian) | - |
+### **PolygonMapExtraDataRecord** ###
+#### **Size**: 2 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **vectors_idx** | 1 | 1-byte unsigned integer | - |
+| 1 | **car_behavior** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: unk0<br/>1: unk1</details> | - |
+### **PropExtraDataRecord** ###
+#### **Size**: 4..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size |
+| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: static_prop<br/>3: animated_prop</details> | - |
+| 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | - |
+| 4 | **position** | ? | One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter<br/>- Bytes | - |
+### **PropDescriptionExtraDataRecord** ###
+#### **Size**: 8..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Block size |
+| 4 | **num_vertices** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 6 | **num_polygons** | 2 | 2-bytes unsigned integer (little endian) |  |
+| 8 | **vertices** | num_vertices\*6 | Array of `num_vertices` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | - |
+| 8 + num_vertices\*6 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [TrkPolygon](#trkpolygon) | - |
+| 8 + num_vertices\*6 + num_polygons\*8 | **padding** | custom_func | Bytes | - |
+### **RoadVectorsExtraDataRecord** ###
+#### **Size**: 12 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized. The unit is meter | - |
+| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized. The unit is meter | - |
 ### **TrkPolygon** ###
 #### **Size**: 8 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |

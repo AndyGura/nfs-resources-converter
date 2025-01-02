@@ -134,7 +134,9 @@ EXPORT_RESOURCES = {
     'nfs2': {
         'file_name': 'NFS2.md',
         'title': 'NFS2 file specs',
-        'file_list': f"""**\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.TrkMapCol())}
+        
+**\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
         
 **\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
@@ -160,9 +162,16 @@ EXPORT_RESOURCES = {
                 geometries.GeoPolygon(),
             ],
             'Maps': [
+                maps.TrkMapCol(),
                 maps.TrkMap(),
                 maps.TrkSuperBlock(),
                 maps.TrkBlock(),
+                maps.TrkExtraBlock(),
+                maps.TexturesMapExtraDataRecord(),
+                maps.PolygonMapExtraDataRecord(),
+                maps.PropExtraDataRecord(),
+                maps.PropDescriptionExtraDataRecord(),
+                maps.RoadVectorsExtraDataRecord(),
                 maps.TrkPolygon(),
             ],
             # 'Physics': [
