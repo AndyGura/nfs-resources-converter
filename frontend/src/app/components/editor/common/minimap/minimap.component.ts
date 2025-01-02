@@ -8,7 +8,7 @@ import {
   OnDestroy,
   Output,
 } from '@angular/core';
-import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
 import { Pnt2, Pnt3, Point2, Point3 } from '@gg-web-engine/core';
 
@@ -52,6 +52,8 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
   }>({ x: 0, y: 0, width: 100, height: 100 });
   mapPolyline$: BehaviorSubject<string> = new BehaviorSubject<string>('');
   mapPointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
+
+  private isShiftPressed = false;
 
   get trackLength$(): Observable<number> {
     return this._roadSpline$.pipe(
@@ -107,6 +109,20 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    fromEvent(window, 'keydown')
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe(event => {
+        if ((event as KeyboardEvent).key === 'Shift') {
+          this.isShiftPressed = true;
+        }
+      });
+    fromEvent(window, 'keyup')
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe(event => {
+        if ((event as KeyboardEvent).key === 'Shift') {
+          this.isShiftPressed = false;
+        }
+      });
     combineLatest([this._roadSpline$, this._projection$])
       .pipe(takeUntil(this.destroyed$))
       .subscribe(([roadSpline, _]) => {
@@ -197,10 +213,8 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
     this.isDragging = false;
   }
 
-  private getRoadSplineProjectionZ(pos: Point2): number {
+  private getClosestProjectedLineIndex(pos: Point2): [number, number] {
     const roadSplineProjected = this._roadSplineProjected$.getValue();
-    if (roadSplineProjected.length < 2) return 0;
-
     let closestLineIndex = 0;
     let minDistance = Number.MAX_SAFE_INTEGER;
     for (let i = 1; i < roadSplineProjected.length; i++) {
@@ -215,13 +229,20 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
         closestLineIndex = i - 1;
       }
     }
-
-    const roadSpline = this._roadSpline$.getValue();
-    const p1 = roadSpline[closestLineIndex];
-    const p2 = roadSpline[closestLineIndex + 1];
+    const p1 = roadSplineProjected[closestLineIndex];
+    const p2 = roadSplineProjected[closestLineIndex + 1];
     const d = Pnt2.sub(p2, p1);
     const t = Math.max(0, Math.min(1, ((pos.x - p1.x) * d.x + (pos.y - p1.y) * d.y) / Pnt2.lenSq(d)));
-    return this.projectionZ(p1) + t * (this.projectionZ(p2) - this.projectionZ(p1));
+    return [closestLineIndex, t];
+  }
+
+  private getRoadSplineProjectionZ(pos: Point2): number {
+    const [closestLineIndex, t] = this.getClosestProjectedLineIndex(pos);
+    const roadSpline = this._roadSpline$.getValue();
+    return (
+      this.projectionZ(roadSpline[closestLineIndex]) +
+      t * (this.projectionZ(roadSpline[closestLineIndex + 1]) - this.projectionZ(roadSpline[closestLineIndex]))
+    );
   }
 
   private updatePointer(event: MouseEvent) {
@@ -233,12 +254,27 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
       };
       const scalingSquare = this.scalingSquare$.getValue();
       const svgSize = this.svgSize$.getValue();
-      const newPtr = {
+
+      const oldPtr = this._pointerProjected$.getValue() || Pnt2.O;
+      let newPtr = {
         x: localPos.x * (scalingSquare.width / svgSize.x) + scalingSquare.x,
         y: localPos.y * (scalingSquare.height / svgSize.y) + scalingSquare.y,
       };
-      const currentHeight = this.getRoadSplineProjectionZ(this._pointerProjected$.getValue() || Pnt2.O);
-      const elevation = this.projectionZ(this._pointer$.getValue() || Pnt3.O) - currentHeight;
+
+      if (this.isShiftPressed) {
+        const roadSplineProjected = this._roadSplineProjected$.getValue();
+        const [oldClosestLineIndex, oldT] = this.getClosestProjectedLineIndex(oldPtr);
+        const [newClosestLineIndex, newT] = this.getClosestProjectedLineIndex(newPtr);
+        const oldOffsetVector = Pnt2.sub(
+          oldPtr,
+          Pnt2.lerp(roadSplineProjected[oldClosestLineIndex], roadSplineProjected[oldClosestLineIndex + 1], oldT),
+        );
+        newPtr = Pnt2.add(
+          oldOffsetVector,
+          Pnt2.lerp(roadSplineProjected[newClosestLineIndex], roadSplineProjected[newClosestLineIndex + 1], newT),
+        );
+      }
+      const elevation = this.projectionZ(this._pointer$.getValue() || Pnt3.O) - this.getRoadSplineProjectionZ(oldPtr);
       this.pointerChange.emit(this.unproject(newPtr, elevation + this.getRoadSplineProjectionZ(newPtr)));
     }
   }
