@@ -357,7 +357,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   previewFamLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   private terrainChunksObjLocation: string | undefined;
 
-  pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
+  pointer$: BehaviorSubject<Point3 | null> = new BehaviorSubject<Point3 | null>(null);
 
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   selectedSplineItem$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
@@ -417,7 +417,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     return (
       (this.resource?.data.road_spline || [])
         .filter((_: any, i: number) => i < (this.resource?.data.num_chunks * 4 || 0))
-        .map((d: any) => d.position) || []
+        .map((d: any) => ({ x: d.position.x, y: d.position.z, z: d.position.y })) || []
     );
   }
 
@@ -625,6 +625,13 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     } else {
       this.terrainChunksObjLocation = undefined;
     }
+  }
+
+  onPointerChange(pos: Point3) {
+    if (!this.renderer) {
+      return;
+    }
+    this.renderer.position = pos;
   }
 
   private async loadPreview() {
