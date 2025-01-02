@@ -6,7 +6,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock,
                                  UTF8Block, BytesBlock, ArrayBlock, DataBlock, DelegateBlock, CompoundBlock)
 from library.read_blocks.numbers import EnumByteBlock
-from resources.eac.fields.misc import Point3D_32, Point3D_16, Point3D_16_15_Normalized
+from resources.eac.fields.misc import Point3D
 
 
 class TrkPolygon(DeclarativeCompoundBlock):
@@ -43,19 +43,20 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
                                          ])
         prop_descr_idx = IntegerBlock(length=1, is_signed=False)
         position = DelegateBlock(possible_blocks=[
-            Point3D_32(),
+            Point3D(child_length=4, fraction_bits=16),
             CompoundBlock(fields=[('num_frames', IntegerBlock(length=2, is_signed=False), {}),
                                   ('unk', IntegerBlock(length=2), {'is_unknown': True}),
                                   ('frames', ArrayBlock(length=lambda ctx: ctx.data('num_frames'),
-                                                        child=CompoundBlock(fields=[('position', Point3D_32(), {}),
-                                                                                    ('unk0', IntegerBlock(length=2),
-                                                                                     {'is_unknown': True}),
-                                                                                    ('unk1', IntegerBlock(length=2),
-                                                                                     {'is_unknown': True}),
-                                                                                    ('unk2', IntegerBlock(length=2),
-                                                                                     {'is_unknown': True}),
-                                                                                    ('unk3', IntegerBlock(length=2),
-                                                                                     {'is_unknown': True})])), {})]),
+                                                        child=CompoundBlock(fields=[
+                                                            ('position', Point3D(child_length=4, fraction_bits=16), {}),
+                                                            ('unk0', IntegerBlock(length=2),
+                                                             {'is_unknown': True}),
+                                                            ('unk1', IntegerBlock(length=2),
+                                                             {'is_unknown': True}),
+                                                            ('unk2', IntegerBlock(length=2),
+                                                             {'is_unknown': True}),
+                                                            ('unk3', IntegerBlock(length=2),
+                                                             {'is_unknown': True})])), {})]),
             BytesBlock(length=lambda ctx: ctx.data('block_size') - 4)],
             choice_index=lambda ctx, **_: (0 if ctx.data('type') == 'static_prop' else
                                            1 if ctx.data('type') == 'animated_prop' else 2)
@@ -72,7 +73,7 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
         num_polygons = (IntegerBlock(length=2, is_signed=False),
                         {'description': '',
                          'programmatic_value': lambda ctx: len(ctx.data('polygons'))})
-        vertices = ArrayBlock(child=Point3D_16(),
+        vertices = ArrayBlock(child=Point3D(child_length=2, fraction_bits=8),
                               length=lambda ctx: ctx.data('num_vertices'))
         polygons = ArrayBlock(child=TrkPolygon(),
                               length=lambda ctx: ctx.data('num_polygons'))
@@ -81,8 +82,8 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
 
 class RoadVectorsExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = Point3D_16_15_Normalized()
-        forward = Point3D_16_15_Normalized()
+        normal = Point3D(child_length=2, fraction_bits=15, normalized=True)
+        forward = Point3D(child_length=2, fraction_bits=15, normalized=True)
 
 
 class TrkExtraBlock(DeclarativeCompoundBlock):
@@ -139,7 +140,7 @@ class TrkBlock(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         block_idx = (IntegerBlock(length=4, is_signed=False),
                      {'description': 'Block index (serial number)'})
-        bounds = (ArrayBlock(child=Point3D_32(), length=4),
+        bounds = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=16), length=4),
                   {'description': 'Block bounding rectangle'})
         extrablocks_offset = (IntegerBlock(length=4, is_signed=False),
                               {'description': ''})
@@ -159,7 +160,7 @@ class TrkBlock(DeclarativeCompoundBlock):
                {'description': ''})
         unk1 = (IntegerBlock(length=6),
                 {'is_unknown': True})
-        vertices = ArrayBlock(child=Point3D_16(),
+        vertices = ArrayBlock(child=Point3D(child_length=2, fraction_bits=8),
                               length=lambda ctx: ctx.data('nv8') + ctx.data('nv1'))
         polygons = ArrayBlock(child=TrkPolygon(),
                               length=lambda ctx: ctx.data('np4') + ctx.data('np2') + ctx.data('np1'))
@@ -218,7 +219,7 @@ class TrkMap(DeclarativeCompoundBlock):
                       {'description': 'Number of blocks (nblk)'})
         superblock_offsets = ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
                                         length=lambda ctx: ctx.data('num_superblocks'))
-        block_positions = (ArrayBlock(child=Point3D_32(),
+        block_positions = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=16),
                                       length=lambda ctx: ctx.data('num_blocks')),
                            {'description': 'Coordinates of road spline points in 3D space'})
         skip_bytes = (BytesBlock(length=(lambda ctx: ctx.data('superblock_offsets/0') - ctx.buffer.tell(),

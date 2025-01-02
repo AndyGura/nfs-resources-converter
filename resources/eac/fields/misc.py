@@ -3,7 +3,7 @@ from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, DataBlock, CompoundBlock
+from library.read_blocks import IntegerBlock, DataBlock, CompoundBlock
 from resources.eac.fields.numbers import RationalNumber
 
 
@@ -15,42 +15,30 @@ class Point3D(CompoundBlock):
         return {
             **super().schema,
             'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
-                                 + schema['fields'][0]['schema']['block_description'],
+                                 + schema['fields'][0]['schema']['block_description'] + (
+                                     ', normalized' if self.normalized else ''
+                                 ),
             'inline_description': True,
         }
 
-    def __init__(self, child_length, fraction_bits=0, is_signed=True, **kwargs):
+    def __init__(self, child_length, fraction_bits=0, is_signed=True, normalized=False, **kwargs):
         child = RationalNumber(length=child_length, fraction_bits=fraction_bits, is_signed=is_signed)
+        self.normalized = normalized
         super().__init__(fields=[('x', child, {}),
                                  ('y', child, {}),
                                  ('z', child, {})], **kwargs)
 
-class Point3D_16_15_Normalized(DeclarativeCompoundBlock):
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
-                                 + RationalNumber(length=2, fraction_bits=15, is_signed=True).schema['block_description']
-                                 + ', normalized. The unit is meter',
-            'inline_description': True,
-        }
-
-    class Fields(DeclarativeCompoundBlock.Fields):
-        x = RationalNumber(length=2, fraction_bits=15, is_signed=True)
-        y = RationalNumber(length=2, fraction_bits=15, is_signed=True)
-        z = RationalNumber(length=2, fraction_bits=15, is_signed=True)
-
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        length = math.sqrt(data['x']**2 + data['y']**2 + data['z']**2)
-        if length == 0:
-            data['z'] = 1.0
-        elif length != 1:
-            data['x'] /= length
-            data['y'] /= length
-            data['z'] /= length
+        if self.normalized:
+            length = math.sqrt(data['x'] ** 2 + data['y'] ** 2 + data['z'] ** 2)
+            if length == 0:
+                data['z'] = 1.0
+            elif length != 1:
+                data['x'] /= length
+                data['y'] /= length
+                data['z'] /= length
         return super().write(data, ctx, name)
+
 
 class FenceType(IntegerBlock):
     @property
