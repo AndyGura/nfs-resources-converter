@@ -402,8 +402,8 @@ with open('resources/README.md', 'w') as f:
         f.write(f"- [{game['title']}]({game['file_name']})\n\n")
 
 for game in EXPORT_RESOURCES.values():
-    with open('resources/' + game['file_name'], 'w') as f:
-        f.write(f"""# **{game['title']}** #
+    old_contents = open('resources/' + game['file_name'], 'r').read()
+    new_contents = f"""# **{game['title']}** #
 
 *Last time updated: {datetime.now(timezone.utc)}*
 
@@ -416,62 +416,68 @@ Did not find what you need or some given data is wrong? Please submit an
 [issue](https://github.com/AndyGura/nfs-resources-converter/issues/new)
 
 
-# **Block specs** #""")
-        possible_blocks_filter = [res.__class__ for resources in game['blocks'].values() for res in resources]
-        for (heading, resources) in game['blocks'].items():
-            f.write(f'\n## **{heading}** ##')
-            for resource in resources:
-                schema = resource.schema
-                f.write(f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###')
-                f.write(f'\n#### **Size**: {render_value_doc_str(resource.size_doc_str)} bytes ####')
-                if schema['block_description']:
-                    f.write(f'\n#### **Description**: {schema["block_description"]} ####')
-                f.write(f'\n| Offset | Name | Size (bytes) | Type | Description |')
-                f.write(f'\n| --- | --- | --- | --- | --- |')
-                offset_int = 0
-                offset_lbl = ''
-                for key, field in resource.field_blocks:
-                    extras = resource.field_extras_map[key]
-                    if extras.get('custom_offset'):
-                        try:
-                            offset_int = int(extras.get('custom_offset'))
-                            offset_lbl = ''
-                        except (ValueError, TypeError):
-                            offset_int = 0
-                            offset_lbl = extras.get('custom_offset')
-                    if offset_int == 0 and offset_lbl:
-                        offset = offset_lbl
-                        if offset.startswith('+'):
-                            offset = offset[1:]
-                    else:
-                        offset = str(offset_int) + offset_lbl
-                    f.write(f'\n| {"-" if False else render_value_doc_str(offset)} | '
-                            f'**{key}** | '
-                            f'{render_value_doc_str(field.size_doc_str)} | '
-                            f'{render_type(field, possible_blocks_filter)} | '
-                            f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
+# **Block specs** #"""
+    possible_blocks_filter = [res.__class__ for resources in game['blocks'].values() for res in resources]
+    for (heading, resources) in game['blocks'].items():
+        new_contents += f'\n## **{heading}** ##'
+        for resource in resources:
+            schema = resource.schema
+            new_contents += f'\n### **{resource.__class__.__name__.replace("Resource", "")}** ###'
+            new_contents += f'\n#### **Size**: {render_value_doc_str(resource.size_doc_str)} bytes ####'
+            if schema['block_description']:
+                new_contents += f'\n#### **Description**: {schema["block_description"]} ####'
+            new_contents += f'\n| Offset | Name | Size (bytes) | Type | Description |'
+            new_contents += f'\n| --- | --- | --- | --- | --- |'
+            offset_int = 0
+            offset_lbl = ''
+            for key, field in resource.field_blocks:
+                extras = resource.field_extras_map[key]
+                if extras.get('custom_offset'):
                     try:
-                        offset_int += int(field.size_doc_str)
+                        offset_int = int(extras.get('custom_offset'))
+                        offset_lbl = ''
                     except (ValueError, TypeError):
-                        if '..' in field.size_doc_str and (offset_lbl == '' or '..' in offset_lbl):
-                            [fmn, fmx] = field.size_doc_str.split('..')
-                            if offset_lbl == '':
-                                if offset_int == 0:
-                                    offset_lbl = field.size_doc_str
-                                else:
-                                    try:
-                                        mn = str(int(fmn) + offset_int)
-                                        mx = str(int(fmx) + offset_int) if fmx != '?' else '?'
-                                        offset_int = 0
-                                        offset_lbl = f'{mn}..{mx}'
-                                    except:
-                                        offset_int = 0
-                                        offset_lbl = '?'
+                        offset_int = 0
+                        offset_lbl = extras.get('custom_offset')
+                if offset_int == 0 and offset_lbl:
+                    offset = offset_lbl
+                    if offset.startswith('+'):
+                        offset = offset[1:]
+                else:
+                    offset = str(offset_int) + offset_lbl
+                new_contents += (f'\n| {"-" if False else render_value_doc_str(offset)} | '
+                                 f'**{key}** | '
+                                 f'{render_value_doc_str(field.size_doc_str)} | '
+                                 f'{render_type(field, possible_blocks_filter)} | '
+                                 f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
+                try:
+                    offset_int += int(field.size_doc_str)
+                except (ValueError, TypeError):
+                    if '..' in field.size_doc_str and (offset_lbl == '' or '..' in offset_lbl):
+                        [fmn, fmx] = field.size_doc_str.split('..')
+                        if offset_lbl == '':
+                            if offset_int == 0:
+                                offset_lbl = field.size_doc_str
                             else:
-                                [omn, omx] = offset_lbl.split('..')
-                                mn = str(int(fmn) + int(omn))
-                                mx = str(int(fmx) + int(omx)) if (fmx != '?' and omx != '?') else '?'
-                                offset_lbl = f'{mn}..{mx}'
+                                try:
+                                    mn = str(int(fmn) + offset_int)
+                                    mx = str(int(fmx) + offset_int) if fmx != '?' else '?'
+                                    offset_int = 0
+                                    offset_lbl = f'{mn}..{mx}'
+                                except:
+                                    offset_int = 0
+                                    offset_lbl = '?'
                         else:
-                            offset_lbl += ' + ' + field.size_doc_str
-        f.write('\n')
+                            [omn, omx] = offset_lbl.split('..')
+                            mn = str(int(fmn) + int(omn))
+                            mx = str(int(fmx) + int(omx)) if (fmx != '?' and omx != '?') else '?'
+                            offset_lbl = f'{mn}..{mx}'
+                    else:
+                        offset_lbl += ' + ' + field.size_doc_str
+    new_contents += '\n'
+
+    if old_contents.split('\n')[3:] == new_contents.split('\n')[3:]:
+        print('Skip writing ' + game['file_name'] + ': no changes')
+    else:
+        with open('resources/' + game['file_name'], 'w') as f:
+            f.write(new_contents)
