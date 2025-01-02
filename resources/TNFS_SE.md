@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2024-09-29 22:39:07.690861+00:00*
+*Last time updated: 2025-01-02 00:50:57.971895+00:00*
 
 
 # **Info by file extensions** #
@@ -112,7 +112,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | ren_ord_ptr | **render_order** | num_ren_ord\*28 | Array of `num_ren_ord` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
 | fxp_ptr | **fx_polys** | num_fxp\*12 | Array of `num_fxp` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Indexes of polygons which participate in visual effects such as engine smoke, dust particles, tyre trails? Presented in car CFM-s.  |
 | lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Marks special polygons for the game, where it should change texture on runtime such as tyres, tail lights |
-| vrtx_ptr | **vertices** | num_vrtx\*12 | Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part. The unit is meter | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4 |
+| vrtx_ptr | **vertices** | num_vrtx\*12 | Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. The unit is meter |
 | vmap_ptr | **vmap** | ? | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertices. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs |
 ### **OripPolygon** ###
 #### **Size**: 12 bytes ####
@@ -154,7 +154,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 6 | **num_chunks** | 2 | 2-bytes unsigned integer (little endian) | number of terrain chunks (max 600) |
 | 8 | **unk0** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 10 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x6 | Unknown purpose |
-| 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Unknown purpose |
+| 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 24 | **unknowns0** | 12 | Array of `12` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 36 | **chunks_size** | 4 | 4-bytes unsigned integer (little endian) | Size of terrain array in bytes (num_chunks * 0x120) |
 | 40 | **rail_tex_id** | 4 | 4-bytes unsigned integer (little endian) | Do not know what is "railing". Doesn't look like a fence texture id, tested in TR1_001.FAM |
@@ -182,7 +182,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 5 | **unk0** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Unknown, DOS version of TNFS SE does not seem to read from this address at all. Appears to be a pair of 4-bit numbers, just like `num_lanes` and `verge_slide`, since all maps have value one of [0, 1, 16, 17], which seems to be the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1]) |
 | 6 | **verge_slide** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | A slidiness of road areas between verge distance and barrier. First number for left verge, second number for right verge. Values above 3 cause unbearable slide in the game and make it impossible to return back to road. High values around maximum (15) cause lags and even crashes |
 | 7 | **item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>8: unk_cl3_forest<br/>9: left_tunnel_A4_A7<br/>11: unk_autumn_valley_tribunes<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>16: unk_al1_uphill<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
-| 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | Coordinates of this point in 3D space |
+| 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Coordinates of this point in 3D space. The unit is meter |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
 | 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
@@ -208,7 +208,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **prop_descr_idx** | 1 | 1-byte unsigned integer | Index of prop description, which should be used for this prop. Sometimes has too big value, I use object index % amount of prop descriptions for now and it seems to look good |
 | 5 | **rotation** | 1 | EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees | Y-rotation, relative to rotation of referenced road spline vertex |
 | 6 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 10 | **position** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Position in 3D space, relative to position of referenced road spline vertex |
+| 10 | **position** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Position in 3D space, relative to position of referenced road spline vertex. The unit is meter |
 ### **TerrainEntry** ###
 #### **Size**: 288 bytes ####
 #### **Description**: The terrain model around 4 spline points. It has good explanation in original [Denis Auroux NFS file specs](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) ####
@@ -220,7 +220,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 12 | **unknown** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 13 | **fence** | 1 | TNFS fence type field. fence type: [lrtttttt]<br/>l - flag is add left fence<br/>r - flag is add right fence<br/>tttttt - texture id | - |
 | 14 | **texture_ids** | 10 | Array of `10` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
-| 24 | **rows** | 264 | Array of `4` items<br/>Item size: 66 bytes<br/>Item type: Array of `11` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part. The unit is meter | Terrain vertex positions |
+| 24 | **rows** | 264 | Array of `4` items<br/>Item size: 66 bytes<br/>Item type: Array of `11` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part | Terrain vertex positions. The unit is meter |
 ### **AIEntry** ###
 #### **Size**: 3 bytes ####
 #### **Description**: The record describing AI behavior at given terrain chunk ####

@@ -9,7 +9,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  DelegateBlock,
                                  BitFlagsBlock)
 from library.read_blocks.strings import NullTerminatedUTF8Block
-from resources.eac.fields.misc import Point3D_32_7, Point3D_32_4, Point3D_16, Point3D_32
+from resources.eac.fields.misc import Point3D
 
 
 class OripPolygon(DeclarativeCompoundBlock):
@@ -196,10 +196,10 @@ class OripGeometry(DeclarativeCompoundBlock):
                     'programmatic_value': lambda ctx: len(ctx.data('fx_polys'))})
         fxp_ptr = (IntegerBlock(length=4),
                    {'description': 'Offset of fx_polys block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + '
-                                    'num_ren_ord*28`',
-                     'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
-                                                       + len(ctx.data('tex_nmb')) * 20
-                                                       + len(ctx.data('render_order')) * 28})
+                                   'num_ren_ord*28`',
+                    'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
+                                                      + len(ctx.data('tex_nmb')) * 20
+                                                      + len(ctx.data('render_order')) * 28})
         num_lbl = (IntegerBlock(length=4),
                    {'description': 'Amount of items in labels block',
                     'programmatic_value': lambda ctx: len(ctx.data('labels'))})
@@ -250,12 +250,14 @@ class OripGeometry(DeclarativeCompoundBlock):
                   {'description': 'Marks special polygons for the game, where it should change texture on runtime such '
                                   'as tyres, tail lights',
                    'custom_offset': 'lbl_ptr'})
-        vertices = (ArrayBlock(child=DelegateBlock(possible_blocks=[Point3D_32_7(), Point3D_32_4()],
+        vertices = (ArrayBlock(child=DelegateBlock(possible_blocks=[Point3D(child_length=4, fraction_bits=7),
+                                                                    Point3D(child_length=4, fraction_bits=4)],
                                                    choice_index=lambda ctx, **_: (
                                                        0 if ctx.buffer.name.endswith('.CFM')
                                                        else 1)),
                                length=lambda ctx: ctx.data('num_vrtx')),
-                    {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4',
+                    {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. '
+                                    'The unit is meter',
                      'custom_offset': 'vrtx_ptr'})
         vmap = (ArrayBlock(child=IntegerBlock(length=4),
                            length=(lambda ctx: floor(
@@ -304,8 +306,8 @@ class GeoMesh(DeclarativeCompoundBlock):
                     {'description': 'number of vertices in block'})
         num_plgn = (IntegerBlock(length=4),
                     {'description': 'number of polygons in block'})
-        pos = (Point3D_32(),
-               {'description': 'position of part in 3d space'})
+        pos = (Point3D(child_length=4, fraction_bits=16),
+               {'description': 'position of part in 3d space. The unit is meter'})
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=4),
@@ -317,8 +319,8 @@ class GeoMesh(DeclarativeCompoundBlock):
         unk4 = (IntegerBlock(length=8, required_value=1),
                 {'is_unknown': True})
         vertices = (ArrayBlock(length=lambda ctx: ctx.data('num_vrtx'),
-                               child=Point3D_16()),
-                    {'description': 'Vertex coordinates'})
+                               child=Point3D(child_length=2, fraction_bits=8)),
+                    {'description': 'Vertex coordinates. The unit is meter'})
         offset = (BytesBlock(length=(lambda ctx: 0 if ctx.data('num_vrtx') % 2 == 0 else 6, '(num_vrtx % 2) ? 6 : 0')),
                   {'description': 'Data offset, happens when `num_vrtx` is odd'})
         polygons = (ArrayBlock(length=lambda ctx: ctx.data('num_plgn'),

@@ -9,7 +9,7 @@ from library.read_blocks import (BitFlagsBlock,
                                  DelegateBlock,
                                  SubByteArrayBlock)
 from library.read_blocks.numbers import EnumByteBlock
-from resources.eac.fields.misc import FenceType, Point3D_32, Point3D_16_7, Point3D_16
+from resources.eac.fields.misc import FenceType, Point3D
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
 
 
@@ -66,8 +66,8 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                                (18, 'water_audio'),  # OpenNFS1: water right channel
                                                ]),
                      {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features'})
-        position = (Point3D_32(),
-                    {'description': 'Coordinates of this point in 3D space'})
+        position = (Point3D(child_length=4, fraction_bits=16),
+                    {'description': 'Coordinates of this point in 3D space. The unit is meter'})
         slope = (Nfs1Angle14(),
                  {'description': 'Slope of the road at this point (angle if road goes up or down)'})
         slant_a = (Nfs1Angle14(),
@@ -230,8 +230,9 @@ class MapProp(DeclarativeCompoundBlock):
                     {'description': 'Y-rotation, relative to rotation of referenced road spline vertex'})
         flags = (IntegerBlock(length=4),
                  {'is_unknown': True})
-        position = (Point3D_16(),
-                    {'description': 'Position in 3D space, relative to position of referenced road spline vertex'})
+        position = (Point3D(child_length=2, fraction_bits=8),
+                    {'description': 'Position in 3D space, relative to position of referenced road spline vertex. '
+                                    'The unit is meter'})
 
 
 class TerrainEntry(DeclarativeCompoundBlock):
@@ -252,8 +253,8 @@ class TerrainEntry(DeclarativeCompoundBlock):
         fence = FenceType()
         texture_ids = (ArrayBlock(child=IntegerBlock(length=1), length=10),
                        {'description': 'Texture ids to be used for terrain'})
-        rows = (ArrayBlock(child=ArrayBlock(child=Point3D_16_7(), length=11), length=4),
-                {'description': 'Terrain vertex positions'})
+        rows = (ArrayBlock(child=ArrayBlock(child=Point3D(child_length=2, fraction_bits=7), length=11), length=4),
+                {'description': 'Terrain vertex positions. The unit is meter'})
 
 
 class AIEntry(DeclarativeCompoundBlock):
@@ -312,7 +313,7 @@ class TriMap(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=2, required_value=6),
                 {'is_unknown': True})
-        position = (Point3D_32(),
+        position = (Point3D(child_length=4, fraction_bits=16),
                     {'is_unknown': True})
         unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, required_value=0), length=12),
                      {'is_unknown': True})
