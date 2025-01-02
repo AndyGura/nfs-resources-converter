@@ -36,6 +36,7 @@
     <app-minimap [roadSpline]='roadSpline'
                  [pointer]='pointer$ | async'
                  [splineClosed]='!isOpenedTrack'
+                 [projection]='"nz"'
                  (pointerChange)='onPointerChange($event)'></app-minimap>
   </div>
 </div>
