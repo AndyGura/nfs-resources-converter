@@ -30,7 +30,6 @@ import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, t
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import {
   AmbientLight,
-  ClampToEdgeWrapping,
   CubeReflectionMapping,
   DoubleSide,
   Group,
@@ -354,7 +353,7 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   previewQfsLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   private terrainChunksObjLocation: string | undefined;
 
-  pointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
+  pointer$: BehaviorSubject<Point3 | null> = new BehaviorSubject<Point3 | null>(null);
 
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   qfsPath: string | null = null;
@@ -374,10 +373,6 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
   ) {}
-
-  get roadSpline(): Point3[] {
-    return this.resource?.data.block_positions || [];
-  }
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld(new ThreeSceneComponent(), {
@@ -462,6 +457,11 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.world.start();
 
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
+      this.roadPath = this.resource?.data.block_positions.map((p: Point3) => ({
+        x: p.x,
+        y: p.z,
+        z: p.y,
+      }));
       this.previewLoading$.next(true);
       if (res) {
         this.previewQfsLocation$.next(res.id.substring(0, res.id.indexOf('.TRK')) + '0.QFS');
@@ -480,6 +480,11 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         debounceTime(3000),
       )
       .subscribe(async () => {
+        this.roadPath = this.resource?.data.block_positions.map((p: Point3) => ({
+          x: p.x,
+          y: p.z,
+          z: p.y,
+        }));
         this.previewLoading$.next(true);
         await this.postTmpUpdates(this.resource?.id);
         await this.loadPreview();
@@ -555,12 +560,14 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
   }
 
+  onPointerChange(pos: Point3) {
+    if (!this.renderer) {
+      return;
+    }
+    this.renderer.position = pos;
+  }
+
   private async loadPreview() {
-    this.roadPath = this.resource?.data.block_positions.map((p: Point3) => ({
-      x: p.x,
-      y: p.z,
-      z: p.y,
-    }));
     if (!this.terrainChunksObjLocation || !this.roadPath) {
       return;
     }

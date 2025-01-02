@@ -20,9 +20,11 @@
              [ngModel]='selectedSplineIndex$ | async'
              (ngModelChange)='selectedSplineIndex$.next($event)'>
     </mat-form-field>
-    <app-tri-minimap [roadSpline]='roadSpline'
-                     [pointer]='pointer$ | async'
-                     [splineClosed]='true'></app-tri-minimap>
+    <app-minimap [roadSpline]='roadPath || []'
+                 [pointer]='pointer$ | async'
+                 [splineClosed]='true'
+                 [projection]='"nz"'
+                 (pointerChange)='onPointerChange($event)'></app-minimap>
   </div>
 </div>
 <app-compound-block-ui [resource]='_resource$ | async'></app-compound-block-ui>
