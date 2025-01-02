@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2024-08-17 03:48:24.441533+00:00*
+*Last time updated: 2025-01-02 00:50:58.077421+00:00*
 
 
 # **Info by file extensions** #
@@ -91,13 +91,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **num_vrtx** | 4 | 4-bytes unsigned integer (little endian) | number of vertices in block |
 | 4 | **num_plgn** | 4 | 4-bytes unsigned integer (little endian) | number of polygons in block |
-| 8 | **pos** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part. The unit is meter | position of part in 3d space |
+| 8 | **pos** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | position of part in 3d space. The unit is meter |
 | 20 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 24 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 28 | **unk2** | 8 | 8-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 36 | **unk3** | 8 | 8-bytes unsigned integer (little endian). Always == 0x1 | Unknown purpose |
 | 44 | **unk4** | 8 | 8-bytes unsigned integer (little endian). Always == 0x1 | Unknown purpose |
-| 52 | **vertices** | num_vrtx\*6 | Array of `num_vrtx` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part. The unit is meter | Vertex coordinates |
+| 52 | **vertices** | num_vrtx\*6 | Array of `num_vrtx` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertex coordinates. The unit is meter |
 | 52 + num_vrtx\*6 | **offset** | (num_vrtx % 2) ? 6 : 0 | Bytes | Data offset, happens when `num_vrtx` is odd |
 | 52 + ceil(num_vrtx/2)\*12 | **polygons** | num_plgn\*12 | Array of `num_plgn` items<br/>Item type: [GeoPolygon](#geopolygon) | Array of mesh polygons |
 ### **GeoPolygon** ###
