@@ -196,7 +196,7 @@ class ShpiBlock(BaseArchiveBlock):
                                                       inline_description='8-bytes record, first 4 bytes is a UTF-8 '
                                                                          'string, last 4 bytes is an unsigned integer '
                                                                          '(little-endian)'),
-                                  length=(lambda ctx: ctx.data('num_items'), 'num_items')),
+                                  length=lambda ctx: ctx.data('num_items')),
                        {'description': 'An array of items, each of them represents name of SHPI item (image or palette)'
                                        ' and offset to item data in file, relatively to SHPI block start (where '
                                        'resource id string is presented). Names are not always unique'})
@@ -286,7 +286,7 @@ class WwwwBlock(BaseArchiveBlock):
                      {'description': 'An amount of items',
                       'programmatic_value': lambda ctx: len(ctx.data('items_descr'))})
         items_descr = (ArrayBlock(child=IntegerBlock(length=4),
-                                  length=(lambda ctx: ctx.data('num_items'), 'num_items')),
+                                  length=lambda ctx: ctx.data('num_items')),
                        {'description': 'An array of offsets to items data in file, relatively to wwww block start '
                                        '(where resource id string is presented)'})
         children = (ArrayBlock(length=(0, 'num_items'), child=None),
@@ -355,7 +355,7 @@ class BigfBlock(BaseArchiveBlock):
                       'programmatic_value': lambda ctx: len(ctx.data('items_descr'))})
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})
-        items_descr = ArrayBlock(length=(lambda ctx: ctx.data('num_items'), 'num_items'),
+        items_descr = ArrayBlock(length=lambda ctx: ctx.data('num_items'),
                                  child=CompoundBlock(fields=[('offset', IntegerBlock(length=4, byte_order='big'), {}),
                                                              ('length', IntegerBlock(length=4, byte_order='big'), {}),
                                                              ('name', NullTerminatedUTF8Block(length=8), {})]))

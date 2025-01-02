@@ -3,7 +3,7 @@ from io import BufferedReader, BytesIO
 from math import ceil
 from typing import Dict, Tuple, Any
 
-from library.context import ReadContext, WriteContext
+from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import EndOfBufferException
 from library.read_blocks.basic import DataBlock, DataBlockWithChildren
 from library.read_blocks.numbers import IntegerBlock
@@ -31,7 +31,10 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
             (_, doc_str) = self._length
             return doc_str
         if callable(self._length):
-            return "custom_func"
+            try:
+                return str(self._length(DocumentationContext()))
+            except:
+                return 'custom_func'
         return str(self._length)
 
     # For auto-generated documentation only
@@ -159,7 +162,10 @@ class SubByteArrayBlock(DataBlock):
             (_, doc_str) = self._length
             return doc_str
         if callable(self._length):
-            return "custom_func"
+            try:
+                return str(self._length(DocumentationContext()))
+            except:
+                return 'custom_func'
         return str(self._length)
 
     # For auto-generated documentation only

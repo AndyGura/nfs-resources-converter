@@ -58,7 +58,7 @@ class PaletteReference(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1_length = (IntegerBlock(length=4),
                        {'is_unknown': True})
-        unk1 = (ArrayBlock(length=(lambda ctx: 2 * ctx.data('unk1_length'), '2*unk1_length'),
+        unk1 = (ArrayBlock(length=lambda ctx: 2 * ctx.data('unk1_length'),
                            child=IntegerBlock(length=4)),
                 {'is_unknown': True})
 
@@ -87,7 +87,7 @@ class Palette24BitDos(BasePalette):
                         'programmatic_value': lambda ctx: len(ctx.data('colors'))})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
-        colors = (ArrayBlock(length=(lambda ctx: ctx.data('num_colors'), 'num_colors'),
+        colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
                              child=Color24BitDosBlock()),
                   {'description': 'Colors LUT'})
 
@@ -108,7 +108,7 @@ class Palette24Bit(BasePalette):
                         'programmatic_value': lambda ctx: len(ctx.data('colors'))})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
-        colors = (ArrayBlock(length=(lambda ctx: ctx.data('num_colors'), 'num_colors'),
+        colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
                              child=Color24BitBigEndianField()),
                   {'description': 'Colors LUT'})
 
@@ -129,7 +129,7 @@ class Palette16BitDos(BasePalette):
                         'programmatic_value': lambda ctx: len(ctx.data('colors'))})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
-        colors = (ArrayBlock(length=(lambda ctx: ctx.data('num_colors'), 'num_colors'),
+        colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
                              child=Color16BitDosBlock()),
                   {'description': 'Colors LUT'})
 
@@ -150,7 +150,7 @@ class Palette32Bit(BasePalette):
                         'programmatic_value': lambda ctx: len(ctx.data('colors'))})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
-        colors = (ArrayBlock(length=(lambda ctx: ctx.data('num_colors'), 'num_colors'),
+        colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
                              child=Color32BitBlock()),
                   {'description': 'Colors LUT'})
 
@@ -173,6 +173,6 @@ class Palette16Bit(BasePalette):
                         'programmatic_value': lambda ctx: len(ctx.data('colors'))})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
-        colors = (ArrayBlock(length=(lambda ctx: ctx.data('num_colors'), 'num_colors'),
+        colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
                              child=Color16Bit0565Block()),
                   {'description': 'Colors LUT'})

@@ -343,11 +343,11 @@ class TriMap(DeclarativeCompoundBlock):
         unk3 = (IntegerBlock(length=4, required_value=0),
                 {'is_unknown': True})
         prop_descr = ArrayBlock(child=PropDescr(),
-                                length=(lambda ctx: ctx.data('num_prop_descr'), 'num_prop_descr'))
+                                length=lambda ctx: ctx.data('num_prop_descr'))
         props = ArrayBlock(child=MapProp(),
-                           length=(lambda ctx: ctx.data('num_props'), 'num_props'))
+                           length=lambda ctx: ctx.data('num_props'))
         terrain = ArrayBlock(child=TerrainEntry(),
-                             length=(lambda ctx: ctx.data('num_chunks'), 'num_chunks'))
+                             length=lambda ctx: ctx.data('num_chunks'))
 
     def action_reverse_track(self, read_data):
         # FIXME lanes are a bit off: CY1.TRI now has both lanes oncoming, and racers drive on right verge. Traffic never appears

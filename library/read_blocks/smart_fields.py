@@ -1,7 +1,7 @@
 from io import BufferedReader, BytesIO
 from typing import List, Dict, Tuple, Any
 
-from library.context import ReadContext, WriteContext
+from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException
 from library.read_blocks.basic import DataBlock, SkipBlock, BytesBlock
 from library.utils.id import join_id
@@ -20,7 +20,10 @@ class DelegateBlock(DataBlock):
         if isinstance(choice_index_doc, tuple):
             (_, choice_index_doc) = choice_index_doc
         if callable(choice_index_doc):
-            choice_index_doc = "custom_func"
+            try:
+                choice_index_doc = str(choice_index_doc(DocumentationContext()))
+            except:
+                choice_index_doc = 'custom_func'
         return {
             **super().schema,
             'possible_resource_schemas': [block.schema for block in self.possible_blocks],
