@@ -41,7 +41,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui/tri-map.block-ui.component';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import { MinimapComponent } from './components/editor/eac/tri-map.block-ui/minimap/minimap.component';
+import { MinimapComponent } from './components/editor/common/minimap/minimap.component';
 import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
 import { MatOptionModule } from '@angular/material/core';
 import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.block-ui/fence-type.block-ui.component';

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
 import { MainService } from '../../../../services/main.service';
+import { blockClassStr } from '../../../../utils/block_class_str';
 
 type DelegateBlockData = { choice_index: number; data: BlockData };
 
@@ -71,4 +72,5 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
   }
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+  protected readonly blockClassStr = blockClassStr;
 }
