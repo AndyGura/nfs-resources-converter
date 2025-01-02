@@ -1,10 +1,10 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, Input, OnDestroy } from '@angular/core';
-import { BehaviorSubject, combineLatest, Subject } from 'rxjs';
+import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import { Point2, Point3 } from '@gg-web-engine/core';
+import { Pnt3, Point2, Point3 } from '@gg-web-engine/core';
 
 @Component({
-  selector: 'app-tri-minimap',
+  selector: 'app-minimap',
   templateUrl: './minimap.component.html',
   styleUrls: ['./minimap.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +32,18 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
   }>({ x: 0, y: 0, width: 100, height: 100 });
   mapPolyline$: BehaviorSubject<string> = new BehaviorSubject<string>('');
   mapPointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
+
+  get trackLength$(): Observable<number> {
+    return this._roadSpline$.pipe(
+      map(s => {
+        let ret = 0;
+        for (let i = 1; i < s.length; i++) {
+          ret += Pnt3.dist(s[i], s[i - 1]);
+        }
+        return ret;
+      }),
+    );
+  }
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 

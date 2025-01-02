@@ -1,55 +1,55 @@
-<div class="famSelector">
-    <h4>Preview *.FAM file</h4>
-    <mat-form-field appearance="fill">
-        <mat-label>Current preview FAM</mat-label>
-        <mat-select #famSelect
-                    (valueChange)="onFamSelected($event)"
-                    [value]="previewFamPossibleLocations.includes((previewFamLocation$ | async)!) ? (previewFamLocation$ | async) : 'custom'">
-            <mat-option *ngFor="let fam of previewFamPossibleLocations" [value]="fam">
-                {{fam}}
-            </mat-option>
-            <mat-option value="custom">custom</mat-option>
-        </mat-select>
+<div class='famSelector'>
+  <h4>Preview *.FAM file</h4>
+  <mat-form-field appearance='fill'>
+    <mat-label>Current preview FAM</mat-label>
+    <mat-select #famSelect
+                (valueChange)='onFamSelected($event)'
+                [value]="previewFamPossibleLocations.includes((previewFamLocation$ | async)!) ? (previewFamLocation$ | async) : 'custom'">
+      <mat-option *ngFor='let fam of previewFamPossibleLocations' [value]='fam'>
+        {{fam}}
+      </mat-option>
+      <mat-option value='custom'>custom</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <ng-container *ngIf="famSelect.value == 'custom'">
+    <mat-form-field appearance='fill'>
+      <mat-label>Custom FAM path</mat-label>
+      <input #customFamInput matInput type='text' [value]='(previewFamLocation$ | async)!'>
     </mat-form-field>
-    <ng-container *ngIf="famSelect.value == 'custom'">
-        <mat-form-field appearance="fill">
-            <mat-label>Custom FAM path</mat-label>
-            <input #customFamInput matInput type="text" [value]="(previewFamLocation$ | async)!">
-        </mat-form-field>
-        <button mat-button (click)="onFamSelected(customFamInput.value)">LOAD</button>
-    </ng-container>
-    <mat-spinner *ngIf="previewFamLoading$ | async" mode="indeterminate" [diameter]="40"></mat-spinner>
+    <button mat-button (click)='onFamSelected(customFamInput.value)'>LOAD</button>
+  </ng-container>
+  <mat-spinner *ngIf='previewFamLoading$ | async' mode='indeterminate' [diameter]='40'></mat-spinner>
 </div>
-<div class="preview">
-    <div class="previewCanvasContainer" #previewCanvasContainer>
-        <canvas #previewCanvas width="640" height="480"></canvas>
-        <mat-spinner *ngIf="previewLoading$ | async" mode="indeterminate"></mat-spinner>
-    </div>
-    <div class="previewNavigationContainer" #previewCanvasContainer>
-        <mat-form-field appearance="fill">
-            <mat-label>Spline item</mat-label>
-            <input matInput type="number"
-                   [min]="0" [max]="(_resource$ | async)?.data.num_chunks * 4 - 1"
-                   [ngModel]="selectedSplineIndex$ | async"
-                   (ngModelChange)="selectedSplineIndex$.next($event)">
-        </mat-form-field>
-        <app-tri-minimap [roadSpline]="roadSpline"
-                         [pointer]="pointer$ | async"
-                         [splineClosed]="!isOpenedTrack"></app-tri-minimap>
-    </div>
+<div class='preview'>
+  <div class='previewCanvasContainer' #previewCanvasContainer>
+    <canvas #previewCanvas width='640' height='480'></canvas>
+    <mat-spinner *ngIf='previewLoading$ | async' mode='indeterminate'></mat-spinner>
+  </div>
+  <div class='previewNavigationContainer' #previewCanvasContainer>
+    <mat-form-field appearance='fill'>
+      <mat-label>Spline item</mat-label>
+      <input matInput type='number'
+             [min]='0' [max]='(_resource$ | async)?.data.num_chunks * 4 - 1'
+             [ngModel]='selectedSplineIndex$ | async'
+             (ngModelChange)='selectedSplineIndex$.next($event)'>
+    </mat-form-field>
+    <app-minimap [roadSpline]='roadSpline'
+                 [pointer]='pointer$ | async'
+                 [splineClosed]='!isOpenedTrack'></app-minimap>
+  </div>
 </div>
 <h4>Road spline item</h4>
-<app-compound-block-ui [resource]="selectedSplineItem$ | async"
-                       [hideBlockActions]="true"></app-compound-block-ui>
+<app-compound-block-ui [resource]='selectedSplineItem$ | async'
+                       [hideBlockActions]='true'></app-compound-block-ui>
 <h4>AI info (block for 4 spline items)</h4>
-<app-compound-block-ui [resource]="selectedAiInfoItem$ | async"
-                       [hideBlockActions]="true"></app-compound-block-ui>
+<app-compound-block-ui [resource]='selectedAiInfoItem$ | async'
+                       [hideBlockActions]='true'></app-compound-block-ui>
 <h4>Terrain (block for 4 spline items)</h4>
-<app-compound-block-ui [resource]="selectedTerrainItem$ | async"
-                       [hideBlockActions]="true"></app-compound-block-ui>
+<app-compound-block-ui [resource]='selectedTerrainItem$ | async'
+                       [hideBlockActions]='true'></app-compound-block-ui>
 <h4>Common</h4>
-<app-compound-block-ui [resource]="_resource$ | async"
-                       [hideBlockActions]="true"
+<app-compound-block-ui [resource]='_resource$ | async'
+                       [hideBlockActions]='true'
                        [fieldWhitelist]="[
                        'loop_chunk',
                        'num_chunks',

@@ -50,13 +50,14 @@ export class EditorComponent implements OnDestroy {
     AnyBitmapBlock: BitmapBlockUiComponent,
     BasePalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
-    GeoGeometry: GeoGeometryBlockUiComponent,
     BaseArchiveBlock: BaseArchiveBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
     FenceType: FenceTypeBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
     EacsAudioFile: EacsAudioBlockUiComponent,
+    // NFS2 blocks
+    GeoGeometry: GeoGeometryBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
