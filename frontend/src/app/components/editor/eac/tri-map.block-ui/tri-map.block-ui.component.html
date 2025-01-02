@@ -35,7 +35,8 @@
     </mat-form-field>
     <app-minimap [roadSpline]='roadSpline'
                  [pointer]='pointer$ | async'
-                 [splineClosed]='!isOpenedTrack'></app-minimap>
+                 [splineClosed]='!isOpenedTrack'
+                 (pointerChange)='onPointerChange($event)'></app-minimap>
   </div>
 </div>
 <h4>Road spline item</h4>

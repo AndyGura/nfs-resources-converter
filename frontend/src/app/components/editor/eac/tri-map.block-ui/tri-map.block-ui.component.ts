@@ -627,6 +627,13 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
   }
 
+  onPointerChange(pos: Point2) {
+    if (!this.renderer) {
+      return;
+    }
+    this.renderer.position = { ...pos, z: this.renderer.position.z };
+  }
+
   private async loadPreview() {
     this.roadPath =
       this.resource?.data.road_spline

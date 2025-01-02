@@ -1,16 +1,30 @@
 <div class='container'>
-  <svg [attr.viewBox]="'0 0 ' + (svgSize$ | async)?.x + ' ' + (svgSize$ | async)?.y" shape-rendering="geometricPrecision">
+  <svg [attr.viewBox]="'0 0 ' + (svgSize$ | async)?.x + ' ' + (svgSize$ | async)?.y"
+       shape-rendering='geometricPrecision'
+       (mousemove)='drag($event)'
+       (mouseup)='endDrag()'
+       (mouseleave)='endDrag()'
+  >
     <!-- track -->
-    <polyline [attr.points]="mapPolyline$ | async"
-              [ngStyle]="{'stroke-width': 3}"
-              style="fill:none;stroke:#333333"></polyline>
-    cars
-    <circle *ngIf="mapPointer$ | async"
-            [attr.cx]="(mapPointer$ | async)?.x || 0" [attr.cy]="(mapPointer$ | async)?.y || 0"
-            [attr.r]="10"
-            fill="#e30" stroke="black" stroke-width="3"></circle>
+    <polyline
+      [attr.points]='mapPolyline$ | async'
+      [ngStyle]="{'stroke-width': 3}"
+      style='fill:none;stroke:#333333'
+    ></polyline>
+    <!-- camera indicator -->
+    <circle
+      *ngIf='mapPointer$ | async'
+      [attr.cx]='(mapPointer$ | async)?.x || 0'
+      [attr.cy]='(mapPointer$ | async)?.y || 0'
+      [attr.r]='10'
+      fill='#e30'
+      stroke='black'
+      stroke-width='3'
+      (mousedown)='startDrag($event)'
+      style='cursor: pointer;'
+    ></circle>
   </svg>
   <div class='info_div'>
-    <span>Track length (m): {{(trackLength$ | async)?.toFixed(2)}}</span>
+    <span>Track length (m): {{ (trackLength$ | async)?.toFixed(2) }}</span>
   </div>
 </div>

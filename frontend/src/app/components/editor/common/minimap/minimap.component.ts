@@ -1,4 +1,13 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, Input, OnDestroy } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+} from '@angular/core';
 import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
 import { Pnt3, Point2, Point3 } from '@gg-web-engine/core';
@@ -22,6 +31,7 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
   }
 
   @Input() splineClosed: boolean = false;
+  @Output() pointerChange = new EventEmitter<Point2>();
 
   svgSize$: BehaviorSubject<Point2> = new BehaviorSubject({ x: 100, y: 100 });
   scalingSquare$: BehaviorSubject<{ x: number; y: number; width: number; height: number }> = new BehaviorSubject<{
@@ -46,6 +56,7 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
   }
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
+  private isDragging = false;
 
   constructor(private readonly ref: ElementRef) {}
 
@@ -113,5 +124,37 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
+  }
+
+  startDrag(event: MouseEvent) {
+    this.isDragging = true;
+    this.updatePointer(event);
+  }
+
+  drag(event: MouseEvent) {
+    if (this.isDragging) {
+      this.updatePointer(event);
+    }
+  }
+
+  endDrag() {
+    this.isDragging = false;
+  }
+
+  private updatePointer(event: MouseEvent) {
+    const boundingRect = this.ref.nativeElement.querySelector('svg')?.getBoundingClientRect();
+    if (boundingRect) {
+      const localPos = {
+        x: event.clientX - boundingRect.left,
+        y: boundingRect.height - event.clientY + boundingRect.top,
+      };
+      const scalingSquare = this.scalingSquare$.getValue();
+      const svgSize = this.svgSize$.getValue();
+      const newPointer: Point2 = {
+        x: localPos.x * (scalingSquare.width / svgSize.x) + scalingSquare.x,
+        y: localPos.y * (scalingSquare.height / svgSize.y) + scalingSquare.y,
+      };
+      this.pointerChange.emit(newPointer);
+    }
   }
 }
