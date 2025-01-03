@@ -18,4 +18,4 @@ class FfmpegSupportedVideo(DataBlock):
         return name
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        raise BlockDefinitionException(ctx, 'Ffmpeg video cannot be written as data block')
+        raise BlockDefinitionException(ctx=ctx, message='Ffmpeg video cannot be written as data block')

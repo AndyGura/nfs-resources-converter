@@ -101,7 +101,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
             res = list(buffer.read(self_len))
             if len(res) < self_len:
-                raise EndOfBufferException()
+                raise EndOfBufferException(ctx=ctx)
             return res
         for i in range(self_len):
             res.append(self.child.unpack(buffer=buffer, ctx=self_ctx, name=str(i)))

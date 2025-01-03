@@ -41,9 +41,9 @@ class DataBlock(ABC):
         pass
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        raise BlockDefinitionException(ctx, 'Cannot estimate packed size of data block ' +
-                                       "__".join([x.__name__ for x in self.__class__.mro() if
-                                                  x.__name__ not in ["object", "ABC"]]))
+        raise BlockDefinitionException(ctx=ctx, message='Cannot estimate packed size of data block ' +
+                                                        "__".join([x.__name__ for x in self.__class__.mro() if
+                                                                   x.__name__ not in ["object", "ABC"]]))
 
     @abstractmethod
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
@@ -51,9 +51,9 @@ class DataBlock(ABC):
 
     def validate_after_read(self, value, ctx: ReadContext = root_read_ctx, name: str = ''):
         if self.required_value and value != self.required_value:
-            raise DataIntegrityException(f'Expected {represent_value_as_str(self.required_value)}, '
-                                         f'found {represent_value_as_str(value)} '
-                                         f'at {ctx.ctx_path}/{name}')
+            raise DataIntegrityException(ctx=ctx, message=f'Expected {represent_value_as_str(self.required_value)}, '
+                                                          f'found {represent_value_as_str(value)} '
+                                                          f'at {name}')
 
     ### final method, should never override
     def unpack(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = root_read_ctx, name: str = '',
@@ -141,10 +141,10 @@ class BytesBlock(DataBlock):
             if self.allow_negative_length:
                 buffer.seek(self_len, SEEK_CUR)
                 return b''
-            raise BlockDefinitionException(ctx, 'Cannot read bytes block with negative length')
+            raise BlockDefinitionException(ctx=ctx, message='Cannot read bytes block with negative length')
         res = buffer.read(self_len)
         if len(res) < self_len:
-            raise EndOfBufferException()
+            raise EndOfBufferException(ctx=ctx)
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
