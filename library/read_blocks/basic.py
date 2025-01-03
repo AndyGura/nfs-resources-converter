@@ -69,6 +69,11 @@ class DataBlock(ABC):
 
 class DataBlockWithChildren(ABC):
 
+    ### get child block
+    @abstractmethod
+    def get_child_block(self, name: str) -> 'DataBlock':
+        pass
+
     ### get child block with appropriate data from this block unpacked data
     @abstractmethod
     def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:

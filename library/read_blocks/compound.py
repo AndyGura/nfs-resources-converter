@@ -41,6 +41,12 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             schema['block_description'] = self.inline_description
         return schema
 
+    def get_child_block(self, name: str) -> 'DataBlock':
+        field = self.field_blocks_map.get(name)
+        if field is None:
+            raise BlockDefinitionException(None, f'Cannot find field {name}')
+        return field
+
     def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
         field = self.field_blocks_map.get(name)
         if field is None:

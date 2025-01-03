@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2025-01-02 01:05:35.351955+00:00*
+*Last time updated: 2025-01-03 15:11:07.077716+00:00*
 
 
 # **Info by file extensions** #
@@ -179,18 +179,24 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Block size |
-| 4 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>2: textures_map<br/>4: block_numbers<br/>5: polygon_map<br/>6: median_polygons<br/>7: props_7<br/>8: prop_descriptions<br/>9: lanes<br/>13: road_vectors<br/>15: positions<br/>18: props_18</details> | - |
+| 4 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>2: textures_map<br/>4: block_numbers<br/>5: polygon_map<br/>6: median_polygons<br/>7: props_7<br/>8: prop_descriptions<br/>9: lanes<br/>13: road_vectors<br/>15: collision_data<br/>18: props_18<br/>19: props_19</details> | - |
 | 5 | **unk** | 1 | 1-byte unsigned integer. Always == 0x0 | - |
 | 6 | **num_data_records** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 8 | **data_records** | ? | One of types:<br/>- Array of `num_data_records` items<br/>Item type: [TexturesMapExtraDataRecord](#texturesmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_data_records` items<br/>Item type: [PolygonMapExtraDataRecord](#polygonmapextradatarecord)<br/>- Bytes<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropDescriptionExtraDataRecord](#propdescriptionextradatarecord)<br/>- Bytes<br/>- Array of `num_data_records` items<br/>Item type: [RoadVectorsExtraDataRecord](#roadvectorsextradatarecord)<br/>- Bytes<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Bytes | - |
+| 8 | **data_records** | ? | Type according to enum `type`:<br/>- Array of `num_data_records` items<br/>Item type: [TexturesMapExtraDataRecord](#texturesmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_data_records` items<br/>Item type: [PolygonMapExtraDataRecord](#polygonmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [MedianExtraDataRecord](#medianextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropDescriptionExtraDataRecord](#propdescriptionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [LanesExtraDataRecord](#lanesextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [RoadVectorsExtraDataRecord](#roadvectorsextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [CollisionExtraDataRecord](#collisionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Bytes | - |
 ### **TexturesMapExtraDataRecord** ###
 #### **Size**: 10 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **texture_number** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 0 | **texture_number** | 2 | 2-bytes unsigned integer (little endian) | Texture number in QFS file |
 | 2 | **alignment_data** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 4 | **rgb0** | 3 | 3-bytes unsigned integer (little endian) | - |
-| 7 | **rgb1** | 3 | 3-bytes unsigned integer (little endian) | - |
+| 4 | **luminosity** | 3 | Color RGB values | Luminosity color |
+| 7 | **black** | 3 | Color RGB values | Unknown, usually black |
+### **MedianExtraDataRecord** ###
+#### **Size**: 8 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **polygon_idx** | 1 | 1-byte unsigned integer | Polygon index |
+| 1 | **unk** | 7 | Bytes | Unknown purpose |
 ### **PolygonMapExtraDataRecord** ###
 #### **Size**: 2 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -204,7 +210,20 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size |
 | 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: static_prop<br/>3: animated_prop</details> | - |
 | 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | - |
-| 4 | **position** | ? | One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- Bytes | - |
+| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | - |
+### **AnimatedPropPosition** ###
+#### **Size**: 4..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **num_frames** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 2 | **unk** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **frames** | num_frames\*20 | Array of `num_frames` items<br/>Item type: [AnimatedPropPositionFrame](#animatedproppositionframe) | - |
+### **AnimatedPropPositionFrame** ###
+#### **Size**: 20 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 12 | **unk0** | 8 | Bytes | Unknown purpose |
 ### **PropDescriptionExtraDataRecord** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -215,12 +234,35 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **vertices** | num_vertices\*6 | Array of `num_vertices` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | - |
 | 8 + num_vertices\*6 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [TrkPolygon](#trkpolygon) | - |
 | 8 + num_vertices\*6 + num_polygons\*8 | **padding** | custom_func | Bytes | - |
+### **LanesExtraDataRecord** ###
+#### **Size**: 4 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **vertex_idx** | 1 | 1-byte unsigned integer | vertex number (inside background 3D structure : 0 to nv1+nv8) |
+| 1 | **track_pos** | 1 | 1-byte unsigned integer | position along track inside block (0 to 7) |
+| 2 | **lat_pos** | 1 | 1-byte unsigned integer | lateral position ? (constant in each lane), -1 at the end) |
+| 3 | **polygon_idx** | 1 | 1-byte unsigned integer | polygon number (inside full-res backgnd 3D structure : 0 to np1) |
 ### **RoadVectorsExtraDataRecord** ###
 #### **Size**: 12 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | - |
-| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | - |
+| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | - |
+| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | - |
+### **CollisionExtraDataRecord** ###
+#### **Size**: 36 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
+| 12 | **vertical** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 8 bits is a fractional part, normalized | - |
+| 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 8 bits is a fractional part, normalized | - |
+| 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 8 bits is a fractional part, normalized | - |
+| 21 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 22 | **block_idx** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 24 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 26 | **left_border** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 28 | **right_border** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 30 | **respawn_lat_pos** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 32 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **TrkPolygon** ###
 #### **Size**: 8 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |

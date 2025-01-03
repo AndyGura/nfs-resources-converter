@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2025-01-03 09:38:58.848509+00:00*
+*Last time updated: 2025-01-03 13:20:26.821219+00:00*
 
 
 # **Info by file extensions** #
@@ -197,8 +197,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **flags** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>2: is_animated</details> | Different modes of prop |
-| 1 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: unk<br/>1: model<br/>4: bitmap<br/>6: two_sided_bitmap</details> | Type of prop |
-| 2 | **data** | 14 | One of types:<br/>- [ModelPropDescrData](#modelpropdescrdata)<br/>- [BitmapPropDescrData](#bitmappropdescrdata)<br/>- [TwoSidedBitmapPropDescrData](#twosidedbitmappropdescrdata)<br/>- Bytes | Settings of the prop. Block class picked according to `type` |
+| 1 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: model<br/>4: bitmap<br/>6: two_sided_bitmap</details> | Type of prop |
+| 2 | **data** | 14 | Type according to enum `type`:<br/>- [ModelPropDescrData](#modelpropdescrdata)<br/>- [BitmapPropDescrData](#bitmappropdescrdata)<br/>- [TwoSidedBitmapPropDescrData](#twosidedbitmappropdescrdata)<br/>- Bytes | Settings of the prop. Block class picked according to `type` |
 ### **MapProp** ###
 #### **Size**: 16 bytes ####
 #### **Description**: The prop on the map. For instance: exactly the same road sign used 5 times on the map. In this case file will have 1 PropDescr for this road sign and 5 MapProps ####

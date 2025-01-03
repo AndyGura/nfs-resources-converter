@@ -1,6 +1,8 @@
+import traceback
 from io import BufferedReader, BytesIO
 from typing import List, Dict, Tuple, Any
 
+import settings
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException
 from library.read_blocks.basic import DataBlock, SkipBlock, BytesBlock
@@ -134,3 +136,22 @@ class AutoDetectBlock(DelegateBlock):
                 return i
         raise DataIntegrityException(ctx=ctx,
                                      message='Expectation failed for auto-detect block while reading: class not found')
+
+
+def _enum_lookup(ctx, enum_field, fallback_index):
+    try:
+        return [name for (_, name) in ctx.block(enum_field).enum_names].index(ctx.data(enum_field))
+    except Exception:
+        if settings.print_errors:
+            traceback.print_exc()
+        return fallback_index
+
+
+class EnumLookupDelegateBlock(DelegateBlock):
+
+    def __init__(self, enum_field: str, blocks: List[DataBlock], **kwargs):
+        super().__init__(possible_blocks=blocks,
+                         choice_index=lambda ctx, **_: _enum_lookup(ctx, enum_field, len(blocks) - 1),
+                         **kwargs)
+        self.enum_field = enum_field
+

@@ -29,6 +29,11 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
         return {**super().new_data(),
                 'last_color_transparent': False}
 
+    def get_child_block(self, name: str) -> 'DataBlock':
+        if name == 'last_color_transparent':
+            return None
+        return super().get_child_block(name)
+
     def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
         if name == 'last_color_transparent':
             return None, unpacked_data['last_color_transparent']

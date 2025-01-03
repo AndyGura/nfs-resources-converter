@@ -13,7 +13,7 @@ class Point3D(CompoundBlock):
     def schema(self) -> Dict:
         schema = super().schema
         return {
-            **super().schema,
+            **schema,
             'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
                                  + schema['fields'][0]['schema']['block_description'] + (
                                      ', normalized' if self.normalized else ''
@@ -38,6 +38,23 @@ class Point3D(CompoundBlock):
                 data['y'] /= length
                 data['z'] /= length
         return super().write(data, ctx, name)
+
+
+class RGBBlock(CompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': "Color RGB values",
+            'inline_description': True,
+        }
+
+    def __init__(self, **kwargs):
+        child = IntegerBlock(length=1, is_signed=False)
+        super().__init__(fields=[('r', child, {}),
+                                 ('g', child, {}),
+                                 ('b', child, {})], **kwargs)
 
 
 class FenceType(IntegerBlock):

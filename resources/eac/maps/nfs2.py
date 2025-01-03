@@ -4,9 +4,10 @@ from typing import Dict
 from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock,
-                                 UTF8Block, BytesBlock, ArrayBlock, DataBlock, DelegateBlock, CompoundBlock)
+                                 UTF8Block, BytesBlock, ArrayBlock, DataBlock)
 from library.read_blocks.numbers import EnumByteBlock
-from resources.eac.fields.misc import Point3D
+from library.read_blocks.smart_fields import EnumLookupDelegateBlock
+from resources.eac.fields.misc import Point3D, RGBBlock
 
 
 class TrkPolygon(DeclarativeCompoundBlock):
@@ -20,10 +21,14 @@ class TrkPolygon(DeclarativeCompoundBlock):
 
 class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        texture_number = IntegerBlock(length=2, is_signed=False)
+        texture_number = (IntegerBlock(length=2, is_signed=False),
+                          {'description': 'Texture number in QFS file'})
         alignment_data = IntegerBlock(length=2, is_signed=False)
-        rgb0 = IntegerBlock(length=3, is_signed=False)
-        rgb1 = IntegerBlock(length=3, is_signed=False)
+        luminosity = (RGBBlock(),
+                      {'description': 'Luminosity color'})
+        black = (RGBBlock(),
+                 {'description': 'Unknown, usually black',
+                  'is_unknown': True})
 
 
 class PolygonMapExtraDataRecord(DeclarativeCompoundBlock):
@@ -34,6 +39,31 @@ class PolygonMapExtraDataRecord(DeclarativeCompoundBlock):
                                                  ])
 
 
+class MedianExtraDataRecord(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        polygon_idx = (IntegerBlock(length=1, is_signed=False),
+                       {'description': 'Polygon index'})
+        unk = (BytesBlock(length=7),
+               {'is_unknown': True})
+
+
+class AnimatedPropPositionFrame(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = Point3D(child_length=4, fraction_bits=16)
+        unk0 = (BytesBlock(length=8),
+                {'is_unknown': True})
+
+
+class AnimatedPropPosition(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        num_frames = IntegerBlock(length=2, is_signed=False)
+        unk = (IntegerBlock(length=2),
+               {'is_unknown': True})
+        frames = ArrayBlock(
+            length=lambda ctx: ctx.data('num_frames'),
+            child=AnimatedPropPositionFrame())
+
+
 class PropExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         block_size = (IntegerBlock(length=2, is_signed=False),
@@ -42,25 +72,11 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
                                          (3, 'animated_prop'),
                                          ])
         prop_descr_idx = IntegerBlock(length=1, is_signed=False)
-        position = DelegateBlock(possible_blocks=[
-            Point3D(child_length=4, fraction_bits=16),
-            CompoundBlock(fields=[('num_frames', IntegerBlock(length=2, is_signed=False), {}),
-                                  ('unk', IntegerBlock(length=2), {'is_unknown': True}),
-                                  ('frames', ArrayBlock(length=lambda ctx: ctx.data('num_frames'),
-                                                        child=CompoundBlock(fields=[
-                                                            ('position', Point3D(child_length=4, fraction_bits=16), {}),
-                                                            ('unk0', IntegerBlock(length=2),
-                                                             {'is_unknown': True}),
-                                                            ('unk1', IntegerBlock(length=2),
-                                                             {'is_unknown': True}),
-                                                            ('unk2', IntegerBlock(length=2),
-                                                             {'is_unknown': True}),
-                                                            ('unk3', IntegerBlock(length=2),
-                                                             {'is_unknown': True})])), {})]),
-            BytesBlock(length=lambda ctx: ctx.data('block_size') - 4)],
-            choice_index=lambda ctx, **_: (0 if ctx.data('type') == 'static_prop' else
-                                           1 if ctx.data('type') == 'animated_prop' else 2)
-        )
+        position = EnumLookupDelegateBlock(
+            enum_field='type',
+            blocks=[Point3D(child_length=4, fraction_bits=16),
+                    AnimatedPropPosition(),
+                    BytesBlock(length=lambda ctx: ctx.data('block_size') - 4)])
 
 
 class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
@@ -80,10 +96,40 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
         padding = BytesBlock(length=lambda ctx: ctx.data('block_size') - ctx.buffer.tell() + ctx.read_start_offset)
 
 
+class LanesExtraDataRecord(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        vertex_idx = (IntegerBlock(length=1, is_signed=False),
+                      {'description': 'vertex number (inside background 3D structure : 0 to nv1+nv8)'})
+        track_pos = (IntegerBlock(length=1, is_signed=False),
+                     {'description': 'position along track inside block (0 to 7)'})
+        lat_pos = (IntegerBlock(length=1, is_signed=False),
+                   {'description': 'lateral position ? (constant in each lane), -1 at the end)'})
+        polygon_idx = (IntegerBlock(length=1, is_signed=False),
+                       {'description': 'polygon number (inside full-res backgnd 3D structure : 0 to np1)'})
+
+
 class RoadVectorsExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = Point3D(child_length=2, fraction_bits=15, normalized=True)
-        forward = Point3D(child_length=2, fraction_bits=15, normalized=True)
+        normal = Point3D(child_length=2, fraction_bits=16, normalized=True)
+        forward = Point3D(child_length=2, fraction_bits=16, normalized=True)
+
+
+class CollisionExtraDataRecord(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = Point3D(child_length=4, fraction_bits=16)
+        vertical = Point3D(child_length=1, fraction_bits=8, normalized=True)
+        forward = Point3D(child_length=1, fraction_bits=8, normalized=True)
+        right = Point3D(child_length=1, fraction_bits=8, normalized=True)
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        block_idx = IntegerBlock(length=2, is_signed=False)
+        unk1 = (IntegerBlock(length=2),
+                {'is_unknown': True})
+        left_border = IntegerBlock(length=2, is_signed=False)
+        right_border = IntegerBlock(length=2, is_signed=False)
+        respawn_lat_pos = IntegerBlock(length=2, is_signed=False)
+        unk2 = (IntegerBlock(length=4),
+                {'is_unknown': True})
 
 
 class TrkExtraBlock(DeclarativeCompoundBlock):
@@ -98,34 +144,28 @@ class TrkExtraBlock(DeclarativeCompoundBlock):
                                          (8, 'prop_descriptions'),
                                          (9, 'lanes'),
                                          (13, 'road_vectors'),
-                                         (15, 'positions'),
+                                         (15, 'collision_data'),
                                          (18, 'props_18'),
+                                         (19, 'props_19'),
                                          ])
         unk = IntegerBlock(length=1, required_value=0)
         num_data_records = IntegerBlock(length=2)
-        data_records = DelegateBlock(possible_blocks=[
-            ArrayBlock(child=TexturesMapExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
-            ArrayBlock(child=IntegerBlock(length=2, is_signed=False), length=lambda ctx: ctx.data('num_data_records')),
-            ArrayBlock(child=PolygonMapExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
-            BytesBlock(length=lambda ctx: ctx.data('block_size') - 8),
-            ArrayBlock(child=PropExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
-            ArrayBlock(child=PropDescriptionExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
-            BytesBlock(length=lambda ctx: ctx.data('block_size') - 8),
-            ArrayBlock(child=RoadVectorsExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
-            BytesBlock(length=lambda ctx: ctx.data('block_size') - 8),
-            ArrayBlock(child=PropExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
-            BytesBlock(length=lambda ctx: ctx.data('block_size') - 8)],
-            choice_index=lambda ctx, **_: (0 if ctx.data('type') == 'textures_map' else
-                                           1 if ctx.data('type') == 'block_numbers' else
-                                           2 if ctx.data('type') == 'polygon_map' else
-                                           3 if ctx.data('type') == 'median_polygons' else
-                                           4 if ctx.data('type') == 'props_7' else
-                                           5 if ctx.data('type') == 'prop_descriptions' else
-                                           6 if ctx.data('type') == 'lanes' else
-                                           7 if ctx.data('type') == 'road_vectors' else
-                                           8 if ctx.data('type') == 'positions' else
-                                           9 if ctx.data('type') == 'props_18' else 10)
-        )
+        data_records = EnumLookupDelegateBlock(
+            enum_field='type',
+            blocks=[
+                ArrayBlock(child=TexturesMapExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=IntegerBlock(length=2), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=PolygonMapExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=MedianExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=PropExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=PropDescriptionExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=LanesExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=RoadVectorsExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=CollisionExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=PropExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                ArrayBlock(child=PropExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
+                BytesBlock(length=lambda ctx: ctx.data('block_size') - 8)
+            ])
 
 
 class TrkBlock(DeclarativeCompoundBlock):
@@ -133,7 +173,8 @@ class TrkBlock(DeclarativeCompoundBlock):
         block_size = (IntegerBlock(length=4, is_signed=False),
                       {'description': 'Block size'})
         block_size_2 = (IntegerBlock(length=4, is_signed=False),
-                        {'description': 'Block size (duplicated)'})
+                        {'description': 'Block size (duplicated)',
+                         'programmatic_value': lambda ctx: ctx.data('block_size')})
         num_extrablocks = (IntegerBlock(length=2, is_signed=False),
                            {'description': 'number of extrablocks'})
         unk0 = (IntegerBlock(length=2, is_signed=False),

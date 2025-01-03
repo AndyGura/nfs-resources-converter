@@ -6,9 +6,9 @@ from library.read_blocks import (BitFlagsBlock,
                                  BytesBlock,
                                  ArrayBlock,
                                  UTF8Block,
-                                 DelegateBlock,
                                  SubByteArrayBlock)
 from library.read_blocks.numbers import EnumByteBlock
+from library.read_blocks.smart_fields import EnumLookupDelegateBlock
 from resources.eac.fields.misc import FenceType, Point3D
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
 
@@ -192,17 +192,13 @@ class PropDescr(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         flags = (BitFlagsBlock(flag_names=[(2, 'is_animated')]),
                  {'description': 'Different modes of prop'})
-        type = (EnumByteBlock(enum_names=[(0, 'unk'), (1, 'model'), (4, 'bitmap'), (6, 'two_sided_bitmap')]),
+        type = (EnumByteBlock(enum_names=[(1, 'model'), (4, 'bitmap'), (6, 'two_sided_bitmap')]),
                 {'description': 'Type of prop'})
-        data = (DelegateBlock(possible_blocks=[ModelPropDescrData(),
-                                               BitmapPropDescrData(),
-                                               TwoSidedBitmapPropDescrData(),
-                                               BytesBlock(length=14)],
-                              choice_index=lambda ctx, **_: 0 if ctx.data('type') == 'model' else (
-                                  1 if ctx.data('type') == 'bitmap' else (
-                                      2 if ctx.data('type') == 'two_sided_bitmap' else 3
-                                  )
-                              )),
+        data = (EnumLookupDelegateBlock(enum_field='type',
+                                        blocks=[ModelPropDescrData(),
+                                                BitmapPropDescrData(),
+                                                TwoSidedBitmapPropDescrData(),
+                                                BytesBlock(length=14)]),
                 {'description': 'Settings of the prop. Block class picked according to `type`'})
 
 
