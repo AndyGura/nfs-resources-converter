@@ -890,17 +890,20 @@ class TrkMapSerializer(BaseFileSerializer):
                             for i, vi in enumerate(polygon):
                                 submesh.vertex_uvs[vi] = uvs[i]
                     sub_meshes.extend(prop_sub_meshes)
-            chunks.append([m for m, _, _ in sub_meshes])
-        for meshes in chunks:
-            for mesh in meshes:
+            chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
+        for chunk in chunks:
+            chunk[1] = (chunk[1][0], chunk[1][2], chunk[1][1])
+            for mesh in chunk[0]:
                 mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
                 mesh.change_axes(new_z='y', new_y='z')
         if self.settings.maps__save_as_chunked:
-            for i, chunk in enumerate(chunks):
+            for i, (meshes, pivot) in enumerate(chunks):
                 with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
                     face_index_increment = 1
-                    for mesh in chunk:
-                        mesh.pivot_offset = (0, 0, 0)
+                    for mesh in meshes:
+                        mesh.pivot_offset = (mesh.pivot_offset[0] - pivot[0],
+                                             mesh.pivot_offset[1] - pivot[1],
+                                             mesh.pivot_offset[2] - pivot[2])
                         obj, fii = mesh.to_obj(face_index_increment)
                         f.write(obj)
                         face_index_increment += fii

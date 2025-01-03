@@ -249,12 +249,12 @@ class TrkMapCol(DeclarativeCompoundBlock):
              read_bytes_amount=None):
         start_offset = buffer.tell()
         data = super().read(buffer, ctx, name, read_bytes_amount)
-        extrablocks_offset = 16
-        extrablocks_buf = BytesIO(buffer.read(data['block_size'] - (buffer.tell() - start_offset)))
+        buffer.seek(start_offset)
+        block_buf = BytesIO(buffer.read(data['block_size']))
         child_block = self.field_blocks_map.get('extrablocks').child
         self_ctx = ReadContext(buffer=buffer, data=data, name=name, block=self, parent=ctx,
                                read_bytes_amount=read_bytes_amount)
         for offset in data['extrablock_offsets']:
-            extrablocks_buf.seek(offset - extrablocks_offset)
-            data['extrablocks'].append(child_block.read(extrablocks_buf, self_ctx))
+            block_buf.seek(offset + 16)
+            data['extrablocks'].append(child_block.read(block_buf, self_ctx))
         return data
