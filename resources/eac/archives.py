@@ -401,7 +401,7 @@ class SoundBank(DeclarativeCompoundBlock):
                        {'description': 'An array of offsets to items data in file. Zero values ignored'})
         items = (ArrayBlock(child=SoundBankHeaderEntry(),
                             length=(lambda ctx: len([x for x in ctx.data('items_descr') if x > 0]),
-                                    '(amount of non-zero elements in items_descr)')),
+                                    'amount of non-zero elements in items_descr')),
                  {'description': 'EACS audio headers. Separate audios can be read easily using these because '
                                  'it contains file-wide offset to wave data, so it does not care wave data located, '
                                  'right after EACS header, or somewhere else like it is here in sound bank file'})

@@ -55,6 +55,10 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
                     [mnsd, mxsd] = size_doc.split('..') if ('..' in size_doc) else [size_doc, size_doc]
                     return f'{_multiply_docs(mnld, mnsd)}..{_multiply_docs(mxld, mxsd)}'
                 else:
+                    if '+' in str(len_doc) or '-' in str(len_doc):
+                        len_doc = f'({len_doc})'
+                    if '+' in str(size_doc) or '-' in str(size_doc):
+                        size_doc = f'({size_doc})'
                     return f'{len_doc}*{size_doc}'
 
         if self._length == 0:
@@ -97,7 +101,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
             res = list(buffer.read(self_len))
             if len(res) < self_len:
-                raise EndOfBufferException()
+                raise EndOfBufferException(ctx=ctx)
             return res
         for i in range(self_len):
             res.append(self.child.unpack(buffer=buffer, ctx=self_ctx, name=str(i)))

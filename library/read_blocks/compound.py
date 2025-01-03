@@ -98,7 +98,8 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             if name == child_name:
                 return res
             res += field.estimate_packed_size(data=data.get(name), ctx=self_ctx)
-        raise DataIntegrityException(f'Cannot calculate offset to child "{child_name}". Child with such name not found')
+        raise DataIntegrityException(ctx=ctx, message=f'Cannot calculate offset to child "{child_name}". '
+                                                      f'Child with such name not found')
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)

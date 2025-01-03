@@ -1,11 +1,8 @@
 import json
-import math
 import os
 from collections import defaultdict
-from copy import deepcopy
 from os.path import join
 from string import Template
-from typing import Literal, List, Tuple
 
 from library.exceptions import DataIntegrityException
 from library.utils.blender_scripts import run_blender
@@ -202,7 +199,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
         from library import require_resource
         if 'CARDATA.VIV' in id:
             # NFS2 SE
-            local_id = id[id.index('__children/')+11:]
+            local_id = id[id.index('__children/') + 11:]
             idx = int(local_id[:local_id.index('/')])
             (_, _, viv_data), _ = require_resource(id[:id.find('__children')])
             qfs_name = viv_data['children_aliases'][idx].upper()

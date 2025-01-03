@@ -132,4 +132,5 @@ class AutoDetectBlock(DelegateBlock):
                 if isinstance(block, SkipBlock) and block.error_strategy == "return_exception":
                     block.exception = exc  # TODO do not write to block!
                 return i
-        raise DataIntegrityException('Expectation failed for auto-detect block while reading: class not found')
+        raise DataIntegrityException(ctx=ctx,
+                                     message='Expectation failed for auto-detect block while reading: class not found')
