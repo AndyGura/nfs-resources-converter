@@ -64,7 +64,7 @@ class UTF8Block(DataBlock):
         self_len = self.resolve_length(ctx)
         res = buffer.read(self_len).decode('utf-8')
         if len(res) < self_len:
-            raise EndOfBufferException()
+            raise EndOfBufferException(ctx=ctx)
         if self._length == self_len:
             res = res.rstrip('\x00')
         return res

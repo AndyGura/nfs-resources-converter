@@ -47,7 +47,7 @@ class IntegerBlock(DataBlock):
              read_bytes_amount=None):
         raw = buffer.read(self.length)
         if len(raw) < self.length:
-            raise EndOfBufferException()
+            raise EndOfBufferException(ctx=ctx)
         return int.from_bytes(raw, byteorder=self.byte_order, signed=self.is_signed)
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -123,7 +123,7 @@ class EnumByteBlock(IntegerBlock):
              read_bytes_amount=None):
         raw = super().read(buffer, ctx, name, read_bytes_amount)
         if self.raise_error_on_unknown and self.enum_name_map[raw] is None:
-            raise DataIntegrityException(f'Unknown enum value {raw} at {ctx.ctx_path}/{name}')
+            raise DataIntegrityException(ctx=ctx, message=f'Unknown enum value {raw} at {name}')
         return self.enum_name_map[raw]
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
