@@ -55,6 +55,10 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
                     [mnsd, mxsd] = size_doc.split('..') if ('..' in size_doc) else [size_doc, size_doc]
                     return f'{_multiply_docs(mnld, mnsd)}..{_multiply_docs(mxld, mxsd)}'
                 else:
+                    if '+' in str(len_doc) or '-' in str(len_doc):
+                        len_doc = f'({len_doc})'
+                    if '+' in str(size_doc) or '-' in str(size_doc):
+                        size_doc = f'({size_doc})'
                     return f'{len_doc}*{size_doc}'
 
         if self._length == 0:
