@@ -33,12 +33,10 @@ export class BinaryBlockUiComponent implements GuiComponentInterface {
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor() {
-  }
+  constructor() {}
 
   onDataChange(arr: Uint8Array) {
     this._resource!.data = Array.from(arr);
     this.changed.emit();
   }
-
 }
