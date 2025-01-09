@@ -26,6 +26,7 @@
     "@gg-web-engine/three": "^0.0.56",
     "lodash": "^4.17.21",
     "ngx-deep-equals-pure": "^0.4.1",
+    "ngx-hex-editor": "^0.0.3",
     "rxjs": "7.8.1",
     "tslib": "^2.3.0",
     "zone.js": "~0.11.4"

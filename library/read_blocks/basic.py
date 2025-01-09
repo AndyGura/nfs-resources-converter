@@ -151,6 +151,9 @@ class BytesBlock(DataBlock):
         return len(data)
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        # data comes as list from GUI app
+        if isinstance(data, list):
+            data = bytes(data)
         return data
 
 

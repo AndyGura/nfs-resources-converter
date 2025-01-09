@@ -25,6 +25,7 @@ import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.bl
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
+import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 
 @Component({
   selector: 'app-editor',
@@ -105,8 +106,18 @@ export class EditorComponent implements OnDestroy {
     }
   }
 
+  resourceEqual(resA: Resource | ResourceError | null, resB: Resource | ResourceError | null): boolean {
+    if (!resA || !resB) {
+      return !resA === !resB;
+    }
+    return resA.id === resB.id && this.deep.deepEquals(resA.data, resB.data);
+  }
+
   @Input()
   public set resource(value: Resource | ResourceError | null) {
+    if (this.resourceEqual(value, this._resourceError || this._resource)) {
+      return;
+    }
     this.resourceSet$.next();
     // TODO reusing components does not work for some reason. At least when child is compound block with the same schema
     let reuseComponent = false; //!!this._component && value && this._resource && value.schema.block_class_mro === this._resource.schema.block_class_mro;
@@ -144,8 +155,13 @@ export class EditorComponent implements OnDestroy {
               const id = this._resource!.id;
               const data = this._resource!.data;
               if (data instanceof Array) {
-                for (let i = 0; i < data.length; i++) {
-                  this.mainService.dataBlockChange$.next([joinId(id, i), data[i]]);
+                if (this._resource!.schema.block_class_mro.startsWith('BytesBlock')) {
+                  // for bytes block we save whole array
+                  this.mainService.dataBlockChange$.next([id, data]);
+                } else {
+                  for (let i = 0; i < data.length; i++) {
+                    this.mainService.dataBlockChange$.next([joinId(id, i), data[i]]);
+                  }
                 }
               } else if (isObject(data)) {
                 for (const key in data) {
@@ -164,7 +180,7 @@ export class EditorComponent implements OnDestroy {
     }
   }
 
-  constructor(readonly mainService: MainService) {}
+  constructor(readonly mainService: MainService, private readonly deep: NgxDeepEqualsPureService) {}
 
   ngOnDestroy(): void {
     this.destroyed$.next();

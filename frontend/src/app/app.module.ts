@@ -56,6 +56,7 @@ import {
   NGX_MAT_COLOR_FORMATS,
   NgxMatColorPickerModule,
 } from '@angular-material-components/color-picker';
+import { HexEditorModule } from 'ngx-hex-editor';
 
 @NgModule({
   declarations: [
@@ -113,6 +114,7 @@ import {
     ReactiveFormsModule,
     MatOptionModule,
     NgxMatColorPickerModule,
+    HexEditorModule,
   ],
   providers: [
     EelDelegateService,

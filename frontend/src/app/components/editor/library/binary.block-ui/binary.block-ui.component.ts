@@ -1,40 +1,6 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
-  ViewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-
-declare var HexEditor: any;
-
-enum NumberBase {
-  Binary = 2,
-  Octal = 8,
-  Decimal = 10,
-  Hexadecimal = 16,
-}
-
-interface HexEditorProps
-  extends Partial<{
-    data: ArrayBuffer;
-    readonly: boolean;
-    showHeader: boolean;
-    showFooter: boolean;
-    height: string;
-    width: string;
-    offsetBase: NumberBase;
-    dataBase: NumberBase;
-    bytesPerLine: number;
-    start: number;
-    end: number;
-  }> {}
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-binary-block-ui',
@@ -42,7 +8,7 @@ interface HexEditorProps
   styleUrls: ['./binary.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
+export class BinaryBlockUiComponent implements GuiComponentInterface {
   @ViewChild('editor') editorDiv?: ElementRef<HTMLDivElement>;
 
   private _resource: Resource | null = null;
@@ -53,13 +19,12 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
   @Input()
   set resource(value: Resource | null) {
     this._resource = value;
-    if (this.editor) {
-      this.editorProps.data = value ? new Uint8Array(value.data) : undefined;
-      this.editorProps.height = Math.min(24, Math.ceil((value?.data || []).length / 8) * 1.5) + 'rem';
-      this.editor.$set({ props: this.editorProps });
-      this.cdr.markForCheck();
-    }
+    this.data$.next(new Uint8Array(value ? value.data : 0));
   }
+
+  empty: Uint8Array = new Uint8Array();
+
+  data$: BehaviorSubject<Uint8Array> = new BehaviorSubject(new Uint8Array());
 
   @Input()
   resourceDescription: string = '';
@@ -68,30 +33,10 @@ export class BinaryBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  private editor: any;
-  private editorProps: HexEditorProps = {
-    showHeader: false,
-    height: '10rem',
-    readonly: false,
-  };
+  constructor() {}
 
-  constructor(private readonly cdr: ChangeDetectorRef) {}
-
-  ngAfterViewInit(): void {
-    if (this.resource) {
-      this.editorProps.data = new Uint8Array(this.resource.data);
-      this.editorProps.height = Math.min(24, Math.ceil(this.resource.data.length / 8) * 1.5) + 'rem';
-    }
-    this.editor = new HexEditor({
-      target: this.editorDiv?.nativeElement,
-      props: this.editorProps,
-    });
-    this.cdr.markForCheck();
-  }
-
-  ngOnDestroy(): void {
-    if (this.editor) {
-      this.editor.$destroy();
-    }
+  onDataChange(arr: Uint8Array) {
+    this._resource!.data = Array.from(arr);
+    this.changed.emit();
   }
 }
