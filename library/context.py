@@ -9,7 +9,7 @@ class BaseContext:
     def __init__(self, name: str = '', data=None, block=None, parent=None):
         self.name = name
         self._data = data
-        self._block = block
+        self.block = block
         self.parent = parent
         self.children = []
         if self.parent:
@@ -27,12 +27,12 @@ class BaseContext:
                 entry = entry[p]
         return entry
 
-    def block(self, local_path: str):
+    def relative_block(self, local_path: str):
         block_path = local_path.split('/')
-        entry = self._block
+        entry = self.block
         for p in block_path:
             if p == '..':
-                return self.parent.block('/'.join(block_path[1:]))
+                return self.parent.relative_block('/'.join(block_path[1:]))
             entry = entry.get_child_block(p)
         return entry
 
