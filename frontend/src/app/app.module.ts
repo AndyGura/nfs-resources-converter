@@ -40,8 +40,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui/tri-map.block-ui.component';
 import { TrkMapBlockUiComponent } from './components/editor/eac/trk-map.block-ui/trk-map.block-ui.component';
-import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
-import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import {
+  RunCustomActionDialogComponent,
+} from './components/run-custom-action.dialog/run-custom-action.dialog.component';
+import {
+  OripGeometryBlockUiComponent,
+} from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { MinimapComponent } from './components/editor/common/minimap/minimap.component';
 import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
 import { MatOptionModule } from '@angular/material/core';
@@ -49,14 +53,19 @@ import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.bl
 import { BlockActionsComponent } from './components/editor/common/block-actions/block-actions.component';
 import { SoundbankBlockUiComponent } from './components/editor/eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
-import { GeoGeometryBlockUiComponent } from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
+import {
+  GeoGeometryBlockUiComponent,
+} from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-viewer.component';
-import { BaseArchiveBlockUiComponent } from './components/editor/eac/base-archive.block-ui/base-archive.block-ui.component';
+import {
+  BaseArchiveBlockUiComponent,
+} from './components/editor/eac/base-archive.block-ui/base-archive.block-ui.component';
 import {
   MAT_COLOR_FORMATS,
   NGX_MAT_COLOR_FORMATS,
   NgxMatColorPickerModule,
 } from '@angular-material-components/color-picker';
+import { HexEditorModule } from 'ngx-hex-editor';
 
 @NgModule({
   declarations: [
@@ -115,6 +124,7 @@ import {
     ReactiveFormsModule,
     MatOptionModule,
     NgxMatColorPickerModule,
+    HexEditorModule,
   ],
   providers: [
     EelDelegateService,
@@ -123,4 +133,5 @@ import {
   ],
   bootstrap: [AppComponent],
 })
-export class AppModule {}
+export class AppModule {
+}

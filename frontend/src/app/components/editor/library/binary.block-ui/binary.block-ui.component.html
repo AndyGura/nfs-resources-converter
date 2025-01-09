@@ -1,2 +1,6 @@
-<h2 [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}</h2>
-<div #editor></div>
+<h2 [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource?.name }}</h2>
+<hex-editor [data]='(data$ | async) || empty'
+            (dataChange)='onDataChange($event)'
+            [maxColumns]='8'
+            [showOffsets]='((data$ | async) || empty).length > 16'
+            [readOnly]='disabled'>
