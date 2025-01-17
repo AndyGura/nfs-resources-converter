@@ -1,10 +1,10 @@
 class ReadWriteException(Exception):
     def __init__(self, message, ctx=None):
-        if ctx is not None:
-            super().__init__('[' + ctx.ctx_path + '] ' + message)
+        self.ctx_path = ctx.ctx_path if ctx is not None else None
+        if self.ctx_path is not None:
+            super().__init__('[' + self.ctx_path + '] ' + message)
         else:
             super().__init__(message)
-        self.ctx = ctx
 
 
 class EndOfBufferException(ReadWriteException):
