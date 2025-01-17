@@ -152,7 +152,7 @@ class Scene:
 # TODO support existing map export logic here and use it
 def export_scenes(scenes: List[Scene], output_path: str, settings):
     mtl_entry_template = Template("""
-    
+
 newmtl $texture_name
 Ka 1.000000 1.000000 1.000000
 Kd 1.000000 1.000000 1.000000
@@ -164,7 +164,7 @@ map_Kd $texture_path""")
     import_template = Template("""
 import json
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.obj(filepath="$obj_file_path", axis_forward='Y', axis_up='Z')
+bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
 
 dummies = json.loads('$dummies') or []
 for dummy in dummies:
@@ -205,7 +205,7 @@ for curve in curves:
                 face_index_increment += fii
         if scene.mtl_name and not scene.external_mtl:
             with open(os.path.join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
-                for texture_name in scene.mtl_texture_names:
+                for texture_name in {x for x in scene.mtl_texture_names}:
                     f.write(mtl_entry_template.substitute({
                         'texture_name': texture_name,
                         'texture_path': scene.mtl_texture_path_func(texture_name),
