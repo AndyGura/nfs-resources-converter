@@ -151,7 +151,8 @@ class EnumLookupDelegateBlock(DelegateBlock):
 
     def __init__(self, enum_field: str, blocks: List[DataBlock], **kwargs):
         super().__init__(possible_blocks=blocks,
-                         choice_index=lambda ctx, **_: _enum_lookup(ctx, enum_field, len(blocks) - 1),
+                         choice_index=(lambda ctx, **_: _enum_lookup(ctx, enum_field, len(blocks) - 1),
+                                       f'According to enum {enum_field}'),
                          **kwargs)
         self.enum_field = enum_field
 

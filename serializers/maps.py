@@ -7,11 +7,10 @@ from string import Template
 from typing import List, Dict
 
 from library.utils.blender_scripts import get_blender_save_script, run_blender
-from library.utils.meshes import SubMesh, Mesh
+from serializers.common.three_d_scenes import SubMesh, Mesh
 from resources.eac.maps import RoadSplinePoint
 from resources.eac.utils import rotate_list
 from serializers import BaseFileSerializer
-from serializers.geometries import ObjExporter
 
 
 class TriMapSerializer(BaseFileSerializer):
@@ -829,67 +828,56 @@ class TrkMapSerializer(BaseFileSerializer):
                 else 0
             ]
             model.pivot_offset = (pivot['x'], pivot['y'], pivot['z'])
-            model.vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
-            model.vertex_uvs = [[0, 0] for _ in range(len(model.vertices))]
-            for v in model.vertices[:block['nv8']]:
+            vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
+            for v in vertices[:block['nv8']]:
                 v[0] += next_pivot['x'] - pivot['x']
                 v[1] += next_pivot['y'] - pivot['y']
                 v[2] += next_pivot['z'] - pivot['z']
-            texture_alignments = []
             for p in block['polygons'][(block['np4'] + block['np2']):]:
                 texture_name, texture_alignment = get_texture(p['texture'])
-                model.polygons.append([p['vertices'][0], p['vertices'][1], p['vertices'][2], p['vertices'][3]])
+                uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
+                rotate_i = (texture_alignment >> 9) & 1
+                n_rotate = ((texture_alignment >> 11) & 3) - rotate_i
+                uvs = rotate_list(uvs, n_rotate)
+                base_idx = len(model.vertices)
+                for i, v_index in enumerate(p['vertices']):
+                    model.vertices.append(vertices[v_index])
+                    model.vertex_uvs.append(uvs[i])
+                model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
                 model.texture_ids.append(texture_name)
-                texture_alignments.append(texture_alignment)
             sub_meshes = model.split_by_texture_ids()
-            # TODO UV-s are completely wrong
-            for submesh, _, polygon_idx_map in sub_meshes:
-                for i, polygon in enumerate(submesh.polygons):
-                    uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
-                    alignment = texture_alignments[polygon_idx_map[i]]
-                    rotate_i = (alignment >> 9) & 1
-                    n_rotate = ((alignment >> 11) & 3) - rotate_i
-                    uvs = rotate_list(uvs, n_rotate)
-                    if i % 2:
-                        uvs = uvs[::-1]  # flip
-                    for i, vi in enumerate(polygon):
-                        submesh.vertex_uvs[vi] = uvs[i]
+
             # TODO use dummies (proxy objects) generic logic here, export props separately
             proxies = [item for sublist in (eb['data_records']['data']
                                             for eb in block['extrablocks']
                                             if eb['type'] in ['props_7', 'props_18'])
                        for item in sublist]
             if len(proxies) > 0:
-                proxy_descr_extrablock = next(eb['data_records']['data'] for eb in block['extrablocks'] if eb['type'] == 'prop_descriptions')
+                proxy_descr_extrablock = next(
+                    eb['data_records']['data'] for eb in block['extrablocks'] if eb['type'] == 'prop_descriptions')
                 for proxy in proxies:
                     if proxy['type'] not in ['static_prop', 'animated_prop']:
                         continue
                     object = proxy_descr_extrablock[proxy['prop_descr_idx']]
-                    position = proxy['position']['data'] if proxy['type'] == 'static_prop' else proxy['position']['data']['frames'][0]['position']
+                    position = proxy['position']['data'] \
+                        if proxy['type'] == 'static_prop' else \
+                        proxy['position']['data']['frames'][0]['position']
                     model = Mesh()
                     model.pivot_offset = (position['x'], position['y'], position['z'])
-                    model.vertices = [[v['x'], v['y'], v['z']] for v in object['vertices']]
-                    model.vertex_uvs = [[0, 0] for _ in range(len(model.vertices))]
-                    texture_alignments = []
                     for p in object['polygons']:
                         texture_name, texture_alignment = get_texture(p['texture'])
-                        model.polygons.append([p['vertices'][0], p['vertices'][1], p['vertices'][2], p['vertices'][3]])
+                        uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
+                        rotate_i = (texture_alignment >> 9) & 1
+                        n_rotate = ((texture_alignment >> 11) & 3) - rotate_i
+                        uvs = rotate_list(uvs, n_rotate)
+                        base_idx = len(model.vertices)
+                        for i, v_index in enumerate(p['vertices']):
+                            v = object['vertices'][v_index]
+                            model.vertices.append([v['x'], v['y'], v['z']])
+                            model.vertex_uvs.append(uvs[i])
+                        model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
                         model.texture_ids.append(texture_name)
-                        texture_alignments.append(texture_alignment)
-                    prop_sub_meshes = model.split_by_texture_ids()
-                    # TODO UV-s are completely wrong
-                    for submesh, _, polygon_idx_map in prop_sub_meshes:
-                        for i, polygon in enumerate(submesh.polygons):
-                            uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
-                            alignment = texture_alignments[polygon_idx_map[i]]
-                            rotate_i = (alignment >> 9) & 1
-                            n_rotate = ((alignment >> 11) & 3) - rotate_i
-                            uvs = rotate_list(uvs, n_rotate)
-                            if i % 2:
-                                uvs = uvs[::-1]  # flip
-                            for i, vi in enumerate(polygon):
-                                submesh.vertex_uvs[vi] = uvs[i]
-                    sub_meshes.extend(prop_sub_meshes)
+                    sub_meshes.extend(model.split_by_texture_ids())
             chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
         for chunk in chunks:
             chunk[1] = (chunk[1][0], chunk[1][2], chunk[1][1])
@@ -923,4 +911,4 @@ class TrkMapSerializer(BaseFileSerializer):
                         obj, fii = mesh.to_obj(face_index_increment)
                         f.write(obj)
                         face_index_increment += fii
-            ObjExporter().handle_obj(settings=self.settings, path=path, obj_name='terrain.obj')
+            # ObjExporter().handle_obj(settings=self.settings, path=path, obj_name='terrain.obj')

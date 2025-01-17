@@ -1,6 +1,12 @@
+import json
 import math
+import os
 from abc import ABC, abstractmethod
+from string import Template
+from typing import Callable
 from typing import Tuple, List
+
+from library.utils.blender_scripts import run_blender, get_blender_save_script
 
 
 class BaseMesh(ABC):
@@ -130,3 +136,101 @@ class Mesh(BaseMesh):
             obj_texts.append(obj)
             face_index_increment += fii
         return '\n\n'.join(obj_texts), face_index_increment
+
+
+class Scene:
+    sub_meshes: List[SubMesh] = []
+    name: str = 'scene'
+    obj_name: str = 'geometry'
+    mtl_name: str = 'material'
+    external_mtl: bool = False
+    mtl_texture_names: List[str] = []
+    mtl_texture_path_func: Callable[[str], str] = lambda x: x
+    dummies = []
+
+
+# TODO support existing map export logic here and use it
+def export_scenes(scenes: List[Scene], output_path: str, settings):
+    mtl_entry_template = Template("""
+    
+newmtl $texture_name
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+illum 1
+Ns 0.000000
+map_Kd $texture_path""")
+
+    import_template = Template("""
+import json
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.import_scene.obj(filepath="$obj_file_path", axis_forward='Y', axis_up='Z')
+
+dummies = json.loads('$dummies') or []
+for dummy in dummies:
+    o = bpy.data.objects.new( dummy['name'], None )
+    bpy.context.scene.collection.objects.link(o)
+    o.location = dummy.get('position', [0, 0, 0])
+    o.rotation_mode = 'QUATERNION'
+    o.rotation_quaternion = Euler(tuple(dummy.get('rotation', [0, 0, 0])), 'XYZ').to_quaternion()
+    dummy_props = dummy.get('properties', {})
+    for key, value in dummy_props.items():
+        o[key] = value
+
+curves = json.loads('$curves') or []
+for curve in curves:
+    curveData = bpy.data.curves.new(curve['name'], type='CURVE')
+    curveData.dimensions = '3D'
+    curveData.resolution_u = 2
+    polyline = curveData.splines.new('POLY')
+    polyline.points.add(len(curve['points']) - 1)
+    for i, [x,y,z] in enumerate(curve['points']):
+        polyline.points[i].co = (x, y, z, 1)
+    polyline.use_cyclic_u = curve.get('closed', False)
+    curveOB = bpy.data.objects.new(curve['name'], curveData)
+    bpy.context.collection.objects.link(curveOB)
+    curve_props = curve.get('properties', {})
+    for (key, value) in curve_props.items():
+        curveOB[key] = value
+    """)
+
+    for scene in scenes:
+        with open(os.path.join(output_path, f'{scene.obj_name}.obj'), 'w') as f:
+            if scene.mtl_name:
+                f.write(f'mtllib {scene.mtl_name}.mtl')
+            face_index_increment = 1
+            for sub_model in scene.sub_meshes:
+                obj, fii = sub_model.to_obj(face_index_increment)
+                f.write(obj)
+                face_index_increment += fii
+        if scene.mtl_name and not scene.external_mtl:
+            with open(os.path.join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
+                for texture_name in scene.mtl_texture_names:
+                    f.write(mtl_entry_template.substitute({
+                        'texture_name': texture_name,
+                        'texture_path': scene.mtl_texture_path_func(texture_name),
+                    }))
+
+    if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:
+        script = ''
+        for scene in scenes:
+            script += '\n\n' + import_template.substitute({
+                'obj_file_path': f'{scene.obj_name}.obj',
+                'dummies': json.dumps(scene.dummies),
+                'curves': json.dumps([]),
+            })
+            if settings.geometry__export_to_gg_web_engine:
+                from serializers.misc.build_blender_scene import construct_blender_export_script
+                script += '\n' + construct_blender_export_script(
+                    file_name=os.path.join(os.getcwd(), output_path, scene.name),
+                    export_materials='EXPORT')
+            if settings.geometry__save_blend:
+                script += '\n\n' + get_blender_save_script(
+                    out_blend_name=os.path.join(os.getcwd(), output_path, scene.name))
+        run_blender(path=output_path, script=script)
+
+    if not settings.geometry__save_obj:
+        for scene in scenes:
+            os.unlink(os.path.join(output_path, scene.obj_name + '.obj'))
+            if scene.mtl_name and not scene.external_mtl:
+                os.unlink(os.path.join(output_path, scene.mtl_name + '.mtl'))
