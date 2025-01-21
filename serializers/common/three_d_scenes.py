@@ -139,17 +139,31 @@ class Mesh(BaseMesh):
 
 
 class Scene:
-    sub_meshes: List[SubMesh] = []
-    name: str = 'scene'
-    obj_name: str = 'geometry'
-    mtl_name: str = 'material'
-    external_mtl: bool = False
-    mtl_texture_names: List[str] = []
-    mtl_texture_path_func: Callable[[str], str] = lambda x: x
-    dummies = []
+    def __init__(self,
+                 name: str = 'scene',
+                 sub_meshes: List[SubMesh] = None,
+                 obj_name: str = 'geometry',
+                 mtl_name: str = 'material',
+                 external_mtl: bool = False,
+                 bake_textures: bool = True,
+                 mtl_texture_names: List[str] = None,
+                 mtl_texture_path_func: Callable[[str], str] = lambda x: x,
+                 dummies: List[dict] = None,
+                 curves: List[dict] = None,
+                 extra_script: str = None):
+        self.name = name
+        self.sub_meshes = sub_meshes or []
+        self.obj_name = obj_name
+        self.mtl_name = mtl_name
+        self.external_mtl = external_mtl
+        self.bake_textures = bake_textures
+        self.mtl_texture_names = mtl_texture_names or []
+        self.mtl_texture_path_func = mtl_texture_path_func
+        self.dummies = dummies or []
+        self.curves = curves or []
+        self.extra_script = extra_script or ""
 
 
-# TODO support existing map export logic here and use it
 def export_scenes(scenes: List[Scene], output_path: str, settings):
     mtl_entry_template = Template("""
 
@@ -163,6 +177,8 @@ map_Kd $texture_path""")
 
     import_template = Template("""
 import json
+from mathutils import Euler
+
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
 
@@ -192,6 +208,8 @@ for curve in curves:
     curve_props = curve.get('properties', {})
     for (key, value) in curve_props.items():
         curveOB[key] = value
+        
+$extra_script
     """)
 
     for scene in scenes:
@@ -217,13 +235,14 @@ for curve in curves:
             script += '\n\n' + import_template.substitute({
                 'obj_file_path': f'{scene.obj_name}.obj',
                 'dummies': json.dumps(scene.dummies),
-                'curves': json.dumps([]),
+                'curves': json.dumps(scene.curves),
+                'extra_script': scene.extra_script,
             })
             if settings.geometry__export_to_gg_web_engine:
                 from serializers.misc.build_blender_scene import construct_blender_export_script
                 script += '\n' + construct_blender_export_script(
                     file_name=os.path.join(os.getcwd(), output_path, scene.name),
-                    export_materials='EXPORT')
+                    export_materials='EXPORT' if scene.bake_textures else 'NONE')
             if settings.geometry__save_blend:
                 script += '\n\n' + get_blender_save_script(
                     out_blend_name=os.path.join(os.getcwd(), output_path, scene.name))
