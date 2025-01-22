@@ -223,7 +223,7 @@ $extra_script
                 face_index_increment += fii
         if scene.mtl_name and not scene.external_mtl:
             with open(os.path.join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
-                for texture_name in {x for x in scene.mtl_texture_names}:
+                for texture_name in sorted(list({x for x in scene.mtl_texture_names})):
                     f.write(mtl_entry_template.substitute({
                         'texture_name': texture_name,
                         'texture_path': scene.mtl_texture_path_func(texture_name),

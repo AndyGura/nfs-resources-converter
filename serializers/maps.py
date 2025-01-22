@@ -346,7 +346,7 @@ for obj in bpy.context.selected_objects:
                 instance['position']['z'] + road_spline_vertex['position']['z'],
                 instance['position']['y'] + road_spline_vertex['position']['y'],
             ],
-            'rotation': [0, 0, instance['rotation'] + road_spline_vertex['orientation']],
+            'rotation': [0, 0, -(instance['rotation'] + road_spline_vertex['orientation'])],
             'properties': {
                 'is_prop': True,
                 'type': prop_definition['type'],
@@ -524,7 +524,9 @@ for obj in bpy.context.selected_objects:
         data = deepcopy(data)
         is_opened = data['loop_chunk'] == 0
 
-        map_scene = Scene(name='map')
+        map_scene = Scene(name='map',
+                          obj_name='map',
+                          mtl_name='terrain')
         scenes = [map_scene]
 
         assert data == original_data
@@ -598,8 +600,8 @@ for obj in bpy.context.selected_objects:
                     data['road_spline'][i * 4]['position']['z'],
                     data['road_spline'][i * 4]['position']['y'],
                 )
-                dummy_children = []
-                if i < int(len(data['terrain']) / 4) - 1:
+                dummy_children = None
+                if i < len(data['terrain']) - 1:
                     dummy_children = [f'chunk_{i + 1}']
                 elif not is_opened:
                     dummy_children = ['chunk_0']
@@ -617,6 +619,7 @@ for obj in bpy.context.selected_objects:
                 scene = Scene(name=f'terrain_chunk_{i}',
                               sub_meshes=meshes,
                               obj_name=f'terrain_chunk_{i}',
+                              mtl_name='terrain',
                               bake_textures=False,
                               external_mtl=True)
                 scene.dummies = [self._prop_json(data, o, is_opened, True)
