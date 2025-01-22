@@ -560,6 +560,7 @@ for obj in bpy.context.selected_objects:
                                                 else '0/ga00')
                 chunk.has_left_fence = terrain_entry['fence']['has_left_fence']
                 chunk.has_right_fence = terrain_entry['fence']['has_right_fence']
+                map_scene.mtl_texture_names.append(chunk.fence_texture_name)
             chunks.append(chunk)
 
         for i, chunk in enumerate(chunks):
