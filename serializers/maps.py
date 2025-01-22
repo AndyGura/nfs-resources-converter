@@ -392,22 +392,6 @@ for obj in bpy.context.selected_objects:
             }
         return res
 
-    def _save_mtl(self, terrain_data, path: str, name):
-        with open(os.path.join(path, 'terrain.mtl'), 'w') as f:
-            texture_names = list(set(
-                sum([x['texture_names'] for x in terrain_data], [])
-                + [x['chunk'].fence_texture_name for x in terrain_data if x['chunk'].fence_texture_name]
-            ))
-            texture_names.sort()
-            for texture_name in texture_names:
-                f.write(f"""\n\nnewmtl {texture_name}
-        Ka 1.000000 1.000000 1.000000
-        Kd 1.000000 1.000000 1.000000
-        Ks 0.000000 0.000000 0.000000
-        illum 1
-        Ns 0.000000
-        map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
-
     def mtl_append_foreground_textures(self, data, path, name):
         foreground_texture_names = list(set(
             ['foreground/' + self._texture_ids(x['data']['data']['resource_id'],
@@ -519,20 +503,18 @@ for obj in bpy.context.selected_objects:
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
-        # this serializer mutates data when exchanging axis to Z-up
-        original_data = data
-        data = deepcopy(data)
         is_opened = data['loop_chunk'] == 0
 
         map_scene = Scene(name='map',
                           obj_name='map',
-                          mtl_name='terrain')
+                          mtl_name='terrain',
+                          mtl_texture_path_func=lambda
+                              x: f'../../ETRACKFM/{id.split("/")[-1][:3]}_001.FAM/background/{x}.png',
+                          skip_obj_export=self.settings.maps__save_as_chunked)
         scenes = [map_scene]
 
-        assert data == original_data
-
         spline = data['road_spline'][:len(data['terrain']) * 4]
-        map_scene.curves.append({
+        curve = {
             'name': 'road_path',
             'closed': not is_opened,
             'points': [[x['position']['x'], x['position']['z'], x['position']['y']]
@@ -551,14 +533,14 @@ for obj in bpy.context.selected_objects:
                                  range(len(data['terrain']) * 4)],
                 'max_traffic_speed': [data['ai_info'][math.floor(i / 4)]['max_traffic_speed'] for i in
                                       range(len(data['terrain']) * 4)],
-                # a terminal road path point: when go backwards, race ends after this point
-                'start_point_index': 12 if is_opened else 0,
-                # a finish road path point
-                'finish_point_index': data['num_chunks'] * 4 - (179 if is_opened else 1)
             },
-        })
-
-        assert data == original_data
+        }
+        if is_opened:
+            # a terminal road path point: when go backwards, race ends after this point
+            curve['properties']['start_point_index'] = 12
+            # a finish road path point
+            curve['properties']['finish_point_index'] = data['num_chunks'] * 4 - 179
+        map_scene.curves.append(curve)
 
         chunks = []
         for (i, terrain_entry) in enumerate(data['terrain']):
@@ -580,17 +562,14 @@ for obj in bpy.context.selected_objects:
                 chunk.has_right_fence = terrain_entry['fence']['has_right_fence']
             chunks.append(chunk)
 
-        assert data == original_data
-
         for i, chunk in enumerate(chunks):
             chunk.next_chunk = (chunks[i + 1]
                                 if (i < len(chunks) - 1)
                                 else (None if is_opened else chunks[0]))
 
-        assert data == original_data
-
         for (i, terrain_entry) in enumerate(data['terrain']):
             texture_names = [self._get_texture_name_from_id(is_opened, tid) for tid in terrain_entry['texture_ids']]
+            map_scene.mtl_texture_names.extend(texture_names)
             meshes = chunks[i].build_models(i, texture_names)
             for mesh in meshes:
                 mesh.change_axes(new_z='y', new_y='z')
@@ -600,20 +579,19 @@ for obj in bpy.context.selected_objects:
                     data['road_spline'][i * 4]['position']['z'],
                     data['road_spline'][i * 4]['position']['y'],
                 )
-                dummy_children = None
-                if i < len(data['terrain']) - 1:
-                    dummy_children = [f'chunk_{i + 1}']
-                elif not is_opened:
-                    dummy_children = ['chunk_0']
-                map_scene.dummies.append({
+                dummy = {
                     'name': f'chunk_{i}',
                     'position': position,
                     'properties': {
                         'is_chunk': True,
                         'chunk': f'terrain_chunk_{i}',
-                        'children': dummy_children
                     },
-                })
+                }
+                if i < len(data['terrain']) - 1:
+                    dummy['properties']['children'] = [f'chunk_{i + 1}']
+                elif not is_opened:
+                    dummy['properties']['children'] = ['chunk_0']
+                map_scene.dummies.append(dummy)
                 for mesh in meshes:
                     mesh.pivot_offset = position
                 scene = Scene(name=f'terrain_chunk_{i}',
@@ -621,7 +599,7 @@ for obj in bpy.context.selected_objects:
                               obj_name=f'terrain_chunk_{i}',
                               mtl_name='terrain',
                               bake_textures=False,
-                              external_mtl=True)
+                              skip_mtl_export=True)
                 scene.dummies = [self._prop_json(data, o, is_opened, True)
                                  for o in data['props']
                                  if (i + 1) * 4 > o['road_point_idx'] >= i * 4]
@@ -655,8 +633,6 @@ for obj in bpy.context.selected_objects:
             ],
             'rotation': [data['road_spline'][18]['slope'], 0, 0]
         })
-
-        assert data == original_data
 
         if self.settings.maps__save_invisible_wall_collisions:
             left_barrier_points = self.BarrierPath(
@@ -696,11 +672,7 @@ for obj in bpy.context.selected_objects:
                 }),
             })
 
-        assert data == original_data
-
         export_scenes(scenes, path, self.settings)
-
-        assert data == original_data
 
         # if self.settings.maps__add_props_to_obj:
         #     self.mtl_append_foreground_textures(data, path, id.split('/')[-1])

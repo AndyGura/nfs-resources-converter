@@ -144,24 +144,26 @@ class Scene:
                  sub_meshes: List[SubMesh] = None,
                  obj_name: str = 'geometry',
                  mtl_name: str = 'material',
-                 external_mtl: bool = False,
                  bake_textures: bool = True,
                  mtl_texture_names: List[str] = None,
                  mtl_texture_path_func: Callable[[str], str] = lambda x: x,
                  dummies: List[dict] = None,
                  curves: List[dict] = None,
-                 extra_script: str = None):
+                 extra_script: str = None,
+                 skip_obj_export: bool = False,
+                 skip_mtl_export: bool = False):
         self.name = name
         self.sub_meshes = sub_meshes or []
         self.obj_name = obj_name
         self.mtl_name = mtl_name
-        self.external_mtl = external_mtl
         self.bake_textures = bake_textures
         self.mtl_texture_names = mtl_texture_names or []
         self.mtl_texture_path_func = mtl_texture_path_func
         self.dummies = dummies or []
         self.curves = curves or []
         self.extra_script = extra_script or ""
+        self.skip_obj_export = skip_obj_export
+        self.skip_mtl_export = skip_mtl_export
 
 
 def export_scenes(scenes: List[Scene], output_path: str, settings):
@@ -180,7 +182,8 @@ import json
 from mathutils import Euler
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
+if "$obj_file_path":
+    bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
 
 dummies = json.loads('$dummies') or []
 for dummy in dummies:
@@ -213,15 +216,16 @@ $extra_script
     """)
 
     for scene in scenes:
-        with open(os.path.join(output_path, f'{scene.obj_name}.obj'), 'w') as f:
-            if scene.mtl_name:
-                f.write(f'mtllib {scene.mtl_name}.mtl')
-            face_index_increment = 1
-            for sub_model in scene.sub_meshes:
-                obj, fii = sub_model.to_obj(face_index_increment)
-                f.write(obj)
-                face_index_increment += fii
-        if scene.mtl_name and not scene.external_mtl:
+        if not scene.skip_obj_export:
+            with open(os.path.join(output_path, f'{scene.obj_name}.obj'), 'w') as f:
+                if scene.mtl_name:
+                    f.write(f'mtllib {scene.mtl_name}.mtl')
+                face_index_increment = 1
+                for sub_model in scene.sub_meshes:
+                    obj, fii = sub_model.to_obj(face_index_increment)
+                    f.write(obj)
+                    face_index_increment += fii
+        if scene.mtl_name and not scene.skip_mtl_export:
             with open(os.path.join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
                 for texture_name in sorted(list({x for x in scene.mtl_texture_names})):
                     f.write(mtl_entry_template.substitute({
@@ -233,7 +237,7 @@ $extra_script
         script = ''
         for scene in scenes:
             script += '\n\n' + import_template.substitute({
-                'obj_file_path': f'{scene.obj_name}.obj',
+                'obj_file_path': f'{scene.obj_name}.obj' if not scene.skip_obj_export else '',
                 'dummies': json.dumps(scene.dummies),
                 'curves': json.dumps(scene.curves),
                 'extra_script': scene.extra_script,
@@ -250,6 +254,7 @@ $extra_script
 
     if not settings.geometry__save_obj:
         for scene in scenes:
-            os.unlink(os.path.join(output_path, scene.obj_name + '.obj'))
-            if scene.mtl_name and not scene.external_mtl:
+            if not scene.skip_obj_export:
+                os.unlink(os.path.join(output_path, scene.obj_name + '.obj'))
+            if scene.mtl_name and not scene.skip_mtl_export:
                 os.unlink(os.path.join(output_path, scene.mtl_name + '.mtl'))
