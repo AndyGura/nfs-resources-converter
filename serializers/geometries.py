@@ -6,7 +6,7 @@ from library.exceptions import DataIntegrityException
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
-from serializers.common.three_d_scenes import SubMesh, Mesh, export_scenes, Scene
+from serializers.common.three_d import SubMesh, Mesh, export_scenes, Scene
 
 
 class OripGeometrySerializer(BaseFileSerializer):
