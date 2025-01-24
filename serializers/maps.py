@@ -9,7 +9,7 @@ from typing import List, Dict
 from resources.eac.maps import RoadSplinePoint
 from resources.eac.utils import rotate_list
 from serializers import BaseFileSerializer
-from serializers.common.three_d import SubMesh, Mesh, Scene, export_scenes
+from serializers.common.three_d import SubMesh, Mesh, Scene, export_scenes, BarrierPath
 
 
 class TriMapSerializer(BaseFileSerializer):
@@ -473,7 +473,8 @@ for obj in bpy.context.selected_objects:
                 if is_opened:
                     if id.endswith('AL1.TRI') and fence_texture_id == 16:
                         fence_texture_id = fence_texture_id * 3
-                    chunk.fence_texture_name = 'background/' + self._get_texture_name_from_id(is_opened, fence_texture_id)
+                    chunk.fence_texture_name = 'background/' + self._get_texture_name_from_id(is_opened,
+                                                                                              fence_texture_id)
                 else:
                     chunk.fence_texture_name = ('background/0/GA00'
                                                 if id.split('/')[-1] in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
@@ -562,12 +563,12 @@ for obj in bpy.context.selected_objects:
                 scene.extra_script += self.terrain_collisions_script
 
         if self.settings.maps__save_invisible_wall_collisions:
-            left_barrier_points = self.BarrierPath(
+            left_barrier_points = BarrierPath(
                 [[rp['position']['x'] + rp['left_barrier'] * math.cos(rp['orientation'] + math.pi),
                   rp['position']['y'],
                   rp['position']['z'] - rp['left_barrier'] * math.sin(rp['orientation'] + math.pi)
                   ] for rp in data['road_spline'][:len(data['terrain']) * 4]])
-            right_barrier_points = self.BarrierPath(
+            right_barrier_points = BarrierPath(
                 [[rp['position']['x'] + rp['right_barrier'] * math.cos(rp['orientation']),
                   rp['position']['y'],
                   rp['position']['z'] - rp['right_barrier'] * math.sin(rp['orientation'])
