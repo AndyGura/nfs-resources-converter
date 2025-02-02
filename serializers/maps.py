@@ -5,75 +5,15 @@ from copy import deepcopy
 from string import Template
 from typing import List, Dict
 
-from library.utils.blender_scripts import get_blender_save_script, run_blender
-from library.utils.meshes import SubMesh
 from resources.eac.maps import RoadSplinePoint
 from serializers import BaseFileSerializer
+from serializers.common.three_d import SubMesh, Scene, export_scenes, BarrierPath
 
 
 class TriMapSerializer(BaseFileSerializer):
 
     def __init__(self):
         super().__init__(is_dir=True)
-
-    class BarrierPath:
-        def __init__(self, points: List[List[float]]) -> None:
-            super().__init__()
-            self.points = points
-            self.is_closed = points[0] == points[-1]
-            self.z_up = False
-
-        @property
-        def middle_points(self):
-            return [[(self.points[i][j] + self.points[i + 1][j]) / 2 for j in range(3)] for i in
-                    range(len(self.points) - 1)]
-
-        @property
-        def lengths(self):
-            return [math.sqrt((self.points[i][0] - self.points[i + 1][0]) ** 2
-                              + (self.points[i][1 if self.z_up else 2] - self.points[i + 1][
-                1 if self.z_up else 2]) ** 2)
-                    for i in range(len(self.points) - 1)]
-
-        @property
-        def orientations(self):
-            return [math.atan2(self.points[i + 1][0] - self.points[i][0],
-                               self.points[i + 1][1 if self.z_up else 2] - self.points[i][1 if self.z_up else 2])
-                    for i in range(len(self.points) - 1)]
-
-        def fix_angle(self, angle):
-            while angle > math.pi:
-                angle -= 2 * math.pi
-            while angle <= -math.pi:
-                angle += 2 * math.pi
-            return angle
-
-        def optimize(self):
-            orientations = self.orientations
-            lengths = self.lengths
-            delta_angles = [abs(math.sin(orientations[i] - orientations[i + 1]) * (lengths[i] + lengths[i + 1]))
-                            for i in range(len(orientations) - 1)]
-            if self.is_closed:
-                # make the most valuable angle as break
-                break_delta_angle = abs(self.fix_angle(orientations[-1] - orientations[0]))
-                max_delta_angle = max(delta_angles)
-                if max_delta_angle > break_delta_angle:
-                    index = delta_angles.index(max_delta_angle)
-                    self.points = self.points[index + 1:] + self.points[:index + 2]
-                    orientations = self.orientations
-                    lengths = self.lengths
-                    delta_angles = [abs(math.sin(orientations[i] - orientations[i + 1]) * (lengths[i] + lengths[i + 1]))
-                                    for i in range(len(orientations) - 1)]
-            while True:
-                min_delta_angle = min(delta_angles)
-                if min_delta_angle > 0.3:  # 30cm threshold
-                    break
-                index = delta_angles.index(min_delta_angle)
-                self.points = self.points[:index + 1] + self.points[index + 2:]
-                orientations = self.orientations
-                lengths = self.lengths
-                delta_angles = [abs(math.sin(orientations[i] - orientations[i + 1]) * (lengths[i] + lengths[i + 1]))
-                                for i in range(len(orientations) - 1)]
 
     class TerrainChunk:
 
@@ -148,13 +88,13 @@ class TriMapSerializer(BaseFileSerializer):
             self.reference_points = reference_points
             self.matrix = [None] * 4
             for row_index in range(4):
-                A0 = rows[row_index][0]
-                A0['x'] += reference_points[row_index]['position']['x']
-                A0['y'] += reference_points[row_index]['position']['y']
-                A0['z'] += reference_points[row_index]['position']['z']
-
-                A15 = [rows[row_index][i + 1] for i in range(5)]
-                A610 = [rows[row_index][i + 6] for i in range(5)]
+                A0 = {
+                    'x': rows[row_index][0]['x'] + reference_points[row_index]['position']['x'],
+                    'y': rows[row_index][0]['y'] + reference_points[row_index]['position']['y'],
+                    'z': rows[row_index][0]['z'] + reference_points[row_index]['position']['z'],
+                }
+                A15 = [{**rows[row_index][i + 1]} for i in range(5)]
+                A610 = [{**rows[row_index][i + 6]} for i in range(5)]
                 # Each point is relative to the previous point
                 for i in range(5):
                     for j in ['x', 'y', 'z']:
@@ -228,7 +168,7 @@ class TriMapSerializer(BaseFileSerializer):
                     (0 if x < int(len(model.vertices) / 2) else 1) if i < int(len(model.vertices) / 2) else (
                         1 if x < int(len(model.vertices) / 2) else 0)
                 ] for x in range(len(model.vertices))]
-                model.texture_id = texture_names[i - 5 if i >= 5 else 9 - i]
+                model.texture_id = 'background/' + texture_names[i - 5 if i >= 5 else 9 - i]
                 model.name = f'terrain_chunk_{counter}_{i}_{model.texture_id}'
                 models.append(model)
             if self.has_left_fence:
@@ -268,134 +208,57 @@ class TriMapSerializer(BaseFileSerializer):
             model.name = f'terrain_chunk_{counter}_{"left" if is_left else "right"}fence_{self.fence_texture_name}'
             return model
 
-    blender_map_script = Template("""
-import math
-import json
-from mathutils import Euler
-if $new_file:
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-
-# create road spline
-print('building track spline...')
-# create the Curve Datablock
-curveData = bpy.data.curves.new('road_path', type='CURVE')
-curveData.dimensions = '3D'
-curveData.resolution_u = 2
-
-# map coords to spline
-polyline = curveData.splines.new('POLY')
-coords = [$road_path_points]
-polyline.points.add(len(coords) - 1)
-for i, coord in enumerate(coords):
-    x,y,z = coord
-    polyline.points[i].co = (x, y, z, 1)
-if not $is_opened_track:
-    polyline.use_cyclic_u = True
-# create Object
-curveOB = bpy.data.objects.new('road_path', curveData)
-bpy.context.collection.objects.link(curveOB)
-# settings
-spline_properties = json.loads('$road_path_settings')
-for (key, value) in spline_properties.items():
-    curveOB[key] = value
-
-print('creating prop dummies...')
-# map chunks dummies
-for i in range(int(len(coords) / 4)):
-    o = bpy.data.objects.new( f"chunk_{i}", None )
-    bpy.context.collection.objects.link(o)
-    o.location = coords[i * 4]
-    o['is_chunk'] = True
-    o['chunk'] = f'terrain_chunk_{i}'
-    if i < int(len(coords) / 4) - 1:
-        o['children'] = [f'chunk_{i + 1}']
-    elif (i == int(len(coords) / 4) - 1) and not $is_opened_track:
-        o['children'] = ['chunk_0']
-
-player_start_position = json.loads('$player_start')
-o = bpy.data.objects.new( "player_start", None )
-bpy.context.collection.objects.link(o)
-o.location = [player_start_position['x'], player_start_position['y'], player_start_position['z']]
-o.rotation_mode = 'QUATERNION'
-o.rotation_quaternion = Euler((player_start_position['rotation_x'], 0, 0), 'XYZ').to_quaternion()
-
-   
-# barriers collisions
-if $save_invisible_wall_collisions:
-    print('defining wall collisions...')
-    left_barrier = json.loads('$left_barrier')
-    right_barrier = json.loads('$right_barrier')
-    wall_cube_names = []
-    for barrier in [left_barrier, right_barrier]:
-        if not barrier:
-            continue
-        for i in range(len(barrier['middle_points'])):
-            rotation = barrier['orientations'][i]
-            if barrier == left_barrier:
-                rotation += math.pi
-            bpy.ops.mesh.primitive_cube_add(location=(
-                                                barrier['middle_points'][i][0] + math.cos(rotation),
-                                                barrier['middle_points'][i][1] - math.sin(rotation),
-                                                barrier['points'][i][2] + 100),
-                                            scale=(1, barrier['lengths'][i] / 2, 125),
-                                            rotation=(0, 0, -barrier['orientations'][i]))
-            cube = bpy.data.objects['Cube']
-            cube.name = f"wall_collision_{'left' if barrier == left_barrier else 'right'}_{i}"
-            cube.hide_render = True
-            cube.display_bounds_type = 'BOX'
-            cube.display_type = 'BOUNDS'
-            wall_cube_names.append(cube.name)
-    bpy.ops.object.select_all(action='DESELECT')
-    for name in wall_cube_names:
-        bpy.data.objects[name].select_set(True)
-    bpy.ops.rigidbody.objects_add(type='PASSIVE')
-    for obj in bpy.context.selected_objects:
-        obj.rigid_body.collision_shape = 'BOX'
-    """)
-
-    blender_chunk_script = Template("""
-import math
-import json
-from mathutils import Euler
-
-if $new_file:
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.wm.obj_import(filepath="$obj_name", forward_axis='Y', up_axis='Z')
-
-# create props
-props = json.loads('$props_json')
-for index, prop in enumerate(props):
-    o = bpy.data.objects.new( f"proxy_{index}", None )
-    bpy.context.collection.objects.link(o)
-    o.location = (prop['x'], prop['y'], prop['z'])
-    o.rotation_mode = 'QUATERNION'
-    o.rotation_quaternion = Euler((0, 0, prop['rotation_z']), 'XYZ').to_quaternion()
-    o['is_prop'] = True
-    for k, v in prop.items():
-        if k in ['x', 'y', 'z', 'rotation_z']:
-            continue
-        o[k] = v
-    
-    
+    terrain_collisions_script = """
 def find_terrain_chunks():
     import re
     pattern = re.compile(f"^terrain_chunk")
     return [x for x in bpy.data.objects if pattern.match(x.name)]
-    
-# terrain collisions
-if $save_terrain_collisions:
-    bpy.ops.object.select_all(action='DESELECT')
-    is_active_set = False
-    objects = find_terrain_chunks()
-    for object in objects:
-        object.select_set(True)
-        if not is_active_set:
-            bpy.context.view_layer.objects.active = object
-            is_active_set = True
+
+bpy.ops.object.select_all(action='DESELECT')
+is_active_set = False
+objects = find_terrain_chunks()
+for object in objects:
+    object.select_set(True)
+    if not is_active_set:
+        bpy.context.view_layer.objects.active = object
+        is_active_set = True
+if len(objects) > 0:
     bpy.ops.rigidbody.objects_add(type='PASSIVE')
-    # for obj in bpy.context.selected_objects:
-    #     obj.rigid_body.collision_shape = 'CONVEX_HULL'
-    """)
+# for obj in bpy.context.selected_objects:
+#     obj.rigid_body.collision_shape = 'CONVEX_HULL'
+"""
+
+    wall_collisions_script = Template("""
+import math
+left_barrier = json.loads('$left_barrier')
+right_barrier = json.loads('$right_barrier')
+wall_cube_names = []
+for barrier in [left_barrier, right_barrier]:
+    if not barrier:
+        continue
+    for i in range(len(barrier['middle_points'])):
+        rotation = barrier['orientations'][i]
+        if barrier == left_barrier:
+            rotation += math.pi
+        bpy.ops.mesh.primitive_cube_add(location=(
+                                            barrier['middle_points'][i][0] + math.cos(rotation),
+                                            barrier['middle_points'][i][1] - math.sin(rotation),
+                                            barrier['points'][i][2] + 100),
+                                        scale=(1, barrier['lengths'][i] / 2, 125),
+                                        rotation=(0, 0, -barrier['orientations'][i]))
+        cube = bpy.data.objects['Cube']
+        cube.name = f"wall_collision_{'left' if barrier == left_barrier else 'right'}_{i}"
+        cube.hide_render = True
+        cube.display_bounds_type = 'BOX'
+        cube.display_type = 'BOUNDS'
+        wall_cube_names.append(cube.name)
+bpy.ops.object.select_all(action='DESELECT')
+for name in wall_cube_names:
+    bpy.data.objects[name].select_set(True)
+bpy.ops.rigidbody.objects_add(type='PASSIVE')
+for obj in bpy.context.selected_objects:
+    obj.rigid_body.collision_shape = 'BOX'
+""")
 
     def _get_texture_name_from_id(self, is_opened_track, texture_id):
         if is_opened_track:
@@ -416,24 +279,33 @@ if $save_terrain_collisions:
         spline_index = instance['road_point_idx']
         road_spline_vertex = data['road_spline'][spline_index]
         res = {
-            'type': prop_definition['type'],
-            'road_index': spline_index,
-            'x': instance['position']['x'] + road_spline_vertex['position']['x'],
-            'y': instance['position']['y'] + road_spline_vertex['position']['y'],
-            'z': instance['position']['z'] + road_spline_vertex['position']['z'],
-            'rotation_z': instance['rotation'] + road_spline_vertex['orientation'],
+            'name': f'proxy_',
+            'position': [
+                instance['position']['x'] + road_spline_vertex['position']['x'],
+                instance['position']['z'] + road_spline_vertex['position']['z'],
+                instance['position']['y'] + road_spline_vertex['position']['y'],
+            ],
+            'rotation': [0, 0, -(instance['rotation'] + road_spline_vertex['orientation'])],
+            'properties': {
+                'is_prop': True,
+                'type': prop_definition['type'],
+                'road_index': spline_index,
+            }
         }
         if use_local_coordinates:
-            for axis in ['x', 'y', 'z']:
-                res[axis] -= data['road_spline'][spline_index - (spline_index % 4)]['position'][axis]
-        if res['type'] == 'model':
-            res = {
-                **res,
+            res['position'] = [
+                res['position'][0] - data['road_spline'][spline_index - (spline_index % 4)]['position']['x'],
+                res['position'][1] - data['road_spline'][spline_index - (spline_index % 4)]['position']['z'],
+                res['position'][2] - data['road_spline'][spline_index - (spline_index % 4)]['position']['y'],
+            ]
+        if prop_definition['type'] == 'model':
+            res['properties'] = {
+                **res['properties'],
                 'model_ref_id': prop_definition['data']['data']['resource_id']
             }
-        elif res['type'] == 'bitmap':
-            res = {
-                **res,
+        elif prop_definition['type'] == 'bitmap':
+            res['properties'] = {
+                **res['properties'],
                 'texture': ';'.join(self._texture_ids(
                     prop_definition['data']['data']['resource_id'],
                     prop_definition['data']['data']['frame_count']
@@ -444,9 +316,9 @@ if $save_terrain_collisions:
                 'height': prop_definition['data']['data']['height'],
                 'animation_interval': prop_definition['data']['data']['animation_interval']
             }
-        elif res['type'] == 'two_sided_bitmap':
-            res = {
-                **res,
+        elif prop_definition['type'] == 'two_sided_bitmap':
+            res['properties'] = {
+                **res['properties'],
                 'texture': ';'.join(self._texture_ids(prop_definition['data']['data']['resource_id'],
                                                       1,
                                                       is_opened_track)),
@@ -459,47 +331,9 @@ if $save_terrain_collisions:
             }
         return res
 
-    def _save_mtl(self, terrain_data, path: str, name):
-        with open(os.path.join(path, 'terrain.mtl'), 'w') as f:
-            texture_names = list(set(
-                sum([x['texture_names'] for x in terrain_data], [])
-                + [x['chunk'].fence_texture_name for x in terrain_data if x['chunk'].fence_texture_name]
-            ))
-            texture_names.sort()
-            for texture_name in texture_names:
-                f.write(f"""\n\nnewmtl {texture_name}
-        Ka 1.000000 1.000000 1.000000
-        Kd 1.000000 1.000000 1.000000
-        Ks 0.000000 0.000000 0.000000
-        illum 1
-        Ns 0.000000
-        map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/background/{texture_name}.png""")
-
-    def mtl_append_foreground_textures(self, data, path, name):
-        foreground_texture_names = list(set(
-            ['foreground/' + self._texture_ids(x['data']['data']['resource_id'],
-                                               1,
-                                               data['loop_chunk'] == 0)[0]
-             for x in data['prop_descr']
-             if x['type'] in ['bitmap', 'two_sided_bitmap']]
-            + ['foreground/' + self._texture_ids(x['data']['data']['resource_id_2'],
-                                                 1,
-                                                 data['loop_chunk'] == 0)[0]
-               for x in data['prop_descr']
-               if x['type'] == 'two_sided_bitmap']
-        ))
-        foreground_texture_names.sort()
-        with open(os.path.join(path, 'terrain.mtl'), 'a') as mtl:
-            for texture_name in foreground_texture_names:
-                mtl.write(f"""\n\nnewmtl {texture_name}
-                Ka 1.000000 1.000000 1.000000
-                Kd 1.000000 1.000000 1.000000
-                Ks 0.000000 0.000000 0.000000
-                illum 1
-                Ns 0.000000
-                map_Kd ../../ETRACKFM/{name[:3]}_001.FAM/{texture_name}.png""")
-
-    def render_props_to_obj(self, id, f, path, data, face_index_increment, is_opened_track, min_id, max_id, pivot=(0, 0, 0)):
+    def render_tnfs_props(self, id, data, is_opened_track, min_id, max_id, pivot=(0, 0, 0)):
+        meshes = []
+        additional_textures = []
         for i, p in enumerate(data['props']):
             if p['road_point_idx'] > max_id or p['road_point_idx'] < min_id:
                 continue
@@ -507,11 +341,11 @@ if $save_terrain_collisions:
             spline_point = data['road_spline'][p['road_point_idx']]
 
             def position_mesh(mesh):
-                mesh.rotate_z(p['rotation'] + spline_point['orientation'])
+                mesh.rotate_z(-(p['rotation'] + spline_point['orientation']))
                 mesh.pivot_offset = (
                     pivot[0] - (p['position']['x'] + spline_point['position']['x']),
-                    pivot[1] - (p['position']['y'] + spline_point['position']['y']),
-                    pivot[2] - (p['position']['z'] + spline_point['position']['z']),
+                    pivot[1] - (p['position']['z'] + spline_point['position']['z']),
+                    pivot[2] - (p['position']['y'] + spline_point['position']['y']),
                 )
 
             if descr['type'] in ['bitmap', 'two_sided_bitmap']:
@@ -530,9 +364,7 @@ if $save_terrain_collisions:
                 position_mesh(mesh)
                 mesh.texture_id = 'foreground/' + self._texture_ids(descr['data']['data']['resource_id'], 1,
                                                                     is_opened_track)[0]
-                obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
-                f.write(obj)
-                face_index_increment += fii
+                meshes.append(mesh)
                 if descr['type'] == 'two_sided_bitmap':
                     width_2 = descr['data']['data']['width_2']
                     mesh = SubMesh()
@@ -548,9 +380,7 @@ if $save_terrain_collisions:
                     position_mesh(mesh)
                     mesh.texture_id = 'foreground/' + self._texture_ids(descr['data']['data']['resource_id_2'], 1,
                                                                         is_opened_track)[0]
-                    obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
-                    f.write(obj)
-                    face_index_increment += fii
+                    meshes.append(mesh)
             else:
                 from library import require_resource
                 (prop_id, prop_block, prop_data), _ = require_resource(
@@ -562,229 +392,211 @@ if $save_terrain_collisions:
                 _, shpi_block, shpi_data, sub_models = OripGeometrySerializer().build_mesh(prop_data, prop_id)
                 for mesh in sub_models.values():
                     mesh.name = f'prop_{i}_' + mesh.name
-                    mesh.texture_id = f"prop/{descr['data']['data']['resource_id']}/assets/" + mesh.texture_id
+                    mesh.texture_id = f"props/{descr['data']['data']['resource_id']}/0/assets/" + mesh.texture_id
                     position_mesh(mesh)
-                    obj, fii = mesh.to_obj(face_index_increment, mtllib='terrain.mtl')
-                    f.write(obj)
-                    face_index_increment += fii
-                with open(os.path.join(path, 'terrain.mtl'), 'a') as mtl:
-                    for ti, texture_name in enumerate(shpi_data['children_aliases']):
-                        texture_block = shpi_block.field_blocks_map['children'].child.possible_blocks[
-                            shpi_data['children'][ti]['choice_index']]
-                        from resources.eac.bitmaps import AnyBitmapBlock
-                        if not isinstance(texture_block, AnyBitmapBlock):
-                            continue
-                        mtl.write(f"""\n\nnewmtl prop/{descr['data']['data']['resource_id']}/assets/{texture_name}
-                                        Ka 1.000000 1.000000 1.000000
-                                        Kd 1.000000 1.000000 1.000000
-                                        Ks 0.000000 0.000000 0.000000
-                                        illum 1
-                                        Ns 0.000000
-                                        map_Kd ../../ETRACKFM/{id.split('/')[-1][:3]}_001.FAM/props/{descr['data']['data']['resource_id']}/0/assets/{texture_name}.png""")
-        return face_index_increment
+                    meshes.append(mesh)
+                for ti, texture_name in enumerate(shpi_data['children_aliases']):
+                    texture_block = shpi_block.field_blocks_map['children'].child.possible_blocks[
+                        shpi_data['children'][ti]['choice_index']]
+                    from resources.eac.bitmaps import AnyBitmapBlock
+                    if not isinstance(texture_block, AnyBitmapBlock):
+                        continue
+                    additional_textures.append(f"props/{descr['data']['data']['resource_id']}/0/assets/{texture_name}")
+        return (meshes, additional_textures)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
-        # this serializer mutates data when exchanging axis to Z-up
-        data = deepcopy(data)
-        is_opened_track = data['loop_chunk'] == 0
+        is_opened = data['loop_chunk'] == 0
 
-        terrain_data = []
-        for terrain_entry in data['terrain']:
-            res = dict()
-            res['texture_names'] = [self._get_texture_name_from_id(is_opened_track, tid) for tid in
-                                    terrain_entry['texture_ids']]
-            road_path_index = len(terrain_data) * 4
-            res['chunk'] = self.TerrainChunk(id, block, data)
-            res['chunk'].read_matrix(terrain_entry['rows'],
-                                     data['road_spline'][road_path_index:road_path_index + 4])
+        map_scene = Scene(name='map',
+                          obj_name='map',
+                          mtl_name='terrain',
+                          mtl_texture_path_func=lambda
+                              x: f'../../ETRACKFM/{id.split("/")[-1][:3]}_001.FAM/{x}.png',
+                          skip_obj_export=self.settings.maps__save_as_chunked)
+        scenes = [map_scene]
+
+        # add road spline to map scene
+        spline = data['road_spline'][:len(data['terrain']) * 4]
+        curve = {
+            'name': 'road_path',
+            'closed': not is_opened,
+            'points': [[x['position']['x'], x['position']['z'], x['position']['y']]
+                       for x in spline],
+            'properties': {
+                # 'orientation': [-x['orientation'] for x in spline],
+                'slope': [x['slope'] for x in spline],
+                'slant': [x['slant_a'] for x in spline],
+                'left_barrier_distance': [x['left_barrier'] for x in spline],
+                'right_barrier_distance': [x['right_barrier'] for x in spline],
+                'left_verge_distance': [x['left_verge'] for x in spline],
+                'right_verge_distance': [x['right_verge'] for x in spline],
+                'lanes_backward': [x['num_lanes'][0] for x in spline],
+                'lanes_forward': [x['num_lanes'][1] for x in spline],
+                'max_ai_speed': [data['ai_info'][math.floor(i / 4)]['max_ai_speed'] for i in
+                                 range(len(data['terrain']) * 4)],
+                'max_traffic_speed': [data['ai_info'][math.floor(i / 4)]['max_traffic_speed'] for i in
+                                      range(len(data['terrain']) * 4)],
+            },
+        }
+        if is_opened:
+            # a terminal road path point: when go backwards, race ends after this point
+            curve['properties']['start_point_index'] = 12
+            # a finish road path point
+            curve['properties']['finish_point_index'] = data['num_chunks'] * 4 - 179
+        map_scene.curves.append(curve)
+
+        map_scene.dummies.append({
+            'name': 'player_start',
+            'position': [
+                # 0.8 is an approximate average car half width
+                max(data['road_spline'][18]['position']['x'] - data['road_spline'][18]['left_barrier'] + 0.8,
+                    min(data['road_spline'][18]['position']['x'] + data['road_spline'][18]['right_barrier'] - 0.8,
+                        2.5)),
+                data['road_spline'][18]['position']['z'],
+                max(data['road_spline'][18]['position']['y'], 0),
+            ],
+            'rotation': [data['road_spline'][18]['slope'], 0, 0]
+        })
+
+        # build terrain chunks
+        chunks = []
+        for (i, terrain_entry) in enumerate(data['terrain']):
+            road_path_index = i * 4
+            chunk = self.TerrainChunk(id, block, data)
+            chunk.read_matrix(terrain_entry['rows'], data['road_spline'][road_path_index:road_path_index + 4])
             if terrain_entry['fence']['texture_id'] != 0 or terrain_entry['fence']['has_left_fence'] or \
                     terrain_entry['fence']['has_right_fence']:
                 fence_texture_id = terrain_entry['fence']['texture_id']
-                if is_opened_track:
+                if is_opened:
                     if id.endswith('AL1.TRI') and fence_texture_id == 16:
                         fence_texture_id = fence_texture_id * 3
-                    res['chunk'].fence_texture_name = self._get_texture_name_from_id(is_opened_track, fence_texture_id)
+                    chunk.fence_texture_name = 'background/' + self._get_texture_name_from_id(is_opened,
+                                                                                              fence_texture_id)
                 else:
-                    res['chunk'].fence_texture_name = ('0/GA00'
-                                                       if id.split('/')[-1] in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
-                                                       else '0/ga00')
-                res['chunk'].has_left_fence = terrain_entry['fence']['has_left_fence']
-                res['chunk'].has_right_fence = terrain_entry['fence']['has_right_fence']
-            terrain_data.append(res)
-        for i, terrain_data_entry in enumerate(terrain_data):
-            terrain_data_entry['chunk'].next_chunk = terrain_data[i + 1]['chunk'] if (
-                    i < len(terrain_data) - 1) else (None
-                                                     if is_opened_track
-                                                     else terrain_data[0]['chunk'])
-            terrain_data_entry['meshes'] = terrain_data_entry['chunk'].build_models(i,
-                                                                                    terrain_data_entry['texture_names'])
+                    chunk.fence_texture_name = ('background/0/GA00'
+                                                if id.split('/')[-1] in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
+                                                else 'background/0/ga00')
+                chunk.has_left_fence = terrain_entry['fence']['has_left_fence']
+                chunk.has_right_fence = terrain_entry['fence']['has_right_fence']
+                map_scene.mtl_texture_names.append(chunk.fence_texture_name)
+            chunks.append(chunk)
+        for i, chunk in enumerate(chunks):
+            chunk.next_chunk = (chunks[i + 1]
+                                if (i < len(chunks) - 1)
+                                else (None if is_opened else chunks[0]))
+
+        # put terrain chunks in scenes
+        for (i, terrain_entry) in enumerate(data['terrain']):
+            texture_names = [self._get_texture_name_from_id(is_opened, tid) for tid in terrain_entry['texture_ids']]
+            map_scene.mtl_texture_names.extend([f'background/{x}' for x in texture_names])
+            meshes = chunks[i].build_models(i, texture_names)
+            for mesh in meshes:
+                mesh.change_axes(new_z='y', new_y='z')
+            if self.settings.maps__save_as_chunked:
+                position = (
+                    data['road_spline'][i * 4]['position']['x'],
+                    data['road_spline'][i * 4]['position']['z'],
+                    data['road_spline'][i * 4]['position']['y'],
+                )
+                dummy = {
+                    'name': f'chunk_{i}',
+                    'position': position,
+                    'properties': {
+                        'is_chunk': True,
+                        'chunk': f'terrain_chunk_{i}',
+                    },
+                }
+                if i < len(data['terrain']) - 1:
+                    dummy['properties']['children'] = [f'chunk_{i + 1}']
+                elif not is_opened:
+                    dummy['properties']['children'] = ['chunk_0']
+                map_scene.dummies.append(dummy)
+                for mesh in meshes:
+                    mesh.pivot_offset = position
+                scene = Scene(name=f'terrain_chunk_{i}',
+                              sub_meshes=meshes,
+                              obj_name=f'terrain_chunk_{i}',
+                              mtl_name='terrain',
+                              bake_textures=False,
+                              skip_mtl_export=True)
+                if self.settings.maps__add_props_to_obj:
+                    (meshes, txs) = self.render_tnfs_props(id, data, is_opened, i * 4, (i + 1) * 4 - 1, position)
+                    scene.sub_meshes.extend(meshes)
+                    map_scene.mtl_texture_names.extend(txs)
+                else:
+                    scene.dummies = [self._prop_json(data, o, is_opened, True)
+                                     for o in data['props']
+                                     if (i + 1) * 4 > o['road_point_idx'] >= i * 4]
+                    for j, d in enumerate(scene.dummies):
+                        d['name'] += str(j)
+                scenes.append(scene)
+            else:
+                map_scene.sub_meshes.extend(meshes)
+        if not self.settings.maps__save_as_chunked:
+            if self.settings.maps__add_props_to_obj:
+                (meshes, txs) = self.render_tnfs_props(id, data, is_opened, 0, len(data['terrain']) * 4 - 1, (0, 0, 0))
+                map_scene.sub_meshes.extend(meshes)
+                map_scene.mtl_texture_names.extend(txs)
+            else:
+                prop_dummies = [self._prop_json(data, o, is_opened, False)
+                                for o in data['props']
+                                if len(data['terrain']) * 4 > o['road_point_idx'] >= 0]
+                for i, d in enumerate(prop_dummies):
+                    d['name'] += str(i)
+                map_scene.dummies.extend(prop_dummies)
+
+        if self.settings.maps__add_props_to_obj:
+            resource_ids = [x['data']['data']['resource_id']
+                            for x in data['prop_descr']
+                            if x['type'] in ['bitmap', 'two_sided_bitmap']]
+            resource_ids += [x['data']['data']['resource_id_2']
+                             for x in data['prop_descr']
+                             if x['type'] == 'two_sided_bitmap']
+            map_scene.mtl_texture_names.extend([f'foreground/{self._texture_ids(x, 1, is_opened)[0]}'
+                                                for x in resource_ids])
+
+        if self.settings.maps__save_terrain_collisions:
+            for scene in scenes:
+                scene.extra_script += self.terrain_collisions_script
 
         if self.settings.maps__save_invisible_wall_collisions:
-            left_barrier_points = self.BarrierPath(
+            left_barrier_points = BarrierPath(
                 [[rp['position']['x'] + rp['left_barrier'] * math.cos(rp['orientation'] + math.pi),
                   rp['position']['y'],
                   rp['position']['z'] - rp['left_barrier'] * math.sin(rp['orientation'] + math.pi)
                   ] for rp in data['road_spline'][:len(data['terrain']) * 4]])
-            right_barrier_points = self.BarrierPath(
+            right_barrier_points = BarrierPath(
                 [[rp['position']['x'] + rp['right_barrier'] * math.cos(rp['orientation']),
                   rp['position']['y'],
                   rp['position']['z'] - rp['right_barrier'] * math.sin(rp['orientation'])
                   ] for rp in data['road_spline'][:len(data['terrain']) * 4]])
-            if not is_opened_track:
+            if not is_opened:
                 left_barrier_points.points += [left_barrier_points.points[0]]
                 right_barrier_points.points += [right_barrier_points.points[0]]
                 left_barrier_points.is_closed = right_barrier_points.is_closed = True
+
             left_barrier_points.optimize()
+            left_barrier_points.points = [[p[0], p[2], p[1]] for p in left_barrier_points.points]
+            left_barrier_points.z_up = True
             right_barrier_points.optimize()
+            right_barrier_points.points = [[p[0], p[2], p[1]] for p in right_barrier_points.points]
+            right_barrier_points.z_up = True
 
-        # I use Z-up. Did not test exporter with Y-up, also prop rotations will not work, that's why it doesn't have
-        # own settings option. Also correct rotation is (new_z='y', new_y='-z'), but looks like NFS loads map mirrored
-        # So since we change y and z, we need to invert Y-rotation as well
-        for i, terrain_chunk in enumerate(terrain_data):
-            for sub_model in terrain_chunk['meshes']:
-                sub_model.change_axes(new_z='y', new_y='z')
-        for obj in data['props']:
-            (obj['position']['z'], obj['position']['y']) = (obj['position']['y'], obj['position']['z'])
-            obj['rotation'] = -obj['rotation']
-        for spline_point in data['road_spline'][:len(data['terrain']) * 4]:
-            (spline_point['position']['z'], spline_point['position']['y']) = (
-                spline_point['position']['y'], spline_point['position']['z'])
-            spline_point['orientation'] = -spline_point['orientation']
-        if self.settings.maps__save_invisible_wall_collisions:
-            if right_barrier_points:
-                right_barrier_points.points = [[p[0], p[2], p[1]] for p in right_barrier_points.points]
-                right_barrier_points.z_up = True
-            if left_barrier_points:
-                left_barrier_points.points = [[p[0], p[2], p[1]] for p in left_barrier_points.points]
-                left_barrier_points.z_up = True
-        self._save_mtl(terrain_data, path, id.split('/')[-1])
-        if self.settings.maps__add_props_to_obj:
-            self.mtl_append_foreground_textures(data, path, id.split('/')[-1])
-        blender_script = "bpy.ops.wm.read_factory_settings(use_empty=True)"
-        if self.settings.maps__save_as_chunked:
-            for i, terrain_chunk in enumerate(terrain_data):
-                with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
-                    face_index_increment = 1
-                    pivot = (
-                        data['road_spline'][i * 4]['position']['x'],
-                        data['road_spline'][i * 4]['position']['y'],
-                        data['road_spline'][i * 4]['position']['z'],
-                    )
-                    for sub_model in terrain_chunk['meshes']:
-                        obj, fii = sub_model.to_obj(face_index_increment, mtllib='terrain.mtl', pivot_offset=pivot)
-                        f.write(obj)
-                        face_index_increment += fii
-                    if self.settings.maps__add_props_to_obj:
-                        self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, i * 4, i * 4 + 3, pivot)
-                blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
-                    'new_file': True,
-                    'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
-                    'save_terrain_collisions': self.settings.maps__save_terrain_collisions,
-                    'obj_name': f'terrain_chunk_{i}.obj',
-                    'props_json': json.dumps(
-                        [self._prop_json(data, o, is_opened_track, True)
-                         for o in data['props']
-                         if (i + 1) * 4 > o['road_point_idx'] >= i * 4]),
-                })
-                if self.settings.geometry__save_blend:
-                    blender_script += get_blender_save_script(
-                        out_blend_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}').replace('\\', '/'))
-                if self.settings.geometry__export_to_gg_web_engine:
-                    from serializers.misc.build_blender_scene import construct_blender_export_script
-                    blender_script += '\n' + construct_blender_export_script(
-                        file_name=os.path.join(os.getcwd(), path, f'terrain_chunk_{i}'),
-                        export_materials='NONE')
-        else:
-            with open(os.path.join(path, 'terrain.obj'), 'w') as f:
-                face_index_increment = 1
-                for i, terrain_chunk in enumerate(terrain_data):
-                    for sub_model in terrain_chunk['meshes']:
-                        obj, fii = sub_model.to_obj(face_index_increment, mtllib='terrain.mtl')
-                        f.write(obj)
-                        face_index_increment += fii
-                if self.settings.maps__add_props_to_obj:
-                    self.render_props_to_obj(id, f, path, data, face_index_increment, is_opened_track, 0, len(data['terrain']) * 4 - 1)
-
-            blender_script += '\n\n\n' + self.blender_chunk_script.substitute({
-                'new_file': False,
-                'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
-                'save_terrain_collisions': self.settings.maps__save_terrain_collisions,
-                'obj_name': 'terrain.obj',
-                'props_json': json.dumps(
-                    [self._prop_json(data, o, is_opened_track, False)
-                     for o in data['props']
-                     if len(data['terrain']) * 4 > o['road_point_idx'] >= 0]),
+            map_scene.extra_script += self.wall_collisions_script.substitute({
+                'left_barrier': json.dumps({
+                    'points': left_barrier_points.points,
+                    'middle_points': left_barrier_points.middle_points,
+                    'lengths': left_barrier_points.lengths,
+                    'orientations': left_barrier_points.orientations,
+                }),
+                'right_barrier': json.dumps({
+                    'points': right_barrier_points.points,
+                    'middle_points': right_barrier_points.middle_points,
+                    'lengths': right_barrier_points.lengths,
+                    'orientations': right_barrier_points.orientations,
+                }),
             })
-        spline = data['road_spline'][:len(data['terrain']) * 4]
-        road_path_settings = {
-            'slope': [x['slope'] for x in spline],
-            'slant': [x['slant_a'] for x in spline],
-            'left_barrier_distance': [x['left_barrier'] for x in spline],
-            'right_barrier_distance': [x['right_barrier'] for x in spline],
-            'left_verge_distance': [x['left_verge'] for x in spline],
-            'right_verge_distance': [x['right_verge'] for x in spline],
-            'lanes_backward': [x['num_lanes'][0] for x in spline],
-            'lanes_forward': [x['num_lanes'][1] for x in spline],
-            'max_ai_speed': [data['ai_info'][math.floor(i / 4)]['max_ai_speed'] for i in
-                             range(len(data['terrain']) * 4)],
-            'max_traffic_speed': [data['ai_info'][math.floor(i / 4)]['max_traffic_speed'] for i in
-                                  range(len(data['terrain']) * 4)],
-        }
-        if is_opened_track:
-            # a terminal road path point: when go backwards, race ends after this point
-            road_path_settings['start_point_index'] = 12
-            # a finish road path point
-            road_path_settings['finish_point_index'] = data['num_chunks'] * 4 - 179
-        blender_script += '\n\n\n\n' + self.blender_map_script.substitute({
-            'new_file': self.settings.maps__save_as_chunked,
-            'save_invisible_wall_collisions': self.settings.maps__save_invisible_wall_collisions,
-            'save_terrain_collisions': self.settings.maps__save_terrain_collisions,
-            'road_path_points': ', '.join(
-                [f"({block['position']['x']}, {block['position']['y']}, {block['position']['z']})" for block in
-                 data['road_spline'][:len(data['terrain']) * 4]]),
-            'road_path_settings': json.dumps(road_path_settings),
-            # AL1, CL1, CY1, BS, VR - looks ok
-            # RS (TR1), AV (TR2), Trans (TR7) - x should be a bit bigger
-            'player_start': json.dumps({
-                # 0.8 is an approximate average car half width
-                'x': max(
-                    data['road_spline'][18]['position']['x'] - data['road_spline'][18]['left_barrier'] + 0.8,
-                    min(data['road_spline'][18]['position']['x'] + data['road_spline'][18]['right_barrier'] - 0.8,
-                        2.5)),
-                'y': max(data['road_spline'][18]['position']['y'], 0),
-                'z': data['road_spline'][18]['position']['z'],
-                'rotation_x': data['road_spline'][18]['slope'],
-            }),
-            'is_opened_track': is_opened_track,
-            'left_barrier': json.dumps({
-                'points': left_barrier_points.points,
-                'middle_points': left_barrier_points.middle_points,
-                'lengths': left_barrier_points.lengths,
-                'orientations': left_barrier_points.orientations,
-            }) if self.settings.maps__save_invisible_wall_collisions else 'null',
-            'right_barrier': json.dumps({
-                'points': right_barrier_points.points,
-                'middle_points': right_barrier_points.middle_points,
-                'lengths': right_barrier_points.lengths,
-                'orientations': right_barrier_points.orientations,
-            }) if self.settings.maps__save_invisible_wall_collisions else 'null',
-        })
-        if self.settings.geometry__export_to_gg_web_engine:
-            from serializers.misc.build_blender_scene import construct_blender_export_script
-            blender_script += '\n' + construct_blender_export_script(
-                file_name=os.path.join(os.getcwd(), path, 'map'),
-                export_materials='NONE')
-        if self.settings.geometry__save_blend or self.settings.geometry__export_to_gg_web_engine:
-            run_blender(path=path,
-                        script=blender_script,
-                        out_blend_name=os.path.join(
-                            os.getcwd(), path, 'map'
-                        ).replace('\\', '/') if self.settings.geometry__save_blend else None)
-        if not self.settings.geometry__save_obj:
-            if self.settings.maps__save_as_chunked:
-                for i in range(len(terrain_data)):
-                    os.unlink(os.path.join(os.getcwd(), path, f'terrain_chunk_{i}.obj'))
-            else:
-                os.unlink(os.path.join(os.getcwd(), path, 'terrain.obj'))
-            os.unlink(os.path.join(os.getcwd(), path, 'terrain.mtl'))
+
+        # export scenes
+        export_scenes(scenes, path, self.settings)

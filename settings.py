@@ -1,5 +1,6 @@
 # ======================================================= GENERIC ======================================================
 blender_executable = 'blender'
+# blender_executable = '/Applications/Blender.app/Contents/MacOS/Blender'
 # blender_executable = 'C:\\Program Files\\Blender Foundation\\Blender 3.5\\blender.exe'
 ffmpeg_executable = 'ffmpeg'
 

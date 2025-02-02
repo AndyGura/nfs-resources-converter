@@ -79,6 +79,10 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
             self_len = self_len(ctx)
         return self_len
 
+    def get_child_block(self, name: str) -> 'DataBlock':
+        int(name)
+        return self.child
+
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return self.child, unpacked_data[int(name)]
 

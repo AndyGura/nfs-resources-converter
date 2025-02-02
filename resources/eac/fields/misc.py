@@ -1,3 +1,4 @@
+import math
 from io import BufferedReader, BytesIO
 from typing import Dict
 
@@ -12,17 +13,48 @@ class Point3D(CompoundBlock):
     def schema(self) -> Dict:
         schema = super().schema
         return {
-            **super().schema,
+            **schema,
             'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
-                                 + schema['fields'][0]['schema']['block_description'],
+                                 + schema['fields'][0]['schema']['block_description'] + (
+                                     ', normalized' if self.normalized else ''
+                                 ),
             'inline_description': True,
         }
 
-    def __init__(self, child_length, fraction_bits=0, is_signed=True, **kwargs):
+    def __init__(self, child_length, fraction_bits=0, is_signed=True, normalized=False, **kwargs):
         child = RationalNumber(length=child_length, fraction_bits=fraction_bits, is_signed=is_signed)
+        self.normalized = normalized
         super().__init__(fields=[('x', child, {}),
                                  ('y', child, {}),
                                  ('z', child, {})], **kwargs)
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        if self.normalized:
+            length = math.sqrt(data['x'] ** 2 + data['y'] ** 2 + data['z'] ** 2)
+            if length == 0:
+                data['z'] = 1.0
+            elif length != 1:
+                data['x'] /= length
+                data['y'] /= length
+                data['z'] /= length
+        return super().write(data, ctx, name)
+
+
+class RGBBlock(CompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': "Color RGB values",
+            'inline_description': True,
+        }
+
+    def __init__(self, **kwargs):
+        child = IntegerBlock(length=1, is_signed=False)
+        super().__init__(fields=[('r', child, {}),
+                                 ('g', child, {}),
+                                 ('b', child, {})], **kwargs)
 
 
 class FenceType(IntegerBlock):

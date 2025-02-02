@@ -1,55 +1,12 @@
-import json
 import os
 from collections import defaultdict
 from os.path import join
-from string import Template
 
 from library.exceptions import DataIntegrityException
-from library.utils.blender_scripts import run_blender
-from library.utils.meshes import SubMesh, Mesh
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
-
-
-class ObjExporter:
-    blender_script = Template("""
-import json
-bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
-
-dummies = json.loads('$dummies')
-for dummy in dummies:
-    o = bpy.data.objects.new( dummy['name'], None )
-    bpy.context.scene.collection.objects.link(o)
-    o.location = dummy['position']
-    for key, value in dummy.items():
-        if key in ['position', 'name']:
-            continue
-        o[key] = value
-
-    """)
-
-    def handle_obj(self, settings, path, obj_name='geometry.obj', mtl_name='material.mtl', dummies=None):
-        if dummies is None:
-            dummies = []
-        script = self.blender_script.substitute({'obj_file_path': obj_name,
-                                                 'dummies': json.dumps(dummies)})
-        if settings.geometry__export_to_gg_web_engine:
-            from serializers.misc.build_blender_scene import construct_blender_export_script
-            script += '\n' + construct_blender_export_script(
-                file_name=os.path.join(os.getcwd(), path, 'body'),
-                export_materials='EXPORT')
-        # skip running blender if it does not save anything
-        if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:
-            run_blender(path=path,
-                        script=script,
-                        out_blend_name=os.path.join(os.getcwd(), path, 'body')
-                        if settings.geometry__save_blend
-                        else None)
-        if not settings.geometry__save_obj:
-            os.unlink(os.path.join(path, mtl_name))
-            os.unlink(os.path.join(path, obj_name))
+from serializers.common.three_d import SubMesh, Mesh, export_scenes, Scene
 
 
 class OripGeometrySerializer(BaseFileSerializer):
@@ -164,30 +121,24 @@ class OripGeometrySerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
         shpi_id, textures_shpi_block, textures_shpi_data, sub_models = self.build_mesh(data, id)
-        with open(os.path.join(path, 'geometry.obj'), 'w') as f:
-            f.write('mtllib material.mtl')
-            face_index_increment = 1
-            for sub_model in sub_models.values():
-                obj, fii = sub_model.to_obj(face_index_increment)
-                f.write(obj)
-                face_index_increment += fii
-        with open(os.path.join(path, 'material.mtl'), 'w') as f:
-            for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
-                texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
-                    textures_shpi_data['children'][i]['choice_index']]
-                if not isinstance(texture_block, AnyBitmapBlock):
-                    continue
-                f.write(f"""\n\nnewmtl {texture_name}
-Ka 1.000000 1.000000 1.000000
-Kd 1.000000 1.000000 1.000000
-Ks 0.000000 0.000000 0.000000
-illum 1
-Ns 0.000000
-map_Kd assets/{texture_name}.png""")
+
+        scene = Scene()
+        scene.sub_meshes = [sm for sm in sub_models.values()]
+        scene.name = 'body'
+        scene.obj_name = 'geometry'
+        scene.mtl_name = 'material'
+        for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
+            texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
+                textures_shpi_data['children'][i]['choice_index']]
+            if not isinstance(texture_block, AnyBitmapBlock):
+                continue
+            scene.mtl_texture_names.append(texture_name)
+        scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
+
         from serializers import ShpiArchiveSerializer
-        shpi_serializer = ShpiArchiveSerializer()
-        shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
-        ObjExporter().handle_obj(settings=self.settings, path=path)
+        ShpiArchiveSerializer().serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id,
+                                          textures_shpi_block)
+        export_scenes([scene], path, self.settings)
 
 
 class GeoGeometrySerializer(BaseFileSerializer):
@@ -259,27 +210,21 @@ class GeoGeometrySerializer(BaseFileSerializer):
             mesh.change_axes(new_z='y', new_y='z')
             px, py, pz = mesh.pivot_offset
             mesh.pivot_offset = (px, pz, py)
-        with open(os.path.join(path, 'geometry.obj'), 'w') as f:
-            f.write('mtllib material.mtl')
-            face_index_increment = 1
-            for mesh in meshes:
-                obj, fii = mesh.to_obj(face_index_increment)
-                f.write(obj)
-                face_index_increment += fii
-        with open(os.path.join(path, 'material.mtl'), 'w') as f:
-            for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
-                texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
-                    textures_shpi_data['children'][i]['choice_index']]
-                if not isinstance(texture_block, AnyBitmapBlock):
-                    continue
-                f.write(f"""\n\nnewmtl {texture_name}
-Ka 1.000000 1.000000 1.000000
-Kd 1.000000 1.000000 1.000000
-Ks 0.000000 0.000000 0.000000
-illum 1
-Ns 0.000000
-map_Kd assets/{texture_name}.png""")
+
+        scene = Scene()
+        scene.sub_meshes = meshes
+        scene.name = 'body'
+        scene.obj_name = 'geometry'
+        scene.mtl_name = 'material'
+        for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
+            texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
+                textures_shpi_data['children'][i]['choice_index']]
+            if not isinstance(texture_block, AnyBitmapBlock):
+                continue
+            scene.mtl_texture_names.append(texture_name)
+        scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
+
         from serializers import ShpiArchiveSerializer
-        shpi_serializer = ShpiArchiveSerializer()
-        shpi_serializer.serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id, textures_shpi_block)
-        ObjExporter().handle_obj(settings=self.settings, path=path)
+        ShpiArchiveSerializer().serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id,
+                                          textures_shpi_block)
+        export_scenes([scene], path, self.settings)
