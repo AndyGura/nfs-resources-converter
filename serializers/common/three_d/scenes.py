@@ -48,40 +48,49 @@ illum 1
 Ns 0.000000
 map_Kd $texture_path""")
 
-    import_template = Template("""
+    script_base = """
 import json
 from mathutils import Euler
 
+def load_obj_extra(path):
+    try:
+        with open(path) as f:
+            extras = json.load(f)
+            for dummy in extras.get('dummies', []):
+                o = bpy.data.objects.new( dummy['name'], None )
+                bpy.context.scene.collection.objects.link(o)
+                o.location = dummy.get('position', [0, 0, 0])
+                o.rotation_mode = 'QUATERNION'
+                o.rotation_quaternion = Euler(tuple(dummy.get('rotation', [0, 0, 0])), 'XYZ').to_quaternion()
+                dummy_props = dummy.get('properties', {})
+                for key, value in dummy_props.items():
+                    o[key] = value
+            
+            for curve in extras.get('curves', []):
+                curveData = bpy.data.curves.new(curve['name'], type='CURVE')
+                curveData.dimensions = '3D'
+                curveData.resolution_u = 2
+                polyline = curveData.splines.new('POLY')
+                polyline.points.add(len(curve['points']) - 1)
+                for i, [x,y,z] in enumerate(curve['points']):
+                    polyline.points[i].co = (x, y, z, 1)
+                polyline.use_cyclic_u = curve.get('closed', False)
+                curveOB = bpy.data.objects.new(curve['name'], curveData)
+                bpy.context.collection.objects.link(curveOB)
+                curve_props = curve.get('properties', {})
+                for (key, value) in curve_props.items():
+                    curveOB[key] = value
+    except FileNotFoundError:
+        pass
+
+    """
+
+    import_template = Template("""
 bpy.ops.wm.read_factory_settings(use_empty=True)
 if "$obj_file_path":
     bpy.ops.wm.obj_import(filepath="$obj_file_path", forward_axis='Y', up_axis='Z')
-
-dummies = json.loads('$dummies') or []
-for dummy in dummies:
-    o = bpy.data.objects.new( dummy['name'], None )
-    bpy.context.scene.collection.objects.link(o)
-    o.location = dummy.get('position', [0, 0, 0])
-    o.rotation_mode = 'QUATERNION'
-    o.rotation_quaternion = Euler(tuple(dummy.get('rotation', [0, 0, 0])), 'XYZ').to_quaternion()
-    dummy_props = dummy.get('properties', {})
-    for key, value in dummy_props.items():
-        o[key] = value
-
-curves = json.loads('$curves') or []
-for curve in curves:
-    curveData = bpy.data.curves.new(curve['name'], type='CURVE')
-    curveData.dimensions = '3D'
-    curveData.resolution_u = 2
-    polyline = curveData.splines.new('POLY')
-    polyline.points.add(len(curve['points']) - 1)
-    for i, [x,y,z] in enumerate(curve['points']):
-        polyline.points[i].co = (x, y, z, 1)
-    polyline.use_cyclic_u = curve.get('closed', False)
-    curveOB = bpy.data.objects.new(curve['name'], curveData)
-    bpy.context.collection.objects.link(curveOB)
-    curve_props = curve.get('properties', {})
-    for (key, value) in curve_props.items():
-        curveOB[key] = value
+if "$extras_file_path":
+    load_obj_extra("$extras_file_path")
         
 $extra_script
     """)
@@ -96,6 +105,12 @@ $extra_script
                     obj, fii = sub_model.to_obj(face_index_increment)
                     f.write(obj)
                     face_index_increment += fii
+        if scene.dummies or scene.curves:
+            with open(os.path.join(output_path, f'{scene.obj_name}_extra.json'), 'w') as f:
+                f.write(json.dumps({
+                    'dummies': scene.dummies,
+                    'curves': scene.curves
+                }, indent=4, sort_keys=True))
         if scene.mtl_name and not scene.skip_mtl_export:
             with open(os.path.join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
                 for texture_name in sorted(list({x for x in scene.mtl_texture_names})):
@@ -105,12 +120,11 @@ $extra_script
                     }))
 
     if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:
-        script = ''
+        script = script_base
         for scene in scenes:
             script += '\n\n' + import_template.substitute({
                 'obj_file_path': f'{scene.obj_name}.obj' if not scene.skip_obj_export else '',
-                'dummies': json.dumps(scene.dummies),
-                'curves': json.dumps(scene.curves),
+                'extras_file_path': f'{scene.obj_name}_extra.json',
                 'extra_script': scene.extra_script,
             })
             if settings.geometry__export_to_gg_web_engine:
@@ -126,5 +140,9 @@ $extra_script
         for scene in scenes:
             if not scene.skip_obj_export:
                 os.unlink(os.path.join(output_path, scene.obj_name + '.obj'))
+            try:
+                os.unlink(os.path.join(output_path, scene.obj_name + '_extra.json'))
+            except:
+                pass
             if scene.mtl_name and not scene.skip_mtl_export:
                 os.unlink(os.path.join(output_path, scene.mtl_name + '.mtl'))
