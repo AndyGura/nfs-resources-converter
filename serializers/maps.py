@@ -448,19 +448,6 @@ for obj in bpy.context.selected_objects:
             curve['properties']['finish_point_index'] = data['num_chunks'] * 4 - 179
         map_scene.curves.append(curve)
 
-        map_scene.dummies.append({
-            'name': 'player_start',
-            'position': [
-                # 0.8 is an approximate average car half width
-                max(data['road_spline'][18]['position']['x'] - data['road_spline'][18]['left_barrier'] + 0.8,
-                    min(data['road_spline'][18]['position']['x'] + data['road_spline'][18]['right_barrier'] - 0.8,
-                        2.5)),
-                data['road_spline'][18]['position']['z'],
-                max(data['road_spline'][18]['position']['y'], 0),
-            ],
-            'rotation': [data['road_spline'][18]['slope'], 0, 0]
-        })
-
         # build terrain chunks
         chunks = []
         for (i, terrain_entry) in enumerate(data['terrain']):
