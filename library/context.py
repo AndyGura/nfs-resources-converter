@@ -27,6 +27,15 @@ class BaseContext:
                 entry = entry[p]
         return entry
 
+    def relative_block(self, local_path: str):
+        block_path = local_path.split('/')
+        entry = self.block
+        for p in block_path:
+            if p == '..':
+                return self.parent.relative_block('/'.join(block_path[1:]))
+            entry = entry.get_child_block(p)
+        return entry
+
     def get_full_data(self):
         return self._data
 

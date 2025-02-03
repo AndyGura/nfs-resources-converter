@@ -215,7 +215,7 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
 
   private getClosestProjectedLineIndex(pos: Point2): [number, number] {
     const roadSplineProjected = this._roadSplineProjected$.getValue();
-    let closestLineIndex = 0;
+    let closestLineIndex = -1;
     let minDistance = Number.MAX_SAFE_INTEGER;
     for (let i = 1; i < roadSplineProjected.length; i++) {
       const p = roadSplineProjected[i - 1];
@@ -229,6 +229,9 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
         closestLineIndex = i - 1;
       }
     }
+    if (closestLineIndex == -1) {
+      return [-1, 0];
+    }
     const p1 = roadSplineProjected[closestLineIndex];
     const p2 = roadSplineProjected[closestLineIndex + 1];
     const d = Pnt2.sub(p2, p1);
@@ -238,6 +241,9 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
 
   private getRoadSplineProjectionZ(pos: Point2): number {
     const [closestLineIndex, t] = this.getClosestProjectedLineIndex(pos);
+    if (closestLineIndex == -1) {
+      return 0;
+    }
     const roadSpline = this._roadSpline$.getValue();
     return (
       this.projectionZ(roadSpline[closestLineIndex]) +
@@ -265,14 +271,16 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
         const roadSplineProjected = this._roadSplineProjected$.getValue();
         const [oldClosestLineIndex, oldT] = this.getClosestProjectedLineIndex(oldPtr);
         const [newClosestLineIndex, newT] = this.getClosestProjectedLineIndex(newPtr);
-        const oldOffsetVector = Pnt2.sub(
-          oldPtr,
-          Pnt2.lerp(roadSplineProjected[oldClosestLineIndex], roadSplineProjected[oldClosestLineIndex + 1], oldT),
-        );
-        newPtr = Pnt2.add(
-          oldOffsetVector,
-          Pnt2.lerp(roadSplineProjected[newClosestLineIndex], roadSplineProjected[newClosestLineIndex + 1], newT),
-        );
+        if (oldClosestLineIndex !== -1 && newClosestLineIndex !== -1) {
+          const oldOffsetVector = Pnt2.sub(
+            oldPtr,
+            Pnt2.lerp(roadSplineProjected[oldClosestLineIndex], roadSplineProjected[oldClosestLineIndex + 1], oldT),
+          );
+          newPtr = Pnt2.add(
+            oldOffsetVector,
+            Pnt2.lerp(roadSplineProjected[newClosestLineIndex], roadSplineProjected[newClosestLineIndex + 1], newT),
+          );
+        }
       }
       const elevation = this.projectionZ(this._pointer$.getValue() || Pnt3.O) - this.getRoadSplineProjectionZ(oldPtr);
       this.pointerChange.emit(this.unproject(newPtr, elevation + this.getRoadSplineProjectionZ(newPtr)));

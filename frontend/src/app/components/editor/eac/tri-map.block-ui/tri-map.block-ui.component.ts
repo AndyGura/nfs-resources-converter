@@ -164,7 +164,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
       this.terrainMaterials[matId] = new MeshBasicMaterial({ side: DoubleSide, transparent: true, visible: false });
       if (this.famPath) {
         this.textureLoader
-          .loadAsync(`${this.famPath}/background/${matId}.png`)
+          .loadAsync(`${this.famPath}/${matId}.png`)
           .then(texture => {
             texture.wrapS = RepeatWrapping;
             texture.wrapT = ClampToEdgeWrapping;

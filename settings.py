@@ -1,6 +1,8 @@
 # ======================================================= GENERIC ======================================================
 blender_executable = 'blender'
+# blender_executable = '/Applications/Blender.app/Contents/MacOS/Blender'
 # blender_executable = 'C:\\Program Files\\Blender Foundation\\Blender 3.5\\blender.exe'
+
 ffmpeg_executable = 'ffmpeg'
 
 # amount of processes to be spawned.
@@ -57,7 +59,8 @@ maps__save_invisible_wall_collisions = False  # this one will consume time...
 maps__save_terrain_collisions = False
 # alongside with horz.png, save spherical.png, suitable to be used as sky spherical texture
 maps__save_spherical_skybox_texture = True
-# NFS1: put props to exported map obj file. Props will be retrieved from ../ETRACKFM/<map_id>_001.FAM file
+# If True, bakes map props to the scene. False puts dummy object to scene with info about what prop should be placed there
+# TNFS note: Props will be retrieved from ../ETRACKFM/<map_id>_001.FAM file
 maps__add_props_to_obj = False
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them

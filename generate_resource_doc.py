@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from library.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock, SkipBlock
+from library.read_blocks.smart_fields import EnumLookupDelegateBlock
 from resources.eac import (archives,
                            bitmaps,
                            fonts,
@@ -27,8 +28,11 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
                                    not possible_blocks_filter
                                    or x.__class__ in possible_blocks_filter
                                    or (not isinstance(x, CompoundBlock) or x.schema["inline_description"]))]
-        return 'One of types:<br/>' + '<br/>'.join(['- ' + render_type(x, possible_blocks_filter)
-                                                    for x in possible_blocks])
+        if isinstance(instance, EnumLookupDelegateBlock):
+            description = f'Type according to enum `{instance.enum_field}`:<br/>'
+        else:
+            description = f'One of types:<br/>'
+        return description + '<br/>'.join(['- ' + render_type(x, possible_blocks_filter) for x in possible_blocks])
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
         if isinstance(instance, ArrayBlock):
