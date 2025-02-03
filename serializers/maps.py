@@ -601,19 +601,33 @@ class TrkMapSerializer(BaseFileSerializer):
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
-
             def get_texture(tex):
                 return f"{texture_map[tex]['texture_number']:04}", texture_map[tex]['alignment_data']
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
-            texture_map = []
-
             def get_texture(tex):
                 return f"{tex:04}", 0
         blocks = []
         for sb in data['superblocks']:
             blocks += sb['blocks']
+
+        map_scene = Scene(name='map',
+                          obj_name='map',
+                          mtl_name='terrain',
+                          mtl_texture_path_func=lambda x: f'{x}.png',
+                          skip_obj_export=self.settings.maps__save_as_chunked)
+        scenes = [map_scene]
+
+        # add road spline to map scene
+        spline = data['block_positions']
+        curve = {
+            'name': 'road_path',
+            'closed': True,
+            'points': [[p['x'], p['z'], p['y']] for p in spline],
+        }
+        map_scene.curves.append(curve)
+
         chunks = []
         for block in blocks:
             model = Mesh()
@@ -682,29 +696,20 @@ class TrkMapSerializer(BaseFileSerializer):
                 mesh.change_axes(new_z='y', new_y='z')
         if self.settings.maps__save_as_chunked:
             for i, (meshes, pivot) in enumerate(chunks):
-                with open(os.path.join(path, f'terrain_chunk_{i}.obj'), 'w') as f:
-                    face_index_increment = 1
-                    for mesh in meshes:
-                        mesh.pivot_offset = (mesh.pivot_offset[0] - pivot[0],
-                                             mesh.pivot_offset[1] - pivot[1],
-                                             mesh.pivot_offset[2] - pivot[2])
-                        obj, fii = mesh.to_obj(face_index_increment)
-                        f.write(obj)
-                        face_index_increment += fii
-            # TODO export to gg here
-            if not self.settings.geometry__save_obj:
-                if self.settings.maps__save_as_chunked:
-                    for i in range(len(chunks)):
-                        os.unlink(os.path.join(os.getcwd(), path, f'terrain_chunk_{i}.obj'))
-                else:
-                    os.unlink(os.path.join(os.getcwd(), path, 'terrain.obj'))
-                os.unlink(os.path.join(os.getcwd(), path, 'terrain.mtl'))
+                for mesh in meshes:
+                    mesh.pivot_offset = (mesh.pivot_offset[0] - pivot[0],
+                                         mesh.pivot_offset[1] - pivot[1],
+                                         mesh.pivot_offset[2] - pivot[2])
+                scene = Scene(name=f'terrain_chunk_{i}',
+                              sub_meshes=meshes,
+                              obj_name=f'terrain_chunk_{i}',
+                              mtl_name='terrain',
+                              bake_textures=False,
+                              skip_mtl_export=True)
+                scenes.append(scene)
         else:
-            with open(os.path.join(path, 'terrain.obj'), 'w') as f:
-                face_index_increment = 1
-                for chunk in chunks:
-                    for mesh in chunk:
-                        obj, fii = mesh.to_obj(face_index_increment)
-                        f.write(obj)
-                        face_index_increment += fii
-            # ObjExporter().handle_obj(settings=self.settings, path=path, obj_name='terrain.obj')
+            for chunk in chunks:
+                map_scene.sub_meshes.extend(chunk)
+
+        # export scenes
+        export_scenes(scenes, path, self.settings)
