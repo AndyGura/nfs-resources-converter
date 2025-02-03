@@ -601,11 +601,13 @@ class TrkMapSerializer(BaseFileSerializer):
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
+
             def get_texture(tex):
                 return f"{texture_map[tex]['texture_number']:04}", texture_map[tex]['alignment_data']
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
+
             def get_texture(tex):
                 return f"{tex:04}", 0
         blocks = []
@@ -637,7 +639,7 @@ class TrkMapSerializer(BaseFileSerializer):
                 if block['block_idx'] < len(blocks) - 1
                 else 0
             ]
-            model.pivot_offset = (pivot['x'], pivot['y'], pivot['z'])
+            model.pivot_offset = (-pivot['x'], -pivot['y'], -pivot['z'])
             vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
             for v in vertices[:block['nv8']]:
                 v[0] += next_pivot['x'] - pivot['x']
@@ -673,7 +675,7 @@ class TrkMapSerializer(BaseFileSerializer):
                         if proxy['type'] == 'static_prop' else \
                         proxy['position']['data']['frames'][0]['position']
                     model = Mesh()
-                    model.pivot_offset = (position['x'], position['y'], position['z'])
+                    model.pivot_offset = (-position['x'], -position['y'], -position['z'])
                     for p in object['polygons']:
                         texture_name, texture_alignment = get_texture(p['texture'])
                         uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
@@ -695,11 +697,11 @@ class TrkMapSerializer(BaseFileSerializer):
                 mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
                 mesh.change_axes(new_z='y', new_y='z')
         if self.settings.maps__save_as_chunked:
-            for i, (meshes, pivot) in enumerate(chunks):
+            for i, (meshes, chunk_pos) in enumerate(chunks):
                 for mesh in meshes:
-                    mesh.pivot_offset = (mesh.pivot_offset[0] - pivot[0],
-                                         mesh.pivot_offset[1] - pivot[1],
-                                         mesh.pivot_offset[2] - pivot[2])
+                    mesh.pivot_offset = (mesh.pivot_offset[0] + chunk_pos[0],
+                                         mesh.pivot_offset[1] + chunk_pos[1],
+                                         mesh.pivot_offset[2] + chunk_pos[2])
                 scene = Scene(name=f'terrain_chunk_{i}',
                               sub_meshes=meshes,
                               obj_name=f'terrain_chunk_{i}',
@@ -708,8 +710,8 @@ class TrkMapSerializer(BaseFileSerializer):
                               skip_mtl_export=True)
                 scenes.append(scene)
         else:
-            for chunk in chunks:
-                map_scene.sub_meshes.extend(chunk)
+            for (meshes, _) in chunks:
+                map_scene.sub_meshes.extend(meshes)
 
         # export scenes
         export_scenes(scenes, path, self.settings)
