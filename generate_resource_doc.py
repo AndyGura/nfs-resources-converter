@@ -211,11 +211,15 @@ EXPORT_RESOURCES = {
     'nfs2se': {
         'file_name': 'NFS2_SE.md',
         'title': 'NFS2SE file specs',
-        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.TrkMapCol())}
+        
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
 **\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+**\*.TRK** main track file. {render_type(maps.TrkMap())}
 
 **\*.UV** video, I just use ffmpeg to convert it
 
@@ -230,8 +234,24 @@ EXPORT_RESOURCES = {
                 geometries.GeoMesh(),
                 geometries.GeoPolygon(),
             ],
-            # 'Maps': [
-            # ],
+            'Maps': [
+                maps.TrkMapCol(),
+                maps.TrkMap(),
+                maps.TrkSuperBlock(),
+                maps.TrkBlock(),
+                maps.TrkExtraBlock(),
+                maps.TexturesMapExtraDataRecord(),
+                maps.MedianExtraDataRecord(),
+                maps.PolygonMapExtraDataRecord(),
+                maps.PropExtraDataRecord(),
+                maps.AnimatedPropPosition(),
+                maps.AnimatedPropPositionFrame(),
+                maps.PropDescriptionExtraDataRecord(),
+                maps.LanesExtraDataRecord(),
+                maps.RoadVectorsExtraDataRecord(),
+                maps.CollisionExtraDataRecord(),
+                maps.TrkPolygon(),
+            ],
             # 'Physics': [
             # ],
             'Bitmaps': [
