@@ -221,7 +221,7 @@ class TrkBlock(DeclarativeCompoundBlock):
         bounds = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=16), length=4),
                   {'description': 'Block bounding rectangle'})
         extrablocks_offset = (IntegerBlock(length=4, is_signed=False),
-                              {'description': 'An offset to "extrablock_offsets" block from here?'})
+                              {'description': 'An offset to "extrablock_offsets" block from here'})
         nv8 = (IntegerBlock(length=2, is_signed=False),
                {'description': 'Number of stick-to-next vertices'})
         nv4 = (IntegerBlock(length=2, is_signed=False),
@@ -245,11 +245,13 @@ class TrkBlock(DeclarativeCompoundBlock):
                                length=lambda ctx: ctx.data('np4') + ctx.data('np2') + ctx.data('np1')),
                     {'description': 'Polygons'})
         unk2 = (BytesBlock(
-            length=lambda ctx: 64 + ctx.data('extrablocks_offset') + ctx.read_start_offset - ctx.buffer.tell()),
+            length=(lambda ctx: 64 + ctx.data('extrablocks_offset') + ctx.read_start_offset - ctx.buffer.tell(),
+                    'up to (extrablocks_offset+64)')),
                 {'is_unknown': True})
         extrablock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
                                          length=lambda ctx: ctx.data('num_extrablocks')),
-                              {'description': 'Offset to each of the extrablocks'})
+                              {'description': 'Offset to each of the extrablocks',
+                               'custom_offset': 'extrablocks_offset + 64'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=TrkExtraBlock()),
                        {'description': 'Extrablocks'})
 

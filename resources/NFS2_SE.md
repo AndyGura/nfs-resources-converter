@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2025-02-04 15:53:36.038195+00:00*
+*Last time updated: 2025-02-04 17:58:53.045661+00:00*
 
 
 # **Info by file extensions** #
@@ -156,7 +156,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 10 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
 | 12 | **block_idx** | 4 | 4-bytes unsigned integer (little endian) | Block index (serial number) |
 | 16 | **bounds** | 48 | Array of `4` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Block bounding rectangle |
-| 64 | **extrablocks_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to "extrablock_offsets" block from here? |
+| 64 | **extrablocks_offset** | 4 | 4-bytes unsigned integer (little endian) | An offset to "extrablock_offsets" block from here |
 | 68 | **nv8** | 2 | 2-bytes unsigned integer (little endian) | Number of stick-to-next vertices |
 | 70 | **nv4** | 2 | 2-bytes unsigned integer (little endian) | Number of own vertices for 1/4 resolutio |
 | 72 | **nv2** | 2 | 2-bytes unsigned integer (little endian) | Number of own vertices for 1/2 resolution |
@@ -167,9 +167,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 82 | **unk1** | 6 | 6-bytes unsigned integer (little endian) | Unknown purpose |
 | 88 | **vertices** | (nv8+nv1)\*6 | Array of `nv8+nv1` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertices |
 | 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `np4+np2+np1` items<br/>Item type: [TrkPolygon](#trkpolygon) | Polygons |
-| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **unk2** | custom_func | Bytes | Unknown purpose |
-| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 + custom_func | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
-| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 + custom_func + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [TrkExtraBlock](#trkextrablock) | Extrablocks |
+| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **unk2** | up to (extrablocks_offset+64) | Bytes | Unknown purpose |
+| extrablocks_offset + 64 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
+| extrablocks_offset + 64 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [TrkExtraBlock](#trkextrablock) | Extrablocks |
 ### **TrkExtraBlock** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
