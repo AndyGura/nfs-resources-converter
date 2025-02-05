@@ -679,17 +679,60 @@ class TrkMapSerializer(BaseFileSerializer):
                     model = Mesh()
                     model.name = f'prop_{block_i}_{proxy_i}'
                     model.pivot_offset = (-position['x'], -position['y'], -position['z'])
+                    # alignments=set()
                     for p in object['polygons']:
                         texture_name, texture_alignment = get_texture(p['texture'])
+                        # alignments.add(str(texture_alignment))
                         uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
-                        rotate_i = (texture_alignment >> 9) & 1
-                        n_rotate = ((texture_alignment >> 11) & 3) - rotate_i
-                        uvs = rotate_list(uvs, n_rotate)
 
-                        # FIXME manual fixes below, determine rules
-                        # alignment 320 should be upside down? TR02 props before finish
-                        if (((texture_alignment >> 6) & 1) and ((texture_alignment >> 8) & 1)):
+                        # logic from opennfs, does not seem to work properly?
+                        # rotate_i = (texture_alignment >> 9) & 1
+                        # n_rotate = ((texture_alignment >> 11) & 3) - rotate_i
+                        # uvs = rotate_list(uvs, n_rotate)
+
+                        # TODO manual fixes below, determine rules
+                        if texture_alignment == 320:
+                            # upside down? Possibly should be reflected, checked symmetrical texture only
                             uvs = rotate_list(uvs, 2)
+                        elif texture_alignment == 304:
+                            # rotate 180 degrees
+                            uvs = rotate_list(uvs, 2)
+                        elif texture_alignment == 256:
+                            # rotate 180 degrees, reflect?
+                            uvs = rotate_list(uvs, 2)
+                        elif texture_alignment == 272:
+                            # rotate 180 degrees, reflect?
+                            uvs = rotate_list(uvs, 2)
+                        elif texture_alignment == 288:
+                            # rotate 180 degrees, reflect?
+                            uvs = rotate_list(uvs, 2)
+                        elif texture_alignment == 308:
+                            # rotate 180 degrees, reflect?
+                            uvs = rotate_list(uvs, 2)
+                        elif texture_alignment == 352:
+                            # rotate 180 degrees
+                            uvs = rotate_list(uvs, 2)
+                        elif texture_alignment == 768:
+                            # rotate 270 degrees
+                            uvs = rotate_list(uvs, 3)
+                        elif texture_alignment == 800:
+                            # rotate 270 degrees
+                            uvs = rotate_list(uvs, 3)
+                        elif texture_alignment == 832:
+                            # rotate 270 degrees
+                            uvs = rotate_list(uvs, 3)
+                        elif texture_alignment == 2304:
+                            # rotate 90 degrees
+                            uvs = rotate_list(uvs, 1)
+                        elif texture_alignment == 2336:
+                            # rotate 90 degrees
+                            uvs = rotate_list(uvs, 1)
+                        elif texture_alignment == 2368:
+                            # rotate 90 degrees
+                            uvs = rotate_list(uvs, 1)
+                        elif texture_alignment == 6176:
+                            # rotate 90 degrees
+                            uvs = rotate_list(uvs, 1)
 
                         base_idx = len(model.vertices)
                         for i, v_index in enumerate(p['vertices']):
@@ -699,6 +742,7 @@ class TrkMapSerializer(BaseFileSerializer):
                         model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
                         model.texture_ids.append(texture_name)
                         texture_names.add(texture_name)
+                    # model.name += '__' + '_'.join(alignments) + '__'
                     sub_meshes.extend(model.split_by_texture_ids())
             chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
         map_scene.mtl_texture_names = list(texture_names)
