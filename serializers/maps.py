@@ -659,7 +659,6 @@ class TrkMapSerializer(BaseFileSerializer):
                 model.texture_ids.append(texture_name)
             sub_meshes = model.split_by_texture_ids()
 
-            # TODO use dummies (proxy objects) generic logic here, export props separately
             proxies = [item for sublist in (eb['data_records']['data']
                                             for eb in block['extrablocks']
                                             if eb['type'] in ['props_7', 'props_18'])

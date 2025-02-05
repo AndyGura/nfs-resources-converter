@@ -26,18 +26,15 @@ import {
   Qtrn,
   Renderer3dEntity,
 } from '@gg-web-engine/core';
-import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, takeUntil, throttleTime } from 'rxjs';
+import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import {
   AmbientLight,
   CubeReflectionMapping,
   DoubleSide,
-  Group,
   Material,
   Mesh,
   MeshBasicMaterial,
-  Object3D,
-  PlaneGeometry,
   RepeatWrapping,
   Texture,
   TextureLoader,
@@ -45,14 +42,7 @@ import {
 import { MainService } from '../../../../services/main.service';
 import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
-
-export enum MapPropType {
-  ThreeModel = 'model',
-  Bitmap = 'bitmap',
-  TwoSidedBitmap = 'two_sided_bitmap',
-}
 
 export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo, any> {
   public readonly textureLoader = new TextureLoader();
@@ -122,31 +112,12 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
         );
       }
     });
-    let chunkIndex = +node.path.split('_')[node.path.split('_').length - 1];
-    let propInstances = (this.resource!.data.props || [])
-      .filter((x: any) => x.road_point_idx >= chunkIndex * 4 && x.road_point_idx < (chunkIndex + 1) * 4)
-      .map((x: any) => ({
-        ...x,
-        ...this.resource!.data.prop_descr[x.prop_descr_idx],
-        position: Pnt3.add(
-          { x: x.position.x, y: x.position.z, z: x.position.y },
-          {
-            x: this.resource!.data.road_spline[x.road_point_idx].position.x,
-            y: this.resource!.data.road_spline[x.road_point_idx].position.z,
-            z: this.resource!.data.road_spline[x.road_point_idx].position.y,
-          },
-        ),
-        rotation: Qtrn.fromAngle(Pnt3.nZ, x.rotation),
-      }));
-    const props = (await Promise.all(propInstances.map((x: any) => this.loadPropInternal(x)))).filter(
-      p => !!p,
-    ) as Entity3d<ThreeVisualTypeDocRepo, any>[];
     const entity: Entity3d<ThreeVisualTypeDocRepo, any> = new Entity3d({
       object3D: new ThreeDisplayObjectComponent(object),
     });
-    this.addChildren(entity, ...props);
-    this.loaded.set(node, [entity, ...props]);
-    return [[entity, ...props], null!];
+    this.addChildren(entity);
+    this.loaded.set(node, [entity]);
+    return [[entity], null!];
   }
 
   protected override disposeChunk(node: MapGraphNodeType) {
@@ -187,141 +158,6 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
       }
     }
     return this.terrainMaterials[matId];
-  }
-
-  protected async loadPropInternal(dummy: any): Promise<Entity3d<ThreeVisualTypeDocRepo, any> | null> {
-    let isUnknown = false;
-    if (dummy.type == MapPropType.ThreeModel) {
-      // 3D model
-      let object: ThreeDisplayObjectComponent;
-      try {
-        if (!this.qfsPath) throw new Error();
-        const mtlLoader = new MTLLoader();
-        const objLoader = new OBJLoader();
-        const mtl = await mtlLoader.loadAsync(`${this.qfsPath}/props/${dummy.data.data.resource_id}/0/material.mtl`);
-        mtl.preload();
-        objLoader.setMaterials(mtl);
-        object = new ThreeDisplayObjectComponent(
-          await objLoader.loadAsync(`${this.qfsPath}/props/${dummy.data.data.resource_id}/0/geometry.obj`),
-        );
-      } catch (err) {
-        isUnknown = true;
-        object = this.world!.visualScene.factory.createPrimitive(
-          { shape: 'SPHERE', radius: 5 },
-          { diffuse: await this.getPlaceholderTexture() },
-        );
-      }
-      object.nativeMesh.traverse(x => {
-        if (x instanceof Mesh) {
-          const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
-          for (const m of materials) {
-            m.transparent = true;
-            m.alphaTest = 0.5;
-            if (m instanceof MeshBasicMaterial && m.map) {
-              m.map.wrapS = RepeatWrapping;
-              m.map.wrapT = RepeatWrapping;
-              setupNfs1Texture(m.map);
-              m.map.needsUpdate = true;
-            }
-          }
-        }
-      });
-      const prop = new Entity3d<ThreeVisualTypeDocRepo>({ object3D: object });
-      prop.position = dummy.position;
-      prop.rotation = dummy.rotation;
-      if (isUnknown) {
-        this.unknownEntities.add(prop);
-        prop.visible = !this.hideUnknownEntities$.getValue();
-      }
-      this.world!.addEntity(prop);
-      return prop;
-    } else if (dummy.type == MapPropType.Bitmap || dummy.type == MapPropType.TwoSidedBitmap) {
-      const textureIds = (resId: number, framesAmount: number) =>
-        new Array(framesAmount)
-          .fill(null)
-          .map((_, i) =>
-            this.isOpenedTrack
-              ? `${Math.floor(resId / 4) + i}/0000`
-              : `0/${(Math.floor(resId / 4) + i).toString().padStart(2, '0')}00`,
-          )
-          .join(';');
-
-      const object: Object3D = new Group();
-      const [plane, isUnknown] = await this.loadTexturePlaneProp(
-        textureIds(dummy.data.data.resource_id, dummy.flags.is_animated ? dummy.data.data.frame_count : 1),
-        {
-          x: dummy.data.data.width,
-          y: dummy.data.data.height,
-        },
-        dummy.data.data.animation_interval,
-      );
-      object.add(plane);
-      if (dummy.type == MapPropType.TwoSidedBitmap) {
-        const [plane2, isUnknown] = await this.loadTexturePlaneProp(
-          textureIds(dummy.data.data.resource_id_2, 1),
-          {
-            x: dummy.data.data.width_2,
-            y: dummy.data.data.height,
-          },
-          dummy.data.data.animation_interval,
-        );
-        plane2.rotateY(Math.PI / 2);
-        plane2.position.x = dummy.data.data.width / 2;
-        plane2.position.y = dummy.data.data.width_2 / 2;
-        object.add(plane2);
-      }
-      const entity = new Entity3d<ThreeVisualTypeDocRepo, any>({ object3D: new ThreeDisplayObjectComponent(object) });
-      entity.position = dummy.position;
-      entity.rotation = dummy.rotation;
-      if (isUnknown) {
-        this.unknownEntities.add(entity);
-        entity.visible = !this.hideUnknownEntities$.getValue();
-      }
-      return entity;
-    }
-    return null;
-  }
-
-  private async loadTexturePlaneProp(
-    texture: string,
-    size: Point2,
-    animationInterval: number,
-  ): Promise<[Object3D, boolean]> {
-    const textures = texture.split(';');
-    const placeholder = await this.getPlaceholderTexture();
-    let isUnknown = false;
-    let maps = [];
-    if (!this.qfsPath) {
-      isUnknown = true;
-      maps = textures.map(() => placeholder);
-    } else {
-      maps = await Promise.all(
-        textures.map(t =>
-          this.textureLoader.loadAsync(`${this.qfsPath}/foreground/${t}.png`).catch(() => {
-            isUnknown = true;
-            return placeholder;
-          }),
-        ),
-      );
-    }
-    const materials = maps.map(map => {
-      setupNfs1Texture(map);
-      return new MeshBasicMaterial({ map, alphaTest: 0.5, transparent: true, side: DoubleSide });
-    });
-    const plane = new Mesh(new PlaneGeometry(size.x, size.y), materials[0]);
-    plane.rotateX(Math.PI / 2);
-    plane.position.set(0, 0, size.y / 2);
-    if (materials.length > 1) {
-      let i = -1;
-      // TODO where to unsubscribe?
-      createInlineTickController(this.world!)
-        .pipe(throttleTime(animationInterval && !isNaN(+animationInterval) ? +animationInterval * 1000 : 250))
-        .subscribe(() => {
-          i = (i + 1) % materials.length;
-          plane.material = materials[i];
-        });
-    }
-    return [plane, isUnknown];
   }
 }
 
