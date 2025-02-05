@@ -617,7 +617,7 @@ class TrkMapSerializer(BaseFileSerializer):
         map_scene = Scene(name='map',
                           obj_name='map',
                           mtl_name='terrain',
-                          mtl_texture_path_func=lambda x: f'{x}.png',
+                          mtl_texture_path_func=lambda x: f'textures/{x}.png',
                           skip_obj_export=self.settings.maps__save_as_chunked)
         scenes = [map_scene]
 
@@ -631,8 +631,10 @@ class TrkMapSerializer(BaseFileSerializer):
         map_scene.curves.append(curve)
 
         chunks = []
-        for block in blocks:
+        texture_names = set()
+        for block_i, block in enumerate(blocks):
             model = Mesh()
+            model.name = f'block_{block_i}'
             pivot = data['block_positions'][block['block_idx']]
             next_pivot = data['block_positions'][
                 block['block_idx'] + 1
@@ -657,6 +659,7 @@ class TrkMapSerializer(BaseFileSerializer):
                     model.vertex_uvs.append(uvs[i])
                 model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
                 model.texture_ids.append(texture_name)
+                texture_names.add(texture_name)
             sub_meshes = model.split_by_texture_ids()
 
             proxies = [item for sublist in (eb['data_records']['data']
@@ -666,7 +669,7 @@ class TrkMapSerializer(BaseFileSerializer):
             if len(proxies) > 0:
                 proxy_descr_extrablock = next(
                     eb['data_records']['data'] for eb in block['extrablocks'] if eb['type'] == 'prop_descriptions')
-                for proxy in proxies:
+                for proxy_i, proxy in enumerate(proxies):
                     if proxy['type'] not in ['static_prop', 'animated_prop']:
                         continue
                     object = proxy_descr_extrablock[proxy['prop_descr_idx']]
@@ -674,6 +677,7 @@ class TrkMapSerializer(BaseFileSerializer):
                         if proxy['type'] == 'static_prop' else \
                         proxy['position']['data']['frames'][0]['position']
                     model = Mesh()
+                    model.name = f'prop_{block_i}_{proxy_i}'
                     model.pivot_offset = (-position['x'], -position['y'], -position['z'])
                     for p in object['polygons']:
                         texture_name, texture_alignment = get_texture(p['texture'])
@@ -681,6 +685,12 @@ class TrkMapSerializer(BaseFileSerializer):
                         rotate_i = (texture_alignment >> 9) & 1
                         n_rotate = ((texture_alignment >> 11) & 3) - rotate_i
                         uvs = rotate_list(uvs, n_rotate)
+
+                        # FIXME manual fixes below, determine rules
+                        # alignment 320 should be upside down? TR02 props before finish
+                        if (((texture_alignment >> 6) & 1) and ((texture_alignment >> 8) & 1)):
+                            uvs = rotate_list(uvs, 2)
+
                         base_idx = len(model.vertices)
                         for i, v_index in enumerate(p['vertices']):
                             v = object['vertices'][v_index]
@@ -688,8 +698,10 @@ class TrkMapSerializer(BaseFileSerializer):
                             model.vertex_uvs.append(uvs[i])
                         model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
                         model.texture_ids.append(texture_name)
+                        texture_names.add(texture_name)
                     sub_meshes.extend(model.split_by_texture_ids())
             chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
+        map_scene.mtl_texture_names = list(texture_names)
         for chunk in chunks:
             chunk[1] = (chunk[1][0], chunk[1][2], chunk[1][1])
             for mesh in chunk[0]:
@@ -711,6 +723,15 @@ class TrkMapSerializer(BaseFileSerializer):
         else:
             for (meshes, _) in chunks:
                 map_scene.sub_meshes.extend(meshes)
+
+        # export QFS
+        try:
+            (shpi_id, shpi_block, shpi_data), _ = require_resource(id[:-4] + '0.QFS__data')
+            from serializers import ShpiArchiveSerializer
+            ShpiArchiveSerializer().serialize(shpi_data, os.path.join(path, 'textures/'), shpi_id, shpi_block)
+        except Exception:
+            if self.settings.print_errors:
+                traceback.print_exc()
 
         # export scenes
         export_scenes(scenes, path, self.settings)
