@@ -632,50 +632,23 @@ class TrkMapSerializer(BaseFileSerializer):
 
         def get_uvs(texture_alignment):
             uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
-            # TODO manual fixes below, determine rules
-            if texture_alignment == 320:    # 0000_0001_0100_0000
-                # upside down? Possibly should be reflected, checked symmetrical texture only
-                uvs = rotate_list(uvs, 2)
-            elif texture_alignment == 304:  # 0000_0001_0011_0000
+            alignment = texture_alignment >> 8
+            if alignment == 1:  # 0000_0001
                 # rotate 180 degrees
                 uvs = rotate_list(uvs, 2)
-            elif texture_alignment == 256:  # 0000_0001_0000_0000
-                # rotate 180 degrees, reflect?
-                uvs = rotate_list(uvs, 2)
-            elif texture_alignment == 272:  # 0000_0001_0001_0000
-                # rotate 180 degrees, reflect?
-                uvs = rotate_list(uvs, 2)
-            elif texture_alignment == 288:  # 0000_0001_0010_0000
-                # rotate 180 degrees, reflect?
-                uvs = rotate_list(uvs, 2)
-            elif texture_alignment == 308:  # 0000_0001_0011_0100
-                # rotate 180 degrees, reflect?
-                uvs = rotate_list(uvs, 2)
-            elif texture_alignment == 352:  # 0000_0001_0110_0000
-                # rotate 180 degrees
-                uvs = rotate_list(uvs, 2)
-            elif texture_alignment == 768:  # 0000_0011_0000_0000
+            elif alignment == 3:  # 0000_0011
                 # rotate 270 degrees
                 uvs = rotate_list(uvs, 3)
-            elif texture_alignment == 784:  # 0000_0011_0001_0000
-                # rotate 90 or 270 degrees
-                uvs = rotate_list(uvs, 3)
-            elif texture_alignment == 800:  # 0000_0011_0010_0000
-                # rotate 270 degrees
-                uvs = rotate_list(uvs, 3)
-            elif texture_alignment == 832:  # 0000_0011_0100_0000
-                # rotate 270 degrees
-                uvs = rotate_list(uvs, 3)
-            elif texture_alignment == 2304: # 0000_1001_0000_0000
+            elif alignment == 9:  # 0000_1001
                 # rotate 90 degrees
                 uvs = rotate_list(uvs, 1)
-            elif texture_alignment == 2336: # 0000_1001_0010_0000
-                # rotate 90 degrees
-                uvs = rotate_list(uvs, 1)
-            elif texture_alignment == 2368: # 0000_1001_0100_0000
-                # rotate 90 degrees
-                uvs = rotate_list(uvs, 1)
-            elif texture_alignment == 6176: # 0001_1000_0010_0000
+            elif alignment == 16:  # 0001_0000
+                # flip vertically
+                uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
+            elif alignment == 20:  # 0001_0100
+                # flip horizontally
+                uvs = [uvs[1], uvs[0], uvs[3], uvs[2]]
+            elif alignment == 24:  # 0001_1000
                 # rotate 90 degrees
                 uvs = rotate_list(uvs, 1)
             return uvs
