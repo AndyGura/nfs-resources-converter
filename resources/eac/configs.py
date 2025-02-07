@@ -3,8 +3,7 @@ from math import floor, ceil
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, DataBlock
-from library.read_blocks.numbers import EnumByteBlock
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, DataBlock, EnumByteBlock
 from resources.eac.fields.numbers import RationalNumber, Nfs1TimeField
 
 

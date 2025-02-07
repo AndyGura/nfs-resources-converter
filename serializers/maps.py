@@ -603,7 +603,7 @@ class TrkMapSerializer(BaseFileSerializer):
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
 
             def get_texture(tex):
-                return f"{texture_map[tex]['texture_number']:04}", texture_map[tex]['alignment_data']
+                return f"{texture_map[tex]['texture_number']:04}", texture_map[tex]['alignment']
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
@@ -630,27 +630,18 @@ class TrkMapSerializer(BaseFileSerializer):
         }
         map_scene.curves.append(curve)
 
-        def get_uvs(texture_alignment):
+        def get_uvs(alignment):
             uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
-            alignment = texture_alignment >> 8
-            if alignment == 1:  # 0000_0001
-                # rotate 180 degrees
+            if str(alignment).startswith('rotate_90'):
+                uvs = rotate_list(uvs, 1)
+            elif str(alignment).startswith('rotate_180'):
                 uvs = rotate_list(uvs, 2)
-            elif alignment == 3:  # 0000_0011
-                # rotate 270 degrees
+            elif str(alignment).startswith('rotate_270'):
                 uvs = rotate_list(uvs, 3)
-            elif alignment == 9:  # 0000_1001
-                # rotate 90 degrees
-                uvs = rotate_list(uvs, 1)
-            elif alignment == 16:  # 0001_0000
-                # flip vertically
-                uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
-            elif alignment == 20:  # 0001_0100
-                # flip horizontally
+            elif alignment == 'flip_h':
                 uvs = [uvs[1], uvs[0], uvs[3], uvs[2]]
-            elif alignment == 24:  # 0001_1000
-                # rotate 90 degrees
-                uvs = rotate_list(uvs, 1)
+            elif alignment == 'flip_v':
+                uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
             return uvs
 
         chunks = []

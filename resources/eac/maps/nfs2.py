@@ -4,9 +4,12 @@ from typing import Dict
 from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock,
-                                 UTF8Block, BytesBlock, ArrayBlock, DataBlock)
-from library.read_blocks.numbers import EnumByteBlock
-from library.read_blocks.smart_fields import EnumLookupDelegateBlock
+                                 UTF8Block,
+                                 BytesBlock,
+                                 ArrayBlock,
+                                 DataBlock,
+                                 EnumByteBlock,
+                                 EnumLookupDelegateBlock)
 from resources.eac.fields.misc import Point3D, RGBBlock
 
 
@@ -31,9 +34,19 @@ class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         texture_number = (IntegerBlock(length=2, is_signed=False),
                           {'description': 'Texture number in QFS file'})
-        alignment_data = (IntegerBlock(length=2, is_signed=False),
-                          {'description': 'Alignment data, which game uses instead of UV-s when rendering mesh. '
-                                          'Seems to be a set of flags, but I haven\'t investigated it deeply yet'})
+        unk = (IntegerBlock(length=1),
+               {'is_unknown': True})
+        alignment = (EnumByteBlock(enum_names=[(1, 'rotate_180'),
+                                               (3, 'rotate_270'),
+                                               (5, 'normal'),
+                                               (9, 'rotate_90'),
+                                               (16, 'flip_v'),
+                                               (18, 'rotate_270_2'),
+                                               (20, 'flip_h'),
+                                               (24, 'rotate_90_2'),
+                                               ]),
+                     {'description': 'Alignment data, which game uses instead of UV-s when rendering mesh.'
+                                     'I use UV-s (0,1; 1,1; 1,0; 0,0) and modify them according to enum value names'})
         luminosity = (RGBBlock(),
                       {'description': 'Luminosity color'})
         black = (RGBBlock(),

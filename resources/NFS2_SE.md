@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2025-02-04 17:58:53.045661+00:00*
+*Last time updated: 2025-02-07 16:20:20.508499+00:00*
 
 
 # **Info by file extensions** #
@@ -184,7 +184,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **texture_number** | 2 | 2-bytes unsigned integer (little endian) | Texture number in QFS file |
-| 2 | **alignment_data** | 2 | 2-bytes unsigned integer (little endian) | Alignment data, which game uses instead of UV-s when rendering mesh. Seems to be a set of flags, but I haven't investigated it deeply yet |
+| 2 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 3 | **alignment** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: rotate_180<br/>3: rotate_270<br/>5: normal<br/>9: rotate_90<br/>16: flip_v<br/>18: rotate_270_2<br/>20: flip_h<br/>24: rotate_90_2</details> | Alignment data, which game uses instead of UV-s when rendering mesh.I use UV-s (0,1; 1,1; 1,0; 0,0) and modify them according to enum value names |
 | 4 | **luminosity** | 3 | Color RGB values | Luminosity color |
 | 7 | **black** | 3 | Color RGB values | Unknown, usually black |
 ### **MedianExtraDataRecord** ###

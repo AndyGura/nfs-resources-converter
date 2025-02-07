@@ -1,7 +1,11 @@
 from datetime import datetime, timezone
 
-from library.read_blocks import CompoundBlock, ArrayBlock, DataBlock, DelegateBlock, SkipBlock
-from library.read_blocks.smart_fields import EnumLookupDelegateBlock
+from library.read_blocks import (CompoundBlock,
+                                 ArrayBlock,
+                                 DataBlock,
+                                 DelegateBlock,
+                                 SkipBlock,
+                                 EnumLookupDelegateBlock)
 from resources.eac import (archives,
                            bitmaps,
                            fonts,
