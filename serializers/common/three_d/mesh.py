@@ -86,9 +86,9 @@ class Mesh(BaseMesh):
         texture_ids.sort()
         if len(texture_ids) == 1:
             sm = SubMesh()
-            sm.name = self.name
             sm.pivot_offset = self.pivot_offset
             sm.texture_id = texture_ids[0]
+            sm.name = self.name + '__' + (sm.texture_id or 'None')
             sm.vertices = self.vertices
             sm.vertex_uvs = self.vertex_uvs
             sm.polygons = self.polygons

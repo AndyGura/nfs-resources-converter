@@ -1,0 +1,30 @@
+<div class='qfsSelector'>
+  <h4>Preview QFS file</h4>
+  <mat-form-field appearance='fill'>
+    <mat-label>Custom QFS path</mat-label>
+    <input #customQfsInput matInput type='text' [value]='(previewQfsLocation$ | async)!'>
+  </mat-form-field>
+  <button mat-button (click)='onQfsSelected(customQfsInput.value)'>LOAD</button>
+  <mat-spinner *ngIf='previewQfsLoading$ | async' mode='indeterminate' [diameter]='40'></mat-spinner>
+</div>
+<div class='preview'>
+  <div class='previewCanvasContainer' #previewCanvasContainer>
+    <canvas #previewCanvas width='640' height='480'></canvas>
+    <mat-spinner *ngIf='previewLoading$ | async' mode='indeterminate'></mat-spinner>
+  </div>
+  <div class='previewNavigationContainer' #previewCanvasContainer>
+    <mat-form-field appearance='fill'>
+      <mat-label>Spline item</mat-label>
+      <input matInput type='number'
+             [min]='0' [max]='(_resource$ | async)?.data.num_blocks * 4 - 1'
+             [ngModel]='selectedSplineIndex$ | async'
+             (ngModelChange)='selectedSplineIndex$.next($event)'>
+    </mat-form-field>
+    <app-minimap [roadSpline]='roadPath || []'
+                 [pointer]='pointer$ | async'
+                 [splineClosed]='true'
+                 [projection]='"nz"'
+                 (pointerChange)='onPointerChange($event)'></app-minimap>
+  </div>
+</div>
+<app-compound-block-ui [resource]='_resource$ | async'></app-compound-block-ui>

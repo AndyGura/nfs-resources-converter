@@ -25,6 +25,7 @@ import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.bl
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
+import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 
 @Component({
@@ -59,6 +60,7 @@ export class EditorComponent implements OnDestroy {
     EacsAudioFile: EacsAudioBlockUiComponent,
     // NFS2 blocks
     GeoGeometry: GeoGeometryBlockUiComponent,
+    TrkMap: TrkMapBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

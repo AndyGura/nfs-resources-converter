@@ -88,3 +88,7 @@ def determine_palette_for_8_bit_bitmap(block: Bitmap8Bit, data: dict, id: str) -
                 '/'.join(id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS__data')
             (palette_block, palette_data) = _get_palette_from_shpi(shpi_block, shpi_data)
     return palette_block, palette_data
+
+
+def rotate_list(l, n):
+    return l[n:] + l[:n]

@@ -1,7 +1,16 @@
-/* You can add global styles to this file, and also import other style files */
+//@use '@angular/material' as mat;
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html {
+  height: 100%;
+  // TODO uncomment and adjust UI to be more compact later
+  //@include mat.all-component-densities(-3);
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
 
 .flex-spacer {
   flex-grow: 1;
@@ -10,3 +19,6 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .hidden {
   display: none !important;
 }
+
+
+

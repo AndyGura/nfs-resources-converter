@@ -138,7 +138,8 @@ class OripGeometry(DeclarativeCompoundBlock):
         resource_id = (UTF8Block(required_value='ORIP', length=4),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4),
-                      {'description': 'Total ORIP block size'})
+                      {'description': 'Total ORIP block size in bytes',
+                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
         unk0 = (IntegerBlock(length=4, required_value=0x02BC),
                 {'description': 'Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type?',
                  'is_unknown': True})

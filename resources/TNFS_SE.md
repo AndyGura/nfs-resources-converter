@@ -81,7 +81,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "ORIP" | Resource ID |
-| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Total ORIP block size |
+| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Total ORIP block size in bytes |
 | 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian). Always == 0x2bc | Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type? |
 | 12 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 16 | **num_vrtx** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices |

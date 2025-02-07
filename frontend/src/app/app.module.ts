@@ -39,6 +39,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui/tri-map.block-ui.component';
+import { TrkMapBlockUiComponent } from './components/editor/eac/trk-map.block-ui/trk-map.block-ui.component';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { MinimapComponent } from './components/editor/common/minimap/minimap.component';
@@ -79,6 +80,7 @@ import { HexEditorModule } from 'ngx-hex-editor';
     FlagsBlockUiComponent,
     ConfirmDialogComponent,
     TriMapBlockUiComponent,
+    TrkMapBlockUiComponent,
     RunCustomActionDialogComponent,
     OripGeometryBlockUiComponent,
     MinimapComponent,

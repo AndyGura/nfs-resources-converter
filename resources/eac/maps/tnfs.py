@@ -6,9 +6,9 @@ from library.read_blocks import (BitFlagsBlock,
                                  BytesBlock,
                                  ArrayBlock,
                                  UTF8Block,
-                                 SubByteArrayBlock)
-from library.read_blocks.numbers import EnumByteBlock
-from library.read_blocks.smart_fields import EnumLookupDelegateBlock
+                                 SubByteArrayBlock,
+                                 EnumByteBlock,
+                                 EnumLookupDelegateBlock)
 from resources.eac.fields.misc import FenceType, Point3D
 from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
 
