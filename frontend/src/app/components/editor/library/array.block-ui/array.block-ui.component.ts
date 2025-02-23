@@ -25,7 +25,6 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   @Input()
   set resource(value: Resource | null) {
     this._resource = value;
-    this.showAsCollapsable = this._resource?.data?.length > 5;
     this.buildChildren();
     this.renderPage(0, this.minPageSize);
     this.updatePageIndexes();
@@ -63,7 +62,6 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     return this._resource?.name || null;
   }
 
-  showAsCollapsable: boolean = false;
   renderContents: boolean = false;
   contentsTimeout: number | undefined;
 

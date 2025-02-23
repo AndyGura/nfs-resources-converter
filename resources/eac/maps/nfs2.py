@@ -55,8 +55,15 @@ class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
 
 
 class PolygonMapExtraDataRecord(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Polygon extra data. Number of items here == np1 * 2, but sometimes less. Why?'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
-        vectors_idx = IntegerBlock(length=1, is_signed=False)
+        vectors_idx = (IntegerBlock(length=1, is_signed=False),
+                       { 'description': 'An index of entry in road_vectors extrablock' })
         car_behavior = EnumByteBlock(enum_names=[(0, 'unk0'),
                                                  (1, 'unk1'),
                                                  ])
@@ -152,6 +159,12 @@ class LanesExtraDataRecord(DeclarativeCompoundBlock):
 
 
 class RoadVectorsExtraDataRecord(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Block with normal + forward vectors pair'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         normal = Point3D(child_length=2, fraction_bits=15, normalized=True)
         forward = Point3D(child_length=2, fraction_bits=15, normalized=True)
