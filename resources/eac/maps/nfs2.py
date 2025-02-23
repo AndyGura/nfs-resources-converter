@@ -148,21 +148,21 @@ class LanesExtraDataRecord(DeclarativeCompoundBlock):
         lat_pos = (IntegerBlock(length=1, is_signed=False),
                    {'description': 'Lateral position ? (constant in each lane), -1 at the end)'})
         polygon_idx = (IntegerBlock(length=1, is_signed=False),
-                       {'description': '{olygon number (inside full-res background 3D structure : 0 to np1)'})
+                       {'description': 'Polygon number (inside full-res background 3D structure : 0 to np1)'})
 
 
 class RoadVectorsExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = Point3D(child_length=2, fraction_bits=16, normalized=True)
-        forward = Point3D(child_length=2, fraction_bits=16, normalized=True)
+        normal = Point3D(child_length=2, fraction_bits=15, normalized=True)
+        forward = Point3D(child_length=2, fraction_bits=15, normalized=True)
 
 
 class CollisionExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         position = Point3D(child_length=4, fraction_bits=16)
-        vertical = Point3D(child_length=1, fraction_bits=8, normalized=True)
-        forward = Point3D(child_length=1, fraction_bits=8, normalized=True)
-        right = Point3D(child_length=1, fraction_bits=8, normalized=True)
+        vertical = Point3D(child_length=1, fraction_bits=7, normalized=True)
+        forward = Point3D(child_length=1, fraction_bits=7, normalized=True)
+        right = Point3D(child_length=1, fraction_bits=7, normalized=True)
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
         block_idx = IntegerBlock(length=2, is_signed=False)

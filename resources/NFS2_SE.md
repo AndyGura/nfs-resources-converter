@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2025-02-07 16:20:20.508499+00:00*
+*Last time updated: 2025-02-23 13:10:02.353456+00:00*
 
 
 # **Info by file extensions** #
@@ -240,21 +240,21 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **vertex_idx** | 1 | 1-byte unsigned integer | Vertex number (inside background 3D structure : 0 to nv1+nv8) |
 | 1 | **track_pos** | 1 | 1-byte unsigned integer | Position along track inside block (0 to 7) |
 | 2 | **lat_pos** | 1 | 1-byte unsigned integer | Lateral position ? (constant in each lane), -1 at the end) |
-| 3 | **polygon_idx** | 1 | 1-byte unsigned integer | {olygon number (inside full-res background 3D structure : 0 to np1) |
+| 3 | **polygon_idx** | 1 | 1-byte unsigned integer | Polygon number (inside full-res background 3D structure : 0 to np1) |
 ### **RoadVectorsExtraDataRecord** ###
 #### **Size**: 12 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | - |
-| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | - |
+| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | - |
+| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | - |
 ### **CollisionExtraDataRecord** ###
 #### **Size**: 36 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
-| 12 | **vertical** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 8 bits is a fractional part, normalized | - |
-| 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 8 bits is a fractional part, normalized | - |
-| 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 8 bits is a fractional part, normalized | - |
+| 12 | **vertical** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
+| 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
+| 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
 | 21 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 22 | **block_idx** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 24 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
