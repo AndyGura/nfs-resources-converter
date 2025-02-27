@@ -732,38 +732,6 @@ class TrkMapSerializer(BaseFileSerializer):
             for (meshes, _) in chunks:
                 map_scene.sub_meshes.extend(meshes)
 
-        # add physics info to scene
-        for block_i, block in enumerate(blocks):
-            polygon_map = next(eb['data_records']['data'] for eb in block['extrablocks'] if eb['type'] == 'polygon_map')
-            road_vec = next(eb['data_records']['data'] for eb in block['extrablocks'] if eb['type'] == 'road_vectors')
-            for (pi, p) in enumerate(block['polygons'][(block['np4'] + block['np2']):]):
-                vectors = road_vec[polygon_map[pi]['vectors_idx']]
-                face_vertices = [block['vertices'][x] for x in p['vertices']]
-                dummy_position = [
-                    (face_vertices[0]['x'] + face_vertices[1]['x'] + face_vertices[2]['x'] + face_vertices[3]['x']) / 4,
-                    (face_vertices[0]['z'] + face_vertices[1]['z'] + face_vertices[2]['z'] + face_vertices[3]['z']) / 4,
-                    (face_vertices[0]['y'] + face_vertices[1]['y'] + face_vertices[2]['y'] + face_vertices[3]['y']) / 4,
-                ]
-                if self.settings.maps__save_as_chunked:
-                    target_scene = scenes[block_i + 1]
-                else:
-                    pivot = data['block_positions'][block['block_idx']]
-                    dummy_position[0] += pivot['x']
-                    dummy_position[1] += pivot['z']
-                    dummy_position[2] += pivot['y']
-                    target_scene = map_scene
-                target_scene.dummies.append({
-                    'name': f'road_vectors_{block_i}_{pi}',
-                    'position': dummy_position,
-                    'properties': {
-                        'is_road_vectors': True,
-                        'normal': {'x': vectors['normal']['x'], 'y': vectors['normal']['z'],
-                                   'z': vectors['normal']['y']},
-                        'forward': {'x': vectors['forward']['x'], 'y': vectors['forward']['z'],
-                                    'z': vectors['forward']['y']},
-                    },
-                })
-
         # export QFS
         try:
             (shpi_id, shpi_block, shpi_data), _ = require_resource(id[:-4] + '0.QFS__data')
