@@ -621,9 +621,10 @@ for obj in bpy.context.selected_objects:
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
+            (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
 
             def get_texture(tex):
-                return f"{texture_map[tex]['texture_number']:04}", texture_map[tex]['alignment']
+                return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
