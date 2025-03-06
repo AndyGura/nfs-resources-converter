@@ -80,7 +80,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                                                os.path.join(path, 'horz.png'),
                                                os.path.join(path, 'spherical.png'),
                                                horz['pivot_y'])
-                elif 'TRACKS/PC/TR0' in id and '0.QFS' in id:
+                elif ('TRACKS/PC/TR0' in id or 'TRACKS/SE/TR0' in id) and ('0.QFS' in id or '0M.QFS' in id):
                     # build NFS2 horizon texture
                     from PIL import Image, ImageOps
                     import math
