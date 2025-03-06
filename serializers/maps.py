@@ -226,8 +226,8 @@ for object in objects:
         is_active_set = True
 if len(objects) > 0:
     bpy.ops.rigidbody.objects_add(type='PASSIVE')
-for obj in bpy.context.selected_objects:
-    obj.rigid_body.collision_shape = 'MESH'
+# for obj in bpy.context.selected_objects:
+#     obj.rigid_body.collision_shape = 'CONVEX_HULL'
 """
 
     wall_collisions_script = Template("""
@@ -596,26 +596,6 @@ class TrkMapSerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    terrain_collisions_script = """
-def find_terrain_chunks():
-    import re
-    pattern = re.compile(f"^(block_)|(prop_)")
-    return [x for x in bpy.data.objects if pattern.match(x.name)]
-
-bpy.ops.object.select_all(action='DESELECT')
-is_active_set = False
-objects = find_terrain_chunks()
-for object in objects:
-    object.select_set(True)
-    if not is_active_set:
-        bpy.context.view_layer.objects.active = object
-        is_active_set = True
-if len(objects) > 0:
-    bpy.ops.rigidbody.objects_add(type='PASSIVE')
-for obj in bpy.context.selected_objects:
-    obj.rigid_body.collision_shape = 'MESH'
-"""
-
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, id, block, **kwargs)
         from library import require_resource
@@ -778,10 +758,6 @@ for obj in bpy.context.selected_objects:
         else:
             for (meshes, _) in chunks:
                 map_scene.sub_meshes.extend(meshes)
-
-        if self.settings.maps__save_terrain_collisions:
-            for scene in scenes:
-                scene.extra_script += self.terrain_collisions_script
 
         # export QFS
         try:
