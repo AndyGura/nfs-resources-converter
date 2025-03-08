@@ -35,8 +35,8 @@ export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterVi
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
       this.audioUrl$.next(null);
       if (res) {
-        const paths = await this.eelDelegate.serializeResource(res.id, { audio__save_car_sfx_loops: false });
-        this.audioUrl$.next(paths.find(x => x.endsWith('.mp3')) || null);
+        const paths = await this.eelDelegate.serializeResource(res.id);
+        this.audioUrl$.next(paths.find(x => x.endsWith('.wav')) || null);
       }
     });
   }

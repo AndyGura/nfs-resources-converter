@@ -1,8 +1,6 @@
 import json
-import os
 import subprocess
-import tempfile
-from wave import Wave_write
+import wave
 
 from library.utils import audio_ima_adpcm_codec
 from serializers import BaseFileSerializer
@@ -28,24 +26,7 @@ class EacsAudioSerializer(BaseFileSerializer):
         loop_start_time_ms = 1000 * data['header']['repeat_loop_beginning'] / data['header']['sampling_rate']
         loop_end_time_ms = loop_start_time_ms + 1000 * (data['header']['repeat_loop_length'] - 1) / data['header'][
             'sampling_rate']
-        loop_wave_data = None
-        if self.settings.audio__save_car_sfx_loops:
-            try:
-                # if car sound bank
-                if 'SW.BNK' in id or 'TRAFFC.BNK' in id or 'TESTBANK.BNK' in id:
-                    # aligning to channels. If not do that, some samples keep changing channels every loop
-                    beginning = data['header']['sound_resolution'] * int(
-                        data['header']['repeat_loop_beginning'] / data['header']['channels']) * data['header'][
-                                    'channels']
-                    ending = (data['header']['sound_resolution']
-                              * int((data['header']['repeat_loop_beginning'] + data['header']['repeat_loop_length'])
-                                    / data['header']['channels']) * data['header']['channels'])
-                    loop_wave_data = wave_bytes[beginning:ending] * 16
-            except Exception:
-                pass
         self._save_wave_data(data['header'], wave_bytes, path)
-        if loop_wave_data:
-            self._save_wave_data(data['header'], loop_wave_data, f"{path}_loop")
         with open(f'{path}.meta.json', 'w') as file:
             file.write(json.dumps({
                 "loop_start_time_ms": loop_start_time_ms,
@@ -53,23 +34,11 @@ class EacsAudioSerializer(BaseFileSerializer):
             }, indent=4))
 
     def _save_wave_data(self, eacs_header, wave_data, path):
-        file = tempfile.NamedTemporaryFile(mode='w+b', suffix='.wav', delete=False)
-        try:
-            wave = Wave_write(file)
-            wave.setnchannels(eacs_header['channels'])
-            wave.setsampwidth(eacs_header['sound_resolution'])
-            wave.setframerate(eacs_header['sampling_rate'])
-            wave.writeframesraw(wave_data)
-            wave.close()
-            args = [self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i",
-                    file.name.replace('\\', '/'),
-                    f'{path}.mp3']
-            subprocess.run(args, check=True)
-        except Exception as ex:
-            raise ex
-        finally:
-            file.close()
-            os.remove(file.name)
+        with wave.open(f'{path}.wav', "w") as wf:
+            wf.setnchannels(eacs_header['channels'])
+            wf.setsampwidth(eacs_header['sound_resolution'])
+            wf.setframerate(eacs_header['sampling_rate'])
+            wf.writeframesraw(wave_data)
 
 
 class FfmpegSupportedAudioSerializer(BaseFileSerializer):
@@ -77,7 +46,7 @@ class FfmpegSupportedAudioSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
         subprocess.run(
-            [self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", id, f'{path}.mp3'],
+            [self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", id, f'{path}.wav'],
             check=True)
         with open(f'{path}.meta.json', 'w') as file:
             loop_start_time_ms = 1000 * data['repeat_loop_beginning'] / data['sampling_rate']
