@@ -9,7 +9,7 @@ This project, apart from file parsers themselves, provides:
 Various kinds of game resources can be easily converted to formats:
 - 3D models: **obj**, **blend**, **glb**
 - archives: **directory**
-- audio: **mp3**
+- audio: **wav**
 - fonts: **fnt + png** (raster Windows Font). Nice edit tool: https://snowb.org/
 - images: **png**
 - info files (palette, positions, skipped resources etc.): **txt**

@@ -50,9 +50,6 @@ SERIALIZER_CLASSES = {
 # skip saving palette, image positions
 images__save_images_only = False
 
-# for car sfx for engine, honk, additionally export long audio, where the sample repeated 16 times
-audio__save_car_sfx_loops = False
-
 # saves each terrain mesh chunk as separate obj/blend file and main file with road path.
 # If false builds entire map into single file
 maps__save_as_chunked = False
