@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2025-02-23 23:14:24.962163+00:00*
+*Last time updated: 2025-03-11 21:42:35.684149+00:00*
 
 
 # **Info by file extensions** #
@@ -45,8 +45,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
-| ? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
+| 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 + num_items\*8..? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
+### **BigfItemDescriptionBlock** ###
+#### **Size**: 8..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
+| 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
 ## **Geometries** ##
 ### **GeoGeometry** ###
 #### **Size**: 1804..? bytes ####
@@ -196,10 +203,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1 | **unk** | 7 | Bytes | Unknown purpose |
 ### **PolygonMapExtraDataRecord** ###
 #### **Size**: 2 bytes ####
-#### **Description**: Polygon extra data. Number of items here == np1 * 2, but sometimes less. Why? ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **vectors_idx** | 1 | 1-byte unsigned integer | An index of entry in road_vectors extrablock |
+| 0 | **vectors_idx** | 1 | 1-byte unsigned integer | - |
 | 1 | **car_behavior** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: unk0<br/>1: unk1</details> | - |
 ### **PropExtraDataRecord** ###
 #### **Size**: 4..? bytes ####
@@ -244,7 +250,6 @@ Did not find what you need or some given data is wrong? Please submit an
 | 3 | **polygon_idx** | 1 | 1-byte unsigned integer | Polygon number (inside full-res background 3D structure : 0 to np1) |
 ### **RoadVectorsExtraDataRecord** ###
 #### **Size**: 12 bytes ####
-#### **Description**: Block with normal + forward vectors pair ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | - |
