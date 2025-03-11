@@ -123,17 +123,12 @@ class BBBB(DeclarativeCompoundBlock):
                                  else 1))
 
 
-class DDDD(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        n2 = IntegerBlock(length=4)
-        entries = ArrayBlock(child=BBBB(),
-                             length=lambda ctx: ctx.data('n2'))
-
-
 class AAAA(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         n1 = IntegerBlock(length=4)
-        data = DelegateBlock(possible_blocks=[DDDD(), SkipBlock()],
+        data = DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(child=BBBB(),
+                                                                       length_block=IntegerBlock(length=4)),
+                                              SkipBlock()],
                              choice_index=lambda ctx, **_: (
                                  0 if ctx.data('n1') > 0
                                  else 1))
