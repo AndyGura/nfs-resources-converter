@@ -27,6 +27,7 @@ import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geo
 import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
 import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
+import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -47,6 +48,7 @@ export class EditorComponent implements OnDestroy {
     IntegerBlock: IntegerBlockUiComponent,
     UTF8Block: StringBlockUiComponent,
     NullTerminatedUTF8Block: StringBlockUiComponent,
+    SkipBlock: SkipBlockUiComponent,
     // NFS1 blocks
     AngleBlock: AngleBlockUiComponent,
     AnyBitmapBlock: BitmapBlockUiComponent,

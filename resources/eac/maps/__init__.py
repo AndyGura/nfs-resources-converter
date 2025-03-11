@@ -15,6 +15,11 @@ from .nfs2 import (TrkMap,
                    LanesExtraDataRecord,
                    CollisionExtraDataRecord,
                    )
+from .nfs3 import (FrdMap,
+                   FrdBlock,
+                   FrdPositionBlock,
+                   TextureBlock,
+                   )
 from .tnfs import (RoadSplinePoint,
                    ModelPropDescrData,
                    BitmapPropDescrData,

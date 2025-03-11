@@ -26,6 +26,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif file_path.upper().endswith('.GEO'):
             from resources.eac.geometries import GeoGeometry
             return GeoGeometry
+        elif file_path.upper().endswith('.FRD'):
+            from resources.eac.maps.nfs3 import FrdMap
+            return FrdMap
     if header_str:
         if file_path and header_str == '#ver' and file_path.endswith('INFO'):
             from resources.eac.misc import DashDeclarationFile
@@ -75,14 +78,51 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             from resources.eac.palettes import Palette32Bit
             return Palette32Bit
         elif resource_id == 0x2D:
+            # TODO colors 15-0 ? found here https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
             from resources.eac.palettes import Palette16Bit
             return Palette16Bit
+        # TODO PIXEL_PAL4_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
+        # elif resource_id == 0x5C:
+        #     pass
+        # TODO PIXEL_P32_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
+        # elif resource_id == 0x3B:
+        #     pass
+        # TODO PIXEL_4444_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
+        # elif resource_id == 0x59:
+        #     pass
+        # TODO PIXEL_PAL8_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
+        # elif resource_id == 0x5D:
+        #     pass
+        # TODO BitmapDXT1
+        # elif resource_id == 0x60:
+        #     pass
+        # TODO BitmapDXT3
+        # elif resource_id == 0x61:
+        #     pass
+        # TODO BitmapDXT5
+        # elif resource_id == 0x62:
+        #     pass
+        # TODO Bitmap24Bit6666
+        # elif resource_id == 0x66:
+        #     pass
+        # TODO Bitmap16Bit484
+        # elif resource_id == 0x68:
+        #     pass
+        # TODO Bitmap32Bit1010102
+        # elif resource_id == 0x6A:
+        #     pass
+        # TODO Bitmap16Bit4444
+        # elif resource_id == 0x6D:
+        #     pass
         elif resource_id == 0x6F:
             from resources.eac.misc import ShpiText
             return ShpiText
         elif resource_id == 0x78:
             from resources.eac.bitmaps import Bitmap16Bit0565
             return Bitmap16Bit0565
+        # TODO Bitmap4Bit (with palette)
+        # elif resource_id == 0x79:
+        #     pass
         elif resource_id == 0x7A:
             from resources.eac.bitmaps import Bitmap4Bit
             return Bitmap4Bit

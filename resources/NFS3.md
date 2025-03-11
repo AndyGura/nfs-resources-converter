@@ -1,11 +1,13 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2025-03-11 21:42:35.781025+00:00*
+*Last time updated: 2025-03-11 22:17:27.145553+00:00*
 
 
 # **Info by file extensions** #
 
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
+
+**\*.FRD** main track file. [FrdMap](#frdmap)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
@@ -48,6 +50,70 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+## **Maps** ##
+### **FrdMap** ###
+#### **Size**: 36..? bytes ####
+#### **Description**: Main track file ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk** | 28 | Bytes | Unknown header |
+| 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks |
+| 32 | **blocks** | (num_blocks+1)\*1316..? | Array of `num_blocks+1` items<br/>Item type: [FrdBlock](#frdblock) | - |
+| 32 + (num_blocks+1)\*1316..? | **polygon_blocks** | (num_blocks+1)\*44..? | Array of `num_blocks+1` items<br/>Item type: [FrdPolyBlock](#frdpolyblock) | - |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1))\*4..? | Array of `4*(num_blocks+1)` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Item type: [ExtraObjectData](#extraobjectdata) | - |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4..? | **num_texture_blocks** | 4 | 4-bytes unsigned integer (little endian) | Length of texture_blocks array |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4 + 4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | - |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4 + 4 + num_texture_blocks\*47..? | **rest** | custom_func | Bytes | - |
+### **FrdBlock** ###
+#### **Size**: 1316..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **center** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
+| 12 | **bounds** | 48 | Array of `4` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Block bounding rectangle |
+| 60 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Number of vertices |
+| 64 | **num_vertices_high** | 4 | 4-bytes unsigned integer (little endian) | Number of high-res vertices |
+| 68 | **num_vertices_low** | 4 | 4-bytes unsigned integer (little endian) | Number of low-res vertices |
+| 72 | **num_vertices_med** | 4 | 4-bytes unsigned integer (little endian) | Number of medium-res vertices |
+| 76 | **num_vertices_dup** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 80 | **num_vertices_obj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Vertices |
+| 84 + num_vertices\*12 | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 | **neighbour_data** | 1200 | Array of `600` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 | **nStartPos** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 | **nPositions** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 | **nPolygons** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 | **nVRoad** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 | **nXobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 | **nPolyobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 | **nSoundsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 | **nLightsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 | **positions** | nPositions\*8 | Array of `nPositions` items<br/>Item type: [FrdPositionBlock](#frdpositionblock) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 | **polyData** | nPolygons\*8 | Array of `nPolygons` items<br/>Item type: [CompoundBlock](#compoundblock) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 | **vroadData** | nVRoad\*12 | Array of `nVRoad` items<br/>Item type: [CompoundBlock](#compoundblock) | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 | **xobj** | nXobj\*20 | Array of `nXobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 + nXobj\*20 | **polyObj** | nPolyobj\*20 | Array of `nPolyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 + nXobj\*20 + nPolyobj\*20 | **soundsrc** | nSoundsrc\*16 | Array of `nSoundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
+| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 + nXobj\*20 + nPolyobj\*20 + nSoundsrc\*16 | **lightsrc** | nLightsrc\*16 | Array of `nLightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
+### **FrdPositionBlock** ###
+#### **Size**: 8 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **polygon** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 2 | **nPolygons** | 1 | 1-byte unsigned integer | - |
+| 3 | **unk** | 1 | 1-byte unsigned integer | - |
+| 4 | **extraNeighbor1** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 6 | **extraNeighbor2** | 2 | 2-bytes unsigned integer (little endian) | - |
+### **TextureBlock** ###
+#### **Size**: 47 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **width** | 2 | 2-bytes unsigned integer (little endian) | Texture width |
+| 2 | **height** | 2 | 2-bytes unsigned integer (little endian) | Texture height |
+| 4 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Blending related, hometown covered bridges godrays |
+| 8 | **corners** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | 4x planar coordinates == tiling? |
+| 40 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 44 | **is_lane** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: default<br/>1: lane</details> | 1 if not a real texture (lane), 0 usually |
+| 45 | **texture_id** | 2 | 2-bytes unsigned integer (little endian) | index in QFS file |
 ## **Bitmaps** ##
 ### **Bitmap4Bit** ###
 #### **Size**: 16..? bytes ####

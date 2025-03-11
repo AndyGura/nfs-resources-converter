@@ -293,6 +293,8 @@ EXPORT_RESOURCES = {
         'title': 'NFS 3 Hot Pursuit file specs',
         'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
+**\*.FRD** main track file. {render_type(maps.FrdMap())}
+
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
 **\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
@@ -306,8 +308,12 @@ EXPORT_RESOURCES = {
             ],
             # 'Geometries': [
             # ],
-            # 'Maps': [
-            # ],
+            'Maps': [
+                maps.FrdMap(),
+                maps.FrdBlock(),
+                maps.FrdPositionBlock(),
+                maps.TextureBlock(),
+            ],
             # 'Physics': [
             # ],
             'Bitmaps': [
