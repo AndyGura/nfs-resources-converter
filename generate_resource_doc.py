@@ -165,6 +165,7 @@ EXPORT_RESOURCES = {
             'Archives': [
                 archives.ShpiBlock(),
                 archives.BigfBlock(),
+                archives.BigfItemDescriptionBlock(),
             ],
             'Geometries': [
                 geometries.GeoGeometry(),
@@ -234,6 +235,7 @@ EXPORT_RESOURCES = {
             'Archives': [
                 archives.ShpiBlock(),
                 archives.BigfBlock(),
+                archives.BigfItemDescriptionBlock(),
             ],
             'Geometries': [
                 geometries.GeoGeometry(),
@@ -300,6 +302,7 @@ EXPORT_RESOURCES = {
             'Archives': [
                 archives.ShpiBlock(),
                 archives.BigfBlock(),
+                archives.BigfItemDescriptionBlock(),
             ],
             # 'Geometries': [
             # ],
@@ -343,6 +346,7 @@ EXPORT_RESOURCES = {
             'Archives': [
                 archives.ShpiBlock(),
                 archives.BigfBlock(),
+                archives.BigfItemDescriptionBlock(),
             ],
             # 'Geometries': [
             # ],
@@ -385,6 +389,7 @@ EXPORT_RESOURCES = {
             'Archives': [
                 archives.ShpiBlock(),
                 archives.BigfBlock(),
+                archives.BigfItemDescriptionBlock(),
             ],
             # 'Geometries': [
             # ],
@@ -422,6 +427,7 @@ EXPORT_RESOURCES = {
             'Archives': [
                 archives.ShpiBlock(),
                 archives.BigfBlock(),
+                archives.BigfItemDescriptionBlock(),
             ],
             # 'Geometries': [
             # ],
