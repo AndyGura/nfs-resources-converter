@@ -1,4 +1,4 @@
-from .array import ArrayBlock, SubByteArrayBlock
+from .array import ArrayBlock, LengthPrefixedArrayBlock, SubByteArrayBlock
 from .basic import DataBlock, BytesBlock, SkipBlock
 from .compound import CompoundBlock, CompoundBlockFields, DeclarativeCompoundBlock
 from .numbers import IntegerBlock, BitFlagsBlock, EnumByteBlock

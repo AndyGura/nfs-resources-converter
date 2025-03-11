@@ -6,6 +6,7 @@ from library.read_blocks import (CompoundBlock,
                                  DelegateBlock,
                                  SkipBlock,
                                  EnumLookupDelegateBlock)
+from library.utils.docs import add_doc_numbers
 from resources.eac import (archives,
                            bitmaps,
                            fonts,
@@ -476,52 +477,17 @@ Did not find what you need or some given data is wrong? Please submit an
                 new_contents += f'\n#### **Description**: {schema["block_description"]} ####'
             new_contents += f'\n| Offset | Name | Size (bytes) | Type | Description |'
             new_contents += f'\n| --- | --- | --- | --- | --- |'
-            offset_int = 0
-            offset_lbl = ''
+            offset = '0'
             for key, field in resource.field_blocks:
                 extras = resource.field_extras_map[key]
                 if extras.get('custom_offset'):
-                    try:
-                        offset_int = int(extras.get('custom_offset'))
-                        offset_lbl = ''
-                    except (ValueError, TypeError):
-                        offset_int = 0
-                        offset_lbl = extras.get('custom_offset')
-                if offset_int == 0 and offset_lbl:
-                    offset = offset_lbl
-                    if offset.startswith('+'):
-                        offset = offset[1:]
-                else:
-                    offset = str(offset_int) + offset_lbl
+                    offset = extras.get('custom_offset')
                 new_contents += (f'\n| {"-" if False else render_value_doc_str(offset)} | '
                                  f'**{key}** | '
                                  f'{render_value_doc_str(field.size_doc_str)} | '
                                  f'{render_type(field, possible_blocks_filter)} | '
                                  f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
-                try:
-                    offset_int += int(field.size_doc_str)
-                except (ValueError, TypeError):
-                    if '..' in field.size_doc_str and (offset_lbl == '' or '..' in offset_lbl):
-                        [fmn, fmx] = field.size_doc_str.split('..')
-                        if offset_lbl == '':
-                            if offset_int == 0:
-                                offset_lbl = field.size_doc_str
-                            else:
-                                try:
-                                    mn = str(int(fmn) + offset_int)
-                                    mx = str(int(fmx) + offset_int) if fmx != '?' else '?'
-                                    offset_int = 0
-                                    offset_lbl = f'{mn}..{mx}'
-                                except:
-                                    offset_int = 0
-                                    offset_lbl = '?'
-                        else:
-                            [omn, omx] = offset_lbl.split('..')
-                            mn = str(int(fmn) + int(omn))
-                            mx = str(int(fmx) + int(omx)) if (fmx != '?' and omx != '?') else '?'
-                            offset_lbl = f'{mn}..{mx}'
-                    else:
-                        offset_lbl += ' + ' + field.size_doc_str
+                offset = add_doc_numbers(offset, field.size_doc_str)
     new_contents += '\n'
 
     if old_contents.split('\n')[3:] == new_contents.split('\n')[3:]:

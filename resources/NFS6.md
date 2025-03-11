@@ -1,6 +1,6 @@
 # **NFS 6 Hot Pursuit 2 file specs** #
 
-*Last time updated: 2024-08-17 03:48:24.639424+00:00*
+*Last time updated: 2025-03-11 15:53:07.409373+00:00*
 
 
 # **Info by file extensions** #
@@ -36,7 +36,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
-| ? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
+| 16 + num_items\*8..? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
 ## **Bitmaps** ##
 ### **Bitmap8Bit** ###
 #### **Size**: 16..? bytes ####

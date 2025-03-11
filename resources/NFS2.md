@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2025-02-23 13:10:02.284884+00:00*
+*Last time updated: 2025-03-11 15:53:07.051082+00:00*
 
 
 # **Info by file extensions** #
@@ -50,7 +50,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
-| ? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
+| 16 + num_items\*8..? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
 ## **Geometries** ##
 ### **GeoGeometry** ###
 #### **Size**: 1804..? bytes ####
