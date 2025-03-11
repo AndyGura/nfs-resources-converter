@@ -7,6 +7,7 @@ from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import EndOfBufferException
 from library.read_blocks.basic import DataBlock, DataBlockWithChildren
 from library.read_blocks.numbers import IntegerBlock
+from library.utils.docs import multiply_doc_numbers
 
 
 class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
@@ -40,27 +41,6 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     # For auto-generated documentation only
     @property
     def size_doc_str(self):
-        def _multiply_docs(len_doc, size_doc):
-            if len_doc == '?' or size_doc == '?':
-                return '?'
-            try:
-                return int(len_doc) * int(size_doc)
-            except ValueError:
-                if len_doc == '1':
-                    return size_doc
-                elif size_doc == '1':
-                    return len_doc
-                elif (isinstance(size_doc, str) and '..' in size_doc) or (isinstance(len_doc, str) and '..' in len_doc):
-                    [mnld, mxld] = len_doc.split('..') if ('..' in len_doc) else [len_doc, len_doc]
-                    [mnsd, mxsd] = size_doc.split('..') if ('..' in size_doc) else [size_doc, size_doc]
-                    return f'{_multiply_docs(mnld, mnsd)}..{_multiply_docs(mxld, mxsd)}'
-                else:
-                    if '+' in str(len_doc) or '-' in str(len_doc):
-                        len_doc = f'({len_doc})'
-                    if '+' in str(size_doc) or '-' in str(size_doc):
-                        size_doc = f'({size_doc})'
-                    return f'{len_doc}*{size_doc}'
-
         if self._length == 0:
             return '0'
         # when set to 0 and added some label, assume that it has some custom logic
@@ -68,7 +48,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
             return '?'
         child_size_doc = self.child.size_doc_str
         length_doc = self.length_doc_str
-        return _multiply_docs(length_doc, child_size_doc)
+        return multiply_doc_numbers(length_doc, child_size_doc)
 
     def resolve_length(self, ctx):
         self_len = self._length
@@ -98,10 +78,10 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         return [self.child.new_data()] * self_len
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+             read_bytes_amount=None, resolved_length=None):
         res = []
         self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
-        self_len = self.resolve_length(ctx)
+        self_len = self.resolve_length(ctx) if resolved_length is None else resolved_length
         if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
             res = list(buffer.read(self_len))
             if len(res) < self_len:
@@ -130,6 +110,48 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         for i, item in enumerate(data):
             res += self.child.pack(data=item, ctx=ctx, name=str(i))
         return res
+
+
+class LengthPrefixedArrayBlock(ArrayBlock):
+
+    def __init__(self, length_block: DataBlock, **kwargs):
+        super().__init__(length=None, **kwargs)
+        self.length_block = length_block
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Array, prefixed with length field',
+            'length_schema': self.length_block.schema
+        }
+
+    # For auto-generated documentation only
+    @property
+    def size_doc_str(self):
+        return f'{self.length_block.size_doc_str}..?'
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
+        self_ctx = ReadContext(buffer=buffer, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
+        resolved_length = self.length_block.unpack(buffer=buffer, ctx=self_ctx, name='length')
+        return super().read(buffer, ctx, name, read_bytes_amount, resolved_length=resolved_length)
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        return super().estimate_packed_size(data, ctx) + self.length_block.estimate_packed_size(len(data), ctx=ctx)
+
+    def offset_to_child_when_packed(self, data, child_name: str, ctx: WriteContext = None):
+        index = int(child_name)
+        if index >= len(data):
+            raise IndexError()
+        res = self.length_block.estimate_packed_size(len(data), ctx=ctx)
+        for item in data[:index]:
+            res += self.child.estimate_packed_size(data=item, ctx=ctx)
+        return res
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        items = super().write(data=data, ctx=ctx, name=name)
+        return self.length_block.write(len(data), ctx, 'length') + items
 
 
 class SubByteArrayBlock(DataBlock):

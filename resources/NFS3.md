@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2024-08-17 03:48:24.496091+00:00*
+*Last time updated: 2025-03-11 21:42:35.781025+00:00*
 
 
 # **Info by file extensions** #
@@ -39,8 +39,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
-| ? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
+| 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 + num_items\*8..? | **children** | ? | Array of `num_items` items<br/>Item size: ? bytes<br/>Item type: One of types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock)<br/>- Bytes |  |
+### **BigfItemDescriptionBlock** ###
+#### **Size**: 8..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
+| 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
 ## **Bitmaps** ##
 ### **Bitmap4Bit** ###
 #### **Size**: 16..? bytes ####

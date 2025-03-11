@@ -3,7 +3,7 @@ from io import BytesIO
 
 from library.exceptions import DataIntegrityException
 from library.read_blocks import UTF8Block
-from library.read_blocks.array import ArrayBlock, SubByteArrayBlock
+from library.read_blocks.array import ArrayBlock, LengthPrefixedArrayBlock, SubByteArrayBlock
 from library.read_blocks.numbers import IntegerBlock
 
 
@@ -43,6 +43,64 @@ class TestArray(unittest.TestCase):
     def test_offset_to_child_when_packed(self):
         field = ArrayBlock(length=3, child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
         self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 3)
+
+
+class TestLengthPrefixedArray(unittest.TestCase):
+
+    def test_array_unpack(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
+        val = field.unpack(BytesIO(bytes([3, 92, 129, 13, 252])))
+        self.assertListEqual(val, [92, 129, 13])
+
+    def test_array_unpack_different_length_block(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='big'), child=IntegerBlock(length=1))
+        self.assertListEqual(field.unpack(BytesIO(bytes([0, 0, 0, 2, 92, 129, 254]))), [92, 129])
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='little'), child=IntegerBlock(length=1))
+        self.assertListEqual(field.unpack(BytesIO(bytes([2, 0, 0, 0, 92, 129, 254]))), [92, 129])
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1))
+        self.assertListEqual(field.unpack(BytesIO(bytes([0, 0, 3, 92, 129, 254, 127]))), [92, 129, 254])
+
+    def test_array_pack(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
+        data = field.pack([92, 129, 13])
+        self.assertEqual(data, bytes([3, 92, 129, 13]))
+
+    def test_array_pack_different_length_block(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='big'), child=IntegerBlock(length=1))
+        self.assertEqual(field.pack([92, 129]), bytes([0, 0, 0, 2, 92, 129]))
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='little'), child=IntegerBlock(length=1))
+        self.assertEqual(field.pack([92, 129]), bytes([2, 0, 0, 0, 92, 129]))
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1))
+        self.assertEqual(field.pack([92, 129, 13, 12, 15]), bytes([0, 0, 5, 92, 129, 13, 12, 15]))
+
+    def test_array_required_value(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1), required_value=[10, 20, 30])
+        field.unpack(BytesIO(bytes([3, 10, 20, 30])))
+        with self.assertRaises(DataIntegrityException):
+            field.unpack(BytesIO(bytes([3, 90, 12, 30])))
+
+    def test_get_child_block_with_data(self):
+        child_block = IntegerBlock(length=1)
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=child_block)
+        block, data = field.get_child_block_with_data([123, 456, 789], '1')
+        self.assertEqual(block, child_block)
+        self.assertEqual(data, 456)
+
+    def test_estimate_packed_size(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=3))
+        self.assertEqual(field.estimate_packed_size([1, 2, 3]), 10)
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4), child=IntegerBlock(length=3))
+        self.assertEqual(field.estimate_packed_size([1, 2, 3]), 13)
+
+    def test_estimate_packed_size_variable_child_length(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        self.assertEqual(field.estimate_packed_size(['abc', '0', 'qwerty']), 11)
+
+    def test_offset_to_child_when_packed(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 4)
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4), child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 7)
 
 
 class TestSubByteArray(unittest.TestCase):

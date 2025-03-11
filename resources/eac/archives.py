@@ -323,6 +323,13 @@ class WwwwBlock(BaseArchiveBlock):
         return [x + heap_offset for x in res]
 
 
+class BigfItemDescriptionBlock(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        offset = IntegerBlock(length=4, byte_order='big')
+        length = IntegerBlock(length=4, byte_order='big')
+        name = NullTerminatedUTF8Block(length=8)
+
+
 class BigfBlock(BaseArchiveBlock):
 
     @property
@@ -356,9 +363,7 @@ class BigfBlock(BaseArchiveBlock):
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         items_descr = ArrayBlock(length=lambda ctx: ctx.data('num_items'),
-                                 child=CompoundBlock(fields=[('offset', IntegerBlock(length=4, byte_order='big'), {}),
-                                                             ('length', IntegerBlock(length=4, byte_order='big'), {}),
-                                                             ('name', NullTerminatedUTF8Block(length=8), {})]))
+                                 child=BigfItemDescriptionBlock())
         children = (ArrayBlock(length=(0, 'num_items'), child=None),
                     {'description': ''})
 
