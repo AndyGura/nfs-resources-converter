@@ -128,17 +128,8 @@ class LengthPrefixedArrayBlock(ArrayBlock):
 
     # For auto-generated documentation only
     @property
-    def length_doc_str(self):
-        length_doc = super().length_doc_str
-        # TODO get code from generate_resources which adds length strings
-        return "TODO"
-
-    # For auto-generated documentation only
-    @property
     def size_doc_str(self):
-        size_doc = super().length_doc_str
-        # TODO get code from generate_resources which adds length strings
-        return "TODO"
+        return f'{self.length_block.size_doc_str}..?'
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
