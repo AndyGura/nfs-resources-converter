@@ -5,7 +5,7 @@ from typing import Dict
 from library.context import ReadContext, WriteContext
 from library.read_blocks import IntegerBlock, DataBlock
 
-
+# TODO move to library, name it "FixedPointNumber"
 class RationalNumber(IntegerBlock):
     @property
     def schema(self) -> Dict:

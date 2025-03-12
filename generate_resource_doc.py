@@ -144,7 +144,7 @@ EXPORT_RESOURCES = {
     'nfs2': {
         'file_name': 'NFS2.md',
         'title': 'NFS2 file specs',
-        'file_list': f"""**\*.COL** track additional data. {render_type(maps.TrkMapCol())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
         
 **\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
         
@@ -173,22 +173,24 @@ EXPORT_RESOURCES = {
                 geometries.GeoPolygon(),
             ],
             'Maps': [
-                maps.TrkMapCol(),
+                # TRK
                 maps.TrkMap(),
                 maps.TrkSuperBlock(),
                 maps.TrkBlock(),
-                maps.TrkExtraBlock(),
+                # COL
+                maps.MapColFile(),
+                maps.ColExtraBlock(),
                 maps.TexturesMapExtraDataRecord(),
-                maps.MedianExtraDataRecord(),
                 maps.PolygonMapExtraDataRecord(),
-                maps.PropExtraDataRecord(),
+                maps.MedianExtraDataRecord(),
                 maps.AnimatedPropPosition(),
                 maps.AnimatedPropPositionFrame(),
+                maps.PropExtraDataRecord(),
                 maps.PropDescriptionExtraDataRecord(),
                 maps.LanesExtraDataRecord(),
                 maps.RoadVectorsExtraDataRecord(),
                 maps.CollisionExtraDataRecord(),
-                maps.TrkPolygon(),
+                maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],
@@ -218,7 +220,7 @@ EXPORT_RESOURCES = {
     'nfs2se': {
         'file_name': 'NFS2_SE.md',
         'title': 'NFS2SE file specs',
-        'file_list': f"""**\*.COL** track additional data. {render_type(maps.TrkMapCol())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
         
 **\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
@@ -243,22 +245,24 @@ EXPORT_RESOURCES = {
                 geometries.GeoPolygon(),
             ],
             'Maps': [
-                maps.TrkMapCol(),
+                # TRK
                 maps.TrkMap(),
                 maps.TrkSuperBlock(),
                 maps.TrkBlock(),
-                maps.TrkExtraBlock(),
+                # COL
+                maps.MapColFile(),
+                maps.ColExtraBlock(),
                 maps.TexturesMapExtraDataRecord(),
-                maps.MedianExtraDataRecord(),
                 maps.PolygonMapExtraDataRecord(),
-                maps.PropExtraDataRecord(),
+                maps.MedianExtraDataRecord(),
                 maps.AnimatedPropPosition(),
                 maps.AnimatedPropPositionFrame(),
+                maps.PropExtraDataRecord(),
                 maps.PropDescriptionExtraDataRecord(),
                 maps.LanesExtraDataRecord(),
                 maps.RoadVectorsExtraDataRecord(),
                 maps.CollisionExtraDataRecord(),
-                maps.TrkPolygon(),
+                maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],
@@ -291,7 +295,9 @@ EXPORT_RESOURCES = {
     'nfs3': {
         'file_name': 'NFS3.md',
         'title': 'NFS 3 Hot Pursuit file specs',
-        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
+        
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
 **\*.FRD** main track file. {render_type(maps.FrdMap())}
 
@@ -309,10 +315,25 @@ EXPORT_RESOURCES = {
             # 'Geometries': [
             # ],
             'Maps': [
+                # FRD
                 maps.FrdMap(),
                 maps.FrdBlock(),
                 maps.FrdPositionBlock(),
                 maps.TextureBlock(),
+                # COL
+                maps.MapColFile(),
+                maps.ColExtraBlock(),
+                maps.TexturesMapExtraDataRecord(),
+                maps.PolygonMapExtraDataRecord(),
+                maps.MedianExtraDataRecord(),
+                maps.AnimatedPropPosition(),
+                maps.AnimatedPropPositionFrame(),
+                maps.PropExtraDataRecord(),
+                maps.PropDescriptionExtraDataRecord(),
+                maps.LanesExtraDataRecord(),
+                maps.RoadVectorsExtraDataRecord(),
+                maps.CollisionExtraDataRecord(),
+                maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],

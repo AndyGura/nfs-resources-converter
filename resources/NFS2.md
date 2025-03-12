@@ -1,11 +1,11 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2025-03-11 21:51:40.399333+00:00*
+*Last time updated: 2025-03-12 15:26:12.687531+00:00*
 
 
 # **Info by file extensions** #
 
-**\*.COL** track additional data. [TrkMapCol](#trkmapcol)
+**\*.COL** track additional data. [MapColFile](#mapcolfile)
         
 **\*.GEO** car 3D model. [GeoGeometry](#geogeometry)
         
@@ -125,16 +125,6 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **vertex_indices** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Indexes of vertices |
 | 8 | **texture_name** | 4 | UTF-8 string | ID of texture from neighbouring QFS file |
 ## **Maps** ##
-### **TrkMapCol** ###
-#### **Size**: 16..? bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == "COLL" | Resource ID |
-| 4 | **unk** | 4 | 4-bytes unsigned integer (little endian). Always == 0xb | Unknown purpose |
-| 8 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | File size in bytes |
-| 12 | **num_extrablocks** | 4 | 4-bytes unsigned integer (little endian) | Number of extrablocks |
-| 16 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
-| 16 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [TrkExtraBlock](#trkextrablock) | Extrablocks |
 ### **TrkMap** ###
 #### **Size**: 32..? bytes ####
 #### **Description**: Main track file ####
@@ -177,11 +167,21 @@ Did not find what you need or some given data is wrong? Please submit an
 | 80 | **np1** | 2 | 2-bytes unsigned integer (little endian) | Number of polygons for full resolution |
 | 82 | **unk1** | 6 | 6-bytes unsigned integer (little endian) | Unknown purpose |
 | 88 | **vertices** | (nv8+nv1)\*6 | Array of `nv8+nv1` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertices |
-| 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `np4+np2+np1` items<br/>Item type: [TrkPolygon](#trkpolygon) | Polygons |
+| 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `np4+np2+np1` items<br/>Item type: [ColPolygon](#colpolygon) | Polygons |
 | 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **unk2** | up to (extrablocks_offset+64) | Bytes | Unknown purpose |
 | extrablocks_offset + 64 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
-| extrablocks_offset + 64 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [TrkExtraBlock](#trkextrablock) | Extrablocks |
-### **TrkExtraBlock** ###
+| extrablocks_offset + 64 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [ColExtraBlock](#colextrablock) | Extrablocks |
+### **MapColFile** ###
+#### **Size**: 16..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "COLL" | Resource ID |
+| 4 | **unk** | 4 | 4-bytes unsigned integer (little endian). Always == 0xb | Unknown purpose |
+| 8 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | File size in bytes |
+| 12 | **num_extrablocks** | 4 | 4-bytes unsigned integer (little endian) | Number of extrablocks |
+| 16 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
+| 16 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [ColExtraBlock](#colextrablock) | Extrablocks |
+### **ColExtraBlock** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
@@ -199,12 +199,6 @@ Did not find what you need or some given data is wrong? Please submit an
 | 3 | **alignment** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: rotate_180<br/>3: rotate_270<br/>5: normal<br/>9: rotate_90<br/>16: flip_v<br/>18: rotate_270_2<br/>20: flip_h<br/>24: rotate_90_2</details> | Alignment data, which game uses instead of UV-s when rendering mesh.I use UV-s (0,1; 1,1; 1,0; 0,0) and modify them according to enum value names |
 | 4 | **luminosity** | 3 | Color RGB values | Luminosity color |
 | 7 | **black** | 3 | Color RGB values | Unknown, usually black |
-### **MedianExtraDataRecord** ###
-#### **Size**: 8 bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **polygon_idx** | 1 | 1-byte unsigned integer | Polygon index |
-| 1 | **unk** | 7 | Bytes | Unknown purpose |
 ### **PolygonMapExtraDataRecord** ###
 #### **Size**: 2 bytes ####
 #### **Description**: Polygon extra data. Number of items here == np1 * 2, but sometimes less. Why? ####
@@ -212,15 +206,12 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **vectors_idx** | 1 | 1-byte unsigned integer | An index of entry in road_vectors extrablock |
 | 1 | **car_behavior** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: unk0<br/>1: unk1</details> | - |
-### **PropExtraDataRecord** ###
-#### **Size**: 4..? bytes ####
-#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track ####
+### **MedianExtraDataRecord** ###
+#### **Size**: 8 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size in bytes |
-| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: static_prop<br/>3: animated_prop</details> | Object type |
-| 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | An index of 3D model in "prop_descriptions" extrablock |
-| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | Object positioning in 3D space |
+| 0 | **polygon_idx** | 1 | 1-byte unsigned integer | Polygon index |
+| 1 | **unk** | 7 | Bytes | Unknown purpose |
 ### **AnimatedPropPosition** ###
 #### **Size**: 4..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -234,6 +225,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position in 3D space |
 | 12 | **unk0** | 8 | Bytes | Unknown purpose |
+### **PropExtraDataRecord** ###
+#### **Size**: 4..? bytes ####
+#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size in bytes |
+| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: static_prop<br/>3: animated_prop</details> | Object type |
+| 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | An index of 3D model in "prop_descriptions" extrablock |
+| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | Object positioning in 3D space |
 ### **PropDescriptionExtraDataRecord** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: 3D model ####
@@ -243,7 +243,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **num_vertices** | 2 | 2-bytes unsigned integer (little endian) | Amount of vertices |
 | 6 | **num_polygons** | 2 | 2-bytes unsigned integer (little endian) | Amount of polygons |
 | 8 | **vertices** | num_vertices\*6 | Array of `num_vertices` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertices |
-| 8 + num_vertices\*6 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [TrkPolygon](#trkpolygon) | Polygons |
+| 8 + num_vertices\*6 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [ColPolygon](#colpolygon) | Polygons |
 | 8 + num_vertices\*6 + num_polygons\*8 | **padding** | custom_func | Bytes | Unused space |
 ### **LanesExtraDataRecord** ###
 #### **Size**: 4 bytes ####
@@ -265,17 +265,17 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
-| 12 | **vertical** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
+| 12 | **normal** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
 | 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
 | 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
 | 21 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 22 | **block_idx** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 24 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 26 | **left_border** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 28 | **right_border** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 26 | **left_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | - |
+| 28 | **right_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | - |
 | 30 | **respawn_lat_pos** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 32 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-### **TrkPolygon** ###
+### **ColPolygon** ###
 #### **Size**: 8 bytes ####
 #### **Description**: A single polygon of terrain or prop ####
 | Offset | Name | Size (bytes) | Type | Description |
