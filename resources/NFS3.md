@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2025-03-15 19:04:16.393910+00:00*
+*Last time updated: 2025-03-15 19:19:56.723856+00:00*
 
 
 # **Info by file extensions** #
@@ -102,8 +102,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **polygon** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 2 | **num_polygons** | 1 | 1-byte unsigned integer | - |
 | 3 | **unk** | 1 | 1-byte unsigned integer | - |
-| 4 | **extraNeighbor1** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 6 | **extraNeighbor2** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 4 | **extra_neighbor1** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 6 | **extra_neighbor2** | 2 | 2-bytes unsigned integer (little endian) | - |
 ### **FrdBlockPolygonData** ###
 #### **Size**: 2 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |

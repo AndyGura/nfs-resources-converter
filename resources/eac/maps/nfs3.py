@@ -16,8 +16,8 @@ class FrdPositionBlock(DeclarativeCompoundBlock):
         polygon = IntegerBlock(length=2, is_signed=False)
         num_polygons = IntegerBlock(length=1, is_signed=False)
         unk = IntegerBlock(length=1, is_signed=False)
-        extraNeighbor1 = IntegerBlock(length=2, is_signed=False)
-        extraNeighbor2 = IntegerBlock(length=2, is_signed=False)
+        extra_neighbor1 = IntegerBlock(length=2, is_signed=False)
+        extra_neighbor2 = IntegerBlock(length=2, is_signed=False)
 
 
 class FrdBlockPolygonData(DeclarativeCompoundBlock):
