@@ -770,3 +770,177 @@ for obj in bpy.context.selected_objects:
 
         # export scenes
         export_scenes(scenes, path, self.settings)
+
+
+class FrdMapSerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path, id, block, **kwargs)
+        from library import require_resource
+        try:
+            (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
+            (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
+
+            def get_texture(tex):
+                return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
+        except Exception:
+            if self.settings.print_errors:
+                traceback.print_exc()
+
+            def get_texture(tex):
+                return f"{tex:04}", 0
+        blocks = data['blocks']
+        map_scene = Scene(name='map',
+                          obj_name='map',
+                          mtl_name='terrain',
+                          mtl_texture_path_func=lambda x: f'textures/{x}.png',
+                          skip_obj_export=self.settings.maps__save_as_chunked and not self.settings.maps__save_terrain_collisions)
+        scenes = [map_scene]
+
+        # add road spline to map scene
+        spline = [x['center'] for x in blocks]
+        curve = {
+            'name': 'road_path',
+            'closed': True,
+            'points': [[p['x'], p['z'], p['y']] for p in spline],
+        }
+        map_scene.curves.append(curve)
+
+        def get_uvs(alignment):
+            uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
+            if str(alignment).startswith('rotate_90'):
+                uvs = rotate_list(uvs, 1)
+            elif str(alignment).startswith('rotate_180'):
+                uvs = rotate_list(uvs, 2)
+            elif str(alignment).startswith('rotate_270'):
+                uvs = rotate_list(uvs, 3)
+            elif alignment == 'flip_h':
+                uvs = [uvs[1], uvs[0], uvs[3], uvs[2]]
+            elif alignment == 'flip_v':
+                uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
+            return uvs
+
+        chunks = []
+        texture_names = set()
+        for block_i, block in enumerate(blocks):
+            model = Mesh()
+            model.name = f'block_{block_i}'
+            pivot = block['center']
+            next_pivot = blocks[block_i + 1 if block_i < len(blocks) - 1 else 0]['center']
+            model.pivot_offset = (-pivot['x'], -pivot['y'], -pivot['z'])
+            vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
+            for v in vertices[:block['nv8']]:
+                v[0] += next_pivot['x'] - pivot['x']
+                v[1] += next_pivot['y'] - pivot['y']
+                v[2] += next_pivot['z'] - pivot['z']
+            # alignments=set()
+            for p in block['polygons'][(block['np4'] + block['np2']):]:
+                texture_name, texture_alignment = get_texture(p['texture'])
+                # alignments.add(str(texture_alignment))
+                uvs = get_uvs(texture_alignment)
+                base_idx = len(model.vertices)
+                for i, v_index in enumerate(p['vertices']):
+                    model.vertices.append(vertices[v_index])
+                    model.vertex_uvs.append(uvs[i])
+                model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
+                model.texture_ids.append(texture_name)
+                texture_names.add(texture_name)
+            # model.name += '__' + '_'.join(alignments)
+            sub_meshes = model.split_by_texture_ids()
+
+            proxies = [item for sublist in (eb['data_records']['data']
+                                            for eb in block['extrablocks']
+                                            if eb['type'] in ['props_7', 'props_18'])
+                       for item in sublist]
+            if len(proxies) > 0:
+                proxy_descr_extrablock = next(
+                    eb['data_records']['data'] for eb in block['extrablocks'] if eb['type'] == 'prop_descriptions')
+                for proxy_i, proxy in enumerate(proxies):
+                    if proxy['type'] not in ['static_prop', 'animated_prop']:
+                        continue
+                    object = proxy_descr_extrablock[proxy['prop_descr_idx']]
+                    position = proxy['position']['data'] \
+                        if proxy['type'] == 'static_prop' else \
+                        proxy['position']['data']['frames'][0]['position']
+                    model = Mesh()
+                    model.name = f'prop_{block_i}_{proxy_i}'
+                    model.pivot_offset = (-position['x'], -position['y'], -position['z'])
+                    # alignments=set()
+                    for p in object['polygons']:
+                        texture_name, texture_alignment = get_texture(p['texture'])
+                        # alignments.add(str(texture_alignment))
+                        uvs = get_uvs(texture_alignment)
+                        base_idx = len(model.vertices)
+                        for i, v_index in enumerate(p['vertices']):
+                            v = object['vertices'][v_index]
+                            model.vertices.append([v['x'], v['y'], v['z']])
+                            model.vertex_uvs.append(uvs[i])
+                        model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
+                        model.texture_ids.append(texture_name)
+                        texture_names.add(texture_name)
+                    # model.name += '__' + '_'.join(alignments)
+                    sub_meshes.extend(model.split_by_texture_ids())
+            chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
+        map_scene.mtl_texture_names = list(texture_names)
+        for chunk in chunks:
+            chunk[1] = (chunk[1][0], chunk[1][2], chunk[1][1])
+            for mesh in chunk[0]:
+                mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
+                mesh.change_axes(new_z='y', new_y='z')
+        if self.settings.maps__save_terrain_collisions:
+            terrain_mesh = SubMesh()
+            terrain_mesh.name = 'terrain_collision_mesh'
+            for i, (meshes, chunk_pos) in enumerate(chunks):
+                for mesh in meshes:
+                    terrain_mesh.extend(mesh)
+            terrain_mesh.collapse_vertices()
+            map_scene.sub_meshes.append(terrain_mesh)
+            map_scene.extra_script += """
+
+bpy.ops.object.select_all(action='DESELECT')
+is_active_set = False
+objects = [x for x in bpy.data.objects if x.name == "terrain_collision_mesh"]
+for object in objects:
+    object.select_set(True)
+    if not is_active_set:
+        bpy.context.view_layer.objects.active = object
+        is_active_set = True
+if len(objects) > 0:
+    bpy.ops.rigidbody.objects_add(type='PASSIVE')
+for obj in bpy.context.selected_objects:
+    obj.rigid_body.collision_shape = 'MESH' 
+    obj.hide_render = True
+    obj.display_type = 'WIRE'   
+ 
+            """
+        if self.settings.maps__save_as_chunked:
+            for i, (meshes, chunk_pos) in enumerate(chunks):
+                for mesh in meshes:
+                    mesh.pivot_offset = (mesh.pivot_offset[0] + chunk_pos[0],
+                                         mesh.pivot_offset[1] + chunk_pos[1],
+                                         mesh.pivot_offset[2] + chunk_pos[2])
+                scene = Scene(name=f'terrain_chunk_{i}',
+                              sub_meshes=meshes,
+                              obj_name=f'terrain_chunk_{i}',
+                              mtl_name='terrain',
+                              bake_textures=False,
+                              skip_mtl_export=True)
+                scenes.append(scene)
+        else:
+            for (meshes, _) in chunks:
+                map_scene.sub_meshes.extend(meshes)
+
+        # export QFS
+        try:
+            (shpi_id, shpi_block, shpi_data), _ = require_resource(id[:-4] + '0.QFS__data')
+            from serializers import ShpiArchiveSerializer
+            ShpiArchiveSerializer().serialize(shpi_data, os.path.join(path, 'textures/'), shpi_id, shpi_block)
+        except Exception:
+            if self.settings.print_errors:
+                traceback.print_exc()
+
+        # export scenes
+        export_scenes(scenes, path, self.settings)

@@ -32,6 +32,7 @@ SERIALIZER_CLASSES = {
     'Palette32Bit': 'PaletteSerializer',
     'TriMap': 'TriMapSerializer',
     'TrkMap': 'TrkMapSerializer',
+    'FrdMap': 'FrdMapSerializer',
     'MapColFile': 'JsonSerializer',
     'OripGeometry': 'OripGeometrySerializer',
     'GeoGeometry': 'GeoGeometrySerializer',

@@ -11,15 +11,32 @@ from resources.eac.fields.misc import Point3D
 class FrdPositionBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         polygon = IntegerBlock(length=2, is_signed=False)
-        nPolygons = IntegerBlock(length=1, is_signed=False)
+        num_polygons = IntegerBlock(length=1, is_signed=False)
         unk = IntegerBlock(length=1, is_signed=False)
         extraNeighbor1 = IntegerBlock(length=2, is_signed=False)
         extraNeighbor2 = IntegerBlock(length=2, is_signed=False)
 
 
+class FrdBlockPolygonData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        vroad_idx = IntegerBlock(length=1, is_signed=False)
+        flags = IntegerBlock(length=1, is_signed=False)
+        unk = (BytesBlock(length=6),
+               {'is_unknown': True}),
+
+
+class FrdBlockVroadData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        normal = (Point3D(child_length=2, fraction_bits=16, normalized=True),
+                  {'description': 'A normal vector of the surface'})
+        forward = (Point3D(child_length=2, fraction_bits=16, normalized=True),
+                   {'description': 'A forward vector of the surface'})
+
+
 class FrdBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        center = Point3D(child_length=4, fraction_bits=24)
+        position = (Point3D(child_length=4, fraction_bits=24),
+                    {'description': 'Position of the block in the world'})
         bounds = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=24), length=4),
                   {'description': 'Block bounding rectangle'})
         num_vertices = (IntegerBlock(length=4, is_signed=False),
@@ -45,49 +62,42 @@ class FrdBlock(DeclarativeCompoundBlock):
         neighbour_data = (ArrayBlock(child=IntegerBlock(length=2, is_signed=False),
                                      length=2 * 0x12C),
                           {'is_unknown': True})
-        nStartPos = (IntegerBlock(length=4, is_signed=False),
-                     {'is_unknown': True})
-        nPositions = (IntegerBlock(length=4, is_signed=False),
-                      {'is_unknown': True,
-                       'programmatic_value': lambda ctx: len(ctx.data('positions'))})
-        nPolygons = (IntegerBlock(length=4, is_signed=False),
-                     {'is_unknown': True,
-                      'programmatic_value': lambda ctx: len(ctx.data('polyData'))})
-        nVRoad = (IntegerBlock(length=4, is_signed=False),
-                  {'is_unknown': True,
-                   'programmatic_value': lambda ctx: len(ctx.data('vroadData'))})
-        nXobj = (IntegerBlock(length=4, is_signed=False),
-                 {'is_unknown': True,
-                  'programmatic_value': lambda ctx: len(ctx.data('xobj'))})
-        nPolyobj = (IntegerBlock(length=4, is_signed=False),
+        num_start_pos = (IntegerBlock(length=4, is_signed=False),
+                         {'is_unknown': True})
+        num_positions = (IntegerBlock(length=4, is_signed=False),
+                         {'is_unknown': True,
+                          'programmatic_value': lambda ctx: len(ctx.data('positions'))})
+        num_polygons = (IntegerBlock(length=4, is_signed=False),
+                        {'is_unknown': True,
+                         'programmatic_value': lambda ctx: len(ctx.data('polygons'))})
+        num_vroad = (IntegerBlock(length=4, is_signed=False),
+                     {'programmatic_value': lambda ctx: len(ctx.data('vroad'))})
+        num_xobj = (IntegerBlock(length=4, is_signed=False),
                     {'is_unknown': True,
-                     'programmatic_value': lambda ctx: len(ctx.data('polyObj'))})
-        nSoundsrc = (IntegerBlock(length=4, is_signed=False),
-                     {'is_unknown': True,
-                      'programmatic_value': lambda ctx: len(ctx.data('soundsrc'))})
-        nLightsrc = (IntegerBlock(length=4, is_signed=False),
-                     {'is_unknown': True,
-                      'programmatic_value': lambda ctx: len(ctx.data('lightsrc'))})
-        positions = (ArrayBlock(child=FrdPositionBlock(), length=lambda ctx: ctx.data('nPositions')),
+                     'programmatic_value': lambda ctx: len(ctx.data('xobj'))})
+        num_polyobj = (IntegerBlock(length=4, is_signed=False),
+                       {'is_unknown': True,
+                        'programmatic_value': lambda ctx: len(ctx.data('polyobj'))})
+        num_soundsrc = (IntegerBlock(length=4, is_signed=False),
+                        {'is_unknown': True,
+                         'programmatic_value': lambda ctx: len(ctx.data('soundsrc'))})
+        num_lightsrc = (IntegerBlock(length=4, is_signed=False),
+                        {'is_unknown': True,
+                         'programmatic_value': lambda ctx: len(ctx.data('lightsrc'))})
+        positions = (ArrayBlock(child=FrdPositionBlock(), length=lambda ctx: ctx.data('num_positions')),
                      {'is_unknown': True})
-        polyData = (ArrayBlock(child=CompoundBlock(fields=[
-            ('vroadEntry', IntegerBlock(length=1, is_signed=False), {}),
-            ('flags', IntegerBlock(length=1, is_signed=False), {}),
-            ('unk', BytesBlock(length=6), {}),
-        ]), length=lambda ctx: ctx.data('nPolygons')),
+        polygons = (ArrayBlock(child=FrdBlockPolygonData(),
+                               length=lambda ctx: ctx.data('num_polygons')),
                     {'is_unknown': True})
-        vroadData = (ArrayBlock(child=CompoundBlock(fields=[
-            ('normal', Point3D(child_length=2, fraction_bits=16, normalized=True), {}),
-            ('forward', Point3D(child_length=2, fraction_bits=16, normalized=True), {}),
-        ]), length=lambda ctx: ctx.data('nVRoad')),
-                     {'is_unknown': True})
-        xobj = (ArrayBlock(child=BytesBlock(length=20), length=lambda ctx: ctx.data('nXobj')),
+        vroad = (ArrayBlock(child=FrdBlockVroadData(), length=lambda ctx: ctx.data('num_vroad')),
+                 {'is_unknown': True})
+        xobj = (ArrayBlock(child=BytesBlock(length=20), length=lambda ctx: ctx.data('num_xobj')),
                 {'is_unknown': True})
-        polyObj = (ArrayBlock(child=BytesBlock(length=20), length=lambda ctx: ctx.data('nPolyobj')),
+        polyobj = (ArrayBlock(child=BytesBlock(length=20), length=lambda ctx: ctx.data('num_polyobj')),
                    {'is_unknown': True})
-        soundsrc = (ArrayBlock(child=BytesBlock(length=16), length=lambda ctx: ctx.data('nSoundsrc')),
+        soundsrc = (ArrayBlock(child=BytesBlock(length=16), length=lambda ctx: ctx.data('num_soundsrc')),
                     {'is_unknown': True})
-        lightsrc = (ArrayBlock(child=BytesBlock(length=16), length=lambda ctx: ctx.data('nLightsrc')),
+        lightsrc = (ArrayBlock(child=BytesBlock(length=16), length=lambda ctx: ctx.data('num_lightsrc')),
                     {'is_unknown': True})
 
 
@@ -100,43 +110,47 @@ class FrdPolygonRecord(DeclarativeCompoundBlock):
         unk = IntegerBlock(length=1)
 
 
-class FrdPolyBlockInner(DeclarativeCompoundBlock):
+class FrdPolygonsBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        sz = IntegerBlock(length=4)
-        data = DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
-                                                                       child=FrdPolygonRecord()),
-                                              SkipBlock()],
-                             choice_index=lambda ctx, **_: (
-                                 0 if ctx.data('sz') != 0
-                                 else 1))
+        sz = (IntegerBlock(length=4),
+              {'is_unknown': True})
+        data = (DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
+                                                                        child=FrdPolygonRecord()),
+                                               SkipBlock()],
+                              choice_index=lambda ctx, **_: (
+                                  0 if ctx.data('sz') != 0
+                                  else 1)),
+                {'description': 'This data is presented only if sz != 0'})
 
 
-class BBBB(DeclarativeCompoundBlock):
+class FrdPolyObjPolygonsBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        type = IntegerBlock(length=4, is_signed=False)
-        data = DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
+        type = (IntegerBlock(length=4, is_signed=False),
+                {'is_unknown': True})
+        data = (DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
                                                                        child=FrdPolygonRecord()),
                                               SkipBlock()],
                              choice_index=lambda ctx, **_: (
                                  0 if ctx.data('type') == 1
-                                 else 1))
+                                 else 1)),
+                {'description': 'This data is presented only if type == 1'})
 
 
-class AAAA(DeclarativeCompoundBlock):
+class FrdPolyObjBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        n1 = IntegerBlock(length=4)
-        data = DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(child=BBBB(),
-                                                                       length_block=IntegerBlock(length=4)),
-                                              SkipBlock()],
-                             choice_index=lambda ctx, **_: (
-                                 0 if ctx.data('n1') > 0
-                                 else 1))
+        sz = (IntegerBlock(length=4),
+              {'is_unknown': True})
+        data = (DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(child=FrdPolyObjPolygonsBlock(),
+                                                                        length_block=IntegerBlock(length=4)),
+                                               SkipBlock()],
+                              choice_index=lambda ctx, **_: (0 if ctx.data('sz') > 0 else 1)),
+                {'description': 'This data is presented only if sz > 0'})
 
 
 class FrdPolyBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        a = ArrayBlock(child=FrdPolyBlockInner(), length=7)
-        b = ArrayBlock(child=AAAA(), length=4)
+        polygons = ArrayBlock(child=FrdPolygonsBlock(), length=7)
+        polyobj = ArrayBlock(child=FrdPolyObjBlock(), length=4)
 
 
 class ExtraObjectData(DeclarativeCompoundBlock):

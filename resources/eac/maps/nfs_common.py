@@ -166,17 +166,23 @@ class RoadVectorsExtraDataRecord(DeclarativeCompoundBlock):
 
 class CollisionExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        position = Point3D(child_length=4, fraction_bits=16)
-        normal = Point3D(child_length=1, fraction_bits=7, normalized=True)
-        forward = Point3D(child_length=1, fraction_bits=7, normalized=True)
-        right = Point3D(child_length=1, fraction_bits=7, normalized=True)
+        position = (Point3D(child_length=4, fraction_bits=16),
+                    {'description': 'A global position of track collision spline point. The unit is meter'})
+        normal = (Point3D(child_length=1, fraction_bits=7, normalized=True),
+                  {'description': 'A normal vector of road surface'})
+        forward = (Point3D(child_length=1, fraction_bits=7, normalized=True),
+                   {'description': 'A forward vector'})
+        right = (Point3D(child_length=1, fraction_bits=7, normalized=True),
+                 {'description': 'A right vector'})
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
         block_idx = IntegerBlock(length=2, is_signed=False)
         unk1 = (IntegerBlock(length=2),
                 {'is_unknown': True})
-        left_border = RationalNumber(length=2, is_signed=False, fraction_bits=8)
-        right_border = RationalNumber(length=2, is_signed=False, fraction_bits=8)
+        left_border = (RationalNumber(length=2, is_signed=False, fraction_bits=8),
+                       {'description': 'Distance to left track border in meters'})
+        right_border = (RationalNumber(length=2, is_signed=False, fraction_bits=8),
+                        {'description': 'Distance to right track border in meters'})
         respawn_lat_pos = IntegerBlock(length=2, is_signed=False)
         unk2 = (IntegerBlock(length=4),
                 {'is_unknown': True})

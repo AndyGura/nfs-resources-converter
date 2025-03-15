@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2025-03-12 15:26:12.868224+00:00*
+*Last time updated: 2025-03-15 18:35:14.859657+00:00*
 
 
 # **Info by file extensions** #
@@ -62,14 +62,14 @@ Did not find what you need or some given data is wrong? Please submit an
 | 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks |
 | 32 | **blocks** | (num_blocks+1)\*1316..? | Array of `num_blocks+1` items<br/>Item type: [FrdBlock](#frdblock) | - |
 | 32 + (num_blocks+1)\*1316..? | **polygon_blocks** | (num_blocks+1)\*44..? | Array of `num_blocks+1` items<br/>Item type: [FrdPolyBlock](#frdpolyblock) | - |
-| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1))\*4..? | Array of `4*(num_blocks+1)` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Item type: [ExtraObjectData](#extraobjectdata) | - |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1))\*4..? | Array of `4*(num_blocks+1)` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [ExtraObjectData](#extraobjectdata) | - |
 | 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4..? | **num_texture_blocks** | 4 | 4-bytes unsigned integer (little endian) | Length of texture_blocks array |
-| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4 + 4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | - |
+| 36 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | - |
 ### **FrdBlock** ###
 #### **Size**: 1316..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **center** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Position of the block in the world |
 | 12 | **bounds** | 48 | Array of `4` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Block bounding rectangle |
 | 60 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Number of vertices |
 | 64 | **num_vertices_high** | 4 | 4-bytes unsigned integer (little endian) | Number of high-res vertices |
@@ -80,30 +80,75 @@ Did not find what you need or some given data is wrong? Please submit an
 | 84 | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Vertices |
 | 84 + num_vertices\*12 | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 84 + num_vertices\*12 + num_vertices\*4 | **neighbour_data** | 1200 | Array of `600` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 | **nStartPos** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 | **nPositions** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 | **nPolygons** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 | **nVRoad** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 | **nXobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 | **nPolyobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 | **nSoundsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 | **nLightsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 | **positions** | nPositions\*8 | Array of `nPositions` items<br/>Item type: [FrdPositionBlock](#frdpositionblock) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 | **polyData** | nPolygons\*8 | Array of `nPolygons` items<br/>Item type: [CompoundBlock](#compoundblock) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 | **vroadData** | nVRoad\*12 | Array of `nVRoad` items<br/>Item type: [CompoundBlock](#compoundblock) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 | **xobj** | nXobj\*20 | Array of `nXobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 + nXobj\*20 | **polyObj** | nPolyobj\*20 | Array of `nPolyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 + nXobj\*20 + nPolyobj\*20 | **soundsrc** | nSoundsrc\*16 | Array of `nSoundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 + 1200 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + nPositions\*8 + nPolygons\*8 + nVRoad\*12 + nXobj\*20 + nPolyobj\*20 + nSoundsrc\*16 | **lightsrc** | nLightsrc\*16 | Array of `nLightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1284 + num_vertices\*12 + num_vertices\*4 | **num_start_pos** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1288 + num_vertices\*12 + num_vertices\*4 | **num_positions** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1292 + num_vertices\*12 + num_vertices\*4 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1296 + num_vertices\*12 + num_vertices\*4 | **num_vroad** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 1300 + num_vertices\*12 + num_vertices\*4 | **num_xobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1304 + num_vertices\*12 + num_vertices\*4 | **num_polyobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1308 + num_vertices\*12 + num_vertices\*4 | **num_soundsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1312 + num_vertices\*12 + num_vertices\*4 | **num_lightsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 | **positions** | num_positions\*8 | Array of `num_positions` items<br/>Item type: [FrdPositionBlock](#frdpositionblock) | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 | **polygons** | num_polygons\*2 | Array of `num_polygons` items<br/>Item type: [FrdBlockPolygonData](#frdblockpolygondata) | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 | **vroad** | num_vroad\*12 | Array of `num_vroad` items<br/>Item type: [FrdBlockVroadData](#frdblockvroaddata) | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 | **xobj** | num_xobj\*20 | Array of `num_xobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 + num_xobj\*20 | **polyobj** | num_polyobj\*20 | Array of `num_polyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 | **soundsrc** | num_soundsrc\*16 | Array of `num_soundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + num_soundsrc\*16 | **lightsrc** | num_lightsrc\*16 | Array of `num_lightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
 ### **FrdPositionBlock** ###
 #### **Size**: 8 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **polygon** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 2 | **nPolygons** | 1 | 1-byte unsigned integer | - |
+| 2 | **num_polygons** | 1 | 1-byte unsigned integer | - |
 | 3 | **unk** | 1 | 1-byte unsigned integer | - |
 | 4 | **extraNeighbor1** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 6 | **extraNeighbor2** | 2 | 2-bytes unsigned integer (little endian) | - |
+### **FrdBlockPolygonData** ###
+#### **Size**: 2 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **vroad_idx** | 1 | 1-byte unsigned integer | - |
+| 1 | **flags** | 1 | 1-byte unsigned integer | - |
+### **FrdBlockVroadData** ###
+#### **Size**: 12 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | A normal vector of the surface |
+| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | A forward vector of the surface |
+### **FrdPolyBlock** ###
+#### **Size**: 44..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **polygons** | 28..? | Array of `7` items<br/>Item type: [FrdPolygonsBlock](#frdpolygonsblock) | - |
+| 28..? | **polyobj** | 16..? | Array of `4` items<br/>Item type: [FrdPolyObjBlock](#frdpolyobjblock) | - |
+### **FrdPolygonsBlock** ###
+#### **Size**: 4..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | This data is presented only if sz != 0 |
+### **FrdPolygonRecord** ###
+#### **Size**: 14 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **vertices** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | - |
+| 8 | **tex_id** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 10 | **tex_flags** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 12 | **flags** | 1 | 1-byte unsigned integer | - |
+| 13 | **unk** | 1 | 1-byte unsigned integer | - |
+### **FrdPolyObjBlock** ###
+#### **Size**: 4..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolyObjPolygonsBlock](#frdpolyobjpolygonsblock) | This data is presented only if sz > 0 |
+### **FrdPolyObjPolygonsBlock** ###
+#### **Size**: 4..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **type** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | This data is presented only if type == 1 |
 ### **TextureBlock** ###
 #### **Size**: 47 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -208,15 +253,15 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 36 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
-| 12 | **normal** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
-| 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
-| 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | A global position of track collision spline point. The unit is meter |
+| 12 | **normal** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A normal vector of road surface |
+| 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A forward vector |
+| 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A right vector |
 | 21 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 22 | **block_idx** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 24 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 26 | **left_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | - |
-| 28 | **right_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | - |
+| 26 | **left_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | Distance to left track border in meters |
+| 28 | **right_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | Distance to right track border in meters |
 | 30 | **respawn_lat_pos** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 32 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **ColPolygon** ###

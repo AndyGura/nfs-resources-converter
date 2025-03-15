@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2025-03-12 15:26:12.687531+00:00*
+*Last time updated: 2025-03-15 18:07:19.220638+00:00*
 
 
 # **Info by file extensions** #
@@ -135,7 +135,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 24 | **num_superblocks** | 4 | 4-bytes unsigned integer (little endian) | Number of superblocks (nsblk) |
 | 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks (nblk) |
 | 32 | **superblock_offsets** | num_superblocks\*4 | Array of `num_superblocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the superblocks |
-| 32 + num_superblocks\*4 | **block_positions** | num_blocks\*12 | Array of `num_blocks` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Coordinates of road spline points in 3D space |
+| 32 + num_superblocks\*4 | **block_positions** | num_blocks\*12 | Array of `num_blocks` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Positions of blocks in the world |
 | 32 + num_superblocks\*4 + num_blocks\*12 | **skip_bytes** | up to offset superblock_offsets[0] | Bytes | Useless padding |
 | superblock_offsets[0] | **superblocks** | num_superblocks\*12..? | Array of `num_superblocks` items<br/>Item type: [TrkSuperBlock](#trksuperblock) | Superblocks |
 ### **TrkSuperBlock** ###
@@ -264,15 +264,15 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 36 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
-| 12 | **normal** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
-| 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
-| 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | - |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | A global position of track collision spline point. The unit is meter |
+| 12 | **normal** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A normal vector of road surface |
+| 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A forward vector |
+| 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A right vector |
 | 21 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 22 | **block_idx** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 24 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 26 | **left_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | - |
-| 28 | **right_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | - |
+| 26 | **left_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | Distance to left track border in meters |
+| 28 | **right_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | Distance to right track border in meters |
 | 30 | **respawn_lat_pos** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 32 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **ColPolygon** ###

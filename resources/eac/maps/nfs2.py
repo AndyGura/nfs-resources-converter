@@ -117,7 +117,7 @@ class TrkMap(DeclarativeCompoundBlock):
                               {'description': 'Offset to each of the superblocks'})
         block_positions = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=16),
                                       length=lambda ctx: ctx.data('num_blocks')),
-                           {'description': 'Coordinates of road spline points in 3D space'})
+                           {'description': 'Positions of blocks in the world'})
         skip_bytes = (BytesBlock(length=(lambda ctx: ctx.data('superblock_offsets/0') - ctx.buffer.tell(),
                                          'up to offset superblock_offsets[0]')),
                       {'description': 'Useless padding'})

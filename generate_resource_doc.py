@@ -42,6 +42,8 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
         if isinstance(instance, ArrayBlock):
+            if isinstance(instance, LengthPrefixedArrayBlock):
+                descr += f'<br/>Length field type: {instance.length_block.schema["block_description"]}'
             if not isinstance(instance.child, CompoundBlock) or instance.child.schema["inline_description"]:
                 size = render_value_doc_str(instance.child.size_doc_str)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
@@ -319,6 +321,13 @@ EXPORT_RESOURCES = {
                 maps.FrdMap(),
                 maps.FrdBlock(),
                 maps.FrdPositionBlock(),
+                maps.FrdBlockPolygonData(),
+                maps.FrdBlockVroadData(),
+                maps.FrdPolyBlock(),
+                maps.FrdPolygonsBlock(),
+                maps.FrdPolygonRecord(),
+                maps.FrdPolyObjBlock(),
+                maps.FrdPolyObjPolygonsBlock(),
                 maps.TextureBlock(),
                 # COL
                 maps.MapColFile(),
