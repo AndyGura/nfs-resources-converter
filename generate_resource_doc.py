@@ -50,6 +50,8 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
             descr += f'<br/>Item type: {render_type(instance.child, possible_blocks_filter)}'
         return descr
     name = instance.__class__.__name__.replace("Resource", "")
+    if possible_blocks_filter and instance.__class__ not in possible_blocks_filter:
+        print(f"WARNING: Block class {instance.__class__.__name__} is referenced but not presented in the file")
     return f'[{name}](#{name.lower()})'
 
 
@@ -328,6 +330,10 @@ EXPORT_RESOURCES = {
                 maps.FrdPolygonRecord(),
                 maps.FrdPolyObjBlock(),
                 maps.FrdPolyObjPolygonsBlock(),
+                maps.ExtraObjectBlock(),
+                maps.ExtraObjectDataCrossType1(),
+                maps.AnimData(),
+                maps.ExtraObjectDataCrossType4(),
                 maps.TextureBlock(),
                 # COL
                 maps.MapColFile(),
@@ -529,6 +535,7 @@ Did not find what you need or some given data is wrong? Please submit an
                         f'{render_value_doc_str(field.size_doc_str)} | '
                         f'{render_type(field, possible_blocks_filter)} | '
                         f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
+
 
             for key, field in resource.field_blocks:
                 extras = resource.field_extras_map[key]

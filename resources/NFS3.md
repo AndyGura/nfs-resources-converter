@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2025-03-15 18:35:14.859657+00:00*
+*Last time updated: 2025-03-15 19:04:16.393910+00:00*
 
 
 # **Info by file extensions** #
@@ -62,7 +62,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks |
 | 32 | **blocks** | (num_blocks+1)\*1316..? | Array of `num_blocks+1` items<br/>Item type: [FrdBlock](#frdblock) | - |
 | 32 + (num_blocks+1)\*1316..? | **polygon_blocks** | (num_blocks+1)\*44..? | Array of `num_blocks+1` items<br/>Item type: [FrdPolyBlock](#frdpolyblock) | - |
-| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1))\*4..? | Array of `4*(num_blocks+1)` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [ExtraObjectData](#extraobjectdata) | - |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1))\*4..? | Array of `4*(num_blocks+1)` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [ExtraObjectBlock](#extraobjectblock) | - |
 | 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4..? | **num_texture_blocks** | 4 | 4-bytes unsigned integer (little endian) | Length of texture_blocks array |
 | 36 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | - |
 ### **FrdBlock** ###
@@ -149,6 +149,41 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **type** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | This data is presented only if type == 1 |
+### **ExtraObjectBlock** ###
+#### **Size**: 36..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **cross_type** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **cross_no** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **data** | 16..? | One of types:<br/>- [ExtraObjectDataCrossType4](#extraobjectdatacrosstype4)<br/>- [ExtraObjectDataCrossType1](#extraobjectdatacrosstype1) | - |
+| 28..? | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 32..? | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
+| 32 + num_vertices\*12..? | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+| 32 + num_vertices\*12 + num_vertices\*4..? | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Length of polygons array |
+| 36 + num_vertices\*12 + num_vertices\*4..? | **polygons** | num_polygons\*14 | Array of `num_polygons` items<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | - |
+### **ExtraObjectDataCrossType1** ###
+#### **Size**: 24..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk** | 18 | Bytes | - |
+| 18 | **type** | 1 | 1-byte unsigned integer. Always == 0x3 | - |
+| 19 | **objno** | 1 | 1-byte unsigned integer | - |
+| 20 | **num_animdata** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 22 | **anim_delay** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 24 | **animdata** | num_animdata\*20 | Array of `num_animdata` items<br/>Item type: [AnimData](#animdata) | - |
+### **AnimData** ###
+#### **Size**: 20 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
+| 12 | **od** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | - |
+### **ExtraObjectDataCrossType4** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **pt_ref** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
+| 12 | **anim_memory** | 4 | 4-bytes unsigned integer (little endian) | - |
 ### **TextureBlock** ###
 #### **Size**: 47 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |

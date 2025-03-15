@@ -3,7 +3,10 @@ from typing import Dict
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock,
                                  BytesBlock,
-                                 ArrayBlock, CompoundBlock, EnumByteBlock, DelegateBlock, SkipBlock,
+                                 ArrayBlock,
+                                 EnumByteBlock,
+                                 DelegateBlock,
+                                 SkipBlock,
                                  LengthPrefixedArrayBlock)
 from resources.eac.fields.misc import Point3D
 
@@ -128,11 +131,11 @@ class FrdPolyObjPolygonsBlock(DeclarativeCompoundBlock):
         type = (IntegerBlock(length=4, is_signed=False),
                 {'is_unknown': True})
         data = (DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
-                                                                       child=FrdPolygonRecord()),
-                                              SkipBlock()],
-                             choice_index=lambda ctx, **_: (
-                                 0 if ctx.data('type') == 1
-                                 else 1)),
+                                                                        child=FrdPolygonRecord()),
+                                               SkipBlock()],
+                              choice_index=lambda ctx, **_: (
+                                  0 if ctx.data('type') == 1
+                                  else 1)),
                 {'description': 'This data is presented only if type == 1'})
 
 
@@ -153,33 +156,47 @@ class FrdPolyBlock(DeclarativeCompoundBlock):
         polyobj = ArrayBlock(child=FrdPolyObjBlock(), length=4)
 
 
-class ExtraObjectData(DeclarativeCompoundBlock):
+class ExtraObjectDataCrossType4(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        crosstype = IntegerBlock(length=4)
-        crossno = IntegerBlock(length=4)
-        unk0 = IntegerBlock(length=4)
+        pt_ref = Point3D(child_length=4, fraction_bits=24)
+        anim_memory = IntegerBlock(length=4)
+
+
+class AnimData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        pt = Point3D(child_length=4, fraction_bits=24)
+        od = ArrayBlock(child=IntegerBlock(length=2), length=4)
+
+
+class ExtraObjectDataCrossType1(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk = BytesBlock(length=18)
+        type = IntegerBlock(length=1, required_value=3)
+        objno = IntegerBlock(length=1)
+        num_animdata = (IntegerBlock(length=2),
+                        {'programmatic_value': lambda ctx: len(ctx.data('animdata'))})
+        anim_delay = IntegerBlock(length=2)
+        animdata = ArrayBlock(child=AnimData(), length=lambda ctx: ctx.data('num_animdata'))
+
+
+class ExtraObjectBlock(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        cross_type = (IntegerBlock(length=4),
+                      {'is_unknown': True})
+        cross_no = (IntegerBlock(length=4),
+                    {'is_unknown': True})
+        unk0 = (IntegerBlock(length=4),
+                {'is_unknown': True})
         data = DelegateBlock(possible_blocks=[
-            CompoundBlock(fields=[
-                ('ptRef', Point3D(child_length=4, fraction_bits=24), {}),
-                ('AnimMemory', IntegerBlock(length=4), {}),
-            ]),
-            CompoundBlock(fields=[
-                ('unknown3', BytesBlock(length=18), {}),
-                ('type3', IntegerBlock(length=1, required_value=3), {}),
-                ('objno', IntegerBlock(length=1), {}),
-                ('nAnimLength', IntegerBlock(length=2), {}),
-                ('AnimDelay', IntegerBlock(length=2), {}),
-                ('animData', ArrayBlock(child=CompoundBlock(fields=[
-                    ('pt', Point3D(child_length=4, fraction_bits=24), {}),
-                    ('od', ArrayBlock(child=IntegerBlock(length=2), length=4), {}),
-                ]),
-                    length=lambda ctx: ctx.data('nAnimLength')), {}),
-            ])
+            ExtraObjectDataCrossType4(),
+            ExtraObjectDataCrossType1()
         ], choice_index=lambda ctx, **_: 0 if ctx.data('crosstype') == 4 else 1)
-        vertices = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
-                                            child=Point3D(child_length=4, fraction_bits=24))
-        vertShading = ArrayBlock(child=IntegerBlock(length=4),
-                                 length=lambda ctx: len(ctx.data('vertices')))
+        num_vertices = (IntegerBlock(length=4),
+                        {'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
+        vertices = ArrayBlock(child=Point3D(child_length=4, fraction_bits=24),
+                              length=lambda ctx: ctx.data('num_vertices'))
+        vertex_shading = ArrayBlock(child=IntegerBlock(length=4),
+                                    length=lambda ctx: ctx.data('num_vertices'))
         polygons = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4), child=FrdPolygonRecord())
 
 
@@ -225,8 +242,7 @@ class FrdMap(DeclarativeCompoundBlock):
                             length=lambda ctx: ctx.data('num_blocks') + 1)
         polygon_blocks = ArrayBlock(child=FrdPolyBlock(),
                                     length=lambda ctx: ctx.data('num_blocks') + 1)
-
-        extraobject_blocks = ArrayBlock(child=LengthPrefixedArrayBlock(child=ExtraObjectData(),
+        extraobject_blocks = ArrayBlock(child=LengthPrefixedArrayBlock(child=ExtraObjectBlock(),
                                                                        length_block=IntegerBlock(length=4)),
                                         length=lambda ctx: 4 * (ctx.data('num_blocks') + 1))
         texture_blocks = LengthPrefixedArrayBlock(child=TextureBlock(), length_block=IntegerBlock(length=4))
