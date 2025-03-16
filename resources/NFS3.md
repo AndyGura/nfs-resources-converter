@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2025-03-15 19:19:56.723856+00:00*
+*Last time updated: 2025-03-16 05:35:27.933809+00:00*
 
 
 # **Info by file extensions** #
@@ -89,12 +89,12 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1308 + num_vertices\*12 + num_vertices\*4 | **num_soundsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 1312 + num_vertices\*12 + num_vertices\*4 | **num_lightsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 1316 + num_vertices\*12 + num_vertices\*4 | **positions** | num_positions\*8 | Array of `num_positions` items<br/>Item type: [FrdPositionBlock](#frdpositionblock) | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 | **polygons** | num_polygons\*2 | Array of `num_polygons` items<br/>Item type: [FrdBlockPolygonData](#frdblockpolygondata) | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 | **vroad** | num_vroad\*12 | Array of `num_vroad` items<br/>Item type: [FrdBlockVroadData](#frdblockvroaddata) | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 | **xobj** | num_xobj\*20 | Array of `num_xobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 + num_xobj\*20 | **polyobj** | num_polyobj\*20 | Array of `num_polyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 | **soundsrc** | num_soundsrc\*16 | Array of `num_soundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*2 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + num_soundsrc\*16 | **lightsrc** | num_lightsrc\*16 | Array of `num_lightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [FrdBlockPolygonData](#frdblockpolygondata) | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 | **vroad** | num_vroad\*12 | Array of `num_vroad` items<br/>Item type: [FrdBlockVroadData](#frdblockvroaddata) | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 | **xobj** | num_xobj\*20 | Array of `num_xobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 | **polyobj** | num_polyobj\*20 | Array of `num_polyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 | **soundsrc** | num_soundsrc\*16 | Array of `num_soundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + num_soundsrc\*16 | **lightsrc** | num_lightsrc\*16 | Array of `num_lightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
 ### **FrdPositionBlock** ###
 #### **Size**: 8 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -105,11 +105,12 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **extra_neighbor1** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 6 | **extra_neighbor2** | 2 | 2-bytes unsigned integer (little endian) | - |
 ### **FrdBlockPolygonData** ###
-#### **Size**: 2 bytes ####
+#### **Size**: 8 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **vroad_idx** | 1 | 1-byte unsigned integer | - |
 | 1 | **flags** | 1 | 1-byte unsigned integer | - |
+| 2 | **unk** | 6 | Bytes | Unknown purpose |
 ### **FrdBlockVroadData** ###
 #### **Size**: 12 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |

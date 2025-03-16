@@ -25,7 +25,7 @@ class FrdBlockPolygonData(DeclarativeCompoundBlock):
         vroad_idx = IntegerBlock(length=1, is_signed=False)
         flags = IntegerBlock(length=1, is_signed=False)
         unk = (BytesBlock(length=6),
-               {'is_unknown': True}),
+               {'is_unknown': True})
 
 
 class FrdBlockVroadData(DeclarativeCompoundBlock):
@@ -190,7 +190,7 @@ class ExtraObjectBlock(DeclarativeCompoundBlock):
         data = DelegateBlock(possible_blocks=[
             ExtraObjectDataCrossType4(),
             ExtraObjectDataCrossType1()
-        ], choice_index=lambda ctx, **_: 0 if ctx.data('crosstype') == 4 else 1)
+        ], choice_index=lambda ctx, **_: 0 if ctx.data('cross_type') == 4 else 1)
         num_vertices = (IntegerBlock(length=4),
                         {'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
         vertices = ArrayBlock(child=Point3D(child_length=4, fraction_bits=24),

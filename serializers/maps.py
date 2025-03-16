@@ -801,7 +801,7 @@ class FrdMapSerializer(BaseFileSerializer):
         scenes = [map_scene]
 
         # add road spline to map scene
-        spline = [x['center'] for x in blocks]
+        spline = [x['position'] for x in blocks]
         curve = {
             'name': 'road_path',
             'closed': True,
@@ -826,65 +826,20 @@ class FrdMapSerializer(BaseFileSerializer):
         chunks = []
         texture_names = set()
         for block_i, block in enumerate(blocks):
+            polygon_block = data['polygon_blocks'][block_i]
             model = Mesh()
             model.name = f'block_{block_i}'
-            pivot = block['center']
-            next_pivot = blocks[block_i + 1 if block_i < len(blocks) - 1 else 0]['center']
+            pivot = block['position']
             model.pivot_offset = (-pivot['x'], -pivot['y'], -pivot['z'])
-            vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
-            for v in vertices[:block['nv8']]:
-                v[0] += next_pivot['x'] - pivot['x']
-                v[1] += next_pivot['y'] - pivot['y']
-                v[2] += next_pivot['z'] - pivot['z']
-            # alignments=set()
-            for p in block['polygons'][(block['np4'] + block['np2']):]:
-                texture_name, texture_alignment = get_texture(p['texture'])
-                # alignments.add(str(texture_alignment))
-                uvs = get_uvs(texture_alignment)
-                base_idx = len(model.vertices)
-                for i, v_index in enumerate(p['vertices']):
-                    model.vertices.append(vertices[v_index])
-                    model.vertex_uvs.append(uvs[i])
-                model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
-                model.texture_ids.append(texture_name)
-                texture_names.add(texture_name)
-            # model.name += '__' + '_'.join(alignments)
+            model.vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
+            model.vertex_uvs = [[0, 0]] * len(model.vertices)
+            for p in polygon_block['polygons'][0]['data']['data']:
+                model.polygons.append(p['vertices'])
+            model.texture_ids = [0] * len(model.polygons)
             sub_meshes = model.split_by_texture_ids()
-
-            proxies = [item for sublist in (eb['data_records']['data']
-                                            for eb in block['extrablocks']
-                                            if eb['type'] in ['props_7', 'props_18'])
-                       for item in sublist]
-            if len(proxies) > 0:
-                proxy_descr_extrablock = next(
-                    eb['data_records']['data'] for eb in block['extrablocks'] if eb['type'] == 'prop_descriptions')
-                for proxy_i, proxy in enumerate(proxies):
-                    if proxy['type'] not in ['static_prop', 'animated_prop']:
-                        continue
-                    object = proxy_descr_extrablock[proxy['prop_descr_idx']]
-                    position = proxy['position']['data'] \
-                        if proxy['type'] == 'static_prop' else \
-                        proxy['position']['data']['frames'][0]['position']
-                    model = Mesh()
-                    model.name = f'prop_{block_i}_{proxy_i}'
-                    model.pivot_offset = (-position['x'], -position['y'], -position['z'])
-                    # alignments=set()
-                    for p in object['polygons']:
-                        texture_name, texture_alignment = get_texture(p['texture'])
-                        # alignments.add(str(texture_alignment))
-                        uvs = get_uvs(texture_alignment)
-                        base_idx = len(model.vertices)
-                        for i, v_index in enumerate(p['vertices']):
-                            v = object['vertices'][v_index]
-                            model.vertices.append([v['x'], v['y'], v['z']])
-                            model.vertex_uvs.append(uvs[i])
-                        model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
-                        model.texture_ids.append(texture_name)
-                        texture_names.add(texture_name)
-                    # model.name += '__' + '_'.join(alignments)
-                    sub_meshes.extend(model.split_by_texture_ids())
             chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
         map_scene.mtl_texture_names = list(texture_names)
+
         for chunk in chunks:
             chunk[1] = (chunk[1][0], chunk[1][2], chunk[1][1])
             for mesh in chunk[0]:
