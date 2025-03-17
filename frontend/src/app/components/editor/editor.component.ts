@@ -3,7 +3,7 @@ import { DataBlockUIDirective } from './data-block-ui.directive';
 import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { GuiComponentInterface } from './gui-component.interface';
 import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
-import { IntegerBlockUiComponent } from './library/integer.block-ui/integer.block-ui.component';
+import { NumberBlockUiComponent } from './library/number.block-ui/number.block-ui.component';
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
@@ -39,15 +39,20 @@ export class EditorComponent implements OnDestroy {
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
     ArrayBlock: ArrayBlockUiComponent,
     SubByteArrayBlock: ArrayBlockUiComponent,
+
     BitFlagsBlock: FlagsBlockUiComponent,
     BytesBlock: BinaryBlockUiComponent,
     CompoundBlock: CompoundBlockUiComponent,
     DataBlock: FallbackBlockUiComponent,
     DelegateBlock: DelegateBlockUiComponent,
     EnumByteBlock: EnumBlockUiComponent,
-    IntegerBlock: IntegerBlockUiComponent,
+
+    IntegerBlock: NumberBlockUiComponent,
+    DecimalBlock: NumberBlockUiComponent,
+
     UTF8Block: StringBlockUiComponent,
     NullTerminatedUTF8Block: StringBlockUiComponent,
+
     SkipBlock: SkipBlockUiComponent,
     // NFS1 blocks
     AngleBlock: AngleBlockUiComponent,

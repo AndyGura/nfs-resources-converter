@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FallbackBlockUiComponent } from './components/editor/library/fallback.block-ui/fallback.block-ui.component';
 import { CompoundBlockUiComponent } from './components/editor/library/compound.block-ui/compound.block-ui.component';
 import { StringBlockUiComponent } from './components/editor/library/string.block-ui/string.block-ui.component';
-import { IntegerBlockUiComponent } from './components/editor/library/integer.block-ui/integer.block-ui.component';
+import { NumberBlockUiComponent } from './components/editor/library/number.block-ui/number.block-ui.component';
 import { ArrayBlockUiComponent } from './components/editor/library/array.block-ui/array.block-ui.component';
 import { BitmapBlockUiComponent } from './components/editor/eac/bitmap.block-ui/bitmap.block-ui.component';
 import { PaletteBlockUiComponent } from './components/editor/eac/palette.block-ui/palette.block-ui.component';
@@ -40,12 +40,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { TriMapBlockUiComponent } from './components/editor/eac/tri-map.block-ui/tri-map.block-ui.component';
 import { TrkMapBlockUiComponent } from './components/editor/eac/trk-map.block-ui/trk-map.block-ui.component';
-import {
-  RunCustomActionDialogComponent,
-} from './components/run-custom-action.dialog/run-custom-action.dialog.component';
-import {
-  OripGeometryBlockUiComponent,
-} from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
+import { OripGeometryBlockUiComponent } from './components/editor/eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { MinimapComponent } from './components/editor/common/minimap/minimap.component';
 import { DelegateBlockUiComponent } from './components/editor/library/delegate.block-ui/delegate.block-ui.component';
 import { MatOptionModule } from '@angular/material/core';
@@ -53,13 +49,9 @@ import { FenceTypeBlockUiComponent } from './components/editor/eac/fence-type.bl
 import { BlockActionsComponent } from './components/editor/common/block-actions/block-actions.component';
 import { SoundbankBlockUiComponent } from './components/editor/eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './components/editor/eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
-import {
-  GeoGeometryBlockUiComponent,
-} from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
+import { GeoGeometryBlockUiComponent } from './components/editor/eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { ObjViewerComponent } from './components/editor/common/obj-viewer/obj-viewer.component';
-import {
-  BaseArchiveBlockUiComponent,
-} from './components/editor/eac/base-archive.block-ui/base-archive.block-ui.component';
+import { BaseArchiveBlockUiComponent } from './components/editor/eac/base-archive.block-ui/base-archive.block-ui.component';
 import {
   MAT_COLOR_FORMATS,
   NGX_MAT_COLOR_FORMATS,
@@ -76,7 +68,7 @@ import { SkipBlockUiComponent } from './components/editor/library/skip.block-ui/
     DataBlockUIDirective,
     CompoundBlockUiComponent,
     StringBlockUiComponent,
-    IntegerBlockUiComponent,
+    NumberBlockUiComponent,
     ArrayBlockUiComponent,
     BitmapBlockUiComponent,
     PaletteBlockUiComponent,

@@ -2,9 +2,8 @@ from io import BufferedReader, BytesIO
 
 from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, IntegerBlock, ArrayBlock, EnumByteBlock,
-                                 EnumLookupDelegateBlock, BytesBlock, DataBlock)
+                                 EnumLookupDelegateBlock, BytesBlock, DataBlock, FixedPointBlock)
 from resources.eac.fields.misc import RGBBlock, Point3D
-from resources.eac.fields.numbers import RationalNumber
 
 
 class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
@@ -56,7 +55,7 @@ class MedianExtraDataRecord(DeclarativeCompoundBlock):
 
 class AnimatedPropPositionFrame(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        position = (Point3D(child_length=4, fraction_bits=16),
+        position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'description': 'Object position in 3D space'})
         unk0 = (BytesBlock(length=8),
                 {'is_unknown': True})
@@ -91,7 +90,8 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
         prop_descr_idx = (IntegerBlock(length=1, is_signed=False),
                           {'description': 'An index of 3D model in "prop_descriptions" extrablock'})
         position = (EnumLookupDelegateBlock(enum_field='type',
-                                            blocks=[Point3D(child_length=4, fraction_bits=16),
+                                            blocks=[Point3D(
+                                                child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                                                     AnimatedPropPosition(),
                                                     BytesBlock(length=lambda ctx: ctx.data('block_size') - 4)]),
                     {'description': 'Object positioning in 3D space'})
@@ -130,7 +130,7 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
         num_polygons = (IntegerBlock(length=2, is_signed=False),
                         {'description': 'Amount of polygons',
                          'programmatic_value': lambda ctx: len(ctx.data('polygons'))})
-        vertices = (ArrayBlock(child=Point3D(child_length=2, fraction_bits=8),
+        vertices = (ArrayBlock(child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
                                length=lambda ctx: ctx.data('num_vertices')),
                     {'description': 'Vertices'})
         polygons = (ArrayBlock(child=ColPolygon(),
@@ -160,28 +160,28 @@ class RoadVectorsExtraDataRecord(DeclarativeCompoundBlock):
                 'block_description': 'Block with normal + forward vectors pair'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = Point3D(child_length=2, fraction_bits=15, normalized=True)
-        forward = Point3D(child_length=2, fraction_bits=15, normalized=True)
+        normal = Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True), normalized=True)
+        forward = Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True), normalized=True)
 
 
 class CollisionExtraDataRecord(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        position = (Point3D(child_length=4, fraction_bits=16),
+        position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'description': 'A global position of track collision spline point. The unit is meter'})
-        normal = (Point3D(child_length=1, fraction_bits=7, normalized=True),
+        normal = (Point3D(child=FixedPointBlock(length=1, fraction_bits=7, is_signed=True), normalized=True),
                   {'description': 'A normal vector of road surface'})
-        forward = (Point3D(child_length=1, fraction_bits=7, normalized=True),
+        forward = (Point3D(child=FixedPointBlock(length=1, fraction_bits=7, is_signed=True), normalized=True),
                    {'description': 'A forward vector'})
-        right = (Point3D(child_length=1, fraction_bits=7, normalized=True),
+        right = (Point3D(child=FixedPointBlock(length=1, fraction_bits=7, is_signed=True), normalized=True),
                  {'description': 'A right vector'})
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
         block_idx = IntegerBlock(length=2, is_signed=False)
         unk1 = (IntegerBlock(length=2),
                 {'is_unknown': True})
-        left_border = (RationalNumber(length=2, is_signed=False, fraction_bits=8),
+        left_border = (FixedPointBlock(length=2, is_signed=False, fraction_bits=8),
                        {'description': 'Distance to left track border in meters'})
-        right_border = (RationalNumber(length=2, is_signed=False, fraction_bits=8),
+        right_border = (FixedPointBlock(length=2, is_signed=False, fraction_bits=8),
                         {'description': 'Distance to right track border in meters'})
         respawn_lat_pos = IntegerBlock(length=2, is_signed=False)
         unk2 = (IntegerBlock(length=4),

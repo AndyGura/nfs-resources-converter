@@ -5,38 +5,6 @@ from typing import Dict
 from library.context import ReadContext, WriteContext
 from library.read_blocks import IntegerBlock, DataBlock
 
-# TODO move to library, name it "FixedPointNumber"
-class RationalNumber(IntegerBlock):
-    @property
-    def schema(self) -> Dict:
-        super_schema = super().schema
-        descr = (f'{self.length * 8}-bit real number ({self.byte_order}-endian, '
-                f'{"" if self.is_signed else "not "}signed), where last {self.fraction_bits} '
-                f'bits is a fractional part')
-        if self.required_value is not None:
-            descr += f'. Always == {self.required_value}'
-        return {
-            **super_schema,
-            'min_value': float(super_schema['min_value'] / (1 << self.fraction_bits)),
-            'max_value': float(super_schema['max_value'] / (1 << self.fraction_bits)),
-            'value_interval': float(super_schema['value_interval'] / (1 << self.fraction_bits)),
-            'block_description': descr,
-        }
-
-    def __init__(self, fraction_bits: int, **kwargs):
-        super().__init__(**kwargs)
-        self.fraction_bits = fraction_bits
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        return float(super().read(buffer, ctx, name, read_bytes_amount) / (1 << self.fraction_bits))
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        data = max(min(round(data * (1 << self.fraction_bits)),
-                       ((1 << (self.length * 8 - 1)) if self.is_signed else (1 << (self.length * 8))) - 1),
-                   -(1 << (self.length * 8 - 1)) if self.is_signed else 0)
-        return super().write(data, ctx, name)
-
 
 class AngleBlock:
     def wrap_angle(self, value):

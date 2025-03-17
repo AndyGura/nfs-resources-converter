@@ -7,7 +7,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  BytesBlock,
                                  ArrayBlock,
-                                 DataBlock)
+                                 DataBlock, FixedPointBlock)
 from resources.eac.fields.misc import Point3D
 from resources.eac.maps.nfs_common import ColPolygon, ColExtraBlock
 
@@ -26,8 +26,9 @@ class TrkBlock(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         block_idx = (IntegerBlock(length=4, is_signed=False),
                      {'description': 'Block index (serial number)'})
-        bounds = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=16), length=4),
-                  {'description': 'Block bounding rectangle'})
+        bounds = (
+            ArrayBlock(child=Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)), length=4),
+            {'description': 'Block bounding rectangle'})
         extrablocks_offset = (IntegerBlock(length=4, is_signed=False),
                               {'description': 'An offset to "extrablock_offsets" block from here'})
         nv8 = (IntegerBlock(length=2, is_signed=False),
@@ -46,7 +47,7 @@ class TrkBlock(DeclarativeCompoundBlock):
                {'description': 'Number of polygons for full resolution'})
         unk1 = (IntegerBlock(length=6),
                 {'is_unknown': True})
-        vertices = (ArrayBlock(child=Point3D(child_length=2, fraction_bits=8),
+        vertices = (ArrayBlock(child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
                                length=lambda ctx: ctx.data('nv8') + ctx.data('nv1')),
                     {'description': 'Vertices'})
         polygons = (ArrayBlock(child=ColPolygon(),
@@ -115,7 +116,7 @@ class TrkMap(DeclarativeCompoundBlock):
         superblock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
                                          length=lambda ctx: ctx.data('num_superblocks')),
                               {'description': 'Offset to each of the superblocks'})
-        block_positions = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=16),
+        block_positions = (ArrayBlock(child=Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                                       length=lambda ctx: ctx.data('num_blocks')),
                            {'description': 'Positions of blocks in the world'})
         skip_bytes = (BytesBlock(length=(lambda ctx: ctx.data('superblock_offsets/0') - ctx.buffer.tell(),

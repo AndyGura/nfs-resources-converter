@@ -4,7 +4,6 @@ from typing import Dict
 
 from library.context import WriteContext, ReadContext
 from library.read_blocks import IntegerBlock, DataBlock, CompoundBlock
-from resources.eac.fields.numbers import RationalNumber
 
 
 class Point3D(CompoundBlock):
@@ -21,8 +20,7 @@ class Point3D(CompoundBlock):
             'inline_description': True,
         }
 
-    def __init__(self, child_length, fraction_bits=0, is_signed=True, normalized=False, **kwargs):
-        child = RationalNumber(length=child_length, fraction_bits=fraction_bits, is_signed=is_signed)
+    def __init__(self, child, normalized=False, **kwargs):
         self.normalized = normalized
         super().__init__(fields=[('x', child, {}),
                                  ('y', child, {}),

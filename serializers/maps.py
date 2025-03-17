@@ -830,7 +830,6 @@ class FrdMapSerializer(BaseFileSerializer):
             model = Mesh()
             model.name = f'block_{block_i}'
             pivot = block['position']
-            model.pivot_offset = (-pivot['x'], -pivot['y'], -pivot['z'])
             model.vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
             model.vertex_uvs = [[0, 0]] * len(model.vertices)
             for p in polygon_block['polygons'][0]['data']['data']:

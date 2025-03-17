@@ -7,7 +7,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  BytesBlock,
                                  DelegateBlock,
-                                 BitFlagsBlock)
+                                 BitFlagsBlock, FixedPointBlock)
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.fields.misc import Point3D
 
@@ -251,11 +251,12 @@ class OripGeometry(DeclarativeCompoundBlock):
                   {'description': 'Marks special polygons for the game, where it should change texture on runtime such '
                                   'as tyres, tail lights',
                    'custom_offset': 'lbl_ptr'})
-        vertices = (ArrayBlock(child=DelegateBlock(possible_blocks=[Point3D(child_length=4, fraction_bits=7),
-                                                                    Point3D(child_length=4, fraction_bits=4)],
-                                                   choice_index=lambda ctx, **_: (
-                                                       0 if ctx.buffer.name.endswith('.CFM')
-                                                       else 1)),
+        vertices = (ArrayBlock(child=DelegateBlock(
+            possible_blocks=[Point3D(child=FixedPointBlock(length=4, fraction_bits=7, is_signed=True)),
+                             Point3D(child=FixedPointBlock(length=4, fraction_bits=4, is_signed=True))],
+            choice_index=lambda ctx, **_: (
+                0 if ctx.buffer.name.endswith('.CFM')
+                else 1)),
                                length=lambda ctx: ctx.data('num_vrtx')),
                     {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. '
                                     'The unit is meter',
@@ -307,7 +308,7 @@ class GeoMesh(DeclarativeCompoundBlock):
                     {'description': 'number of vertices in block'})
         num_plgn = (IntegerBlock(length=4),
                     {'description': 'number of polygons in block'})
-        pos = (Point3D(child_length=4, fraction_bits=16),
+        pos = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                {'description': 'position of part in 3d space. The unit is meter'})
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})
@@ -320,7 +321,7 @@ class GeoMesh(DeclarativeCompoundBlock):
         unk4 = (IntegerBlock(length=8, required_value=1),
                 {'is_unknown': True})
         vertices = (ArrayBlock(length=lambda ctx: ctx.data('num_vrtx'),
-                               child=Point3D(child_length=2, fraction_bits=8)),
+                               child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True))),
                     {'description': 'Vertex coordinates. The unit is meter'})
         offset = (BytesBlock(length=(lambda ctx: 0 if ctx.data('num_vrtx') % 2 == 0 else 6, '(num_vrtx % 2) ? 6 : 0')),
                   {'description': 'Data offset, happens when `num_vrtx` is odd'})

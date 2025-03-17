@@ -8,9 +8,10 @@ from library.read_blocks import (BitFlagsBlock,
                                  UTF8Block,
                                  SubByteArrayBlock,
                                  EnumByteBlock,
-                                 EnumLookupDelegateBlock)
+                                 EnumLookupDelegateBlock,
+                                 FixedPointBlock)
 from resources.eac.fields.misc import FenceType, Point3D
-from resources.eac.fields.numbers import Nfs1Angle14, RationalNumber, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
+from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
 
 
 class RoadSplinePoint(DeclarativeCompoundBlock):
@@ -22,15 +23,15 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                      ' your [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1) project'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        left_verge = (RationalNumber(length=1, fraction_bits=3),
+        left_verge = (FixedPointBlock(length=1, fraction_bits=3),
                       {'description': 'The distance to the left edge of road. After this point the grip '
                                       'decreases'})
-        right_verge = (RationalNumber(length=1, fraction_bits=3),
+        right_verge = (FixedPointBlock(length=1, fraction_bits=3),
                        {'description': 'The distance to the right edge of road. After this point the grip '
                                        'decreases'})
-        left_barrier = (RationalNumber(length=1, fraction_bits=3),
+        left_barrier = (FixedPointBlock(length=1, fraction_bits=3),
                         {'description': 'The distance to invisible wall on the left'})
-        right_barrier = (RationalNumber(length=1, fraction_bits=3),
+        right_barrier = (FixedPointBlock(length=1, fraction_bits=3),
                          {'description': 'The distance to invisible wall on the right'})
         num_lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
                      {'description': 'Amount of lanes. First number is amount of oncoming lanes, second number is '
@@ -66,7 +67,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                                (18, 'water_audio'),  # OpenNFS1: water right channel
                                                ]),
                      {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features'})
-        position = (Point3D(child_length=4, fraction_bits=16),
+        position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'description': 'Coordinates of this point in 3D space. The unit is meter'})
         slope = (Nfs1Angle14(),
                  {'description': 'Slope of the road at this point (angle if road goes up or down)'})
@@ -116,15 +117,15 @@ class ModelPropDescrData(DeclarativeCompoundBlock):
                          {'description': 'Seems to always be equal to `resource_id`, except for one prop on map CL1, '
                                          'which is not used on map',
                           'programmatic_value': lambda ctx: ctx.data('resource_id')})
-        unk0 = (RationalNumber(length=4, fraction_bits=16, required_value=1.5),
+        unk0 = (FixedPointBlock(length=4, fraction_bits=16, required_value=1.5),
                 {'is_unknown': True})
-        unk1 = (RationalNumber(length=4, fraction_bits=16),
+        unk1 = (FixedPointBlock(length=4, fraction_bits=16),
                 {'is_unknown': True,
                  'programmatic_value': lambda _: 1.5,
                  'description': 'The purpose is unknown. Every single entry in TNFS files equals to 1.5 '
                                 '(0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken '
                                 'texture palette and which is not used on the map anyways'})
-        unk2 = (RationalNumber(length=4, fraction_bits=16, required_value=3),
+        unk2 = (FixedPointBlock(length=4, fraction_bits=16, required_value=3),
                 {'is_unknown': True})
 
 
@@ -142,7 +143,7 @@ class BitmapPropDescrData(DeclarativeCompoundBlock):
                                        'by Denis Auroux'})
         resource_id_2 = (IntegerBlock(length=1),
                          {'description': 'Oftenly equals to `resource_id`, but can be different'})
-        width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+        width = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                  {'description': 'Width in meters'})
         frame_count = (IntegerBlock(length=1),
                        {'description': 'Frame amount for animated object. Ignored if flag `is_animated` not set'})
@@ -152,7 +153,7 @@ class BitmapPropDescrData(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=1, is_signed=False),
                 {'is_unknown': True})
-        height = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+        height = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                   {'description': 'Height in meters'})
 
 
@@ -171,11 +172,11 @@ class TwoSidedBitmapPropDescrData(DeclarativeCompoundBlock):
         resource_id_2 = (IntegerBlock(length=1),
                          {'description': 'Texture id of second sprite, rotated 90 degrees. Logic to determine texture '
                                          'name is the same as for resource_id'})
-        width = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+        width = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                  {'description': 'Width in meters'})
-        width_2 = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+        width_2 = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                    {'description': 'Width in meters of second bitmap'})
-        height = (RationalNumber(length=4, fraction_bits=16, is_signed=True),
+        height = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                   {'description': 'Height in meters'})
 
 
@@ -226,7 +227,7 @@ class MapProp(DeclarativeCompoundBlock):
                     {'description': 'Y-rotation, relative to rotation of referenced road spline vertex'})
         flags = (IntegerBlock(length=4),
                  {'is_unknown': True})
-        position = (Point3D(child_length=2, fraction_bits=8),
+        position = (Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
                     {'description': 'Position in 3D space, relative to position of referenced road spline vertex. '
                                     'The unit is meter'})
 
@@ -249,7 +250,9 @@ class TerrainEntry(DeclarativeCompoundBlock):
         fence = FenceType()
         texture_ids = (ArrayBlock(child=IntegerBlock(length=1), length=10),
                        {'description': 'Texture ids to be used for terrain'})
-        rows = (ArrayBlock(child=ArrayBlock(child=Point3D(child_length=2, fraction_bits=7), length=11), length=4),
+        rows = (ArrayBlock(
+            child=ArrayBlock(child=Point3D(child=FixedPointBlock(length=2, fraction_bits=7, is_signed=True)),
+                             length=11), length=4),
                 {'description': 'Terrain vertex positions. The unit is meter'})
 
 
@@ -309,7 +312,7 @@ class TriMap(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=2, required_value=6),
                 {'is_unknown': True})
-        position = (Point3D(child_length=4, fraction_bits=16),
+        position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'is_unknown': True})
         unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, required_value=0), length=12),
                      {'is_unknown': True})

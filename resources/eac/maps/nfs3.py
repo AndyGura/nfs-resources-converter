@@ -7,7 +7,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  EnumByteBlock,
                                  DelegateBlock,
                                  SkipBlock,
-                                 LengthPrefixedArrayBlock)
+                                 LengthPrefixedArrayBlock, DecimalBlock, FixedPointBlock)
 from resources.eac.fields.misc import Point3D
 
 
@@ -30,17 +30,17 @@ class FrdBlockPolygonData(DeclarativeCompoundBlock):
 
 class FrdBlockVroadData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = (Point3D(child_length=2, fraction_bits=16, normalized=True),
+        normal = (Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True), normalized=True),
                   {'description': 'A normal vector of the surface'})
-        forward = (Point3D(child_length=2, fraction_bits=16, normalized=True),
+        forward = (Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True), normalized=True),
                    {'description': 'A forward vector of the surface'})
 
 
 class FrdBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        position = (Point3D(child_length=4, fraction_bits=24),
+        position = (Point3D(child=DecimalBlock(length=4)),
                     {'description': 'Position of the block in the world'})
-        bounds = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=24), length=4),
+        bounds = (ArrayBlock(child=Point3D(child=DecimalBlock(length=4)), length=4),
                   {'description': 'Block bounding rectangle'})
         num_vertices = (IntegerBlock(length=4, is_signed=False),
                         {'description': 'Number of vertices',
@@ -56,9 +56,9 @@ class FrdBlock(DeclarativeCompoundBlock):
                              'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
         num_vertices_obj = (IntegerBlock(length=4, is_signed=False),
                             {'is_unknown': True})
-        vertices = (ArrayBlock(child=Point3D(child_length=4, fraction_bits=24),
+        vertices = (ArrayBlock(child=Point3D(child=DecimalBlock(length=4)),
                                length=lambda ctx: ctx.data('num_vertices')),
-                    {'description': 'Vertices'})
+                    {'description': 'Vertices. Coordinates are global'})
         vertex_shading = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
                                      length=lambda ctx: ctx.data('num_vertices')),
                           {'is_unknown': True})
@@ -158,13 +158,13 @@ class FrdPolyBlock(DeclarativeCompoundBlock):
 
 class ExtraObjectDataCrossType4(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        pt_ref = Point3D(child_length=4, fraction_bits=24)
+        pt_ref = Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True))
         anim_memory = IntegerBlock(length=4)
 
 
 class AnimData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        pt = Point3D(child_length=4, fraction_bits=24)
+        pt = Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True))
         od = ArrayBlock(child=IntegerBlock(length=2), length=4)
 
 
@@ -193,7 +193,7 @@ class ExtraObjectBlock(DeclarativeCompoundBlock):
         ], choice_index=lambda ctx, **_: 0 if ctx.data('cross_type') == 4 else 1)
         num_vertices = (IntegerBlock(length=4),
                         {'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
-        vertices = ArrayBlock(child=Point3D(child_length=4, fraction_bits=24),
+        vertices = ArrayBlock(child=Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True)),
                               length=lambda ctx: ctx.data('num_vertices'))
         vertex_shading = ArrayBlock(child=IntegerBlock(length=4),
                                     length=lambda ctx: ctx.data('num_vertices'))
