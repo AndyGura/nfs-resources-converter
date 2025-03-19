@@ -59,6 +59,7 @@ import {
 } from '@angular-material-components/color-picker';
 import { HexEditorModule } from 'ngx-hex-editor';
 import { SkipBlockUiComponent } from './components/editor/library/skip.block-ui/skip.block-ui.component';
+import { NavigationBarComponent } from './components/navigation-bar/navigation-bar.component';
 
 @NgModule({
   declarations: [
@@ -119,6 +120,7 @@ import { SkipBlockUiComponent } from './components/editor/library/skip.block-ui/
     MatOptionModule,
     NgxMatColorPickerModule,
     HexEditorModule,
+    NavigationBarComponent,
   ],
   providers: [
     EelDelegateService,

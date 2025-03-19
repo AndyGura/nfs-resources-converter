@@ -1,3 +1,7 @@
+<h2 [matTooltip]='resourceDescription'
+    id='title'
+    (click)='navigation.navigateToId(resource!.id)'
+    matTooltipPosition='above'>{{ name }}</h2>
 <mat-expansion-panel
   (opened)='onContentsTrigger(true)'
   (closed)='onContentsTrigger(false)'>
@@ -5,10 +9,10 @@
     <mat-panel-title>
       {{ name }}
     </mat-panel-title>
-    <mat-panel-description *ngIf='(resourceData || []).length > 0'>
+    <mat-panel-description *ngIf="(resourceData || []).length > 0">
       Click to view items (<b>{{ (resourceData || []).length }}</b>)
     </mat-panel-description>
-    <mat-panel-description *ngIf='(resourceData || []).length == 0'>
+    <mat-panel-description *ngIf="(resourceData || []).length == 0">
       Empty array
     </mat-panel-description>
   </mat-expansion-panel-header>
