@@ -92,8 +92,8 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
         position = (EnumLookupDelegateBlock(enum_field='type',
                                             blocks=[Point3D(
                                                 child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
-                                                    AnimatedPropPosition(),
-                                                    BytesBlock(length=lambda ctx: ctx.data('block_size') - 4)]),
+                                                AnimatedPropPosition(),
+                                                BytesBlock(length=lambda ctx: ctx.data('block_size') - 4)]),
                     {'description': 'Object positioning in 3D space'})
 
 

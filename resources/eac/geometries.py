@@ -7,7 +7,8 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  BytesBlock,
                                  DelegateBlock,
-                                 BitFlagsBlock, FixedPointBlock)
+                                 BitFlagsBlock,
+                                 FixedPointBlock)
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.fields.misc import Point3D
 
@@ -257,7 +258,7 @@ class OripGeometry(DeclarativeCompoundBlock):
             choice_index=lambda ctx, **_: (
                 0 if ctx.buffer.name.endswith('.CFM')
                 else 1)),
-                               length=lambda ctx: ctx.data('num_vrtx')),
+            length=lambda ctx: ctx.data('num_vrtx')),
                     {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. '
                                     'The unit is meter',
                      'custom_offset': 'vrtx_ptr'})
