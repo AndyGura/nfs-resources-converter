@@ -70,16 +70,41 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             with open(os.path.join(path, 'positions.txt'), 'w') as f:
                 for name, item in [(name, data) for name, data, block in items if isinstance(block, AnyBitmapBlock)]:
                     f.write(f"{name}: {item['x']}, {item['y']}\n")
-        if '.FAM__' in id and self.settings.maps__save_spherical_skybox_texture:
+        if self.settings.maps__save_spherical_skybox_texture:
             try:
-                horz = next(x for name, x, _ in items if name == 'horz')
-                from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
-                nfs1_panorama_to_spherical(id[id.index('.FAM') - 7:id.index('.FAM') - 4],
-                                           os.path.join(path, 'horz.png'),
-                                           os.path.join(path, 'spherical.png'),
-                                           horz['pivot_y'])
-            except StopIteration:
-                pass
+                if '.FAM__' in id:
+                    # build TNFS horizon texture
+                    horz = next(x for name, x, _ in items if name == 'horz')
+                    from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
+                    nfs1_panorama_to_spherical(id[id.index('.FAM') - 7:id.index('.FAM') - 4],
+                                               os.path.join(path, 'horz.png'),
+                                               os.path.join(path, 'spherical.png'),
+                                               horz['pivot_y'])
+                elif ('TRACKS/PC/TR0' in id or 'TRACKS/SE/TR0' in id) and ('0.QFS' in id or '0M.QFS' in id):
+                    # build NFS2 horizon texture
+                    from PIL import Image, ImageOps
+                    import math
+                    source_images = []
+                    out_half_width = 0
+                    for i in range(0, 8):
+                        img = Image.open(os.path.join(path, f'000{i}.png'))
+                        source_images.append(img)
+                        out_half_width += img.width
+                    out_half_height = int(out_half_width / 2)
+                    out_image = Image.new(source_images[0].mode, (out_half_width * 2, out_half_height * 2), 0xff000000)
+                    w = 0
+                    for src in source_images:
+                        out_image.paste(src, (w, math.floor((out_image.height - src.height) / 2)))
+                        out_image.paste(src, (w, math.floor((out_image.height - src.height) / 2)))
+                        src_mirrored = ImageOps.mirror(src)
+                        out_image.paste(src_mirrored, (out_image.width - src.width - w,
+                                                       math.floor((out_image.height - src.height) / 2)))
+                        w += src.width
+                    out_image.save(os.path.join(path, f'spherical.png'))
+            except:
+                if self.settings.print_errors:
+                    traceback.print_exc()
+
         if skipped_resources:
             with open(os.path.join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
@@ -129,7 +154,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 "RGB",
                 src.size,
                 ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16,
-                    (transparent & 0xff00) >> 8)
+                 (transparent & 0xff00) >> 8)
             )
             img.paste(src, mask=(None if src.mode == 'RGB' else src.split()[3]))
             quantized_img = img.quantize(colors=max_colors_amount + 1)  # + transparent channel

@@ -601,9 +601,10 @@ class TrkMapSerializer(BaseFileSerializer):
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
+            (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
 
             def get_texture(tex):
-                return f"{texture_map[tex]['texture_number']:04}", texture_map[tex]['alignment']
+                return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
@@ -618,7 +619,7 @@ class TrkMapSerializer(BaseFileSerializer):
                           obj_name='map',
                           mtl_name='terrain',
                           mtl_texture_path_func=lambda x: f'textures/{x}.png',
-                          skip_obj_export=self.settings.maps__save_as_chunked)
+                          skip_obj_export=self.settings.maps__save_as_chunked and not self.settings.maps__save_terrain_collisions)
         scenes = [map_scene]
 
         # add road spline to map scene
@@ -715,6 +716,32 @@ class TrkMapSerializer(BaseFileSerializer):
             for mesh in chunk[0]:
                 mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
                 mesh.change_axes(new_z='y', new_y='z')
+        if self.settings.maps__save_terrain_collisions:
+            terrain_mesh = SubMesh()
+            terrain_mesh.name = 'terrain_collision_mesh'
+            for i, (meshes, chunk_pos) in enumerate(chunks):
+                for mesh in meshes:
+                    terrain_mesh.extend(mesh)
+            terrain_mesh.collapse_vertices()
+            map_scene.sub_meshes.append(terrain_mesh)
+            map_scene.extra_script += """
+
+bpy.ops.object.select_all(action='DESELECT')
+is_active_set = False
+objects = [x for x in bpy.data.objects if x.name == "terrain_collision_mesh"]
+for object in objects:
+    object.select_set(True)
+    if not is_active_set:
+        bpy.context.view_layer.objects.active = object
+        is_active_set = True
+if len(objects) > 0:
+    bpy.ops.rigidbody.objects_add(type='PASSIVE')
+for obj in bpy.context.selected_objects:
+    obj.rigid_body.collision_shape = 'MESH' 
+    obj.hide_render = True
+    obj.display_type = 'WIRE'   
+ 
+            """
         if self.settings.maps__save_as_chunked:
             for i, (meshes, chunk_pos) in enumerate(chunks):
                 for mesh in meshes:

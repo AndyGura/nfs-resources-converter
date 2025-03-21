@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FallbackBlockUiComponent } from './components/editor/library/fallback.block-ui/fallback.block-ui.component';
 import { CompoundBlockUiComponent } from './components/editor/library/compound.block-ui/compound.block-ui.component';
 import { StringBlockUiComponent } from './components/editor/library/string.block-ui/string.block-ui.component';
-import { IntegerBlockUiComponent } from './components/editor/library/integer.block-ui/integer.block-ui.component';
+import { NumberBlockUiComponent } from './components/editor/library/number.block-ui/number.block-ui.component';
 import { ArrayBlockUiComponent } from './components/editor/library/array.block-ui/array.block-ui.component';
 import { BitmapBlockUiComponent } from './components/editor/eac/bitmap.block-ui/bitmap.block-ui.component';
 import { PaletteBlockUiComponent } from './components/editor/eac/palette.block-ui/palette.block-ui.component';
@@ -58,6 +58,7 @@ import {
   NgxMatColorPickerModule,
 } from '@angular-material-components/color-picker';
 import { HexEditorModule } from 'ngx-hex-editor';
+import { SkipBlockUiComponent } from './components/editor/library/skip.block-ui/skip.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -67,7 +68,7 @@ import { HexEditorModule } from 'ngx-hex-editor';
     DataBlockUIDirective,
     CompoundBlockUiComponent,
     StringBlockUiComponent,
-    IntegerBlockUiComponent,
+    NumberBlockUiComponent,
     ArrayBlockUiComponent,
     BitmapBlockUiComponent,
     PaletteBlockUiComponent,
@@ -91,6 +92,7 @@ import { HexEditorModule } from 'ngx-hex-editor';
     EacsAudioBlockUiComponent,
     GeoGeometryBlockUiComponent,
     ObjViewerComponent,
+    SkipBlockUiComponent,
   ],
   imports: [
     BrowserModule,

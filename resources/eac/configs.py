@@ -3,11 +3,12 @@ from math import floor, ceil
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, DataBlock, EnumByteBlock
-from resources.eac.fields.numbers import RationalNumber, Nfs1TimeField
+from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, DataBlock, EnumByteBlock,
+                                 FixedPointBlock)
+from resources.eac.fields.numbers import Nfs1TimeField
 
 
-class TnfsTopSpeed(RationalNumber):
+class TnfsTopSpeed(FixedPointBlock):
 
     @property
     def schema(self) -> Dict:

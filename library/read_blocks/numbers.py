@@ -1,3 +1,4 @@
+import struct
 from io import BufferedReader, BytesIO
 from typing import Dict, Literal, List, Tuple, Any
 
@@ -8,7 +9,7 @@ from library.read_blocks.basic import DataBlock
 
 class IntegerBlock(DataBlock):
 
-    def __init__(self, length, is_signed: bool = False, byte_order: Literal["little", "big"] = "little", **kwargs):
+    def __init__(self, length: int, is_signed: bool = False, byte_order: Literal["little", "big"] = "little", **kwargs):
         super().__init__(**kwargs)
         self.length = length
         self.is_signed = is_signed
@@ -55,6 +56,80 @@ class IntegerBlock(DataBlock):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return data.to_bytes(self.length, byteorder=self.byte_order, signed=self.is_signed).ljust(self.length, b'\0')
+
+
+class FixedPointBlock(IntegerBlock):
+    @property
+    def schema(self) -> Dict:
+        super_schema = super().schema
+        descr = (f'{self.length * 8}-bit real number ({self.byte_order}-endian, '
+                 f'{"" if self.is_signed else "not "}signed), where last {self.fraction_bits} '
+                 f'bits is a fractional part')
+        if self.required_value is not None:
+            descr += f'. Always == {self.required_value}'
+        return {
+            **super_schema,
+            'min_value': float(super_schema['min_value'] / (1 << self.fraction_bits)),
+            'max_value': float(super_schema['max_value'] / (1 << self.fraction_bits)),
+            'value_interval': float(super_schema['value_interval'] / (1 << self.fraction_bits)),
+            'block_description': descr,
+        }
+
+    def __init__(self, fraction_bits: int, **kwargs):
+        super().__init__(**kwargs)
+        self.fraction_bits = fraction_bits
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
+        return float(super().read(buffer, ctx, name, read_bytes_amount) / (1 << self.fraction_bits))
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        data = max(min(round(data * (1 << self.fraction_bits)),
+                       ((1 << (self.length * 8 - 1)) if self.is_signed else (1 << (self.length * 8))) - 1),
+                   -(1 << (self.length * 8 - 1)) if self.is_signed else 0)
+        return super().write(data, ctx, name)
+
+
+class DecimalBlock(DataBlock):
+
+    def __init__(self, length: int, byte_order: Literal["little", "big"] = "little", **kwargs):
+        super().__init__(**kwargs)
+        if length not in [4, 8]:
+            raise Exception('DecimalsBlock supports only 4 or 8 bytes length')
+        self.length = length
+        self.byte_order = byte_order
+
+    @property
+    def schema(self) -> Dict:
+        descr = f'{"Float" if self.length == 4 else "Double"} number ({self.byte_order}-endian)'
+        if self.required_value is not None:
+            descr += f'. Always == {self.required_value}'
+        return {
+            **super().schema,
+            'block_description': descr,
+        }
+
+    @property
+    def size_doc_str(self):
+        return str(self.length)
+
+    def new_data(self):
+        return 0.0
+
+    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
+             read_bytes_amount=None):
+        raw = buffer.read(self.length)
+        if len(raw) < self.length:
+            raise EndOfBufferException(ctx=ctx)
+        f = 'f' if self.length == 4 else 'd'
+        return struct.unpack(f'<{f}' if self.byte_order == 'little' else f'>{f}', raw)[0]
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        return self.length
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        f = 'f' if self.length == 4 else 'd'
+        return struct.pack(f'<{f}' if self.byte_order == 'little' else f'>{f}', data)
 
 
 class BitFlagsBlock(IntegerBlock):

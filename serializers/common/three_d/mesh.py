@@ -1,5 +1,6 @@
 import math
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from typing import Tuple, List
 
 
@@ -41,13 +42,74 @@ class BaseMesh(ABC):
 
     # after deleting polygons should call this function
     def remove_orphaned_vertices(self):
-        orphans = [vi for vi in range(len(self.vertices)) if
-                   vi not in [element for sublist in self.polygons for element in sublist]]
+        usage_map = [False] * len(self.vertices)
+        for p in self.polygons:
+            for vi in p:
+                usage_map[vi] = True
+        orphans = [vi for vi, used in enumerate(usage_map) if not used]
         self.vertices = [v for (i, v) in enumerate(self.vertices) if i not in orphans]
         self.vertex_uvs = [v for (i, v) in enumerate(self.vertex_uvs) if i not in orphans]
-        for removed_index in orphans[::-1]:
+        for removed_index in orphans:
             for j, p in enumerate(self.polygons):
                 self.polygons[j] = [idx if idx <= removed_index else idx - 1 for idx in p]
+
+    def extend(self, mesh: 'BaseMesh'):
+        v_offset = (self.pivot_offset[0] - mesh.pivot_offset[0],
+                    self.pivot_offset[1] - mesh.pivot_offset[1],
+                    self.pivot_offset[2] - mesh.pivot_offset[2])
+        v_index_surplus = len(self.vertices)
+        self.vertices.extend([
+            [v[0] + v_offset[0], v[1] + v_offset[1], v[2] + v_offset[2]] for v in mesh.vertices
+        ])
+        self.polygons.extend([
+            [v + v_index_surplus for v in p] for p in mesh.polygons
+        ])
+        self.vertex_uvs.extend(mesh.vertex_uvs)
+
+    def collapse_vertices(self):
+        self.remove_orphaned_vertices()
+        new_vertices = []
+        new_uvs = []
+
+        # spatial hash
+        grid_size = 0.01
+        grid = defaultdict(list)
+
+        def get_key(v):
+            return (int(v[0] // grid_size), int(v[1] // grid_size), int(v[2] // grid_size))
+
+        # smart references to vertex for fast polygons migration
+        self_vertices_map = [[i, v] for (i, v) in enumerate(self.vertices)]
+        self_polygons_map = [[self_vertices_map[vi] for vi in p] for p in self.polygons]
+
+        for i, vi in enumerate(self.vertices):
+            key = get_key(vi)
+            existing_v_index = None
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    for dz in [-1, 0, 1]:
+                        neighbor_key = (key[0] + dx, key[1] + dy, key[2] + dz)
+                        for (j, vj) in grid[neighbor_key]:
+                            if abs(vi[0] - vj[0]) < 0.01 and abs(vi[1] - vj[1]) < 0.01 and abs(vi[2] - vj[2]) < 0.01:
+                                existing_v_index = j
+                                break
+                        if existing_v_index is not None:
+                            break
+                    if existing_v_index is not None:
+                        break
+                if existing_v_index is not None:
+                    break
+            if existing_v_index is None:
+                self_vertices_map[i][0] = len(new_vertices)
+                new_vertices.append(vi)
+                new_uvs.append(self.vertex_uvs[i])
+                grid[key].append((i, vi))
+            else:
+                self_vertices_map[i][0] = self_vertices_map[existing_v_index][0]
+                self_vertices_map[i][1] = None
+        self.vertices = new_vertices
+        self.vertex_uvs = new_uvs
+        self.polygons = [[vi for (vi, _) in p] for p in self_polygons_map]
 
 
 # Mesh with one single texture
@@ -130,3 +192,7 @@ class Mesh(BaseMesh):
             obj_texts.append(obj)
             face_index_increment += fii
         return '\n\n'.join(obj_texts), face_index_increment
+
+    def extend(self, mesh: 'Mesh'):
+        super().extend(mesh)
+        self.texture_ids.extend(mesh.texture_ids)

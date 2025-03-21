@@ -7,9 +7,17 @@ def add_doc_numbers(a, b):
     except ValueError:
         if a == '0':
             return b
-        elif b == '0':
+        if b == '0':
             return a
-        elif '..' in b or '..' in a:
+        if a.isdigit() or b.isdigit():
+            expression = a if b.isdigit() else b
+            integer = int(b if b.isdigit() else a)
+            items = expression.split(' + ')
+            for i, item in enumerate(items):
+                if item.isdigit():
+                    items[i] = str(int(item) + integer)
+                    return ' + '.join(items)
+        if '..' in b or '..' in a:
             [mnld, mxld] = a.split('..') if ('..' in a) else [a, a]
             [mnsd, mxsd] = b.split('..') if ('..' in b) else [b, b]
             return f'{add_doc_numbers(mnld, mnsd)}..{add_doc_numbers(mxld, mxsd)}'

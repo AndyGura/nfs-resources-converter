@@ -42,12 +42,16 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
         if isinstance(instance, ArrayBlock):
+            if isinstance(instance, LengthPrefixedArrayBlock):
+                descr += f'<br/>Length field type: {instance.length_block.schema["block_description"]}'
             if not isinstance(instance.child, CompoundBlock) or instance.child.schema["inline_description"]:
                 size = render_value_doc_str(instance.child.size_doc_str)
                 descr += f'<br/>Item size: {size} ' + ('byte' if size == '1' else 'bytes')
             descr += f'<br/>Item type: {render_type(instance.child, possible_blocks_filter)}'
         return descr
     name = instance.__class__.__name__.replace("Resource", "")
+    if possible_blocks_filter and instance.__class__ not in possible_blocks_filter:
+        print(f"WARNING: Block class {instance.__class__.__name__} is referenced but not presented in the file")
     return f'[{name}](#{name.lower()})'
 
 
@@ -144,7 +148,7 @@ EXPORT_RESOURCES = {
     'nfs2': {
         'file_name': 'NFS2.md',
         'title': 'NFS2 file specs',
-        'file_list': f"""**\*.COL** track additional data. {render_type(maps.TrkMapCol())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
         
 **\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
         
@@ -173,22 +177,24 @@ EXPORT_RESOURCES = {
                 geometries.GeoPolygon(),
             ],
             'Maps': [
-                maps.TrkMapCol(),
+                # TRK
                 maps.TrkMap(),
                 maps.TrkSuperBlock(),
                 maps.TrkBlock(),
-                maps.TrkExtraBlock(),
+                # COL
+                maps.MapColFile(),
+                maps.ColExtraBlock(),
                 maps.TexturesMapExtraDataRecord(),
-                maps.MedianExtraDataRecord(),
                 maps.PolygonMapExtraDataRecord(),
-                maps.PropExtraDataRecord(),
+                maps.MedianExtraDataRecord(),
                 maps.AnimatedPropPosition(),
                 maps.AnimatedPropPositionFrame(),
+                maps.PropExtraDataRecord(),
                 maps.PropDescriptionExtraDataRecord(),
                 maps.LanesExtraDataRecord(),
                 maps.RoadVectorsExtraDataRecord(),
                 maps.CollisionExtraDataRecord(),
-                maps.TrkPolygon(),
+                maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],
@@ -218,7 +224,7 @@ EXPORT_RESOURCES = {
     'nfs2se': {
         'file_name': 'NFS2_SE.md',
         'title': 'NFS2SE file specs',
-        'file_list': f"""**\*.COL** track additional data. {render_type(maps.TrkMapCol())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
         
 **\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
@@ -243,22 +249,24 @@ EXPORT_RESOURCES = {
                 geometries.GeoPolygon(),
             ],
             'Maps': [
-                maps.TrkMapCol(),
+                # TRK
                 maps.TrkMap(),
                 maps.TrkSuperBlock(),
                 maps.TrkBlock(),
-                maps.TrkExtraBlock(),
+                # COL
+                maps.MapColFile(),
+                maps.ColExtraBlock(),
                 maps.TexturesMapExtraDataRecord(),
-                maps.MedianExtraDataRecord(),
                 maps.PolygonMapExtraDataRecord(),
-                maps.PropExtraDataRecord(),
+                maps.MedianExtraDataRecord(),
                 maps.AnimatedPropPosition(),
                 maps.AnimatedPropPositionFrame(),
+                maps.PropExtraDataRecord(),
                 maps.PropDescriptionExtraDataRecord(),
                 maps.LanesExtraDataRecord(),
                 maps.RoadVectorsExtraDataRecord(),
                 maps.CollisionExtraDataRecord(),
-                maps.TrkPolygon(),
+                maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],
@@ -291,7 +299,9 @@ EXPORT_RESOURCES = {
     'nfs3': {
         'file_name': 'NFS3.md',
         'title': 'NFS 3 Hot Pursuit file specs',
-        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
+        
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
@@ -306,8 +316,22 @@ EXPORT_RESOURCES = {
             ],
             # 'Geometries': [
             # ],
-            # 'Maps': [
-            # ],
+            'Maps': [
+                # COL
+                maps.MapColFile(),
+                maps.ColExtraBlock(),
+                maps.TexturesMapExtraDataRecord(),
+                maps.PolygonMapExtraDataRecord(),
+                maps.MedianExtraDataRecord(),
+                maps.AnimatedPropPosition(),
+                maps.AnimatedPropPositionFrame(),
+                maps.PropExtraDataRecord(),
+                maps.PropDescriptionExtraDataRecord(),
+                maps.LanesExtraDataRecord(),
+                maps.RoadVectorsExtraDataRecord(),
+                maps.CollisionExtraDataRecord(),
+                maps.ColPolygon(),
+            ],
             # 'Physics': [
             # ],
             'Bitmaps': [
@@ -493,6 +517,7 @@ Did not find what you need or some given data is wrong? Please submit an
                         f'{render_value_doc_str(field.size_doc_str)} | '
                         f'{render_type(field, possible_blocks_filter)} | '
                         f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
+
 
             for key, field in resource.field_blocks:
                 extras = resource.field_extras_map[key]

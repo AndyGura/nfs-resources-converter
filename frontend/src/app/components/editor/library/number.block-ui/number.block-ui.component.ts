@@ -2,12 +2,12 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { GuiComponentInterface } from '../../gui-component.interface';
 
 @Component({
-  selector: 'app-integer-block-ui',
-  templateUrl: './integer.block-ui.component.html',
-  styleUrls: ['./integer.block-ui.component.scss'],
+  selector: 'app-number-block-ui',
+  templateUrl: './number.block-ui.component.html',
+  styleUrls: ['./number.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class IntegerBlockUiComponent implements GuiComponentInterface {
+export class NumberBlockUiComponent implements GuiComponentInterface {
   @Input() resource: Resource | null = null;
 
   @Input()
