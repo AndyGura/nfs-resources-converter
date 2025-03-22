@@ -785,7 +785,10 @@ class FrdMapSerializer(BaseFileSerializer):
             (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
 
             def get_texture(tex):
-                return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
+                try:
+                    return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
+                except IndexError:
+                    return f"{tex:04}", 0
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
@@ -830,11 +833,17 @@ class FrdMapSerializer(BaseFileSerializer):
             model = Mesh()
             model.name = f'block_{block_i}'
             pivot = block['position']
-            model.vertices = [[v['x'], v['y'], v['z']] for v in block['vertices']]
-            model.vertex_uvs = [[0, 0]] * len(model.vertices)
             for p in polygon_block['polygons'][0]['data']['data']:
-                model.polygons.append(p['vertices'])
-            model.texture_ids = [0] * len(model.polygons)
+                texture_name, texture_alignment = get_texture(p['tex_id'])
+                uvs = get_uvs(texture_alignment)
+                base_idx = len(model.vertices)
+                for i, v_index in enumerate(p['vertices']):
+                    v = block['vertices'][v_index]
+                    model.vertices.append([v['x'], v['y'], v['z']])
+                    model.vertex_uvs.append(uvs[i])
+                model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
+                model.texture_ids.append(texture_name)
+                texture_names.add(texture_name)
             sub_meshes = model.split_by_texture_ids()
             chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
         map_scene.mtl_texture_names = list(texture_names)

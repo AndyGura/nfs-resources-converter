@@ -60,6 +60,7 @@ import {
 import { HexEditorModule } from 'ngx-hex-editor';
 import { SkipBlockUiComponent } from './components/editor/library/skip.block-ui/skip.block-ui.component';
 import { NavigationBarComponent } from './components/navigation-bar/navigation-bar.component';
+import { FrdMapBlockUiComponent } from './components/editor/eac/frd-map.block-ui/frd-map.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -83,6 +84,7 @@ import { NavigationBarComponent } from './components/navigation-bar/navigation-b
     ConfirmDialogComponent,
     TriMapBlockUiComponent,
     TrkMapBlockUiComponent,
+    FrdMapBlockUiComponent,
     RunCustomActionDialogComponent,
     OripGeometryBlockUiComponent,
     MinimapComponent,
