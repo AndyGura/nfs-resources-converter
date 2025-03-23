@@ -20,12 +20,13 @@
         <mat-icon fontIcon="save"></mat-icon>
     </button>
 </mat-toolbar>
+<app-navigation-bar></app-navigation-bar>
 <div id="content-wrapper">
     <div class="scroll-bounds-snapper"></div>
     <app-editor [resource]="(mainService.customActionRunning$ | async)
     ? null
-    : ((mainService.resource$ | async) || (mainService.error$ | async))"
-                [hideBlockActions]="true"></app-editor>
+    : ((navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async))"
+                [hideBlockActions]="(navigation.navigationPath$ | async)?.length == 0"></app-editor>
     <div id="bmac">
         <a href="https://www.buymeacoffee.com/andygura" target="_blank"><img
                 src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee"

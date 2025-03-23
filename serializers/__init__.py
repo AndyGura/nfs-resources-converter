@@ -8,7 +8,7 @@ from .bitmaps import BitmapSerializer, BitmapWithPaletteSerializer
 from .fonts import FfnFontSerializer
 from .geometries import OripGeometrySerializer, GeoGeometrySerializer
 from .json import JsonSerializer
-from .maps import TriMapSerializer, TrkMapSerializer
+from .maps import TriMapSerializer, TrkMapSerializer, FrdMapSerializer
 from .misc_serializers import ShpiTextSerializer
 from .palettes import PaletteSerializer
 from .videos import FfmpegSupportedVideoSerializer

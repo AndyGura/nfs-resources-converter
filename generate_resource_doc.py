@@ -303,6 +303,8 @@ EXPORT_RESOURCES = {
         
 **\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
+**\*.FRD** main track file. {render_type(maps.FrdMap())}
+
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
 **\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
@@ -317,6 +319,22 @@ EXPORT_RESOURCES = {
             # 'Geometries': [
             # ],
             'Maps': [
+                # FRD
+                maps.FrdMap(),
+                maps.FrdBlock(),
+                maps.FrdPositionBlock(),
+                maps.FrdBlockPolygonData(),
+                maps.FrdBlockVroadData(),
+                maps.FrdPolyBlock(),
+                maps.FrdPolygonsBlock(),
+                maps.FrdPolygonRecord(),
+                maps.FrdPolyObjBlock(),
+                maps.FrdPolyObjPolygonsBlock(),
+                maps.ExtraObjectBlock(),
+                maps.ExtraObjectDataCrossType1(),
+                maps.AnimData(),
+                maps.ExtraObjectDataCrossType4(),
+                maps.TextureBlock(),
                 # COL
                 maps.MapColFile(),
                 maps.ColExtraBlock(),

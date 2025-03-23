@@ -12,6 +12,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
 import { MainService } from '../../../../services/main.service';
 import { filter, Subject, takeUntil } from 'rxjs';
+import { NavigationService } from '../../../../services/navigation.service';
 
 @Component({
   selector: 'app-array-block-ui',
@@ -25,7 +26,6 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   @Input()
   set resource(value: Resource | null) {
     this._resource = value;
-    this.showAsCollapsable = this._resource?.data?.length > 5;
     this.buildChildren();
     this.renderPage(0, this.minPageSize);
     this.updatePageIndexes();
@@ -63,7 +63,6 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     return this._resource?.name || null;
   }
 
-  showAsCollapsable: boolean = false;
   renderContents: boolean = false;
   contentsTimeout: number | undefined;
 
@@ -79,7 +78,11 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(public main: MainService, private readonly cdr: ChangeDetectorRef) {}
+  constructor(
+    public main: MainService,
+    private readonly cdr: ChangeDetectorRef,
+    public readonly navigation: NavigationService,
+  ) {}
 
   ngAfterViewInit(): void {
     this.main.dataBlockChange$

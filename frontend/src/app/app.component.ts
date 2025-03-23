@@ -5,6 +5,7 @@ import { MainService } from './services/main.service';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { firstValueFrom } from 'rxjs';
+import { NavigationService } from './services/navigation.service';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +18,7 @@ export class AppComponent {
     readonly eelDelegate: EelDelegateService,
     readonly mainService: MainService,
     readonly dialog: MatDialog,
+    readonly navigation: NavigationService,
     private readonly snackBar: MatSnackBar,
     private readonly cdr: ChangeDetectorRef,
   ) {}

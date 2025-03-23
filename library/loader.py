@@ -26,6 +26,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif file_path.upper().endswith('.GEO'):
             from resources.eac.geometries import GeoGeometry
             return GeoGeometry
+        elif file_path.upper().endswith('.FRD'):
+            from resources.eac.maps.nfs3 import FrdMap
+            return FrdMap
     if header_str:
         if file_path and header_str == '#ver' and file_path.endswith('INFO'):
             from resources.eac.misc import DashDeclarationFile

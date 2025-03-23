@@ -28,6 +28,7 @@ import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-ar
 import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
+import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -68,6 +69,8 @@ export class EditorComponent implements OnDestroy {
     // NFS2 blocks
     GeoGeometry: GeoGeometryBlockUiComponent,
     TrkMap: TrkMapBlockUiComponent,
+    // NFS3 blocks
+    FrdMap: FrdMapBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;

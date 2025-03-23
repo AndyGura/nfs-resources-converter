@@ -7,8 +7,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  BytesBlock,
                                  ArrayBlock,
-                                 DataBlock,
-                                 FixedPointBlock)
+                                 DataBlock, FixedPointBlock)
 from resources.eac.fields.misc import Point3D
 from resources.eac.maps.nfs_common import ColPolygon, ColExtraBlock
 

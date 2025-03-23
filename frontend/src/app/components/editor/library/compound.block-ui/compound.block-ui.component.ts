@@ -10,6 +10,8 @@ import {
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { MainService } from '../../../../services/main.service';
 import { filter, Subject, takeUntil } from 'rxjs';
+import { NavigationService } from '../../../../services/navigation.service';
+import { joinId } from '../../../../utils/join-id';
 
 @Component({
   selector: 'app-compound-block-ui',
@@ -59,7 +61,7 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(public main: MainService) {}
+  constructor(public readonly main: MainService, public readonly navigation: NavigationService) {}
 
   ngAfterViewInit(): void {
     this.main.dataBlockChange$
@@ -84,4 +86,6 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
     this.destroyed$.next();
     this.destroyed$.complete();
   }
+
+  protected readonly joinId = joinId;
 }
