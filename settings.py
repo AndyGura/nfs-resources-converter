@@ -62,7 +62,7 @@ maps__save_spherical_skybox_texture = True
 # If True, bakes map props to the scene. False puts dummy object to scene with info about what prop should be placed there
 # TNFS note: Props will be retrieved from ../ETRACKFM/<map_id>_001.FAM file
 # NFS2 note: this option always turned on for NFS2 tracks currently
-maps__add_props_to_obj = False
+maps__add_props_to_obj = True
 
 # saves obj file for each 3D scene. obj-s are used under the hood, so if true it is even faster, we do not delete them
 geometry__save_obj = True
