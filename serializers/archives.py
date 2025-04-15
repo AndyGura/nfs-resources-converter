@@ -3,7 +3,7 @@ import traceback
 
 import serializers
 from library.exceptions import DataIntegrityException
-from library.utils import format_exception
+from library.utils import format_exception, path_join
 from library.utils.id import join_id
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock, Bitmap8Bit
@@ -58,7 +58,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                         while save_image_names.get(file_name):
                             file_name = f'{original_file_name}{i}'
                             i += 1
-                    serializer.serialize(item_data, os.path.join(path, file_name),
+                    serializer.serialize(item_data, path_join(path, file_name),
                                          block=item_block,
                                          id=join_id(id, 'children', name, 'data'))
                     save_image_names[file_name] = True
@@ -67,7 +67,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if not self.settings.images__save_images_only:
-            with open(os.path.join(path, 'positions.txt'), 'w') as f:
+            with open(path_join(path, 'positions.txt'), 'w') as f:
                 for name, item in [(name, data) for name, data, block in items if isinstance(block, AnyBitmapBlock)]:
                     f.write(f"{name}: {item['x']}, {item['y']}\n")
         if self.settings.maps__save_spherical_skybox_texture:
@@ -77,8 +77,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     horz = next(x for name, x, _ in items if name == 'horz')
                     from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
                     nfs1_panorama_to_spherical(id[id.index('.FAM') - 7:id.index('.FAM') - 4],
-                                               os.path.join(path, 'horz.png'),
-                                               os.path.join(path, 'spherical.png'),
+                                               path_join(path, 'horz.png'),
+                                               path_join(path, 'spherical.png'),
                                                horz['pivot_y'])
                 elif ('TRACKS/PC/TR0' in id or 'TRACKS/SE/TR0' in id) and ('0.QFS' in id or '0M.QFS' in id):
                     # build NFS2 horizon texture
@@ -87,7 +87,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     source_images = []
                     out_half_width = 0
                     for i in range(0, 8):
-                        img = Image.open(os.path.join(path, f'000{i}.png'))
+                        img = Image.open(path_join(path, f'000{i}.png'))
                         source_images.append(img)
                         out_half_width += img.width
                     out_half_height = int(out_half_width / 2)
@@ -100,13 +100,12 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                         out_image.paste(src_mirrored, (out_image.width - src.width - w,
                                                        math.floor((out_image.height - src.height) / 2)))
                         w += src.width
-                    out_image.save(os.path.join(path, f'spherical.png'))
+                    out_image.save(path_join(path, f'spherical.png'))
             except:
-                if self.settings.print_errors:
-                    traceback.print_exc()
+                pass
 
         if skipped_resources:
-            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
+            with open(path_join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)
 
@@ -129,7 +128,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         from serializers.bitmaps import BitmapWithPaletteSerializer
         individual_palettes = []
         file_names = [x for x in os.listdir(path)]
-        images = [Image.open(os.path.join(path, x)) for x in file_names]
+        images = [Image.open(path_join(path, x)) for x in file_names]
         # find unused color for marking transparency
         all_colors = set()
         for src in images:
@@ -192,7 +191,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                               isinstance(child_field.possible_blocks[i], Bitmap8Bit))
         for name in file_names:
             alias = name[:-4]
-            img = image_serializer.deserialize(os.path.join(path, name),
+            img = image_serializer.deserialize(path_join(path, name),
                                                join_id(id, f'children/{alias}'),
                                                img_block,
                                                palette=palette)
@@ -238,14 +237,14 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 skip_next_shpi = True
             try:
                 serializer = serializers.get_serializer(item_block, item_data)
-                serializer.serialize(item_data, os.path.join(path, name), block=item_block,
+                serializer.serialize(item_data, path_join(path, name), block=item_block,
                                      id=join_id(id, 'children', str(i), 'data'))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
-            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
+            with open(path_join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)
 
@@ -269,13 +268,13 @@ class SoundBankSerializer(BaseFileSerializer):
         for name, item in [(name, item) for name, item in items]:
             try:
                 serializer = serializers.get_serializer(item_block, item)
-                serializer.serialize(item, os.path.join(path, name), id=join_id(id, 'children', name))
+                serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', name))
             except Exception as ex:
                 if self.settings.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
-            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
+            with open(path_join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)
 
@@ -305,7 +304,7 @@ class BigfArchiveSerializer(BaseFileSerializer):
                     while save_image_names.get(file_name):
                         file_name = f'{original_file_name}{i}'
                         i += 1
-                serializer.serialize(item_data, os.path.join(path, file_name),
+                serializer.serialize(item_data, path_join(path, file_name),
                                      block=item_block,
                                      id=join_id(id, 'children', str(i), 'data'))
                 save_image_names[file_name] = True
@@ -314,6 +313,6 @@ class BigfArchiveSerializer(BaseFileSerializer):
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
-            with open(os.path.join(path, 'skipped.txt'), 'w') as f:
+            with open(path_join(path, 'skipped.txt'), 'w') as f:
                 for item in skipped_resources:
                     f.write("%s\t\t%s\n" % item)

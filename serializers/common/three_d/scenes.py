@@ -4,6 +4,7 @@ from string import Template
 from typing import Callable
 from typing import List
 
+from library.utils import path_join
 from .blender_scripts import get_blender_save_script, run_blender
 from .build_blender_scene import construct_blender_export_script
 from .mesh import SubMesh
@@ -97,7 +98,7 @@ $extra_script
 
     for scene in scenes:
         if not scene.skip_obj_export:
-            with open(os.path.join(output_path, f'{scene.obj_name}.obj'), 'w') as f:
+            with open(path_join(output_path, f'{scene.obj_name}.obj'), 'w') as f:
                 if scene.mtl_name:
                     f.write(f'mtllib {scene.mtl_name}.mtl')
                 face_index_increment = 1
@@ -106,13 +107,13 @@ $extra_script
                     f.write(obj)
                     face_index_increment += fii
         if scene.dummies or scene.curves:
-            with open(os.path.join(output_path, f'{scene.obj_name}_extra.json'), 'w') as f:
+            with open(path_join(output_path, f'{scene.obj_name}_extra.json'), 'w') as f:
                 f.write(json.dumps({
                     'dummies': scene.dummies,
                     'curves': scene.curves
                 }, indent=4, sort_keys=True))
         if scene.mtl_name and not scene.skip_mtl_export:
-            with open(os.path.join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
+            with open(path_join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
                 for texture_name in sorted(list({x for x in scene.mtl_texture_names})):
                     f.write(mtl_entry_template.substitute({
                         'texture_name': texture_name,
@@ -129,20 +130,20 @@ $extra_script
             })
             if settings.geometry__export_to_gg_web_engine:
                 script += '\n' + construct_blender_export_script(
-                    file_name=os.path.join(os.getcwd(), output_path, scene.name),
+                    file_name=path_join(os.getcwd(), output_path, scene.name),
                     export_materials='EXPORT' if scene.bake_textures else 'NONE')
             if settings.geometry__save_blend:
                 script += '\n\n' + get_blender_save_script(
-                    out_blend_name=os.path.join(os.getcwd(), output_path, scene.name))
+                    out_blend_name=path_join(os.getcwd(), output_path, scene.name))
         run_blender(path=output_path, script=script)
 
     if not settings.geometry__save_obj:
         for scene in scenes:
             if not scene.skip_obj_export:
-                os.unlink(os.path.join(output_path, scene.obj_name + '.obj'))
+                os.unlink(path_join(output_path, scene.obj_name + '.obj'))
             try:
-                os.unlink(os.path.join(output_path, scene.obj_name + '_extra.json'))
+                os.unlink(path_join(output_path, scene.obj_name + '_extra.json'))
             except:
                 pass
             if scene.mtl_name and not scene.skip_mtl_export:
-                os.unlink(os.path.join(output_path, scene.mtl_name + '.mtl'))
+                os.unlink(path_join(output_path, scene.mtl_name + '.mtl'))

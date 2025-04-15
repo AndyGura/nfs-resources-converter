@@ -1,8 +1,7 @@
-import os
 from collections import defaultdict
-from os.path import join
 
 from library.exceptions import DataIntegrityException
+from library.utils import path_join
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
@@ -136,7 +135,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer
-        ShpiArchiveSerializer().serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id,
+        ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
                                           textures_shpi_block)
         export_scenes([scene], path, self.settings)
 
@@ -154,7 +153,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
             idx = int(local_id[:local_id.index('/')])
             (_, _, viv_data), _ = require_resource(id[:id.find('__children')])
             qfs_name = viv_data['children_aliases'][idx].upper()
-            qfs_id = join(id[:id.find('CARDATA.VIV')], f'../../CARMODEL/PC/{qfs_name[:-4]}.QFS')
+            qfs_id = path_join(id[:id.find('CARDATA.VIV')], f'../../CARMODEL/PC/{qfs_name[:-4]}.QFS')
         else:
             # NFS2
             qfs_id = id[:-4] + '.QFS'
@@ -225,6 +224,6 @@ class GeoGeometrySerializer(BaseFileSerializer):
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer
-        ShpiArchiveSerializer().serialize(textures_shpi_data, os.path.join(path, 'assets/'), shpi_id,
+        ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
                                           textures_shpi_block)
         export_scenes([scene], path, self.settings)

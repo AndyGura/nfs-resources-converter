@@ -1,6 +1,5 @@
-import os
-
 from library.read_blocks import DataBlock
+from library.utils import path_join
 from serializers import BaseFileSerializer, BitmapSerializer
 
 
@@ -15,9 +14,9 @@ class FfnFontSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, id=id, block=None)
         image_serializer = BitmapSerializer()
-        image_serializer.serialize(data["bitmap"], os.path.join(path, 'bitmap'),
+        image_serializer.serialize(data["bitmap"], path_join(path, 'bitmap'),
                                    block=block.get_child_block_with_data(data, 'bitmap')[0])
-        with open(os.path.join(path, 'font.fnt'), 'w') as file:
+        with open(path_join(path, 'font.fnt'), 'w') as file:
             file.write(f'info face="{id.split("/")[-1]}" size={data["font_size"]}\n')
             file.write(f'common lineHeight={data["line_height"]}\n')
             file.write(f'page id=0 file="bitmap.png"\n')
@@ -32,9 +31,9 @@ class FfnFontSerializer(BaseFileSerializer):
         import re
         data = block.new_data()
         image_serializer = BitmapSerializer()
-        data['bitmap'] = image_serializer.deserialize(os.path.join(path, 'bitmap'),
+        data['bitmap'] = image_serializer.deserialize(path_join(path, 'bitmap'),
                                                       block=block.get_child_block_with_data(data, 'bitmap')[0])
-        with open(os.path.join(path, 'font.fnt')) as f:
+        with open(path_join(path, 'font.fnt')) as f:
             lines = [l.rstrip() for l in f]
             info_part = '\n'.join([l for l in lines if not l.startswith('char ')])
             data['font_size'] = int(re.search(r"\ssize=(\d+)", info_part).groups()[0])

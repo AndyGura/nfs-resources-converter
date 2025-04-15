@@ -4,6 +4,8 @@ import tempfile
 
 from string import Template
 
+from library.utils import path_join
+
 __blender_script_template = Template("""
 import json
 from rna_prop_ui import rna_idprop_value_to_python
@@ -166,7 +168,7 @@ if __name__ == "__main__":
     for file in files:
         if file.startswith('./'):
             file = file[2:]
-        full_path = os.path.join(os.getcwd(), file)
+        full_path = path_join(os.getcwd(), file)
         script += '\n\n\n' + construct_blender_export_script(src_file=full_path,
                                                              file_name=full_path[:full_path.rindex('.')],
                                                              export_materials="NONE" if skip_textures else "EXPORT")

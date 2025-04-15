@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 import settings
 from library import require_file
-from library.utils import format_exception
+from library.utils import format_exception, path_join
 from serializers import get_serializer
 
 
@@ -37,9 +37,9 @@ def convert_all(path, out_path):
     files_to_open = []
     if os.path.isdir(path):
         for subdir, dirs, files in os.walk(path):
-            files_to_open += [os.path.join(subdir, f) for f in files]
+            files_to_open += [path_join(subdir, f) for f in files]
     else:
-        files_to_open = [str(path)]
+        files_to_open = [str(path).replace('\\', '/')]
 
     processes = cpu_count() if settings.multiprocess_processes_count == 0 else settings.multiprocess_processes_count
     with Pool(processes=processes) as pool:
@@ -60,7 +60,7 @@ def convert_all(path, out_path):
             path_suffix = path[len(base_input_path):]
             if path_suffix.startswith('/'):
                 path_suffix = path_suffix[1:]
-            skipped_txt_output_path = os.path.join(out_path, path_suffix, 'skipped.txt')
+            skipped_txt_output_path = path_join(out_path, path_suffix, 'skipped.txt')
             os.makedirs(os.path.dirname(skipped_txt_output_path), exist_ok=True)
             skipped.sort(key=lambda x: x[0])
             with open(skipped_txt_output_path, 'w') as f:

@@ -1,4 +1,3 @@
-import os
 import tempfile
 import traceback
 from copy import deepcopy
@@ -13,6 +12,7 @@ import eel
 import settings
 from library import require_file, require_resource
 from library.loader import clear_file_cache
+from library.utils import path_join
 from library.utils.file_utils import remove_file_or_directory
 from library.utils.file_utils import start_file
 from serializers import get_serializer
@@ -93,7 +93,7 @@ def run_gui_editor(file_path):
         def open_file_with_system_app(path: str):
             if path.startswith('/') or path.startswith('\\'):
                 path = path[1:]
-            start_file(os.path.join(static_path, path))
+            start_file(path_join(static_path, path))
 
         @eel.expose
         def save_file(path: str, changes: Dict):
@@ -115,7 +115,7 @@ def run_gui_editor(file_path):
         def serialize_resource(id: str, settings_patch={}):
             (_, res_block, res), (_, top_level_block, top_level_res) = require_resource(id)
             serializer = get_serializer(res_block, res)
-            path = os.path.join(static_path, 'resources', *id.split('/'))
+            path = path_join(static_path, 'resources', *id.split('/'))
             if settings_patch:
                 serializer.patch_settings(settings_patch)
             serializer.serialize(res, path, id, res_block)
@@ -137,7 +137,7 @@ def run_gui_editor(file_path):
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
             serializer = get_serializer(res_block, resource)
-            path = os.path.join(static_path, 'resources_edit', *id.split('/'))
+            path = path_join(static_path, 'resources_edit', *id.split('/'))
             reverse_flag = serializer.setup_for_reversible_serialization()
             serializer.serialize(resource, path, id, res_block)
             normal_slashes_path = path.replace('\\', '/')
@@ -153,7 +153,7 @@ def run_gui_editor(file_path):
             resource = deepcopy(resource)
             __apply_delta_to_resource(id, resource, changes)
             serializer = get_serializer(res_block, resource)
-            path = os.path.join(static_path, 'resources_tmp', *id.split('/'))
+            path = path_join(static_path, 'resources_tmp', *id.split('/'))
             if settings_patch:
                 serializer.patch_settings(settings_patch)
             serializer.serialize(resource, path, id, res_block)
@@ -168,13 +168,13 @@ def run_gui_editor(file_path):
         def deserialize_resource(id: str):
             (id, res_block, resource), _ = require_resource(id)
             serializer = get_serializer(res_block, resource)
-            path = os.path.join(static_path, 'resources_edit', *id.split('/'))
+            path = path_join(static_path, 'resources_edit', *id.split('/'))
             updated_data = serializer.deserialize(path, id, res_block)
             resource.clear()
             resource.update(updated_data)
-            remove_file_or_directory(os.path.join(static_path, 'resources', *id.split('/')))
-            remove_file_or_directory(os.path.join(static_path, 'resources_tmp', *id.split('/')))
-            remove_file_or_directory(os.path.join(static_path, 'resources_edit', *id.split('/')))
+            remove_file_or_directory(path_join(static_path, 'resources', *id.split('/')))
+            remove_file_or_directory(path_join(static_path, 'resources_tmp', *id.split('/')))
+            remove_file_or_directory(path_join(static_path, 'resources_edit', *id.split('/')))
             return render_data(resource)
 
     eel.init(static_path)

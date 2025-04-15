@@ -1,11 +1,11 @@
 import json
 import math
-import os
 import traceback
 from copy import deepcopy
 from string import Template
 from typing import List, Dict
 
+from library.utils import path_join
 from resources.eac.maps import RoadSplinePoint
 from resources.eac.utils import rotate_list
 from serializers import BaseFileSerializer
@@ -386,9 +386,9 @@ for obj in bpy.context.selected_objects:
             else:
                 from library import require_resource
                 (prop_id, prop_block, prop_data), _ = require_resource(
-                    os.path.join('/'.join(id.split('/')[:-2]),
-                                 f'ETRACKFM/{id.split("/")[-1][:3]}_001.FAM__children/3/data/children'
-                                 f'/{descr["data"]["data"]["resource_id"]}/data/children/0/data')
+                    path_join('/'.join(id.split('/')[:-2]),
+                              f'ETRACKFM/{id.split("/")[-1][:3]}_001.FAM__children/3/data/children'
+                              f'/{descr["data"]["data"]["resource_id"]}/data/children/0/data')
                 )
                 from serializers import OripGeometrySerializer
                 _, shpi_block, shpi_data, sub_models = OripGeometrySerializer().build_mesh(prop_data, prop_id)
@@ -763,7 +763,7 @@ for obj in bpy.context.selected_objects:
         try:
             (shpi_id, shpi_block, shpi_data), _ = require_resource(id[:-4] + '0.QFS__data')
             from serializers import ShpiArchiveSerializer
-            ShpiArchiveSerializer().serialize(shpi_data, os.path.join(path, 'textures/'), shpi_id, shpi_block)
+            ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
@@ -900,7 +900,7 @@ for obj in bpy.context.selected_objects:
         try:
             (shpi_id, shpi_block, shpi_data), _ = require_resource(id[:-4] + '0.QFS__data')
             from serializers import ShpiArchiveSerializer
-            ShpiArchiveSerializer().serialize(shpi_data, os.path.join(path, 'textures/'), shpi_id, shpi_block)
+            ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
             if self.settings.print_errors:
                 traceback.print_exc()
