@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2025-01-03 13:20:26.821219+00:00*
+*Last time updated: 2025-05-27 18:47:14.249334+00:00*
 
 
 # **Info by file extensions** #
@@ -151,9 +151,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x11 | Resource ID |
 | 4 | **loop_chunk** | 2 | 2-bytes unsigned integer (little endian) | Index of chunk, on which game should use chunk #0 again. So for closed tracks this value should be equal to `num_chunks`, for open tracks it is 0 |
-| 6 | **num_chunks** | 2 | 2-bytes unsigned integer (little endian) | number of terrain chunks (max 600) |
-| 8 | **unk0** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 10 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x6 | Unknown purpose |
+| 6 | **num_chunks** | 4 | 4-bytes unsigned integer (little endian) | number of terrain chunks (max 600) |
+| 10 | **unk0** | 2 | 2-bytes unsigned integer (little endian). Always == 0x6 | Unknown purpose |
 | 12 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
 | 24 | **unknowns0** | 12 | Array of `12` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 36 | **chunks_size** | 4 | 4-bytes unsigned integer (little endian) | Size of terrain array in bytes (num_chunks * 0x120) |
@@ -164,8 +163,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 90644 | **num_prop_descr** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 90648 | **num_props** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 90652 | **objs_hdr** | 4 | UTF-8 string. Always == "SJBO" | - |
-| 90656 | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x428c | Unknown purpose |
-| 90660 | **unk3** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 90656 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x428c | Unknown purpose |
+| 90660 | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 90664 | **prop_descr** | num_prop_descr\*16 | Array of `num_prop_descr` items<br/>Item type: [PropDescr](#propdescr) | - |
 | 90664 + num_prop_descr\*16 | **props** | num_props\*16 | Array of `num_props` items<br/>Item type: [MapProp](#mapprop) | - |
 | 90664 + num_prop_descr\*16 + num_props\*16 | **terrain** | num_chunks\*288 | Array of `num_chunks` items<br/>Item type: [TerrainEntry](#terrainentry) | - |
@@ -179,17 +178,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | 2 | **left_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the left |
 | 3 | **right_barrier** | 1 | 8-bit real number (little-endian, not signed), where last 3 bits is a fractional part | The distance to invisible wall on the right |
 | 4 | **num_lanes** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Amount of lanes. First number is amount of oncoming lanes, second number is amount of ongoing ones |
-| 5 | **unk0** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Unknown, DOS version of TNFS SE does not seem to read from this address at all. Appears to be a pair of 4-bit numbers, just like `num_lanes` and `verge_slide`, since all maps have value one of [0, 1, 16, 17], which seems to be the combination of two values [0-1, 0-1]. Most common value is 17 ([1, 1]) |
+| 5 | **fence_flag** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | Flags whether there is fence or not. First number is fence on left side, second number is fence on right side. Used for physics simulation |
 | 6 | **verge_slide** | 1 | Array of `2` sub-byte numbers. Each number consists of 4 bits | A slidiness of road areas between verge distance and barrier. First number for left verge, second number for right verge. Values above 3 cause unbearable slide in the game and make it impossible to return back to road. High values around maximum (15) cause lags and even crashes |
 | 7 | **item_mode** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: lane_split<br/>1: default_0<br/>2: lane_merge<br/>3: default_1<br/>4: tunnel<br/>5: cobbled_road<br/>7: right_tunnel_A9_A2<br/>8: unk_cl3_forest<br/>9: left_tunnel_A4_A7<br/>11: unk_autumn_valley_tribunes<br/>12: left_tunnel_A4_A8<br/>13: left_tunnel_A5_A8<br/>14: waterfall_audio_left_channel<br/>15: waterfall_audio_right_channel<br/>16: unk_al1_uphill<br/>17: transtropolis_noise_audio<br/>18: water_audio</details> | Modifier of this point. Affects terrain geometry and/or some gameplay features |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Coordinates of this point in 3D space. The unit is meter |
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
-| 22 | **slant_a** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
+| 22 | **slant** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
 | 26 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 28 | **orientation_x** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_x == cos(orientation) * 32766 |
-| 30 | **slant_b** | 2 | EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) means 360 degrees | has the same purpose as slant_a, but is a standard signed 16-bit value. Its value is positive for the left, negative for the right. The approximative relation between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is 14-bit, though) |
-| 32 | **orientation_nz** | 2 | 2-bytes signed integer (little endian) | Orientation vector is a 2D vector, normalized to ~32766 with angle == orientation field above, used for pseudo-3D effect on opponent cars. So orientation_nz == -sin(orientation) * 32766 |
+| 28 | **side_normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | Side normal vector |
 | 34 | **unk2** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 ### **PropDescr** ###
 #### **Size**: 16 bytes ####
@@ -226,9 +223,9 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: The record describing AI behavior at given terrain chunk ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **max_ai_speed** | 1 | 1-byte unsigned integer | Max speed among all AI drivers in m/s |
-| 1 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 2 | **max_traffic_speed** | 1 | 1-byte unsigned integer | Max traffic speed in m/s. Oncoming traffic does not obey it |
+| 0 | **top_speed** | 1 | 1-byte unsigned integer | Max speed among all AI drivers in m/s |
+| 1 | **legal_speed** | 1 | 1-byte unsigned integer | Minimum speed in m/s that makes cops start pursuit |
+| 2 | **safe_speed** | 1 | 1-byte unsigned integer | Max traffic speed in m/s. Oncoming traffic does not obey it |
 ### **ModelPropDescrData** ###
 #### **Size**: 14 bytes ####
 #### **Description**: Map prop settings if it is a 3D model ####
