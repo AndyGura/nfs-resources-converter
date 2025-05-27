@@ -428,16 +428,16 @@ for obj in bpy.context.selected_objects:
             'properties': {
                 # 'orientation': [-x['orientation'] for x in spline],
                 'slope': [x['slope'] for x in spline],
-                'slant': [x['slant_a'] for x in spline],
+                'slant': [x['slant'] for x in spline],
                 'left_barrier_distance': [x['left_barrier'] for x in spline],
                 'right_barrier_distance': [x['right_barrier'] for x in spline],
                 'left_verge_distance': [x['left_verge'] for x in spline],
                 'right_verge_distance': [x['right_verge'] for x in spline],
                 'lanes_backward': [x['num_lanes'][0] for x in spline],
                 'lanes_forward': [x['num_lanes'][1] for x in spline],
-                'max_ai_speed': [data['ai_info'][math.floor(i / 4)]['max_ai_speed'] for i in
+                'max_ai_speed': [data['ai_info'][math.floor(i / 4)]['top_speed'] for i in
                                  range(len(data['terrain']) * 4)],
-                'max_traffic_speed': [data['ai_info'][math.floor(i / 4)]['max_traffic_speed'] for i in
+                'max_traffic_speed': [data['ai_info'][math.floor(i / 4)]['safe_speed'] for i in
                                       range(len(data['terrain']) * 4)],
             },
         }

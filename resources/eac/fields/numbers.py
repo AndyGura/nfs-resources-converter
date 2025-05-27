@@ -66,32 +66,6 @@ class Nfs1Angle14(AngleBlock, IntegerBlock):
         return super().write(value, ctx, name)
 
 
-class Nfs1Angle16(AngleBlock, IntegerBlock):
-    @property
-    def schema(self) -> Dict:
-        super_schema = super().schema
-        return {
-            **super_schema,
-            'min_value': float(math.pi * 2 * (super_schema['min_value']) / 0x10000),
-            'max_value': float(math.pi * 2 * (super_schema['max_value']) / 0x10000),
-            'value_interval': float(math.pi * 2 * (super_schema['value_interval']) / 0x10000),
-            'block_description': 'EA games 16-bit angle (little-endian). 0 means 0 degrees, 0x10000 (max value + 1) ' \
-                                 'means 360 degrees',
-        }
-
-    def __init__(self, **kwargs):
-        super().__init__(length=2, byte_order='little', is_signed=False, **kwargs)
-
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        return float((super().read(buffer, ctx, name, read_bytes_amount) / 0x10000) * (math.pi * 2))
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = self.wrap_angle(data)
-        value = min(round(0x10000 * value / (math.pi * 2)), 0xFFFF)
-        return super().write(value, ctx, name)
-
-
 class Nfs1TimeField(IntegerBlock):
 
     @property

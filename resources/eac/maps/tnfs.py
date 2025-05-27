@@ -11,7 +11,7 @@ from library.read_blocks import (BitFlagsBlock,
                                  EnumLookupDelegateBlock,
                                  FixedPointBlock)
 from resources.eac.fields.misc import FenceType, Point3D
-from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8, Nfs1Angle16, Nfs1TimeField
+from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8, Nfs1TimeField
 
 
 class RoadSplinePoint(DeclarativeCompoundBlock):
@@ -36,12 +36,9 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         num_lanes = (SubByteArrayBlock(length=2, bits_per_value=4),
                      {'description': 'Amount of lanes. First number is amount of oncoming lanes, second number is '
                                      'amount of ongoing ones'})
-        unk0 = (SubByteArrayBlock(length=2, bits_per_value=4),
-                {'description': 'Unknown, DOS version of TNFS SE does not seem to read from this address at all. '
-                                'Appears to be a pair of 4-bit numbers, just like `num_lanes` and `verge_slide`, '
-                                'since all maps have value one of [0, 1, 16, 17], which seems to be the combination of '
-                                'two values [0-1, 0-1]. Most common value is 17 ([1, 1])',
-                 'is_unknown': True})
+        fence_flag = (SubByteArrayBlock(length=2, bits_per_value=4),
+                      {'description': 'Flags whether there is fence or not. First number is fence on left side, '
+                                      'second number is fence on right side. Used for physics simulation'})
         verge_slide = (SubByteArrayBlock(length=2, bits_per_value=4),
                        {'description': 'A slidiness of road areas between verge distance and barrier. First number for '
                                        'left verge, second number for right verge. Values above 3 cause unbearable slide '
@@ -71,26 +68,15 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                     {'description': 'Coordinates of this point in 3D space. The unit is meter'})
         slope = (Nfs1Angle14(),
                  {'description': 'Slope of the road at this point (angle if road goes up or down)'})
-        slant_a = (Nfs1Angle14(),
-                   {'description': 'Perpendicular angle of road'})
+        slant = (Nfs1Angle14(),
+                 {'description': 'Perpendicular angle of road'})
         orientation = (Nfs1Angle14(),
                        {'description': 'Rotation of road path, if view from the top. Equals to '
                                        'atan2(next_x - x, next_z - z)'})
         unk1 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
-        orientation_x = (IntegerBlock(length=2, is_signed=True),
-                         {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
-                                         'angle == orientation field above, used for pseudo-3D effect on '
-                                         'opponent cars. So orientation_x == cos(orientation) * 32766'})
-        slant_b = (Nfs1Angle16(),
-                   {'description': 'has the same purpose as slant_a, but is a standard signed 16-bit value. Its value '
-                                   'is positive for the left, negative for the right. The approximative relation '
-                                   'between slant-A and slant-B is slant-B = -12.3 slant-A (remember that slant-A is '
-                                   '14-bit, though)'})
-        orientation_nz = (IntegerBlock(length=2, is_signed=True),
-                          {'description': 'Orientation vector is a 2D vector, normalized to ~32766 with '
-                                          'angle == orientation field above, used for pseudo-3D effect on '
-                                          'opponent cars. So orientation_nz == -sin(orientation) * 32766'})
+        side_normal = (Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True), normalized=True),
+                       {'description': 'Side normal vector'})
         unk2 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
 
@@ -99,8 +85,8 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         orientation = atan2(next_spline_point['position']['x'] - read_data['position']['x'],
                             next_spline_point['position']['z'] - read_data['position']['z'])
         read_data['orientation'] = orientation
-        read_data['orientation_x'] = round(cos(orientation) * 32766)
-        read_data['orientation_nz'] = round(-sin(orientation) * 32766)
+        read_data['side_normal']['x'] = round(cos(orientation) * 32766)
+        read_data['side_normal']['z'] = round(-sin(orientation) * 32766)
 
 
 class ModelPropDescrData(DeclarativeCompoundBlock):
@@ -264,12 +250,12 @@ class AIEntry(DeclarativeCompoundBlock):
                 'block_description': 'The record describing AI behavior at given terrain chunk'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        max_ai_speed = (IntegerBlock(length=1),
-                        {'description': 'Max speed among all AI drivers in m/s'})
-        unk = (IntegerBlock(length=1),
-               {'is_unknown': True})
-        max_traffic_speed = (IntegerBlock(length=1),
-                             {'description': 'Max traffic speed in m/s. Oncoming traffic does not obey it'})
+        top_speed = (IntegerBlock(length=1),
+                     {'description': 'Max speed among all AI drivers in m/s'})
+        legal_speed = (IntegerBlock(length=1),
+                       {'description': 'Minimum speed in m/s that makes cops start pursuit'})
+        safe_speed = (IntegerBlock(length=1),
+                      {'description': 'Max traffic speed in m/s. Oncoming traffic does not obey it'})
 
 
 class TriMap(DeclarativeCompoundBlock):
@@ -305,12 +291,10 @@ class TriMap(DeclarativeCompoundBlock):
         loop_chunk = (IntegerBlock(length=2),
                       {'description': 'Index of chunk, on which game should use chunk #0 again. So for closed tracks '
                                       'this value should be equal to `num_chunks`, for open tracks it is 0'})
-        num_chunks = (IntegerBlock(length=2),
+        num_chunks = (IntegerBlock(length=4),
                       {'description': 'number of terrain chunks (max 600)',
                        'programmatic_value': lambda ctx: len(ctx.data('terrain'))})
-        unk0 = (IntegerBlock(length=2, required_value=0),
-                {'is_unknown': True})
-        unk1 = (IntegerBlock(length=2, required_value=6),
+        unk0 = (IntegerBlock(length=2, required_value=6),
                 {'is_unknown': True})
         position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'is_unknown': True})
@@ -338,9 +322,9 @@ class TriMap(DeclarativeCompoundBlock):
         num_props = (IntegerBlock(length=4, is_signed=False),
                      {'programmatic_value': lambda ctx: len(ctx.data('props'))})
         objs_hdr = UTF8Block(length=4, required_value='SJBO')
-        unk2 = (IntegerBlock(length=4, required_value=0x428c),
+        unk1 = (IntegerBlock(length=4, required_value=0x428c),
                 {'is_unknown': True})
-        unk3 = (IntegerBlock(length=4, required_value=0),
+        unk2 = (IntegerBlock(length=4, required_value=0),
                 {'is_unknown': True})
         prop_descr = ArrayBlock(child=PropDescr(),
                                 length=lambda ctx: ctx.data('num_prop_descr'))
@@ -402,8 +386,8 @@ class TriMap(DeclarativeCompoundBlock):
             vertex['verge_slide'] = [vertex['verge_slide'][1], vertex['verge_slide'][0]]
             # change sign of slope/slant values
             vertex['slope'] = -vertex['slope']
-            vertex['slant_a'] = -vertex['slant_a']
-            vertex['slant_b'] = -vertex['slant_b']
+            vertex['slant'] = -vertex['slant']
+            vertex['side_normal']['y'] = -vertex['side_normal']['y']
 
             if vertex['item_mode'] == 'lane_split':
                 vertex['item_mode'] = 'lane_merge'
@@ -483,8 +467,8 @@ class TriMap(DeclarativeCompoundBlock):
             road_vertex['position']['x'] = road_vertex['position']['y'] = 0
             road_vertex['position']['z'] = i * 6.25
             road_vertex['slope'] = 0
-            road_vertex['slant_a'] = 0
-            road_vertex['slant_b'] = 0
+            road_vertex['slant'] = 0
+            road_vertex['side_normal']['y'] = 0
         # update rotations
         v_block = RoadSplinePoint()
         for i, vertex in enumerate(data['road_spline'][:len(data['terrain']) * 4]):
