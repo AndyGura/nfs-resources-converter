@@ -31,6 +31,9 @@ class DataBlock(ABC):
             s['required_value'] = self.required_value
         return s
 
+    def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
+        return None, unpacked_data.get(name)
+
     # creates empty data
     def new_data(self):
         return self.required_value
@@ -72,11 +75,6 @@ class DataBlockWithChildren(ABC):
     ### get child block
     @abstractmethod
     def get_child_block(self, name: str) -> 'DataBlock':
-        pass
-
-    ### get child block with appropriate data from this block unpacked data
-    @abstractmethod
-    def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
         pass
 
     ### from given unpacked data, get offset to child block by name in packed byte array

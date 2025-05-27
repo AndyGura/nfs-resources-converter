@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { EelDelegateService } from './eel-delegate.service';
-import { isEqual, isNumber } from 'lodash';
+import isEqual from 'lodash/isEqual';
+import isNumber from 'lodash/isNumber';
 import { findNestedObjects } from '../utils/find-nested-object';
 
 @Injectable({

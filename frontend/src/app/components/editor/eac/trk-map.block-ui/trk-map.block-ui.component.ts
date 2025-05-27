@@ -16,6 +16,7 @@ import {
   Entity3d,
   FreeCameraController,
   Gg3dWorld,
+  GgWorld,
   LoadResultWithProps,
   MapGraph,
   MapGraph3dEntity,
@@ -40,11 +41,19 @@ import {
   TextureLoader,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
-import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
+import {
+  ThreeDisplayObjectComponent,
+  ThreeGgWorld,
+  ThreeSceneComponent,
+  ThreeVisualTypeDocRepo,
+} from '@gg-web-engine/three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 
-export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo, any> {
+// TODO use this from gg-web-engine after next release
+type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R, infer TypeDoc> ? TypeDoc : never;
+
+export class Nfs2MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>> {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
   private readonly objLoader = new OBJLoader();
@@ -65,7 +74,7 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
 
   unknownEntities: Set<Entity3d> = new Set<Entity3d>();
 
-  override onSpawned(world: Gg3dWorld<ThreeVisualTypeDocRepo, any>) {
+  override onSpawned(world: ThreeGgWorld) {
     super.onSpawned(world);
     this.hideUnknownEntities$.pipe(distinctUntilChanged(), takeUntil(this._onRemoved$)).subscribe(hide => {
       for (const e of this.unknownEntities) {
@@ -100,7 +109,7 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
 
   protected override async loadChunk(
     node: MapGraphNodeType,
-  ): Promise<[Entity3d<ThreeVisualTypeDocRepo, any>[], LoadResultWithProps<ThreeVisualTypeDocRepo, any>]> {
+  ): Promise<[Entity3d<TypeDocOf<ThreeGgWorld>>[], LoadResultWithProps<TypeDocOf<ThreeGgWorld>>]> {
     const object = await this.objLoader.loadAsync(node.path + '.obj');
     object.position.set(node.position.x, node.position.y, node.position.z);
     object.traverse(node => {
@@ -112,7 +121,7 @@ export class Nfs2MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
         );
       }
     });
-    const entity: Entity3d<ThreeVisualTypeDocRepo, any> = new Entity3d({
+    const entity: Entity3d<TypeDocOf<ThreeGgWorld>> = new Entity3d({
       object3D: new ThreeDisplayObjectComponent(object),
     });
     this.addChildren(entity);
@@ -194,13 +203,13 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   qfsPath: string | null = null;
   name: string = '';
-  world!: Gg3dWorld<ThreeVisualTypeDocRepo, any, ThreeSceneComponent>;
+  world!: ThreeGgWorld;
   renderer: Renderer3dEntity<ThreeVisualTypeDocRepo> | null = null;
   map: Nfs2MapWorldEntity | null = null;
   controller!: FreeCameraController;
   roadPath: Point3[] | null = null;
-  skySphere!: Entity3d<ThreeVisualTypeDocRepo>;
-  selectionSphere!: Entity3d<ThreeVisualTypeDocRepo>;
+  skySphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
+  selectionSphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -211,13 +220,7 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   ) {}
 
   async ngAfterViewInit() {
-    this.world = new Gg3dWorld(new ThreeSceneComponent(), {
-      init: async () => {},
-      simulate: () => {},
-      loader: {
-        loadFromGgGlb: async (...args: any[]) => [],
-      },
-    } as any);
+    this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
     this.skySphere = new Entity3d({
       object3D: this.world.visualScene.factory.createPrimitive(

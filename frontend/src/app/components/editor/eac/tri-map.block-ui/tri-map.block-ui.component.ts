@@ -16,6 +16,7 @@ import {
   Entity3d,
   FreeCameraController,
   Gg3dWorld,
+  GgWorld,
   LoadResultWithProps,
   MapGraph,
   MapGraph3dEntity,
@@ -44,7 +45,12 @@ import {
   TextureLoader,
 } from 'three';
 import { MainService } from '../../../../services/main.service';
-import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
+import {
+  ThreeDisplayObjectComponent,
+  ThreeGgWorld,
+  ThreeSceneComponent,
+  ThreeVisualTypeDocRepo,
+} from '@gg-web-engine/three';
 import { joinId } from '../../../../utils/join-id';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
@@ -56,7 +62,10 @@ export enum MapPropType {
   TwoSidedBitmap = 'two_sided_bitmap',
 }
 
-export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo, any> {
+// TODO use this from gg-web-engine after next release
+type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R, infer TypeDoc> ? TypeDoc : never;
+
+export class Nfs1MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>> {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
   private readonly objLoader = new OBJLoader();
@@ -77,7 +86,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
 
   unknownEntities: Set<Entity3d> = new Set<Entity3d>();
 
-  override onSpawned(world: Gg3dWorld<ThreeVisualTypeDocRepo, any>) {
+  override onSpawned(world: ThreeGgWorld) {
     super.onSpawned(world);
     this.hideUnknownEntities$.pipe(distinctUntilChanged(), takeUntil(this._onRemoved$)).subscribe(hide => {
       for (const e of this.unknownEntities) {
@@ -113,7 +122,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
 
   protected override async loadChunk(
     node: MapGraphNodeType,
-  ): Promise<[Entity3d<ThreeVisualTypeDocRepo, any>[], LoadResultWithProps<ThreeVisualTypeDocRepo, any>]> {
+  ): Promise<[Entity3d<TypeDocOf<ThreeGgWorld>>[], LoadResultWithProps<TypeDocOf<ThreeGgWorld>>]> {
     const object = await this.objLoader.loadAsync(node.path + '.obj');
     object.position.set(node.position.x, node.position.y, node.position.z);
     object.traverse(node => {
@@ -143,8 +152,8 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
       }));
     const props = (await Promise.all(propInstances.map((x: any) => this.loadPropInternal(x)))).filter(
       p => !!p,
-    ) as Entity3d<ThreeVisualTypeDocRepo, any>[];
-    const entity: Entity3d<ThreeVisualTypeDocRepo, any> = new Entity3d({
+    ) as Entity3d<TypeDocOf<ThreeGgWorld>>[];
+    const entity: Entity3d<TypeDocOf<ThreeGgWorld>> = new Entity3d({
       object3D: new ThreeDisplayObjectComponent(object),
     });
     this.addChildren(entity, ...props);
@@ -193,7 +202,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
     return this.terrainMaterials[matId];
   }
 
-  protected async loadPropInternal(dummy: any): Promise<Entity3d<ThreeVisualTypeDocRepo, any> | null> {
+  protected async loadPropInternal(dummy: any): Promise<Entity3d<TypeDocOf<ThreeGgWorld>> | null> {
     let isUnknown = false;
     if (dummy.type == MapPropType.ThreeModel) {
       // 3D model
@@ -210,7 +219,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
         );
       } catch (err) {
         isUnknown = true;
-        object = this.world!.visualScene.factory.createPrimitive(
+        object = this.world!.visualScene!.factory.createPrimitive(
           { shape: 'SPHERE', radius: 5 },
           { diffuse: await this.getPlaceholderTexture() },
         );
@@ -230,7 +239,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
           }
         }
       });
-      const prop = new Entity3d<ThreeVisualTypeDocRepo>({ object3D: object });
+      const prop = new Entity3d<TypeDocOf<ThreeGgWorld>>({ object3D: object });
       prop.position = dummy.position;
       prop.rotation = dummy.rotation;
       if (isUnknown) {
@@ -274,7 +283,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<ThreeVisualTypeDocRepo,
         plane2.position.y = dummy.data.data.width_2 / 2;
         object.add(plane2);
       }
-      const entity = new Entity3d<ThreeVisualTypeDocRepo, any>({ object3D: new ThreeDisplayObjectComponent(object) });
+      const entity = new Entity3d<TypeDocOf<ThreeGgWorld>>({ object3D: new ThreeDisplayObjectComponent(object) });
       entity.position = dummy.position;
       entity.rotation = dummy.rotation;
       if (isUnknown) {
@@ -366,14 +375,14 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   famPath: string | null = null;
   name: string = '';
-  world!: Gg3dWorld<ThreeVisualTypeDocRepo, any, ThreeSceneComponent>;
+  world!: ThreeGgWorld;
   renderer: Renderer3dEntity<ThreeVisualTypeDocRepo> | null = null;
   map: Nfs1MapWorldEntity | null = null;
   isOpenedTrack: boolean = true;
   controller!: FreeCameraController;
   roadPath: Point3[] | null = null;
-  skySphere!: Entity3d<ThreeVisualTypeDocRepo>;
-  selectionSphere!: Entity3d<ThreeVisualTypeDocRepo>;
+  skySphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
+  selectionSphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -422,13 +431,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   async ngAfterViewInit() {
-    this.world = new Gg3dWorld(new ThreeSceneComponent(), {
-      init: async () => {},
-      simulate: () => {},
-      loader: {
-        loadFromGgGlb: async (...args: any[]) => [],
-      },
-    } as any);
+    this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
     this.skySphere = new Entity3d({
       object3D: this.world.visualScene.factory.createPrimitive(

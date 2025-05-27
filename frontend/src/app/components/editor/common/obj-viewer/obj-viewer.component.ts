@@ -11,8 +11,21 @@ import {
   ViewChild,
 } from '@angular/core';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
-import { Entity3d, Gg3dWorld, OrbitCameraController, Pnt3, Point2, Renderer3dEntity } from '@gg-web-engine/core';
-import { ThreeDisplayObjectComponent, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
+import {
+  Entity3d,
+  Gg3dWorld,
+  GgWorld,
+  OrbitCameraController,
+  Pnt3,
+  Point2,
+  Renderer3dEntity,
+} from '@gg-web-engine/core';
+import {
+  ThreeDisplayObjectComponent,
+  ThreeGgWorld,
+  ThreeSceneComponent,
+  ThreeVisualTypeDocRepo,
+} from '@gg-web-engine/three';
 import {
   AmbientLight,
   ClampToEdgeWrapping,
@@ -70,6 +83,9 @@ export type ObjViewerCustomControl = {
   controls: Control[];
 };
 
+// TODO use this from gg-web-engine after next release
+type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R, infer TypeDoc> ? TypeDoc : never;
+
 @Component({
   selector: 'app-obj-viewer',
   templateUrl: './obj-viewer.component.html',
@@ -100,9 +116,9 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
-  world!: Gg3dWorld<ThreeVisualTypeDocRepo, any, ThreeSceneComponent>;
+  world!: ThreeGgWorld;
   renderer!: Renderer3dEntity<ThreeVisualTypeDocRepo>;
-  entity: Entity3d<ThreeVisualTypeDocRepo> | null = null;
+  entity: Entity3d<TypeDocOf<ThreeGgWorld>> | null = null;
   controller!: OrbitCameraController;
 
   meshes: Object3D[] = [];
@@ -110,10 +126,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   constructor(private readonly cdr: ChangeDetectorRef) {}
 
   async ngAfterViewInit() {
-    this.world = new Gg3dWorld(new ThreeSceneComponent(), {
-      init: async () => {},
-      simulate: () => {},
-    } as any);
+    this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
     this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
@@ -193,7 +206,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
           }
         });
         this.onObjectLoaded.next(object);
-        this.entity = new Entity3d<ThreeVisualTypeDocRepo>({ object3D: new ThreeDisplayObjectComponent(object) });
+        this.entity = new Entity3d<TypeDocOf<ThreeGgWorld>>({ object3D: new ThreeDisplayObjectComponent(object) });
         this.world.addEntity(this.entity);
         let bounds = { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } };
         const calculatedBounds = this.entity.object3D!.getBoundings();

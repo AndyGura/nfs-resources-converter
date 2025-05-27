@@ -148,9 +148,6 @@ class BitFlagsBlock(IntegerBlock):
         for value, name in self.flag_names:
             self.flag_name_map[value] = name
 
-    def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
-        return None, unpacked_data.get(name)
-
     def new_data(self):
         return [False] * 8
 
