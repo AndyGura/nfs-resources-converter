@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
+import { NavigationService } from '../../../../services/navigation.service';
 
 @Component({
   selector: 'app-sidenav-res-list',
@@ -34,5 +35,9 @@ export class SidenavResListComponent {
     return Object.keys(this.resources);
   }
 
-  constructor(private readonly deep: NgxDeepEqualsPureService) {}
+  constructor(private readonly deep: NgxDeepEqualsPureService, private readonly navigation: NavigationService) {}
+
+  onDoubleClick(key: string) {
+    this.navigation.navigateToId(this.resources[key]!.id);
+  }
 }

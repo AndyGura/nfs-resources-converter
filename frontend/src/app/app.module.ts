@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -21,9 +22,10 @@ import { NavigationBarModule } from './components/navigation-bar/navigation-bar.
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { LandingPageComponent } from './components/landing-page/landing-page.component';
 
 @NgModule({
-  declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent],
+  declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, LandingPageComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
@@ -35,6 +37,7 @@ import { MatInputModule } from '@angular/material/input';
     MatButtonModule,
     MatIconModule,
     MatDialogModule,
+    MatMenuModule,
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule,

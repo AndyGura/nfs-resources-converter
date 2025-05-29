@@ -23,6 +23,18 @@ export class AppComponent {
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
+  async openFile() {
+    const fileName = await this.eelDelegate.openFileDialog();
+    if (fileName) {
+      await this.eelDelegate.openFile(fileName, true);
+    }
+  }
+
+  closeFile() {
+    this.eelDelegate.openedResource$.next(null);
+    this.eelDelegate.openedResourcePath$.next(null);
+  }
+
   async saveResource() {
     try {
       await this.mainService.saveResource();
@@ -47,5 +59,17 @@ export class AppComponent {
     }
     await this.mainService.reloadResource();
     this.cdr.markForCheck();
+  }
+
+  openHomePage() {
+    window.open('https://github.com/AndyGura/nfs-resources-converter', '_blank');
+  }
+
+  openDocs() {
+    window.open('https://github.com/AndyGura/nfs-resources-converter/blob/main/resources/README.md', '_blank');
+  }
+
+  openBmac() {
+    window.open('https://www.buymeacoffee.com/andygura', '_blank');
   }
 }

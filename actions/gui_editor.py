@@ -37,7 +37,7 @@ def __apply_delta_to_resource(resource_id, resource, changes: Dict):
             field[sub_id.split('/')[-1]] = delta['value']
 
 
-def run_gui_editor(file_path):
+def run_gui_editor(file_path=None):
     # create directory for all files, needed by GUI
     static_dir = tempfile.TemporaryDirectory()
     static_path = static_dir.name
@@ -55,7 +55,23 @@ def run_gui_editor(file_path):
 
         @eel.expose
         def on_angular_ready():
-            eel.open_file(file_path)
+            if file_path:
+                eel.open_file(file_path)
+
+        @eel.expose
+        def open_file_dialog():
+            from tkinter import Tk
+            from tkinter.filedialog import askopenfilename
+            root = Tk()
+            root.withdraw()
+            root.update()
+            # Bring the dialog to front on macOS
+            root.lift()
+            root.attributes('-topmost', True)
+            root.after_idle(root.attributes, '-topmost', False)
+            filename = askopenfilename()
+            root.destroy()
+            return filename
 
         @eel.expose
         def open_file(path: str, force_reload: bool = False):

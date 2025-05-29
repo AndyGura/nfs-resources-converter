@@ -1,13 +1,14 @@
-<h2 *ngIf="name && name != (main.resource$ | async)?.name"
-    id="title"
-    [matTooltip]="resourceDescription" matTooltipPosition="above"
+<h2 *ngIf='name && name != (main.resource$ | async)?.name && name != (navigation.resourceToRender$ | async)?.name'
+    id='title'
+    [matTooltip]='resourceDescription' matTooltipPosition='above'
     (click)='navigation.navigateToId(resource!.id)'>{{ name }}</h2>
-<app-block-actions *ngIf="!hideBlockActions" [resource]="this.resource"></app-block-actions>
-<div class="container">
-  <ng-container *ngFor="let f of fieldKeys; trackBy: fieldTrackBy">
-    <app-editor *ngIf="!(main.hideHiddenFields$ | async) || (!schema?.fields[f.index].is_unknown && schema?.fields[f.index].schema.required_value === undefined && !schema?.fields[f.index].is_programmatic)"
-                [resource]="{ id: joinId(resource!.id, f.key), name: f.key, data: data?.[f.key], schema: schema?.fields[f.index].schema }"
-                [resourceDescription]="schema?.fields[f.index].description || ''"
-                [disabled]="disabled || !!schema?.fields[f.index].is_programmatic"></app-editor>
+<app-block-actions *ngIf='!hideBlockActions' [resource]='this.resource'></app-block-actions>
+<div class='container'>
+  <ng-container *ngFor='let f of fieldKeys; trackBy: fieldTrackBy'>
+    <app-editor
+      *ngIf='!(main.hideHiddenFields$ | async) || (!schema?.fields[f.index].is_unknown && schema?.fields[f.index].schema.required_value === undefined && !schema?.fields[f.index].is_programmatic)'
+      [resource]='{ id: joinId(resource!.id, f.key), name: f.key, data: data?.[f.key], schema: schema?.fields[f.index].schema }'
+      [resourceDescription]="schema?.fields[f.index].description || ''"
+      [disabled]='disabled || !!schema?.fields[f.index].is_programmatic'></app-editor>
   </ng-container>
 </div>

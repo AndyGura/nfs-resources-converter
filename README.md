@@ -25,10 +25,10 @@ The documentation is auto-generated from this repo's parsers source code
 
 ### [Observe documentation](resources/README.md)
 
-## 3. GUI editor for resources (experimental)
-Though it wasn't the initial goal for this project, declarative parsers architecture allows to easily save file back 
-into original structure, which means that you can modify values, save resource back to proprietary format and test how 
-original game behaves. It is handy to use for reverse-engineering and perhaps modding
+## 3. GUI app (experimental)
+
+Project provides GUI app where you can view and edit any supported resource. Edit feature is purely experimental, it 
+is possible to break the file completely upon saving changes.
 
 # Installation:
 
@@ -48,7 +48,11 @@ behavior
 **WARNING**: please do not set as output existing directory with some data, it can be deleted!
 
 ## GUI
-`python run.py gui /media/fast/NFSSE/SIMDATA/MISC/AL1.TRI`
+`python run.py gui`
+
+or to open some file immediately:
+
+`python run.py gui NFSSE/SIMDATA/MISC/AL1.TRI`
 
 **WARNING**: Script does not make backups and saved file consistency not guaranteed! Use only on copied file
 

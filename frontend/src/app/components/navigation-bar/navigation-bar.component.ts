@@ -15,16 +15,23 @@ import { MainService } from '../../services/main.service';
       </button>
 
       <ng-container *ngFor="let item of (navigation.navigationPath$ | async) || []; let i = index">
-        <mat-divider vertical></mat-divider>
-        <span>/</span>
-        <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
-          {{ item }}
-        </button>
+        <ng-container *ngIf="!['data', 'children'].includes(item)">
+          <mat-divider vertical></mat-divider>
+          <span>/</span>
+          <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
+            {{ item }}
+          </button>
+        </ng-container>
       </ng-container>
     </nav>
   `,
   styles: [
     `
+      :host {
+        padding: 1rem;
+        padding-bottom: 0;
+      }
+
       nav {
         display: flex;
         align-items: center;

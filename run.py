@@ -18,20 +18,24 @@ if __name__ == "__main__":
     parser.add_argument('action', type=Action, choices=list(Action), default=Action.gui, help='An action to perform')
     parser.add_argument('--custom-command', type=str, required=False, help='Name of custom function to run (action "custom_command" only)')
     parser.add_argument('--custom-command-args', nargs='*', required=False, default=[], help='Arguments for custom command (action "custom_command" only)')
-    parser.add_argument('file', type=pathlib.Path, help='Input path')
+    parser.add_argument('file', type=pathlib.Path, nargs='?', default=None, help='Input path')
     parser.add_argument('--out', type=pathlib.Path, required=False, help='Output path for converted files (action "convert" only)', default='out/')
     args = parser.parse_args()
     if args.action == Action.gui:
-        if os.path.isdir(args.file):
+        if args.file is not None and os.path.isdir(args.file):
             raise Exception('Cannot open GUI for directory, use path to file')
         from actions.gui_editor import run_gui_editor
-        run_gui_editor(str(args.file))
+        run_gui_editor(str(args.file) if args.file is not None else None)
     elif args.action == Action.convert:
+        if args.file is None:
+            raise Exception('file argument is required for convert action')
         if not args.out:
             raise Exception('--out argument has to be provided for convert action')
         from actions.convert_all import convert_all
         convert_all(args.file, args.out)
     elif args.action == Action.custom_command:
+        if args.file is None:
+            raise Exception('file argument is required for custom_command action')
         if os.path.isdir(args.file):
             raise Exception('Cannot run custom command on directory, use path to file')
         if not args.custom_command:
@@ -53,4 +57,3 @@ if __name__ == "__main__":
             print(f'Support me :) >>>  https://www.buymeacoffee.com/andygura <<<')
         finally:
             f.close()
-

@@ -40,10 +40,13 @@ export class EelDelegateService {
 
   public async openFile(path: string, forceReload: boolean = false) {
     this.openedResource$.next(null);
-    this.openedResourcePath$.next(null);
+    this.openedResourcePath$.next(path);
     const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
     this.openedResource$.next({ ...res, id: res.name });
-    this.openedResourcePath$.next(path);
+  }
+
+  public async openFileDialog(): Promise<string | null> {
+    return await eel['open_file_dialog']()();
   }
 
   public async openFileWithSystemApp(path: string) {

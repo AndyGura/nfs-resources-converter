@@ -1,36 +1,80 @@
-<mat-toolbar color="primary">
+<ng-container *ngIf="mainService.eelDelegate.openedResourcePath$ | async; else landingPage">
+  <mat-toolbar color="primary">
+    <ng-container *ngTemplateOutlet="appMenu"></ng-container>
+    <span class="flex-spacer"></span>
     <span>{{(mainService.resource$ | async)?.name || '...'}}{{(mainService.hasUnsavedChanges$ | async) ? '*' : ''}}</span>
     <span class="flex-spacer"></span>
-    <button mat-icon-button (click)="toggleUnknownsVisibility()"
-            matTooltip="Show/hide hidden fields">
-      <mat-icon *ngIf="mainService.hideHiddenFields$ | async" fontIcon="visibility_off"></mat-icon>
-      <mat-icon *ngIf="!(mainService.hideHiddenFields$ | async)" fontIcon="visibility_on"></mat-icon>
-    </button>
-    <mat-divider vertical></mat-divider>
+
     <app-block-actions [resource]="this.mainService.resource$ | async"></app-block-actions>
-    <button mat-icon-button (click)="reloadResource()"
-            [disabled]="!(this.mainService.eelDelegate.openedResourcePath$ | async)"
-            matTooltip="Reload file from disk">
-        <mat-icon fontIcon="refresh"></mat-icon>
-    </button>
     <mat-divider vertical></mat-divider>
     <button mat-icon-button (click)="saveResource()"
             [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async)"
             matTooltip="Save changes to file">
         <mat-icon fontIcon="save"></mat-icon>
     </button>
-</mat-toolbar>
-<app-navigation-bar></app-navigation-bar>
-<div id="content-wrapper">
-    <div class="scroll-bounds-snapper"></div>
-    <app-editor [resource]="(mainService.customActionRunning$ | async)
-    ? null
-    : ((navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async))"
-                [hideBlockActions]="(navigation.navigationPath$ | async)?.length == 0"></app-editor>
-    <div id="bmac">
-        <a href="https://www.buymeacoffee.com/andygura" target="_blank"><img
-                src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee"
-                style="height: 60px !important;width: 217px !important;"></a>
-    </div>
-    <div class="scroll-bounds-snapper"></div>
-</div>
+  </mat-toolbar>
+  <app-navigation-bar></app-navigation-bar>
+  <div id="content-wrapper">
+      <div class="scroll-bounds-snapper"></div>
+      <app-editor [resource]="(mainService.customActionRunning$ | async)
+      ? null
+      : ((navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async))"
+                  [hideBlockActions]="(navigation.navigationPath$ | async)?.length == 0"></app-editor>
+      <div class="scroll-bounds-snapper"></div>
+  </div>
+</ng-container>
+
+<ng-template #landingPage>
+  <mat-toolbar color="primary">
+    <ng-container *ngTemplateOutlet="appMenu"></ng-container>
+    <span class="flex-spacer"></span>
+    <span>NFS Resources Converter</span>
+  </mat-toolbar>
+  <app-landing-page></app-landing-page>
+</ng-template>
+
+<ng-template #appMenu>
+  <button mat-button [matMenuTriggerFor]="fileMenu">File</button>
+  <mat-menu #fileMenu="matMenu">
+    <button mat-menu-item (click)="openFile()">
+      <mat-icon>folder_open</mat-icon>
+      <span>Open</span>
+    </button>
+    <button mat-menu-item (click)="closeFile()" [disabled]="!(mainService.eelDelegate.openedResourcePath$ | async)">
+      <mat-icon>close</mat-icon>
+      <span>Close</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="saveResource()" [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async)">
+      <mat-icon>save</mat-icon>
+      <span>Save</span>
+    </button>
+    <button mat-menu-item (click)="reloadResource()" [disabled]="!(this.mainService.eelDelegate.openedResourcePath$ | async)">
+      <mat-icon>refresh</mat-icon>
+      <span>Reload from disk</span>
+    </button>
+  </mat-menu>
+  <button mat-button [matMenuTriggerFor]="viewMenu">View</button>
+  <mat-menu #viewMenu="matMenu">
+    <button mat-menu-item (click)="toggleUnknownsVisibility()">
+      <mat-icon *ngIf="mainService.hideHiddenFields$ | async">visibility_off</mat-icon>
+      <mat-icon *ngIf="!(mainService.hideHiddenFields$ | async)">visibility</mat-icon>
+      <span>Toggle Hidden Fields</span>
+    </button>
+  </mat-menu>
+  <button mat-button [matMenuTriggerFor]="aboutMenu">About</button>
+  <mat-menu #aboutMenu="matMenu">
+    <button mat-menu-item (click)='openHomePage()'>
+      <mat-icon>home</mat-icon>
+      <span>Home Page</span>
+    </button>
+    <button mat-menu-item (click)='openDocs()'>
+      <mat-icon>build</mat-icon>
+      <span>File specs</span>
+    </button>
+    <button mat-menu-item (click)='openBmac()'>
+      <mat-icon>support</mat-icon>
+      <span>Support me</span>
+    </button>
+  </mat-menu>
+</ng-template>

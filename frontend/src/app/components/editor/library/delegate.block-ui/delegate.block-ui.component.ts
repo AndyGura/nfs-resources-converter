@@ -3,6 +3,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
 import { MainService } from '../../../../services/main.service';
 import { blockClassStr } from '../../../../utils/block_class_str';
+import { NavigationService } from '../../../../services/navigation.service';
 
 type DelegateBlockData = { choice_index: number; data: BlockData };
 
@@ -45,7 +46,7 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
     return this._resource?.data || null;
   }
 
-  constructor(readonly main: MainService) {}
+  constructor(readonly main: MainService, readonly navigation: NavigationService) {}
 
   setChoiceIndex(newIndex: number): void {
     if (this._resource) {

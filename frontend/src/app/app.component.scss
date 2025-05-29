@@ -4,27 +4,17 @@
   flex-direction: column;
 }
 
-#content-wrapper {
+app-landing-page {
   flex-grow: 1;
-  overflow-y: auto;
+}
+
+.flex-spacer {
+  flex: 1 1 auto;
+}
+
+#content-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
   padding: 1rem;
-  height: 100%;
-  scroll-snap-type: y proximity;
-
-  .scroll-bounds-snapper {
-    height: 0;
-    width: 100%;
-    scroll-snap-align: start;
-    scroll-margin: 1rem;
-  }
-}
-
-#bmac {
-  text-align: end;
-  margin-top: 1rem;
-}
-
-mat-divider {
-  height: 100%;
-  margin: 0 16px;
 }

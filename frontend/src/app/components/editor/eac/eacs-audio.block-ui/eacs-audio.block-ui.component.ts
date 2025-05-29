@@ -3,6 +3,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
+import { NavigationService } from '../../../../services/navigation.service';
 
 @Component({
   selector: 'app-eacs-audio.block-ui',
@@ -29,7 +30,11 @@ export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterVi
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor(private readonly eelDelegate: EelDelegateService, public readonly main: MainService) {}
+  constructor(
+    private readonly eelDelegate: EelDelegateService,
+    public readonly main: MainService,
+    public readonly navigation: NavigationService,
+  ) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
