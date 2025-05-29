@@ -2,9 +2,6 @@
   <mat-toolbar color="primary">
     <ng-container *ngTemplateOutlet="appMenu"></ng-container>
     <span class="flex-spacer"></span>
-    <span>{{(mainService.resource$ | async)?.name || '...'}}{{(mainService.hasUnsavedChanges$ | async) ? '*' : ''}}</span>
-    <span class="flex-spacer"></span>
-
     <app-block-actions [resource]="this.mainService.resource$ | async"></app-block-actions>
     <mat-divider vertical></mat-divider>
     <button mat-icon-button (click)="saveResource()"
