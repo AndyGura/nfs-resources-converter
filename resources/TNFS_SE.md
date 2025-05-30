@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2025-05-27 18:47:14.249334+00:00*
+*Last time updated: 2025-05-30 12:54:49.810552+00:00*
 
 
 # **Info by file extensions** #
@@ -186,7 +186,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 22 | **slant** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
 | 26 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 28 | **side_normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | Side normal vector |
+| 28 | **side_normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part | Side normal vector |
 | 34 | **unk2** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 ### **PropDescr** ###
 #### **Size**: 16 bytes ####

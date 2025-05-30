@@ -75,7 +75,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                                        'atan2(next_x - x, next_z - z)'})
         unk1 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
-        side_normal = (Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True), normalized=True),
+        side_normal = (Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True)),
                        {'description': 'Side normal vector'})
         unk2 = (IntegerBlock(length=2, required_value=0),
                 {'is_unknown': True})
@@ -85,8 +85,8 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         orientation = atan2(next_spline_point['position']['x'] - read_data['position']['x'],
                             next_spline_point['position']['z'] - read_data['position']['z'])
         read_data['orientation'] = orientation
-        read_data['side_normal']['x'] = round(cos(orientation) * 32766)
-        read_data['side_normal']['z'] = round(-sin(orientation) * 32766)
+        read_data['side_normal']['x'] = cos(orientation)
+        read_data['side_normal']['z'] = -sin(orientation)
 
 
 class ModelPropDescrData(DeclarativeCompoundBlock):
