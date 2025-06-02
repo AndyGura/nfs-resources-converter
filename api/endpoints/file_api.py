@@ -106,13 +106,14 @@ class FileAPI:
             'data': self.render_data(self.current_file_data)
         }
 
-    def open_file_with_system_app(self, path: str):
-        """
-        Open a file with the system's default application.
+    def start_file(self, path: str) -> Dict[str, Any]:
+        try:
+            start_file(path)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
-        Args:
-            path: Path to the file
-        """
+    def open_file_with_system_app(self, path: str):
         if path.startswith('/') or path.startswith('\\'):
             path = path[1:]
         start_file(path_join(self.api.static_path, path))

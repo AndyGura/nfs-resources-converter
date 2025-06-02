@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { firstValueFrom } from 'rxjs';
 import { NavigationService } from './services/navigation.service';
+import { ConverterComponent } from './components/converter/converter.component';
 
 @Component({
   selector: 'app-root',
@@ -71,5 +72,12 @@ export class AppComponent {
 
   openBmac() {
     window.open('https://www.buymeacoffee.com/andygura', '_blank');
+  }
+
+  openConverter() {
+    const dialogRef = this.dialog.open(ConverterComponent, {
+      width: '800px',
+      height: '600px',
+    });
   }
 }

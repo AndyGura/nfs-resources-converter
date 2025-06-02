@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 from .endpoints.file_api import FileAPI
 from .endpoints.resource_api import ResourceAPI
 from .endpoints.serialization_api import SerializationAPI
+from .endpoints.conversion_api import ConversionAPI
 
 
 class API:
@@ -32,6 +33,7 @@ class API:
         self.file_api = FileAPI(self)
         self.resource_api = ResourceAPI(self)
         self.serialization_api = SerializationAPI(self)
+        self.conversion_api = ConversionAPI(self)
 
         # Register all API endpoints with Eel
         self._register_endpoints()
@@ -43,6 +45,7 @@ class API:
         eel.expose(self.file_api.open_file_dialog)
         eel.expose(self.file_api.open_file)
         eel.expose(self.file_api.open_file_with_system_app)
+        eel.expose(self.file_api.start_file)
         eel.expose(self.file_api.save_file)
 
         # Resource API
@@ -54,3 +57,7 @@ class API:
         eel.expose(self.serialization_api.serialize_reversible)
         eel.expose(self.serialization_api.serialize_resource_tmp)
         eel.expose(self.serialization_api.deserialize_resource)
+
+        # Conversion API
+        eel.expose(self.conversion_api.select_directory_dialog)
+        eel.expose(self.conversion_api.convert_files)
