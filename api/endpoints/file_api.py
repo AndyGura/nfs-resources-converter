@@ -5,8 +5,6 @@ This module handles all file-related operations.
 
 import eel
 import traceback
-from tkinter import Tk
-from tkinter.filedialog import askopenfilename
 from typing import Dict, Optional, Tuple, Any
 
 import settings
@@ -61,6 +59,8 @@ class FileAPI:
         Returns:
             The selected file path or None if canceled
         """
+        from tkinter import Tk
+        from tkinter.filedialog import askopenfilename
         root = Tk()
         root.withdraw()
         root.update()
