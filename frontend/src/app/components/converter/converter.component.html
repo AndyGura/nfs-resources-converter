@@ -1,0 +1,55 @@
+<div class="converter-container">
+  <h1>Converter to Common Formats</h1>
+
+  <form [formGroup]="converterForm" (ngSubmit)="convertFiles()">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Input Directory/File</mat-label>
+        <input matInput formControlName="inputPath" placeholder="Select input directory or file">
+        <mat-error *ngIf="converterForm.get('inputPath')?.hasError('required')">
+          Input path is required
+        </mat-error>
+      </mat-form-field>
+      <button type="button" mat-raised-button color="primary" (click)="selectInputDirectory()">
+        Browse
+      </button>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Output Directory</mat-label>
+        <input matInput formControlName="outputPath" placeholder="Select output directory">
+        <mat-error *ngIf="converterForm.get('outputPath')?.hasError('required')">
+          Output path is required
+        </mat-error>
+      </mat-form-field>
+      <button type="button" mat-raised-button color="primary" (click)="selectOutputDirectory()">
+        Browse
+      </button>
+    </div>
+
+    <div class="actions">
+      <button type="submit" mat-raised-button color="accent" [disabled]="converterForm.invalid || isConverting">
+        Convert Files
+      </button>
+    </div>
+
+    <div *ngIf="isConverting" class="progress-container">
+      <mat-progress-bar mode="determinate" [value]="(eelDelegate.conversionProgress$ | async)![1] > 0 ? ((eelDelegate.conversionProgress$ | async)![0] / (eelDelegate.conversionProgress$ | async)![1]) * 100 : 0" class="progress-bar"></mat-progress-bar>
+      <div class="progress-text">
+        {{ (eelDelegate.conversionProgress$ | async)![0] }} / {{ (eelDelegate.conversionProgress$ | async)![1] }} files processed
+      </div>
+    </div>
+  </form>
+
+  <div class="info-section">
+    <h2>About Conversion</h2>
+    <p>
+      This tool allows you to convert NFS resource files to common formats.
+      Select an input directory or file and an output directory, then click "Convert Files" to start the conversion process.
+    </p>
+    <p>
+      The converter will process all files in the input directory (including subdirectories) and save the converted files to the output directory.
+    </p>
+  </div>
+</div>

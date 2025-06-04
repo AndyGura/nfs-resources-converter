@@ -22,7 +22,9 @@ import { NavigationBarModule } from './components/navigation-bar/navigation-bar.
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { LandingPageComponent } from './components/landing-page/landing-page.component';
+import { ConverterComponent } from './components/converter/converter.component';
 
 @NgModule({
   declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, LandingPageComponent],
@@ -40,10 +42,12 @@ import { LandingPageComponent } from './components/landing-page/landing-page.com
     MatMenuModule,
     MatFormFieldModule,
     MatInputModule,
+    MatProgressBarModule,
     ReactiveFormsModule,
     NavigationBarComponent,
     EditorModule,
     NavigationBarModule,
+    ConverterComponent,
   ],
   providers: [
     EelDelegateService,

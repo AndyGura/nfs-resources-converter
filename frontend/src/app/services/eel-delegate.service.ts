@@ -12,8 +12,11 @@ export class EelDelegateService {
   >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
+  public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
+
   constructor(private readonly ngZone: NgZone) {
     eel.expose(this.wrapHandler(this.openFile), 'open_file');
+    eel.expose(this.wrapHandler(this.updateConversionProgress), 'update_conversion_progress');
     eel['on_angular_ready']();
     // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
     setTimeout(async () => {
@@ -43,6 +46,10 @@ export class EelDelegateService {
     this.openedResourcePath$.next(path);
     const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
     this.openedResource$.next({ ...res, id: res.name });
+  }
+
+  updateConversionProgress(current: number, total: number): void {
+    this.conversionProgress$.next([current, total]);
   }
 
   public async openFileDialog(): Promise<string | null> {
@@ -91,5 +98,29 @@ export class EelDelegateService {
 
   public async deserializeResource(id: string): Promise<BlockData | ReadError> {
     return eel['deserialize_resource'](id)();
+  }
+
+  public async selectDirectoryDialog(): Promise<string | null> {
+    return await eel['select_directory_dialog']()();
+  }
+
+  public async convertFiles(
+    inputPath: string,
+    outputPath: string,
+  ): Promise<{ success: boolean; error?: string; output_path?: string }> {
+    return await eel['convert_files'](inputPath, outputPath)();
+  }
+
+  public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
+    return await eel['start_file'](path)();
+  }
+
+  public async closeFile(): Promise<{ success: boolean; message: string }> {
+    const result = await eel['close_file']()();
+    if (result.success) {
+      this.openedResource$.next(null);
+      this.openedResourcePath$.next(null);
+    }
+    return result;
   }
 }

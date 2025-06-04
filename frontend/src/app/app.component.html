@@ -59,6 +59,13 @@
       <span>Toggle Hidden Fields</span>
     </button>
   </mat-menu>
+  <button mat-button [matMenuTriggerFor]="toolsMenu">Tools</button>
+  <mat-menu #toolsMenu="matMenu">
+    <button mat-menu-item (click)="openConverter()">
+      <mat-icon>transform</mat-icon>
+      <span>Converter to common formats</span>
+    </button>
+  </mat-menu>
   <button mat-button [matMenuTriggerFor]="aboutMenu">About</button>
   <mat-menu #aboutMenu="matMenu">
     <button mat-menu-item (click)='openHomePage()'>

@@ -5,8 +5,6 @@ This module handles all file-related operations.
 
 import eel
 import traceback
-from tkinter import Tk
-from tkinter.filedialog import askopenfilename
 from typing import Dict, Optional, Tuple, Any
 
 import settings
@@ -61,6 +59,8 @@ class FileAPI:
         Returns:
             The selected file path or None if canceled
         """
+        from tkinter import Tk
+        from tkinter.filedialog import askopenfilename
         root = Tk()
         root.withdraw()
         root.update()
@@ -106,16 +106,34 @@ class FileAPI:
             'data': self.render_data(self.current_file_data)
         }
 
-    def open_file_with_system_app(self, path: str):
-        """
-        Open a file with the system's default application.
+    def start_file(self, path: str) -> Dict[str, Any]:
+        try:
+            start_file(path)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
-        Args:
-            path: Path to the file
-        """
+    def open_file_with_system_app(self, path: str):
         if path.startswith('/') or path.startswith('\\'):
             path = path[1:]
         start_file(path_join(self.api.static_path, path))
+
+    def close_file(self) -> Dict[str, Any]:
+        """
+        Close the current file and dispose it from cache.
+
+        Returns:
+            Dict with operation status
+        """
+        if self.current_file_name:
+            clear_file_cache(self.current_file_name)
+            file_name = self.current_file_name
+            self.current_file_name = None
+            self.current_file_data = None
+            self.current_file_block = None
+            return {"success": True, "message": f"File {file_name} closed and removed from cache"}
+        else:
+            return {"success": False, "message": "No file is currently open"}
 
     def save_file(self, path: str, changes: Dict) -> Dict:
         """
