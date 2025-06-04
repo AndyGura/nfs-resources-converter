@@ -105,4 +105,5 @@ class ConversionAPI:
             eel.update_conversion_progress(self.total_files, self.total_files)
             return {"success": True, "output_path": output_path}
         except Exception as e:
+            traceback.print_exc()
             return {"success": False, "error": str(e)}
