@@ -47,6 +47,7 @@ class API:
         eel.expose(self.file_api.open_file_with_system_app)
         eel.expose(self.file_api.start_file)
         eel.expose(self.file_api.save_file)
+        eel.expose(self.file_api.close_file)
 
         # Resource API
         eel.expose(self.resource_api.retrieve_value)

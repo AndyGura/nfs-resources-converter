@@ -32,8 +32,7 @@ export class AppComponent {
   }
 
   closeFile() {
-    this.eelDelegate.openedResource$.next(null);
-    this.eelDelegate.openedResourcePath$.next(null);
+    this.eelDelegate.closeFile().then();
   }
 
   async saveResource() {

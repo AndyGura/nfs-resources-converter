@@ -51,6 +51,9 @@ class ConversionAPI:
             return ex
 
     def convert_files(self, input_path: str, output_path: str) -> Dict[str, Any]:
+        opened_file = self.api.file_api.current_file_name
+        if opened_file:
+            self.api.file_api.close_file()
         try:
             if not os.path.exists(input_path):
                 return {"success": False, "error": f"Input path does not exist: {input_path}"}
@@ -107,3 +110,6 @@ class ConversionAPI:
         except Exception as e:
             traceback.print_exc()
             return {"success": False, "error": str(e)}
+        finally:
+            if opened_file:
+                self.api.file_api.open_file(opened_file)

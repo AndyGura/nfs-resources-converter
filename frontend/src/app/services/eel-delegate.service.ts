@@ -114,4 +114,13 @@ export class EelDelegateService {
   public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
     return await eel['start_file'](path)();
   }
+
+  public async closeFile(): Promise<{ success: boolean; message: string }> {
+    const result = await eel['close_file']()();
+    if (result.success) {
+      this.openedResource$.next(null);
+      this.openedResourcePath$.next(null);
+    }
+    return result;
+  }
 }

@@ -118,6 +118,23 @@ class FileAPI:
             path = path[1:]
         start_file(path_join(self.api.static_path, path))
 
+    def close_file(self) -> Dict[str, Any]:
+        """
+        Close the current file and dispose it from cache.
+
+        Returns:
+            Dict with operation status
+        """
+        if self.current_file_name:
+            clear_file_cache(self.current_file_name)
+            file_name = self.current_file_name
+            self.current_file_name = None
+            self.current_file_data = None
+            self.current_file_block = None
+            return {"success": True, "message": f"File {file_name} closed and removed from cache"}
+        else:
+            return {"success": False, "message": "No file is currently open"}
+
     def save_file(self, path: str, changes: Dict) -> Dict:
         """
         Save changes to a file.
