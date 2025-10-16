@@ -437,6 +437,8 @@ EXPORT_RESOURCES = {
             ],
             'Geometries': [
                 geometries.CrpGeometry(),
+                geometries.Article(),
+                geometries.MiscPart(),
             ],
             # 'Maps': [
             # ],
