@@ -412,3 +412,13 @@ class GeoGeometry(DeclarativeCompoundBlock):
                       {'description': 'Reserved space for part'})
         part_res_5 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
+
+
+class CrpGeometry(DeclarativeCompoundBlock):
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (UTF8Block(required_value=' raC', length=4),
+                       {'description': 'Resource ID'})
+        unk = (BytesBlock(length=128),
+                {'is_unknown': True})
+

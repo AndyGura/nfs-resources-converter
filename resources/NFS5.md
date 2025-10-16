@@ -1,9 +1,11 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2025-03-11 21:42:35.908640+00:00*
+*Last time updated: 2025-10-16 16:01:59.461721+00:00*
 
 
 # **Info by file extensions** #
+
+**\*.crp** geometry file. [CrpGeometry](#crpgeometry)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
@@ -46,6 +48,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+## **Geometries** ##
+### **CrpGeometry** ###
+#### **Size**: 132 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == " raC" | Resource ID |
+| 4 | **unk** | 128 | Bytes | Unknown purpose |
 ## **Bitmaps** ##
 ### **Bitmap8Bit** ###
 #### **Size**: 16..? bytes ####
