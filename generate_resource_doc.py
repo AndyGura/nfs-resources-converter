@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from library.read_blocks import (CompoundBlock,
@@ -53,6 +54,19 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
     if possible_blocks_filter and instance.__class__ not in possible_blocks_filter:
         print(f"WARNING: Block class {instance.__class__.__name__} is referenced but not presented in the file")
     return f'[{name}](#{name.lower()})'
+
+def render_description(extras):
+    description = extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")
+    # find parts in description like "<br/>- [GeoGeometry](#geogeometry)" and filter them with possible_blocks_filter
+    if possible_blocks_filter:
+        possible_block_class_names = [x.__name__.replace("Resource", "") for x in possible_blocks_filter]
+        block_ref_pattern = re.compile(r'<br/>\s*-\s*\[([A-Za-z0-9_]+)\]\(#.*?\)')
+        def remove_if_filtered_out(match):
+            if match.group(1) not in possible_block_class_names:
+                return ''
+            return match.group(0)
+        return block_ref_pattern.sub(remove_if_filtered_out, description)
+    return description
 
 
 EXPORT_RESOURCES = {
@@ -534,11 +548,13 @@ Did not find what you need or some given data is wrong? Please submit an
                         f'**{key}** | '
                         f'{render_value_doc_str(field.size_doc_str)} | '
                         f'{render_type(field, possible_blocks_filter)} | '
-                        f'{extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")} |')
+                        f'{render_description(extras)} |')
 
 
             for key, field in resource.field_blocks:
                 extras = resource.field_extras_map[key]
+                if extras.get('usage', 'everywhere') == 'ui_only':
+                    continue
                 if extras.get('custom_offset'):
                     offset = extras.get('custom_offset')
                 if isinstance(field, LengthPrefixedArrayBlock):

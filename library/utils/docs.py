@@ -24,6 +24,13 @@ def add_doc_numbers(a, b):
         else:
             return f'{a} + {b}'
 
+def needs_parentheses(a):
+    if a.isdigit():
+        return False
+    if '+' in a or '-' in a or '>>' in a or '<<' in a:
+        return True
+    return False
+
 def multiply_doc_numbers(a, b):
     if a == '?' or b == '?':
         return '?'
@@ -39,8 +46,8 @@ def multiply_doc_numbers(a, b):
             [mnsd, mxsd] = b.split('..') if ('..' in b) else [b, b]
             return f'{multiply_doc_numbers(mnld, mnsd)}..{multiply_doc_numbers(mxld, mxsd)}'
         else:
-            if '+' in str(a) or '-' in str(a):
+            if needs_parentheses(a):
                 a = f'({a})'
-            if '+' in str(b) or '-' in str(b):
+            if needs_parentheses(b):
                 b = f'({b})'
             return f'{a}*{b}'

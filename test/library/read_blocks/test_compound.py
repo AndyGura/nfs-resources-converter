@@ -137,6 +137,7 @@ class TestDeclarativeCompound(unittest.TestCase):
                         },
                         'is_programmatic': False,
                         'is_unknown': False,
+                        'usage': 'everywhere',
                         'description': "Some header",
                     },
                     {
@@ -151,6 +152,7 @@ class TestDeclarativeCompound(unittest.TestCase):
                         },
                         'is_programmatic': True,
                         'is_unknown': False,
+                        'usage': 'everywhere',
                         'description': "A length of `val` array"
                     },
                     {
@@ -170,6 +172,7 @@ class TestDeclarativeCompound(unittest.TestCase):
                         },
                         'is_programmatic': False,
                         'is_unknown': False,
+                        'usage': 'everywhere',
                         'description': ""
                     }
                 ]

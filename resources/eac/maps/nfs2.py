@@ -54,7 +54,7 @@ class TrkBlock(DeclarativeCompoundBlock):
                                length=lambda ctx: ctx.data('np4') + ctx.data('np2') + ctx.data('np1')),
                     {'description': 'Polygons'})
         unk2 = (BytesBlock(
-            length=(lambda ctx: 64 + ctx.data('extrablocks_offset') + ctx.read_start_offset - ctx.buffer.tell(),
+            length=(lambda ctx: 64 + ctx.data('extrablocks_offset') - ctx.local_buffer_pos,
                     'up to (extrablocks_offset+64)')),
                 {'is_unknown': True})
         extrablock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),

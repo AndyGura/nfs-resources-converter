@@ -136,7 +136,7 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
         polygons = (ArrayBlock(child=ColPolygon(),
                                length=lambda ctx: ctx.data('num_polygons')),
                     {'description': 'Polygons'})
-        padding = (BytesBlock(length=lambda ctx: ctx.data('block_size') - ctx.buffer.tell() + ctx.read_start_offset),
+        padding = (BytesBlock(length=lambda ctx: ctx.data('block_size') - ctx.local_buffer_pos),
                    {'description': 'Unused space'})
 
 

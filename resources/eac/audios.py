@@ -77,7 +77,7 @@ class EacsAudioFile(DeclarativeCompoundBlock):
                     'space up to offset `header.wave_data_offset` (global)')),
                   {'is_unknown': True})
         wave_data = (
-            BytesBlock(length=(lambda ctx: min(ctx.read_start_offset + ctx.read_bytes_amount - ctx.buffer.tell(),
+            BytesBlock(length=(lambda ctx: min(ctx.read_bytes_remaining,
                                                ctx.data('header/wave_data_length')
                                                * ctx.data('header/sound_resolution')),
                                'min(`remaining file bytes`, '
@@ -132,10 +132,9 @@ class AsfAudio(DeclarativeCompoundBlock):
         unk2 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = BytesBlock(
-            length=(lambda ctx: ctx.read_start_offset + ctx.data('wave_data_offset') + 40 - ctx.buffer.tell(),
+            length=(lambda ctx: ctx.data('wave_data_offset') + 40 - ctx.local_buffer_pos,
                     'space up to offset (wave_data_offset + 40)'), )
-        wave_data = (BytesBlock(length=(lambda ctx: min(ctx.read_start_offset + ctx.read_bytes_amount
-                                                        - ctx.buffer.tell(),
+        wave_data = (BytesBlock(length=(lambda ctx: min(ctx.read_bytes_remaining,
                                                         ctx.data('wave_data_length') * ctx.data('sound_resolution')),
                                         'min(`remaining file bytes`, `wave_data_length` * `sound_resolution`)')),
                      {'description': 'Wave data is here',

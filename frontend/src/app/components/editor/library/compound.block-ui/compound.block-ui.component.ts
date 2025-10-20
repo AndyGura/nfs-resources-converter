@@ -31,9 +31,11 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
   get name(): string | null {
     return this.resource && this.resource.name;
   }
+
   get data(): BlockData | null {
     return this.resource && this.resource.data;
   }
+
   get schema(): BlockSchema | null {
     return this.resource && this.resource.schema;
   }
@@ -46,7 +48,10 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
 
   get fieldKeys(): { index: number; key: string }[] {
     let fields: { index: number; key: string }[] =
-      this.schema?.fields.map((f: { name: string }, i: number) => ({ index: i, key: f.name })) || [];
+      this.schema?.fields
+        .map((f: { name: string; usage?: string }, i: number) => ({ index: i, name: f.name, usage: f.usage }))
+        .filter((f: { usage?: string }) => (f.usage || 'everywhere') !== 'skip_ui')
+        .map((f: { index: number; name: string }) => ({ index: f.index, key: f.name })) || [];
     if (this.fieldWhitelist) {
       fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));
     } else if (this.fieldBlacklist) {

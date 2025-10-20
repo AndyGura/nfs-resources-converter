@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from copy import deepcopy
-from io import BufferedReader, BytesIO
+from io import BufferedReader, BytesIO, SEEK_CUR
 from typing import Dict
 
 from library.context import ReadContext, WriteContext
@@ -80,16 +80,10 @@ class Qfs3Block(CompressedBlock):
 ### Aliases can repeat
 class BaseArchiveBlock(DeclarativeCompoundBlock, ABC):
 
-    def estimate_packed_size(self, data, ctx: WriteContext = None):
-        offsets_sum = 0
-        # CompoundBlock does not know about payloads between items
-        for offset in data['offset_payloads']:
-            offsets_sum += len(offset)
-        return super().estimate_packed_size(data, ctx) + offsets_sum
-
     def new_data(self):
         # CompoundBlock does not create those custom fields
         return {**super().new_data(),
+                'children': [],
                 'children_aliases': [],
                 'offset_payloads': [b'']}
 
@@ -118,56 +112,44 @@ class BaseArchiveBlock(DeclarativeCompoundBlock, ABC):
              read_bytes_amount=None):
         block_start = buffer.tell()
         res = super().read(buffer, ctx, name, read_bytes_amount)
+        end_pos = buffer.tell()
+        buffer.seek(-len(res['data_bytes']), SEEK_CUR)
         self_ctx = next(c for c in ctx.children if c.name == name)
         abs_offsets = self.parse_abs_offsets(block_start, res, read_bytes_amount)
-        children = []
-        aliases = []
-        offset_payloads = []
+        res['children'] = []
+        res['children_aliases'] = []
+        res['offset_payloads'] = []
         for i in range(len(abs_offsets)):
             # recursive reference, happens in wwww blocks
             if abs_offsets[i][1] == block_start:
-                offset_payloads.append(b'')
-                aliases.append(None)
-                children.append(None)
+                res['offset_payloads'].append(b'')
+                res['children_aliases'].append(None)
+                res['children'].append(None)
                 continue
             (op, a, c) = self.handle_archive_child(buffer, abs_offsets, i, self_ctx)
-            offset_payloads.extend(op)
-            aliases.extend(a)
-            children.extend(c)
+            res['offset_payloads'].extend(op)
+            res['children_aliases'].extend(a)
+            res['children'].extend(c)
         if res.get('length') is not None and buffer.tell() < block_start + res['length']:
             diff = block_start + res['length'] - buffer.tell()
-            offset_payloads.append(buffer.read(diff))
-        if read_bytes_amount is not None:
-            buffer.seek(block_start + read_bytes_amount)
-        res['children'] = children
-        res['children_aliases'] = aliases
-        res['offset_payloads'] = offset_payloads
+            res['offset_payloads'].append(buffer.read(diff))
+        else:
+            res['offset_payloads'].append(b'')
+        buffer.seek(end_pos)
         return res
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        children_heap = b''
+        data['data_bytes'] = b''
         children = []
         child_block = self.field_blocks_map['children'].child
         for i, item in enumerate(data['children']):
-            children_heap += data['offset_payloads'][i]
+            data['data_bytes'] += data['offset_payloads'][i]
             item_data = child_block.pack(data=item, ctx=ctx, name=str(i))
-            children.append((data['children_aliases'][i], len(children_heap), len(item_data)))
-            children_heap += item_data
-        if len(data['offset_payloads']) > len(data['children']):
-            for i in range(len(data['children']), len(data['offset_payloads'])):
-                children_heap += data['offset_payloads'][i]
+            children.append((data['children_aliases'][i], len(data['data_bytes']), len(item_data)))
+            data['data_bytes'] += item_data
+        data['data_bytes'] += data['offset_payloads'][-1]
         data['items_descr'] = self.generate_items_descr(data, children)
-        self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
-        res = bytes()
-        for name, field in (x for x in self.field_blocks if x[0] != 'children'):
-            programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')
-            if programmatic_value_func is not None:
-                val = programmatic_value_func(self_ctx)
-            else:
-                val = data[name]
-            res += field.pack(data=val, ctx=self_ctx, name=name)
-        res += children_heap
-        return res
+        return super().write(data=data, ctx=ctx, name=name)
 
 
 class ShpiBlock(BaseArchiveBlock):
@@ -200,7 +182,26 @@ class ShpiBlock(BaseArchiveBlock):
                        {'description': 'An array of items, each of them represents name of SHPI item (image or palette)'
                                        ' and offset to item data in file, relatively to SHPI block start (where '
                                        'resource id string is presented). Names are not always unique'})
-        children = (ArrayBlock(length=(0, 'num_items + ?'),
+        data_bytes = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+                      {
+                          'description': 'A part of block, where items data is located. Offsets to some of the entries are '
+                                         'defined in `items_descr` block. Between them there can be non-indexed '
+                                         'entries (palettes and texts). Possible item types:'
+                                         '<br/>- [Bitmap4Bit](#bitmap4bit)'
+                                         '<br/>- [Bitmap8Bit](#bitmap8bit)'
+                                         '<br/>- [Bitmap16Bit0565](#bitmap16bit0565)'
+                                         '<br/>- [Bitmap16Bit1555](#bitmap16bit1555)'
+                                         '<br/>- [Bitmap24Bit](#bitmap24bit)'
+                                         '<br/>- [Bitmap32Bit](#bitmap32bit)'
+                                         '<br/>- [PaletteReference](#palettereference)'
+                                         '<br/>- [Palette16BitDos](#palette16bitdos)'
+                                         '<br/>- [Palette16Bit](#palette16bit)'
+                                         '<br/>- [Palette24BitDos](#palette24bitdos)'
+                                         '<br/>- [Palette24Bit](#palette24bit)'
+                                         '<br/>- [Palette32Bit](#palette32bit)'
+                                         '<br/>- [ShpiText](#shpitext)',
+                          'usage': 'skip_ui'})
+        children = (ArrayBlock(length=0,
                                child=AutoDetectBlock(possible_blocks=[
                                    Bitmap4Bit(),
                                    Bitmap8Bit(),
@@ -216,13 +217,11 @@ class ShpiBlock(BaseArchiveBlock):
                                    Palette32Bit(),
                                    ShpiText(),
                                    BytesBlock(length=(lambda ctx: next(x for x in (
-                                       x['offset'] + ctx.read_start_offset - ctx.buffer.tell()
+                                       x['offset'] - ctx.local_buffer_pos
                                        for x in (sorted(ctx.data('items_descr'), key=lambda x: x['offset'])
                                                  + [{'offset': ctx.read_bytes_amount}])
                                    ) if x > 0), 'item_length'))])),
-                    {'description': 'A part of block, where items data is located. Offsets to some of the entries are '
-                                    'defined in `items_descr` block. Between them there can be non-indexed '
-                                    'entries (palettes and texts)'})
+                    {'usage': 'ui_only'})
 
     def new_data(self):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
@@ -230,32 +229,47 @@ class ShpiBlock(BaseArchiveBlock):
     def parse_abs_offsets(self, block_start, data, read_bytes_amount):
         return [(x['name'], block_start + x['offset'], None) for x in data['items_descr']]
 
-    def handle_archive_child(self, buffer, abs_offsets, i, self_ctx):
-        (offset_payloads, aliases, children) = super().handle_archive_child(buffer, abs_offsets, i, self_ctx)
-        (alias, offset, length) = abs_offsets[i]
-        child_field = self.field_blocks_map['children'].child
-        try:
-            bitmap8_choice = next(i for i in range(len(child_field.possible_blocks)) if
-                                  isinstance(child_field.possible_blocks[i], Bitmap8Bit))
-        except StopIteration:
-            bitmap8_choice = -1
-        if self_ctx.data('shpi_dir') != 'WRAP' and children[0]['choice_index'] == bitmap8_choice:
-            extra_offset = children[0]['data']['block_size']
-            if extra_offset > 0:
-                extra_offset += offset
-                if i == len(abs_offsets) - 1 or extra_offset < abs_offsets[i + 1][1]:
-                    offset_payloads.append(buffer.read(extra_offset - buffer.tell()))
-                    extra = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name=self_ctx.name)
-                    children.append(extra)
-                    aliases.append(None)
-        return offset_payloads, aliases, children
-
     def generate_items_descr(self, data, children):
         res = [{'name': name, 'offset': offset} for (name, offset, _) in children if name is not None]
-        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'children')
+        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'data_bytes')
         for x in res:
             x['offset'] += heap_offset
         return res
+
+    def handle_archive_child(self, buffer, abs_offsets, i, self_ctx):
+        (alias, offset, length) = abs_offsets[i]
+        offset_payloads = []
+        aliases = []
+        children = []
+        # pre-child payload and positioning
+        if offset > buffer.tell():
+            offset_payloads.append(buffer.read(offset - buffer.tell()))
+        else:
+            offset_payloads.append(b'')
+            buffer.seek(offset)
+        child_field = self.field_blocks_map['children'].child
+        child = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name=alias, read_bytes_amount=length)
+        children.append(child)
+        aliases.append(alias)
+        # Try to read optional extra block after 8-bit bitmap data
+        try:
+            bitmap8_choice = next(
+                idx for idx, blk in enumerate(child_field.possible_blocks) if isinstance(blk, Bitmap8Bit))
+        except StopIteration:
+            bitmap8_choice = -1
+        if bitmap8_choice != -1 and self_ctx.data('shpi_dir') != 'WRAP' and child.get('choice_index') == bitmap8_choice:
+            extra_abs = offset + child['data']['block_size']
+            next_abs = abs_offsets[i + 1][1] if i < len(abs_offsets) - 1 else None
+            if child['data']['block_size'] > 0 and (next_abs is None or extra_abs < next_abs):
+                if extra_abs > buffer.tell():
+                    offset_payloads.append(buffer.read(extra_abs - buffer.tell()))
+                else:
+                    offset_payloads.append(b'')
+                    buffer.seek(extra_abs)
+                extra = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name='extra')
+                children.append(extra)
+                aliases.append(None)
+        return offset_payloads, aliases, children
 
 
 class WwwwBlock(BaseArchiveBlock):
@@ -289,20 +303,26 @@ class WwwwBlock(BaseArchiveBlock):
                                   length=lambda ctx: ctx.data('num_items')),
                        {'description': 'An array of offsets to items data in file, relatively to wwww block start '
                                        '(where resource id string is presented)'})
-        children = (ArrayBlock(length=(0, 'num_items'), child=None),
-                    {'description': 'A part of block, where items data is located. Offsets are defined in previous '
-                                    'block, lengths are calculated: either up to next item offset, or up to the end '
-                                    'of this block'})
+        data_bytes = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+                      {'description': 'A part of block, where items data is located. Offsets are defined in previous '
+                                      'block, lengths are calculated: either up to next item offset, or up to the end '
+                                      'of this block. Possible item types:'
+                                      '<br/>- [ShpiBlock](#shpiblock)'
+                                      '<br/>- [OripGeometry](#oripgeometry)'
+                                      '<br/>- [WwwwBlock](#wwwwblock)',
+                       'usage': 'skip_ui'})
+        children = (ArrayBlock(length=0, child=None),
+                    {'usage': 'ui_only'})
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # write array field child block for referencing self in possible blocks
+        # UI Array child block for referencing self in possible blocks
         self.child_block = AutoDetectBlock(possible_blocks=[
             ShpiBlock(),
             OripGeometry(),
             self,
             BytesBlock(length=(lambda ctx: next(x for x in (
-                x + ctx.read_start_offset - ctx.buffer.tell()
+                x - ctx.local_buffer_pos
                 for x in (sorted(ctx.data('items_descr')) + [ctx.read_bytes_amount])
             ) if x > 0), 'item_length'))])
         self.field_blocks_map['children'].child = self.child_block
@@ -319,7 +339,7 @@ class WwwwBlock(BaseArchiveBlock):
 
     def generate_items_descr(self, data, children):
         res = [offset for (_, offset, _) in children]
-        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'children')
+        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'data_bytes')
         return [x + heap_offset for x in res]
 
 
@@ -364,8 +384,15 @@ class BigfBlock(BaseArchiveBlock):
                 {'is_unknown': True})
         items_descr = ArrayBlock(length=lambda ctx: ctx.data('num_items'),
                                  child=BigfItemDescriptionBlock())
-        children = (ArrayBlock(length=(0, 'num_items'), child=None),
-                    {'description': ''})
+        data_bytes = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+                      {'description': 'A part of block, where items data is located. Offsets and lengths are defined '
+                                      'in previous block. Possible item types:'
+                                      '<br/>- [GeoGeometry](#geogeometry)'
+                                      '<br/>- [ShpiBlock](#shpiblock)'
+                                      '<br/>- [BigfBlock](#bigfblock)',
+                       'usage': 'skip_ui'})
+        children = (ArrayBlock(length=0, child=None),
+                    {'usage': 'ui_only'})
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -375,9 +402,9 @@ class BigfBlock(BaseArchiveBlock):
             ShpiBlock(),
             self,
             BytesBlock(
-                length=(lambda ctx:
-                        next(x for x in ctx.data('items_descr')
-                             if x['offset'] == ctx.buffer.tell() - ctx.read_start_offset)['length'],
+                length=(lambda ctx: next(x
+                                         for x in ctx.data('items_descr')
+                                         if x['offset'] == ctx.local_buffer_pos)['length'],
                         'item_length'))])
         self.field_blocks_map['children'].child = child_block
 
@@ -386,7 +413,7 @@ class BigfBlock(BaseArchiveBlock):
 
     def generate_items_descr(self, data, children):
         res = [{'name': name, 'offset': offset, 'length': length} for (name, offset, length) in children]
-        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'children')
+        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'data_bytes')
         for x in res:
             x['offset'] += heap_offset
         return res
@@ -410,14 +437,13 @@ class SoundBank(DeclarativeCompoundBlock):
                  {'description': 'EACS audio headers. Separate audios can be read easily using these because '
                                  'it contains file-wide offset to wave data, so it does not care wave data located, '
                                  'right after EACS header, or somewhere else like it is here in sound bank file'})
-        wave_data = (BytesBlock(length=(lambda ctx: ctx.read_bytes_amount - ctx.buffer.tell(), 'up to end of file')),
+        wave_data = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
                      {'description': 'Raw byte data, which is sliced according to provided offsets and used as wave '
-                                     'data'})
+                                     'data',
+                      'usage': 'skip_ui'})
         children = (ArrayBlock(child=EacsAudioFile(), length=0),
-                    {'description': 'Disregard this field, it is generated by parser from the data from previous '
-                                    'fields for convenience: essentially this file is a set of EACS audio-s, but their '
-                                    'structure is dispersed across the file',
-                     'custom_offset': 'N/A'})
+                    {'description': 'EACS audios',
+                     'usage': 'ui_only'})
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):

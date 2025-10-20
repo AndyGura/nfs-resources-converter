@@ -42,6 +42,14 @@ class BaseContext:
 
 class ReadContext(BaseContext):
 
+    @property
+    def local_buffer_pos(self):
+        return self.buffer.tell() - self.read_start_offset
+
+    @property
+    def read_bytes_remaining(self):
+        return self.read_bytes_amount - self.local_buffer_pos
+
     def __init__(self, buffer: [BufferedReader, BytesIO] = None, name: str = '', data=None, block=None, parent=None,
                  read_bytes_amount=None):
         super().__init__(name=name, data=data, block=block, parent=parent)
@@ -94,6 +102,10 @@ class DocumentationCtxData:
 
 
 class DocumentationContext(BaseContext):
+
+    @property
+    def read_bytes_remaining(self):
+        return 'up to end of block'
 
     def data(self, local_path: str):
         return DocumentationCtxData(local_path.replace('../', '^'))
