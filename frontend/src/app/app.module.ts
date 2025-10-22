@@ -25,6 +25,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { LandingPageComponent } from './components/landing-page/landing-page.component';
 import { ConverterComponent } from './components/converter/converter.component';
+import { ConfigComponent } from './components/config/config.component';
 
 @NgModule({
   declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, LandingPageComponent],
@@ -48,6 +49,7 @@ import { ConverterComponent } from './components/converter/converter.component';
     EditorModule,
     NavigationBarModule,
     ConverterComponent,
+    ConfigComponent,
   ],
   providers: [
     EelDelegateService,

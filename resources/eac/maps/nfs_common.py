@@ -248,6 +248,10 @@ class MapColFile(DeclarativeCompoundBlock):
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
                        {'description': 'Extrablocks'})
 
+    def serializer_class(self):
+        from serializers import JsonSerializer
+        return JsonSerializer
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
         start_offset = buffer.tell()

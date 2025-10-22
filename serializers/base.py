@@ -3,13 +3,12 @@ from abc import ABC, abstractmethod
 from os.path import getsize
 from typing import Dict
 
-import settings
-from library.utils.class_dict import ClassDict
+from config import conversion_config
 from library.utils.id import join_id
 
 
 class ResourceSerializer(ABC):
-    settings = ClassDict.wrap(settings.__dict__.copy())
+    settings = conversion_config()
 
     def patch_settings(self, settings_patch: dict):
         self.settings.update(settings_patch)

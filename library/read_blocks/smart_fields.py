@@ -2,7 +2,7 @@ import traceback
 from io import BufferedReader, BytesIO
 from typing import List, Dict, Tuple, Any
 
-import settings
+import config
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException
 from library.read_blocks.basic import DataBlock, SkipBlock, BytesBlock
@@ -74,6 +74,10 @@ class DelegateBlock(DataBlock):
         return {'choice_index': 0,
                 'data': self.possible_blocks[0].new_data()}
 
+    def serializer_class(self):
+        from serializers import DelegateBlockSerializer
+        return DelegateBlockSerializer
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
         delegated_block_index = self.choice_index
@@ -142,7 +146,7 @@ def _enum_lookup(ctx, enum_field, fallback_index):
     try:
         return [name for (_, name) in ctx.relative_block(enum_field).enum_names].index(ctx.data(enum_field))
     except Exception:
-        if settings.print_errors:
+        if config.general_config().print_errors:
             traceback.print_exc()
         return fallback_index
 
@@ -155,4 +159,3 @@ class EnumLookupDelegateBlock(DelegateBlock):
                                        f'According to enum {enum_field}'),
                          **kwargs)
         self.enum_field = enum_field
-

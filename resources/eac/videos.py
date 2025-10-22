@@ -13,6 +13,10 @@ class FfmpegSupportedVideo(DataBlock):
         return {**super().schema,
                 'block_description': 'A video file, which is supported by FFMPEG and can be converted using only it'}
 
+    def serializer_class(self):
+        from serializers import FfmpegSupportedVideoSerializer
+        return FfmpegSupportedVideoSerializer
+
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
         return name

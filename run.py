@@ -8,6 +8,7 @@ class Action(Enum):
     convert = 'convert'
     gui = 'gui'
     custom_command = 'custom_command'
+    show_settings = 'show_settings'
 
     def __str__(self):
         return self.value
@@ -33,6 +34,9 @@ if __name__ == "__main__":
             raise Exception('--out argument has to be provided for convert action')
         from actions.convert_all import convert_all
         convert_all(args.file, args.out)
+    elif args.action == Action.show_settings:
+        from config import get_config_file_location
+        print(f"Settings file location: {get_config_file_location()}")
     elif args.action == Action.custom_command:
         if args.file is None:
             raise Exception('file argument is required for custom_command action')

@@ -226,6 +226,10 @@ class ShpiBlock(BaseArchiveBlock):
     def new_data(self):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
 
+    def serializer_class(self):
+        from serializers import ShpiArchiveSerializer
+        return ShpiArchiveSerializer
+
     def parse_abs_offsets(self, block_start, data, read_bytes_amount):
         return [(x['name'], block_start + x['offset'], None) for x in data['items_descr']]
 
@@ -327,6 +331,10 @@ class WwwwBlock(BaseArchiveBlock):
             ) if x > 0), 'item_length'))])
         self.field_blocks_map['children'].child = self.child_block
 
+    def serializer_class(self):
+        from serializers import WwwwArchiveSerializer
+        return WwwwArchiveSerializer
+
     def parse_abs_offsets(self, block_start, data, read_bytes_amount):
         offsets = [block_start + x for x in data['items_descr']]
         lengths = []
@@ -408,6 +416,10 @@ class BigfBlock(BaseArchiveBlock):
                         'item_length'))])
         self.field_blocks_map['children'].child = child_block
 
+    def serializer_class(self):
+        from serializers import BigfArchiveSerializer
+        return BigfArchiveSerializer
+
     def parse_abs_offsets(self, block_start, data, read_bytes_amount):
         return [(x['name'], block_start + x['offset'], x['length']) for x in data['items_descr']]
 
@@ -444,6 +456,10 @@ class SoundBank(DeclarativeCompoundBlock):
         children = (ArrayBlock(child=EacsAudioFile(), length=0),
                     {'description': 'EACS audios',
                      'usage': 'ui_only'})
+
+    def serializer_class(self):
+        from serializers import SoundBankSerializer
+        return SoundBankSerializer
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):

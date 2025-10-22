@@ -2,6 +2,7 @@ import json
 import subprocess
 import wave
 
+from config import general_config
 from library.utils import audio_ima_adpcm_codec
 from serializers import BaseFileSerializer
 
@@ -46,7 +47,7 @@ class FfmpegSupportedAudioSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
         subprocess.run(
-            [self.settings.ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", id, f'{path}.wav'],
+            [general_config().ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", id, f'{path}.wav'],
             check=True)
         with open(f'{path}.meta.json', 'w') as file:
             loop_start_time_ms = 1000 * data['repeat_loop_beginning'] / data['sampling_rate']

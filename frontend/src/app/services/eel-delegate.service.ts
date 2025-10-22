@@ -3,6 +3,28 @@ import { BehaviorSubject } from 'rxjs';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
 
+type GeneralConfig = {
+  blender_executable: string;
+  ffmpeg_executable: string;
+  print_errors: boolean;
+  print_blender_log: boolean;
+};
+
+type ConversionConfig = {
+  multiprocess_processes_count: number;
+  input_path: string;
+  output_path: string;
+  images__save_images_only: boolean;
+  maps__save_as_chunked: boolean;
+  maps__save_invisible_wall_collisions: boolean;
+  maps__save_terrain_collisions: boolean;
+  maps__save_spherical_skybox_texture: boolean;
+  maps__add_props_to_obj: boolean;
+  geometry__save_obj: boolean;
+  geometry__save_blend: boolean;
+  geometry__export_to_gg_web_engine: boolean;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -104,11 +126,32 @@ export class EelDelegateService {
     return await eel['select_directory_dialog']()();
   }
 
+  public async getGeneralConfig(): Promise<GeneralConfig> {
+    return await eel['get_general_config']()();
+  }
+
+  public async getConversionConfig(): Promise<ConversionConfig> {
+    return await eel['get_conversion_config']()();
+  }
+
+  public async patchGeneralConfig(data: Partial<GeneralConfig>): Promise<GeneralConfig> {
+    return await eel['patch_general_config'](data)();
+  }
+
+  public async patchConversionConfig(data: Partial<ConversionConfig>): Promise<ConversionConfig> {
+    return await eel['patch_conversion_config'](data)();
+  }
+
+  public async testExecutable(executablePath: string): Promise<any> {
+    return await eel['test_executable'](executablePath)();
+  }
+
   public async convertFiles(
     inputPath: string,
     outputPath: string,
+    settings?: any,
   ): Promise<{ success: boolean; error?: string; output_path?: string }> {
-    return await eel['convert_files'](inputPath, outputPath)();
+    return await eel['convert_files'](inputPath, outputPath, settings)();
   }
 
   public async startFile(path: string): Promise<{ success: boolean; error?: string }> {

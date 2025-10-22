@@ -1,6 +1,7 @@
 import os
 import traceback
 
+import config
 import serializers
 from library.exceptions import DataIntegrityException
 from library.utils import format_exception, path_join
@@ -11,6 +12,8 @@ from resources.eac.geometries import OripGeometry
 from resources.eac.palettes import PaletteReference, BasePalette, Palette24BitDos
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
+
+general_config = config.general_config()
 
 
 class ShpiArchiveSerializer(BaseFileSerializer):
@@ -63,7 +66,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                                          id=join_id(id, 'children', name, 'data'))
                     save_image_names[file_name] = True
             except Exception as ex:
-                if self.settings.print_errors:
+                if general_config.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if not self.settings.images__save_images_only:
@@ -240,7 +243,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 serializer.serialize(item_data, path_join(path, name), block=item_block,
                                      id=join_id(id, 'children', str(i), 'data'))
             except Exception as ex:
-                if self.settings.print_errors:
+                if general_config.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
@@ -270,7 +273,7 @@ class SoundBankSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item_block, item)
                 serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', name))
             except Exception as ex:
-                if self.settings.print_errors:
+                if general_config.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
@@ -309,7 +312,7 @@ class BigfArchiveSerializer(BaseFileSerializer):
                                      id=join_id(id, 'children', str(i), 'data'))
                 save_image_names[file_name] = True
             except Exception as ex:
-                if self.settings.print_errors:
+                if general_config.print_errors:
                     traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:

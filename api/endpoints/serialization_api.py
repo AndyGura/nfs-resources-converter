@@ -3,26 +3,24 @@ Serialization API endpoint for the NFS Resources Converter.
 This module handles all serialization-related operations.
 """
 
-import tempfile
 from copy import deepcopy
 from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 
+from api.utils import apply_delta_to_resource
 from library import require_resource
 from library.utils import path_join
 from library.utils.file_utils import remove_file_or_directory
 from serializers import get_serializer
 from serializers.misc.json_utils import convert_bytes, serialize_exceptions
 
-from api.utils import apply_delta_to_resource
-
 
 class SerializationAPI:
     """
     API endpoint for serialization-related operations.
     """
-    
+
     def __init__(self, api):
         """
         Initialize the SerializationAPI endpoint.
@@ -31,7 +29,7 @@ class SerializationAPI:
             api: The main API instance
         """
         self.api = api
-    
+
     def render_data(self, data):
         """
         Render data for frontend consumption.
@@ -43,7 +41,7 @@ class SerializationAPI:
             Rendered data
         """
         return convert_bytes(serialize_exceptions(data))
-    
+
     def serialize_resource(self, id: str, settings_patch: Dict = {}) -> List[str]:
         """
         Serialize a resource.
@@ -69,7 +67,7 @@ class SerializationAPI:
                                                   (normal_slashes_path.rindex('/') + 1):] + '.*'))
                                if not x.is_dir()]
         return [x.replace('\\', '/') for x in exported_file_paths]
-    
+
     def serialize_reversible(self, id: str, changes: Dict) -> Tuple[List[str], bool]:
         """
         Serialize a resource with ability to serialize it back.
@@ -94,7 +92,7 @@ class SerializationAPI:
                                Path(normal_slashes_path[:normal_slashes_path.rindex('/')]).glob(
                                    normal_slashes_path[(normal_slashes_path.rindex('/') + 1):] + '.*'))
                 if not x.is_dir()], reverse_flag
-    
+
     def serialize_resource_tmp(self, id: str, changes: Dict, settings_patch: Dict = {}) -> List[str]:
         """
         Serialize a resource temporarily.
@@ -121,7 +119,7 @@ class SerializationAPI:
                                Path(normal_slashes_path[:normal_slashes_path.rindex('/')]).glob(
                                    normal_slashes_path[(normal_slashes_path.rindex('/') + 1):] + '.*'))
                 if not x.is_dir()]
-    
+
     def deserialize_resource(self, id: str) -> Any:
         """
         Deserialize a resource.

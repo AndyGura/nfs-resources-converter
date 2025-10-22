@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>System Configuration</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="configForm">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Blender Executable Path</mat-label>
+        <input matInput formControlName="blender_executable" placeholder="Path to Blender executable">
+        <mat-hint>Working terminal command or path to executable</mat-hint>
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="testBlenderPath()" [disabled]="testingBlender">
+        <mat-icon *ngIf="!testingBlender">check_circle</mat-icon>
+        <mat-spinner *ngIf="testingBlender" diameter="20"></mat-spinner>
+        Test
+      </button>
+    </div>
+
+    <div *ngIf="blenderTestResult" class="test-result" [ngClass]="{'success': blenderTestResult.success, 'error': !blenderTestResult.success}">
+      <mat-icon>{{ blenderTestResult.success ? 'check_circle' : 'error' }}</mat-icon>
+      <span>{{ blenderTestResult.message }}</span>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>FFmpeg Executable Path</mat-label>
+        <input matInput formControlName="ffmpeg_executable" placeholder="Path to FFmpeg executable">
+        <mat-hint>Working terminal command or path to executable</mat-hint>
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="testFFmpegPath()" [disabled]="testingFFmpeg">
+        <mat-icon *ngIf="!testingFFmpeg">check_circle</mat-icon>
+        <mat-spinner *ngIf="testingFFmpeg" diameter="20"></mat-spinner>
+        Test
+      </button>
+    </div>
+
+    <div *ngIf="ffmpegTestResult" class="test-result" [ngClass]="{'success': ffmpegTestResult.success, 'error': !ffmpegTestResult.success}">
+      <mat-icon>{{ ffmpegTestResult.success ? 'check_circle' : 'error' }}</mat-icon>
+      <span>{{ ffmpegTestResult.message }}</span>
+    </div>
+
+    <div class="form-row checkbox-row">
+      <mat-checkbox formControlName="print_errors">Print Errors</mat-checkbox>
+      <mat-hint>Show detailed error messages in the console</mat-hint>
+    </div>
+
+    <div class="form-row checkbox-row">
+      <mat-checkbox formControlName="print_blender_log">Print Blender Log</mat-checkbox>
+      <mat-hint>Show Blender log output in the console</mat-hint>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="saveConfig()">Save</button>
+</mat-dialog-actions>

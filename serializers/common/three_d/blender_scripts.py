@@ -1,7 +1,9 @@
 import os
 import tempfile
 
-import settings
+import config
+
+general_config = config.general_config()
 
 
 def get_log_throwaway_suffix():
@@ -32,8 +34,8 @@ os.chdir("{working_dir}")
     script_file.write(script)
     script_file.flush()
     script_file.close()
-    command = f'"{settings.blender_executable}" --python {script_file.name} --background'
-    if not settings.print_blender_log:
+    command = f'"{general_config.blender_executable}" --python {script_file.name} --background'
+    if not general_config.print_blender_log:
         command += get_log_throwaway_suffix()
     os.system(command)
     os.unlink(script_file.name)

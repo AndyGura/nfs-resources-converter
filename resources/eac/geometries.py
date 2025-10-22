@@ -272,6 +272,10 @@ class OripGeometry(DeclarativeCompoundBlock):
                                 "value from here is an index of item in vertex_uvs",
                  'custom_offset': 'vmap_ptr'})
 
+    def serializer_class(self):
+        from serializers import OripGeometrySerializer
+        return OripGeometrySerializer
+
 
 class GeoPolygon(DeclarativeCompoundBlock):
     @property
@@ -412,3 +416,7 @@ class GeoGeometry(DeclarativeCompoundBlock):
                       {'description': 'Reserved space for part'})
         part_res_5 = (GeoMesh(),
                       {'description': 'Reserved space for part'})
+
+    def serializer_class(self):
+        from serializers import GeoGeometrySerializer
+        return GeoGeometrySerializer

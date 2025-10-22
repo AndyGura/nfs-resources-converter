@@ -4,12 +4,11 @@ This class initializes and manages all API endpoints.
 """
 
 import eel
-from typing import Dict, Any, Optional
 
+from .endpoints.conversion_api import ConversionAPI
 from .endpoints.file_api import FileAPI
 from .endpoints.resource_api import ResourceAPI
 from .endpoints.serialization_api import SerializationAPI
-from .endpoints.conversion_api import ConversionAPI
 
 
 class API:
@@ -62,3 +61,8 @@ class API:
         # Conversion API
         eel.expose(self.conversion_api.select_directory_dialog)
         eel.expose(self.conversion_api.convert_files)
+        eel.expose(self.conversion_api.get_general_config)
+        eel.expose(self.conversion_api.get_conversion_config)
+        eel.expose(self.conversion_api.patch_general_config)
+        eel.expose(self.conversion_api.patch_conversion_config)
+        eel.expose(self.conversion_api.test_executable)

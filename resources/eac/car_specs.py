@@ -10,6 +10,7 @@ def floor_16(value):
     pow16 = 2 ** 16
     return math.floor(value * pow16) / pow16
 
+
 class CarPerformanceSpec(DeclarativeCompoundBlock):
 
     @property
@@ -87,7 +88,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                          {'description': 'Inverted wheel radius in meters, `1 / wheel_radius`',
                           'programmatic_value': lambda ctx: floor_16(1 / ctx.data('wheel_radius'))})
         gear_ratios = (ArrayBlock(length=8, child=FixedPointBlock(length=4, fraction_bits=16,
-                                                                 is_signed=True)),
+                                                                  is_signed=True)),
                        {'description': "Only first `num_gears` values are used. First element is the "
                                        "reverse gear ratio, second one is unknown"})
         num_torques = (IntegerBlock(length=4),
@@ -188,6 +189,10 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                      'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes. If wrong, '
                                     'game sets field "efficiency" to zero'})
 
+    def serializer_class(self):
+        from serializers import JsonSerializer
+        return JsonSerializer
+
 
 class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):
 
@@ -219,3 +224,7 @@ class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):
                    {'description': 'Max engine RPM'})
         gear_count = (IntegerBlock(length=4),
                       {'description': 'Gears amount'})
+
+    def serializer_class(self):
+        from serializers import JsonSerializer
+        return JsonSerializer

@@ -3,11 +3,12 @@ File API endpoint for the NFS Resources Converter.
 This module handles all file-related operations.
 """
 
-import eel
 import traceback
-from typing import Dict, Optional, Tuple, Any
+from typing import Dict, Optional, Any
 
-import settings
+import eel
+
+from config import general_config
 from library import require_file
 from library.loader import clear_file_cache
 from library.utils import path_join
@@ -91,7 +92,7 @@ class FileAPI:
             self.current_file_data = data
             self.current_file_block = block
         except Exception as ex:
-            if settings.print_errors:
+            if general_config().print_errors:
                 traceback.print_exc()
             self.current_file_data = {
                 'error_class': ex.__class__.__name__,

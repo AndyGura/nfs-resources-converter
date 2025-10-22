@@ -86,6 +86,10 @@ class EacsAudioFile(DeclarativeCompoundBlock):
                             'else - unsigned',
              'custom_offset': 'wave_data_offset (global)'})
 
+    def serializer_class(self):
+        from serializers import EacsAudioSerializer
+        return EacsAudioSerializer
+
     def action_silence(self, data):
         data['wave_data'] = b'\x00' * len(data['wave_data'])
 
@@ -139,3 +143,7 @@ class AsfAudio(DeclarativeCompoundBlock):
                                         'min(`remaining file bytes`, `wave_data_length` * `sound_resolution`)')),
                      {'description': 'Wave data is here',
                       'custom_offset': 'wave_data_offset + 40'})
+
+    def serializer_class(self):
+        from serializers import FfmpegSupportedAudioSerializer
+        return FfmpegSupportedAudioSerializer

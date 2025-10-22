@@ -6,10 +6,13 @@ from multiprocessing import Pool, cpu_count
 
 from tqdm import tqdm
 
-import settings
+import config
 from library import require_file
 from library.utils import format_exception, path_join
 from serializers import get_serializer
+
+general_config = config.general_config()
+conversion_config = config.conversion_config()
 
 
 def export_file(base_input_path, path, out_path):
@@ -26,7 +29,7 @@ def export_file(base_input_path, path, out_path):
                 rel_path = path.split('/')[-1]
         serializer.serialize(data, f'{out_path}/{rel_path}', id=name, block=block)
     except Exception as ex:
-        if settings.print_errors:
+        if general_config.print_errors:
             traceback.print_exc()
         return ex
 
@@ -41,7 +44,7 @@ def convert_all(path, out_path):
     else:
         files_to_open = [str(path).replace('\\', '/')]
 
-    processes = cpu_count() if settings.multiprocess_processes_count == 0 else settings.multiprocess_processes_count
+    processes = cpu_count() if conversion_config.multiprocess_processes_count == 0 else conversion_config.multiprocess_processes_count
     with Pool(processes=processes) as pool:
         pbar = tqdm(total=len(files_to_open))
         results = [pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update()) for

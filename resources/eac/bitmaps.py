@@ -15,7 +15,10 @@ from resources.eac.fields.colors import (
 
 
 class AnyBitmapBlock(DeclarativeCompoundBlock):
-    pass
+
+    def serializer_class(self):
+        from serializers import BitmapSerializer
+        return BitmapSerializer
 
 
 class Bitmap16Bit0565(AnyBitmapBlock, DeclarativeCompoundBlock):
@@ -113,6 +116,10 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
                              length=lambda ctx: ctx.data('width') * ctx.data('height')),
                   {'description': 'Color indexes of bitmap pixels. The actual colors are '
                                   'in assigned to this bitmap palette'})
+
+    def serializer_class(self):
+        from serializers import BitmapWithPaletteSerializer
+        return BitmapWithPaletteSerializer
 
 
 class Bitmap32Bit(AnyBitmapBlock, DeclarativeCompoundBlock):

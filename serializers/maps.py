@@ -5,11 +5,14 @@ from copy import deepcopy
 from string import Template
 from typing import List, Dict
 
+import config
 from library.utils import path_join
 from resources.eac.maps import RoadSplinePoint
 from resources.eac.utils import rotate_list
 from serializers import BaseFileSerializer
 from serializers.common.three_d import SubMesh, Mesh, Scene, export_scenes, BarrierPath
+
+general_config = config.general_config()
 
 
 class TriMapSerializer(BaseFileSerializer):
@@ -606,7 +609,7 @@ class TrkMapSerializer(BaseFileSerializer):
             def get_texture(tex):
                 return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
         except Exception:
-            if self.settings.print_errors:
+            if general_config.print_errors:
                 traceback.print_exc()
 
             def get_texture(tex):
@@ -765,7 +768,7 @@ for obj in bpy.context.selected_objects:
             from serializers import ShpiArchiveSerializer
             ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
-            if self.settings.print_errors:
+            if general_config.print_errors:
                 traceback.print_exc()
 
         # export scenes
@@ -790,7 +793,7 @@ class FrdMapSerializer(BaseFileSerializer):
                 except IndexError:
                     return f"{tex:04}", 0
         except Exception:
-            if self.settings.print_errors:
+            if general_config.print_errors:
                 traceback.print_exc()
 
             def get_texture(tex):
@@ -902,7 +905,7 @@ for obj in bpy.context.selected_objects:
             from serializers import ShpiArchiveSerializer
             ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
-            if self.settings.print_errors:
+            if general_config.print_errors:
                 traceback.print_exc()
 
         # export scenes

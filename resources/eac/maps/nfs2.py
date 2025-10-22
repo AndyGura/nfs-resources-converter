@@ -126,3 +126,7 @@ class TrkMap(DeclarativeCompoundBlock):
                                   length=lambda ctx: ctx.data('num_superblocks')),
                        {'description': 'Superblocks',
                         'custom_offset': 'superblock_offsets[0]'})
+
+    def serializer_class(self):
+        from serializers import TrkMapSerializer
+        return TrkMapSerializer

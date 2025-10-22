@@ -246,3 +246,7 @@ class FrdMap(DeclarativeCompoundBlock):
                                                                        length_block=IntegerBlock(length=4)),
                                         length=lambda ctx: 4 * (ctx.data('num_blocks') + 1))
         texture_blocks = LengthPrefixedArrayBlock(child=TextureBlock(), length_block=IntegerBlock(length=4))
+
+    def serializer_class(self):
+        from serializers import FrdMapSerializer
+        return FrdMapSerializer

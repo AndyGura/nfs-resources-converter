@@ -25,63 +25,91 @@ The documentation is auto-generated from this repo's parsers source code
 
 ### [Observe documentation](resources/README.md)
 
-## 3. GUI app (experimental)
-
-Project provides GUI app where you can view and edit any supported resource. Edit feature is purely experimental, it 
-is possible to break the file completely upon saving changes.
+## 3. GUI application
+Project provides a full-featured GUI application where you can:
+- Open and view any supported game resource file
+- Edit resource files (experimental feature - use with caution)
+- Convert resources to common formats with customizable settings
+- Configure system settings (paths to Blender and FFmpeg executables)
+- Run custom commands on specific file types
 
 # Installation:
 
-0) install python 3.9, pip, ffmpeg, blender (version 4+)
-1) make sure that `blender` and `ffmpeg` commands work in terminal (cmd). If not, either fix your system environment variable PATH, or reboot your system if software was just installed, or set an absolute path to executables in [settings.py](settings.py)
-2) install dependencies `pip install -r requirements.txt`
+0) Install Python 3.9+, pip, ffmpeg, blender (version 4+)
+1) Make sure that `blender` and `ffmpeg` commands work in terminal (cmd). If not, either fix your system environment variable PATH, or reboot your system if software was just installed, or set an absolute path to executables in the settings file (use `python run.py show_settings` to find its location)
+2) Install dependencies `pip install -r requirements.txt`
 
 # Usage:
-## Converter
-`python run.py convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED`
+
+## GUI Application (Main Entry Point)
+```
+python run.py gui
+```
+
+This command launches the GUI application, which is now the main interface for the project. The GUI provides:
+
+- **File Management**: Open, close, save, and reload resource files
+- **Resource Viewer/Editor**: View and edit the contents of supported game resource files
+- **Converter**: Convert game resources to common formats with customizable settings
+- **System Configuration**: Configure paths to external tools (Blender, FFmpeg)
+
+You can also open a specific file directly:
+
+```
+python run.py gui NFSSE/SIMDATA/MISC/AL1.TRI
+```
+
+**WARNING**: The editor does not make backups and saved file consistency is not guaranteed! Use only on copied files.
+
+## Command Line Tools
+The following command line tools are still available for those who prefer terminal usage:
+
+### Converter
+```
+python run.py convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED
+```
 
 This command will recursively walk over the `/media/fast/NFSSE` directory, parse all supported resources and save them 
 in common formats in the `/tmp/NFSSE_PARSED` directory. Output directory will have the same structure as input one.
-Also you can point script to one file to convert single file. Check [settings.py](settings.py) to customize converter
-behavior
+You can also point the script to a single file to convert just that file.
 
-**WARNING**: please do not set as output existing directory with some data, it can be deleted!
+**WARNING**: Please do not set as output an existing directory with important data, as it can be overwritten!
 
-## GUI
-`python run.py gui`
+### Show Settings Location
+```
+python run.py show_settings
+```
 
-or to open some file immediately:
+This command displays the full path to the settings file used by the application. The settings file is stored in your home directory.
 
-`python run.py gui NFSSE/SIMDATA/MISC/AL1.TRI`
+### Custom Commands
+Custom commands are more complex scripts that can be run on particular resource files. They are available in the GUI 
+through the block actions menu (flash icon at the top).
 
-**WARNING**: Script does not make backups and saved file consistency not guaranteed! Use only on copied file
+#### *.TRI: flatten track
+Makes open track fully flat. Useful for testing car acceleration/deceleration dynamics.
 
-## Custom commands
-Custom commands are more complex scripts, which can be run on particular resource file. They are available in the GUI 
-as flash icon at the top.
+```
+python run.py custom_command --custom-command flatten_track examples/maps/TR3.TRI --out examples/maps/flat/
+```
 
-### *.TRI: flatten track
-Makes open track fully flat. I use it for testing car acceleration/deceleration dynamics. Can be launched from GUI on TRI file, or:
+#### *.TRI: reverse track
+Makes track go backwards. Note that reversed tracks may have some issues and glitches.
 
-`python run.py custom_command --custom-command flatten_track examples/maps/TR3.TRI --out examples/maps/flat/`
+```
+python run.py custom_command --custom-command reverse_track examples/maps/TR3.TRI --out examples/maps/reversed/
+```
 
-### *.TRI: reverse track
-
-Makes track go backwards. They have a bunch of issues and glitches for now. All reversed NFSSE tracks can be found [here](https://drive.google.com/drive/folders/10nhqRrZ2Vvm6yYrIEfxjlNsltoewNTrS?usp=sharing)
-
-`python run.py custom_command --custom-command reverse_track examples/maps/TR3.TRI --out examples/maps/reversed/`
-
-### *.TRI: scale track
-
-Scales track length. Does not affect road width, props etc.
+#### *.TRI: scale track
+Scales track length without affecting road width, props etc.
 Scale with factor 0.5 (make track 2x shorter):
 
-`python run.py custom_command --custom-command scale_track --custom-command-args=0.5 /media/fast/AL1.TRI --out /media/fast/AL1_SCALED.TRI`
-
+```
+python run.py custom_command --custom-command scale_track --custom-command-args=0.5 /media/fast/AL1.TRI --out /media/fast/AL1_SCALED.TRI
+```
 
 # Support me
 You can support project by:
 - giving any feedback, bug report, feature request, providing missed info about resources to [Issues](https://github.com/AndyGura/nfs-resources-converter/issues) 
 - fork & submit a [Pull Request](https://github.com/AndyGura/nfs-resources-converter/pulls)
 - [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/andygura)
-

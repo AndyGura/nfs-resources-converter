@@ -7,6 +7,7 @@ import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dial
 import { firstValueFrom } from 'rxjs';
 import { NavigationService } from './services/navigation.service';
 import { ConverterComponent } from './components/converter/converter.component';
+import { ConfigComponent } from './components/config/config.component';
 
 @Component({
   selector: 'app-root',
@@ -74,9 +75,19 @@ export class AppComponent {
   }
 
   openConverter() {
-    const dialogRef = this.dialog.open(ConverterComponent, {
+    this.dialog.open(ConverterComponent, {
       width: '800px',
       height: '600px',
+      disableClose: true,
+    });
+  }
+
+  openConfig() {
+    this.dialog.open(ConfigComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      disableClose: true,
     });
   }
 }

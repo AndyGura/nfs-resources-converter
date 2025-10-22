@@ -11,7 +11,7 @@ h1 {
 
 .form-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   margin-bottom: 20px;
   gap: 10px;
 }
@@ -24,6 +24,7 @@ h1 {
   margin-top: 30px;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .progress-container {
@@ -39,6 +40,59 @@ h1 {
   text-align: center;
   font-size: 14px;
   color: rgba(0, 0, 0, 0.6);
+}
+
+.settings-panel {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.settings-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.settings-group mat-form-field {
+  min-width: 200px;
+}
+
+.settings-group mat-checkbox {
+  margin-right: 16px;
+}
+
+.loading-config {
+  padding: 16px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.blender-warning {
+  display: flex;
+  align-items: center;
+  background-color: rgba(244, 67, 54, 0.1);
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+
+  mat-icon {
+    margin-right: 8px;
+  }
+
+  span {
+    flex: 1;
+    margin-right: 16px;
+  }
+}
+
+.inline-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+  margin-left: 4px;
 }
 
 .info-section {

@@ -29,6 +29,10 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
         return {**super().new_data(),
                 'last_color_transparent': False}
 
+    def serializer_class(self):
+        from serializers import PaletteSerializer
+        return PaletteSerializer
+
     def get_child_block(self, name: str) -> 'DataBlock':
         if name == 'last_color_transparent':
             return None

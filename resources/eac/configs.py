@@ -134,3 +134,7 @@ class TnfsConfigDat(DeclarativeCompoundBlock):
                                          ' rally track mode'})
         unk3 = (BytesBlock(length=1),
                 {'is_unknown': True})
+
+    def serializer_class(self):
+        from serializers import JsonSerializer
+        return JsonSerializer

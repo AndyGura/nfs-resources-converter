@@ -5,12 +5,12 @@
     <div class="form-row">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Input Directory/File</mat-label>
-        <input matInput formControlName="inputPath" placeholder="Select input directory or file">
-        <mat-error *ngIf="converterForm.get('inputPath')?.hasError('required')">
+        <input matInput formControlName="input_path" placeholder="Select input directory or file">
+        <mat-error *ngIf="converterForm.get('input_path')?.hasError('required')">
           Input path is required
         </mat-error>
       </mat-form-field>
-      <button type="button" mat-raised-button color="primary" (click)="selectInputDirectory()">
+      <button type="button" mat-raised-button color="primary" [disabled]="isConverting" (click)="selectInputDirectory()">
         Browse
       </button>
     </div>
@@ -18,17 +18,119 @@
     <div class="form-row">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Output Directory</mat-label>
-        <input matInput formControlName="outputPath" placeholder="Select output directory">
-        <mat-error *ngIf="converterForm.get('outputPath')?.hasError('required')">
+        <input matInput formControlName="output_path" placeholder="Select output directory">
+        <mat-error *ngIf="converterForm.get('output_path')?.hasError('required')">
           Output path is required
         </mat-error>
       </mat-form-field>
-      <button type="button" mat-raised-button color="primary" (click)="selectOutputDirectory()">
+      <button type="button" mat-raised-button color="primary" [disabled]="isConverting"(click)="selectOutputDirectory()">
         Browse
       </button>
     </div>
 
+    <!-- Settings Accordion -->
+    <mat-expansion-panel class="settings-panel">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          Conversion Settings
+        </mat-panel-title>
+        <mat-panel-description>
+          Customize settings for this conversion
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <div *ngIf="configLoaded">
+        <!-- General Settings -->
+        <h3>General Settings</h3>
+        <div class="settings-group">
+          <mat-form-field appearance="outline">
+            <mat-label>Multiprocess Count</mat-label>
+            <input matInput type="number" formControlName="multiprocess_processes_count"
+                   matTooltip="Number of processes to use (0 = use all CPU cores)">
+          </mat-form-field>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Images Settings -->
+        <h3>Images Settings</h3>
+        <div class="settings-group">
+          <mat-checkbox formControlName="images__save_images_only"
+                       matTooltip="Skip saving palette and image positions">
+            Save Images Only
+          </mat-checkbox>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Maps Settings -->
+        <h3>Maps Settings</h3>
+        <div class="settings-group">
+          <mat-checkbox formControlName="maps__save_as_chunked"
+                       matTooltip="Save each terrain mesh chunk as separate file">
+            Save As Chunked
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="maps__save_invisible_wall_collisions"
+                       matTooltip="Place boxes with collision where invisible wall is located">
+            Save Invisible Wall Collisions
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="maps__save_terrain_collisions"
+                       matTooltip="Save terrain collisions">
+            Save Terrain Collisions
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="maps__save_spherical_skybox_texture"
+                       matTooltip="Save spherical skybox texture">
+            Save Spherical Skybox Texture
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="maps__add_props_to_obj"
+                       matTooltip="Bake map props to the scene">
+            Add Props To Obj
+          </mat-checkbox>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Geometry Settings -->
+        <h3>Geometry Settings</h3>
+
+        <!-- Warning message when Blender is not working -->
+        <div *ngIf="!isBlenderWorking && !isTestingBlender" class="blender-warning">
+          <mat-icon color="warn">warning</mat-icon>
+          <span>Blender executable path is not working. Some features are disabled.</span>
+          <button mat-raised-button color="primary" type="button" [disabled]="isConverting" (click)="openConfigDialog()">Fix</button>
+        </div>
+
+        <div class="settings-group">
+          <mat-checkbox formControlName="geometry__save_obj"
+                       matTooltip="Save OBJ file for each 3D scene">
+            Save OBJ
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="geometry__save_blend"
+                       [matTooltip]="isBlenderWorking ? 'Save Blender scene for each 3D scene' : 'Requires working Blender executable'">
+            Save Blend
+            <mat-icon *ngIf="!isBlenderWorking" color="warn" class="inline-icon">warning</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="geometry__export_to_gg_web_engine"
+                       [matTooltip]="isBlenderWorking ? 'Export to gg-web-engine format' : 'Requires working Blender executable'">
+            Export To GG Web Engine
+            <mat-icon *ngIf="!isBlenderWorking" color="warn" class="inline-icon">warning</mat-icon>
+          </mat-checkbox>
+        </div>
+      </div>
+
+      <div *ngIf="!configLoaded" class="loading-config">
+        Loading configuration settings...
+      </div>
+    </mat-expansion-panel>
+
     <div class="actions">
+      <button mat-button [disabled]="isConverting" type="button" (click)="cancel()">Cancel</button>
       <button type="submit" mat-raised-button color="accent" [disabled]="converterForm.invalid || isConverting">
         Convert Files
       </button>
@@ -50,6 +152,9 @@
     </p>
     <p>
       The converter will process all files in the input directory (including subdirectories) and save the converted files to the output directory.
+    </p>
+    <p>
+      You can customize conversion settings by expanding the "Conversion Settings" panel.
     </p>
   </div>
 </div>

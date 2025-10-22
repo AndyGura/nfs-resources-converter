@@ -333,6 +333,10 @@ class TriMap(DeclarativeCompoundBlock):
         terrain = ArrayBlock(child=TerrainEntry(),
                              length=lambda ctx: ctx.data('num_chunks'))
 
+    def serializer_class(self):
+        from serializers import TriMapSerializer
+        return TriMapSerializer
+
     def action_reverse_track(self, read_data):
         # FIXME lanes are a bit off: CY1.TRI now has both lanes oncoming, and racers drive on right verge. Traffic never appears
         # FIXME lane merge/split are broken. Is it possible to fix?

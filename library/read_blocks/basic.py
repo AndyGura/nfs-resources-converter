@@ -38,6 +38,9 @@ class DataBlock(ABC):
     def new_data(self):
         return self.required_value
 
+    def serializer_class(self):
+        return None
+
     @abstractmethod
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = root_read_ctx, name: str = '',
              read_bytes_amount=None):
@@ -116,6 +119,10 @@ class BytesBlock(DataBlock):
             **super().schema,
             'block_description': descr,
         }
+
+    def serializer_class(self):
+        from serializers import PlainBinarySerializer
+        return PlainBinarySerializer
 
     def resolve_length(self, ctx):
         self_len = self._length

@@ -25,11 +25,19 @@ class ShpiText(DeclarativeCompoundBlock):
         text = (UTF8Block(length=lambda ctx: ctx.data('length')),
                 {'description': 'Text itself'})
 
+    def serializer_class(self):
+        from serializers import ShpiTextSerializer
+        return ShpiTextSerializer
+
 
 class DashDeclarationFile(UTF8Block):
 
     def __init__(self, **kwargs):
         super().__init__(length=0, **kwargs)
+
+    def serializer_class(self):
+        from serializers import JsonSerializer
+        return JsonSerializer
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
