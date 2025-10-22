@@ -80,7 +80,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None, resolved_length=None):
         res = []
-        self_ctx = ReadContext(buffer=buffer, data=res, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         self_len = self.resolve_length(ctx) if resolved_length is None else resolved_length
         if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
             res = list(buffer.read(self_len))
@@ -133,9 +133,11 @@ class LengthPrefixedArrayBlock(ArrayBlock):
 
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
-        self_ctx = ReadContext(buffer=buffer, name=name, parent=ctx, read_bytes_amount=read_bytes_amount)
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
         resolved_length = self.length_block.unpack(buffer=buffer, ctx=self_ctx, name='length')
-        return super().read(buffer, ctx, name, read_bytes_amount, resolved_length=resolved_length)
+        res = super().read(buffer, ctx, name, read_bytes_amount, resolved_length=resolved_length)
+        self_ctx._data = res
+        return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         return super().estimate_packed_size(data, ctx) + self.length_block.estimate_packed_size(len(data), ctx=ctx)

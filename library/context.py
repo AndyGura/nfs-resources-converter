@@ -15,6 +15,24 @@ class BaseContext:
         if self.parent:
             self.parent.children.append(self)
 
+    def child(self, local_path: str):
+        path = local_path.split('/')
+        ctx = self
+        for p in path:
+            ctx = ctx.get_or_create_child(p)
+            if ctx is None:
+                raise Exception(f'Cannot find child "{p}" in context "{self.ctx_path}"')
+        return ctx
+
+    def _get_child(self, name: str):
+        try:
+            return next(c for c in self.children if c.name == name)
+        except StopIteration:
+            return None
+
+    def get_or_create_child(self, name: str, block=None):
+        raise NotImplementedError
+
     def data(self, local_path: str):
         data_path = local_path.split('/')
         entry = self._data
@@ -23,14 +41,20 @@ class BaseContext:
                 return self.parent.data('/'.join(data_path[1:]))
             if isinstance(entry, list):
                 entry = entry[int(p)]
-            else:
+            elif isinstance(entry, dict) and p in entry.keys():
                 entry = entry[p]
+            elif self._get_child(p):
+                return self._get_child(p)._data
+            else:
+                return None
         return entry
 
     def relative_block(self, local_path: str):
         block_path = local_path.split('/')
         entry = self.block
         for p in block_path:
+            if entry is None:
+                return None
             if p == '..':
                 return self.parent.relative_block('/'.join(block_path[1:]))
             entry = entry.get_child_block(p)
@@ -50,6 +74,21 @@ class ReadContext(BaseContext):
     def read_bytes_remaining(self):
         return self.read_bytes_amount - self.local_buffer_pos
 
+    def get_or_create_child(self, name: str, block=None, read_bytes_amount=None, data=None):
+        existing_child = super()._get_child(name)
+        if existing_child:
+            if block is not None:
+                existing_child.block = block
+            if read_bytes_amount is not None:
+                existing_child.read_bytes_amount = read_bytes_amount
+            return existing_child
+        return ReadContext(buffer=self.buffer,
+                           data=data if data is not None else self.data(name),
+                           name=name,
+                           block=block or self.relative_block(name),
+                           parent=self,
+                           read_bytes_amount=read_bytes_amount)
+
     def __init__(self, buffer: [BufferedReader, BytesIO] = None, name: str = '', data=None, block=None, parent=None,
                  read_bytes_amount=None):
         super().__init__(name=name, data=data, block=block, parent=parent)
@@ -59,6 +98,19 @@ class ReadContext(BaseContext):
 
 
 class WriteContext(BaseContext):
+
+    def get_or_create_child(self, name: str, block=None):
+        existing_child = super()._get_child(name)
+        if existing_child:
+            if block is not None:
+                existing_child.block = block
+            return existing_child
+        return WriteContext(result=self.result,
+                            name=name,
+                            data=self.data(name),
+                            block=block or self.relative_block(name),
+                            parent=self)
+
     def __init__(self, result: bytes = b'', name: str = '', data=None, block=None, parent=None):
         super().__init__(name=name, data=data, block=block, parent=parent)
         self.result = result
@@ -106,6 +158,17 @@ class DocumentationContext(BaseContext):
     @property
     def read_bytes_remaining(self):
         return 'up to end of block'
+
+    def get_or_create_child(self, name: str, block=None):
+        existing_child = super()._get_child(name)
+        if existing_child:
+            if block is not None:
+                existing_child.block = block
+            return existing_child
+        return DocumentationContext(name=name,
+                                    data=self.data(name),
+                                    block=block or self.relative_block(name),
+                                    parent=self)
 
     def data(self, local_path: str):
         return DocumentationCtxData(local_path.replace('../', '^'))

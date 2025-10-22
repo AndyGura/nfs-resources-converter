@@ -259,8 +259,7 @@ class MapColFile(DeclarativeCompoundBlock):
         buffer.seek(start_offset)
         block_buf = BytesIO(buffer.read(data['block_size']))
         child_block = self.field_blocks_map.get('extrablocks').child
-        self_ctx = ReadContext(buffer=buffer, data=data, name=name, block=self, parent=ctx,
-                               read_bytes_amount=read_bytes_amount)
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, data)
         for offset in data['extrablock_offsets']:
             block_buf.seek(offset + 16)
             data['extrablocks'].append(child_block.read(block_buf, self_ctx))

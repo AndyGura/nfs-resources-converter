@@ -109,8 +109,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
              read_bytes_amount=None):
         res = dict()
-        self_ctx = ReadContext(buffer=buffer, data=res, name=name, block=self, parent=ctx,
-                               read_bytes_amount=read_bytes_amount)
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
             if usage == 'ui_only':

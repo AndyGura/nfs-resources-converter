@@ -42,6 +42,7 @@ class DataBlock(ABC):
         return None
 
     @abstractmethod
+    # TODO do not receive buffer, use ctx.buffer
     def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = root_read_ctx, name: str = '',
              read_bytes_amount=None):
         pass
@@ -52,6 +53,7 @@ class DataBlock(ABC):
                                                                    x.__name__ not in ["object", "ABC"]]))
 
     @abstractmethod
+    # TODO do not receive data, use ctx.data
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         pass
 
@@ -154,7 +156,7 @@ class BytesBlock(DataBlock):
             raise BlockDefinitionException(ctx=ctx, message='Cannot read bytes block with negative length')
         res = buffer.read(self_len)
         if len(res) < self_len:
-            raise EndOfBufferException(ctx=ctx)
+            raise EndOfBufferException(ctx=ctx.get_or_create_child(name, self))
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
