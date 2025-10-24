@@ -1,4 +1,3 @@
-from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
@@ -17,8 +16,7 @@ class FfmpegSupportedVideo(DataBlock):
         from serializers import FfmpegSupportedVideoSerializer
         return FfmpegSupportedVideoSerializer
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         return name
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:

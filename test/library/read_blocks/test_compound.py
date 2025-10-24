@@ -1,6 +1,7 @@
 import unittest
 from io import BytesIO
 
+from library.context import ReadContext
 from library.read_blocks import ArrayBlock, DeclarativeCompoundBlock, IntegerBlock, UTF8Block, CompoundBlock
 
 
@@ -11,7 +12,7 @@ class TestCompound(unittest.TestCase):
             ('a', IntegerBlock(length=1), {}),
             ('b', IntegerBlock(length=1), {}),
         ])
-        val = field.unpack(BytesIO(bytes([92, 129])))
+        val = field.unpack(ReadContext(BytesIO(bytes([92, 129]))))
         self.assertDictEqual(val, {'a': 92, 'b': 129})
 
     def test_pack(self):
@@ -75,7 +76,7 @@ class TestDeclarativeCompound(unittest.TestCase):
 
     def test_unpack(self):
         field = SimpleBlock()
-        val = field.unpack(BytesIO(bytes([92, 129])))
+        val = field.unpack(ReadContext(BytesIO(bytes([92, 129]))))
         self.assertDictEqual(val, {'a': 92, 'b': 129})
 
     def test_pack(self):
@@ -85,7 +86,7 @@ class TestDeclarativeCompound(unittest.TestCase):
 
     def test_simple_value_binding_unpack(self):
         field = BindingBlock()
-        val = field.unpack(BytesIO(bytes([2, 3, 129, 145, 12, 9])))
+        val = field.unpack(ReadContext(BytesIO(bytes([2, 3, 129, 145, 12, 9]))))
         self.assertDictEqual(val, {'header': 2, 'len': 3, 'val': [129, 145, 12]})
 
     def test_simple_value_binding_with_doc_pack(self):
@@ -95,7 +96,7 @@ class TestDeclarativeCompound(unittest.TestCase):
 
     def test_simple_value_binding_with_doc_unpack(self):
         field = BindingBlockWithDoc()
-        val = field.unpack(BytesIO(bytes([2, 3, 129, 145, 12, 9])))
+        val = field.unpack(ReadContext(BytesIO(bytes([2, 3, 129, 145, 12, 9]))))
         self.assertDictEqual(val, {'header': 2, 'len': 3, 'val': [129, 145, 12]})
 
     def test_simple_value_binding_pack(self):

@@ -1,9 +1,8 @@
-from io import BufferedReader, BytesIO
 from math import floor, ceil
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, DataBlock, EnumByteBlock,
+from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, EnumByteBlock,
                                  FixedPointBlock)
 from resources.eac.fields.numbers import Nfs1TimeField
 
@@ -24,9 +23,8 @@ class TnfsTopSpeed(FixedPointBlock):
     def __init__(self, **kwargs):
         super().__init__(length=3, is_signed=False, byte_order="little", fraction_bits=8, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        value = super().read(buffer, ctx, name, read_bytes_amount)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        value = super().read(ctx, name, read_bytes_amount)
         int_part = floor(value)
         frac_part = value - int_part
         int_part = ceil(int_part * 2.240000000001)

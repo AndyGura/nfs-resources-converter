@@ -1,5 +1,4 @@
 import traceback
-from io import BufferedReader, BytesIO
 from typing import List, Dict, Tuple, Any
 
 import config
@@ -78,8 +77,7 @@ class DelegateBlock(DataBlock):
         from serializers import DelegateBlockSerializer
         return DelegateBlockSerializer
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         delegated_block_index = self.choice_index
         if isinstance(delegated_block_index, tuple):
             # cut off the documentation
@@ -88,8 +86,7 @@ class DelegateBlock(DataBlock):
             delegated_block_index = delegated_block_index(ctx, name=name)
         return {
             'choice_index': delegated_block_index,
-            'data': self.possible_blocks[delegated_block_index].read(buffer, ctx=ctx, name=name,
-                                                                     read_bytes_amount=read_bytes_amount)
+            'data': self.possible_blocks[delegated_block_index].unpack(ctx, name, read_bytes_amount)
         }
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):

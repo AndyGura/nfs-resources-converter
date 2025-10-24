@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from io import BufferedReader, BytesIO, SEEK_CUR
+from io import SEEK_CUR
 from typing import Dict, Any, Tuple, Literal
 
 from library.context import ReadContext, WriteContext, DocumentationContext
@@ -42,9 +42,7 @@ class DataBlock(ABC):
         return None
 
     @abstractmethod
-    # TODO do not receive buffer, use ctx.buffer
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         pass
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -64,9 +62,8 @@ class DataBlock(ABC):
                                                           f'at {name}')
 
     ### final method, should never override
-    def unpack(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = root_read_ctx, name: str = '',
-               read_bytes_amount=None):
-        v = self.read(buffer=buffer, ctx=ctx, name=name, read_bytes_amount=read_bytes_amount)
+    def unpack(self, ctx: ReadContext = root_read_ctx, name: str = '', read_bytes_amount=None):
+        v = self.read(ctx=ctx, name=name, read_bytes_amount=read_bytes_amount)
         self.validate_after_read(v, ctx, name)
         return v
 
@@ -146,15 +143,14 @@ class BytesBlock(DataBlock):
             return b''
         return bytes([0] * self_len)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         if self_len < 0:
             if self.allow_negative_length:
-                buffer.seek(self_len, SEEK_CUR)
+                ctx.buffer.seek(self_len, SEEK_CUR)
                 return b''
             raise BlockDefinitionException(ctx=ctx, message='Cannot read bytes block with negative length')
-        res = buffer.read(self_len)
+        res = ctx.buffer.read(self_len)
         if len(res) < self_len:
             raise EndOfBufferException(ctx=ctx.get_or_create_child(name, self))
         return res
@@ -190,8 +186,7 @@ class SkipBlock(DataBlock):
     def new_data(self):
         return None
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         return self.exception if self.error_strategy == "return_exception" else None
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):

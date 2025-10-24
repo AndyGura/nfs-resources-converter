@@ -1,14 +1,14 @@
-from io import BufferedReader, BytesIO
+import traceback
 from typing import Dict
 
-from library.context import ReadContext
+from config import general_config
 from library.read_blocks import (CompoundBlock,
                                  DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
                                  ArrayBlock,
                                  AutoDetectBlock,
-                                 BytesBlock, DataBlock)
+                                 BytesBlock)
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.misc import ShpiText
 from resources.eac.palettes import (Palette24BitDos,
@@ -76,7 +76,7 @@ class ShpiBlock(BaseArchiveBlock):
                                          '<br/>- [Palette32Bit](#palette32bit)'
                                          '<br/>- [ShpiText](#shpitext)',
                           'usage': 'skip_ui'})
-        children = (ArrayBlock(length=0,
+        children = (ArrayBlock(length=(0, 'num_items + ?'),
                                child=AutoDetectBlock(possible_blocks=[
                                    Bitmap4Bit(),
                                    Bitmap8Bit(),
@@ -111,19 +111,16 @@ class ShpiBlock(BaseArchiveBlock):
             x['offset'] += heap_offset
         return res
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        return super().read(buffer, ctx, name, read_bytes_amount)
-
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer
         return ShpiArchiveSerializer
 
-    def handle_archive_child(self, buffer, abs_offsets, i, self_ctx):
+    def handle_archive_child(self, abs_offsets, i, self_ctx):
         (alias, offset, length) = abs_offsets[i]
         offset_payloads = []
         aliases = []
         children = []
+        buffer = self_ctx.buffer
         # pre-child payload and positioning
         if offset > buffer.tell():
             offset_payloads.append(buffer.read(offset - buffer.tell()))
@@ -132,10 +129,14 @@ class ShpiBlock(BaseArchiveBlock):
             buffer.seek(offset)
         child_field = self.field_blocks_map['children'].child
         try:
-            child = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name=alias, read_bytes_amount=length)
+            child = child_field.unpack(ctx=self_ctx, name=f"{i}_{alias}", read_bytes_amount=length)
         except Exception as ex:
+            if general_config().print_errors:
+                traceback.print_exc()
             try:
-                bytes_choice = next(idx for idx, blk in enumerate(child_field.possible_blocks) if isinstance(blk, BytesBlock))
+                bytes_choice = next(idx
+                                    for idx, blk in enumerate(child_field.possible_blocks)
+                                    if isinstance(blk, BytesBlock))
             except StopIteration:
                 bytes_choice = -1
             buffer.seek(offset)
@@ -157,7 +158,7 @@ class ShpiBlock(BaseArchiveBlock):
                 else:
                     offset_payloads.append(b'')
                     buffer.seek(extra_abs)
-                extra = child_field.unpack(self_ctx.buffer, ctx=self_ctx, name='extra')
+                extra = child_field.unpack(ctx=self_ctx, name=f'extra_{i}')
                 children.append(extra)
                 aliases.append(None)
         return offset_payloads, aliases, children

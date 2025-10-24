@@ -1,23 +1,22 @@
 from copy import deepcopy
-from io import BufferedReader, BytesIO
+from io import BytesIO
 from typing import Dict
 
-from .base_archive_block import BaseArchiveBlock
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
                                  ArrayBlock,
                                  AutoDetectBlock,
-                                 BytesBlock,
-                                 DataBlock)
+                                 BytesBlock)
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
-from resources.eac.geometries import OripGeometry, GeoGeometry, CrpGeometry
+from resources.eac.geometries import OripGeometry, GeoGeometry
+from .base_archive_block import BaseArchiveBlock
 from .shpi_block import ShpiBlock
 
 
@@ -30,15 +29,13 @@ class CompressedBlock(AutoDetectBlock):
                          **kwargs)
         self.algorithm = None
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        uncompressed_bytes = self.algorithm(buffer, read_bytes_amount)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        uncompressed_bytes = self.algorithm(ctx.buffer, read_bytes_amount)
         uncompressed = BytesIO(uncompressed_bytes)
-        self_ctx = ctx.get_or_create_child(name + '_UNCOMPRESSED', self, len(uncompressed_bytes))
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
         self_ctx.buffer = uncompressed
-
-        res = super().read(buffer=uncompressed, ctx=self_ctx, read_bytes_amount=len(uncompressed_bytes))
-        self_ctx._data = res
+        self_ctx.data = { 'uncompressed': None }
+        res = super().read(ctx=self_ctx, name='uncompressed', read_bytes_amount=len(uncompressed_bytes))
         return res
 
 
@@ -102,7 +99,7 @@ class WwwwBlock(BaseArchiveBlock):
                                       '<br/>- [OripGeometry](#oripgeometry)'
                                       '<br/>- [WwwwBlock](#wwwwblock)',
                        'usage': 'skip_ui'})
-        children = (ArrayBlock(length=0, child=None),
+        children = (ArrayBlock(length=(0, 'num_items'), child=None),
                     {'usage': 'ui_only'})
 
     def __init__(self, **kwargs):
@@ -186,7 +183,7 @@ class BigfBlock(BaseArchiveBlock):
                                       '<br/>- [ShpiBlock](#shpiblock)'
                                       '<br/>- [BigfBlock](#bigfblock)',
                        'usage': 'skip_ui'})
-        children = (ArrayBlock(length=0, child=None),
+        children = (ArrayBlock(length=(0, 'num_items'), child=None),
                     {'usage': 'ui_only'})
 
     def __init__(self, **kwargs):
@@ -240,7 +237,7 @@ class SoundBank(DeclarativeCompoundBlock):
                      {'description': 'Raw byte data, which is sliced according to provided offsets and used as wave '
                                      'data',
                       'usage': 'skip_ui'})
-        children = (ArrayBlock(child=EacsAudioFile(), length=0),
+        children = (ArrayBlock(child=EacsAudioFile(), length=(0, 'amount of non-zero elements in items_descr')),
                     {'description': 'EACS audios',
                      'usage': 'ui_only'})
 
@@ -248,10 +245,9 @@ class SoundBank(DeclarativeCompoundBlock):
         from serializers import SoundBankSerializer
         return SoundBankSerializer
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        bnk_start = buffer.tell()
-        res = super().read(buffer, ctx, name, read_bytes_amount)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        bnk_start = ctx.buffer.tell()
+        res = super().read(ctx, name, read_bytes_amount)
 
         # EacsAudioFile will store offset bytes between header and wave data. We don't want it here because
         # *.BNK contains many headers first, and then has big sequence of wave data.

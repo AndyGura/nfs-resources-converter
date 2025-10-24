@@ -1,8 +1,7 @@
-from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import ReadContext, WriteContext
-from library.read_blocks import IntegerBlock, DataBlock
+from library.read_blocks import IntegerBlock
 from library.utils import transform_color_bitness
 
 
@@ -17,9 +16,8 @@ class Color24BitDosBlock(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=3, byte_order="big", **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        number = super().read(buffer, ctx, name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        number = super().read(ctx, name)
         return (number & 0x3F3F3F) << 10 | 255
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
@@ -38,9 +36,8 @@ class Color24BitBlock(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=3, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        number = super().read(buffer, ctx, name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        number = super().read(ctx, name)
         return number << 8 | 0xFF
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
@@ -67,9 +64,8 @@ class Color32BitBlock(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=4, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        number = super().read(buffer, ctx, name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        number = super().read(ctx, name)
         # ARGB => RGBA
         return (number & 0x00_ff_ff_ff) << 8 | (number & 0xff_00_00_00) >> 24
 
@@ -92,9 +88,8 @@ class Color16Bit0565Block(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=2, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        number = super().read(buffer, ctx, name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        number = super().read(ctx, name)
         value = transform_color_bitness(number, 0, 5, 6, 5)
         if value == self.transparent_color:
             value = 0
@@ -122,9 +117,8 @@ class Color16BitDosBlock(IntegerBlock):
         super().__init__(length=2, **kwargs)
 
     # TODO colors not tested!
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        number = super().read(buffer, ctx, name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        number = super().read(ctx, name)
         value = transform_color_bitness(number, 0, 5, 6, 5)
         return value
 
@@ -148,9 +142,8 @@ class Color16Bit1555Block(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=2, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        number = super().read(buffer, ctx, name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        number = super().read(ctx, name)
         return transform_color_bitness(number, 1, 5, 5, 5)
 
     def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:

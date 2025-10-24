@@ -1,5 +1,4 @@
 from abc import ABC
-from io import BufferedReader, BytesIO
 from math import ceil
 from typing import Dict, Tuple, Any
 
@@ -77,18 +76,18 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
             return []
         return [self.child.new_data()] * self_len
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None, resolved_length=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None, resolved_length=None):
         res = []
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         self_len = self.resolve_length(ctx) if resolved_length is None else resolved_length
         if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
-            res = list(buffer.read(self_len))
+            res = list(ctx.buffer.read(self_len))
             if len(res) < self_len:
                 raise EndOfBufferException(ctx=ctx)
+            self_ctx.res = res
             return res
         for i in range(self_len):
-            res.append(self.child.unpack(buffer=buffer, ctx=self_ctx, name=str(i)))
+            res.append(self.child.unpack(ctx=self_ctx, name=str(i)))
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -131,11 +130,10 @@ class LengthPrefixedArrayBlock(ArrayBlock):
     def size_doc_str(self):
         return f'{self.length_block.size_doc_str}..?'
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
-        resolved_length = self.length_block.unpack(buffer=buffer, ctx=self_ctx, name='length')
-        res = super().read(buffer, ctx, name, read_bytes_amount, resolved_length=resolved_length)
+        resolved_length = self.length_block.unpack(ctx=self_ctx, name='length')
+        res = super().read(ctx, name, read_bytes_amount, resolved_length=resolved_length)
         self_ctx._data = res
         return res
 
@@ -232,10 +230,9 @@ class SubByteArrayBlock(DataBlock):
             return []
         return [0] * self_len
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
-        raw = buffer.read(ceil(self.bits_per_value * self_len / 8))
+        raw = ctx.buffer.read(ceil(self.bits_per_value * self_len / 8))
         bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])
         values = [int(bitstring[i * self.bits_per_value:(i + 1) * self.bits_per_value], 2)
                   for i in range(self_len)]

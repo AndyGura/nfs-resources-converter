@@ -1,6 +1,5 @@
 from abc import ABC
-from io import BufferedReader, BytesIO
-from typing import Dict, List, Tuple, Any, TypedDict, Optional, Callable, Union
+from typing import Dict, List, Tuple, Any, TypedDict, Callable, Union
 
 from library.context import ReadContext, WriteContext
 from library.exceptions import BlockDefinitionException, DataIntegrityException
@@ -27,6 +26,7 @@ class FieldExtras(TypedDict, total=False):
     custom_offset: Union[int, str]
     programmatic_value: Callable[[WriteContext], Any]
     usage: str
+
 
 class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
 
@@ -106,15 +106,14 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             res[name] = field.new_data()
         return res
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         res = dict()
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
             if usage == 'ui_only':
                 continue
-            res[name] = field.unpack(buffer=buffer, ctx=self_ctx, name=name)
+            res[name] = field.unpack(ctx=self_ctx, name=name)
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):

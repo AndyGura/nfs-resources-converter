@@ -1,8 +1,8 @@
-from io import BufferedReader, BytesIO
+from io import BytesIO
 
 from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, IntegerBlock, ArrayBlock, EnumByteBlock,
-                                 EnumLookupDelegateBlock, BytesBlock, DataBlock, FixedPointBlock)
+                                 EnumLookupDelegateBlock, BytesBlock, FixedPointBlock)
 from resources.eac.fields.misc import RGBBlock, Point3D
 
 
@@ -239,28 +239,31 @@ class MapColFile(DeclarativeCompoundBlock):
         block_size = (IntegerBlock(length=4, is_signed=False),
                       {'description': 'File size in bytes',
                        'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        # TODO it is almost the same as we have in wwww. Share logic somehow?
         num_extrablocks = (IntegerBlock(length=4, is_signed=False),
                            {'description': 'Number of extrablocks'})
         extrablock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
                                          length=lambda ctx: ctx.data('num_extrablocks')),
                               {'description': 'Offset to each of the extrablocks'})
+        extrablocks_bytes = (
+            BytesBlock(length=lambda ctx: ctx.data('block_size') - 16 - 4 * ctx.data('num_extrablocks')),
+            {'description': 'A part of block, where extra blocks data is located. Offsets are defined in '
+                            'previous "extrablock_offsets" field. Item type:'
+                            '<br/>- [ColExtraBlock](#colextrablock)',
+             'usage': 'skip_ui'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
-                       {'description': 'Extrablocks'})
+                       {'description': 'Extrablocks',
+                        'usage': 'ui_only'})
 
     def serializer_class(self):
         from serializers import JsonSerializer
         return JsonSerializer
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        start_offset = buffer.tell()
-        data = super().read(buffer, ctx, name, read_bytes_amount)
-        buffer.seek(start_offset)
-        block_buf = BytesIO(buffer.read(data['block_size']))
-        child_block = self.field_blocks_map.get('extrablocks').child
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        data['extrablocks'] = []
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, data)
-        for offset in data['extrablock_offsets']:
-            block_buf.seek(offset + 16)
-            data['extrablocks'].append(child_block.read(block_buf, self_ctx))
+        child_block = self.field_blocks_map.get('extrablocks').child
+        for i, offset in enumerate(data['extrablock_offsets']):
+            self_ctx.buffer.seek(self_ctx.read_start_offset + offset + 16)
+            data['extrablocks'].append(child_block.unpack(self_ctx, name=str(i)))
         return data

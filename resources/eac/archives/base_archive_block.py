@@ -1,9 +1,8 @@
 from abc import abstractmethod, ABC
-from io import BufferedReader, BytesIO, SEEK_CUR
+from io import SEEK_CUR
 
 from library.context import ReadContext, WriteContext
-from library.read_blocks import (DeclarativeCompoundBlock,
-                                 DataBlock)
+from library.read_blocks import (DeclarativeCompoundBlock)
 
 
 ### A block, which contains multiple data blocks, consist of header with item descriptions and
@@ -35,24 +34,22 @@ class BaseArchiveBlock(DeclarativeCompoundBlock, ABC):
     def generate_items_descr(self, data, children):
         raise NotImplementedError
 
-    def handle_archive_child(self, buffer, abs_offsets, i, self_ctx):
+    def handle_archive_child(self, abs_offsets, i, self_ctx):
         (alias, offset, length) = abs_offsets[i]
-        if offset > buffer.tell():
-            offset_payload = buffer.read(offset - buffer.tell())
+        if offset > self_ctx.buffer.tell():
+            offset_payload = self_ctx.buffer.read(offset - self_ctx.buffer.tell())
         else:
             offset_payload = b''
-            buffer.seek(offset)
-        child = self.field_blocks_map['children'].child.unpack(self_ctx.buffer, ctx=self_ctx, name=alias,
-                                                               read_bytes_amount=length)
+            self_ctx.buffer.seek(offset)
+        child = self.field_blocks_map['children'].child.unpack(ctx=self_ctx, name=alias, read_bytes_amount=length)
         return [offset_payload], [alias], [child]
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        block_start = buffer.tell()
-        res = super().read(buffer, ctx, name, read_bytes_amount)
-        end_pos = buffer.tell()
-        buffer.seek(-len(res['data_bytes']), SEEK_CUR)
-        self_ctx = next(c for c in ctx.children if c.name == name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        block_start = ctx.buffer.tell()
+        res = super().read(ctx, name, read_bytes_amount)
+        end_pos = ctx.buffer.tell()
+        ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         abs_offsets = self.parse_abs_offsets(block_start, res, read_bytes_amount)
         res['children'] = []
         res['children_aliases'] = []
@@ -64,16 +61,16 @@ class BaseArchiveBlock(DeclarativeCompoundBlock, ABC):
                 res['children_aliases'].append(None)
                 res['children'].append(None)
                 continue
-            (op, a, c) = self.handle_archive_child(buffer, abs_offsets, i, self_ctx)
+            (op, a, c) = self.handle_archive_child(abs_offsets, i, self_ctx)
             res['offset_payloads'].extend(op)
             res['children_aliases'].extend(a)
             res['children'].extend(c)
-        if res.get('length') is not None and buffer.tell() < block_start + res['length']:
-            diff = block_start + res['length'] - buffer.tell()
-            res['offset_payloads'].append(buffer.read(diff))
+        if res.get('length') is not None and ctx.buffer.tell() < block_start + res['length']:
+            diff = block_start + res['length'] - ctx.buffer.tell()
+            res['offset_payloads'].append(ctx.buffer.read(diff))
         else:
             res['offset_payloads'].append(b'')
-        buffer.seek(end_pos)
+        ctx.buffer.seek(end_pos)
         return res
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:

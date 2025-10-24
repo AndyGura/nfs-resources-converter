@@ -1,9 +1,8 @@
 import math
-from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import IntegerBlock, DataBlock, CompoundBlock
+from library.read_blocks import IntegerBlock, CompoundBlock
 
 
 class Point3D(CompoundBlock):
@@ -69,9 +68,8 @@ class FenceType(IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=1, is_signed=False, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        fence_type = super().read(buffer, ctx, name, read_bytes_amount)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        fence_type = super().read(ctx, name, read_bytes_amount)
         return {
             'texture_id': fence_type & (0xff >> 2),
             'has_left_fence': (fence_type & (0x1 << 7)) != 0,
