@@ -84,9 +84,9 @@ class WwwwBlock(BaseArchiveBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(required_value='wwww', length=4),
                        {'description': 'Resource ID'})
-        num_items = (IntegerBlock(length=4),
-                     {'description': 'An amount of items',
-                      'programmatic_value': lambda ctx: len(ctx.data('items_descr'))})
+        num_items = (IntegerBlock(length=4,
+                                  programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
+                     {'description': 'An amount of items'})
         items_descr = (ArrayBlock(child=IntegerBlock(length=4),
                                   length=lambda ctx: ctx.data('num_items')),
                        {'description': 'An array of offsets to items data in file, relatively to wwww block start '
@@ -166,12 +166,12 @@ class BigfBlock(BaseArchiveBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, required_value='BIGF'),
                        {'description': 'Resource ID'})
-        length = (IntegerBlock(length=4, byte_order='big'),
-                  {'description': 'The length of this BIGF block in bytes',
-                   'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        num_items = (IntegerBlock(length=4, byte_order='big'),
-                     {'description': 'An amount of items',
-                      'programmatic_value': lambda ctx: len(ctx.data('items_descr'))})
+        length = (IntegerBlock(length=4, byte_order='big',
+                               programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                  {'description': 'The length of this BIGF block in bytes'})
+        num_items = (IntegerBlock(length=4, byte_order='big',
+                                  programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
+                     {'description': 'An amount of items'})
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         items_descr = ArrayBlock(length=lambda ctx: ctx.data('num_items'),

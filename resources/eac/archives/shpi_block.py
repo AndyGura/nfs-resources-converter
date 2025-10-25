@@ -40,12 +40,12 @@ class ShpiBlock(BaseArchiveBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, required_value='SHPI'),
                        {'description': 'Resource ID'})
-        length = (IntegerBlock(length=4),
-                  {'description': 'The length of this SHPI block in bytes',
-                   'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        num_items = (IntegerBlock(length=4),
-                     {'description': 'An amount of items',
-                      'programmatic_value': lambda ctx: len(ctx.data('items_descr'))})
+        length = (IntegerBlock(length=4,
+                               programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                  {'description': 'The length of this SHPI block in bytes'})
+        num_items = (IntegerBlock(length=4,
+                                  programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
+                     {'description': 'An amount of items'})
         shpi_dir = (UTF8Block(length=4),
                     {'description': 'One of: "LN32", "GIMX", "WRAP". The purpose is unknown'})
         items_descr = (ArrayBlock(child=CompoundBlock(fields=[('name', UTF8Block(length=4), {}),

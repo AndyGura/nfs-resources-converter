@@ -13,12 +13,13 @@ from resources.eac.maps.nfs_common import ColPolygon, ColExtraBlock
 
 class TrkBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        block_size_2 = (IntegerBlock(length=4, is_signed=False),
-                        {'description': 'Block size in bytes (duplicated)',
-                         'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
+        block_size_2 = (IntegerBlock(length=4, is_signed=False,
+                                     programmatic_value=lambda ctx: ctx.block.estimate_packed_size(
+                                         ctx.get_full_data())),
+                        {'description': 'Block size in bytes (duplicated)'})
         num_extrablocks = (IntegerBlock(length=2, is_signed=False),
                            {'description': 'Number of extrablocks'})
         unk0 = (IntegerBlock(length=2, is_signed=False),
@@ -86,9 +87,9 @@ class TrkBlock(DeclarativeCompoundBlock):
 
 class TrkSuperBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Superblock size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Superblock size in bytes'})
         num_blocks = (IntegerBlock(length=4, is_signed=False),
                       {'description': 'Number of blocks in this superblock. Usually 8 or less in the last superblock'})
         unk = (IntegerBlock(length=4),
@@ -113,9 +114,9 @@ class TrkMap(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=20),
                 {'is_unknown': True})
-        num_superblocks = (IntegerBlock(length=4, is_signed=False),
-                           {'description': 'Number of superblocks (nsblk)',
-                            'programmatic_value': lambda ctx: len(ctx.data('superblock_offsets'))})
+        num_superblocks = (IntegerBlock(length=4, is_signed=False,
+                                        programmatic_value=lambda ctx: len(ctx.data('superblock_offsets'))),
+                           {'description': 'Number of superblocks (nsblk)'})
         num_blocks = (IntegerBlock(length=4, is_signed=False),
                       {'description': 'Number of blocks (nblk)'})
         superblock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),

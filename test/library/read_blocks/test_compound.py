@@ -57,18 +57,16 @@ class SimpleBlock(DeclarativeCompoundBlock):
 class BindingBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         header = IntegerBlock(length=1, required_value=2), {'description': "Some header"}
-        len = (IntegerBlock(length=1),
-               {'description': "A length of `val` array",
-                'programmatic_value': lambda ctx: len(ctx.data('val'))})
+        len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
+               {'description': "A length of `val` array"})
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
 
 
 class BindingBlockWithDoc(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         header = IntegerBlock(length=1, required_value=2), {'description': "Some header"}
-        len = (IntegerBlock(length=1),
-               {'description': "A length of `val` array",
-                'programmatic_value': lambda ctx: len(ctx.data('val'))})
+        len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
+               {'description': "A length of `val` array"})
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
 
 
@@ -136,10 +134,9 @@ class TestDeclarativeCompound(unittest.TestCase):
                             'max_value': 255,
                             'value_interval': 1,
                         },
-                        'is_programmatic': False,
                         'is_unknown': False,
                         'usage': 'everywhere',
-                        'description': "Some header",
+                        'description': 'Some header',
                     },
                     {
                         'name': 'len',
@@ -147,14 +144,14 @@ class TestDeclarativeCompound(unittest.TestCase):
                             'block_class_mro': 'IntegerBlock__DataBlock',
                             'block_description': '1-byte unsigned integer',
                             'serializable_to_disc': False,
+                            'is_programmatic': True,
                             'min_value': 0,
                             'max_value': 255,
                             'value_interval': 1,
                         },
-                        'is_programmatic': True,
                         'is_unknown': False,
                         'usage': 'everywhere',
-                        'description': "A length of `val` array"
+                        'description': 'A length of `val` array',
                     },
                     {
                         'name': 'val',
@@ -168,13 +165,12 @@ class TestDeclarativeCompound(unittest.TestCase):
                                 'serializable_to_disc': False,
                                 'min_value': 0,
                                 'max_value': 255,
-                                'value_interval': 1,
-                            }
+                                'value_interval': 1
+                            },
                         },
-                        'is_programmatic': False,
                         'is_unknown': False,
                         'usage': 'everywhere',
-                        'description': ""
+                        'description': '',
                     }
                 ]
             })

@@ -10,8 +10,9 @@ from library.utils import represent_value_as_str
 class DataBlock(ABC):
     root_read_ctx = ReadContext()
 
-    def __init__(self, required_value=None, **kwargs):
+    def __init__(self, required_value=None, programmatic_value=None, **kwargs):
         self.required_value = required_value
+        self.programmatic_value = programmatic_value
 
     # For auto-generated documentation only
     @property
@@ -29,6 +30,8 @@ class DataBlock(ABC):
         }
         if self.required_value:
             s['required_value'] = self.required_value
+        if self.programmatic_value:
+            s['is_programmatic'] = True
         return s
 
     def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
@@ -51,7 +54,6 @@ class DataBlock(ABC):
                                                                    x.__name__ not in ["object", "ABC"]]))
 
     @abstractmethod
-    # TODO do not receive data, use ctx.data
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         pass
 
@@ -69,6 +71,8 @@ class DataBlock(ABC):
 
     ### final method, should never override
     def pack(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        if self.programmatic_value:
+            data = self.programmatic_value(ctx)
         return self.write(data, ctx, name)
 
 

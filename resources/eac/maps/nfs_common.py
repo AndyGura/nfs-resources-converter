@@ -63,9 +63,9 @@ class AnimatedPropPositionFrame(DeclarativeCompoundBlock):
 
 class AnimatedPropPosition(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        num_frames = (IntegerBlock(length=2, is_signed=False),
-                      {'description': 'An amount of frames',
-                       'programmatic_value': lambda ctx: len(ctx.data('frames'))})
+        num_frames = (IntegerBlock(length=2, is_signed=False,
+                                   programmatic_value=lambda ctx: len(ctx.data('frames'))),
+                      {'description': 'An amount of frames'})
         unk = (IntegerBlock(length=2),
                {'is_unknown': True})
         frames = (ArrayBlock(length=lambda ctx: ctx.data('num_frames'),
@@ -80,9 +80,9 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
                 'block_description': '3D model placement (prop). Same 3D model can be used few times on the track'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=2, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=2, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
         type = (EnumByteBlock(enum_names=[(1, 'static_prop'),
                                           (3, 'animated_prop'),
                                           ]),
@@ -121,15 +121,15 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
                 'block_description': '3D model'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        num_vertices = (IntegerBlock(length=2, is_signed=False),
-                        {'description': 'Amount of vertices',
-                         'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
-        num_polygons = (IntegerBlock(length=2, is_signed=False),
-                        {'description': 'Amount of polygons',
-                         'programmatic_value': lambda ctx: len(ctx.data('polygons'))})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
+        num_vertices = (IntegerBlock(length=2, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('vertices'))),
+                        {'description': 'Amount of vertices'})
+        num_polygons = (IntegerBlock(length=2, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('polygons'))),
+                        {'description': 'Amount of polygons'})
         vertices = (ArrayBlock(child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
                                length=lambda ctx: ctx.data('num_vertices')),
                     {'description': 'Vertices'})
@@ -190,9 +190,9 @@ class CollisionExtraDataRecord(DeclarativeCompoundBlock):
 
 class ColExtraBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
         type = (EnumByteBlock(enum_names=[(2, 'textures_map'),
                                           (4, 'block_numbers'),
                                           (5, 'polygon_map'),
@@ -208,9 +208,9 @@ class ColExtraBlock(DeclarativeCompoundBlock):
                 {'description': 'Type of the data records'})
         unk = (IntegerBlock(length=1, required_value=0),
                {'is_unknown': True})
-        num_data_records = (IntegerBlock(length=2),
-                            {'description': 'Amount of data records',
-                             'programmatic_value': lambda ctx: len(ctx.data('data_records'))})
+        num_data_records = (IntegerBlock(length=2,
+                                         programmatic_value=lambda ctx: len(ctx.data('data_records'))),
+                            {'description': 'Amount of data records'})
         data_records = (EnumLookupDelegateBlock(
             enum_field='type',
             blocks=[
@@ -236,9 +236,9 @@ class MapColFile(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk = (IntegerBlock(length=4, required_value=11),
                {'is_unknown': True})
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'File size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'File size in bytes'})
         num_extrablocks = (IntegerBlock(length=4, is_signed=False),
                            {'description': 'Number of extrablocks'})
         extrablock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),

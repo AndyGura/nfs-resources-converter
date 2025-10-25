@@ -99,15 +99,14 @@ class ModelPropDescrData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1),
                        {'description': 'An index of prop in the track FAM file'})
-        resource_id_2 = (IntegerBlock(length=1),
+        resource_id_2 = (IntegerBlock(length=1,
+                                      programmatic_value=lambda ctx: ctx.data('resource_id')),
                          {'description': 'Seems to always be equal to `resource_id`, except for one prop on map CL1, '
-                                         'which is not used on map',
-                          'programmatic_value': lambda ctx: ctx.data('resource_id')})
+                                         'which is not used on map'})
         unk0 = (FixedPointBlock(length=4, fraction_bits=16, required_value=1.5),
                 {'is_unknown': True})
-        unk1 = (FixedPointBlock(length=4, fraction_bits=16),
+        unk1 = (FixedPointBlock(length=4, fraction_bits=16, programmatic_value=lambda _: 1.5),
                 {'is_unknown': True,
-                 'programmatic_value': lambda _: 1.5,
                  'description': 'The purpose is unknown. Every single entry in TNFS files equals to 1.5 '
                                 '(0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken '
                                 'texture palette and which is not used on the map anyways'})
@@ -291,18 +290,17 @@ class TriMap(DeclarativeCompoundBlock):
         loop_chunk = (IntegerBlock(length=2),
                       {'description': 'Index of chunk, on which game should use chunk #0 again. So for closed tracks '
                                       'this value should be equal to `num_chunks`, for open tracks it is 0'})
-        num_chunks = (IntegerBlock(length=4),
-                      {'description': 'number of terrain chunks (max 600)',
-                       'programmatic_value': lambda ctx: len(ctx.data('terrain'))})
+        num_chunks = (IntegerBlock(length=4,
+                                   programmatic_value=lambda ctx: len(ctx.data('terrain'))),
+                      {'description': 'number of terrain chunks (max 600)'})
         unk0 = (IntegerBlock(length=2, required_value=6),
                 {'is_unknown': True})
         position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'is_unknown': True})
         unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, required_value=0), length=12),
                      {'is_unknown': True})
-        chunks_size = (IntegerBlock(length=4),
-                       {'description': 'Size of terrain array in bytes (num_chunks * 0x120)',
-                        'programmatic_value': lambda ctx: len(ctx.data('terrain')) * 0x120})
+        chunks_size = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('terrain')) * 0x120),
+                       {'description': 'Size of terrain array in bytes (num_chunks * 0x120)'})
         rail_tex_id = (IntegerBlock(length=4),
                        {'description': 'Do not know what is "railing". Doesn\'t look like a fence '
                                        'texture id, tested in TR1_001.FAM', 'is_unknown': True})
@@ -317,10 +315,9 @@ class TriMap(DeclarativeCompoundBlock):
                                        "tracks, finish line will be always located at spline point "
                                        "(num_chunks * 4 - 179)"})
         ai_info = ArrayBlock(child=AIEntry(), length=600)
-        num_prop_descr = (IntegerBlock(length=4, is_signed=False),
-                          {'programmatic_value': lambda ctx: len(ctx.data('prop_descr'))})
-        num_props = (IntegerBlock(length=4, is_signed=False),
-                     {'programmatic_value': lambda ctx: len(ctx.data('props'))})
+        num_prop_descr = IntegerBlock(length=4, is_signed=False,
+                                      programmatic_value=lambda ctx: len(ctx.data('prop_descr')))
+        num_props = IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('props')))
         objs_hdr = UTF8Block(length=4, required_value='SJBO')
         unk1 = (IntegerBlock(length=4, required_value=0x428c),
                 {'is_unknown': True})
