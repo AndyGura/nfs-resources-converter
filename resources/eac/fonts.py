@@ -36,16 +36,16 @@ class FfnFont(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, required_value='FNTF'),
                        {'description': 'Resource ID'})
-        block_size = (IntegerBlock(length=4),
-                      {'description': 'The length of this FFN block in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'The length of this FFN block in bytes'})
         unk0 = (IntegerBlock(length=1, required_value=100),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=1, required_value=0),
                 {'is_unknown': True})
-        num_glyphs = (IntegerBlock(length=2),
-                      {'description': 'Amount of symbols, defined in this font',
-                       'programmatic_value': lambda ctx: len(ctx.data('definitions'))})
+        num_glyphs = (IntegerBlock(length=2,
+                                   programmatic_value=lambda ctx: len(ctx.data('definitions'))),
+                      {'description': 'Amount of symbols, defined in this font'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         font_size = (IntegerBlock(length=1),
@@ -56,10 +56,11 @@ class FfnFont(DeclarativeCompoundBlock):
                        {'description': 'Line height ?'})
         unk4 = (BytesBlock(length=7, required_value=b'\0' * 7),
                 {'is_unknown': True})
-        bdata_ptr = (IntegerBlock(length=2),
-                     {'description': 'Pointer to bitmap block',
-                      'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(ctx.get_full_data(),
-                                                                                              'bitmap')})
+        bdata_ptr = (IntegerBlock(length=2,
+                                  programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
+                                      ctx.get_full_data(),
+                                      'bitmap')),
+                     {'description': 'Pointer to bitmap block'})
         unk5 = (IntegerBlock(length=1, required_value=0),
                 {'is_unknown': True})
         unk6 = (IntegerBlock(length=1, required_value=0),

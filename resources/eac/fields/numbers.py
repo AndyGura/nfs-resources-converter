@@ -1,9 +1,8 @@
 import math
-from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import ReadContext, WriteContext
-from library.read_blocks import IntegerBlock, DataBlock
+from library.read_blocks import IntegerBlock
 
 
 class AngleBlock:
@@ -30,9 +29,8 @@ class Nfs1Angle8(AngleBlock, IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=1, is_signed=False, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        return float((super().read(buffer, ctx, name, read_bytes_amount) / 256) * (math.pi * 2))
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        return float((super().read(ctx, name, read_bytes_amount) / 256) * (math.pi * 2))
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         value = self.wrap_angle(data)
@@ -56,9 +54,8 @@ class Nfs1Angle14(AngleBlock, IntegerBlock):
     def __init__(self, **kwargs):
         super().__init__(length=2, byte_order='little', is_signed=False, **kwargs)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        return float(((super().read(buffer, ctx, name, read_bytes_amount) & 0x3FFF) / 0x4000) * (math.pi * 2))
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        return float(((super().read(ctx, name, read_bytes_amount) & 0x3FFF) / 0x4000) * (math.pi * 2))
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         value = self.wrap_angle(data)
@@ -79,9 +76,8 @@ class Nfs1TimeField(IntegerBlock):
             'block_description': f'TNFS time field. {super_schema["block_description"]}, '
                                  'equals to amount of ticks (amount of seconds * 60)'}
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        return float(super().read(buffer, ctx, name, read_bytes_amount)) / 60
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        return float(super().read(ctx, name, read_bytes_amount)) / 60
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return super().write(int(data * 60), ctx, name)

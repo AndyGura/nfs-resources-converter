@@ -1,5 +1,4 @@
 from abc import ABC
-from io import BufferedReader, BytesIO
 from typing import Dict, Tuple, Any
 
 from library.context import ReadContext
@@ -43,9 +42,8 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
             return None, unpacked_data['last_color_transparent']
         return super().get_child_block_with_data(unpacked_data, name)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        res = super().read(buffer, ctx, name)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        res = super().read(ctx, name, read_bytes_amount)
         if res.get('num_colors') is not None:
             assert res['num_colors'] == res['num_colors1']
         res['last_color_transparent'] = False
@@ -86,14 +84,14 @@ class Palette24BitDos(BasePalette):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        num_colors = (IntegerBlock(length=2),
-                      {'description': 'Amount of colors',
-                       'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors = (IntegerBlock(length=2,
+                                   programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                      {'description': 'Amount of colors'})
         unk1 = (BytesBlock(length=2),
                 {'is_unknown': True})
-        num_colors1 = (IntegerBlock(length=2),
-                       {'description': 'Always equal to num_colors?',
-                        'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors1 = (IntegerBlock(length=2,
+                                    programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                       {'description': 'Always equal to num_colors?'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
@@ -107,14 +105,14 @@ class Palette24Bit(BasePalette):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        num_colors = (IntegerBlock(length=2),
-                      {'description': 'Amount of colors',
-                       'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors = (IntegerBlock(length=2,
+                                   programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                      {'description': 'Amount of colors'})
         unk1 = (BytesBlock(length=2),
                 {'is_unknown': True})
-        num_colors1 = (IntegerBlock(length=2),
-                       {'description': 'Always equal to num_colors?',
-                        'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors1 = (IntegerBlock(length=2,
+                                    programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                       {'description': 'Always equal to num_colors?'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
@@ -128,14 +126,14 @@ class Palette16BitDos(BasePalette):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        num_colors = (IntegerBlock(length=2),
-                      {'description': 'Amount of colors',
-                       'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors = (IntegerBlock(length=2,
+                                   programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                      {'description': 'Amount of colors'})
         unk1 = (BytesBlock(length=2),
                 {'is_unknown': True})
-        num_colors1 = (IntegerBlock(length=2),
-                       {'description': 'Always equal to num_colors?',
-                        'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors1 = (IntegerBlock(length=2,
+                                    programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                       {'description': 'Always equal to num_colors?'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
@@ -149,14 +147,14 @@ class Palette32Bit(BasePalette):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        num_colors = (IntegerBlock(length=2),
-                      {'description': 'Amount of colors',
-                       'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors = (IntegerBlock(length=2,
+                                   programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                      {'description': 'Amount of colors'})
         unk1 = (BytesBlock(length=2),
                 {'is_unknown': True})
-        num_colors1 = (IntegerBlock(length=2),
-                       {'description': 'Always equal to num_colors?',
-                        'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors1 = (IntegerBlock(length=2,
+                                    programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                       {'description': 'Always equal to num_colors?'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
@@ -172,14 +170,14 @@ class Palette16Bit(BasePalette):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        num_colors = (IntegerBlock(length=2),
-                      {'description': 'Amount of colors',
-                       'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors = (IntegerBlock(length=2,
+                                   programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                      {'description': 'Amount of colors'})
         unk1 = (BytesBlock(length=2),
                 {'is_unknown': True})
-        num_colors1 = (IntegerBlock(length=2),
-                       {'description': 'Always equal to num_colors?',
-                        'programmatic_value': lambda ctx: len(ctx.data('colors'))})
+        num_colors1 = (IntegerBlock(length=2,
+                                    programmatic_value=lambda ctx: len(ctx.data('colors'))),
+                       {'description': 'Always equal to num_colors?'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (ArrayBlock(length=lambda ctx: ctx.data('num_colors'),

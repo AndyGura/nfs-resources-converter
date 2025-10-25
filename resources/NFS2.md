@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2025-10-20 09:50:35.009766+00:00*
+*Last time updated: 2025-10-24 20:47:30.092933+00:00*
 
 
 # **Info by file extensions** #
@@ -170,7 +170,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `np4+np2+np1` items<br/>Item type: [ColPolygon](#colpolygon) | Polygons |
 | 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **unk2** | up to (extrablocks_offset+64) | Bytes | Unknown purpose |
 | extrablocks_offset + 64 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
-| extrablocks_offset + 64 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [ColExtraBlock](#colextrablock) | Extrablocks |
+| extrablocks_offset + 64 + num_extrablocks\*4 | **extrablocks_bytes** | block_size-local_offset | Bytes | A part of block, where extrablocks data is located. Offsets to the entries are defined in `extrablock_offsets` block. Item type:<br/>- [ColExtraBlock](#colextrablock) |
 ### **MapColFile** ###
 #### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -180,7 +180,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | File size in bytes |
 | 12 | **num_extrablocks** | 4 | 4-bytes unsigned integer (little endian) | Number of extrablocks |
 | 16 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
-| 16 + num_extrablocks\*4 | **extrablocks** | ? | Array of `num_extrablocks` items<br/>Item type: [ColExtraBlock](#colextrablock) | Extrablocks |
+| 16 + num_extrablocks\*4 | **extrablocks_bytes** | block_size-16-4\*num_extrablocks | Bytes | A part of block, where extra blocks data is located. Offsets are defined in previous "extrablock_offsets" field. Item type:<br/>- [ColExtraBlock](#colextrablock) |
 ### **ColExtraBlock** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -244,7 +244,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 6 | **num_polygons** | 2 | 2-bytes unsigned integer (little endian) | Amount of polygons |
 | 8 | **vertices** | num_vertices\*6 | Array of `num_vertices` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertices |
 | 8 + num_vertices\*6 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [ColPolygon](#colpolygon) | Polygons |
-| 8 + num_vertices\*6 + num_polygons\*8 | **padding** | custom_func | Bytes | Unused space |
+| 8 + num_vertices\*6 + num_polygons\*8 | **padding** | block_size-local_offset | Bytes | Unused space |
 ### **LanesExtraDataRecord** ###
 #### **Size**: 4 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |

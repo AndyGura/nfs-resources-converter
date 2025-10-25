@@ -1,5 +1,6 @@
 from typing import Dict
 
+from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock,
                                  SubByteArrayBlock,
@@ -120,6 +121,10 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
     def serializer_class(self):
         from serializers import BitmapWithPaletteSerializer
         return BitmapWithPaletteSerializer
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        res = super().read(ctx, name, read_bytes_amount)
+        return res
 
 
 class Bitmap32Bit(AnyBitmapBlock, DeclarativeCompoundBlock):

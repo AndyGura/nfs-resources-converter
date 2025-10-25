@@ -118,10 +118,9 @@ class NamedIndex(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         name = NullTerminatedUTF8Block(length=8)
-        offset = (ArrayBlock(child=IntegerBlock(length=1),
-                             length=(lambda ctx: 8 - ctx.buffer.tell() + ctx.read_start_offset, '7 - len(name)')), {
-                      'programmatic_value': lambda ctx: [0] * (7 - len(ctx.data('name')))
-                  })
+        offset = ArrayBlock(child=IntegerBlock(length=1),
+                            length=(lambda ctx: 8 - ctx.buffer.tell() + ctx.read_start_offset, '7 - len(name)'),
+                            programmatic_value=lambda ctx: [0] * (7 - len(ctx.data('name'))))
         index = IntegerBlock(length=4)
 
 
@@ -138,80 +137,76 @@ class OripGeometry(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(required_value='ORIP', length=4),
                        {'description': 'Resource ID'})
-        block_size = (IntegerBlock(length=4),
-                      {'description': 'Total ORIP block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Total ORIP block size in bytes'})
         unk0 = (IntegerBlock(length=4, required_value=0x02BC),
                 {'description': 'Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type?',
                  'is_unknown': True})
         unk1 = (IntegerBlock(length=4, required_value=0),
                 {'is_unknown': True})
-        num_vrtx = (IntegerBlock(length=4),
-                    {'description': 'Amount of vertices',
-                     'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
+        num_vrtx = (IntegerBlock(length=4,
+                                 programmatic_value=lambda ctx: len(ctx.data('vertices'))),
+                    {'description': 'Amount of vertices'})
         unk2 = (BytesBlock(length=4),
                 {'is_unknown': True})
-        vrtx_ptr = (IntegerBlock(length=4),
-                    {'description': 'An offset to vertices',
-                     'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(ctx.get_full_data(),
-                                                                                             'vertices')})
-        num_uvs = (IntegerBlock(length=4),
-                   {'description': 'Amount of vertex UV-s (texture coordinates)',
-                    'programmatic_value': lambda ctx: len(ctx.data('vertex_uvs'))})
-        uvs_ptr = (IntegerBlock(length=4),
-                   {'description': 'An offset to vertex_uvs. Always equals to `112 + num_polygons*12`',
-                    'programmatic_value': lambda ctx: 112 + len(ctx.data('polygons')) * 12})
-        num_polygons = (IntegerBlock(length=4),
-                        {'description': 'Amount of polygons',
-                         'programmatic_value': lambda ctx: len(ctx.data('polygons'))})
+        vrtx_ptr = (IntegerBlock(length=4,
+                                 programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
+                                     ctx.get_full_data(),
+                                     'vertices')),
+                    {'description': 'An offset to vertices'})
+        num_uvs = (IntegerBlock(length=4,
+                                programmatic_value=lambda ctx: len(ctx.data('vertex_uvs'))),
+                   {'description': 'Amount of vertex UV-s (texture coordinates)'})
+        uvs_ptr = (IntegerBlock(length=4,
+                                programmatic_value=lambda ctx: 112 + len(ctx.data('polygons')) * 12),
+                   {'description': 'An offset to vertex_uvs. Always equals to `112 + num_polygons*12`'})
+        num_polygons = (IntegerBlock(length=4,
+                                      programmatic_value=lambda ctx: len(ctx.data('polygons'))),
+                        {'description': 'Amount of polygons'})
         polygons_ptr = (IntegerBlock(length=4, is_signed=False, required_value=112),
                         {'description': 'An offset to polygons block'})
         identifier = (UTF8Block(length=12),
                       {'description': 'Some ID of geometry, don\'t know the purpose',
                        'is_unknown': True})
-        num_tex_ids = (IntegerBlock(length=4),
-                       {'description': 'Amount of texture names',
-                        'programmatic_value': lambda ctx: len(ctx.data('tex_ids'))})
-        tex_ids_ptr = (IntegerBlock(length=4),
+        num_tex_ids = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('tex_ids'))),
+                       {'description': 'Amount of texture names'})
+        tex_ids_ptr = (IntegerBlock(length=4,
+                                    programmatic_value=lambda ctx: 112 + len(ctx.data('polygons')) * 12
+                                                                   + len(ctx.data('vertex_uvs')) * 8),
                        {'description': 'An offset to texture names block. Always equals to '
-                                       '`112 + num_polygons*12 + num_uvs*8`',
-                        'programmatic_value': lambda ctx: 112 + len(ctx.data('polygons')) * 12
-                                                          + len(ctx.data('vertex_uvs')) * 8})
-        num_tex_nmb = (IntegerBlock(length=4),
-                       {'description': 'Amount of texture numbers',
-                        'programmatic_value': lambda ctx: len(ctx.data('tex_nmb'))})
+                                       '`112 + num_polygons*12 + num_uvs*8`'})
+        num_tex_nmb = (IntegerBlock(length=4,
+                                    programmatic_value=lambda ctx: len(ctx.data('tex_nmb'))),
+                       {'description': 'Amount of texture numbers'})
         tex_nmb_ptr = (IntegerBlock(length=4),
                        {'description': 'An offset to texture numbers block'})
-        num_ren_ord = (IntegerBlock(length=4),
-                       {'description': 'Amount of items in render_order block',
-                        'programmatic_value': lambda ctx: len(ctx.data('render_order'))})
-        ren_ord_ptr = (IntegerBlock(length=4),
-                       {'description': 'Offset of render_order block. Always equals to `tex_nmb_ptr + num_tex_nmb*20`',
-                        'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
-                                                          + len(ctx.data('tex_nmb')) * 20})
-        vmap_ptr = (IntegerBlock(length=4),
-                    {'description': 'Offset of polygon_vertex_map block',
-                     'programmatic_value': lambda ctx: ctx.block.offset_to_child_when_packed(ctx.get_full_data(),
-                                                                                             'vmap')})
-        num_fxp = (IntegerBlock(length=4),
-                   {'description': 'Amount of items in fx_polys block',
-                    'programmatic_value': lambda ctx: len(ctx.data('fx_polys'))})
-        fxp_ptr = (IntegerBlock(length=4),
+        num_ren_ord = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('render_order'))),
+                       {'description': 'Amount of items in render_order block'})
+        ren_ord_ptr = (IntegerBlock(length=4,
+                                    programmatic_value=lambda ctx: ctx.data('tex_nmb_ptr')
+                                                                   + len(ctx.data('tex_nmb')) * 20),
+                       {'description': 'Offset of render_order block. Always equals to `tex_nmb_ptr + num_tex_nmb*20`'})
+        vmap_ptr = (IntegerBlock(length=4,
+                                 programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(ctx.get_full_data(),
+                                                                                                      'vmap')),
+                    {'description': 'Offset of polygon_vertex_map block'})
+        num_fxp = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('fx_polys'))),
+                   {'description': 'Amount of items in fx_polys block'})
+        fxp_ptr = (IntegerBlock(length=4,
+                                programmatic_value=lambda ctx: ctx.data('tex_nmb_ptr')
+                                                               + len(ctx.data('tex_nmb')) * 20
+                                                               + len(ctx.data('render_order')) * 28),
                    {'description': 'Offset of fx_polys block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + '
-                                   'num_ren_ord*28`',
-                    'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
-                                                      + len(ctx.data('tex_nmb')) * 20
-                                                      + len(ctx.data('render_order')) * 28})
-        num_lbl = (IntegerBlock(length=4),
-                   {'description': 'Amount of items in labels block',
-                    'programmatic_value': lambda ctx: len(ctx.data('labels'))})
-        lbl_ptr = (IntegerBlock(length=4),
+                                   'num_ren_ord*28`'})
+        num_lbl = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('labels'))),
+                   {'description': 'Amount of items in labels block'})
+        lbl_ptr = (IntegerBlock(length=4, programmatic_value=lambda ctx: ctx.data('tex_nmb_ptr')
+                                                                         + len(ctx.data('tex_nmb')) * 20
+                                                                         + len(ctx.data('render_order')) * 28
+                                                                         + len(ctx.data('fx_polys')) * 12),
                    {'description': 'Offset of labels block. Always equals to `tex_nmb_ptr'
-                                   ' + num_tex_nmb*20 + num_ren_ord*28 + num_fxp*12`',
-                    'programmatic_value': lambda ctx: ctx.data('tex_nmb_ptr')
-                                                      + len(ctx.data('tex_nmb')) * 20
-                                                      + len(ctx.data('render_order')) * 28
-                                                      + len(ctx.data('fx_polys')) * 12})
+                                   ' + num_tex_nmb*20 + num_ren_ord*28 + num_fxp*12`'})
         unknowns1 = (BytesBlock(length=12),
                      {'is_unknown': True})
         polygons = (ArrayBlock(child=OripPolygon(),

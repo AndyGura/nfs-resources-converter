@@ -1,6 +1,7 @@
 import unittest
 from io import BytesIO
 
+from library.context import ReadContext
 from library.exceptions import DataIntegrityException
 from library.read_blocks.strings import UTF8Block
 
@@ -9,7 +10,7 @@ class TestStrings(unittest.TestCase):
 
     def test_utf8_unpack(self):
         field = UTF8Block(length=4)
-        val = field.unpack(BytesIO(bytes([84, 101, 120, 116])))
+        val = field.unpack(ReadContext(BytesIO(bytes([84, 101, 120, 116]))))
         self.assertEqual(val, "Text")
 
     def test_utf8_pack(self):
@@ -19,9 +20,9 @@ class TestStrings(unittest.TestCase):
 
     def test_utf8_required_value(self):
         field = UTF8Block(length=5, required_value="Asdfg")
-        field.unpack(BytesIO(bytes([65, 115, 100, 102, 103])))
+        field.unpack(ReadContext(BytesIO(bytes([65, 115, 100, 102, 103]))))
         with self.assertRaises(DataIntegrityException):
-            field.unpack(BytesIO(bytes([84, 101, 120, 116, 83])))
+            field.unpack(ReadContext(BytesIO(bytes([84, 101, 120, 116, 83]))))
 
     def test_estimate_packed_size_not_static(self):
         field = UTF8Block(length=lambda ctx: 5)
@@ -39,7 +40,7 @@ class TestStrings(unittest.TestCase):
 
     def test_utf8_null_trailing_unpack(self):
         field = UTF8Block(length=4)
-        val = field.unpack(BytesIO(bytes([84, 101, 0, 0])))
+        val = field.unpack(ReadContext(BytesIO(bytes([84, 101, 0, 0]))))
         self.assertEqual(val, "Te")
 
     def test_utf8_null_trailing_pack(self):

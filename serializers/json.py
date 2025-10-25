@@ -16,7 +16,7 @@ class JsonSerializer(BaseFileSerializer):
     def __make_dict(self, block, data):
         res = rec_dd()
         for key, value in data.items():
-            if isinstance(block, CompoundBlock) and block.field_extras_map[key].get('is_unknown'):
+            if isinstance(block, CompoundBlock) and (block.field_extras_map[key].get('is_unknown') or block.field_extras_map[key].get('usage') == 'skip_ui'):
                 continue
             try:
                 value_block, value = block.get_child_block_with_data(data, key)

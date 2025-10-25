@@ -23,9 +23,8 @@ class TestResource(DeclarativeCompoundBlock):
         required_int = (IntegerBlock(length=1, required_value=42),
                         {'description': 'Test required number'})
         # lookup string length
-        var_str_length = (IntegerBlock(length=1),
-                          {'description': 'Variable string length',
-                           'programmatic_value': lambda ctx: len(ctx.data('var_str'))})
+        var_str_length = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('var_str'))),
+                          {'description': 'Variable string length'})
         # TODO Should automatically determine min_length, max_length
         var_str = (UTF8Block(length=lambda ctx: ctx.data('var_str_length')),
                    {'description': 'Test text field with variable length'})
@@ -33,9 +32,10 @@ class TestResource(DeclarativeCompoundBlock):
         # TODO nested compound block
         # TODO array with fixed length
         # TODO array with lookup length
-        next_block_type = (IntegerBlock(length=1),
-                           {'programmatic_value': lambda ctx: len(ctx.data('delegate_block/data')) if isinstance(
-                               ctx.data('delegate_block/data'), str) else 0})
+        next_block_type = IntegerBlock(length=1,
+                                       programmatic_value=lambda ctx: len(ctx.data('delegate_block/data'))
+                                       if isinstance(ctx.data('delegate_block/data'), str)
+                                       else 0)
         delegate_block = (DelegateBlock(possible_blocks=[IntegerBlock(length=4, is_signed=True),
                                                          UTF8Block(length=lambda ctx: ctx.data('next_block_type'))],
                                         choice_index=lambda ctx, **_: 1 if ctx.data('next_block_type') > 0 else 0),

@@ -26,18 +26,18 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                       {'description': 'Mass applied to front axle (kg)'})
         mass_rear = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                      {'description': 'Mass applied to rear axle (kg)'})
-        mass = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
-                {'description': 'Total car mass (kg). Always == `mass_front + mass_rear`',
-                 'programmatic_value': lambda ctx: ctx.data('mass_front') + ctx.data('mass_rear')})
-        inv_mass_f = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
-                      {'description': 'Inverted mass applied to front axle in kg, `1 / mass_front`',
-                       'programmatic_value': lambda ctx: floor_16(1 / ctx.data('mass_front'))})
-        inv_mass_r = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
-                      {'description': 'Inverted mass applied to rear axle in kg, `1 / mass_rear`',
-                       'programmatic_value': lambda ctx: floor_16(1 / ctx.data('mass_rear'))})
-        inv_mass = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
-                    {'description': 'Inverted mass in kg, `1 / mass`',
-                     'programmatic_value': lambda ctx: floor_16(1 / (ctx.data('mass_front') + ctx.data('mass_rear')))})
+        mass = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True,
+                                programmatic_value=lambda ctx: ctx.data('mass_front') + ctx.data('mass_rear')),
+                {'description': 'Total car mass (kg). Always == `mass_front + mass_rear`'})
+        inv_mass_f = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True,
+                                      programmatic_value=lambda ctx: floor_16(1 / ctx.data('mass_front'))),
+                      {'description': 'Inverted mass applied to front axle in kg, `1 / mass_front`'})
+        inv_mass_r = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True,
+                                      programmatic_value=lambda ctx: floor_16(1 / ctx.data('mass_rear'))),
+                      {'description': 'Inverted mass applied to rear axle in kg, `1 / mass_rear`'})
+        inv_mass = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True,
+                                    programmatic_value=lambda ctx: floor_16(1 / (ctx.data('mass_front') + ctx.data('mass_rear')))),
+                    {'description': 'Inverted mass in kg, `1 / mass`'})
         drive_bias = (FixedPointBlock(length=4, fraction_bits=16, is_signed=False),
                       {'description': 'Bias for drive force (0.0-1.0, where 0 is RWD, 1 is FWD), determines the amount '
                                       'of force applied to front and rear axles: 0.7 will distribute force 70% '
@@ -46,20 +46,20 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                         {'description': 'Bias for brake force (0.0-1.0), determines the amount of braking force '
                                         'applied to front and rear axles: 0.7 will distribute braking force 70% '
                                         'on the front, 30% on the rear'})
-        brake_bias_r = (FixedPointBlock(length=4, fraction_bits=16, is_signed=False),
-                        {'description': 'Bias for brake force for rear axle. Always == `1 - brake_bias_f`',
-                         'programmatic_value': lambda ctx: 1 - ctx.data('brake_bias_f')})
+        brake_bias_r = (FixedPointBlock(length=4, fraction_bits=16, is_signed=False,
+                                        programmatic_value=lambda ctx: 1 - ctx.data('brake_bias_f')),
+                        {'description': 'Bias for brake force for rear axle. Always == `1 - brake_bias_f`'})
         mass_y = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                   {'description': 'Probably the height of mass center in meters'})
         brake_force = (FixedPointBlock(length=4, fraction_bits=16, is_signed=False),
                        {'description': 'Brake force in unknown units'})
-        brake_force2 = (FixedPointBlock(length=4, fraction_bits=16, is_signed=False),
+        brake_force2 = (FixedPointBlock(length=4, fraction_bits=16, is_signed=False,
+                                        programmatic_value=lambda ctx: ctx.data('brake_force')),
                         {'description': 'Brake force, equals to `brake_force`. Not clear why PBS has two of these, '
                                         'first number is responsible for braking on reverse, neutral and first gears, '
                                         'second number is responsible for braking on second gear. '
                                         'Interestingly, all gears > 2 use both numbers with unknown rules. '
-                                        'Tested it on lamborghini',
-                         'programmatic_value': lambda ctx: ctx.data('brake_force')})
+                                        'Tested it on lamborghini'})
         unk0 = (BytesBlock(length=4),
                 {'is_unknown': True})
         drag = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
@@ -84,9 +84,9 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
                        {'description': 'Final drive ratio'})
         wheel_radius = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
                         {'description': 'Wheel radius in meters'})
-        inv_wheel_rad = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
-                         {'description': 'Inverted wheel radius in meters, `1 / wheel_radius`',
-                          'programmatic_value': lambda ctx: floor_16(1 / ctx.data('wheel_radius'))})
+        inv_wheel_rad = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True,
+                                         programmatic_value=lambda ctx: floor_16(1 / ctx.data('wheel_radius'))),
+                         {'description': 'Inverted wheel radius in meters, `1 / wheel_radius`'})
         gear_ratios = (ArrayBlock(length=8, child=FixedPointBlock(length=4, fraction_bits=16,
                                                                   is_signed=True)),
                        {'description': "Only first `num_gears` values are used. First element is the "
@@ -184,9 +184,8 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
         grip_table_r = (ArrayBlock(length=512, child=FixedPointBlock(length=1, fraction_bits=4)),
                         {'description': 'Grip table for rear axle. Unit is unknown. Windows version overwrites this '
                                         'table with values from "grip_table_f" at 0x00440349'})
-        checksum = (IntegerBlock(length=4),
-                    {'programmatic_value': lambda ctx: sum(ctx.result[:1880]),
-                     'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes. If wrong, '
+        checksum = (IntegerBlock(length=4, programmatic_value=lambda ctx: sum(ctx.result[:1880])),
+                    {'description': 'Check sum of this block contents. Equals to sum of 1880 first bytes. If wrong, '
                                     'game sets field "efficiency" to zero'})
 
     def serializer_class(self):

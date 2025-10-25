@@ -1,0 +1,129 @@
+--- Test Statistics ---
+Total files tested: 7996
+Files read successfully: 3751
+Files written successfully: 3591
+Files read again successfully: 1608
+Files passed comparison test: 1392
+
+--- File Extension Read Success Rates (Test 1) ---
+.FSH: 100.00%
+.FSB: 100.00%
+.EAS: 100.00%
+.TGV: 100.00%
+.ASF: 100.00%
+.AS4: 100.00%
+.CFM: 100.00%
+.PDN: 100.00%
+.PBS: 100.00%
+.FMM: 100.00%
+.FAM: 100.00%
+.TRI: 100.00%
+INFO: 100.00%
+.MMB: 100.00%
+.GEO: 100.00%
+.MSK: 100.00%
+.COL: 100.00%
+.DCT: 100.00%
+.ENV: 100.00%
+.QFS: 99.13%
+.VIV: 97.65%
+.MUS: 97.22%
+.TRK: 88.89%
+.FFN: 50.00%
+.FRD: 23.68%
+.BNK: 5.87%
+.SPL: 0.99%
+.DAT: 0.71%
+
+--- File Extension Write Success Rates (Test 2) ---
+.FSH: 100.00%
+.FSB: 100.00%
+.EAS: 100.00%
+.AS4: 100.00%
+.CFM: 100.00%
+.PDN: 100.00%
+.PBS: 100.00%
+.FMM: 100.00%
+.TRI: 100.00%
+.MMB: 100.00%
+.GEO: 100.00%
+.MSK: 100.00%
+.COL: 100.00%
+.ENV: 100.00%
+.QFS: 99.13%
+.FAM: 98.72%
+.VIV: 97.65%
+.TRK: 88.89%
+.FFN: 50.00%
+.FRD: 23.68%
+.BNK: 5.87%
+.ASF: 5.36%
+.SPL: 0.99%
+.DAT: 0.71%
+.TGV: 0.00%
+INFO: 0.00%
+.MUS: 0.00%
+.DCT: 0.00%
+
+--- File Extension Read-Again Success Rates (Test 3) ---
+.AS4: 100.00%
+.FMM: 100.00%
+.MMB: 100.00%
+.GEO: 100.00%
+.MSK: 100.00%
+.COL: 100.00%
+.ENV: 100.00%
+.EAS: 95.85%
+.FSH: 95.41%
+.TRK: 88.89%
+.CFM: 74.36%
+.TRI: 58.82%
+.VIV: 47.18%
+.FFN: 41.43%
+.FAM: 29.49%
+.FSB: 20.00%
+.BNK: 3.86%
+.SPL: 0.99%
+.QFS: 0.00%
+.TGV: 0.00%
+.ASF: 0.00%
+.DAT: 0.00%
+.PDN: 0.00%
+.PBS: 0.00%
+INFO: 0.00%
+.MUS: 0.00%
+.DCT: 0.00%
+.FRD: 0.00%
+
+--- File Extension Comparison Success Rates (Test 4) ---
+.AS4: 100.00%
+.FMM: 100.00%
+.MMB: 100.00%
+.GEO: 100.00%
+.MSK: 100.00%
+.COL: 100.00%
+.ENV: 100.00%
+.EAS: 95.85%
+.FSH: 95.41%
+.TRK: 83.33%
+.CFM: 74.36%
+.TRI: 58.82%
+.VIV: 47.18%
+.FFN: 41.43%
+.FAM: 29.49%
+.FSB: 20.00%
+.BNK: 3.86%
+.QFS: 0.00%
+.TGV: 0.00%
+.ASF: 0.00%
+.DAT: 0.00%
+.PDN: 0.00%
+.PBS: 0.00%
+INFO: 0.00%
+.MUS: 0.00%
+.SPL: 0.00%
+.DCT: 0.00%
+.FRD: 0.00%
+
+--- Time Spent ---
+Total time: 01:17:28.70

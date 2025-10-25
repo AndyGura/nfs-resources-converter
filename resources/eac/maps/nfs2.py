@@ -1,4 +1,3 @@
-from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import ReadContext
@@ -7,19 +6,20 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  BytesBlock,
                                  ArrayBlock,
-                                 DataBlock, FixedPointBlock)
+                                 FixedPointBlock)
 from resources.eac.fields.misc import Point3D
 from resources.eac.maps.nfs_common import ColPolygon, ColExtraBlock
 
 
 class TrkBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        block_size_2 = (IntegerBlock(length=4, is_signed=False),
-                        {'description': 'Block size in bytes (duplicated)',
-                         'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
+        block_size_2 = (IntegerBlock(length=4, is_signed=False,
+                                     programmatic_value=lambda ctx: ctx.block.estimate_packed_size(
+                                         ctx.get_full_data())),
+                        {'description': 'Block size in bytes (duplicated)'})
         num_extrablocks = (IntegerBlock(length=2, is_signed=False),
                            {'description': 'Number of extrablocks'})
         unk0 = (IntegerBlock(length=2, is_signed=False),
@@ -62,28 +62,34 @@ class TrkBlock(DeclarativeCompoundBlock):
                               {'description': 'Offset to each of the extrablocks',
                                'custom_offset': 'extrablocks_offset + 64'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
-                       {'description': 'Extrablocks'})
+                       {'description': 'Extrablocks',
+                        'usage': 'ui_only'})
+        extrablocks_bytes = (BytesBlock(length=lambda ctx: ctx.data('block_size') - ctx.local_buffer_pos),
+                             {
+                                 'description': 'A part of block, where extrablocks data is located. Offsets to the entries '
+                                                'are defined in `extrablock_offsets` block. Item type:'
+                                                '<br/>- [ColExtraBlock](#colextrablock)',
+                                 'usage': 'skip_ui'})
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        start_offset = buffer.tell()
-        data = super().read(buffer, ctx, name, read_bytes_amount)
-        extrablocks_offset = buffer.tell() - start_offset
-        extrablocks_buf = BytesIO(buffer.read(data['block_size'] - (buffer.tell() - start_offset)))
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        data['extrablocks'] = []
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, data)
+        array_ctx = self_ctx.get_or_create_child('extrablocks', self, read_bytes_amount, data)
+        end_pos = ctx.buffer.tell()
         child_block = self.field_blocks_map.get('extrablocks').child
-        self_ctx = ReadContext(buffer=buffer, data=data, name=name, block=self, parent=ctx,
-                               read_bytes_amount=read_bytes_amount)
-        for offset in data['extrablock_offsets']:
-            extrablocks_buf.seek(offset - extrablocks_offset)
-            data['extrablocks'].append(child_block.read(extrablocks_buf, self_ctx))
+        for i, offset in enumerate(data['extrablock_offsets']):
+            ctx.buffer.seek(self_ctx.read_start_offset + offset)
+            data['extrablocks'].append(child_block.unpack(array_ctx, name=str(i)))
+        ctx.buffer.seek(end_pos)
         return data
 
 
 class TrkSuperBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Superblock size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Superblock size in bytes'})
         num_blocks = (IntegerBlock(length=4, is_signed=False),
                       {'description': 'Number of blocks in this superblock. Usually 8 or less in the last superblock'})
         unk = (IntegerBlock(length=4),
@@ -108,9 +114,9 @@ class TrkMap(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=20),
                 {'is_unknown': True})
-        num_superblocks = (IntegerBlock(length=4, is_signed=False),
-                           {'description': 'Number of superblocks (nsblk)',
-                            'programmatic_value': lambda ctx: len(ctx.data('superblock_offsets'))})
+        num_superblocks = (IntegerBlock(length=4, is_signed=False,
+                                        programmatic_value=lambda ctx: len(ctx.data('superblock_offsets'))),
+                           {'description': 'Number of superblocks (nsblk)'})
         num_blocks = (IntegerBlock(length=4, is_signed=False),
                       {'description': 'Number of blocks (nblk)'})
         superblock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),

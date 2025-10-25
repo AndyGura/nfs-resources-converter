@@ -2,6 +2,8 @@ from io import BufferedReader, BytesIO, SEEK_CUR
 from os.path import getsize
 from typing import Tuple
 
+from library.read_blocks import DataBlock
+
 
 # this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
 # performance, because we spawn process per file, and it doesn't need to load all those classes every time
@@ -14,10 +16,10 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif file_path.endswith('.BNK'):
             from resources.eac.archives import SoundBank
             return SoundBank
-        elif file_path.endswith('.PBS_UNCOMPRESSED'):
+        elif file_path.endswith('.PBS__uncompressed'):
             from resources.eac.car_specs import CarPerformanceSpec
             return CarPerformanceSpec
-        elif file_path.endswith('.PDN_UNCOMPRESSED'):
+        elif file_path.endswith('.PDN__uncompressed'):
             from resources.eac.car_specs import CarSimplifiedPerformanceSpec
             return CarSimplifiedPerformanceSpec
         elif file_path.endswith('CONFIG.DAT'):
@@ -203,6 +205,8 @@ def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str,
 # not shared between processes: in most cases if file requires another resource, it is in the same file, or it
 # requires one external file multiple times. It will be more time-consuming to serialize/deserialize it for sharing
 # between processes than load some file multiple times. + we avoid potential memory leaks
+
+# TODO use root_ctx instead?
 files_cache = {}
 
 
@@ -211,7 +215,8 @@ def clear_file_cache(path: str):
         name = path_to_name(path)
         del files_cache[name]
         from library.read_blocks import DataBlock
-        DataBlock.root_read_ctx.children = [c for c in DataBlock.root_read_ctx.children if c.name != name]
+        if name in DataBlock.root_read_ctx.children:
+            del DataBlock.root_read_ctx.children[name]
     except KeyError:
         pass
 
@@ -223,6 +228,7 @@ def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
             block_class = probe_block_class(bdata, path)
             block = block_class()
-            data = block.unpack(bdata, name=name, read_bytes_amount=getsize(path))
+            DataBlock.root_read_ctx.buffer = bdata
+            data = block.unpack(DataBlock.root_read_ctx, name=name, read_bytes_amount=getsize(path))
             files_cache[name] = (block, data)
     return name, block, data

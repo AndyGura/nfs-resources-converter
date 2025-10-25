@@ -1,6 +1,5 @@
 import struct
-from io import BufferedReader, BytesIO
-from typing import Dict, Literal, List, Tuple, Any
+from typing import Dict, Literal, List, Tuple
 
 from library.context import ReadContext, WriteContext
 from library.exceptions import EndOfBufferException, DataIntegrityException
@@ -44,9 +43,8 @@ class IntegerBlock(DataBlock):
             return self.required_value
         return 0
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        raw = buffer.read(self.length)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        raw = ctx.buffer.read(self.length)
         if len(raw) < self.length:
             raise EndOfBufferException(ctx=ctx)
         return int.from_bytes(raw, byteorder=self.byte_order, signed=self.is_signed)
@@ -79,9 +77,8 @@ class FixedPointBlock(IntegerBlock):
         super().__init__(**kwargs)
         self.fraction_bits = fraction_bits
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        return float(super().read(buffer, ctx, name, read_bytes_amount) / (1 << self.fraction_bits))
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        return float(super().read(ctx, name, read_bytes_amount) / (1 << self.fraction_bits))
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         data = max(min(round(data * (1 << self.fraction_bits)),
@@ -116,9 +113,8 @@ class DecimalBlock(DataBlock):
     def new_data(self):
         return 0.0
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        raw = buffer.read(self.length)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        raw = ctx.buffer.read(self.length)
         if len(raw) < self.length:
             raise EndOfBufferException(ctx=ctx)
         f = 'f' if self.length == 4 else 'd'
@@ -151,9 +147,8 @@ class BitFlagsBlock(IntegerBlock):
     def new_data(self):
         return [False] * 8
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        value = super().read(buffer, ctx, name, read_bytes_amount)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        value = super().read(ctx, name, read_bytes_amount)
         res = {}
         for i in range(8):
             res[self.flag_name_map[i]] = bool(value & (1 if i == 0 else 1 << i))
@@ -191,9 +186,8 @@ class EnumByteBlock(IntegerBlock):
             return self.required_value
         return next(x for x in self.enum_name_map if x is not None)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        raw = super().read(buffer, ctx, name, read_bytes_amount)
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        raw = super().read(ctx, name, read_bytes_amount)
         if self.raise_error_on_unknown and self.enum_name_map[raw] is None:
             raise DataIntegrityException(ctx=ctx, message=f'Unknown enum value {raw} at {name}')
         return self.enum_name_map[raw]

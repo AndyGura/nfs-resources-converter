@@ -42,18 +42,18 @@ class FrdBlock(DeclarativeCompoundBlock):
                     {'description': 'Position of the block in the world'})
         bounds = (ArrayBlock(child=Point3D(child=DecimalBlock(length=4)), length=4),
                   {'description': 'Block bounding rectangle'})
-        num_vertices = (IntegerBlock(length=4, is_signed=False),
-                        {'description': 'Number of vertices',
-                         'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
+        num_vertices = (IntegerBlock(length=4, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('vertices'))),
+                        {'description': 'Number of vertices'})
         num_vertices_high = (IntegerBlock(length=4, is_signed=False),
                              {'description': 'Number of high-res vertices'})
         num_vertices_low = (IntegerBlock(length=4, is_signed=False),
                             {'description': 'Number of low-res vertices'})
         num_vertices_med = (IntegerBlock(length=4, is_signed=False),
                             {'description': 'Number of medium-res vertices'})
-        num_vertices_dup = (IntegerBlock(length=4, is_signed=False),
-                            {'is_unknown': True,
-                             'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
+        num_vertices_dup = (IntegerBlock(length=4, is_signed=False,
+                                         programmatic_value=lambda ctx: len(ctx.data('vertices'))),
+                            {'is_unknown': True})
         num_vertices_obj = (IntegerBlock(length=4, is_signed=False),
                             {'is_unknown': True})
         vertices = (ArrayBlock(child=Point3D(child=DecimalBlock(length=4)),
@@ -67,26 +67,27 @@ class FrdBlock(DeclarativeCompoundBlock):
                           {'is_unknown': True})
         num_start_pos = (IntegerBlock(length=4, is_signed=False),
                          {'is_unknown': True})
-        num_positions = (IntegerBlock(length=4, is_signed=False),
-                         {'is_unknown': True,
-                          'programmatic_value': lambda ctx: len(ctx.data('positions'))})
-        num_polygons = (IntegerBlock(length=4, is_signed=False),
-                        {'is_unknown': True,
-                         'programmatic_value': lambda ctx: len(ctx.data('polygons'))})
-        num_vroad = (IntegerBlock(length=4, is_signed=False),
-                     {'programmatic_value': lambda ctx: len(ctx.data('vroad'))})
-        num_xobj = (IntegerBlock(length=4, is_signed=False),
-                    {'is_unknown': True,
-                     'programmatic_value': lambda ctx: len(ctx.data('xobj'))})
-        num_polyobj = (IntegerBlock(length=4, is_signed=False),
-                       {'is_unknown': True,
-                        'programmatic_value': lambda ctx: len(ctx.data('polyobj'))})
-        num_soundsrc = (IntegerBlock(length=4, is_signed=False),
-                        {'is_unknown': True,
-                         'programmatic_value': lambda ctx: len(ctx.data('soundsrc'))})
-        num_lightsrc = (IntegerBlock(length=4, is_signed=False),
-                        {'is_unknown': True,
-                         'programmatic_value': lambda ctx: len(ctx.data('lightsrc'))})
+        num_positions = (IntegerBlock(length=4, is_signed=False,
+                                      programmatic_value=lambda ctx: len(ctx.data('positions'))),
+                         {'is_unknown': True})
+        num_polygons = (IntegerBlock(length=4, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('polygons'))),
+                        {'is_unknown': True})
+        num_vroad = (IntegerBlock(length=4, is_signed=False,
+                                  programmatic_value=lambda ctx: len(ctx.data('vroad'))),
+                     {'is_unknown': True})
+        num_xobj = (IntegerBlock(length=4, is_signed=False,
+                                 programmatic_value=lambda ctx: len(ctx.data('xobj'))),
+                    {'is_unknown': True})
+        num_polyobj = (IntegerBlock(length=4, is_signed=False,
+                                    programmatic_value=lambda ctx: len(ctx.data('polyobj'))),
+                       {'is_unknown': True})
+        num_soundsrc = (IntegerBlock(length=4, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('soundsrc'))),
+                        {'is_unknown': True})
+        num_lightsrc = (IntegerBlock(length=4, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('lightsrc'))),
+                        {'is_unknown': True})
         positions = (ArrayBlock(child=FrdPositionBlock(), length=lambda ctx: ctx.data('num_positions')),
                      {'is_unknown': True})
         polygons = (ArrayBlock(child=FrdBlockPolygonData(),
@@ -173,8 +174,7 @@ class ExtraObjectDataCrossType1(DeclarativeCompoundBlock):
         unk = BytesBlock(length=18)
         type = IntegerBlock(length=1, required_value=3)
         objno = IntegerBlock(length=1)
-        num_animdata = (IntegerBlock(length=2),
-                        {'programmatic_value': lambda ctx: len(ctx.data('animdata'))})
+        num_animdata = IntegerBlock(length=2, programmatic_value=lambda ctx: len(ctx.data('animdata')))
         anim_delay = IntegerBlock(length=2)
         animdata = ArrayBlock(child=AnimData(), length=lambda ctx: ctx.data('num_animdata'))
 
@@ -191,8 +191,7 @@ class ExtraObjectBlock(DeclarativeCompoundBlock):
             ExtraObjectDataCrossType4(),
             ExtraObjectDataCrossType1()
         ], choice_index=lambda ctx, **_: 0 if ctx.data('cross_type') == 4 else 1)
-        num_vertices = (IntegerBlock(length=4),
-                        {'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
+        num_vertices = IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('vertices')))
         vertices = ArrayBlock(child=Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True)),
                               length=lambda ctx: ctx.data('num_vertices'))
         vertex_shading = ArrayBlock(child=IntegerBlock(length=4),
@@ -235,9 +234,9 @@ class FrdMap(DeclarativeCompoundBlock):
         unk = (BytesBlock(length=28),
                {'description': 'Unknown header',
                 'is_unknown': True})
-        num_blocks = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Number of blocks',
-                       'programmatic_value': lambda ctx: len(ctx.data('blocks')) - 1})
+        num_blocks = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: len(ctx.data('blocks')) - 1),
+                      {'description': 'Number of blocks'})
         blocks = ArrayBlock(child=FrdBlock(),
                             length=lambda ctx: ctx.data('num_blocks') + 1)
         polygon_blocks = ArrayBlock(child=FrdPolyBlock(),
