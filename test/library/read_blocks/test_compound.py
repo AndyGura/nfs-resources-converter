@@ -1,6 +1,7 @@
 import unittest
 from io import BytesIO
 
+from library.context import ReadContext
 from library.read_blocks import ArrayBlock, DeclarativeCompoundBlock, IntegerBlock, UTF8Block, CompoundBlock
 
 
@@ -11,7 +12,7 @@ class TestCompound(unittest.TestCase):
             ('a', IntegerBlock(length=1), {}),
             ('b', IntegerBlock(length=1), {}),
         ])
-        val = field.unpack(BytesIO(bytes([92, 129])))
+        val = field.unpack(ReadContext(BytesIO(bytes([92, 129]))))
         self.assertDictEqual(val, {'a': 92, 'b': 129})
 
     def test_pack(self):
@@ -56,18 +57,16 @@ class SimpleBlock(DeclarativeCompoundBlock):
 class BindingBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         header = IntegerBlock(length=1, required_value=2), {'description': "Some header"}
-        len = (IntegerBlock(length=1),
-               {'description': "A length of `val` array",
-                'programmatic_value': lambda ctx: len(ctx.data('val'))})
+        len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
+               {'description': "A length of `val` array"})
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
 
 
 class BindingBlockWithDoc(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         header = IntegerBlock(length=1, required_value=2), {'description': "Some header"}
-        len = (IntegerBlock(length=1),
-               {'description': "A length of `val` array",
-                'programmatic_value': lambda ctx: len(ctx.data('val'))})
+        len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
+               {'description': "A length of `val` array"})
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
 
 
@@ -75,7 +74,7 @@ class TestDeclarativeCompound(unittest.TestCase):
 
     def test_unpack(self):
         field = SimpleBlock()
-        val = field.unpack(BytesIO(bytes([92, 129])))
+        val = field.unpack(ReadContext(BytesIO(bytes([92, 129]))))
         self.assertDictEqual(val, {'a': 92, 'b': 129})
 
     def test_pack(self):
@@ -85,7 +84,7 @@ class TestDeclarativeCompound(unittest.TestCase):
 
     def test_simple_value_binding_unpack(self):
         field = BindingBlock()
-        val = field.unpack(BytesIO(bytes([2, 3, 129, 145, 12, 9])))
+        val = field.unpack(ReadContext(BytesIO(bytes([2, 3, 129, 145, 12, 9]))))
         self.assertDictEqual(val, {'header': 2, 'len': 3, 'val': [129, 145, 12]})
 
     def test_simple_value_binding_with_doc_pack(self):
@@ -95,7 +94,7 @@ class TestDeclarativeCompound(unittest.TestCase):
 
     def test_simple_value_binding_with_doc_unpack(self):
         field = BindingBlockWithDoc()
-        val = field.unpack(BytesIO(bytes([2, 3, 129, 145, 12, 9])))
+        val = field.unpack(ReadContext(BytesIO(bytes([2, 3, 129, 145, 12, 9]))))
         self.assertDictEqual(val, {'header': 2, 'len': 3, 'val': [129, 145, 12]})
 
     def test_simple_value_binding_pack(self):
@@ -135,10 +134,9 @@ class TestDeclarativeCompound(unittest.TestCase):
                             'max_value': 255,
                             'value_interval': 1,
                         },
-                        'is_programmatic': False,
                         'is_unknown': False,
                         'usage': 'everywhere',
-                        'description': "Some header",
+                        'description': 'Some header',
                     },
                     {
                         'name': 'len',
@@ -146,14 +144,14 @@ class TestDeclarativeCompound(unittest.TestCase):
                             'block_class_mro': 'IntegerBlock__DataBlock',
                             'block_description': '1-byte unsigned integer',
                             'serializable_to_disc': False,
+                            'is_programmatic': True,
                             'min_value': 0,
                             'max_value': 255,
                             'value_interval': 1,
                         },
-                        'is_programmatic': True,
                         'is_unknown': False,
                         'usage': 'everywhere',
-                        'description': "A length of `val` array"
+                        'description': 'A length of `val` array',
                     },
                     {
                         'name': 'val',
@@ -167,13 +165,12 @@ class TestDeclarativeCompound(unittest.TestCase):
                                 'serializable_to_disc': False,
                                 'min_value': 0,
                                 'max_value': 255,
-                                'value_interval': 1,
-                            }
+                                'value_interval': 1
+                            },
                         },
-                        'is_programmatic': False,
                         'is_unknown': False,
                         'usage': 'everywhere',
-                        'description': ""
+                        'description': '',
                     }
                 ]
             })

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from io import BufferedReader, BytesIO, SEEK_CUR
+from io import SEEK_CUR
 from typing import Dict, Any, Tuple, Literal
 
 from library.context import ReadContext, WriteContext, DocumentationContext
@@ -10,8 +10,9 @@ from library.utils import represent_value_as_str
 class DataBlock(ABC):
     root_read_ctx = ReadContext()
 
-    def __init__(self, required_value=None, **kwargs):
+    def __init__(self, required_value=None, programmatic_value=None, **kwargs):
         self.required_value = required_value
+        self.programmatic_value = programmatic_value
 
     # For auto-generated documentation only
     @property
@@ -29,6 +30,8 @@ class DataBlock(ABC):
         }
         if self.required_value:
             s['required_value'] = self.required_value
+        if self.programmatic_value:
+            s['is_programmatic'] = True
         return s
 
     def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
@@ -42,8 +45,7 @@ class DataBlock(ABC):
         return None
 
     @abstractmethod
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         pass
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -62,14 +64,15 @@ class DataBlock(ABC):
                                                           f'at {name}')
 
     ### final method, should never override
-    def unpack(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = root_read_ctx, name: str = '',
-               read_bytes_amount=None):
-        v = self.read(buffer=buffer, ctx=ctx, name=name, read_bytes_amount=read_bytes_amount)
+    def unpack(self, ctx: ReadContext = root_read_ctx, name: str = '', read_bytes_amount=None):
+        v = self.read(ctx=ctx, name=name, read_bytes_amount=read_bytes_amount)
         self.validate_after_read(v, ctx, name)
         return v
 
     ### final method, should never override
     def pack(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        if self.programmatic_value:
+            data = self.programmatic_value(ctx)
         return self.write(data, ctx, name)
 
 
@@ -144,17 +147,16 @@ class BytesBlock(DataBlock):
             return b''
         return bytes([0] * self_len)
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         if self_len < 0:
             if self.allow_negative_length:
-                buffer.seek(self_len, SEEK_CUR)
+                ctx.buffer.seek(self_len, SEEK_CUR)
                 return b''
             raise BlockDefinitionException(ctx=ctx, message='Cannot read bytes block with negative length')
-        res = buffer.read(self_len)
+        res = ctx.buffer.read(self_len)
         if len(res) < self_len:
-            raise EndOfBufferException(ctx=ctx)
+            raise EndOfBufferException(ctx=ctx.get_or_create_child(name, self))
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -188,8 +190,7 @@ class SkipBlock(DataBlock):
     def new_data(self):
         return None
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         return self.exception if self.error_strategy == "return_exception" else None
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):

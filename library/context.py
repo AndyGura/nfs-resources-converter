@@ -11,33 +11,56 @@ class BaseContext:
         self._data = data
         self.block = block
         self.parent = parent
-        self.children = []
+        self.children = {}
         if self.parent:
-            self.parent.children.append(self)
+            self.parent.children[name] = self
+
+    def get_or_create_child(self, name: str, block=None):
+        raise NotImplementedError
+
+    def get_full_data(self):
+        return self._data
+
+    def child(self, local_path: str):
+        path = local_path.split('/')
+        ctx = self
+        for p in path:
+            ctx = ctx.get_or_create_child(p)
+            if ctx is None:
+                raise Exception(f'Cannot find child "{p}" in context "{self.ctx_path}"')
+        return ctx
 
     def data(self, local_path: str):
         data_path = local_path.split('/')
         entry = self._data
         for p in data_path:
+            if entry is None:
+                return None
             if p == '..':
                 return self.parent.data('/'.join(data_path[1:]))
             if isinstance(entry, list):
-                entry = entry[int(p)]
-            else:
+                try:
+                    entry = entry[int(p)]
+                except IndexError:
+                    return None
+            elif isinstance(entry, dict) and p in entry.keys():
                 entry = entry[p]
+            elif self.children.get(p):
+                return self.children.get(p)._data
+            else:
+                return None
         return entry
 
     def relative_block(self, local_path: str):
         block_path = local_path.split('/')
         entry = self.block
         for p in block_path:
+            if entry is None:
+                return None
             if p == '..':
                 return self.parent.relative_block('/'.join(block_path[1:]))
             entry = entry.get_child_block(p)
         return entry
-
-    def get_full_data(self):
-        return self._data
 
 
 class ReadContext(BaseContext):
@@ -50,6 +73,21 @@ class ReadContext(BaseContext):
     def read_bytes_remaining(self):
         return self.read_bytes_amount - self.local_buffer_pos
 
+    def get_or_create_child(self, name, block=None, read_bytes_amount=None, data=None):
+        existing_child = self.children.get(name)
+        if existing_child:
+            if block is not None:
+                existing_child.block = block
+            if read_bytes_amount is not None:
+                existing_child.read_bytes_amount = read_bytes_amount
+            return existing_child
+        return ReadContext(buffer=self.buffer,
+                           data=data if data is not None else self.data(name),
+                           name=name,
+                           block=block or self.relative_block(name),
+                           parent=self,
+                           read_bytes_amount=read_bytes_amount)
+
     def __init__(self, buffer: [BufferedReader, BytesIO] = None, name: str = '', data=None, block=None, parent=None,
                  read_bytes_amount=None):
         super().__init__(name=name, data=data, block=block, parent=parent)
@@ -59,6 +97,19 @@ class ReadContext(BaseContext):
 
 
 class WriteContext(BaseContext):
+
+    def get_or_create_child(self, name: str, block=None):
+        existing_child = self.children.get('name')
+        if existing_child:
+            if block is not None:
+                existing_child.block = block
+            return existing_child
+        return WriteContext(result=self.result,
+                            name=name,
+                            data=self.data(name),
+                            block=block or self.relative_block(name),
+                            parent=self)
+
     def __init__(self, result: bytes = b'', name: str = '', data=None, block=None, parent=None):
         super().__init__(name=name, data=data, block=block, parent=parent)
         self.result = result
@@ -81,6 +132,16 @@ class DocumentationCtxData:
         a = str(other)
         b = str(self)
         return DocumentationCtxData(f'{a}+{b}')
+
+    def __sub__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a}-{b}')
+
+    def __rsub__(self, other):
+        a = str(other)
+        b = str(self)
+        return DocumentationCtxData(f'{a}-{b}')
 
     def __mul__(self, other):
         a = str(self)
@@ -106,6 +167,21 @@ class DocumentationContext(BaseContext):
     @property
     def read_bytes_remaining(self):
         return 'up to end of block'
+
+    @property
+    def local_buffer_pos(self):
+        return 'local_offset'
+
+    def get_or_create_child(self, name: str, block=None):
+        existing_child = self.children.get('name')
+        if existing_child:
+            if block is not None:
+                existing_child.block = block
+            return existing_child
+        return DocumentationContext(name=name,
+                                    data=self.data(name),
+                                    block=block or self.relative_block(name),
+                                    parent=self)
 
     def data(self, local_path: str):
         return DocumentationCtxData(local_path.replace('../', '^'))

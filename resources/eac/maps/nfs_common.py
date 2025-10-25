@@ -1,8 +1,8 @@
-from io import BufferedReader, BytesIO
+from io import BytesIO
 
 from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, IntegerBlock, ArrayBlock, EnumByteBlock,
-                                 EnumLookupDelegateBlock, BytesBlock, DataBlock, FixedPointBlock)
+                                 EnumLookupDelegateBlock, BytesBlock, FixedPointBlock)
 from resources.eac.fields.misc import RGBBlock, Point3D
 
 
@@ -63,9 +63,9 @@ class AnimatedPropPositionFrame(DeclarativeCompoundBlock):
 
 class AnimatedPropPosition(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        num_frames = (IntegerBlock(length=2, is_signed=False),
-                      {'description': 'An amount of frames',
-                       'programmatic_value': lambda ctx: len(ctx.data('frames'))})
+        num_frames = (IntegerBlock(length=2, is_signed=False,
+                                   programmatic_value=lambda ctx: len(ctx.data('frames'))),
+                      {'description': 'An amount of frames'})
         unk = (IntegerBlock(length=2),
                {'is_unknown': True})
         frames = (ArrayBlock(length=lambda ctx: ctx.data('num_frames'),
@@ -80,9 +80,9 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
                 'block_description': '3D model placement (prop). Same 3D model can be used few times on the track'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=2, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=2, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
         type = (EnumByteBlock(enum_names=[(1, 'static_prop'),
                                           (3, 'animated_prop'),
                                           ]),
@@ -121,15 +121,15 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
                 'block_description': '3D model'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        num_vertices = (IntegerBlock(length=2, is_signed=False),
-                        {'description': 'Amount of vertices',
-                         'programmatic_value': lambda ctx: len(ctx.data('vertices'))})
-        num_polygons = (IntegerBlock(length=2, is_signed=False),
-                        {'description': 'Amount of polygons',
-                         'programmatic_value': lambda ctx: len(ctx.data('polygons'))})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
+        num_vertices = (IntegerBlock(length=2, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('vertices'))),
+                        {'description': 'Amount of vertices'})
+        num_polygons = (IntegerBlock(length=2, is_signed=False,
+                                     programmatic_value=lambda ctx: len(ctx.data('polygons'))),
+                        {'description': 'Amount of polygons'})
         vertices = (ArrayBlock(child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
                                length=lambda ctx: ctx.data('num_vertices')),
                     {'description': 'Vertices'})
@@ -190,9 +190,9 @@ class CollisionExtraDataRecord(DeclarativeCompoundBlock):
 
 class ColExtraBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'Block size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'Block size in bytes'})
         type = (EnumByteBlock(enum_names=[(2, 'textures_map'),
                                           (4, 'block_numbers'),
                                           (5, 'polygon_map'),
@@ -208,9 +208,9 @@ class ColExtraBlock(DeclarativeCompoundBlock):
                 {'description': 'Type of the data records'})
         unk = (IntegerBlock(length=1, required_value=0),
                {'is_unknown': True})
-        num_data_records = (IntegerBlock(length=2),
-                            {'description': 'Amount of data records',
-                             'programmatic_value': lambda ctx: len(ctx.data('data_records'))})
+        num_data_records = (IntegerBlock(length=2,
+                                         programmatic_value=lambda ctx: len(ctx.data('data_records'))),
+                            {'description': 'Amount of data records'})
         data_records = (EnumLookupDelegateBlock(
             enum_field='type',
             blocks=[
@@ -236,32 +236,34 @@ class MapColFile(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk = (IntegerBlock(length=4, required_value=11),
                {'is_unknown': True})
-        block_size = (IntegerBlock(length=4, is_signed=False),
-                      {'description': 'File size in bytes',
-                       'programmatic_value': lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())})
-        # TODO it is almost the same as we have in wwww. Share logic somehow?
+        block_size = (IntegerBlock(length=4, is_signed=False,
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                      {'description': 'File size in bytes'})
         num_extrablocks = (IntegerBlock(length=4, is_signed=False),
                            {'description': 'Number of extrablocks'})
         extrablock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
                                          length=lambda ctx: ctx.data('num_extrablocks')),
                               {'description': 'Offset to each of the extrablocks'})
+        extrablocks_bytes = (
+            BytesBlock(length=lambda ctx: ctx.data('block_size') - 16 - 4 * ctx.data('num_extrablocks')),
+            {'description': 'A part of block, where extra blocks data is located. Offsets are defined in '
+                            'previous "extrablock_offsets" field. Item type:'
+                            '<br/>- [ColExtraBlock](#colextrablock)',
+             'usage': 'skip_ui'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
-                       {'description': 'Extrablocks'})
+                       {'description': 'Extrablocks',
+                        'usage': 'ui_only'})
 
     def serializer_class(self):
         from serializers import JsonSerializer
         return JsonSerializer
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
-        start_offset = buffer.tell()
-        data = super().read(buffer, ctx, name, read_bytes_amount)
-        buffer.seek(start_offset)
-        block_buf = BytesIO(buffer.read(data['block_size']))
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        data['extrablocks'] = []
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, data)
         child_block = self.field_blocks_map.get('extrablocks').child
-        self_ctx = ReadContext(buffer=buffer, data=data, name=name, block=self, parent=ctx,
-                               read_bytes_amount=read_bytes_amount)
-        for offset in data['extrablock_offsets']:
-            block_buf.seek(offset + 16)
-            data['extrablocks'].append(child_block.read(block_buf, self_ctx))
+        for i, offset in enumerate(data['extrablock_offsets']):
+            self_ctx.buffer.seek(self_ctx.read_start_offset + offset + 16)
+            data['extrablocks'].append(child_block.unpack(self_ctx, name=str(i)))
         return data

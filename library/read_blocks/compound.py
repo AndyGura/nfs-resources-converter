@@ -1,6 +1,5 @@
 from abc import ABC
-from io import BufferedReader, BytesIO
-from typing import Dict, List, Tuple, Any, TypedDict, Optional, Callable, Union
+from typing import Dict, List, Tuple, Any, TypedDict, Callable, Union
 
 from library.context import ReadContext, WriteContext
 from library.exceptions import BlockDefinitionException, DataIntegrityException
@@ -15,8 +14,6 @@ class FieldExtras(TypedDict, total=False):
       - is_unknown: bool — Marks a field whose purpose/meaning is not fully known.
       - custom_offset: Union[int, str] — For documentation: shows how the field's offset is calculated
         if it is not placed sequentially. Accepts an absolute integer offset or an expression string.
-      - programmatic_value: Callable[[WriteContext], Any] — Function to compute the value at write time;
-        if present, the field value in the input data is ignored and this callable is used instead.
       - usage: str — Where the field should be used. Allowed values:
         'everywhere' (default) — used in IO, UI, and docs;
         'ui_only' — shown only in UI; ignored for IO and docs;
@@ -25,8 +22,8 @@ class FieldExtras(TypedDict, total=False):
     description: str
     is_unknown: bool
     custom_offset: Union[int, str]
-    programmatic_value: Callable[[WriteContext], Any]
     usage: str
+
 
 class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
 
@@ -50,8 +47,6 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
                 {
                     'name': name,
                     'schema': field.schema,
-                    'is_programmatic': self.field_extras_map
-                                       .get(name, {}).get('programmatic_value') is not None,
                     'is_unknown': self.field_extras_map.get(name, {}).get('is_unknown', False),
                     'description': self.field_extras_map.get(name, {}).get('description', ''),
                     'usage': self.field_extras_map.get(name, {}).get('usage', 'everywhere'),
@@ -106,16 +101,14 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             res[name] = field.new_data()
         return res
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         res = dict()
-        self_ctx = ReadContext(buffer=buffer, data=res, name=name, block=self, parent=ctx,
-                               read_bytes_amount=read_bytes_amount)
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
             if usage == 'ui_only':
                 continue
-            res[name] = field.unpack(buffer=buffer, ctx=self_ctx, name=name)
+            res[name] = field.unpack(ctx=self_ctx, name=name)
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -148,12 +141,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
             if usage == 'ui_only':
                 continue
-            programmatic_value_func = self.field_extras_map.get(name, {}).get('programmatic_value')
-            if programmatic_value_func is not None:
-                val = programmatic_value_func(self_ctx)
-            else:
-                val = data.get(name)
-            self_ctx.result += field.pack(data=val, ctx=self_ctx, name=name)
+            self_ctx.result += field.pack(data=data.get(name), ctx=self_ctx, name=name)
         return self_ctx.result
 
 

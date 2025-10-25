@@ -1,8 +1,7 @@
-from io import BufferedReader, BytesIO
 from typing import Dict
 
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block, DataBlock
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
 
 
 class ShpiText(DeclarativeCompoundBlock):
@@ -39,10 +38,9 @@ class DashDeclarationFile(UTF8Block):
         from serializers import JsonSerializer
         return JsonSerializer
 
-    def read(self, buffer: [BufferedReader, BytesIO], ctx: ReadContext = DataBlock.root_read_ctx, name: str = '',
-             read_bytes_amount=None):
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self._length = read_bytes_amount
-        text = super().read(buffer, ctx, name, read_bytes_amount)
+        text = super().read(ctx, name, read_bytes_amount)
         dictionary = {}
         values = text.splitlines()
         current_key = None

@@ -1,6 +1,7 @@
 import unittest
 from io import BytesIO
 
+from library.context import ReadContext
 from library.exceptions import DataIntegrityException
 from library.read_blocks import UTF8Block
 from library.read_blocks.array import ArrayBlock, LengthPrefixedArrayBlock, SubByteArrayBlock
@@ -11,7 +12,7 @@ class TestArray(unittest.TestCase):
 
     def test_array_unpack(self):
         field = ArrayBlock(length=3, child=IntegerBlock(length=1))
-        val = field.unpack(BytesIO(bytes([92, 129, 13])))
+        val = field.unpack(ReadContext(BytesIO(bytes([92, 129, 13]))))
         self.assertListEqual(val, [92, 129, 13])
 
     def test_array_pack(self):
@@ -21,9 +22,9 @@ class TestArray(unittest.TestCase):
 
     def test_array_required_value(self):
         field = ArrayBlock(length=3, child=IntegerBlock(length=1), required_value=[10, 20, 30])
-        field.unpack(BytesIO(bytes([10, 20, 30])))
+        field.unpack(ReadContext(buffer=BytesIO(bytes([10, 20, 30]))))
         with self.assertRaises(DataIntegrityException):
-            field.unpack(BytesIO(bytes([90, 12, 30])))
+            field.unpack(ReadContext(BytesIO(bytes([90, 12, 30]))))
 
     def test_get_child_block_with_data(self):
         child_block = IntegerBlock(length=1)
@@ -49,16 +50,16 @@ class TestLengthPrefixedArray(unittest.TestCase):
 
     def test_array_unpack(self):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
-        val = field.unpack(BytesIO(bytes([3, 92, 129, 13, 252])))
+        val = field.unpack(ReadContext(BytesIO(bytes([3, 92, 129, 13, 252]))))
         self.assertListEqual(val, [92, 129, 13])
 
     def test_array_unpack_different_length_block(self):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='big'), child=IntegerBlock(length=1))
-        self.assertListEqual(field.unpack(BytesIO(bytes([0, 0, 0, 2, 92, 129, 254]))), [92, 129])
+        self.assertListEqual(field.unpack(ReadContext(BytesIO(bytes([0, 0, 0, 2, 92, 129, 254])))), [92, 129])
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='little'), child=IntegerBlock(length=1))
-        self.assertListEqual(field.unpack(BytesIO(bytes([2, 0, 0, 0, 92, 129, 254]))), [92, 129])
+        self.assertListEqual(field.unpack(ReadContext(BytesIO(bytes([2, 0, 0, 0, 92, 129, 254])))), [92, 129])
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1))
-        self.assertListEqual(field.unpack(BytesIO(bytes([0, 0, 3, 92, 129, 254, 127]))), [92, 129, 254])
+        self.assertListEqual(field.unpack(ReadContext(BytesIO(bytes([0, 0, 3, 92, 129, 254, 127])))), [92, 129, 254])
 
     def test_array_pack(self):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
@@ -75,9 +76,9 @@ class TestLengthPrefixedArray(unittest.TestCase):
 
     def test_array_required_value(self):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1), required_value=[10, 20, 30])
-        field.unpack(BytesIO(bytes([3, 10, 20, 30])))
+        field.unpack(ReadContext(BytesIO(bytes([3, 10, 20, 30]))))
         with self.assertRaises(DataIntegrityException):
-            field.unpack(BytesIO(bytes([3, 90, 12, 30])))
+            field.unpack(ReadContext(BytesIO(bytes([3, 90, 12, 30]))))
 
     def test_get_child_block_with_data(self):
         child_block = IntegerBlock(length=1)
@@ -107,7 +108,7 @@ class TestSubByteArray(unittest.TestCase):
 
     def test_subbyte_array_unpack(self):
         field = SubByteArrayBlock(length=4, bits_per_value=6)
-        val = field.unpack(BytesIO(bytes([253, 253, 253])))
+        val = field.unpack(ReadContext(BytesIO(bytes([253, 253, 253]))))
         self.assertListEqual(val, [63, 31, 55, 61])
 
     def test_subbyte_array_pack(self):
@@ -117,7 +118,7 @@ class TestSubByteArray(unittest.TestCase):
 
     def test_subbyte_array_unpack_padding(self):
         field = SubByteArrayBlock(length=5, bits_per_value=5)
-        val = field.unpack(BytesIO(bytes([255, 255, 255, 128])))
+        val = field.unpack(ReadContext(BytesIO(bytes([255, 255, 255, 128]))))
         self.assertListEqual(val, [31, 31, 31, 31, 31])
 
     def test_subbyte_array_pack_padding(self):
