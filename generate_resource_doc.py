@@ -436,7 +436,9 @@ EXPORT_RESOURCES = {
     'nfs5': {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
-        'file_list': f"""**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+        'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
 **\*.ENV** image archive. {render_type(archives.ShpiBlock())}
 
@@ -447,8 +449,11 @@ EXPORT_RESOURCES = {
                 archives.BigfBlock(),
                 archives.BigfItemDescriptionBlock(),
             ],
-            # 'Geometries': [
-            # ],
+            'Geometries': [
+                geometries.CrpGeometry(),
+                geometries.Article(),
+                geometries.MiscPart(),
+            ],
             # 'Maps': [
             # ],
             # 'Physics': [

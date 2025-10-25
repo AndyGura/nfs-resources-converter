@@ -15,7 +15,7 @@ from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformance
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
-from resources.eac.geometries import OripGeometry, GeoGeometry
+from resources.eac.geometries import OripGeometry, GeoGeometry, CrpGeometry
 from .base_archive_block import BaseArchiveBlock
 from .shpi_block import ShpiBlock
 
@@ -25,7 +25,8 @@ class CompressedBlock(AutoDetectBlock):
     def __init__(self, **kwargs):
         super().__init__(possible_blocks=[ShpiBlock(),
                                           CarSimplifiedPerformanceSpec(),
-                                          CarPerformanceSpec()],
+                                          CarPerformanceSpec(),
+                                          CrpGeometry()],
                          **kwargs)
         self.algorithm = None
 

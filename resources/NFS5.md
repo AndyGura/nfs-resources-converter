@@ -1,9 +1,11 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2025-10-20 09:50:35.108124+00:00*
+*Last time updated: 2025-10-25 22:37:56.506079+00:00*
 
 
 # **Info by file extensions** #
+
+**\*.crp** geometry file. [CrpGeometry](#crpgeometry)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
@@ -46,6 +48,35 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+## **Geometries** ##
+### **CrpGeometry** ###
+#### **Size**: 144..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == " raC" | Resource ID |
+| 4 | **header_info** | 4 | 4-bytes unsigned integer (little endian) | Header info: 5 bits: unknown (always seems to be 0x1A), 27 bits: number of parts |
+| 8 | **num_miscdata** | 4 | 4-bytes unsigned integer (little endian) | Number of misc data blocks |
+| 12 | **articles_offset** | 4 | 4-bytes unsigned integer (little endian). Always == 0x1 | Offset to articles block |
+| 16 | **articles** | custom_func\*16 | Array of `custom_func` items<br/>Item type: [Article](#article) | Array of articles |
+| 16 + custom_func\*16 | **misc_parts** | num_miscdata\*16 | Array of `num_miscdata` items<br/>Item type: [MiscPart](#miscpart) | Array of misc parts |
+| 16 + custom_func\*16 + num_miscdata\*16 | **unk** | 128 | Bytes | Unknown purpose |
+### **Article** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "itrA" | Resource ID |
+| 4 | **header_info** | 4 | 4-bytes unsigned integer (little endian). Always == 0x1a | Unknown purpose |
+| 8 | **len_parttable** | 4 | 4-bytes unsigned integer (little endian) | Length of Parttable pointed to (* 16) |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current Article offset * 16) |
+### **MiscPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **identifier** | 4 | UTF-8 string | Identifier |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
 ## **Bitmaps** ##
 ### **Bitmap8Bit** ###
 #### **Size**: 16..? bytes ####
