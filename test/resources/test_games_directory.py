@@ -93,9 +93,11 @@ class TestGamesDirectory(unittest.TestCase):
 
         games_dir = "../../games"
         all_files = self._get_all_files(games_dir)
-        all_files = [x for x in all_files if x[-3:].upper() not in ['EXE', 'DLL', 'INF', 'INV', 'PIF', 'TXT', 'CFG',
-                                                                    'ICO', 'ID0', 'ID1', 'ID2', 'NAM', 'TIL', 'ENG',
-                                                                    'GER', 'ION', '.UC']]
+        all_files = [x for x in all_files if x[-4:].upper() not in ['.EXE', '.DLL', '.INF', '.INV', '.PIF', '.TXT', '.CFG',
+                                                                    '.ICO', '.ID0', '.ID1', '.ID2', '.NAM', '.TIL', '.ENG',
+                                                                    '.GER', '.ION']]
+        all_files = [x for x in all_files if x[-3:].upper() not in ['.UC', '.UV']]
+        all_files = [x for x in all_files if x[-2:].upper() not in ['.0']]
 
         total_files = len(all_files)
 
