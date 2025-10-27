@@ -1,11 +1,11 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2025-10-25 22:37:56.506079+00:00*
+*Last time updated: 2025-10-27 11:15:11.365398+00:00*
 
 
 # **Info by file extensions** #
 
-**\*.crp** geometry file. [CrpGeometry](#crpgeometry)
+**\*.crp** geometry file. [CrpGeometry](#crpgeometry), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
@@ -50,16 +50,17 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
 ## **Geometries** ##
 ### **CrpGeometry** ###
-#### **Size**: 144..? bytes ####
+#### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == " raC" | Resource ID |
 | 4 | **header_info** | 4 | 4-bytes unsigned integer (little endian) | Header info: 5 bits: unknown (always seems to be 0x1A), 27 bits: number of parts |
-| 8 | **num_miscdata** | 4 | 4-bytes unsigned integer (little endian) | Number of misc data blocks |
+| 8 | **num_misc_parts** | 4 | 4-bytes unsigned integer (little endian) | Number of misc data blocks |
 | 12 | **articles_offset** | 4 | 4-bytes unsigned integer (little endian). Always == 0x1 | Offset to articles block |
 | 16 | **articles** | custom_func\*16 | Array of `custom_func` items<br/>Item type: [Article](#article) | Array of articles |
-| 16 + custom_func\*16 | **misc_parts** | num_miscdata\*16 | Array of `num_miscdata` items<br/>Item type: [MiscPart](#miscpart) | Array of misc parts |
-| 16 + custom_func\*16 + num_miscdata\*16 | **unk** | 128 | Bytes | Unknown purpose |
+| 16 + custom_func\*16 | **misc_parts** | num_misc_parts\*16 | Array of `num_misc_parts` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [MiscPart](#miscpart) | Array of misc parts |
+| 16 + custom_func\*16 + num_misc_parts\*16 | **parts** | custom_func\*16 | Array of `custom_func` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [MiscPart](#miscpart) | Array of parts |
+| 16 + custom_func\*16 + num_misc_parts\*16 + custom_func\*16 | **raw_data** | up to end of block | Bytes | Raw data |
 ### **Article** ###
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |

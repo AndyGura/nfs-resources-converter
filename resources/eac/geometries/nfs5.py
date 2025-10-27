@@ -1,8 +1,70 @@
+from os import SEEK_CUR
+
+from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
                                  ArrayBlock,
-                                 BytesBlock)
+                                 BytesBlock,
+                                 DelegateBlock, DecimalBlock)
+from library.read_blocks.strings import NullTerminatedUTF8Block
+from resources.eac.archives.shpi_block import ShpiBlock
+from resources.eac.fields.misc import Point3D
+
+
+class CrpPartInfo1(IntegerBlock):
+    @property
+    def schema(self):
+        return {
+            **super().schema,
+            'block_description': 'Part info type 1: [llll_aaaa_aaaa_dddd]'
+                                 '<br/>l - level of detail'
+                                 '<br/>a - animation index'
+                                 '<br/>d - damage switch (0x8 means damaged)',
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(length=2, is_signed=False, **kwargs)
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        return {
+            'detail_level': data >> 12,
+            'animation_index': (data >> 4) & 0xff,
+            'damage': data & 0xf,
+        }
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        value = data['detail_level'] << 12
+        value = value | (data['animation_index'] << 4)
+        value = value | data['damage']
+        return super().write(value, ctx, name)
+
+
+class CrpPartInfo2(IntegerBlock):
+    @property
+    def schema(self):
+        return {
+            **super().schema,
+            'block_description': 'Part info type 2: [iiii_iiii_iiii_llll]'
+                                 '<br/>i - part index'
+                                 '<br/>l - level of detail',
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(length=2, is_signed=False, **kwargs)
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        return {
+            'part_index': data >> 4,
+            'detail_level': data & 0xf,
+        }
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        value = data['detail_level']
+        value = value | (data['part_index'] << 4)
+        return super().write(value, ctx, name)
 
 
 class Article(DeclarativeCompoundBlock):
@@ -28,7 +90,20 @@ class MiscPart(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
-                  {'description': 'Offset (Relative from current MiscPart offset)'})
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (BytesBlock(length=lambda ctx: ctx.data('len')),
+                {'usage': 'ui_only'})
+
+
+class MaterialPartData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (BytesBlock(length=16), {'is_unknown': True})
+        desc = (UTF8Block(length=16), {'description': 'Description'})
+        unk1 = (BytesBlock(length=8), {'is_unknown': True})
+        tex_page_index = (IntegerBlock(length=4),
+                          {'description': 'Texture page index'})
+        unk2 = (BytesBlock(length=0x10C), {'is_unknown': True})
 
 
 class MaterialPart(DeclarativeCompoundBlock):
@@ -39,12 +114,15 @@ class MaterialPart(DeclarativeCompoundBlock):
                       {'description': 'Identifier ("tm"/"mt")'})
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
-        len = (IntegerBlock(length=3),
-               {'description': 'Length'})
+        len = (IntegerBlock(length=3, required_value=312),
+               {'usage': 'skip_ui',
+                'description': 'Length'})
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
-                  {'description': 'Offset (Relative from current MaterialPart offset)'})
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MaterialPart offset)'})
+        data = (MaterialPartData(), {'usage': 'ui_only'})
 
 
 class FSHPart(DeclarativeCompoundBlock):
@@ -55,14 +133,366 @@ class FSHPart(DeclarativeCompoundBlock):
                       {'description': 'Identifier ("fs"/"sf")'})
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.relative_block('fsh').estimate_packed_size(
+            ctx.data('fsh'))),
+               {'usage': 'skip_ui',
+                'description': 'Length'})
+        num_fsh = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('fsh'))),
+                   {'description': 'Number of FSH files'})
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current FSHPart offset)'})
+        data = (ArrayBlock(child=ShpiBlock(), length=lambda ctx: ctx.data('num_fsh')),
+                {'usage': 'ui_only'})
+
+
+class BasePart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        identifier = (UTF8Block(length=4),
+                      {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
         len = (IntegerBlock(length=3),
                {'description': 'Length'})
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
-        num_fsh = (IntegerBlock(length=4),
-                   {'description': 'Number of FSH files'})
         offset = (IntegerBlock(length=4),
-                  {'description': 'Offset (Relative from current FSHPart offset)'})
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (BytesBlock(length=lambda ctx: ctx.data('len')),
+                {'usage': 'ui_only'})
+
+
+class NamePart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        identifier = (UTF8Block(length=4),
+                      {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) + 1),
+               {'description': 'Length'})
+        unk1 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (NullTerminatedUTF8Block(length=None),
+                {'usage': 'ui_only'})
+
+
+class CullingPartData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        normal = Point3D(child=DecimalBlock(length=4), is_normalized=True)
+        threshold = DecimalBlock(length=4)
+
+
+class CullingPart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        part_info = CrpPartInfo1()
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("n$"/"$n")'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) * 16),
+               {'description': 'Length'})
+        num_data = IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data')))
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=CullingPartData()),
+                {'usage': 'ui_only'})
+
+
+class TransformationMatrix(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        # 4x4 matrix (16 floats)
+        m = ArrayBlock(length=16, child=DecimalBlock(length=4))
+
+
+class TransformationPart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        part_info = CrpPartInfo1()
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("rt"/"tr")'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.data('num_matrices') * 0x40),
+               {'description': 'Length'})
+        num_matrices = (IntegerBlock(length=4, programmatic_value=lambda ctx: 1),
+                        {'description': 'Number of Transformation Matrices (always 1)'})
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_matrices'), child=TransformationMatrix()),
+                {'usage': 'ui_only'})
+
+
+class VertexData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = (Point3D(child=DecimalBlock(length=4)),
+                    {'description': 'Position'})
+        unk = (DecimalBlock(length=4), {'is_unknown': True})
+
+
+class VertexPart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        part_info = CrpPartInfo1()
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("tv"/"vt")'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) * 16),
+               {'usage': 'skip_ui',
+                'description': 'Length'})
+        num_vertices = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
+                        {'description': 'Number of vertices'})
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current part offset)'})
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_vertices'), child=VertexData()),
+                {'usage': 'ui_only'})
+
+
+class NormalData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        normal = (Point3D(child=DecimalBlock(length=4)),
+                  {'description': 'Normal'})
+        unk = (DecimalBlock(length=4), {'is_unknown': True})
+
+
+class NormalPart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        part_info = CrpPartInfo1()
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("mn"/"nm")'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.data('num_normals') * 16),
+               {'description': 'Length'})
+        num_normals = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
+                       {'description': 'Number of normals'})
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_normals'), child=NormalData()),
+                {'usage': 'ui_only'})
+
+
+class UVData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        u = DecimalBlock(length=4)
+        v = DecimalBlock(length=4)
+
+
+class UVPart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        part_info = CrpPartInfo1()
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("vu"/"uv")'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.data('num_data') * 8),
+               {'description': 'Length'})
+        num_data = IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data')))
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=UVData()),
+                {'usage': 'ui_only'})
+
+
+class TriangleInfoRowBase(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (IntegerBlock(length=4), {'description': 'Offset in data'})
+        length_used = (IntegerBlock(length=2), {'description': 'Length used'})
+
+
+class CullingInfoRow(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (IntegerBlock(length=4), {'description': 'Offset in culling data'})
+        length_used = (IntegerBlock(length=2), {'description': 'Length of culling data used'})
+        identifier = (UTF8Block(length=2), {'description': 'Identifier ("n$")'})
+        level_index = (IntegerBlock(length=2), {'description': 'Level index'})
+        unk1 = (IntegerBlock(length=2), {'is_unknown': True})
+
+
+class GenericInfoRow(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (IntegerBlock(length=4), {'description': 'Offset in data'})
+        length_used = (IntegerBlock(length=2), {'description': 'Length used'})
+        ord = (IntegerBlock(length=4), {'is_unknown': True, 'description': 'Unknown (?ordening?)'})
+        level_index = (IntegerBlock(length=2), {'description': 'Level index'})
+        tail = (IntegerBlock(length=2), {'is_unknown': True})
+
+
+def determine_triangle_info_row_type(ctx):
+    # Peek 16 bytes for the row
+    pos = ctx.buffer.tell()
+    buf = ctx.buffer.read(16)
+    ctx.buffer.seek(pos)  # reset to absolute position
+    if len(buf) >= 12 and buf[10:12] == b'n$':
+        return 0  # CullingInfoRow
+    return 1  # GenericInfoRow
+
+
+class TriangleIndexRowBase(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        index = (IntegerBlock(length=2), {'description': 'Row index'})
+        identifier = UTF8Block(length=2)
+        offset = (IntegerBlock(length=4), {'description': 'Offset of indices'})
+
+
+class VertexIndexRow(TriangleIndexRowBase):
+    class Fields(TriangleIndexRowBase.Fields):
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("vI"/"Iv") – both accepted'})
+
+
+class UVIndexRow(TriangleIndexRowBase):
+    class Fields(TriangleIndexRowBase.Fields):
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("uI"/"Iu") – both accepted'})
+
+
+def determine_triangle_index_row_type(ctx):
+    pos = ctx.buffer.tell()
+    ctx.buffer.seek(pos + 2)  # skip index
+    ident = ctx.buffer.read(2)
+    ctx.buffer.seek(pos)
+    if ident == b'vI' or ident == b'Iv':
+        return 0
+    return 1
+
+
+class TriangleData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        flags = (IntegerBlock(length=4), {'is_unknown': True, 'description': 'Info flags'})
+        material_index = (IntegerBlock(length=2), {'description': 'Material index'})
+        unk0 = (IntegerBlock(length=2), {'is_unknown': True})
+        unk_floats = (ArrayBlock(length=4, child=DecimalBlock(length=4)), {'is_unknown': True})
+        unk_zeros = (BytesBlock(length=16), {'is_unknown': True})
+        num_info_rows = IntegerBlock(length=4)
+        num_index_rows = IntegerBlock(length=4)
+        info_rows = ArrayBlock(length=lambda ctx: ctx.data('num_info_rows'),
+                               child=DelegateBlock(possible_blocks=[CullingInfoRow(), GenericInfoRow()],
+                                                   choice_index=lambda ctx, **_: determine_triangle_info_row_type(ctx)))
+        index_rows = ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'),
+                                child=DelegateBlock(possible_blocks=[VertexIndexRow(), UVIndexRow()],
+                                                    choice_index=lambda ctx, **_: determine_triangle_index_row_type(ctx)))
+
+
+class TrianglePart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        part_info = CrpPartInfo2()
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("rp"/"pr")'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3),
+               {'description': 'Length'})
+        num_indices = (IntegerBlock(length=4),
+                       {'description': 'Number of Indices'})
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (TriangleData(), {'usage': 'ui_only'})
+
+
+class EffectData(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (IntegerBlock(length=4, required_value=5), {'is_unknown': True})
+        unk1 = (IntegerBlock(length=4, required_value=0x00000000), {'is_unknown': True})
+        position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Position'})
+        unk_scale = (DecimalBlock(length=4), {'is_unknown': True})
+        width = (Point3D(child=DecimalBlock(length=4)), {'description': 'Width relative to position'})
+        unk2 = (DecimalBlock(length=4), {'is_unknown': True})
+        height = (Point3D(child=DecimalBlock(length=4)), {'description': 'Height relative to position'})
+        unk3 = (DecimalBlock(length=4), {'is_unknown': True})
+        depth = (Point3D(child=DecimalBlock(length=4)), {'description': 'Depth relative to position'})
+        unk4 = (DecimalBlock(length=4), {'is_unknown': True})
+        glow_color = (IntegerBlock(length=4), {'description': 'Color of glow (BGRA)'})
+        source_color = (IntegerBlock(length=4), {'description': 'Color of source (BGRA)'})
+        mirror = (IntegerBlock(length=4), {'description': 'Mirror'})
+        info = (IntegerBlock(length=4), {'is_unknown': True, 'description': 'Information'})
+
+
+class EffectPart(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        part_info = CrpPartInfo1()
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("fe"/"ef")'})
+        unk0 = (IntegerBlock(length=1),
+                {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: 0x58),
+               {'description': 'Length'})
+        unk1 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+        offset = (IntegerBlock(length=4),
+                  {'usage': 'skip_ui',
+                   'description': 'Offset (Relative from current MiscPart offset)'})
+        data = (EffectData(), {'usage': 'ui_only'})
+
+
+def determine_part_type(ctx):
+    (MISC, BASE, NAME, CULL, TRANSF, VRTX, NRML, UV, TRNGL, FX) = range(10)
+    try:
+        first_part = ctx.buffer.read(2).decode('utf-8')
+    except UnicodeDecodeError:
+        first_part = None
+    try:
+        second_part = ctx.buffer.read(2).decode('utf-8')
+    except UnicodeDecodeError:
+        second_part = None
+    ctx.buffer.seek(-4, SEEK_CUR)
+
+    if second_part == 'n$':
+        return CULL
+    elif second_part == 'rt':
+        return TRANSF
+    elif second_part == 'tv':
+        return VRTX
+    elif second_part == 'mn':
+        return NRML
+    elif second_part == 'vu':
+        return UV
+    elif second_part == 'rp':
+        return TRNGL
+    elif second_part == 'fe':
+        return FX
+    elif first_part is not None:
+        id = first_part + second_part
+        if id == 'esaB':
+            return BASE
+        elif id == 'emaN':
+            return NAME
+
+    return MISC
+
+
+def determine_misc_part_type(ctx):
+    (MISC, MAT, FSH) = range(3)
+    ctx.buffer.seek(2, SEEK_CUR)
+    try:
+        second_part = ctx.buffer.read(2).decode('utf-8')
+    except UnicodeDecodeError:
+        second_part = None
+    ctx.buffer.seek(-4, SEEK_CUR)
+
+    if second_part == 'tm':
+        return MAT
+    elif second_part == 'fs':
+        return FSH
+    return MISC
+
+
+def determine_num_parts(ctx):
+    last_used_part_indices = [
+        a['offset'] + a['len_parttable'] + i - len(ctx.data('articles')) - len(ctx.data('misc_parts'))
+        for (i, a) in enumerate(ctx.data('articles'))]
+    return max(last_used_part_indices) + 1
 
 
 class CrpGeometry(DeclarativeCompoundBlock):
@@ -72,13 +502,60 @@ class CrpGeometry(DeclarativeCompoundBlock):
         header_info = (IntegerBlock(length=4, programmatic_value=lambda ctx: 0x1A | (len(ctx.data('articles')) << 5)),
                        {'description': 'Header info: 5 bits: unknown (always seems to be 0x1A), '
                                        '27 bits: number of parts'})
-        num_miscdata = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('misc_parts'))),
-                        {'description': 'Number of misc data blocks'})
+        num_misc_parts = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('misc_parts'))),
+                          {'description': 'Number of misc data blocks'})
         articles_offset = (IntegerBlock(length=4, required_value=1),
                            {'description': 'Offset to articles block'})
         articles = (ArrayBlock(child=Article(), length=lambda ctx: ctx.data('header_info') >> 5),
                     {'description': 'Array of articles'})
-        misc_parts = (ArrayBlock(child=MiscPart(), length=lambda ctx: ctx.data('num_miscdata')),
+        misc_parts = (ArrayBlock(child=DelegateBlock(possible_blocks=[MiscPart(),
+                                                                      MaterialPart(),
+                                                                      FSHPart()],
+                                                     choice_index=lambda ctx, **_: determine_misc_part_type(ctx)),
+                                 length=lambda ctx: ctx.data('num_misc_parts')),
                       {'description': 'Array of misc parts'})
-        unk = (BytesBlock(length=128),
-               {'is_unknown': True})
+        parts = (ArrayBlock(child=DelegateBlock(possible_blocks=[MiscPart(),
+                                                                 BasePart(),
+                                                                 NamePart(),
+                                                                 CullingPart(),
+                                                                 TransformationPart(),
+                                                                 VertexPart(),
+                                                                 NormalPart(),
+                                                                 UVPart(),
+                                                                 TrianglePart(),
+                                                                 EffectPart()],
+                                                choice_index=lambda ctx, **_: determine_part_type(ctx)),
+                            length=lambda ctx: determine_num_parts(ctx)),
+                 {'description': 'Array of parts'})
+        raw_data = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+                    {'usage': 'skip_ui',
+                     'description': 'Raw data'})
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        end_pos = ctx.buffer.tell()
+        misc_part_block = self.field_blocks_map.get('misc_parts').child
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
+        for (i, misc_part) in enumerate(data['misc_parts']):
+            misc_block = misc_part_block.possible_blocks[misc_part['choice_index']]
+            data_block = misc_block.field_blocks_map.get('data')
+            if not data_block:
+                continue
+            ctx.buffer.seek(end_pos - len(data['raw_data']) + misc_part['data']['offset']
+                            - 16 * (len(data['parts']) + len(data['misc_parts']) - i))
+            misc_part['data']['data'] = data_block.read(self_ctx.child(f"misc_parts/{i}"),
+                                                        'data',
+                                                        read_bytes_amount=misc_part['data']['len'])
+        part_block = self.field_blocks_map.get('parts').child
+        for (i, part) in enumerate(data['parts']):
+            block = part_block.possible_blocks[part['choice_index']]
+            data_block = block.field_blocks_map.get('data')
+            if not data_block:
+                continue
+            ctx.buffer.seek(end_pos - len(data['raw_data']) + part['data']['offset']
+                            - 16 * (len(data['parts']) - i))
+            part['data']['data'] = data_block.read(self_ctx.child(f"parts/{i}"),
+                                                   'data',
+                                                   read_bytes_amount=part['data']['len'])
+        ctx.buffer.seek(end_pos)
+        return data

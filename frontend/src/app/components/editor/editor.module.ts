@@ -47,6 +47,8 @@ import { SidenavResListComponent } from './common/sidenav-res-list/sidenav-res-l
 import { MinimapComponent } from './common/minimap/minimap.component';
 import { BlockActionsComponent } from './common/block-actions/block-actions.component';
 import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
+import { CrpPartInfo1BlockUiComponent } from './eac/crp-part-info-1.block-ui/crp-part-info-1.block-ui.component';
+import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp-part-info-2.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -79,6 +81,8 @@ import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
     MinimapComponent,
     BlockActionsComponent,
     ObjViewerComponent,
+    CrpPartInfo1BlockUiComponent,
+    CrpPartInfo2BlockUiComponent,
   ],
   imports: [
     CommonModule,

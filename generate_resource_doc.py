@@ -436,7 +436,7 @@ EXPORT_RESOURCES = {
     'nfs5': {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
-        'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}
+        'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
