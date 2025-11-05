@@ -2,6 +2,8 @@ from copy import deepcopy
 from io import BytesIO
 from typing import Dict
 
+from .shpi_block import ShpiBlock
+
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
@@ -17,8 +19,6 @@ from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
 from resources.eac.geometries import OripGeometry, GeoGeometry, CrpGeometry
 from .base_archive_block import BaseArchiveBlock
-from .shpi_block import ShpiBlock
-
 
 class CompressedBlock(AutoDetectBlock):
 

@@ -61,13 +61,13 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
     def get_child_block(self, name: str) -> 'DataBlock':
         field = self.field_blocks_map.get(name)
         if field is None:
-            raise BlockDefinitionException(None, f'Cannot find field {name}')
+            raise BlockDefinitionException(f'Cannot find field {name}')
         return field
 
     def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
         field = self.field_blocks_map.get(name)
         if field is None:
-            raise BlockDefinitionException(None, f'Cannot find field {name}')
+            raise BlockDefinitionException(f'Cannot find field {name}')
         return field, unpacked_data.get(name)
 
     # For auto-generated documentation only

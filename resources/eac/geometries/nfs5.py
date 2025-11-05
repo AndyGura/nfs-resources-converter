@@ -133,11 +133,11 @@ class FSHPart(DeclarativeCompoundBlock):
                       {'description': 'Identifier ("fs"/"sf")'})
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.relative_block('fsh').estimate_packed_size(
-            ctx.data('fsh'))),
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: sum(ShpiBlock().estimate_packed_size(shpi, None)
+                                                                         for shpi in ctx.data('data'))),
                {'usage': 'skip_ui',
                 'description': 'Length'})
-        num_fsh = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('fsh'))),
+        num_fsh = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
                    {'description': 'Number of FSH files'})
         offset = (IntegerBlock(length=4),
                   {'usage': 'skip_ui',
@@ -381,7 +381,8 @@ class TriangleData(DeclarativeCompoundBlock):
                                                    choice_index=lambda ctx, **_: determine_triangle_info_row_type(ctx)))
         index_rows = ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'),
                                 child=DelegateBlock(possible_blocks=[VertexIndexRow(), UVIndexRow()],
-                                                    choice_index=lambda ctx, **_: determine_triangle_index_row_type(ctx)))
+                                                    choice_index=lambda ctx, **_: determine_triangle_index_row_type(
+                                                        ctx)))
 
 
 class TrianglePart(DeclarativeCompoundBlock):
