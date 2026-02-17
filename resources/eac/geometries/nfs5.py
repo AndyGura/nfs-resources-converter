@@ -67,18 +67,6 @@ class CrpPartInfo2(IntegerBlock):
         return super().write(value, ctx, name)
 
 
-class Article(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(required_value='itrA', length=4),
-                       {'description': 'Resource ID'})
-        header_info = (IntegerBlock(length=4, required_value=0x1A),
-                       {'is_unknown': True})
-        len_parttable = (IntegerBlock(length=4),
-                         {'description': 'Length of Parttable pointed to (* 16)'})
-        offset = (IntegerBlock(length=4),
-                  {'description': 'Offset (Relative from current Article offset * 16)'})
-
-
 class MiscPart(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         identifier = (UTF8Block(length=4),
@@ -437,40 +425,67 @@ class EffectPart(DeclarativeCompoundBlock):
         data = (EffectData(), {'usage': 'ui_only'})
 
 
-def determine_part_type(ctx):
-    (MISC, BASE, NAME, CULL, TRANSF, VRTX, NRML, UV, TRNGL, FX) = range(10)
-    try:
-        first_part = ctx.buffer.read(2).decode('utf-8')
-    except UnicodeDecodeError:
-        first_part = None
-    try:
-        second_part = ctx.buffer.read(2).decode('utf-8')
-    except UnicodeDecodeError:
-        second_part = None
-    ctx.buffer.seek(-4, SEEK_CUR)
+class PartBlock(DelegateBlock):
+    def __init__(self, **kwargs):
+        super().__init__(possible_blocks=[MiscPart(),
+                                          BasePart(),
+                                          NamePart(),
+                                          CullingPart(),
+                                          TransformationPart(),
+                                          VertexPart(),
+                                          NormalPart(),
+                                          UVPart(),
+                                          TrianglePart(),
+                                          EffectPart()],
+                         choice_index=lambda ctx, **_: self._determine_part_type(ctx),
+                         **kwargs)
 
-    if second_part == 'n$':
-        return CULL
-    elif second_part == 'rt':
-        return TRANSF
-    elif second_part == 'tv':
-        return VRTX
-    elif second_part == 'mn':
-        return NRML
-    elif second_part == 'vu':
-        return UV
-    elif second_part == 'rp':
-        return TRNGL
-    elif second_part == 'fe':
-        return FX
-    elif first_part is not None:
-        id = first_part + second_part
-        if id == 'esaB':
-            return BASE
-        elif id == 'emaN':
-            return NAME
+    def _determine_part_type(self, ctx):
+        (MISC, BASE, NAME, CULL, TRANSF, VRTX, NRML, UV, TRNGL, FX) = range(10)
+        try:
+            first_part = ctx.buffer.read(2).decode('utf-8')
+        except UnicodeDecodeError:
+            first_part = None
+        try:
+            second_part = ctx.buffer.read(2).decode('utf-8')
+        except UnicodeDecodeError:
+            second_part = None
+        ctx.buffer.seek(-4, SEEK_CUR)
 
-    return MISC
+        if second_part == 'n$':
+            return CULL
+        elif second_part == 'rt':
+            return TRANSF
+        elif second_part == 'tv':
+            return VRTX
+        elif second_part == 'mn':
+            return NRML
+        elif second_part == 'vu':
+            return UV
+        elif second_part == 'rp':
+            return TRNGL
+        elif second_part == 'fe':
+            return FX
+        elif first_part is not None:
+            id = first_part + second_part
+            if id == 'esaB':
+                return BASE
+            elif id == 'emaN':
+                return NAME
+        return MISC
+
+
+class Article(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (UTF8Block(required_value='itrA', length=4),
+                       {'description': 'Resource ID'})
+        header_info = (IntegerBlock(length=4, required_value=0x1A),
+                       {'is_unknown': True})
+        len_parttable = (IntegerBlock(length=4),
+                         {'description': 'Length of Parttable pointed to (* 16)'})
+        offset = (IntegerBlock(length=4),
+                  {'description': 'Offset (Relative from current Article offset * 16)'})
+        parts = (ArrayBlock(child=PartBlock(), length=(0, '?')), {'usage': 'ui_only'})
 
 
 def determine_misc_part_type(ctx):
@@ -515,19 +530,10 @@ class CrpGeometry(DeclarativeCompoundBlock):
                                                      choice_index=lambda ctx, **_: determine_misc_part_type(ctx)),
                                  length=lambda ctx: ctx.data('num_misc_parts')),
                       {'description': 'Array of misc parts'})
-        parts = (ArrayBlock(child=DelegateBlock(possible_blocks=[MiscPart(),
-                                                                 BasePart(),
-                                                                 NamePart(),
-                                                                 CullingPart(),
-                                                                 TransformationPart(),
-                                                                 VertexPart(),
-                                                                 NormalPart(),
-                                                                 UVPart(),
-                                                                 TrianglePart(),
-                                                                 EffectPart()],
-                                                choice_index=lambda ctx, **_: determine_part_type(ctx)),
+        parts = (ArrayBlock(child=PartBlock(),
                             length=lambda ctx: determine_num_parts(ctx)),
-                 {'description': 'Array of parts'})
+                 {'usage': 'skip_ui',
+                  'description': 'Array of parts'})
         raw_data = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
                     {'usage': 'skip_ui',
                      'description': 'Raw data'})
@@ -558,5 +564,12 @@ class CrpGeometry(DeclarativeCompoundBlock):
             part['data']['data'] = data_block.read(self_ctx.child(f"parts/{i}"),
                                                    'data',
                                                    read_bytes_amount=part['data']['len'])
+        for (i, article) in enumerate(data['articles']):
+            offs = article['offset'] - len(data['articles']) - len(data['misc_parts']) + i
+            article['parts'] = data['parts'][offs:offs + article['len_parttable']]
         ctx.buffer.seek(end_pos)
         return data
+
+    def serializer_class(self):
+        from serializers import CrpGeometrySerializer
+        return CrpGeometrySerializer

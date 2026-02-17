@@ -227,3 +227,116 @@ class GeoGeometrySerializer(BaseFileSerializer):
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
                                           textures_shpi_block)
         export_scenes([scene], path, self.settings)
+
+
+class CrpGeometrySerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    # def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    #     super().serialize(data, path)
+    #     scene = Scene()
+    #     scene.name = 'body'
+    #     scene.obj_name = 'geometry'
+    #
+    #     scene.sub_meshes = []
+    #
+    #     vertex_choice_index = block.field_blocks_map['parts'].child.get_choice_index_by_class_name("VertexPart")
+    #     vertex_parts = [x['data'] for x in data['parts'] if x['choice_index'] == vertex_choice_index]
+    #     for part_vertices in vertex_parts:
+    #         for vertex in part_vertices['data']:
+    #             position = (vertex['position']['x'], vertex['position']['y'], vertex['position']['z'])
+    #             # scene.dummies.append({
+    #             #     'name': 'vrtx',
+    #             #     'position': position,
+    #             #     'properties': {},
+    #             # })
+    #             scene.sub_meshes.append(CubeMesh(position=position, dimensions=(0.01, 0.01, 0.01)))
+    #     export_scenes([scene], path, self.settings)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        super().serialize(data, path)
+
+        scene = Scene()
+        scene.name = 'body'
+        scene.obj_name = 'geometry'
+        scene.sub_meshes = []
+
+        # Identify choice indexes for part types
+        choice = block.field_blocks_map['parts'].child
+        vertex_choice_index = choice.get_choice_index_by_class_name("VertexPart")
+        uv_choice_index = choice.get_choice_index_by_class_name("UVPart")
+        triangle_choice_index = choice.get_choice_index_by_class_name("TrianglePart")
+        name_choice_index = choice.get_choice_index_by_class_name("NamePart")
+
+        def extract_vertices(part):
+            return [
+                [v['position']['x'], v['position']['y'], v['position']['z']]
+                for v in part['data']
+            ]
+
+        def extract_uvs(part):
+            return [
+                [v['u'], v['v']]
+                for v in part['data']
+            ]
+
+        def extract_indices(part):
+            rows = part['data'].get('index_rows', [])
+            indices = []
+            for r in rows:
+                # Prefer only vertex index rows (identifier vI/Iv). Skip UV rows.
+                ident = r.get('identifier')
+                if ident and ident not in ('vI', 'Iv'):
+                    continue
+                # detect possible index source in a robust way
+                vals = r.get('values') or r.get('indices') or r.get('data')
+                if vals is None:
+                    continue
+                # When vals is a dict, try to unwrap common keys
+                if isinstance(vals, dict):
+                    if isinstance(vals.get('values'), list):
+                        vals = vals.get('values')
+                    elif isinstance(vals.get('indices'), list):
+                        vals = vals.get('indices')
+                    elif isinstance(vals.get('data'), list):
+                        vals = vals.get('data')
+                    elif isinstance(vals.get('index'), int):
+                        vals = [vals.get('index')]
+                    else:
+                        # Unsupported shape
+                        continue
+                # Single integer
+                if isinstance(vals, int):
+                    indices.append(vals)
+                    continue
+                # List of items
+                if isinstance(vals, list):
+                    if len(vals) > 0 and isinstance(vals[0], dict):
+                        vals = [v.get('index', 0) for v in vals]
+                    indices.extend(v for v in vals if isinstance(v, int))
+            return indices
+
+        for (i, article) in enumerate(data['articles']):
+            mesh = SubMesh()
+            names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
+            vertices = [x['data'] for x in article['parts'] if x['choice_index'] == vertex_choice_index]
+            uvs = [x['data'] for x in article['parts'] if x['choice_index'] == uv_choice_index]
+            tri_parts = [x['data'] for x in article['parts'] if x['choice_index'] == triangle_choice_index]
+            if len(names) > 1:
+                print(f"WARNING: multiple name parts found for article {article['name']}")
+            mesh.name = names[0]['data'] if len(names) > 0 else f"article_{i}"
+            mesh.vertices = extract_vertices(vertices[0]) if len(vertices) > 0 else []
+            mesh.vertex_uvs = extract_uvs(uvs[0]) if len(uvs) > 0 else []
+            indices = extract_indices(tri_parts[0]) if len(tri_parts) > 0 else []
+            mesh.polygons = [
+                [indices[i], indices[i + 1], indices[i + 2]]
+                for i in range(0, len(indices), 3)
+                if i + 2 < len(indices)
+            ]
+            if len(mesh.vertex_uvs) < len(mesh.vertices):
+                mesh.vertex_uvs.extend([[0.0, 0.0]] * (len(mesh.vertices) - len(mesh.vertex_uvs)))
+            mesh.change_axes(new_y='z', new_z='y')
+            scene.sub_meshes.append(mesh)
+        export_scenes([scene], path, self.settings)

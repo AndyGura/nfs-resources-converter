@@ -196,3 +196,48 @@ class Mesh(BaseMesh):
     def extend(self, mesh: 'Mesh'):
         super().extend(mesh)
         self.texture_ids.extend(mesh.texture_ids)
+
+
+class CubeMesh(SubMesh):
+
+    def _build_mesh(self):
+        self.vertices = [(-self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (-self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
+                         (-self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (-self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2)]
+
+    def __init__(self, dimensions=(1, 1, 1), position=(0, 0, 0), **kwargs):
+        super().__init__(**kwargs)
+        self._dimensions = dimensions
+        self._position = position
+        self._build_mesh()
+        self.polygons = [(0, 1, 2), (2, 1, 3),
+                         (4, 6, 5), (5, 6, 7),
+                         (1, 0, 5), (5, 0, 4),
+                         (2, 6, 0), (0, 6, 4),
+                         (1, 5, 3), (3, 5, 7),
+                         (2, 3, 6), (6, 3, 7)]
+        self.vertex_uvs = [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)]
+        self.pivot_offset = (-self.position[0], -self.position[1], -self.position[2])
+
+    @property
+    def dimensions(self):
+        return self._dimensions
+
+    @dimensions.setter
+    def dimensions(self, value):
+        self._dimensions = value
+        self._build_mesh()
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        self._position = value
+        self.pivot_offset = (-self.position[0], -self.position[1], -self.position[2])
