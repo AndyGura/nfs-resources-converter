@@ -285,7 +285,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
         def extract_indices(part):
             num_indices = part['num_indices']
             try:
-                offset = part['data']['index_rows'][0]['data']['offset']
+                offset = part['data']['index_rows'][0]['offset']
                 indices = part['data']['index_table'][offset:offset + num_indices]
                 return indices
             except Exception:

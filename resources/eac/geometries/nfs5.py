@@ -347,30 +347,13 @@ def determine_triangle_info_row_type(ctx, name):
     else:
         raise BlockDefinitionException(f'Unexpected number of info rows: {ctx.data("../num_info_rows")}')
 
-class VertexIndexRow(DeclarativeCompoundBlock):
+
+class IndexRow(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         index = (IntegerBlock(length=2), {'description': 'Row index'})
         identifier = (UTF8Block(length=2),
-                      {'description': 'Identifier ("vI"/"Iv") – both accepted'})
+                      {'description': 'Identifier "vI"|"Iv" – vertex index, "uI"|"Iu" - uv index'})
         offset = (IntegerBlock(length=4), {'description': 'Offset of indices'})
-
-
-class UVIndexRow(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        index = (IntegerBlock(length=2), {'description': 'Row index'})
-        identifier = (UTF8Block(length=2),
-                      {'description': 'Identifier ("uI"/"Iu") – both accepted'})
-        offset = (IntegerBlock(length=4), {'description': 'Offset of indices'})
-
-
-def determine_triangle_index_row_type(ctx):
-    pos = ctx.buffer.tell()
-    ctx.buffer.seek(pos + 2)  # skip index
-    ident = ctx.buffer.read(2)
-    ctx.buffer.seek(pos)
-    if ident == b'vI' or ident == b'Iv':
-        return 0
-    return 1
 
 
 class TriangleData(DeclarativeCompoundBlock):
@@ -380,15 +363,15 @@ class TriangleData(DeclarativeCompoundBlock):
         unk0 = (IntegerBlock(length=2), {'is_unknown': True})
         unk_floats = (ArrayBlock(length=4, child=DecimalBlock(length=4)), {'is_unknown': True})
         unk_zeros = (BytesBlock(length=16), {'is_unknown': True})
-        num_info_rows = IntegerBlock(length=4)
-        num_index_rows = IntegerBlock(length=4)
+        num_info_rows = (IntegerBlock(length=4), {'programmatic_value': lambda ctx: len(ctx.data('info_rows')),
+                                                  'description': 'Number of info rows'})
+        num_index_rows = (IntegerBlock(length=4), {'programmatic_value': lambda ctx: len(ctx.data('index_rows')),
+                                                   'description': 'Number of index rows'})
         info_rows = ArrayBlock(length=lambda ctx: ctx.data('num_info_rows'),
-                               child=DelegateBlock(possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
-                                                   choice_index=lambda ctx, name: determine_triangle_info_row_type(ctx, name)))
-        index_rows = ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'),
-                                child=DelegateBlock(possible_blocks=[VertexIndexRow(), UVIndexRow()],
-                                                    choice_index=lambda ctx, **_: determine_triangle_index_row_type(
-                                                        ctx)))
+                               child=DelegateBlock(
+                                   possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
+                                   choice_index=lambda ctx, name: determine_triangle_info_row_type(ctx, name)))
+        index_rows = ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'), child=IndexRow())
         index_table = ArrayBlock(length=lambda ctx: ctx.data('../num_indices'), child=IntegerBlock(length=1))
 
 

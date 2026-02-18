@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2025-10-27 11:15:11.365398+00:00*
+*Last time updated: 2026-02-18 07:39:47.852207+00:00*
 
 
 # **Info by file extensions** #
@@ -58,8 +58,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_misc_parts** | 4 | 4-bytes unsigned integer (little endian) | Number of misc data blocks |
 | 12 | **articles_offset** | 4 | 4-bytes unsigned integer (little endian). Always == 0x1 | Offset to articles block |
 | 16 | **articles** | custom_func\*16 | Array of `custom_func` items<br/>Item type: [Article](#article) | Array of articles |
-| 16 + custom_func\*16 | **misc_parts** | num_misc_parts\*16 | Array of `num_misc_parts` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [MiscPart](#miscpart) | Array of misc parts |
-| 16 + custom_func\*16 + num_misc_parts\*16 | **parts** | custom_func\*16 | Array of `custom_func` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [MiscPart](#miscpart) | Array of parts |
+| 16 + custom_func\*16 | **misc_parts** | num_misc_parts\*16 | Array of `num_misc_parts` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [MiscPart](#miscpart)<br/>- [MaterialPart](#materialpart)<br/>- [FSHPart](#fshpart) | Array of misc parts |
+| 16 + custom_func\*16 + num_misc_parts\*16 | **parts** | custom_func\*16 | Array of `custom_func` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [MiscPart](#miscpart)<br/>- [BasePart](#basepart)<br/>- [NamePart](#namepart)<br/>- [CullingPart](#cullingpart)<br/>- [TransformationPart](#transformationpart)<br/>- [VertexPart](#vertexpart)<br/>- [NormalPart](#normalpart)<br/>- [UVPart](#uvpart)<br/>- [TrianglePart](#trianglepart)<br/>- [EffectPart](#effectpart) | Array of parts |
 | 16 + custom_func\*16 + num_misc_parts\*16 + custom_func\*16 | **raw_data** | up to end of block | Bytes | Raw data |
 ### **Article** ###
 #### **Size**: 16 bytes ####
@@ -78,6 +78,238 @@ Did not find what you need or some given data is wrong? Please submit an
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
 | 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **MaterialPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **index** | 2 | 2-bytes unsigned integer (little endian) | Index |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("tm"/"mt") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian). Always == 0x138 | Length |
+| 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MaterialPart offset) |
+### **MaterialPartData** ###
+#### **Size**: 312 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 16 | Bytes | Unknown purpose |
+| 16 | **desc** | 16 | UTF-8 string | Description |
+| 32 | **unk1** | 8 | Bytes | Unknown purpose |
+| 40 | **tex_page_index** | 4 | 4-bytes unsigned integer (little endian) | Texture page index |
+| 44 | **unk2** | 268 | Bytes | Unknown purpose |
+### **FSHPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **index** | 2 | 2-bytes unsigned integer (little endian) | Index |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("fs"/"sf") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **num_fsh** | 4 | 4-bytes unsigned integer (little endian) | Number of FSH files |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current FSHPart offset) |
+### **BasePart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **identifier** | 4 | UTF-8 string | Identifier |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **NamePart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **identifier** | 4 | UTF-8 string | Identifier |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **CullingPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **part_info** | 2 | Part info type 1: [llll_aaaa_aaaa_dddd]<br/>l - level of detail<br/>a - animation index<br/>d - damage switch (0x8 means damaged) | - |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("n$"/"$n") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **num_data** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **CullingPartData** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **normal** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | - |
+| 12 | **threshold** | 4 | Float number (little-endian) | - |
+### **CullingInfoRow** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset in culling data |
+| 8 | **length_used** | 2 | 2-bytes unsigned integer (little endian) | Length of culling data used |
+| 10 | **identifier** | 2 | UTF-8 string | Identifier ("n$") |
+| 12 | **level_index** | 2 | 2-bytes unsigned integer (little endian) | Level index |
+| 14 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+### **TransformationPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **part_info** | 2 | Part info type 1: [llll_aaaa_aaaa_dddd]<br/>l - level of detail<br/>a - animation index<br/>d - damage switch (0x8 means damaged) | - |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("rt"/"tr") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **num_matrices** | 4 | 4-bytes unsigned integer (little endian) | Number of Transformation Matrices (always 1) |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **TransformationMatrix** ###
+#### **Size**: 64 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **m** | 64 | Array of `16` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | - |
+### **VertexPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **part_info** | 2 | Part info type 1: [llll_aaaa_aaaa_dddd]<br/>l - level of detail<br/>a - animation index<br/>d - damage switch (0x8 means damaged) | - |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("tv"/"vt") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Number of vertices |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current part offset) |
+### **VertexData** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position |
+| 12 | **unk** | 4 | Float number (little-endian) | Unknown purpose |
+### **VertexInfoRow** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset in vertex data |
+| 8 | **length_used** | 2 | 2-bytes unsigned integer (little endian) | Length of vertex data used |
+| 10 | **unk1** | 2 | Bytes | Unknown purpose |
+| 12 | **level_index** | 2 | 2-bytes unsigned integer (little endian) | Level index |
+| 14 | **unk2** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+### **NormalPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **part_info** | 2 | Part info type 1: [llll_aaaa_aaaa_dddd]<br/>l - level of detail<br/>a - animation index<br/>d - damage switch (0x8 means damaged) | - |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("mn"/"nm") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **num_normals** | 4 | 4-bytes unsigned integer (little endian) | Number of normals |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **NormalData** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **normal** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Normal |
+| 12 | **unk** | 4 | Float number (little-endian) | Unknown purpose |
+### **NormalInfoRow** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset in normal data |
+| 8 | **length_used** | 2 | 2-bytes unsigned integer (little endian) | Length of normal data used |
+| 10 | **unk1** | 2 | Bytes | Unknown purpose |
+| 12 | **level_index** | 2 | 2-bytes unsigned integer (little endian) | Level index |
+| 14 | **unk2** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+### **UVPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **part_info** | 2 | Part info type 1: [llll_aaaa_aaaa_dddd]<br/>l - level of detail<br/>a - animation index<br/>d - damage switch (0x8 means damaged) | - |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("vu"/"uv") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **num_data** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **UVData** ###
+#### **Size**: 8 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **u** | 4 | Float number (little-endian) | - |
+| 4 | **v** | 4 | Float number (little-endian) | - |
+### **UVInfoRow** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset in uv data |
+| 8 | **length_used** | 2 | 2-bytes unsigned integer (little endian) | Length of uv data used |
+| 10 | **unk1** | 2 | Bytes | Unknown purpose |
+| 12 | **level_index** | 2 | 2-bytes unsigned integer (little endian) | Level index |
+| 14 | **unk2** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+### **TrianglePart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **part_info** | 2 | Part info type 2: [iiii_iiii_iiii_llll]<br/>i - part index<br/>l - level of detail | - |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("rp"/"pr") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **num_indices** | 4 | 4-bytes unsigned integer (little endian) | Number of Indices |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **TriangleData** ###
+#### **Size**: 48..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Info flags |
+| 4 | **material_index** | 2 | 2-bytes unsigned integer (little endian) | Material index |
+| 6 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 8 | **unk_floats** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Unknown purpose |
+| 24 | **unk_zeros** | 16 | Bytes | Unknown purpose |
+| 40 | **num_info_rows** | 4 | 4-bytes unsigned integer (little endian) | Number of info rows |
+| 44 | **num_index_rows** | 4 | 4-bytes unsigned integer (little endian) | Number of index rows |
+| 48 | **info_rows** | num_info_rows\*16 | Array of `num_info_rows` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [CullingInfoRow](#cullinginforow)<br/>- [NormalInfoRow](#normalinforow)<br/>- [UVInfoRow](#uvinforow)<br/>- [VertexInfoRow](#vertexinforow) | - |
+| 48 + num_info_rows\*16 | **index_rows** | num_index_rows\*8 | Array of `num_index_rows` items<br/>Item type: [IndexRow](#indexrow) | - |
+| 48 + num_info_rows\*16 + num_index_rows\*8 | **index_table** | ^num_indices | Array of `^num_indices` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | - |
+### **TriangleInfoRowBase** ###
+#### **Size**: 10 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset in data |
+| 8 | **length_used** | 2 | 2-bytes unsigned integer (little endian) | Length used |
+### **IndexRow** ###
+#### **Size**: 8 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **index** | 2 | 2-bytes unsigned integer (little endian) | Row index |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier "vI"|"Iv" – vertex index, "uI"|"Iu" - uv index |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of indices |
+### **EffectPart** ###
+#### **Size**: 16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **part_info** | 2 | Part info type 1: [llll_aaaa_aaaa_dddd]<br/>l - level of detail<br/>a - animation index<br/>d - damage switch (0x8 means damaged) | - |
+| 2 | **identifier** | 2 | UTF-8 string | Identifier ("fe"/"ef") |
+| 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
+| 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
+### **EffectData** ###
+#### **Size**: 88 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian). Always == 0x5 | Unknown purpose |
+| 4 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position |
+| 20 | **unk_scale** | 4 | Float number (little-endian) | Unknown purpose |
+| 24 | **width** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Width relative to position |
+| 36 | **unk2** | 4 | Float number (little-endian) | Unknown purpose |
+| 40 | **height** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Height relative to position |
+| 52 | **unk3** | 4 | Float number (little-endian) | Unknown purpose |
+| 56 | **depth** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Depth relative to position |
+| 68 | **unk4** | 4 | Float number (little-endian) | Unknown purpose |
+| 72 | **glow_color** | 4 | 4-bytes unsigned integer (little endian) | Color of glow (BGRA) |
+| 76 | **source_color** | 4 | 4-bytes unsigned integer (little endian) | Color of source (BGRA) |
+| 80 | **mirror** | 4 | 4-bytes unsigned integer (little endian) | Mirror |
+| 84 | **info** | 4 | 4-bytes unsigned integer (little endian) | Information |
 ## **Bitmaps** ##
 ### **Bitmap8Bit** ###
 #### **Size**: 16..? bytes ####
