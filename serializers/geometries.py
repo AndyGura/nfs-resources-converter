@@ -319,24 +319,28 @@ class CrpGeometrySerializer(BaseFileSerializer):
             return indices
 
         for (i, article) in enumerate(data['articles']):
-            mesh = SubMesh()
             names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
             vertices = [x['data'] for x in article['parts'] if x['choice_index'] == vertex_choice_index]
-            uvs = [x['data'] for x in article['parts'] if x['choice_index'] == uv_choice_index]
+            uv_parts = [x['data'] for x in article['parts'] if x['choice_index'] == uv_choice_index]
             tri_parts = [x['data'] for x in article['parts'] if x['choice_index'] == triangle_choice_index]
             if len(names) > 1:
                 print(f"WARNING: multiple name parts found for article {article['name']}")
-            mesh.name = names[0]['data'] if len(names) > 0 else f"article_{i}"
-            mesh.vertices = extract_vertices(vertices[0]) if len(vertices) > 0 else []
-            mesh.vertex_uvs = extract_uvs(uvs[0]) if len(uvs) > 0 else []
-            indices = extract_indices(tri_parts[0]) if len(tri_parts) > 0 else []
-            mesh.polygons = [
-                [indices[i], indices[i + 1], indices[i + 2]]
-                for i in range(0, len(indices), 3)
-                if i + 2 < len(indices)
-            ]
-            if len(mesh.vertex_uvs) < len(mesh.vertices):
-                mesh.vertex_uvs.extend([[0.0, 0.0]] * (len(mesh.vertices) - len(mesh.vertex_uvs)))
-            mesh.change_axes(new_y='z', new_z='y')
-            scene.sub_meshes.append(mesh)
+            for (j, (v, uv, tri)) in enumerate(zip(vertices, uv_parts, tri_parts)):
+                mesh = SubMesh()
+                mesh.name = (names[0]['data'] if len(names) > 0 else f"article_{i}") + '_' + str(j)
+                mesh.vertices = extract_vertices(v)
+                mesh.vertex_uvs = extract_uvs(uv)
+                indices = [] # extract_indices(tri)
+                # FIXME tmp logic
+                if len(indices) == 0:
+                    indices = [i for i in range(len(mesh.vertices) - len(mesh.vertices) % 3)]
+                mesh.polygons = [
+                    [indices[i], indices[i + 1], indices[i + 2]]
+                    for i in range(0, len(indices), 3)
+                    if i + 2 < len(indices)
+                ]
+                if len(mesh.vertex_uvs) < len(mesh.vertices):
+                    mesh.vertex_uvs.extend([[0.0, 0.0]] * (len(mesh.vertices) - len(mesh.vertex_uvs)))
+                mesh.change_axes(new_y='z', new_z='y')
+                scene.sub_meshes.append(mesh)
         export_scenes([scene], path, self.settings)

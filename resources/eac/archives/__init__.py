@@ -32,6 +32,8 @@ class CompressedBlock(AutoDetectBlock):
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         uncompressed_bytes = self.algorithm(ctx.buffer, read_bytes_amount)
+        # with open(name + "_uncompressed.bin", "wb") as f:
+        #     f.write(uncompressed_bytes)
         uncompressed = BytesIO(uncompressed_bytes)
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
         self_ctx.buffer = uncompressed

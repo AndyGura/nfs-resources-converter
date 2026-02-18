@@ -1,6 +1,7 @@
 from os import SEEK_CUR
 
 from library.context import ReadContext, WriteContext
+from library.exceptions import BlockDefinitionException
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
@@ -306,43 +307,60 @@ class CullingInfoRow(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=2), {'is_unknown': True})
 
 
-class GenericInfoRow(DeclarativeCompoundBlock):
+class VertexInfoRow(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
-        offset = (IntegerBlock(length=4), {'description': 'Offset in data'})
-        length_used = (IntegerBlock(length=2), {'description': 'Length used'})
-        ord = (IntegerBlock(length=4), {'is_unknown': True, 'description': 'Unknown (?ordening?)'})
+        offset = (IntegerBlock(length=4), {'description': 'Offset in vertex data'})
+        length_used = (IntegerBlock(length=2), {'description': 'Length of vertex data used'})
+        unk1 = (BytesBlock(length=2), {'is_unknown': True})
         level_index = (IntegerBlock(length=2), {'description': 'Level index'})
-        tail = (IntegerBlock(length=2), {'is_unknown': True})
+        unk2 = (IntegerBlock(length=2), {'is_unknown': True})
 
 
-def determine_triangle_info_row_type(ctx):
-    # Peek 16 bytes for the row
-    pos = ctx.buffer.tell()
-    buf = ctx.buffer.read(16)
-    ctx.buffer.seek(pos)  # reset to absolute position
-    if len(buf) >= 12 and buf[10:12] == b'n$':
-        return 0  # CullingInfoRow
-    return 1  # GenericInfoRow
+class NormalInfoRow(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (IntegerBlock(length=4), {'description': 'Offset in normal data'})
+        length_used = (IntegerBlock(length=2), {'description': 'Length of normal data used'})
+        unk1 = (BytesBlock(length=2), {'is_unknown': True})
+        level_index = (IntegerBlock(length=2), {'description': 'Level index'})
+        unk2 = (IntegerBlock(length=2), {'is_unknown': True})
 
 
-class TriangleIndexRowBase(DeclarativeCompoundBlock):
+class UVInfoRow(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        unk0 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (IntegerBlock(length=4), {'description': 'Offset in uv data'})
+        length_used = (IntegerBlock(length=2), {'description': 'Length of uv data used'})
+        unk1 = (BytesBlock(length=2), {'is_unknown': True})
+        level_index = (IntegerBlock(length=2), {'description': 'Level index'})
+        unk2 = (IntegerBlock(length=2), {'is_unknown': True})
+
+
+def determine_triangle_info_row_type(ctx, name):
+    if ctx.data('../num_info_rows') == 4:
+        # CullingRow, NormalRow, UVRow, VertexRow
+        return int(name)
+    elif ctx.data('../num_info_rows') == 3:
+        # NormalRow, UVRow, VertexRow
+        return int(name) + 1
+    else:
+        raise BlockDefinitionException(f'Unexpected number of info rows: {ctx.data("../num_info_rows")}')
+
+class VertexIndexRow(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         index = (IntegerBlock(length=2), {'description': 'Row index'})
-        identifier = UTF8Block(length=2)
+        identifier = (UTF8Block(length=2),
+                      {'description': 'Identifier ("vI"/"Iv") – both accepted'})
         offset = (IntegerBlock(length=4), {'description': 'Offset of indices'})
 
 
-class VertexIndexRow(TriangleIndexRowBase):
-    class Fields(TriangleIndexRowBase.Fields):
-        identifier = (UTF8Block(length=2),
-                      {'description': 'Identifier ("vI"/"Iv") – both accepted'})
-
-
-class UVIndexRow(TriangleIndexRowBase):
-    class Fields(TriangleIndexRowBase.Fields):
+class UVIndexRow(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        index = (IntegerBlock(length=2), {'description': 'Row index'})
         identifier = (UTF8Block(length=2),
                       {'description': 'Identifier ("uI"/"Iu") – both accepted'})
+        offset = (IntegerBlock(length=4), {'description': 'Offset of indices'})
 
 
 def determine_triangle_index_row_type(ctx):
@@ -365,8 +383,8 @@ class TriangleData(DeclarativeCompoundBlock):
         num_info_rows = IntegerBlock(length=4)
         num_index_rows = IntegerBlock(length=4)
         info_rows = ArrayBlock(length=lambda ctx: ctx.data('num_info_rows'),
-                               child=DelegateBlock(possible_blocks=[CullingInfoRow(), GenericInfoRow()],
-                                                   choice_index=lambda ctx, **_: determine_triangle_info_row_type(ctx)))
+                               child=DelegateBlock(possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
+                                                   choice_index=lambda ctx, name: determine_triangle_info_row_type(ctx, name)))
         index_rows = ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'),
                                 child=DelegateBlock(possible_blocks=[VertexIndexRow(), UVIndexRow()],
                                                     choice_index=lambda ctx, **_: determine_triangle_index_row_type(
