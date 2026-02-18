@@ -18,10 +18,10 @@ class CrpPartInfo1(IntegerBlock):
     def schema(self):
         return {
             **super().schema,
-            'block_description': 'Part info type 1: [llll_aaaa_aaaa_dddd]'
-                                 '<br/>l - level of detail'
+            'block_description': 'Part info type 1: [dddd_aaaa_aaaa_pppp]'
+                                 '<br/>d - damage level'
                                  '<br/>a - animation index'
-                                 '<br/>d - damage switch (0x8 means damaged)',
+                                 '<br/>p - part index',
         }
 
     def __init__(self, **kwargs):
@@ -30,15 +30,15 @@ class CrpPartInfo1(IntegerBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         return {
-            'detail_level': data >> 12,
+            'damage': data >> 12,
             'animation_index': (data >> 4) & 0xff,
-            'damage': data & 0xf,
+            'part_index': data & 0xf,
         }
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = data['detail_level'] << 12
+        value = data['damage'] << 12
         value = value | (data['animation_index'] << 4)
-        value = value | data['damage']
+        value = value | data['part_index']
         return super().write(value, ctx, name)
 
 
@@ -47,9 +47,10 @@ class CrpPartInfo2(IntegerBlock):
     def schema(self):
         return {
             **super().schema,
-            'block_description': 'Part info type 2: [iiii_iiii_iiii_llll]'
-                                 '<br/>i - part index'
-                                 '<br/>l - level of detail',
+            'block_description': 'Part info type 2: [pppp_uuuu_uuuu_dddd]'
+                                 '<br/>p - part index'
+                                 '<br/>u - unknown'
+                                 '<br/>d - damage level',
         }
 
     def __init__(self, **kwargs):
@@ -58,13 +59,15 @@ class CrpPartInfo2(IntegerBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         return {
-            'part_index': data >> 4,
+            'part_index': data >> 12,
+            'unk': (data >> 4) & 0xff,
             'detail_level': data & 0xf,
         }
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = data['detail_level']
-        value = value | (data['part_index'] << 4)
+        value = data['part_index'] << 12
+        value = value | (data['unk'] << 4)
+        value = value | data['detail_level']
         return super().write(value, ctx, name)
 
 

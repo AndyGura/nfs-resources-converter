@@ -293,26 +293,51 @@ class CrpGeometrySerializer(BaseFileSerializer):
 
         for (i, article) in enumerate(data['articles']):
             names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
+            if len(names) > 1:
+                print(f"WARNING: multiple name parts found for article {article['name']}")
+            name = names[0]['data'] if len(names) > 0 else f"article_{i}"
+
             vertices = [x['data'] for x in article['parts'] if x['choice_index'] == vertex_choice_index]
             uv_parts = [x['data'] for x in article['parts'] if x['choice_index'] == uv_choice_index]
             tri_parts = [x['data'] for x in article['parts'] if x['choice_index'] == triangle_choice_index]
-            if len(names) > 1:
-                print(f"WARNING: multiple name parts found for article {article['name']}")
-            for (j, (v, uv, tri)) in enumerate(zip(vertices, uv_parts, tri_parts)):
+
+            parts = []
+            part_index = 1
+            while True:
+                v = [x for x in vertices
+                     if x['part_info']['part_index'] == part_index
+                     and x['part_info']['damage'] == 0
+                     and x['part_info']['animation_index'] == 0]
+                if len(v) == 0:
+                    break
+                assert len(v) == 1, f"Multiple vertex parts found for part {part_index}"
+                v = v[0]
+
+                uv = [x for x in uv_parts
+                      if x['part_info']['part_index'] == part_index
+                      and x['part_info']['animation_index'] == 0]
+                assert len(uv) == 1, f"Multiple UV parts found for part {part_index}"
+                uv = uv[0]
+
+                t = [x for x in tri_parts
+                     if x['part_info']['part_index'] == part_index
+                     and x['part_info']['detail_level'] == 1]
+                if len(t) > 0:
+                    assert len(t) == 1, f"Multiple tri parts found for part {part_index}"
+                    parts.append((part_index, v, uv, t[0]))
+                part_index += 1
+
+            for (j, v, uv, tri) in parts:
                 mesh = SubMesh()
-                mesh.name = (names[0]['data'] if len(names) > 0 else f"article_{i}") + '_' + str(j)
+                mesh.name = name + "_" + str(j)
                 mesh.vertices = extract_vertices(v)
                 mesh.vertex_uvs = extract_uvs(uv)
                 indices = extract_indices(tri)
-                # if len(indices) == 0:
-                #     indices = list(range(len(mesh.vertices) - len(mesh.vertices) % 3))
                 mesh.polygons = [
                     [indices[i], indices[i + 1], indices[i + 2]]
                     for i in range(0, len(indices), 3)
                     if i + 2 < len(indices)
                 ]
-                if len(mesh.vertex_uvs) < len(mesh.vertices):
-                    mesh.vertex_uvs.extend([[0.0, 0.0]] * (len(mesh.vertices) - len(mesh.vertex_uvs)))
                 mesh.change_axes(new_y='z', new_z='y')
                 scene.sub_meshes.append(mesh)
         export_scenes([scene], path, self.settings)
