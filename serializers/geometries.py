@@ -283,40 +283,13 @@ class CrpGeometrySerializer(BaseFileSerializer):
             ]
 
         def extract_indices(part):
-            rows = part['data'].get('index_rows', [])
-            indices = []
-            for r in rows:
-                # Prefer only vertex index rows (identifier vI/Iv). Skip UV rows.
-                ident = r.get('identifier')
-                if ident and ident not in ('vI', 'Iv'):
-                    continue
-                # detect possible index source in a robust way
-                vals = r.get('values') or r.get('indices') or r.get('data')
-                if vals is None:
-                    continue
-                # When vals is a dict, try to unwrap common keys
-                if isinstance(vals, dict):
-                    if isinstance(vals.get('values'), list):
-                        vals = vals.get('values')
-                    elif isinstance(vals.get('indices'), list):
-                        vals = vals.get('indices')
-                    elif isinstance(vals.get('data'), list):
-                        vals = vals.get('data')
-                    elif isinstance(vals.get('index'), int):
-                        vals = [vals.get('index')]
-                    else:
-                        # Unsupported shape
-                        continue
-                # Single integer
-                if isinstance(vals, int):
-                    indices.append(vals)
-                    continue
-                # List of items
-                if isinstance(vals, list):
-                    if len(vals) > 0 and isinstance(vals[0], dict):
-                        vals = [v.get('index', 0) for v in vals]
-                    indices.extend(v for v in vals if isinstance(v, int))
-            return indices
+            num_indices = part['num_indices']
+            try:
+                offset = part['data']['index_rows'][0]['data']['offset']
+                indices = part['data']['index_table'][offset:offset + num_indices]
+                return indices
+            except Exception:
+                return []
 
         for (i, article) in enumerate(data['articles']):
             names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
@@ -330,10 +303,9 @@ class CrpGeometrySerializer(BaseFileSerializer):
                 mesh.name = (names[0]['data'] if len(names) > 0 else f"article_{i}") + '_' + str(j)
                 mesh.vertices = extract_vertices(v)
                 mesh.vertex_uvs = extract_uvs(uv)
-                indices = [] # extract_indices(tri)
-                # FIXME tmp logic
-                if len(indices) == 0:
-                    indices = [i for i in range(len(mesh.vertices) - len(mesh.vertices) % 3)]
+                indices = extract_indices(tri)
+                # if len(indices) == 0:
+                #     indices = list(range(len(mesh.vertices) - len(mesh.vertices) % 3))
                 mesh.polygons = [
                     [indices[i], indices[i + 1], indices[i + 2]]
                     for i in range(0, len(indices), 3)
