@@ -10,6 +10,7 @@ from library.read_blocks import (BitFlagsBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
                                  FixedPointBlock)
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import FenceType, Point3D
 from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8, Nfs1TimeField
 
@@ -73,11 +74,11 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         orientation = (Nfs1Angle14(),
                        {'description': 'Rotation of road path, if view from the top. Equals to '
                                        'atan2(next_x - x, next_z - z)'})
-        unk1 = (IntegerBlock(length=2, required_value=0),
+        unk1 = (IntegerBlock(length=2, value_validator=Eq(0)),
                 {'is_unknown': True})
         side_normal = (Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True)),
                        {'description': 'Side normal vector'})
-        unk2 = (IntegerBlock(length=2, required_value=0),
+        unk2 = (IntegerBlock(length=2, value_validator=Eq(0)),
                 {'is_unknown': True})
 
     def update_orientations(self, read_data, next_spline_point):
@@ -103,14 +104,14 @@ class ModelPropDescrData(DeclarativeCompoundBlock):
                                       programmatic_value=lambda ctx: ctx.data('resource_id')),
                          {'description': 'Seems to always be equal to `resource_id`, except for one prop on map CL1, '
                                          'which is not used on map'})
-        unk0 = (FixedPointBlock(length=4, fraction_bits=16, required_value=1.5),
+        unk0 = (FixedPointBlock(length=4, fraction_bits=16, value_validator=Eq(1.5)),
                 {'is_unknown': True})
         unk1 = (FixedPointBlock(length=4, fraction_bits=16, programmatic_value=lambda _: 1.5),
                 {'is_unknown': True,
                  'description': 'The purpose is unknown. Every single entry in TNFS files equals to 1.5 '
                                 '(0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken '
                                 'texture palette and which is not used on the map anyways'})
-        unk2 = (FixedPointBlock(length=4, fraction_bits=16, required_value=3),
+        unk2 = (FixedPointBlock(length=4, fraction_bits=16, value_validator=Eq(3)),
                 {'is_unknown': True})
 
 
@@ -227,10 +228,10 @@ class TerrainEntry(DeclarativeCompoundBlock):
                                      'nfsspecs.txt)'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = UTF8Block(length=4, required_value='TRKD')
+        resource_id = UTF8Block(length=4, value_validator=Eq('TRKD'))
         block_length = IntegerBlock(length=4, is_signed=False)
-        block_number = IntegerBlock(length=4, is_signed=False, required_value=0)
-        unknown = (IntegerBlock(length=1, required_value=0),
+        block_number = IntegerBlock(length=4, is_signed=False, value_validator=Eq(0))
+        unknown = (IntegerBlock(length=1, value_validator=Eq(0)),
                    {'is_unknown': True})
         fence = FenceType()
         texture_ids = (ArrayBlock(child=IntegerBlock(length=1), length=10),
@@ -285,7 +286,7 @@ class TriMap(DeclarativeCompoundBlock):
             'block_description': 'Map TRI file, represents terrain mesh, road itself, props locations etc.'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=4, required_value=0x11),
+        resource_id = (IntegerBlock(length=4, value_validator=Eq(0x11)),
                        {'description': 'Resource ID'})
         loop_chunk = (IntegerBlock(length=2),
                       {'description': 'Index of chunk, on which game should use chunk #0 again. So for closed tracks '
@@ -293,11 +294,11 @@ class TriMap(DeclarativeCompoundBlock):
         num_chunks = (IntegerBlock(length=4,
                                    programmatic_value=lambda ctx: len(ctx.data('terrain'))),
                       {'description': 'number of terrain chunks (max 600)'})
-        unk0 = (IntegerBlock(length=2, required_value=6),
+        unk0 = (IntegerBlock(length=2, value_validator=Eq(6)),
                 {'is_unknown': True})
         position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'is_unknown': True})
-        unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, required_value=0), length=12),
+        unknowns0 = (ArrayBlock(child=IntegerBlock(length=1, value_validator=Eq(0)), length=12),
                      {'is_unknown': True})
         chunks_size = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('terrain')) * 0x120),
                        {'description': 'Size of terrain array in bytes (num_chunks * 0x120)'})
@@ -318,10 +319,10 @@ class TriMap(DeclarativeCompoundBlock):
         num_prop_descr = IntegerBlock(length=4, is_signed=False,
                                       programmatic_value=lambda ctx: len(ctx.data('prop_descr')))
         num_props = IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('props')))
-        objs_hdr = UTF8Block(length=4, required_value='SJBO')
-        unk1 = (IntegerBlock(length=4, required_value=0x428c),
+        objs_hdr = UTF8Block(length=4, value_validator=Eq('SJBO'))
+        unk1 = (IntegerBlock(length=4, value_validator=Eq(0x428c)),
                 {'is_unknown': True})
-        unk2 = (IntegerBlock(length=4, required_value=0),
+        unk2 = (IntegerBlock(length=4, value_validator=Eq(0)),
                 {'is_unknown': True})
         prop_descr = ArrayBlock(child=PropDescr(),
                                 length=lambda ctx: ctx.data('num_prop_descr'))

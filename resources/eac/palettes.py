@@ -3,6 +3,7 @@ from typing import Dict, Tuple, Any
 
 from library.context import ReadContext
 from library.read_blocks import DeclarativeCompoundBlock, BytesBlock, ArrayBlock, IntegerBlock, DataBlock
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.colors import (
     Color24BitBigEndianField,
     Color24BitDosBlock,
@@ -59,7 +60,7 @@ class BasePalette(DeclarativeCompoundBlock, ABC):
 
 class PaletteReference(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x7C),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7C)),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
@@ -80,7 +81,7 @@ class PaletteReference(DeclarativeCompoundBlock):
 
 class Palette24BitDos(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x22),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x22)),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
@@ -101,7 +102,7 @@ class Palette24BitDos(BasePalette):
 
 class Palette24Bit(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x24),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x24)),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
@@ -122,7 +123,7 @@ class Palette24Bit(BasePalette):
 
 class Palette16BitDos(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x29),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x29)),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
@@ -143,7 +144,7 @@ class Palette16BitDos(BasePalette):
 
 class Palette32Bit(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x2A),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x2A)),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
@@ -166,7 +167,7 @@ class Palette32Bit(BasePalette):
 
 class Palette16Bit(BasePalette):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x2D),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x2D)),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})

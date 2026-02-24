@@ -1,6 +1,7 @@
 from typing import Dict
 
 from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock, ArrayBlock
+from library.read_blocks.misc.value_validators import Eq
 
 
 class EacsAudioHeader(DeclarativeCompoundBlock):
@@ -13,7 +14,7 @@ class EacsAudioHeader(DeclarativeCompoundBlock):
                                      '(*.BNK), which has multiple EACS headers and wave data located separately'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(required_value='EACS', length=4),
+        resource_id = (UTF8Block(value_validator=Eq('EACS'), length=4),
                        {'description': 'Resource ID'})
         sampling_rate = (IntegerBlock(length=4),
                          {'description': 'Sampling rate of audio'})
@@ -104,7 +105,7 @@ class AsfAudio(DeclarativeCompoundBlock):
                                      'Arts_Formats_(2))'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(required_value='1SNh', length=4),
+        resource_id = (UTF8Block(value_validator=Eq('1SNh'), length=4),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=8),
                 {'is_unknown': True})

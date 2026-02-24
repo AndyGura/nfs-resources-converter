@@ -7,6 +7,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  BytesBlock,
                                  ArrayBlock,
                                  FixedPointBlock)
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import Point3D
 from resources.eac.maps.nfs_common import ColPolygon, ColExtraBlock
 
@@ -110,7 +111,7 @@ class TrkMap(DeclarativeCompoundBlock):
                 'block_description': 'Main track file'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(length=4, required_value='TRAC'),
+        resource_id = (UTF8Block(length=4, value_validator=Eq('TRAC')),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=20),
                 {'is_unknown': True})

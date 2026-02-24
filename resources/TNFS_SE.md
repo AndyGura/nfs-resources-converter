@@ -234,7 +234,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1 | **resource_id_2** | 1 | 1-byte unsigned integer | Seems to always be equal to `resource_id`, except for one prop on map CL1, which is not used on map |
 | 2 | **unk0** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 1.5 | Unknown purpose |
 | 6 | **unk1** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | The purpose is unknown. Every single entry in TNFS files equals to 1.5 (0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken texture palette and which is not used on the map anyways |
-| 10 | **unk2** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 3 | Unknown purpose |
+| 10 | **unk2** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 0x3 | Unknown purpose |
 ### **BitmapPropDescrData** ###
 #### **Size**: 14 bytes ####
 #### **Description**: Map prop settings if it is a bitmap ####
