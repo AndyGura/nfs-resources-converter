@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from library.exceptions import DataIntegrityException
 from library.utils import path_join
+from library.utils.id import join_id
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import AnyBitmapBlock
 from serializers import BaseFileSerializer
@@ -257,6 +258,15 @@ class CrpGeometrySerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
+
+        fsh_parts = [x['data'] for x in data['misc_parts'] if x['choice_index'] == 2]
+        from serializers import ShpiArchiveSerializer
+        shpi_block = ShpiBlock()
+        for fsh_part in fsh_parts:
+            assert fsh_part['num_fsh'] == 1
+            fsh_data = fsh_part['data'][0]
+            idx = fsh_part["index"]
+            ShpiArchiveSerializer().serialize(fsh_data, path_join(path, f'textures/{idx}/'), join_id(id, f'fsh_parts/{idx}'), shpi_block)
 
         scene = Scene()
         scene.name = 'body'

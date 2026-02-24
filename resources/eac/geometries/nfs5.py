@@ -195,12 +195,6 @@ class CullingPart(DeclarativeCompoundBlock):
                 {'usage': 'ui_only'})
 
 
-class TransformationMatrix(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        # 4x4 matrix (16 floats)
-        m = ArrayBlock(length=16, child=DecimalBlock(length=4))
-
-
 class TransformationPart(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         part_info = CrpPartInfo1()
@@ -215,7 +209,7 @@ class TransformationPart(DeclarativeCompoundBlock):
         offset = (IntegerBlock(length=4),
                   {'usage': 'skip_ui',
                    'description': 'Offset (Relative from current MiscPart offset)'})
-        data = (ArrayBlock(length=lambda ctx: ctx.data('num_matrices'), child=TransformationMatrix()),
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_matrices'), child=ArrayBlock(length=16, child=DecimalBlock(length=4))),
                 {'usage': 'ui_only'})
 
 

@@ -462,7 +462,6 @@ EXPORT_RESOURCES = {
                 geometries.nfs5.CullingPartData(),
                 geometries.nfs5.CullingInfoRow(),
                 geometries.nfs5.TransformationPart(),
-                geometries.nfs5.TransformationMatrix(),
                 geometries.nfs5.VertexPart(),
                 geometries.nfs5.VertexData(),
                 geometries.nfs5.VertexInfoRow(),

@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-02-18 10:50:18.405050+00:00*
+*Last time updated: 2026-02-18 17:17:14.928898+00:00*
 
 
 # **Info by file extensions** #
@@ -161,11 +161,6 @@ Did not find what you need or some given data is wrong? Please submit an
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
 | 8 | **num_matrices** | 4 | 4-bytes unsigned integer (little endian) | Number of Transformation Matrices (always 1) |
 | 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MiscPart offset) |
-### **TransformationMatrix** ###
-#### **Size**: 64 bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **m** | 64 | Array of `16` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | - |
 ### **VertexPart** ###
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
