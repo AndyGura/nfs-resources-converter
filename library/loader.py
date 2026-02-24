@@ -32,7 +32,7 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             from resources.eac.maps.nfs3 import FrdMap
             return FrdMap
     if header_str:
-        if header_str == ' raC':
+        if header_str in [' raC', 'karT']:
             from resources.eac.geometries import CrpGeometry
             return CrpGeometry
         elif file_path and header_str == '#ver' and file_path.endswith('INFO'):

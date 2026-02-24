@@ -8,6 +8,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  BytesBlock,
                                  DelegateBlock, DecimalBlock)
+from library.read_blocks.misc.value_validators import Eq, Or
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.archives.shpi_block import ShpiBlock
 from resources.eac.fields.misc import Point3D
@@ -106,9 +107,8 @@ class MaterialPart(DeclarativeCompoundBlock):
                       {'description': 'Identifier ("tm"/"mt")'})
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
-        len = (IntegerBlock(length=3, required_value=312),
-               {'usage': 'skip_ui',
-                'description': 'Length'})
+        len = (IntegerBlock(length=3),
+               {'description': 'Length'})
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
@@ -209,7 +209,8 @@ class TransformationPart(DeclarativeCompoundBlock):
         offset = (IntegerBlock(length=4),
                   {'usage': 'skip_ui',
                    'description': 'Offset (Relative from current MiscPart offset)'})
-        data = (ArrayBlock(length=lambda ctx: ctx.data('num_matrices'), child=ArrayBlock(length=16, child=DecimalBlock(length=4))),
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_matrices'),
+                           child=ArrayBlock(length=16, child=DecimalBlock(length=4))),
                 {'usage': 'ui_only'})
 
 
@@ -391,8 +392,8 @@ class TrianglePart(DeclarativeCompoundBlock):
 
 class EffectData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        unk0 = (IntegerBlock(length=4, required_value=5), {'is_unknown': True})
-        unk1 = (IntegerBlock(length=4, required_value=0x00000000), {'is_unknown': True})
+        unk0 = (IntegerBlock(length=4), {'is_unknown': True})
+        unk1 = (IntegerBlock(length=4, value_validator=Eq(0x00000000)), {'is_unknown': True})
         position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Position'})
         unk_scale = (DecimalBlock(length=4), {'is_unknown': True})
         width = (Point3D(child=DecimalBlock(length=4)), {'description': 'Width relative to position'})
@@ -476,9 +477,9 @@ class PartBlock(DelegateBlock):
 
 class Article(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(required_value='itrA', length=4),
+        resource_id = (UTF8Block(value_validator=Eq('itrA'), length=4),
                        {'description': 'Resource ID'})
-        header_info = (IntegerBlock(length=4, required_value=0x1A),
+        header_info = (IntegerBlock(length=4, value_validator=Eq(0x1A)),
                        {'is_unknown': True})
         len_parttable = (IntegerBlock(length=4),
                          {'description': 'Length of Parttable pointed to (* 16)'})
@@ -512,14 +513,14 @@ def determine_num_parts(ctx):
 
 class CrpGeometry(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(required_value=' raC', length=4),
+        resource_id = (UTF8Block(value_validator=Or([' raC', 'karT']), length=4),
                        {'description': 'Resource ID'})
         header_info = (IntegerBlock(length=4, programmatic_value=lambda ctx: 0x1A | (len(ctx.data('articles')) << 5)),
                        {'description': 'Header info: 5 bits: unknown (always seems to be 0x1A), '
                                        '27 bits: number of parts'})
         num_misc_parts = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('misc_parts'))),
                           {'description': 'Number of misc data blocks'})
-        articles_offset = (IntegerBlock(length=4, required_value=1),
+        articles_offset = (IntegerBlock(length=4, value_validator=Eq(1)),
                            {'description': 'Offset to articles block'})
         articles = (ArrayBlock(child=Article(), length=lambda ctx: ctx.data('header_info') >> 5),
                     {'description': 'Array of articles'})

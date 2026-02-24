@@ -7,6 +7,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  BytesBlock,
                                  BitFlagsBlock,
                                  FixedPointBlock)
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import Point3D
 
 
@@ -52,11 +53,11 @@ class GeoMesh(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
-        unk2 = (IntegerBlock(length=8, required_value=0),
+        unk2 = (IntegerBlock(length=8, value_validator=Eq(0)),
                 {'is_unknown': True})
-        unk3 = (IntegerBlock(length=8, required_value=1),
+        unk3 = (IntegerBlock(length=8, value_validator=Eq(1)),
                 {'is_unknown': True})
-        unk4 = (IntegerBlock(length=8, required_value=1),
+        unk4 = (IntegerBlock(length=8, value_validator=Eq(1)),
                 {'is_unknown': True})
         vertices = (ArrayBlock(length=lambda ctx: ctx.data('num_vrtx'),
                                child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True))),
@@ -83,7 +84,7 @@ class GeoGeometry(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1 = (ArrayBlock(child=IntegerBlock(length=4), length=32),
                 {'is_unknown': True})
-        unk2 = (IntegerBlock(length=8, required_value=0),
+        unk2 = (IntegerBlock(length=8),
                 {'is_unknown': True})
         part_hp_0 = (GeoMesh(),
                      {'description': 'High-Poly Additional Body Part'})
