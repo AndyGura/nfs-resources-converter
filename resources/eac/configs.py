@@ -4,6 +4,7 @@ from typing import Dict
 from library.context import WriteContext, ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, BytesBlock, ArrayBlock, EnumByteBlock,
                                  FixedPointBlock)
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.numbers import Nfs1TimeField
 
 
@@ -68,7 +69,7 @@ class BestRaceRecord(DeclarativeCompoundBlock):
                                                (2, 'full_grid_race'),
                                                ]),
                      {'description': 'Game mode. In the game shown as "t.t.", "h.h." or empty string'})
-        unk3 = (BytesBlock(length=3, required_value=b'\x00\x00\x00'),
+        unk3 = (BytesBlock(length=3, value_validator=Eq(b'\x00\x00\x00')),
                 {'is_unknown': True})
 
 

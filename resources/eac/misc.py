@@ -2,6 +2,7 @@ from typing import Dict
 
 from library.context import WriteContext, ReadContext
 from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
+from library.read_blocks.misc.value_validators import Eq
 
 
 class ShpiText(DeclarativeCompoundBlock):
@@ -15,7 +16,7 @@ class ShpiText(DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x6F),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x6F)),
                        {'description': 'Resource ID'})
         unk = (BytesBlock(length=3),
                {'is_unknown': True})

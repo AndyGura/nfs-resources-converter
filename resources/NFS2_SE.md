@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2025-10-24 20:47:30.168115+00:00*
+*Last time updated: 2026-02-24 23:27:37.250115+00:00*
 
 
 # **Info by file extensions** #
@@ -62,7 +62,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 4 | **unk1** | 128 | Array of `32` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 132 | **unk2** | 8 | 8-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 132 | **unk2** | 8 | 8-bytes unsigned integer (little endian) | Unknown purpose |
 | 140 | **part_hp_0** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Body Part |
 | 192..? | **part_hp_1** | 52..? | [GeoMesh](#geomesh) | High-Poly Main Body Part |
 | 244..? | **part_hp_2** | 52..? | [GeoMesh](#geomesh) | High-Poly Ground Part |

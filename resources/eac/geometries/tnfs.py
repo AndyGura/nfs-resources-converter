@@ -9,6 +9,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  DelegateBlock,
                                  BitFlagsBlock,
                                  FixedPointBlock)
+from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.fields.misc import Point3D
 
@@ -135,15 +136,15 @@ class OripGeometry(DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(required_value='ORIP', length=4),
+        resource_id = (UTF8Block(value_validator=Eq('ORIP'), length=4),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4,
                                    programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
                       {'description': 'Total ORIP block size in bytes'})
-        unk0 = (IntegerBlock(length=4, required_value=0x02BC),
+        unk0 = (IntegerBlock(length=4, value_validator=Eq(0x02BC)),
                 {'description': 'Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type?',
                  'is_unknown': True})
-        unk1 = (IntegerBlock(length=4, required_value=0),
+        unk1 = (IntegerBlock(length=4, value_validator=Eq(0)),
                 {'is_unknown': True})
         num_vrtx = (IntegerBlock(length=4,
                                  programmatic_value=lambda ctx: len(ctx.data('vertices'))),
@@ -162,9 +163,9 @@ class OripGeometry(DeclarativeCompoundBlock):
                                 programmatic_value=lambda ctx: 112 + len(ctx.data('polygons')) * 12),
                    {'description': 'An offset to vertex_uvs. Always equals to `112 + num_polygons*12`'})
         num_polygons = (IntegerBlock(length=4,
-                                     programmatic_value=lambda ctx: len(ctx.data('polygons'))),
+                                      programmatic_value=lambda ctx: len(ctx.data('polygons'))),
                         {'description': 'Amount of polygons'})
-        polygons_ptr = (IntegerBlock(length=4, is_signed=False, required_value=112),
+        polygons_ptr = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(112)),
                         {'description': 'An offset to polygons block'})
         identifier = (UTF8Block(length=12),
                       {'description': 'Some ID of geometry, don\'t know the purpose',

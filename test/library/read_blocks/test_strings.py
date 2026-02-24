@@ -3,6 +3,7 @@ from io import BytesIO
 
 from library.context import ReadContext
 from library.exceptions import DataIntegrityException
+from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import UTF8Block
 
 
@@ -18,8 +19,8 @@ class TestStrings(unittest.TestCase):
         data = field.pack("Text")
         self.assertEqual(data, bytes([84, 101, 120, 116]))
 
-    def test_utf8_required_value(self):
-        field = UTF8Block(length=5, required_value="Asdfg")
+    def test_utf8_value_validator(self):
+        field = UTF8Block(length=5, value_validator=Eq("Asdfg"))
         field.unpack(ReadContext(BytesIO(bytes([65, 115, 100, 102, 103]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([84, 101, 120, 116, 83]))))

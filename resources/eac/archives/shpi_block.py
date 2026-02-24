@@ -9,6 +9,7 @@ from library.read_blocks import (CompoundBlock,
                                  ArrayBlock,
                                  AutoDetectBlock,
                                  BytesBlock)
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.misc import ShpiText
 from resources.eac.palettes import (Palette24BitDos,
@@ -38,7 +39,7 @@ class ShpiBlock(BaseArchiveBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(length=4, required_value='SHPI'),
+        resource_id = (UTF8Block(length=4, value_validator=Eq('SHPI')),
                        {'description': 'Resource ID'})
         length = (IntegerBlock(length=4,
                                programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),

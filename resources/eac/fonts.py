@@ -1,6 +1,7 @@
 from typing import Dict
 
 from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.bitmaps import Bitmap4Bit
 
 
@@ -34,14 +35,14 @@ class FfnFont(DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(length=4, required_value='FNTF'),
+        resource_id = (UTF8Block(length=4, value_validator=Eq('FNTF')),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4,
                                    programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
                       {'description': 'The length of this FFN block in bytes'})
-        unk0 = (IntegerBlock(length=1, required_value=100),
+        unk0 = (IntegerBlock(length=1, value_validator=Eq(100)),
                 {'is_unknown': True})
-        unk1 = (IntegerBlock(length=1, required_value=0),
+        unk1 = (IntegerBlock(length=1, value_validator=Eq(0)),
                 {'is_unknown': True})
         num_glyphs = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('definitions'))),
@@ -50,20 +51,20 @@ class FfnFont(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         font_size = (IntegerBlock(length=1),
                      {'description': 'Font size ?'})
-        unk3 = (IntegerBlock(length=1, required_value=0),
+        unk3 = (IntegerBlock(length=1, value_validator=Eq(0)),
                 {'is_unknown': True})
         line_height = (IntegerBlock(length=1),
                        {'description': 'Line height ?'})
-        unk4 = (BytesBlock(length=7, required_value=b'\0' * 7),
+        unk4 = (BytesBlock(length=7, value_validator=Eq(b'\0' * 7)),
                 {'is_unknown': True})
         bdata_ptr = (IntegerBlock(length=2,
                                   programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
                                       ctx.get_full_data(),
                                       'bitmap')),
                      {'description': 'Pointer to bitmap block'})
-        unk5 = (IntegerBlock(length=1, required_value=0),
+        unk5 = (IntegerBlock(length=1, value_validator=Eq(0)),
                 {'is_unknown': True})
-        unk6 = (IntegerBlock(length=1, required_value=0),
+        unk6 = (IntegerBlock(length=1, value_validator=Eq(0)),
                 {'is_unknown': True})
         definitions = (ArrayBlock(child=GlyphDefinition(), length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})

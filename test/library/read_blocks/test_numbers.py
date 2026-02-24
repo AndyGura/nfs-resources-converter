@@ -3,6 +3,7 @@ from io import BytesIO
 
 from library.context import ReadContext
 from library.exceptions import DataIntegrityException
+from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.numbers import IntegerBlock
 
 
@@ -24,12 +25,12 @@ class TestByteNumber(unittest.TestCase):
         with self.assertRaises(OverflowError):
             field.pack(-3)
 
-    def test_unsigned_required_value(self):
-        field = IntegerBlock(length=1, required_value=25)
+    def test_unsigned_value_validator(self):
+        field = IntegerBlock(length=1, value_validator=Eq(25))
         field.unpack(ReadContext(BytesIO(bytes([25]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([92]))))
-        field = IntegerBlock(length=1, required_value=253)
+        field = IntegerBlock(length=1, value_validator=Eq(253))
         field.unpack(ReadContext(BytesIO(bytes([253]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([180]))))
@@ -50,12 +51,12 @@ class TestByteNumber(unittest.TestCase):
         with self.assertRaises(OverflowError):
             field.pack(253)
 
-    def test_signed_required_value(self):
-        field = IntegerBlock(length=1, required_value=-5, is_signed=True)
+    def test_signed_value_validator(self):
+        field = IntegerBlock(length=1, value_validator=Eq(-5), is_signed=True)
         field.unpack(ReadContext(BytesIO(bytes([251]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([252]))))
-        field = IntegerBlock(length=1, required_value=12, is_signed=True)
+        field = IntegerBlock(length=1, value_validator=Eq(12), is_signed=True)
         field.unpack(ReadContext(BytesIO(bytes([12]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([244]))))
@@ -79,12 +80,12 @@ class TestShortNumber(unittest.TestCase):
         with self.assertRaises(OverflowError):
             field.pack(-3)
 
-    def test_le_unsigned_required_value(self):
-        field = IntegerBlock(length=2, required_value=65020)
+    def test_le_unsigned_value_validator(self):
+        field = IntegerBlock(length=2, value_validator=Eq(65020))
         field.unpack(ReadContext(BytesIO(bytes([252, 253]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([253, 252]))))
-        field = IntegerBlock(length=2, required_value=253)
+        field = IntegerBlock(length=2, value_validator=Eq(253))
         field.unpack(ReadContext(BytesIO(bytes([253, 0]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([180, 0]))))
@@ -105,12 +106,12 @@ class TestShortNumber(unittest.TestCase):
         with self.assertRaises(OverflowError):
             field.pack(40000)
 
-    def test_le_signed_required_value(self):
-        field = IntegerBlock(length=2, required_value=-771, is_signed=True)
+    def test_le_signed_value_validator(self):
+        field = IntegerBlock(length=2, value_validator=Eq(-771), is_signed=True)
         field.unpack(ReadContext(BytesIO(bytes([253, 252]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([0, 251]))))
-        field = IntegerBlock(length=2, required_value=12, is_signed=True)
+        field = IntegerBlock(length=2, value_validator=Eq(12), is_signed=True)
         field.unpack(ReadContext(BytesIO(bytes([12, 0]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([244, 1]))))
@@ -131,12 +132,12 @@ class TestShortNumber(unittest.TestCase):
         with self.assertRaises(OverflowError):
             field.pack(-3)
 
-    def test_be_unsigned_required_value(self):
-        field = IntegerBlock(length=2, byte_order="big", required_value=65020)
+    def test_be_unsigned_value_validator(self):
+        field = IntegerBlock(length=2, byte_order="big", value_validator=Eq(65020))
         field.unpack(ReadContext(BytesIO(bytes([253, 252]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([252, 253]))))
-        field = IntegerBlock(length=2, byte_order="big", required_value=253)
+        field = IntegerBlock(length=2, byte_order="big", value_validator=Eq(253))
         field.unpack(ReadContext(BytesIO(bytes([0, 253]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([0, 180]))))
@@ -157,12 +158,12 @@ class TestShortNumber(unittest.TestCase):
         with self.assertRaises(OverflowError):
             field.pack(40000)
 
-    def test_be_signed_required_value(self):
-        field = IntegerBlock(length=2, byte_order="big", required_value=-771, is_signed=True)
+    def test_be_signed_value_validator(self):
+        field = IntegerBlock(length=2, byte_order="big", value_validator=Eq(-771), is_signed=True)
         field.unpack(ReadContext(BytesIO(bytes([252, 253]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([251, 0]))))
-        field = IntegerBlock(length=2, byte_order="big", required_value=12, is_signed=True)
+        field = IntegerBlock(length=2, byte_order="big", value_validator=Eq(12), is_signed=True)
         field.unpack(ReadContext(BytesIO(bytes([0, 12]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([1, 244]))))

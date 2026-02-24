@@ -11,6 +11,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  AutoDetectBlock,
                                  BytesBlock)
+from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
@@ -85,7 +86,7 @@ class WwwwBlock(BaseArchiveBlock):
         return schema
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(required_value='wwww', length=4),
+        resource_id = (UTF8Block(value_validator=Eq('wwww'), length=4),
                        {'description': 'Resource ID'})
         num_items = (IntegerBlock(length=4,
                                   programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
@@ -167,7 +168,7 @@ class BigfBlock(BaseArchiveBlock):
         return schema
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(length=4, required_value='BIGF'),
+        resource_id = (UTF8Block(length=4, value_validator=Eq('BIGF')),
                        {'description': 'Resource ID'})
         length = (IntegerBlock(length=4, byte_order='big',
                                programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
