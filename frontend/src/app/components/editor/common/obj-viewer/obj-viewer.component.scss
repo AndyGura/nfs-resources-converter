@@ -47,5 +47,23 @@
         flex-grow: 1;
       }
     }
+
+    .controls-list-vertical {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      gap: 5px;
+
+      .control-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        > label {
+          flex-grow: 1;
+        }
+      }
+    }
   }
 }

@@ -28,11 +28,18 @@ import {
 } from '@gg-web-engine/three';
 import {
   AmbientLight,
+  BufferGeometry,
   ClampToEdgeWrapping,
+  EdgesGeometry,
   Group,
+  LineBasicMaterial,
+  LineSegments,
   Material,
   Mesh,
   MeshBasicMaterial,
+  MeshLambertMaterial,
+  MeshPhongMaterial,
+  MeshStandardMaterial,
   NearestFilter,
   Object3D,
   Texture,
@@ -50,33 +57,33 @@ export const setupNfs1Texture = (texture: Texture) => {
 
 type Control =
   | {
-      label: string;
-      type: 'checkbox';
-      value: boolean;
-      change: (value: boolean) => void;
-    }
+  label: string;
+  type: 'checkbox';
+  value: boolean;
+  change: (value: boolean) => void;
+}
   | {
-      label: string;
-      type: 'radio';
-      options: string[];
-      value: string;
-      change: (value: string) => void;
-    }
+  label: string;
+  type: 'radio';
+  options: string[];
+  value: string;
+  change: (value: string) => void;
+}
   | {
-      label: string;
-      type: 'color';
-      value: number;
-      change: (value: number) => void;
-    }
+  label: string;
+  type: 'color';
+  value: number;
+  change: (value: number) => void;
+}
   | {
-      label: string;
-      type: 'slider';
-      value: number;
-      minValue: number;
-      maxValue: number;
-      valueStep: number;
-      change: (value: number) => void;
-    };
+  label: string;
+  type: 'slider';
+  value: number;
+  minValue: number;
+  maxValue: number;
+  valueStep: number;
+  change: (value: number) => void;
+};
 
 export type ObjViewerCustomControl = {
   title: string;
@@ -123,12 +130,23 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   meshes: Object3D[] = [];
 
-  constructor(private readonly cdr: ChangeDetectorRef) {}
+  viewMode: 'material' | 'wireframe' | 'unlit' | 'edges' = 'material';
+  originalMaterials: Map<Mesh, Material | Material[]> = new Map();
+  edgeLines: LineSegments[] = [];
+  meshToEdgeLines: Map<Mesh, LineSegments> = new Map();
+  ambientLight!: AmbientLight;
+
+  meshesWithViewModeMaterials: Set<Mesh> = new Set();
+  controllerManagedMaterials: Map<Mesh, Material | Material[]> = new Map();
+
+  constructor(private readonly cdr: ChangeDetectorRef) {
+  }
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
-    this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
+    this.ambientLight = new AmbientLight(0xffffff, 2);
+    this.world.visualScene.nativeScene!.add(this.ambientLight);
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
     this.renderer = this.world.addRenderer(
       this.world.visualScene.factory.createPerspectiveCamera({ frustrum: { near: 0.01, far: 10000 } }),
@@ -188,10 +206,20 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
             object.add(g);
           }
         }
-        this.meshes = object.children;
+        this.meshes = object.children.filter(child => {
+          return !(child instanceof LineSegments) && child.name && child.name.trim() !== '';
+        });
         this.meshes.sort((a, b) => (a.name > b.name ? 1 : -1));
+
+        this.originalMaterials.clear();
+        this.controllerManagedMaterials.clear();
+        this.meshesWithViewModeMaterials.clear();
+        this.clearEdgeLines();
+
         object.traverse(x => {
           if (x instanceof Mesh) {
+            this.originalMaterials.set(x, x.material instanceof Array ? [...x.material] : x.material.clone());
+
             const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
             for (const m of materials) {
               m.transparent = true;
@@ -218,6 +246,150 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  private clearEdgeLines(): void {
+    if (this.entity && this.entity.object3D) {
+      for (const edgeLine of this.edgeLines) {
+        this.entity.object3D.nativeMesh.remove(edgeLine);
+        edgeLine.geometry.dispose();
+        (edgeLine.material as LineBasicMaterial).dispose();
+      }
+    }
+    this.edgeLines = [];
+    this.meshToEdgeLines.clear();
+  }
+
+  private applyViewMode(): void {
+    if (!this.entity || !this.entity.object3D) return;
+
+    this.clearEdgeLines();
+
+    this.entity.object3D.nativeMesh.traverse((obj: Object3D) => {
+      if (obj instanceof Mesh) {
+        const originalMaterial = this.originalMaterials.get(obj);
+        if (!originalMaterial) return;
+
+        switch (this.viewMode) {
+          case 'material':
+            if (this.meshesWithViewModeMaterials.has(obj)) {
+              const storedMaterial = this.controllerManagedMaterials.get(obj);
+              if (storedMaterial) {
+                obj.material = storedMaterial;
+                this.controllerManagedMaterials.delete(obj);
+              }
+              this.meshesWithViewModeMaterials.delete(obj);
+            }
+            this.ambientLight.intensity = 2;
+            break;
+          case 'wireframe':
+            if (!this.meshesWithViewModeMaterials.has(obj)) {
+              this.controllerManagedMaterials.set(obj, obj.material);
+            }
+            const currentMaterial = this.controllerManagedMaterials.get(obj) || obj.material;
+            const wireframeMaterials = currentMaterial instanceof Array ? currentMaterial : [currentMaterial];
+            const newWireframeMaterials = wireframeMaterials.map(mat => {
+              const wireframeMat = new MeshBasicMaterial({
+                color: mat instanceof MeshBasicMaterial ? mat.color : 0xffffff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.8,
+              });
+              return wireframeMat;
+            });
+            obj.material = newWireframeMaterials.length === 1 ? newWireframeMaterials[0] : newWireframeMaterials;
+            this.meshesWithViewModeMaterials.add(obj);
+            this.ambientLight.intensity = 2;
+            break;
+          case 'unlit':
+            if (!this.meshesWithViewModeMaterials.has(obj)) {
+              this.controllerManagedMaterials.set(obj, obj.material);
+            }
+            const currentUnlitMaterial = this.controllerManagedMaterials.get(obj) || obj.material;
+            const unlitMaterials = currentUnlitMaterial instanceof Array ? currentUnlitMaterial : [currentUnlitMaterial];
+            const newUnlitMaterials = unlitMaterials.map(mat => {
+              let textureMap = null;
+              let materialColor = 0xffffff;
+              if (mat instanceof MeshBasicMaterial) {
+                textureMap = mat.map;
+                materialColor = mat.color.getHex();
+              } else if (mat instanceof MeshLambertMaterial) {
+                textureMap = mat.map;
+                materialColor = mat.color.getHex();
+              } else if (mat instanceof MeshStandardMaterial) {
+                textureMap = mat.map;
+                materialColor = mat.color.getHex();
+              } else if (mat instanceof MeshPhongMaterial) {
+                textureMap = mat.map;
+                materialColor = mat.color.getHex();
+              }
+              const unlitMat = new MeshBasicMaterial({
+                color: materialColor,
+                map: textureMap,
+                transparent: mat.transparent,
+                opacity: mat.opacity,
+              });
+              if (unlitMat.map) {
+                unlitMat.map.wrapS = ClampToEdgeWrapping;
+                unlitMat.map.wrapT = ClampToEdgeWrapping;
+                setupNfs1Texture(unlitMat.map);
+              }
+              return unlitMat;
+            });
+            obj.material = newUnlitMaterials.length === 1 ? newUnlitMaterials[0] : newUnlitMaterials;
+            this.meshesWithViewModeMaterials.add(obj);
+            this.ambientLight.intensity = 0;
+            break;
+          case 'edges':
+            if (this.meshesWithViewModeMaterials.has(obj)) {
+              const storedMaterial = this.controllerManagedMaterials.get(obj);
+              if (storedMaterial) {
+                obj.material = storedMaterial;
+                this.controllerManagedMaterials.delete(obj);
+              }
+              this.meshesWithViewModeMaterials.delete(obj);
+            }
+            this.ambientLight.intensity = 2;
+
+            const edges = new EdgesGeometry(obj.geometry as BufferGeometry);
+            const edgeMaterial = new LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+            const edgeLines = new LineSegments(edges, edgeMaterial);
+            edgeLines.position.copy(obj.position);
+            edgeLines.rotation.copy(obj.rotation);
+            edgeLines.scale.copy(obj.scale);
+
+            let effectiveVisibility = obj.visible;
+            if (obj.parent && obj.parent instanceof Group && obj.parent !== this.entity!.object3D!.nativeMesh) {
+              effectiveVisibility = effectiveVisibility && obj.parent.visible;
+            }
+            edgeLines.visible = effectiveVisibility;
+
+            this.entity!.object3D!.nativeMesh.add(edgeLines);
+            this.edgeLines.push(edgeLines);
+            this.meshToEdgeLines.set(obj, edgeLines);
+            break;
+        }
+      }
+    });
+  }
+
+  public setViewMode(mode: 'material' | 'wireframe' | 'unlit' | 'edges'): void {
+    this.viewMode = mode;
+    this.applyViewMode();
+  }
+
+  public updateEdgeLineVisibility(mesh: Object3D): void {
+    if (mesh instanceof Mesh && this.meshToEdgeLines.has(mesh)) {
+      const edgeLine = this.meshToEdgeLines.get(mesh)!;
+      edgeLine.visible = mesh.visible;
+    } else if (mesh instanceof Group) {
+      mesh.traverse((child: Object3D) => {
+        if (child instanceof Mesh && this.meshToEdgeLines.has(child)) {
+          const edgeLine = this.meshToEdgeLines.get(child)!;
+          edgeLine.visible = mesh.visible && child.visible;
+        }
+      });
+    }
   }
 
   public toRGB(color: Color | null): number {
