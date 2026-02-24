@@ -3,6 +3,7 @@ from io import BytesIO
 
 from library.context import ReadContext
 from library.read_blocks import ArrayBlock, DeclarativeCompoundBlock, IntegerBlock, UTF8Block, CompoundBlock
+from library.read_blocks.misc.value_validators import Eq
 
 
 class TestCompound(unittest.TestCase):
@@ -56,7 +57,7 @@ class SimpleBlock(DeclarativeCompoundBlock):
 
 class BindingBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        header = IntegerBlock(length=1, required_value=2), {'description': "Some header"}
+        header = IntegerBlock(length=1, value_validator=Eq(2)), {'description': "Some header"}
         len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
                {'description': "A length of `val` array"})
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
@@ -64,7 +65,7 @@ class BindingBlock(DeclarativeCompoundBlock):
 
 class BindingBlockWithDoc(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        header = IntegerBlock(length=1, required_value=2), {'description': "Some header"}
+        header = IntegerBlock(length=1, value_validator=Eq(2)), {'description': "Some header"}
         len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
                {'description': "A length of `val` array"})
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
@@ -128,7 +129,7 @@ class TestDeclarativeCompound(unittest.TestCase):
                         'schema': {
                             'block_class_mro': 'IntegerBlock__DataBlock',
                             'block_description': '1-byte unsigned integer. Always == 0x2',
-                            'required_value': 2,
+                            'value_validator': {'type': 'eq', 'expected_value': 2},
                             'serializable_to_disc': False,
                             'min_value': 0,
                             'max_value': 255,

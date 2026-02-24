@@ -20,11 +20,8 @@ class IntegerBlock(DataBlock):
                 f'{"un" if not self.is_signed else ""}signed integer'
         if self.length > 1:
             descr += f' ({self.byte_order} endian)'
-        if self.required_value is not None:
-            if isinstance(self.required_value, int):
-                descr += f'. Always == {hex(self.required_value)}'
-            else:
-                descr += f'. Always == {self.required_value}'
+        if self.value_validator is not None:
+            descr += f'. {self.value_validator}'
         return {
             **super().schema,
             'block_description': descr,
@@ -39,8 +36,8 @@ class IntegerBlock(DataBlock):
         return str(self.length)
 
     def new_data(self):
-        if self.required_value:
-            return self.required_value
+        if self.value_validator:
+            return self.value_validator.new_data()
         return 0
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -63,8 +60,8 @@ class FixedPointBlock(IntegerBlock):
         descr = (f'{self.length * 8}-bit real number ({self.byte_order}-endian, '
                  f'{"" if self.is_signed else "not "}signed), where last {self.fraction_bits} '
                  f'bits is a fractional part')
-        if self.required_value is not None:
-            descr += f'. Always == {self.required_value}'
+        if self.value_validator is not None:
+            descr += f'. {self.value_validator}'
         return {
             **super_schema,
             'min_value': float(super_schema['min_value'] / (1 << self.fraction_bits)),
@@ -99,8 +96,8 @@ class DecimalBlock(DataBlock):
     @property
     def schema(self) -> Dict:
         descr = f'{"Float" if self.length == 4 else "Double"} number ({self.byte_order}-endian)'
-        if self.required_value is not None:
-            descr += f'. Always == {self.required_value}'
+        if self.value_validator is not None:
+            descr += f'. {self.value_validator}'
         return {
             **super().schema,
             'block_description': descr,
@@ -182,8 +179,8 @@ class EnumByteBlock(IntegerBlock):
             self.enum_name_map[value] = name
 
     def new_data(self):
-        if self.required_value:
-            return self.required_value
+        if self.value_validator:
+            return self.value_validator.new_data()
         return next(x for x in self.enum_name_map if x is not None)
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):

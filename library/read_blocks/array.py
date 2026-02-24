@@ -66,8 +66,8 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         return self.child, unpacked_data[int(name)]
 
     def new_data(self):
-        if self.required_value:
-            return self.required_value
+        if self.value_validator:
+            return self.value_validator.new_data()
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
@@ -220,8 +220,8 @@ class SubByteArrayBlock(DataBlock):
         return None, unpacked_data[int(name)]
 
     def new_data(self):
-        if self.required_value:
-            return self.required_value
+        if self.value_validator:
+            return self.value_validator.new_data()
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation

@@ -5,6 +5,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  SubByteArrayBlock,
                                  BytesBlock,
                                  ArrayBlock)
+from library.read_blocks.misc.value_validators import Eq
 from library.utils import transform_bitness
 from resources.eac.fields.colors import (
     Color16Bit1555Block,
@@ -23,7 +24,7 @@ class AnyBitmapBlock(DeclarativeCompoundBlock):
 
 class Bitmap16Bit0565(AnyBitmapBlock, DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x78),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x78)),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length'})
@@ -54,7 +55,7 @@ class Bitmap4Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x7A),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7A)),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+width\\*height/2 + trailing bytes length'})
@@ -94,7 +95,7 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x7B),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7B)),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+width\\*height + trailing bytes length'})
@@ -124,7 +125,7 @@ class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
 
 class Bitmap32Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x7D),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7D)),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+4\\*width\\*height + trailing bytes length'})
@@ -145,7 +146,7 @@ class Bitmap32Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
 
 class Bitmap16Bit1555(AnyBitmapBlock, DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x7E),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7E)),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length'})
@@ -166,7 +167,7 @@ class Bitmap16Bit1555(AnyBitmapBlock, DeclarativeCompoundBlock):
 
 class Bitmap24Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, required_value=0x7F),
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7F)),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+3\\*width\\*height + trailing bytes length'})

@@ -4,14 +4,15 @@ from typing import Dict, Any, Tuple, Literal
 
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
+from library.read_blocks.misc.value_validators import ValueValidator
 from library.utils import represent_value_as_str
 
 
 class DataBlock(ABC):
     root_read_ctx = ReadContext()
 
-    def __init__(self, required_value=None, programmatic_value=None, **kwargs):
-        self.required_value = required_value
+    def __init__(self, value_validator: ValueValidator=None, programmatic_value=None, **kwargs):
+        self.value_validator = value_validator
         self.programmatic_value = programmatic_value
 
     # For auto-generated documentation only
@@ -28,8 +29,8 @@ class DataBlock(ABC):
             'block_description': '',
             'serializable_to_disc': False,
         }
-        if self.required_value:
-            s['required_value'] = self.required_value
+        if self.value_validator:
+            s['value_validator'] = self.value_validator.schema()
         if self.programmatic_value:
             s['is_programmatic'] = True
         return s
@@ -39,7 +40,9 @@ class DataBlock(ABC):
 
     # creates empty data
     def new_data(self):
-        return self.required_value
+        if self.value_validator:
+            return self.value_validator.new_data()
+        raise BlockDefinitionException("Cannot generate new data for block.")
 
     def serializer_class(self):
         return None
@@ -58,8 +61,8 @@ class DataBlock(ABC):
         pass
 
     def validate_after_read(self, value, ctx: ReadContext = root_read_ctx, name: str = ''):
-        if self.required_value and value != self.required_value:
-            raise DataIntegrityException(ctx=ctx, message=f'Expected {represent_value_as_str(self.required_value)}, '
+        if self.value_validator and not self.value_validator.validate(value):
+            raise DataIntegrityException(ctx=ctx, message=f'Expected {self.value_validator}, '
                                                           f'found {represent_value_as_str(value)} '
                                                           f'at {name}')
 
@@ -116,8 +119,8 @@ class BytesBlock(DataBlock):
     @property
     def schema(self) -> Dict:
         descr = 'Bytes'
-        if self.required_value is not None:
-            descr += f'. Always == {str(self.required_value)}'
+        if self.value_validator is not None:
+            descr += f'. {self.value_validator}'
         return {
             **super().schema,
             'block_description': descr,
@@ -137,8 +140,8 @@ class BytesBlock(DataBlock):
         return self_len
 
     def new_data(self):
-        if self.required_value:
-            return self.required_value
+        if self.value_validator:
+            return self.value_validator.new_data()
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation

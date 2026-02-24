@@ -8,6 +8,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  DelegateBlock,
                                  SkipBlock,
                                  LengthPrefixedArrayBlock, DecimalBlock, FixedPointBlock)
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import Point3D
 
 
@@ -172,7 +173,7 @@ class AnimData(DeclarativeCompoundBlock):
 class ExtraObjectDataCrossType1(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         unk = BytesBlock(length=18)
-        type = IntegerBlock(length=1, required_value=3)
+        type = IntegerBlock(length=1, value_validator=Eq(3))
         objno = IntegerBlock(length=1)
         num_animdata = IntegerBlock(length=2, programmatic_value=lambda ctx: len(ctx.data('animdata')))
         anim_delay = IntegerBlock(length=2)
