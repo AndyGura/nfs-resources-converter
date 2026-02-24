@@ -16,7 +16,7 @@ type ResourceError = {
 type BlockSchema = {
   block_class_mro: string;
   serializable_to_disc: boolean;
-  value_validator: { type: 'eq', expected_value: any } | { type: 'or', possible_values: any[] };
+  value_validator?: { type: 'eq', expected_value: any } | { type: 'or', possible_values: any[] };
 } & any;
 type BlockData = any;
 type ReadError = {
