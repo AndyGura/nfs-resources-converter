@@ -17,6 +17,7 @@ import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { joinId } from '../../utils/join-id';
 import isObject from 'lodash/isObject';
@@ -74,6 +75,7 @@ export class EditorComponent implements OnDestroy {
     // NFS3 blocks
     FrdMap: FrdMapBlockUiComponent,
     // NFS5 blocks
+    CrpGeometry: CrpGeometryBlockUiComponent,
     CrpPartInfo1: CrpPartInfo1BlockUiComponent,
     CrpPartInfo2: CrpPartInfo2BlockUiComponent,
   };

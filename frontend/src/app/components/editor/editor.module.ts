@@ -18,6 +18,7 @@ import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.compo
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
@@ -70,6 +71,7 @@ import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp
     WwwwBlockUiComponent,
     TriMapBlockUiComponent,
     OripGeometryBlockUiComponent,
+    CrpGeometryBlockUiComponent,
     FenceTypeBlockUiComponent,
     SoundbankBlockUiComponent,
     EacsAudioBlockUiComponent,
