@@ -163,7 +163,7 @@ class OripGeometry(DeclarativeCompoundBlock):
                                 programmatic_value=lambda ctx: 112 + len(ctx.data('polygons')) * 12),
                    {'description': 'An offset to vertex_uvs. Always equals to `112 + num_polygons*12`'})
         num_polygons = (IntegerBlock(length=4,
-                                      programmatic_value=lambda ctx: len(ctx.data('polygons'))),
+                                     programmatic_value=lambda ctx: len(ctx.data('polygons'))),
                         {'description': 'Amount of polygons'})
         polygons_ptr = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(112)),
                         {'description': 'An offset to polygons block'})
@@ -189,8 +189,9 @@ class OripGeometry(DeclarativeCompoundBlock):
                                                                    + len(ctx.data('tex_nmb')) * 20),
                        {'description': 'Offset of render_order block. Always equals to `tex_nmb_ptr + num_tex_nmb*20`'})
         vmap_ptr = (IntegerBlock(length=4,
-                                 programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(ctx.get_full_data(),
-                                                                                                      'vmap')),
+                                 programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
+                                     ctx.get_full_data(),
+                                     'vmap')),
                     {'description': 'Offset of polygon_vertex_map block'})
         num_fxp = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('fx_polys'))),
                    {'description': 'Amount of items in fx_polys block'})
@@ -346,7 +347,7 @@ class GeoGeometry(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1 = (ArrayBlock(child=IntegerBlock(length=4), length=32),
                 {'is_unknown': True})
-        unk2 = (IntegerBlock(length=8, value_validator=Eq(0)),
+        unk2 = (IntegerBlock(length=8),
                 {'is_unknown': True})
         part_hp_0 = (GeoMesh(),
                      {'description': 'High-Poly Additional Body Part'})

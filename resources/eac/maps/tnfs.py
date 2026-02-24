@@ -74,7 +74,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
         orientation = (Nfs1Angle14(),
                        {'description': 'Rotation of road path, if view from the top. Equals to '
                                        'atan2(next_x - x, next_z - z)'})
-        unk1 = (IntegerBlock(length=2, value_validator=Eq(0)),
+        unk1 = (IntegerBlock(length=2),
                 {'is_unknown': True})
         side_normal = (Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True)),
                        {'description': 'Side normal vector'})
