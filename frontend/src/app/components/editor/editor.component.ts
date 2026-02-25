@@ -29,6 +29,7 @@ import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
+import { Resource, ResourceError } from './types';
 
 @Component({
   selector: 'app-editor',

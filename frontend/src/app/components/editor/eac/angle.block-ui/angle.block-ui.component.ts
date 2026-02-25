@@ -10,6 +10,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
+import { Resource } from '../../types';
 
 @Component({
   selector: 'app-angle-block-ui',

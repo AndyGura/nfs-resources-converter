@@ -1,5 +1,6 @@
 from copy import deepcopy
 from io import BytesIO
+from os.path import getsize
 from typing import Dict
 
 from library.context import ReadContext, WriteContext
@@ -23,42 +24,68 @@ from .shpi_block import ShpiBlock
 
 class CompressedBlock(AutoDetectBlock):
 
+    @property
+    def algorithm(self):
+        return None
+
     def __init__(self, **kwargs):
         super().__init__(possible_blocks=[ShpiBlock(),
                                           CarSimplifiedPerformanceSpec(),
                                           CarPerformanceSpec()],
                          **kwargs)
-        self.algorithm = None
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+            'custom_actions': [
+                {
+                    'method': 'save_uncompressed',
+                    'title': 'Save uncompressed data',
+                    'description': 'Saved uncompressed binary data to a new file',
+                    'is_pure': True,
+                    'args': [
+                        {'id': 'file_path', 'title': 'File path', 'type': 'file_output',
+                         'file_name_suffix': '_uncompressed'}
+                    ],
+                }
+            ]}
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         uncompressed_bytes = self.algorithm(ctx.buffer, read_bytes_amount)
         uncompressed = BytesIO(uncompressed_bytes)
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
         self_ctx.buffer = uncompressed
-        self_ctx.data = { 'uncompressed': None }
+        self_ctx.data = {'uncompressed': None}
         res = super().read(ctx=self_ctx, name='uncompressed', read_bytes_amount=len(uncompressed_bytes))
         return res
+
+    def action_save_uncompressed(self, name, file_path, **kwargs):
+        # we do not store compressed buffer in the context, so read file again
+        with open(name, 'rb', buffering=100 * 1024 * 1024) as bdata:
+            uncompressed_bytes = self.algorithm(bdata, getsize(name))
+            with open(file_path, 'wb') as f:
+                f.write(uncompressed_bytes)
 
 
 class RefPackBlock(CompressedBlock):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.algorithm = RefPackCompression().uncompress
+    @property
+    def algorithm(self):
+        return RefPackCompression().uncompress
 
 
 class Qfs2Block(CompressedBlock):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.algorithm = Qfs2Compression().uncompress
+    @property
+    def algorithm(self):
+        return Qfs2Compression().uncompress
 
 
 class Qfs3Block(CompressedBlock):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.algorithm = Qfs3Compression().uncompress
+    @property
+    def algorithm(self):
+        return Qfs3Compression().uncompress
 
 
 class WwwwBlock(BaseArchiveBlock):

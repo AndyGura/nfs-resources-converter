@@ -268,18 +268,21 @@ class TriMap(DeclarativeCompoundBlock):
                     'method': 'reverse_track',
                     'title': 'Reverse track',
                     'description': 'Makes this track to go backwards',
+                    'is_pure': False,
                     'args': [],
                 },
                 {
                     'method': 'flatten_track',
                     'title': 'Flatten track',
                     'description': 'Makes track super flat: going forward without turns, slopes and slants',
+                    'is_pure': False,
                     'args': [],
                 },
                 {
                     'method': 'scale_track',
                     'title': 'Scale track length',
                     'description': 'Makes track shorter or longer by scaling it. Does not affect objects and terrain size',
+                    'is_pure': False,
                     'args': [{'id': 'scale', 'title': 'Scale', 'type': 'number'}],
                 },
             ],
@@ -335,7 +338,7 @@ class TriMap(DeclarativeCompoundBlock):
         from serializers import TriMapSerializer
         return TriMapSerializer
 
-    def action_reverse_track(self, read_data):
+    def action_reverse_track(self, read_data, **kwargs):
         # FIXME lanes are a bit off: CY1.TRI now has both lanes oncoming, and racers drive on right verge. Traffic never appears
         # FIXME lane merge/split are broken. Is it possible to fix?
         # FIXME tunnel walls are broken. Is it possible to fix?
@@ -384,7 +387,7 @@ class TriMap(DeclarativeCompoundBlock):
             (vertex['left_barrier'], vertex['right_barrier']) = (vertex['right_barrier'], vertex['left_barrier'])
             # swap lanes
             vertex['num_lanes'] = [vertex['num_lanes'][1], vertex['num_lanes'][0]]
-            vertex['lanes_unk'] = [vertex['lanes_unk'][1], vertex['lanes_unk'][0]]
+            vertex['fence_flag'] = [vertex['fence_flag'][1], vertex['fence_flag'][0]]
             vertex['verge_slide'] = [vertex['verge_slide'][1], vertex['verge_slide'][0]]
             # change sign of slope/slant values
             vertex['slope'] = -vertex['slope']
@@ -438,13 +441,13 @@ class TriMap(DeclarativeCompoundBlock):
         for i, vertex in enumerate(read_data['road_spline'][:road_spline_length]):
             v_block.update_orientations(vertex, read_data['road_spline'][i + 1 if i < road_spline_length else 0])
 
-    def action_flatten_track(self, data):
+    def action_flatten_track(self, read_data, **kwargs):
         from math import cos, sin, pi
-        for i, terrain_chunk in enumerate(data['terrain']):
+        for i, terrain_chunk in enumerate(read_data['terrain']):
             for j in range(4):
                 terrain_chunk['rows'][j][0]['y'] = 0.0
                 # rotate terrain mesh around first point
-                angle = data['road_spline'][i * 4 + j]['orientation']
+                angle = read_data['road_spline'][i * 4 + j]['orientation']
                 cosine = cos(angle)
                 sine = sin(angle)
                 for k in range(1, 11):
@@ -455,8 +458,8 @@ class TriMap(DeclarativeCompoundBlock):
                     terrain_chunk['rows'][j][k]['x'] = x_new + terrain_chunk['rows'][j][0]['x']
                     terrain_chunk['rows'][j][k]['z'] = z_new + terrain_chunk['rows'][j][0]['z']
         # fix props
-        for prop in data['props']:
-            road_vertex = data['road_spline'][prop['road_point_idx']]
+        for prop in read_data['props']:
+            road_vertex = read_data['road_spline'][prop['road_point_idx']]
             prop['rotation'] -= road_vertex['orientation']
             if prop['rotation'] < 0:
                 prop['rotation'] += 2 * pi
@@ -465,7 +468,7 @@ class TriMap(DeclarativeCompoundBlock):
                 prop['position']['x'] * cosine - prop['position']['z'] * sine,
                 prop['position']['x'] * sine + prop['position']['z'] * cosine)
 
-        for i, road_vertex in enumerate(data['road_spline'][:len(data['terrain']) * 4]):
+        for i, road_vertex in enumerate(read_data['road_spline'][:len(read_data['terrain']) * 4]):
             road_vertex['position']['x'] = road_vertex['position']['y'] = 0
             road_vertex['position']['z'] = i * 6.25
             road_vertex['slope'] = 0
@@ -473,10 +476,10 @@ class TriMap(DeclarativeCompoundBlock):
             road_vertex['side_normal']['y'] = 0
         # update rotations
         v_block = RoadSplinePoint()
-        for i, vertex in enumerate(data['road_spline'][:len(data['terrain']) * 4]):
-            v_block.update_orientations(vertex, data['road_spline'][i + 1 if i < len(data['terrain']) * 4 else 0])
+        for i, vertex in enumerate(read_data['road_spline'][:len(read_data['terrain']) * 4]):
+            v_block.update_orientations(vertex, read_data['road_spline'][i + 1 if i < len(read_data['terrain']) * 4 else 0])
 
-    def action_scale_track(self, read_data, scale: float):
+    def action_scale_track(self, read_data, scale: float, **kwargs):
         scale = float(scale)
         for i, vertex in enumerate(read_data['road_spline']):
             vertex['position']['x'] *= scale

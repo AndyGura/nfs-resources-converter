@@ -12,6 +12,7 @@ import { MainService } from '../../../../services/main.service';
 import { filter, Subject, takeUntil } from 'rxjs';
 import { NavigationService } from '../../../../services/navigation.service';
 import { joinId } from '../../../../utils/join-id';
+import { BlockData, BlockSchema, Resource } from '../../types';
 
 @Component({
   selector: 'app-compound-block-ui',

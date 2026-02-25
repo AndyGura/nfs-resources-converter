@@ -15,6 +15,7 @@ import { MainService } from '../../../../services/main.service';
 import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
 import { Nfs2CarMeshController } from './nfs2-car-mesh-controller';
+import { Resource } from '../../types';
 
 @Component({
   selector: 'app-geo-geometry.block-ui',
@@ -75,7 +76,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
         if (timeout) {
           clearTimeout(timeout);
         }
-        timeout = setTimeout(() => (meshController.color = color), 50);
+        timeout = setTimeout(() => (meshController.color = color), 50) as any as number;
       };
       this.customControls = [
         {

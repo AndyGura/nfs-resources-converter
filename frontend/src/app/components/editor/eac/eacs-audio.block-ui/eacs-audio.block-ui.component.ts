@@ -4,6 +4,7 @@ import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
 import { NavigationService } from '../../../../services/navigation.service';
+import { Resource } from '../../types';
 
 @Component({
   selector: 'app-eacs-audio.block-ui',

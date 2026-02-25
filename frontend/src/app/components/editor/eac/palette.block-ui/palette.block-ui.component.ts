@@ -3,6 +3,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { NgxMatColorPickerComponent } from '@angular-material-components/color-picker/lib/components/color-picker/color-picker.component';
 import { Color } from '@angular-material-components/color-picker';
 import { GlobalPositionStrategy } from '@angular/cdk/overlay';
+import { BlockData, Resource } from '../../types';
 
 @Component({
   selector: 'app-palette-block-ui',

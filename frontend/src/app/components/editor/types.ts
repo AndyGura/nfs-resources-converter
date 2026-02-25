@@ -1,11 +1,11 @@
-type Resource<BD = BlockData> = {
+export type Resource<BD = BlockData> = {
   id: string;
   name: string;
   schema: BlockSchema;
   data: BD;
 };
 
-type ResourceError = {
+export type ResourceError = {
   id: string;
   name: string;
   schema: null;
@@ -13,20 +13,28 @@ type ResourceError = {
 };
 
 // TODO improve typing here
-type BlockSchema = {
+export type BlockSchema = {
   block_class_mro: string;
   serializable_to_disc: boolean;
   value_validator?: { type: 'eq', expected_value: any } | { type: 'or', possible_values: any[] };
+  custom_actions?: CustomAction[]
 } & any;
-type BlockData = any;
-type ReadError = {
+export type BlockData = any;
+export type ReadError = {
   error_class: string;
   error_text: string;
 };
 
-type CustomAction = {
+export type CustomAction = {
   method: string;
   title: string;
   description: string;
-  args: { id: string; title: string; type: string }[];
+  is_pure: boolean;
+  args: CustomActionArgument[];
 };
+
+export type CustomActionArgument = { id: string; title: string } & (
+  | { type: 'file_output', file_name_suffix: string }
+  | { type: 'number' }
+  | { type: 'string' }
+  );

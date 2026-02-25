@@ -4,6 +4,7 @@ import { joinId } from '../../../../utils/join-id';
 import { MainService } from '../../../../services/main.service';
 import { blockClassStr } from '../../../../utils/block_class_str';
 import { NavigationService } from '../../../../services/navigation.service';
+import { BlockData, Resource } from '../../types';
 
 type DelegateBlockData = { choice_index: number; data: BlockData };
 

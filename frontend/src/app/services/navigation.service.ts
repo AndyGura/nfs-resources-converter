@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { MainService } from './main.service';
 import { getChildResource } from '../utils/get-child-resource';
+import { Resource } from '../components/editor/types';
 
 @Injectable({
   providedIn: 'root',

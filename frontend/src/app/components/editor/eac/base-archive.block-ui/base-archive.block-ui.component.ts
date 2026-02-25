@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
+import { BlockData, BlockSchema, Resource } from '../../types';
 
 @Component({
   selector: 'app-base-archive-block-ui',

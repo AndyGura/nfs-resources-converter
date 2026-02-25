@@ -1,4 +1,5 @@
 import { EventEmitter } from '@angular/core';
+import { Resource } from './types';
 
 export interface GuiComponentInterface {
   resource: Resource | null;

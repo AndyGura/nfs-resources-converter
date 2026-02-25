@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject } from 'rxjs';
+import { Resource } from '../../types';
 
 @Component({
   selector: 'app-binary-block-ui',

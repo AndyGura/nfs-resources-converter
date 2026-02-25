@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { RunCustomActionDialogComponent } from '../../../run-custom-action.dialog/run-custom-action.dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Resource, CustomAction } from '../../types';
 
 @Component({
   selector: 'app-block-actions',
@@ -69,7 +70,10 @@ export class BlockActionsComponent {
       }
     }
     let dialogRef = this.dialog.open(RunCustomActionDialogComponent, {
-      data: action,
+      data: {
+        action: action,
+        resourceName: this.resource?.name || ''
+      },
     });
     const args: any[] | undefined = await firstValueFrom(dialogRef.afterClosed());
     if (!args) {

@@ -11,6 +11,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { MainService } from '../../../../services/main.service';
+import { Resource } from '../../types';
 
 @Component({
   selector: 'app-bitmap-block-ui',
