@@ -86,6 +86,14 @@ python run.py show_settings
 
 This command displays the full path to the settings file used by the application. The settings file is stored in your home directory.
 
+### Uncompress File
+```
+python run.py uncompress /path/to/compressed/file.qfs
+```
+
+This command uncompresses compressed game resource files and saves uncompressed data to file. 
+The uncompressed file will be saved in the same directory as the original file with "_uncompressed" added to the filename. For example, `AL1.QFS` becomes `AL1.QFS_uncompressed`.
+
 ### Custom Commands
 Custom commands are more complex scripts that can be run on particular resource files. They are available in the GUI 
 through the block actions menu (flash icon at the top).
