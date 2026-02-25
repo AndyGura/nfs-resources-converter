@@ -1,11 +1,23 @@
 <mat-form-field appearance="fill" *ngIf="resource"
                 [matTooltip]="resourceDescription" matTooltipPosition="above">
     <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
-    <input matInput type="number"
-           [max]="resource.schema.max_value"
-           [min]="resource.schema.min_value"
-           [step]="resource.schema.value_interval"
-           [disabled]="disabled || resource.schema.required_value !== undefined"
-           [(ngModel)]="resource.data"
-           (change)="changed.emit()">
+
+    <ng-container *ngIf="resource.schema.value_validator?.type === 'or'; else numberInput">
+      <mat-select
+        [disabled]="disabled"
+        [(ngModel)]="resource.data"
+        (selectionChange)="changed.emit()">
+        <mat-option *ngFor="let v of resource.schema.value_validator.possible_values" [value]="v">{{ v }}</mat-option>
+      </mat-select>
+    </ng-container>
+
+    <ng-template #numberInput>
+      <input matInput type="number"
+             [max]="resource.schema.max_value"
+             [min]="resource.schema.min_value"
+             [step]="resource.schema.value_interval"
+             [disabled]="disabled || resource.schema.value_validator?.type === 'eq'"
+             [(ngModel)]="resource.data"
+             (change)="changed.emit()">
+    </ng-template>
 </mat-form-field>

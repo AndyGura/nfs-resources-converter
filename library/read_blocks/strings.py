@@ -14,8 +14,8 @@ class UTF8Block(DataBlock):
     @property
     def schema(self) -> Dict:
         descr = 'UTF-8 string'
-        if self.required_value:
-            descr += f'. Always == "{self.required_value}"'
+        if self.value_validator:
+            descr += f'. {self.value_validator}'
         return {
             **super().schema,
             'block_description': descr,
@@ -54,8 +54,8 @@ class UTF8Block(DataBlock):
         return self_len
 
     def new_data(self):
-        if self.required_value:
-            return self.required_value
+        if self.value_validator:
+            return self.value_validator.new_data()
         return ""
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):

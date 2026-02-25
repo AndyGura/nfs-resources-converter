@@ -5,6 +5,7 @@ from library.context import ReadContext
 from library.exceptions import DataIntegrityException
 from library.read_blocks import UTF8Block
 from library.read_blocks.array import ArrayBlock, LengthPrefixedArrayBlock, SubByteArrayBlock
+from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.numbers import IntegerBlock
 
 
@@ -20,8 +21,8 @@ class TestArray(unittest.TestCase):
         data = field.pack([92, 129, 13])
         self.assertEqual(data, bytes([92, 129, 13]))
 
-    def test_array_required_value(self):
-        field = ArrayBlock(length=3, child=IntegerBlock(length=1), required_value=[10, 20, 30])
+    def test_array_value_validator(self):
+        field = ArrayBlock(length=3, child=IntegerBlock(length=1), value_validator=Eq([10, 20, 30]))
         field.unpack(ReadContext(buffer=BytesIO(bytes([10, 20, 30]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([90, 12, 30]))))
@@ -74,8 +75,8 @@ class TestLengthPrefixedArray(unittest.TestCase):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1))
         self.assertEqual(field.pack([92, 129, 13, 12, 15]), bytes([0, 0, 5, 92, 129, 13, 12, 15]))
 
-    def test_array_required_value(self):
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1), required_value=[10, 20, 30])
+    def test_array_value_validator(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1), value_validator=Eq([10, 20, 30]))
         field.unpack(ReadContext(BytesIO(bytes([3, 10, 20, 30]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([3, 90, 12, 30]))))

@@ -3,6 +3,7 @@ from io import BytesIO
 from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock, UTF8Block, IntegerBlock, ArrayBlock, EnumByteBlock,
                                  EnumLookupDelegateBlock, BytesBlock, FixedPointBlock)
+from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import RGBBlock, Point3D
 
 
@@ -206,7 +207,7 @@ class ColExtraBlock(DeclarativeCompoundBlock):
                                           (19, 'props_19'),
                                           ]),
                 {'description': 'Type of the data records'})
-        unk = (IntegerBlock(length=1, required_value=0),
+        unk = (IntegerBlock(length=1, value_validator=Eq(0)),
                {'is_unknown': True})
         num_data_records = (IntegerBlock(length=2,
                                          programmatic_value=lambda ctx: len(ctx.data('data_records'))),
@@ -232,9 +233,9 @@ class ColExtraBlock(DeclarativeCompoundBlock):
 
 class MapColFile(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(length=4, required_value='COLL'),
+        resource_id = (UTF8Block(length=4, value_validator=Eq('COLL')),
                        {'description': 'Resource ID'})
-        unk = (IntegerBlock(length=4, required_value=11),
+        unk = (IntegerBlock(length=4, value_validator=Eq(11)),
                {'is_unknown': True})
         block_size = (IntegerBlock(length=4, is_signed=False,
                                    programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),

@@ -1,11 +1,12 @@
 from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, DelegateBlock
+from library.read_blocks.misc.value_validators import Eq
 
 
 # A test resource with common complications for testing read, write and GUI functionality
 class TestResource(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         # various strings
-        required_string = (UTF8Block(length=4, required_value='NRCT'),
+        required_string = (UTF8Block(length=4, value_validator=Eq('NRCT')),
                            {'description': 'Test text field with required value'})
         fixed_size_string = (UTF8Block(length=12),
                              {'description': 'Test text field with fixed length'})
@@ -20,7 +21,7 @@ class TestResource(DeclarativeCompoundBlock):
                       {'description': 'Test 0 - 65535 number, big-endian'})
         short = (IntegerBlock(length=2, is_signed=True),
                  {'description': 'Test -32768 - 32767 number'})
-        required_int = (IntegerBlock(length=1, required_value=42),
+        required_int = (IntegerBlock(length=1, value_validator=Eq(42)),
                         {'description': 'Test required number'})
         # lookup string length
         var_str_length = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('var_str'))),

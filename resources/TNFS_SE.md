@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2025-10-20 09:50:34.980081+00:00*
+*Last time updated: 2026-02-24 23:27:37.003867+00:00*
 
 
 # **Info by file extensions** #
@@ -184,7 +184,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 20 | **slope** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Slope of the road at this point (angle if road goes up or down) |
 | 22 | **slant** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Perpendicular angle of road |
 | 24 | **orientation** | 2 | EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees | Rotation of road path, if view from the top. Equals to atan2(next_x - x, next_z - z) |
-| 26 | **unk1** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 26 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
 | 28 | **side_normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part | Side normal vector |
 | 34 | **unk2** | 2 | 2-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 ### **PropDescr** ###
@@ -234,7 +234,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1 | **resource_id_2** | 1 | 1-byte unsigned integer | Seems to always be equal to `resource_id`, except for one prop on map CL1, which is not used on map |
 | 2 | **unk0** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 1.5 | Unknown purpose |
 | 6 | **unk1** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | The purpose is unknown. Every single entry in TNFS files equals to 1.5 (0x00_80_01_00) just like `unk0`, except for one prop on CL1, which has broken texture palette and which is not used on the map anyways |
-| 10 | **unk2** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 3 | Unknown purpose |
+| 10 | **unk2** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part. Always == 0x3 | Unknown purpose |
 ### **BitmapPropDescrData** ###
 #### **Size**: 14 bytes ####
 #### **Description**: Map prop settings if it is a bitmap ####
