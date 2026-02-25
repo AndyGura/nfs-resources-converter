@@ -33,6 +33,10 @@ Project provides a full-featured GUI application where you can:
 - Configure system settings (paths to Blender and FFmpeg executables)
 - Run custom commands on specific file types
 
+# Roadmap and Milestones
+Milestones are AI-generated to guide public planning and will evolve over time.
+- View the roadmap: [docs/milestones.md](docs/milestones.md)
+
 # Installation:
 
 0) Install Python 3.9+, pip, ffmpeg, blender (version 4+)
