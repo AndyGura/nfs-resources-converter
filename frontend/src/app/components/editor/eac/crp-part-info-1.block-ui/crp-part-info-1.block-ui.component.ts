@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { MatSelectionListChange } from '@angular/material/list';
+import { Resource } from '../../types';
 
 @Component({
   templateUrl: './crp-part-info-1.block-ui.component.html',
