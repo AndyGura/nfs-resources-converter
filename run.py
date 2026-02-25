@@ -9,6 +9,7 @@ class Action(Enum):
     gui = 'gui'
     custom_command = 'custom_command'
     show_settings = 'show_settings'
+    uncompress = 'uncompress'
 
     def __str__(self):
         return self.value
@@ -37,6 +38,13 @@ if __name__ == "__main__":
     elif args.action == Action.show_settings:
         from config import get_config_file_location
         print(f"Settings file location: {get_config_file_location()}")
+    elif args.action == Action.uncompress:
+        if args.file is None:
+            raise Exception('file argument is required for uncompress action')
+        if os.path.isdir(args.file):
+            raise Exception('Cannot uncompress directory, use path to file')
+        from actions.uncompress import uncompress_file
+        uncompress_file(str(args.file))
     elif args.action == Action.custom_command:
         if args.file is None:
             raise Exception('file argument is required for custom_command action')
