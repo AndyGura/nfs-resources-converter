@@ -13,6 +13,7 @@ import { joinId } from '../../../../utils/join-id';
 import { MainService } from '../../../../services/main.service';
 import { filter, Subject, takeUntil } from 'rxjs';
 import { NavigationService } from '../../../../services/navigation.service';
+import { BlockData, BlockSchema, Resource } from '../../types';
 
 @Component({
   selector: 'app-array-block-ui',
@@ -121,7 +122,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
         this.contentsTimeout = undefined;
         this.renderContents = false;
         this.cdr.markForCheck();
-      }, 2000);
+      }, 2000) as any as number;
     }
   }
 

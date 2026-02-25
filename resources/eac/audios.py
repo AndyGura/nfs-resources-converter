@@ -68,6 +68,7 @@ class EacsAudioFile(DeclarativeCompoundBlock):
                     'method': 'silence',
                     'title': 'Silence',
                     'description': 'Makes this audio sample completely silent',
+                    'is_pure': False,
                     'args': [],
                 }]}
 
@@ -91,8 +92,8 @@ class EacsAudioFile(DeclarativeCompoundBlock):
         from serializers import EacsAudioSerializer
         return EacsAudioSerializer
 
-    def action_silence(self, data):
-        data['wave_data'] = b'\x00' * len(data['wave_data'])
+    def action_silence(self, read_data, **kwargs):
+        read_data['wave_data'] = b'\x00' * len(read_data['wave_data'])
 
 
 class AsfAudio(DeclarativeCompoundBlock):

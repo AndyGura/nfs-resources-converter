@@ -1,4 +1,5 @@
 import { joinId } from './join-id';
+import { Resource } from '../components/editor/types';
 
 const CHILD_RESOURCE_BUILDERS_MAP: { [key: string]: (resource: Resource, childName: string | number) => Resource } = {
   ArrayBlock: (resource, i) => ({

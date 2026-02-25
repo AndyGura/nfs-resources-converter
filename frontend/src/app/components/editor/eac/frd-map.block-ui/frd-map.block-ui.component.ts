@@ -49,6 +49,7 @@ import {
 } from '@gg-web-engine/three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
+import { Resource } from '../../types';
 
 // TODO use this from gg-web-engine after next release
 type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R, infer TypeDoc> ? TypeDoc : never;

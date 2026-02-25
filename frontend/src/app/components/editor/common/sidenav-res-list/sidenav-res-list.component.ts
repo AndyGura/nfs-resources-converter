@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { NavigationService } from '../../../../services/navigation.service';
+import { BlockData, ReadError } from '../../types';
 
 @Component({
   selector: 'app-sidenav-res-list',

@@ -1,5 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
 

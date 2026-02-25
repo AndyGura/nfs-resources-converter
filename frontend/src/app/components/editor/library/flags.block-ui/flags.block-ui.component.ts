@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { MatSelectionListChange } from '@angular/material/list';
+import { Resource } from '../../types';
 
 @Component({
   selector: 'app-flags-block-ui',

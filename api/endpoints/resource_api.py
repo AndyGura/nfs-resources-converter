@@ -60,7 +60,7 @@ class ResourceAPI:
         Returns:
             Result of the action
         """
-        (name, res_block, resource), _ = require_resource(resource_id)
+        (name, res_block, read_data), _ = require_resource(resource_id)
         action_func = getattr(res_block, f'action_{action["method"]}')
-        action_func(resource, **args)
-        return self.render_data(resource)
+        action_func(name=name, read_data=read_data, **args)
+        return None if action.get('is_pure', False) else self.render_data(read_data)

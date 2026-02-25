@@ -1,11 +1,23 @@
-<h1 mat-dialog-title>Run action "{{data.title}}"</h1>
+<h1 mat-dialog-title>Run action "{{data.action.title}}"</h1>
 <div mat-dialog-content>
-    <p>{{data.description}}</p>
+    <p>{{data.action.description}}</p>
 </div>
 <form [formGroup]="argsForm">
-    <mat-form-field appearance="fill" *ngFor="let arg of data.args">
+    <mat-form-field appearance="fill" *ngFor="let arg of data.action.args">
         <mat-label>{{ arg.title }}</mat-label>
-        <input matInput [id]="arg.id" [type]="arg.type" [formControlName]="arg.id">
+        <input matInput
+               [id]="arg.id"
+               [type]="getInputType(arg.type)"
+               [formControlName]="arg.id"
+               [placeholder]="arg.type === 'file_output' ? 'Enter output filename with ' + arg.file_name_suffix + ' suffix' :
+                             arg.type === 'number' ? 'Enter a number' :
+                             'Enter text'">
+        <mat-error *ngIf="argsForm.get(arg.id)?.hasError('required')">
+            {{ arg.title }} is required
+        </mat-error>
+        <mat-error *ngIf="argsForm.get(arg.id)?.hasError('pattern') && arg.type === 'number'">
+            Please enter a valid number
+        </mat-error>
     </mat-form-field>
 </form>
 <div mat-dialog-actions>

@@ -55,6 +55,7 @@ import { joinId } from '../../../../utils/join-id';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
+import { BlockSchema, Resource } from '../../types';
 
 export enum MapPropType {
   ThreeModel = 'model',

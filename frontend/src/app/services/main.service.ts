@@ -4,6 +4,7 @@ import { EelDelegateService } from './eel-delegate.service';
 import isEqual from 'lodash/isEqual';
 import isNumber from 'lodash/isNumber';
 import { findNestedObjects } from '../utils/find-nested-object';
+import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
 
 @Injectable({
   providedIn: 'root',
@@ -114,7 +115,11 @@ export class MainService {
   }
 
   public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
-    return this.processExternalChanges(id, () => this.eelDelegate.runCustomAction(id, action, args));
+    if (action.is_pure) {
+      await this.eelDelegate.runCustomAction(id, action, args);
+    } else {
+      return this.processExternalChanges(id, () => this.eelDelegate.runCustomAction(id, action, args));
+    }
   }
 
   public async deserializeResource(id: string) {

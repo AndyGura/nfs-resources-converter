@@ -15,6 +15,7 @@ import { MainService } from '../../../../services/main.service';
 import { Object3D } from 'three';
 import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
 import { TnfsCarMeshController } from './tnfs-car-mesh-controller';
+import { Resource } from '../../types';
 
 @Component({
   selector: 'app-orip-geometry-block-ui',
