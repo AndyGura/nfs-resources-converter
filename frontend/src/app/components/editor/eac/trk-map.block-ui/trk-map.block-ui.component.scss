@@ -16,6 +16,62 @@
     canvas {
       position: absolute;
     }
+
+    #controls {
+      position: absolute;
+      right: 0;
+      top: 0;
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      row-gap: 10px;
+      background-color: #333333;
+      color: white;
+      max-height: calc(100% - 8px);
+      overflow-y: auto;
+      z-index: 100;
+
+      &:empty {
+        display: none;
+      }
+
+      > h4 {
+        margin: 0;
+      }
+
+      .controls-list {
+        width: 100%;
+        display: flex;
+        user-select: none;
+        align-items: center;
+
+        > span {
+          flex-grow: 1;
+        }
+
+        > label {
+          flex-grow: 1;
+        }
+      }
+
+      .controls-list-vertical {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+        gap: 5px;
+
+        .control-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          > label {
+            flex-grow: 1;
+          }
+        }
+      }
+    }
   }
 
   .previewNavigationContainer {

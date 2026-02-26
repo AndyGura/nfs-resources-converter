@@ -4,7 +4,7 @@
 
     <h4>View Mode</h4>
     <div class="controls-list-vertical">
-      <div class="control-item" *ngFor="let option of ['material', 'wireframe', 'unlit', 'edges']">
+      <div class="control-item" *ngFor="let option of viewModeController?.listViewModes">
         <input [id]="'view_mode_' + option"
                type="radio"
                name="viewMode"
@@ -50,7 +50,7 @@
       <h4>Objects visibility</h4>
       <div class="controls-list" *ngFor="let mesh of meshes">
         <label [for]="'visibility_' + mesh.name">{{mesh.name}}</label>
-        <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible" (change)="mesh.visible = $any($event.currentTarget).checked; updateEdgeLineVisibility(mesh)">
+        <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible" (change)="mesh.visible = $any($event.currentTarget).checked;">
       </div>
     </ng-container>
   </div>

@@ -24,6 +24,19 @@
   <div class='previewCanvasContainer' #previewCanvasContainer>
     <canvas #previewCanvas width='640' height='480'></canvas>
     <mat-spinner *ngIf='previewLoading$ | async' mode='indeterminate'></mat-spinner>
+    <div id="controls">
+      <h4>View Mode</h4>
+      <div class="controls-list-vertical">
+        <div class="control-item" *ngFor="let option of viewModeController?.listViewModes">
+          <input [id]="'view_mode_' + option"
+                 type="radio"
+                 name="viewMode"
+                 [checked]="viewMode === option"
+                 (change)="setViewMode($any(option));">
+          <label [for]="'view_mode_' + option">{{option}}</label>
+        </div>
+      </div>
+    </div>
   </div>
   <div class='previewNavigationContainer' #previewCanvasContainer>
     <mat-form-field appearance='fill'>

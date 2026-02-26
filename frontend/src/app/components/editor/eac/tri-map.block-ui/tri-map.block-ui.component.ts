@@ -55,6 +55,7 @@ import { joinId } from '../../../../utils/join-id';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
+import { ViewMode, ViewModeController } from '../../../../utils/three_editor/view-mode.controller';
 import { BlockSchema, Resource } from '../../types';
 
 export enum MapPropType {
@@ -382,10 +383,16 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   isOpenedTrack: boolean = true;
   controller!: FreeCameraController;
   roadPath: Point3[] | null = null;
+  ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
+  viewModeController?: ViewModeController;
   skySphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
   selectionSphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
+
+  get viewMode(): ViewMode {
+    return this.viewModeController?.viewMode || 'material';
+  }
 
   constructor(
     private readonly eelDelegate: EelDelegateService,
@@ -434,6 +441,8 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
+    this.viewModeController = new ViewModeController(this.world.visualScene.nativeScene!, this.ambientLight);
+    this.world.visualScene.nativeScene!.add(this.ambientLight);
     this.skySphere = new Entity3d({
       object3D: this.world.visualScene.factory.createPrimitive(
         {
@@ -458,7 +467,6 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     ((this.selectionSphere.object3D!.nativeMesh as Mesh).material as Material).transparent = true;
     this.world.addEntity(this.selectionSphere);
 
-    this.world.visualScene.nativeScene!.add(new AmbientLight(0xffffff, 2));
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
     this.renderer = this.world.addRenderer(
       this.world.visualScene.factory.createPerspectiveCamera(),
@@ -715,7 +723,12 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
   }
 
+  public setViewMode(mode: ViewMode): void {
+    this.viewModeController?.setViewMode(mode);
+  }
+
   ngOnDestroy(): void {
+    this.viewModeController?.dispose();
     this.destroyed$.next();
     this.destroyed$.complete();
   }

@@ -13,6 +13,7 @@ import {
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import {
   Entity3d,
+  FreeCameraController,
   Gg3dWorld,
   GgWorld,
   OrbitCameraController,
@@ -28,18 +29,11 @@ import {
 } from '@gg-web-engine/three';
 import {
   AmbientLight,
-  BufferGeometry,
   ClampToEdgeWrapping,
-  EdgesGeometry,
   Group,
-  LineBasicMaterial,
-  LineSegments,
   Material,
   Mesh,
   MeshBasicMaterial,
-  MeshLambertMaterial,
-  MeshPhongMaterial,
-  MeshStandardMaterial,
   NearestFilter,
   Object3D,
   Texture,
@@ -47,6 +41,7 @@ import {
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { Color } from '@angular-material-components/color-picker';
+import { ViewMode, ViewModeController } from '../../../../utils/three_editor/view-mode.controller';
 
 export const setupNfs1Texture = (texture: Texture) => {
   texture.colorSpace = 'srgb';
@@ -115,6 +110,8 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   @Input() customControls: ObjViewerCustomControl[] = [];
 
+  @Input() cameraControl: 'orbit' | 'free' = 'orbit';
+
   @Output() onObjectLoaded: EventEmitter<Object3D> = new EventEmitter<Object3D>();
 
   _paths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
@@ -126,18 +123,16 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   world!: ThreeGgWorld;
   renderer!: Renderer3dEntity<ThreeVisualTypeDocRepo>;
   entity: Entity3d<TypeDocOf<ThreeGgWorld>> | null = null;
-  controller!: OrbitCameraController;
+  controller!: OrbitCameraController | FreeCameraController;
 
   meshes: Object3D[] = [];
 
-  viewMode: 'material' | 'wireframe' | 'unlit' | 'edges' = 'material';
-  originalMaterials: Map<Mesh, Material | Material[]> = new Map();
-  edgeLines: LineSegments[] = [];
-  meshToEdgeLines: Map<Mesh, LineSegments> = new Map();
-  ambientLight!: AmbientLight;
+  ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
+  viewModeController?: ViewModeController;
 
-  meshesWithViewModeMaterials: Set<Mesh> = new Set();
-  controllerManagedMaterials: Map<Mesh, Material | Material[]> = new Map();
+  get viewMode(): ViewMode {
+    return this.viewModeController?.viewMode || 'material';
+  }
 
   constructor(private readonly cdr: ChangeDetectorRef) {
   }
@@ -145,7 +140,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
-    this.ambientLight = new AmbientLight(0xffffff, 2);
+    this.viewModeController = new ViewModeController(this.world.visualScene.nativeScene!, this.ambientLight);
     this.world.visualScene.nativeScene!.add(this.ambientLight);
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
     this.renderer = this.world.addRenderer(
@@ -156,11 +151,27 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         background: 0xaaaaaa,
       },
     );
-    this.controller = new OrbitCameraController(this.renderer, {
-      mouseOptions: { canvas: this.previewCanvas.nativeElement },
-      orbiting: { sensitivityX: 2, sensitivityY: 2 },
-      orbitingElasticity: 30,
-    });
+    if (this.cameraControl === 'orbit') {
+      this.controller = new OrbitCameraController(this.renderer, {
+        mouseOptions: { canvas: this.previewCanvas.nativeElement },
+        orbiting: { sensitivityX: 2, sensitivityY: 2 },
+        orbitingElasticity: 30,
+      });
+    } else {
+      this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer, {
+        mouseOptions: {
+          canvas: this.previewCanvas.nativeElement,
+          pointerLock: true,
+        },
+        keymap: 'wasd+arrows',
+        cameraLinearSpeed: 40,
+        cameraBoostMultiplier: 4,
+        cameraMovementElasticity: 100,
+        cameraRotationElasticity: 30,
+        ignoreMouseUnlessPointerLocked: true,
+        ignoreKeyboardUnlessPointerLocked: true,
+      });
+    }
     this.world.addEntity(this.controller);
     const updateSize = () => {
       rendererSize$.next({
@@ -206,20 +217,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
             object.add(g);
           }
         }
-        this.meshes = object.children.filter(child => {
-          return !(child instanceof LineSegments) && child.name && child.name.trim() !== '';
-        });
+        this.meshes = object.children;
         this.meshes.sort((a, b) => (a.name > b.name ? 1 : -1));
-
-        this.originalMaterials.clear();
-        this.controllerManagedMaterials.clear();
-        this.meshesWithViewModeMaterials.clear();
-        this.clearEdgeLines();
-
         object.traverse(x => {
           if (x instanceof Mesh) {
-            this.originalMaterials.set(x, x.material instanceof Array ? [...x.material] : x.material.clone());
-
             const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
             for (const m of materials) {
               m.transparent = true;
@@ -241,155 +242,25 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         if (!isNaN(calculatedBounds.min.x) && !isNaN(calculatedBounds.max.x)) {
           bounds = calculatedBounds;
         }
-        this.controller.target = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
-        this.controller.spherical = { phi: 1.22, theta: -1.32, radius: Pnt3.dist(bounds.min, bounds.max) };
+        const cameraTarget = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
+        const cameraPosSpherical = { phi: 1.22, theta: -1.32, radius: Pnt3.dist(bounds.min, bounds.max) };
+        if (this.controller instanceof OrbitCameraController) {
+          this.controller.target = cameraTarget;
+          this.controller.spherical = cameraPosSpherical;
+        } else {
+          // negate vector
+          cameraPosSpherical.phi = Math.PI - cameraPosSpherical.phi;
+          cameraPosSpherical.theta += Math.PI;
+          this.renderer.position = Pnt3.sub(cameraTarget, Pnt3.fromSpherical(cameraPosSpherical));
+          this.controller.spherical = cameraPosSpherical;
+        }
         this.cdr.markForCheck();
       }
     });
   }
 
-  private clearEdgeLines(): void {
-    if (this.entity && this.entity.object3D) {
-      for (const edgeLine of this.edgeLines) {
-        this.entity.object3D.nativeMesh.remove(edgeLine);
-        edgeLine.geometry.dispose();
-        (edgeLine.material as LineBasicMaterial).dispose();
-      }
-    }
-    this.edgeLines = [];
-    this.meshToEdgeLines.clear();
-  }
-
-  private applyViewMode(): void {
-    if (!this.entity || !this.entity.object3D) return;
-
-    this.clearEdgeLines();
-
-    this.entity.object3D.nativeMesh.traverse((obj: Object3D) => {
-      if (obj instanceof Mesh) {
-        const originalMaterial = this.originalMaterials.get(obj);
-        if (!originalMaterial) return;
-
-        switch (this.viewMode) {
-          case 'material':
-            if (this.meshesWithViewModeMaterials.has(obj)) {
-              const storedMaterial = this.controllerManagedMaterials.get(obj);
-              if (storedMaterial) {
-                obj.material = storedMaterial;
-                this.controllerManagedMaterials.delete(obj);
-              }
-              this.meshesWithViewModeMaterials.delete(obj);
-            }
-            this.ambientLight.intensity = 2;
-            break;
-          case 'wireframe':
-            if (!this.meshesWithViewModeMaterials.has(obj)) {
-              this.controllerManagedMaterials.set(obj, obj.material);
-            }
-            const currentMaterial = this.controllerManagedMaterials.get(obj) || obj.material;
-            const wireframeMaterials = currentMaterial instanceof Array ? currentMaterial : [currentMaterial];
-            const newWireframeMaterials = wireframeMaterials.map(mat => {
-              const wireframeMat = new MeshBasicMaterial({
-                color: mat instanceof MeshBasicMaterial ? mat.color : 0xffffff,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.8,
-              });
-              return wireframeMat;
-            });
-            obj.material = newWireframeMaterials.length === 1 ? newWireframeMaterials[0] : newWireframeMaterials;
-            this.meshesWithViewModeMaterials.add(obj);
-            this.ambientLight.intensity = 2;
-            break;
-          case 'unlit':
-            if (!this.meshesWithViewModeMaterials.has(obj)) {
-              this.controllerManagedMaterials.set(obj, obj.material);
-            }
-            const currentUnlitMaterial = this.controllerManagedMaterials.get(obj) || obj.material;
-            const unlitMaterials = currentUnlitMaterial instanceof Array ? currentUnlitMaterial : [currentUnlitMaterial];
-            const newUnlitMaterials = unlitMaterials.map(mat => {
-              let textureMap = null;
-              let materialColor = 0xffffff;
-              if (mat instanceof MeshBasicMaterial) {
-                textureMap = mat.map;
-                materialColor = mat.color.getHex();
-              } else if (mat instanceof MeshLambertMaterial) {
-                textureMap = mat.map;
-                materialColor = mat.color.getHex();
-              } else if (mat instanceof MeshStandardMaterial) {
-                textureMap = mat.map;
-                materialColor = mat.color.getHex();
-              } else if (mat instanceof MeshPhongMaterial) {
-                textureMap = mat.map;
-                materialColor = mat.color.getHex();
-              }
-              const unlitMat = new MeshBasicMaterial({
-                color: materialColor,
-                map: textureMap,
-                transparent: mat.transparent,
-                opacity: mat.opacity,
-              });
-              if (unlitMat.map) {
-                unlitMat.map.wrapS = ClampToEdgeWrapping;
-                unlitMat.map.wrapT = ClampToEdgeWrapping;
-                setupNfs1Texture(unlitMat.map);
-              }
-              return unlitMat;
-            });
-            obj.material = newUnlitMaterials.length === 1 ? newUnlitMaterials[0] : newUnlitMaterials;
-            this.meshesWithViewModeMaterials.add(obj);
-            this.ambientLight.intensity = 0;
-            break;
-          case 'edges':
-            if (this.meshesWithViewModeMaterials.has(obj)) {
-              const storedMaterial = this.controllerManagedMaterials.get(obj);
-              if (storedMaterial) {
-                obj.material = storedMaterial;
-                this.controllerManagedMaterials.delete(obj);
-              }
-              this.meshesWithViewModeMaterials.delete(obj);
-            }
-            this.ambientLight.intensity = 2;
-
-            const edges = new EdgesGeometry(obj.geometry as BufferGeometry);
-            const edgeMaterial = new LineBasicMaterial({ color: 0x000000, linewidth: 2 });
-            const edgeLines = new LineSegments(edges, edgeMaterial);
-            edgeLines.position.copy(obj.position);
-            edgeLines.rotation.copy(obj.rotation);
-            edgeLines.scale.copy(obj.scale);
-
-            let effectiveVisibility = obj.visible;
-            if (obj.parent && obj.parent instanceof Group && obj.parent !== this.entity!.object3D!.nativeMesh) {
-              effectiveVisibility = effectiveVisibility && obj.parent.visible;
-            }
-            edgeLines.visible = effectiveVisibility;
-
-            this.entity!.object3D!.nativeMesh.add(edgeLines);
-            this.edgeLines.push(edgeLines);
-            this.meshToEdgeLines.set(obj, edgeLines);
-            break;
-        }
-      }
-    });
-  }
-
-  public setViewMode(mode: 'material' | 'wireframe' | 'unlit' | 'edges'): void {
-    this.viewMode = mode;
-    this.applyViewMode();
-  }
-
-  public updateEdgeLineVisibility(mesh: Object3D): void {
-    if (mesh instanceof Mesh && this.meshToEdgeLines.has(mesh)) {
-      const edgeLine = this.meshToEdgeLines.get(mesh)!;
-      edgeLine.visible = mesh.visible;
-    } else if (mesh instanceof Group) {
-      mesh.traverse((child: Object3D) => {
-        if (child instanceof Mesh && this.meshToEdgeLines.has(child)) {
-          const edgeLine = this.meshToEdgeLines.get(child)!;
-          edgeLine.visible = mesh.visible && child.visible;
-        }
-      });
-    }
+  public setViewMode(mode: ViewMode): void {
+    this.viewModeController?.setViewMode(mode);
   }
 
   public toRGB(color: Color | null): number {
@@ -397,6 +268,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.viewModeController?.dispose();
     this.destroyed$.next();
     this.destroyed$.complete();
   }
