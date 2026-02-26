@@ -1,0 +1,3 @@
+<app-obj-viewer [paths]="previewPaths$ | async"
+                [cameraControl]="(isTrack$ | async) ? 'free': 'orbit'"></app-obj-viewer>
+<app-compound-block-ui [resource]="_resource$ | async"></app-compound-block-ui>

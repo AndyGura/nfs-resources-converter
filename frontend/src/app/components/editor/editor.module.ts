@@ -18,6 +18,7 @@ import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.compo
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
@@ -47,6 +48,8 @@ import { SidenavResListComponent } from './common/sidenav-res-list/sidenav-res-l
 import { MinimapComponent } from './common/minimap/minimap.component';
 import { BlockActionsComponent } from './common/block-actions/block-actions.component';
 import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
+import { CrpPartInfo1BlockUiComponent } from './eac/crp-part-info-1.block-ui/crp-part-info-1.block-ui.component';
+import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp-part-info-2.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -68,6 +71,7 @@ import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
     WwwwBlockUiComponent,
     TriMapBlockUiComponent,
     OripGeometryBlockUiComponent,
+    CrpGeometryBlockUiComponent,
     FenceTypeBlockUiComponent,
     SoundbankBlockUiComponent,
     EacsAudioBlockUiComponent,
@@ -79,6 +83,8 @@ import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
     MinimapComponent,
     BlockActionsComponent,
     ObjViewerComponent,
+    CrpPartInfo1BlockUiComponent,
+    CrpPartInfo2BlockUiComponent,
   ],
   imports: [
     CommonModule,

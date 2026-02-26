@@ -1,0 +1,33 @@
+<ng-container *ngIf="resource">
+  <mat-label *ngIf="resource.name"
+             [matTooltip]="resourceDescription" matTooltipPosition="above">
+    {{ resource.name }}
+  </mat-label>
+  <mat-form-field appearance="fill">
+    <mat-label>Damage switch</mat-label>
+    <input matInput type="number"
+           [max]="8"
+           [min]="0"
+           [step]="8"
+           [(ngModel)]="resource.data.damage"
+           (change)="changed.emit()">
+  </mat-form-field>
+  <mat-form-field appearance="fill">
+    <mat-label>Animation index</mat-label>
+    <input matInput type="number"
+           [max]="255"
+           [min]="0"
+           [step]="1"
+           [(ngModel)]="resource.data.animation_index"
+           (change)="changed.emit()">
+  </mat-form-field>
+  <mat-form-field appearance="fill">
+    <mat-label>Level of detail</mat-label>
+    <input matInput type="number"
+           [max]="15"
+           [min]="0"
+           [step]="1"
+           [(ngModel)]="resource.data.lod"
+           (change)="changed.emit()">
+  </mat-form-field>
+</ng-container>

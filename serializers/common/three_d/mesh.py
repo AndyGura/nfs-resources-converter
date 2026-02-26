@@ -17,6 +17,30 @@ class BaseMesh(ABC):
         self.vertices = [[p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]]
                          for p in self.vertices]
 
+    def apply_transform_matrix(self, m: List[List[float]]):
+        for v in [m, *m]:
+            if len(v) != 4:
+                raise ValueError("Transform matrix must contain exactly 4 rows and columns")
+
+        transformed_vertices = []
+        for vertex in self.vertices:
+            x, y, z = vertex[0], vertex[1], vertex[2]
+            w = 1.0
+
+            new_x = m[0][0] * x + m[0][1] * y + m[0][2] * z + m[0][3] * w
+            new_y = m[1][0] * x + m[1][1] * y + m[1][2] * z + m[1][3] * w
+            new_z = m[2][0] * x + m[2][1] * y + m[2][2] * z + m[2][3] * w
+            new_w = m[3][0] * x + m[3][1] * y + m[3][2] * z + m[3][3] * w
+
+            if new_w != 0:
+                new_x /= new_w
+                new_y /= new_w
+                new_z /= new_w
+
+            transformed_vertices.append([new_x, new_y, new_z])
+
+        self.vertices = transformed_vertices
+
     @abstractmethod
     def to_obj(self, face_index_increment, mtllib=None, pivot_offset=None) -> Tuple[str, int]:
         raise NotImplementedError
@@ -196,3 +220,48 @@ class Mesh(BaseMesh):
     def extend(self, mesh: 'Mesh'):
         super().extend(mesh)
         self.texture_ids.extend(mesh.texture_ids)
+
+
+class CubeMesh(SubMesh):
+
+    def _build_mesh(self):
+        self.vertices = [(-self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (-self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
+                         (-self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (-self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
+                         (self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2)]
+
+    def __init__(self, dimensions=(1, 1, 1), position=(0, 0, 0), **kwargs):
+        super().__init__(**kwargs)
+        self._dimensions = dimensions
+        self._position = position
+        self._build_mesh()
+        self.polygons = [(0, 1, 2), (2, 1, 3),
+                         (4, 6, 5), (5, 6, 7),
+                         (1, 0, 5), (5, 0, 4),
+                         (2, 6, 0), (0, 6, 4),
+                         (1, 5, 3), (3, 5, 7),
+                         (2, 3, 6), (6, 3, 7)]
+        self.vertex_uvs = [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)]
+        self.pivot_offset = (-self.position[0], -self.position[1], -self.position[2])
+
+    @property
+    def dimensions(self):
+        return self._dimensions
+
+    @dimensions.setter
+    def dimensions(self, value):
+        self._dimensions = value
+        self._build_mesh()
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        self._position = value
+        self.pivot_offset = (-self.position[0], -self.position[1], -self.position[2])

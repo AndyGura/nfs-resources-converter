@@ -95,6 +95,19 @@ type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ObjViewerComponent implements AfterViewInit, OnDestroy {
+  get cameraControl(): 'orbit' | 'free' {
+    return this._cameraControl;
+  }
+
+  @Input()
+  set cameraControl(value: 'orbit' | 'free') {
+    if (this._cameraControl === value) return;
+    this._cameraControl = value;
+    if (this.controller) {
+      this.setupCameraController();
+    }
+  }
+
   get paths(): [string, string] | null {
     return this._paths$.getValue();
   }
@@ -110,7 +123,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   @Input() customControls: ObjViewerCustomControl[] = [];
 
-  @Input() cameraControl: 'orbit' | 'free' = 'orbit';
+  private _cameraControl: 'orbit' | 'free' = 'orbit';
 
   @Output() onObjectLoaded: EventEmitter<Object3D> = new EventEmitter<Object3D>();
 
@@ -137,6 +150,35 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   constructor(private readonly cdr: ChangeDetectorRef) {
   }
 
+  private setupCameraController() {
+    if (this.controller) {
+      this.world.removeEntity(this.controller);
+      this.controller.dispose();
+    }
+    if (this._cameraControl === 'orbit') {
+      this.controller = new OrbitCameraController(this.renderer, {
+        mouseOptions: { canvas: this.previewCanvas.nativeElement },
+        orbiting: { sensitivityX: 2, sensitivityY: 2 },
+        orbitingElasticity: 30,
+      });
+    } else {
+      this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer, {
+        mouseOptions: {
+          canvas: this.previewCanvas.nativeElement,
+          pointerLock: true,
+        },
+        keymap: 'wasd+arrows',
+        cameraLinearSpeed: 50,
+        cameraBoostMultiplier: 8,
+        cameraMovementElasticity: 100,
+        cameraRotationElasticity: 30,
+        ignoreMouseUnlessPointerLocked: true,
+        ignoreKeyboardUnlessPointerLocked: true,
+      });
+    }
+    this.world.addEntity(this.controller);
+  }
+
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
@@ -151,28 +193,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         background: 0xaaaaaa,
       },
     );
-    if (this.cameraControl === 'orbit') {
-      this.controller = new OrbitCameraController(this.renderer, {
-        mouseOptions: { canvas: this.previewCanvas.nativeElement },
-        orbiting: { sensitivityX: 2, sensitivityY: 2 },
-        orbitingElasticity: 30,
-      });
-    } else {
-      this.controller = new FreeCameraController(this.world.keyboardInput, this.renderer, {
-        mouseOptions: {
-          canvas: this.previewCanvas.nativeElement,
-          pointerLock: true,
-        },
-        keymap: 'wasd+arrows',
-        cameraLinearSpeed: 40,
-        cameraBoostMultiplier: 4,
-        cameraMovementElasticity: 100,
-        cameraRotationElasticity: 30,
-        ignoreMouseUnlessPointerLocked: true,
-        ignoreKeyboardUnlessPointerLocked: true,
-      });
-    }
-    this.world.addEntity(this.controller);
+    this.setupCameraController();
     const updateSize = () => {
       rendererSize$.next({
         x: this.previewCanvasContainer.nativeElement.clientWidth,
@@ -261,6 +282,12 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   public setViewMode(mode: ViewMode): void {
     this.viewModeController?.setViewMode(mode);
+  }
+
+  public toggleOnly(mesh: Object3D): void {
+    for (const m of this.meshes) {
+      m.visible = m === mesh;
+    }
   }
 
   public toRGB(color: Color | null): number {
