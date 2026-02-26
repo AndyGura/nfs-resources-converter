@@ -35,6 +35,8 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
 
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
+  isTrack$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
   constructor(
@@ -44,6 +46,7 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
+      this.isTrack$.next(res?.data?.resource_id === 'karT');
       this.previewPaths$.next(await this.loadPreviewFilePaths(res?.id));
     });
     this.mainService.dataBlockChange$
@@ -86,15 +89,6 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;
-  }
-
-  previewObjectGroupFunc(objectName: string): string {
-    // for (let i = 1; i<8; i++) {
-    //   if (objectName.startsWith(i + '__')) {
-    //     return 'LOD_' + i;
-    //   }
-    // }
-    return objectName;
   }
 
   ngOnDestroy(): void {
