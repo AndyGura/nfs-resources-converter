@@ -4,21 +4,30 @@
     {{ resource.name }}
   </mat-label>
   <mat-form-field appearance="fill">
-    <mat-label>Part index</mat-label>
-    <input matInput type="number"
-           [max]="4095"
-           [min]="0"
-           [step]="1"
-           [(ngModel)]="resource.data.part_index"
-           (change)="changed.emit()">
-  </mat-form-field>
-  <mat-form-field appearance="fill">
-    <mat-label>Level of details</mat-label>
+    <mat-label>Level of detail</mat-label>
     <input matInput type="number"
            [max]="15"
            [min]="0"
            [step]="1"
-           [(ngModel)]="resource.data.detail_level"
+           [(ngModel)]="resource.data.lod"
+           (change)="changed.emit()">
+  </mat-form-field>
+  <mat-form-field appearance="fill">
+    <mat-label>Unknown</mat-label>
+    <input matInput type="number"
+           [max]="255"
+           [min]="0"
+           [step]="1"
+           [(ngModel)]="resource.data.unk"
+           (change)="changed.emit()">
+  </mat-form-field>
+  <mat-form-field appearance="fill">
+    <mat-label>Part index</mat-label>
+    <input matInput type="number"
+           [max]="15"
+           [min]="0"
+           [step]="1"
+           [(ngModel)]="resource.data.part_index"
            (change)="changed.emit()">
   </mat-form-field>
 </ng-container>

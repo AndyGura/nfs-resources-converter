@@ -19,10 +19,10 @@ class CrpPartInfo1(IntegerBlock):
     def schema(self):
         return {
             **super().schema,
-            'block_description': 'Part info type 1: [dddd_aaaa_aaaa_pppp]'
-                                 '<br/>d - damage level'
+            'block_description': 'Part info type 1: [dddd_aaaa_aaaa_llll]'
+                                 '<br/>d - Damage switch (0x8 means damaged)'
                                  '<br/>a - animation index'
-                                 '<br/>p - part index',
+                                 '<br/>l - Level of detail',
         }
 
     def __init__(self, **kwargs):
@@ -33,13 +33,13 @@ class CrpPartInfo1(IntegerBlock):
         return {
             'damage': data >> 12,
             'animation_index': (data >> 4) & 0xff,
-            'part_index': data & 0xf,
+            'lod': data & 0xf,
         }
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = data['damage'] << 12
-        value = value | (data['animation_index'] << 4)
-        value = value | data['part_index']
+        value = (data['damage'] & 0xf) << 12
+        value = value | ((data['animation_index'] & 0xff) << 4)
+        value = value | (data['lod'] & 0xf)
         return super().write(value, ctx, name)
 
 
@@ -48,10 +48,10 @@ class CrpPartInfo2(IntegerBlock):
     def schema(self):
         return {
             **super().schema,
-            'block_description': 'Part info type 2: [pppp_uuuu_uuuu_dddd]'
-                                 '<br/>p - part index'
+            'block_description': 'Part info type 2: [llll_uuuu_uuuu_pppp]'
+                                 '<br/>l - Level of detail'
                                  '<br/>u - unknown'
-                                 '<br/>d - damage level',
+                                 '<br/>p - part index',
         }
 
     def __init__(self, **kwargs):
@@ -60,15 +60,15 @@ class CrpPartInfo2(IntegerBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         return {
-            'part_index': data >> 12,
+            'lod': data >> 12,
             'unk': (data >> 4) & 0xff,
-            'detail_level': data & 0xf,
+            'part_index': data & 0xf,
         }
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = data['part_index'] << 12
-        value = value | (data['unk'] << 4)
-        value = value | data['detail_level']
+        value = (data['lod'] & 0xf) << 12
+        value = value | ((data['unk'] & 0xff) << 4)
+        value = value | (data['part_index'] & 0xf)
         return super().write(value, ctx, name)
 
 
@@ -393,7 +393,7 @@ class TrianglePart(DeclarativeCompoundBlock):
 class EffectData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
-        unk1 = (IntegerBlock(length=4, value_validator=Eq(0x00000000)), {'is_unknown': True})
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
         position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Position'})
         unk_scale = (DecimalBlock(length=4), {'is_unknown': True})
         width = (Point3D(child=DecimalBlock(length=4)), {'description': 'Width relative to position'})

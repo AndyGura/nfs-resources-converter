@@ -88,6 +88,15 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
     return null;
   }
 
+  previewObjectGroupFunc(objectName: string): string {
+    // for (let i = 1; i<8; i++) {
+    //   if (objectName.startsWith(i + '__')) {
+    //     return 'LOD_' + i;
+    //   }
+    // }
+    return objectName;
+  }
+
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();

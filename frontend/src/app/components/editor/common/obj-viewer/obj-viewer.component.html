@@ -50,7 +50,7 @@
       <h4>Objects visibility</h4>
       <div class="controls-list" *ngFor="let mesh of meshes">
         <label [for]="'visibility_' + mesh.name">{{mesh.name}}</label>
-        <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible" (change)="mesh.visible = $any($event.currentTarget).checked; updateEdgeLineVisibility(mesh)">
+        <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible" (change)="mesh.visible = $any($event.currentTarget).checked; updateEdgeLineVisibility(mesh)" (dblclick)="toggleOnly(mesh)">
       </div>
     </ng-container>
   </div>

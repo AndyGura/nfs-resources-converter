@@ -235,27 +235,6 @@ class CrpGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    # def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
-    #     super().serialize(data, path)
-    #     scene = Scene()
-    #     scene.name = 'body'
-    #     scene.obj_name = 'geometry'
-    #
-    #     scene.sub_meshes = []
-    #
-    #     vertex_choice_index = block.field_blocks_map['parts'].child.get_choice_index_by_class_name("VertexPart")
-    #     vertex_parts = [x['data'] for x in data['parts'] if x['choice_index'] == vertex_choice_index]
-    #     for part_vertices in vertex_parts:
-    #         for vertex in part_vertices['data']:
-    #             position = (vertex['position']['x'], vertex['position']['y'], vertex['position']['z'])
-    #             # scene.dummies.append({
-    #             #     'name': 'vrtx',
-    #             #     'position': position,
-    #             #     'properties': {},
-    #             # })
-    #             scene.sub_meshes.append(CubeMesh(position=position, dimensions=(0.01, 0.01, 0.01)))
-    #     export_scenes([scene], path, self.settings)
-
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
 
@@ -266,7 +245,8 @@ class CrpGeometrySerializer(BaseFileSerializer):
             assert fsh_part['num_fsh'] == 1
             fsh_data = fsh_part['data'][0]
             idx = fsh_part["index"]
-            ShpiArchiveSerializer().serialize(fsh_data, path_join(path, f'textures/{idx}/'), join_id(id, f'fsh_parts/{idx}'), shpi_block)
+            ShpiArchiveSerializer().serialize(fsh_data, path_join(path, f'textures/{idx}/'),
+                                              join_id(id, f'fsh_parts/{idx}'), shpi_block)
 
         scene = Scene()
         scene.name = 'body'
@@ -278,6 +258,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
         vertex_choice_index = choice.get_choice_index_by_class_name("VertexPart")
         uv_choice_index = choice.get_choice_index_by_class_name("UVPart")
         triangle_choice_index = choice.get_choice_index_by_class_name("TrianglePart")
+        transform_choice_index = choice.get_choice_index_by_class_name("TransformationPart")
         name_choice_index = choice.get_choice_index_by_class_name("NamePart")
 
         def extract_vertices(part):
@@ -297,57 +278,74 @@ class CrpGeometrySerializer(BaseFileSerializer):
             try:
                 offset = part['data']['index_rows'][0]['offset']
                 indices = part['data']['index_table'][offset:offset + num_indices]
+                # take into account VertexInfoRow
+                try:
+                    vertex_info_row = next(x['data'] for x in part['data']['info_rows'] if x['choice_index'] == 3)
+                    vertex_index_offset = vertex_info_row['offset'] / 16
+                    if vertex_index_offset > 0:
+                        indices = [x + vertex_index_offset for x in indices]
+                except StopIteration:
+                    pass
                 return indices
             except Exception:
                 return []
 
         for (i, article) in enumerate(data['articles']):
             names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
-            if len(names) > 1:
-                print(f"WARNING: multiple name parts found for article {article['name']}")
-            name = names[0]['data'] if len(names) > 0 else f"article_{i}"
+            assert len(names) == 1, f"Inconsistent name parts amount found for part {i}"
+            name = names[0]['data']
 
-            vertices = [x['data'] for x in article['parts'] if x['choice_index'] == vertex_choice_index]
-            uv_parts = [x['data'] for x in article['parts'] if x['choice_index'] == uv_choice_index]
-            tri_parts = [x['data'] for x in article['parts'] if x['choice_index'] == triangle_choice_index]
+            v = [x['data'] for x in article['parts'] if x['choice_index'] == vertex_choice_index]
+            uv = [x['data'] for x in article['parts'] if x['choice_index'] == uv_choice_index]
+            tri = [x['data'] for x in article['parts'] if x['choice_index'] == triangle_choice_index]
+            t = [x['data'] for x in article['parts'] if x['choice_index'] == transform_choice_index]
 
-            parts = []
-            part_index = 1
-            while True:
-                v = [x for x in vertices
-                     if x['part_info']['part_index'] == part_index
-                     and x['part_info']['damage'] == 0
-                     and x['part_info']['animation_index'] == 0]
-                if len(v) == 0:
-                    break
-                assert len(v) == 1, f"Multiple vertex parts found for part {part_index}"
-                v = v[0]
+            for vx in v:
 
-                uv = [x for x in uv_parts
-                      if x['part_info']['part_index'] == part_index
-                      and x['part_info']['animation_index'] == 0]
-                assert len(uv) == 1, f"Multiple UV parts found for part {part_index}"
-                uv = uv[0]
+                lod_level = vx["part_info"]["lod"]
+                try:
+                    transform_matrix = next(x for x in t if x["part_info"]["lod"] == lod_level)['data'][0]
+                except StopIteration:
+                    transform_matrix = None
 
-                t = [x for x in tri_parts
-                     if x['part_info']['part_index'] == part_index
-                     and x['part_info']['detail_level'] == 1]
-                if len(t) > 0:
-                    assert len(t) == 1, f"Multiple tri parts found for part {part_index}"
-                    parts.append((part_index, v, uv, t[0]))
-                part_index += 1
-
-            for (j, v, uv, tri) in parts:
                 mesh = SubMesh()
-                mesh.name = name + "_" + str(j)
-                mesh.vertices = extract_vertices(v)
-                mesh.vertex_uvs = extract_uvs(uv)
-                indices = extract_indices(tri)
-                mesh.polygons = [
-                    [indices[i], indices[i + 1], indices[i + 2]]
-                    for i in range(0, len(indices), 3)
-                    if i + 2 < len(indices)
-                ]
-                mesh.change_axes(new_y='z', new_z='y')
+                mesh.name = f'{name}_LOD{lod_level}_ai{vx["part_info"]["animation_index"]}'
                 scene.sub_meshes.append(mesh)
+                if vx["part_info"]["damage"] == 8:
+                    mesh.name += '_damaged'
+                    fix_vertex_pos = next(x for x in v if x["part_info"]["lod"] == vx["part_info"]["lod"]
+                                          and x["part_info"]["animation_index"] == vx["part_info"]["animation_index"]
+                                          and x["part_info"]["damage"] == 0)
+                else:
+                    fix_vertex_pos = None
+
+                for trix in (x for x in tri if x["part_info"]["lod"] == lod_level):
+                    part_mesh = SubMesh()
+                    part_mesh.vertices = extract_vertices(vx)
+                    if fix_vertex_pos is not None:
+                        fix = extract_vertices(fix_vertex_pos)
+                        for j in range(len(part_mesh.vertices)):
+                            for k in range(3):
+                                part_mesh.vertices[j][k] += fix[j][k]
+                    # assert len(uv) == 1
+                    # mesh.vertex_uvs = extract_uvs(uv[0])
+                    # assert len(tri) == 1
+                    indices = extract_indices(trix)
+                    part_mesh.polygons = [
+                        [indices[i], indices[i + 1], indices[i + 2]]
+                        for i in range(0, len(indices), 3)
+                        if i + 2 < len(indices)
+                    ]
+
+                    if transform_matrix is not None:
+                        part_mesh.apply_transform_matrix([
+                            [transform_matrix[0], transform_matrix[4], transform_matrix[8], transform_matrix[12]],
+                            [transform_matrix[1], transform_matrix[5], transform_matrix[9], transform_matrix[13]],
+                            [transform_matrix[2], transform_matrix[6], transform_matrix[10], transform_matrix[14]],
+                            [transform_matrix[3], transform_matrix[7], transform_matrix[11], transform_matrix[15]]
+                        ])
+
+                    part_mesh.change_axes(new_y='z', new_z='y')
+                    mesh.extend(part_mesh)
+
         export_scenes([scene], path, self.settings)

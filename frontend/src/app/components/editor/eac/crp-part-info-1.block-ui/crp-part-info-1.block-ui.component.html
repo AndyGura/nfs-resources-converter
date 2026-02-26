@@ -4,12 +4,12 @@
     {{ resource.name }}
   </mat-label>
   <mat-form-field appearance="fill">
-    <mat-label>Level of detail</mat-label>
+    <mat-label>Damage switch</mat-label>
     <input matInput type="number"
-           [max]="15"
+           [max]="8"
            [min]="0"
-           [step]="1"
-           [(ngModel)]="resource.data.detail_level"
+           [step]="8"
+           [(ngModel)]="resource.data.damage"
            (change)="changed.emit()">
   </mat-form-field>
   <mat-form-field appearance="fill">
@@ -22,12 +22,12 @@
            (change)="changed.emit()">
   </mat-form-field>
   <mat-form-field appearance="fill">
-    <mat-label>Damage switch</mat-label>
+    <mat-label>Level of detail</mat-label>
     <input matInput type="number"
            [max]="15"
            [min]="0"
            [step]="1"
-           [(ngModel)]="resource.data.damage"
+           [(ngModel)]="resource.data.lod"
            (change)="changed.emit()">
   </mat-form-field>
 </ng-container>

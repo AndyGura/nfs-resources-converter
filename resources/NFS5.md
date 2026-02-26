@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-02-18 17:17:14.928898+00:00*
+*Last time updated: 2026-02-26 15:49:03.632587+00:00*
 
 
 # **Info by file extensions** #
@@ -53,7 +53,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == " raC" | Resource ID |
+| 0 | **resource_id** | 4 | UTF-8 string. One of ['" raC"', '"karT"'] | Resource ID |
 | 4 | **header_info** | 4 | 4-bytes unsigned integer (little endian) | Header info: 5 bits: unknown (always seems to be 0x1A), 27 bits: number of parts |
 | 8 | **num_misc_parts** | 4 | 4-bytes unsigned integer (little endian) | Number of misc data blocks |
 | 12 | **articles_offset** | 4 | 4-bytes unsigned integer (little endian). Always == 0x1 | Offset to articles block |
@@ -85,7 +85,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **index** | 2 | 2-bytes unsigned integer (little endian) | Index |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("tm"/"mt") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 5 | **len** | 3 | 3-bytes unsigned integer (little endian). Always == 0x138 | Length |
+| 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
 | 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset (Relative from current MaterialPart offset) |
 ### **MaterialPartData** ###
@@ -129,7 +129,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_pppp]<br/>d - damage level<br/>a - animation index<br/>p - part index | - |
+| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | - |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("n$"/"$n") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
@@ -155,7 +155,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_pppp]<br/>d - damage level<br/>a - animation index<br/>p - part index | - |
+| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | - |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("rt"/"tr") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
@@ -165,7 +165,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_pppp]<br/>d - damage level<br/>a - animation index<br/>p - part index | - |
+| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | - |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("tv"/"vt") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
@@ -191,7 +191,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_pppp]<br/>d - damage level<br/>a - animation index<br/>p - part index | - |
+| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | - |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("mn"/"nm") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
@@ -217,7 +217,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_pppp]<br/>d - damage level<br/>a - animation index<br/>p - part index | - |
+| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | - |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("vu"/"uv") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
@@ -243,7 +243,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 2: [pppp_uuuu_uuuu_dddd]<br/>p - part index<br/>u - unknown<br/>d - damage level | - |
+| 0 | **part_info** | 2 | Part info type 2: [llll_uuuu_uuuu_pppp]<br/>l - Level of detail<br/>u - unknown<br/>p - part index | - |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("rp"/"pr") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
@@ -281,7 +281,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_pppp]<br/>d - damage level<br/>a - animation index<br/>p - part index | - |
+| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | - |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier ("fe"/"ef") |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Length |
@@ -291,8 +291,8 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 88 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian). Always == 0x5 | Unknown purpose |
-| 4 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 8 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position |
 | 20 | **unk_scale** | 4 | Float number (little-endian) | Unknown purpose |
 | 24 | **width** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Width relative to position |

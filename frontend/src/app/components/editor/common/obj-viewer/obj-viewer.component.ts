@@ -392,6 +392,13 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  public toggleOnly(mesh: Object3D): void {
+    for (const m of this.meshes) {
+      m.visible = m === mesh;
+      this.updateEdgeLineVisibility(m);
+    }
+  }
+
   public toRGB(color: Color | null): number {
     return ((color?.r || 0) << 16) | ((color?.g || 0) << 8) | (color?.b || 0);
   }
