@@ -3,6 +3,8 @@ from io import BytesIO
 from os.path import getsize
 from typing import Dict
 
+from .shpi_block import ShpiBlock
+
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
@@ -17,10 +19,8 @@ from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformance
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
-from resources.eac.geometries import OripGeometry, GeoGeometry
+from resources.eac.geometries import OripGeometry, GeoGeometry, CrpGeometry
 from .base_archive_block import BaseArchiveBlock
-from .shpi_block import ShpiBlock
-
 
 class CompressedBlock(AutoDetectBlock):
 
@@ -31,7 +31,8 @@ class CompressedBlock(AutoDetectBlock):
     def __init__(self, **kwargs):
         super().__init__(possible_blocks=[ShpiBlock(),
                                           CarSimplifiedPerformanceSpec(),
-                                          CarPerformanceSpec()],
+                                          CarPerformanceSpec(),
+                                          CrpGeometry()],
                          **kwargs)
 
     @property
@@ -52,6 +53,8 @@ class CompressedBlock(AutoDetectBlock):
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         uncompressed_bytes = self.algorithm(ctx.buffer, read_bytes_amount)
+        # with open(name + "_uncompressed.bin", "wb") as f:
+        #     f.write(uncompressed_bytes)
         uncompressed = BytesIO(uncompressed_bytes)
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
         self_ctx.buffer = uncompressed
