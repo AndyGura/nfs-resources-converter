@@ -12,7 +12,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
-import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
+import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
 import { Nfs2CarMeshController } from './nfs2-car-mesh-controller';
 import { Resource } from '../../types';
@@ -151,17 +151,31 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     return null;
   }
 
-  previewObjectGroupFunc(objectName: string): string {
-    if (objectName.startsWith('part_hp')) {
-      return 'High-poly';
-    } else if (objectName.startsWith('part_mp')) {
-      return 'Medium-poly';
-    } else if (objectName.startsWith('part_lp')) {
-      return 'Low-poly';
-    } else if (objectName.startsWith('part_res')) {
-      return 'Reserved';
-    } else {
-      return objectName;
+  previewObjectGroupFunc(object: Object3D): string {
+    try {
+      let index = /^part_[h|m|l]p_(\d+)_/gi.exec(object.name)![1];
+      return `part_${index}`;
+    } catch {
+      return object.name;
+    }
+  }
+
+  public readonly previewViewFilter: ViewFilterOpts = {
+    name: 'LOD',
+    filterGroups: ['High-poly', 'Medium-poly', 'Low-poly', 'Reserved', 'Unknown'],
+    checkedIndex: 0,
+    pickFunction: (object) => {
+      if (object.name.startsWith('part_hp')) {
+        return 0;
+      } else if (object.name.startsWith('part_mp')) {
+        return 1;
+      } else if (object.name.startsWith('part_lp')) {
+        return 2;
+      } else if (object.name.startsWith('part_res')) {
+        return 3;
+      } else {
+        return 4;
+      }
     }
   }
 

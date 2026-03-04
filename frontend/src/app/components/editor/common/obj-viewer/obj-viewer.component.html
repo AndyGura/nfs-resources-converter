@@ -10,21 +10,22 @@
                name="viewMode"
                [checked]="viewMode === option"
                (change)="setViewMode($any(option));">
-        <label [for]="'view_mode_' + option">{{option}}</label>
+        <label [for]="'view_mode_' + option">{{ option }}</label>
       </div>
     </div>
 
     <ng-container *ngFor="let customControl of customControls; let i = index">
-      <h4>{{customControl.title}}</h4>
+      <h4>{{ customControl.title }}</h4>
       <div class="controls-list" *ngFor="let c of customControl.controls; let j = index">
         <ng-container *ngIf="c.type === 'checkbox'">
-          <label [for]="'custom_control_' + i + '_' + j">{{c.label}}</label>
-          <input [id]="'custom_control_' + i + '_' + j" [type]="c.type" [checked]="c.value" (change)="c.value = $any($event.currentTarget).checked; c.change(c.value);">
+          <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+          <input [id]="'custom_control_' + i + '_' + j" [type]="c.type" [checked]="c.value"
+                 (change)="c.value = $any($event.currentTarget).checked; c.change(c.value);">
         </ng-container>
         <div style="width: 100%" *ngIf="c.type === 'radio'">
-          <label>{{c.label}}</label>
+          <label>{{ c.label }}</label>
           <div class="controls-list" *ngFor="let option of c.options">
-            <label [for]="'custom_control_' + i + '_' + j + '_' + option">{{option}}</label>
+            <label [for]="'custom_control_' + i + '_' + j + '_' + option">{{ option }}</label>
             <input [id]="'custom_control_' + i + '_' + j + '_' + option"
                    type="radio"
                    [checked]="c.value === option"
@@ -32,7 +33,7 @@
           </div>
         </div>
         <ng-container *ngIf="c.type === 'color'">
-          <label [for]="'custom_control_' + i + '_' + j">{{c.label}}</label>
+          <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
           <input class="hidden" matInput [ngxMatColorPicker]="picker"
                  (colorChange)="c.value = toRGB($event.value); c.change(c.value);">
           <ngx-mat-color-toggle matSuffix [for]="picker"></ngx-mat-color-toggle>
@@ -46,12 +47,39 @@
         </ng-container>
       </div>
     </ng-container>
+    <ng-container *ngFor="let fg of _viewFilters">
+      <h4>{{ fg.opts.name }}</h4>
+      <div class="controls-list-vertical">
+        <ng-container *ngFor="let filterName of fg.opts.filterGroups; let i = index">
+          <div *ngIf="!fg.isGroupEmpty(filterName)" class="control-item">
+            <input [id]="'filter_' + fg.opts.name + '_' + filterName"
+                   type="radio"
+                   [name]="'filter_group_' + fg.opts.name + '_' + filterName"
+                   [checked]="fg.opts.checkedIndex === i"
+                   (change)="fg.opts.checkedIndex = i; applyViewFilters();">
+            <label [for]="'filter_' + fg.opts.name + '_' + filterName">{{ filterName }}</label>
+          </div>
+        </ng-container>
+      </div>
+    </ng-container>
     <ng-container *ngIf="visibilityControls">
       <h4>Objects visibility</h4>
-      <div class="controls-list" *ngFor="let mesh of meshes">
-        <label [for]="'visibility_' + mesh.name">{{mesh.name}}</label>
-        <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible" (change)="mesh.visible = $any($event.currentTarget).checked;" (dblclick)="toggleOnly(mesh)">
-      </div>
+      <ng-container *ngIf="uiGroups === null">
+        <div class="controls-list" *ngFor="let mesh of displayMeshes">
+          <label [for]="'visibility_' + mesh.name">{{ mesh.name }}</label>
+          <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible"
+                 (change)="toggleMesh(mesh)"
+                 (dblclick)="toggleMeshOnly(mesh)">
+        </div>
+      </ng-container>
+      <ng-container *ngIf="uiGroups !== null">
+        <div class="controls-list" *ngFor="let group of uiGroups | keyvalue">
+          <label [for]="'visibility_' + group.key">{{ group.key }}</label>
+          <input [id]="'visibility_' + group.key" type='checkbox' [checked]="group.value.visible"
+                 (change)="toggleUiGroup(group.key)"
+                 (dblclick)="toggleUiGroupOnly(group.key)">
+        </div>
+      </ng-container>
     </ng-container>
   </div>
   <mat-spinner *ngIf="!entity" mode="indeterminate"></mat-spinner>

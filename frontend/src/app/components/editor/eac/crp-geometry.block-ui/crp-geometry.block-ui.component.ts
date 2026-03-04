@@ -12,6 +12,7 @@ import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs'
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
 import { Resource } from '../../types';
+import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 
 @Component({
   selector: 'app-crp-geometry-block-ui',
@@ -42,7 +43,8 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
   constructor(
     private readonly eelDelegate: EelDelegateService,
     private readonly mainService: MainService,
-  ) {}
+  ) {
+  }
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
@@ -90,6 +92,31 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
     }
     return null;
   }
+
+  public readonly previewViewFilters: ViewFilterOpts[] = [
+    {
+      name: 'LOD',
+      filterGroups: ['Uncategorized', 'Lod level 0', 'LOD level 1', 'LOD level 2', 'LOD level 3', 'LOD level 4', 'LOD level 5', 'LOD level 6', 'LOD level 7'],
+      checkedIndex: 0,
+      pickFunction: (object) => {
+        try {
+          let lodIndex = /_LOD(\d+)_/gi.exec(object.name)![1];
+          if (+lodIndex <= 7) {
+            return +lodIndex + 1;
+          }
+        } catch {}
+        return 0;
+      },
+    },
+    {
+      name: 'Damage',
+      filterGroups: ['Not damaged', 'Damaged'],
+      checkedIndex: 0,
+      pickFunction: (object) => {
+        return object.name.endsWith('_damaged') ? 1 : 0;
+      },
+    },
+  ];
 
   ngOnDestroy(): void {
     this.destroyed$.next();

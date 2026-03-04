@@ -30,7 +30,6 @@ import {
 import {
   AmbientLight,
   ClampToEdgeWrapping,
-  Group,
   Material,
   Mesh,
   MeshBasicMaterial,
@@ -43,12 +42,58 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { Color } from '@angular-material-components/color-picker';
 import { ViewMode, ViewModeController } from '../../../../utils/three_editor/view-mode.controller';
 
-export const setupNfs1Texture = (texture: Texture) => {
-  texture.colorSpace = 'srgb';
-  texture.anisotropy = 8;
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
-};
+export type ViewFilterOpts = {
+  name: string;
+  filterGroups: string[];
+  checkedIndex: number;
+  pickFunction: (object: Object3D) => number;
+}
+
+class ViewFilter {
+
+  private _meshes: Object3D[] = [];
+
+  get opts(): ViewFilterOpts {
+    return this._opts;
+  }
+
+  set opts(value: ViewFilterOpts) {
+    this._opts = value;
+  }
+
+  set meshes(meshes: Object3D[]) {
+    this._meshes = meshes;
+    this.selectFirstNonEmptyGroup();
+  }
+
+  constructor(private _opts: ViewFilterOpts) {
+  }
+
+  isGroupEmpty(group: string): boolean {
+    const groupIndex = this._opts.filterGroups.indexOf(group);
+    for (const m of this._meshes) {
+      if (this._opts.pickFunction(m) === groupIndex) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  listSelectedGroupMeshes(): Object3D[] {
+    return this._meshes.filter(m => this._opts.pickFunction(m) === this._opts.checkedIndex);
+  }
+
+  selectFirstNonEmptyGroup(): void {
+    for (let i = 0; i < this._opts.filterGroups.length; i++) {
+      if (!this.isGroupEmpty(this._opts.filterGroups[i])) {
+        this._opts.checkedIndex = i;
+        return;
+      }
+    }
+    this._opts.checkedIndex = 0;
+  }
+
+}
 
 type Control =
   | {
@@ -88,6 +133,14 @@ export type ObjViewerCustomControl = {
 // TODO use this from gg-web-engine after next release
 type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R, infer TypeDoc> ? TypeDoc : never;
 
+// TODO move to a different place
+export const setupNfs1Texture = (texture: Texture) => {
+  texture.colorSpace = 'srgb';
+  texture.anisotropy = 8;
+  texture.magFilter = NearestFilter;
+  texture.minFilter = NearestFilter;
+};
+
 @Component({
   selector: 'app-obj-viewer',
   templateUrl: './obj-viewer.component.html',
@@ -95,11 +148,14 @@ type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ObjViewerComponent implements AfterViewInit, OnDestroy {
+
+  private _cameraControl: 'orbit' | 'free' = 'orbit';
   get cameraControl(): 'orbit' | 'free' {
     return this._cameraControl;
   }
 
   @Input()
+  /// camera: orbit or free-fly
   set cameraControl(value: 'orbit' | 'free') {
     if (this._cameraControl === value) return;
     this._cameraControl = value;
@@ -107,6 +163,33 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
       this.setupCameraController();
     }
   }
+
+  @Input()
+  //// use filters to visually switch between sets of meshes
+  set viewFilters(value: ViewFilterOpts[]) {
+    this._viewFilters = value.map(v => new ViewFilter(v));
+    for (const f of this._viewFilters) {
+      f.meshes = this.meshes;
+    }
+    this.applyViewFilters();
+  }
+
+  _viewFilters: ViewFilter[] = [];
+
+  /// show meshes list in the menu
+  @Input() visibilityControls: boolean = true;
+
+  private _visibilityGroupFunction: ((object: Object3D) => string) | null = null;
+  @Input()
+  /// group meshes in the visibility menu
+  set visibilityGroupFunction(value: ((object: Object3D) => string) | null) {
+    this._visibilityGroupFunction = value;
+    this.rebuildUiGroups();
+  }
+
+  @Input() customControls: ObjViewerCustomControl[] = [];
+
+  _paths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   get paths(): [string, string] | null {
     return this._paths$.getValue();
@@ -117,17 +200,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     this._paths$.next(value);
   }
 
-  @Input() visibilityControls: boolean = true;
-
-  @Input() groupFunction: ((objectName: string) => string) | null = null;
-
-  @Input() customControls: ObjViewerCustomControl[] = [];
-
-  private _cameraControl: 'orbit' | 'free' = 'orbit';
-
   @Output() onObjectLoaded: EventEmitter<Object3D> = new EventEmitter<Object3D>();
-
-  _paths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
@@ -139,6 +212,8 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   controller!: OrbitCameraController | FreeCameraController;
 
   meshes: Object3D[] = [];
+  displayMeshes: Object3D[] = [];
+  uiGroups: { [prefix: string]: { visible: boolean, meshes: Object3D[] } } | null = null;
 
   ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
   viewModeController?: ViewModeController;
@@ -210,6 +285,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         this.entity.dispose();
         this.entity = null;
         this.meshes = [];
+        for (const f of this._viewFilters) {
+          f.meshes = [];
+        }
+        this.uiGroups = null;
         this.cdr.markForCheck();
       }
       if (paths) {
@@ -220,26 +299,11 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         mtl.preload();
         objLoader.setMaterials(mtl);
         const object = await objLoader.loadAsync(objPath);
-        // merge to groups
-        if (this.groupFunction) {
-          const groups: { [prefix: string]: Object3D[] } = {};
-          for (const c of object.children) {
-            const groupId = this.groupFunction(c.name);
-            if (!groups[groupId]) {
-              groups[groupId] = [];
-            }
-            groups[groupId].push(c);
-          }
-          for (const groupId of Object.keys(groups)) {
-            const g = new Group();
-            g.add(...groups[groupId]);
-            g.name = groupId;
-            object.remove(...groups[groupId]);
-            object.add(g);
-          }
-        }
         this.meshes = object.children;
-        this.meshes.sort((a, b) => (a.name > b.name ? 1 : -1));
+        for (const f of this._viewFilters) {
+          f.meshes = this.meshes;
+        }
+        this.applyViewFilters();
         object.traverse(x => {
           if (x instanceof Mesh) {
             const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
@@ -284,10 +348,79 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     this.viewModeController?.setViewMode(mode);
   }
 
-  public toggleOnly(mesh: Object3D): void {
+  public toggleMesh(mesh: Object3D): void {
+    mesh.visible = !mesh.visible;
+  }
+
+  public toggleMeshOnly(mesh: Object3D): void {
     for (const m of this.meshes) {
       m.visible = m === mesh;
     }
+  }
+
+  public toggleUiGroup(alias: string): void {
+    if (!this.uiGroups) return;
+    let visible = !this.uiGroups[alias].visible;
+    for (const mesh of this.uiGroups[alias].meshes) {
+      mesh.visible = visible;
+    }
+    this.uiGroups[alias].visible = visible;
+  }
+
+  public toggleUiGroupOnly(alias: string): void {
+    if (!this.uiGroups) return;
+    for (const al in this.uiGroups) {
+      this.uiGroups[al].visible = al === alias;
+    }
+    for (const m of this.displayMeshes) {
+      m.visible = false;
+    }
+    for (const m of this.uiGroups[alias].meshes) {
+      m.visible = true;
+    }
+  }
+
+  // TODO use set.intersection after upgrading typescript
+  intersection = function <T>(s1: Set<T>, s2: Set<T>): Set<T> {
+    const result = new Set<T>();
+    for (const element of s2) {
+      if (s1.has(element)) {
+        result.add(element);
+      }
+    }
+    return result;
+  };
+
+  public applyViewFilters() {
+    let displayMeshesSet = new Set<Object3D>(this.meshes);
+    for (const f of this._viewFilters) {
+      displayMeshesSet = this.intersection(displayMeshesSet, new Set<Object3D>(f.listSelectedGroupMeshes()));
+    }
+    this.displayMeshes = Array.from(displayMeshesSet);
+    for (const m of this.meshes) {
+      m.visible = false;
+    }
+    for (const m of this.displayMeshes) {
+      m.visible = true;
+    }
+    this.rebuildUiGroups();
+  }
+
+  private rebuildUiGroups() {
+    if (this._visibilityGroupFunction) {
+      this.uiGroups = {};
+      for (const c of this.displayMeshes) {
+        const groupId = this._visibilityGroupFunction(c);
+        if (!this.uiGroups[groupId]) {
+          this.uiGroups[groupId] = { visible: true, meshes: [c] };
+        } else {
+          this.uiGroups[groupId].meshes.push(c);
+        }
+      }
+    } else {
+      this.uiGroups = null;
+    }
+    this.cdr.markForCheck();
   }
 
   public toRGB(color: Color | null): number {
