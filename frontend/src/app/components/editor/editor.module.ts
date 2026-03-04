@@ -47,6 +47,7 @@ import { SidenavResListComponent } from './common/sidenav-res-list/sidenav-res-l
 import { MinimapComponent } from './common/minimap/minimap.component';
 import { BlockActionsComponent } from './common/block-actions/block-actions.component';
 import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
+import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
 
 @NgModule({
   declarations: [
@@ -79,6 +80,7 @@ import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
     MinimapComponent,
     BlockActionsComponent,
     ObjViewerComponent,
+    ViewModeToolbarComponent,
   ],
   imports: [
     CommonModule,

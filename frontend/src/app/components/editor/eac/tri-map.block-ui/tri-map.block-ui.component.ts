@@ -55,8 +55,8 @@ import { joinId } from '../../../../utils/join-id';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
-import { ViewMode, ViewModeController } from '../../../../utils/three_editor/view-mode.controller';
 import { BlockSchema, Resource } from '../../types';
+import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
 
 export enum MapPropType {
   ThreeModel = 'model',
@@ -398,32 +398,33 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
-  ) {}
+  ) {
+  }
 
   get previewFamPossibleLocations(): string[] {
     const blockId = this.resource?.id;
     if (blockId) {
       return [
         blockId.substring(0, blockId.indexOf('MISC')) +
-          'ETRACKFM' +
-          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-          '_001.FAM',
+        'ETRACKFM' +
+        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+        '_001.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-          'GTRACKFM' +
-          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-          '_001.FAM',
+        'GTRACKFM' +
+        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+        '_001.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-          'NTRACKFM' +
-          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-          '_M01.FAM',
+        'NTRACKFM' +
+        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+        '_M01.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-          'NTRACKFM' +
-          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-          '_R01.FAM',
+        'NTRACKFM' +
+        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+        '_R01.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-          'NTRACKFM' +
-          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-          '_T01.FAM',
+        'NTRACKFM' +
+        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+        '_T01.FAM',
       ];
     } else {
       return [];
@@ -725,6 +726,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   public setViewMode(mode: ViewMode): void {
     this.viewModeController?.setViewMode(mode);
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {

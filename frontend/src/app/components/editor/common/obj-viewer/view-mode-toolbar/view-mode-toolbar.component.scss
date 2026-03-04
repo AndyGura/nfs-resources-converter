@@ -1,0 +1,41 @@
+.view-mode-toolbar {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: flex;
+  gap: 1px;
+  background-color: #333333;
+  padding: 2px;
+  border-radius: 4px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+
+  button {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+
+    img {
+      width: 20px;
+      height: 20px;
+      filter: none; // Keep white icons on dark background
+    }
+
+    &:hover {
+      background-color: #444444;
+    }
+
+    &.selected {
+      background-color: #4a90e2; // Lighter blue for selection
+
+      img {
+        filter: none;
+      }
+    }
+  }
+}
