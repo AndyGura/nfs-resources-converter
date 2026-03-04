@@ -34,6 +34,7 @@ export class EelDelegateService {
     Resource | ResourceError | null
   >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+  public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
 
   public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
 
@@ -41,6 +42,7 @@ export class EelDelegateService {
     eel.expose(this.wrapHandler(this.openFile), 'open_file');
     eel.expose(this.wrapHandler(this.updateConversionProgress), 'update_conversion_progress');
     eel['on_angular_ready']();
+    this.syncRecentFiles().then();
     // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
     setTimeout(async () => {
       while (true) {
@@ -65,10 +67,19 @@ export class EelDelegateService {
   }
 
   public async openFile(path: string, forceReload: boolean = false) {
+    if (!path) {
+      return;
+    }
     this.openedResource$.next(null);
     this.openedResourcePath$.next(path);
     const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
     this.openedResource$.next({ ...res, id: res.name });
+    await this.syncRecentFiles();
+  }
+
+  public async syncRecentFiles() {
+    const files = await eel['get_recent_files']()();
+    this.recentFiles$.next(files);
   }
 
   updateConversionProgress(current: number, total: number): void {

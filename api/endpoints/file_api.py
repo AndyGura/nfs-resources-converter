@@ -8,7 +8,7 @@ from typing import Dict, Optional, Any
 
 import eel
 
-from config import general_config
+from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
 from library.loader import clear_file_cache
 from library.utils import path_join
@@ -53,6 +53,18 @@ class FileAPI:
         if self.api.initial_file_path:
             eel.open_file(self.api.initial_file_path)
 
+    def get_recent_files(self):
+        """
+        Get the list of recently opened files.
+
+        Returns:
+            List of file paths
+        """
+        recent_files = general_config().recent_files
+        if not isinstance(recent_files, list):
+            return []
+        return recent_files
+
     def open_file_dialog(self) -> Optional[str]:
         """
         Open a file dialog and return the selected file path.
@@ -71,19 +83,28 @@ class FileAPI:
         root.after_idle(root.attributes, '-topmost', False)
         filename = askopenfilename()
         root.destroy()
+        if not filename:
+            return None
         return filename
 
-    def open_file(self, path: str, force_reload: bool = False) -> Dict[str, Any]:
+    def open_file(self, path: str, force_reload: bool = False, update_recent_files: bool = True) -> Dict[str, Any]:
         """
         Open a file and return its data.
 
         Args:
             path: Path to the file
             force_reload: Whether to force reload the file from disk
+            update_recent_files: Whether to update the recent files list
 
         Returns:
             File data
         """
+        if not path or not isinstance(path, str):
+            return {
+                'name': None,
+                'schema': None,
+                'data': None
+            }
         try:
             if force_reload:
                 clear_file_cache(path)
@@ -91,6 +112,16 @@ class FileAPI:
             self.current_file_name = name
             self.current_file_data = data
             self.current_file_block = block
+            if update_recent_files:
+                # Update recent files
+                recent_files = general_config().recent_files
+                if not isinstance(recent_files, list):
+                    recent_files = []
+                if path in recent_files:
+                    recent_files.remove(path)
+                recent_files.insert(0, path)
+                recent_files = recent_files[:10]
+                set_config(SECTION_GENERAL, 'recent_files', ','.join(recent_files))
         except Exception as ex:
             if general_config().print_errors:
                 traceback.print_exc()

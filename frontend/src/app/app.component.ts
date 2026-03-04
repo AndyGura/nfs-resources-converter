@@ -23,13 +23,28 @@ export class AppComponent {
     readonly navigation: NavigationService,
     private readonly snackBar: MatSnackBar,
     private readonly cdr: ChangeDetectorRef,
-  ) {}
+  ) {
+  }
 
   async openFile() {
     const fileName = await this.eelDelegate.openFileDialog();
     if (fileName) {
       await this.eelDelegate.openFile(fileName, true);
     }
+  }
+
+  async openRecentFile(path: string) {
+    if (this.eelDelegate.openedResourcePath$.getValue() === path) {
+      return;
+    }
+    await this.eelDelegate.openFile(path, true);
+  }
+
+  getFileName(path: string): string {
+    if (!path) return '';
+    const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+    if (lastSlash === -1) return path;
+    return path.substring(lastSlash + 1);
   }
 
   closeFile() {

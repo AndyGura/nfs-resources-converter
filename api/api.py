@@ -41,6 +41,7 @@ class API:
         """Register all API endpoints with Eel."""
         # File API
         eel.expose(self.file_api.on_angular_ready)
+        eel.expose(self.file_api.get_recent_files)
         eel.expose(self.file_api.open_file_dialog)
         eel.expose(self.file_api.open_file)
         eel.expose(self.file_api.open_file_with_system_app)
