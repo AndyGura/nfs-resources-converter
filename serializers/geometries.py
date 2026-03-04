@@ -252,6 +252,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.sub_meshes = []
+        # scene.mtl_texture_names = ["textures/2/bott.png"]
 
         # Identify choice indexes for part types
         choice = block.field_blocks_map['parts'].child
@@ -267,11 +268,15 @@ class CrpGeometrySerializer(BaseFileSerializer):
                 for v in part['data']
             ]
 
-        def extract_uvs(part):
-            return [
-                [v['u'], v['v']]
-                for v in part['data']
-            ]
+        def extract_uvs(len_vertices, indices, uv_indices, uv_part):
+            res = []
+            for vi in range(len_vertices):
+                try:
+                    uv_item = uv_part['data'][uv_indices[indices.index(vi)]]
+                    res.append([uv_item['u'], uv_item['v']])
+                except (IndexError, ValueError):
+                    res.append([0, 0])
+            return res
 
         def extract_indices(part):
             num_indices = part['num_indices']
@@ -310,6 +315,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
 
                 mesh = SubMesh()
                 mesh.name = f'{name}_LOD{lod_level}_ai{vx["part_info"]["animation_index"]}'
+                # mesh.texture_id = "textures/2/bott.png"
                 scene.sub_meshes.append(mesh)
                 if vx["part_info"]["damage"] == 8:
                     mesh.name += '_damaged'
@@ -327,10 +333,9 @@ class CrpGeometrySerializer(BaseFileSerializer):
                         for j in range(len(part_mesh.vertices)):
                             for k in range(3):
                                 part_mesh.vertices[j][k] += fix[j][k]
-                    # assert len(uv) == 1
-                    # mesh.vertex_uvs = extract_uvs(uv[0])
-                    # assert len(tri) == 1
+                    uvx = next(x for x in uv if x["part_info"]["lod"] == lod_level)
                     indices = extract_indices(trix)
+                    part_mesh.vertex_uvs = extract_uvs(len(part_mesh.vertices), indices, trix['data']['index_table_2'], uvx)
                     part_mesh.polygons = [
                         [indices[i], indices[i + 1], indices[i + 2]]
                         for i in range(0, len(indices), 3)
