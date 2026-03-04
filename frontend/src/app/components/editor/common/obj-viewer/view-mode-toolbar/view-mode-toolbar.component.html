@@ -1,0 +1,9 @@
+<div class="view-mode-toolbar">
+  <button *ngFor="let option of viewModeController?.listViewModes"
+          [class.selected]="currentViewMode === option"
+          (click)="setViewMode($any(option))"
+          [title]="'Shading: ' + option">
+    <img [src]="'assets/editor/icons/shading_' + (option === 'material' ? 'rendered' : (option === 'unlit' ? 'solid' : (option === 'wireframe' ? 'wire' : option))) + '.svg'"
+         [alt]="'Shading: ' + option">
+  </button>
+</div>

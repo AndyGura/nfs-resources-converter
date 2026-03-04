@@ -49,8 +49,8 @@ import {
 } from '@gg-web-engine/three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
-import { ViewMode, ViewModeController } from '../../../../utils/three_editor/view-mode.controller';
 import { Resource } from '../../types';
+import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
 
 // TODO use this from gg-web-engine after next release
 type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R, infer TypeDoc> ? TypeDoc : never;
@@ -225,7 +225,8 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
-  ) {}
+  ) {
+  }
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
@@ -484,6 +485,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   public setViewMode(mode: ViewMode): void {
     this.viewModeController?.setViewMode(mode);
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
