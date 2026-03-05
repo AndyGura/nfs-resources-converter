@@ -37,6 +37,15 @@
       <mat-icon>folder_open</mat-icon>
       <span>Open</span>
     </button>
+    <button mat-menu-item [matMenuTriggerFor]="recentFilesMenu" [disabled]="(eelDelegate.recentFiles$ | async)?.length === 0">
+      <mat-icon>history</mat-icon>
+      <span>Recent Files</span>
+    </button>
+    <mat-menu #recentFilesMenu="matMenu">
+      <button mat-menu-item *ngFor="let file of (eelDelegate.recentFiles$ | async)" (click)="openRecentFile(file)">
+        <span>{{ getFileName(file) }}</span>
+      </button>
+    </mat-menu>
     <button mat-menu-item (click)="closeFile()" [disabled]="!(mainService.eelDelegate.openedResourcePath$ | async)">
       <mat-icon>close</mat-icon>
       <span>Close</span>

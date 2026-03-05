@@ -166,4 +166,4 @@ class ConversionAPI:
             return {"success": False, "error": str(e)}
         finally:
             if opened_file:
-                self.api.file_api.open_file(opened_file)
+                self.api.file_api.open_file(opened_file, update_recent_files=False)

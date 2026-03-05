@@ -28,9 +28,33 @@ p {
 
 .actions {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
-button {
-  margin: 0 0.5rem;
+.recent-files {
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.recent-files h3 {
+  margin-bottom: 1rem;
+  color: #666;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.recent-files-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.recent-files-list button {
+  margin: 0.25rem 0;
+  text-align: left;
+  justify-content: flex-start;
 }
