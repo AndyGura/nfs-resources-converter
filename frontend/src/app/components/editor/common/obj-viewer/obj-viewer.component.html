@@ -52,21 +52,36 @@
       </div>
     </ng-container>
     <ng-container *ngIf="visibilityControls">
-      <h4>Objects visibility</h4>
+      <div class="section-header">
+        <h4>Objects visibility</h4>
+        <button class="icon-button" (click)="toggleAllVisibility()" title="Toggle all visibility">
+          <img src="assets/editor/icons/hide_off.svg" alt="Toggle all">
+        </button>
+      </div>
       <ng-container *ngIf="uiGroups === null">
         <div class="controls-list" *ngFor="let mesh of displayMeshes">
           <label [for]="'visibility_' + mesh.name">{{ mesh.name }}</label>
-          <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible"
-                 (change)="toggleMesh(mesh)"
+          <div class="checkbox-wrapper">
+            <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible"
+                   (change)="toggleMesh(mesh)"
+                   (dblclick)="toggleMeshOnly(mesh)">
+            <img [src]="'assets/editor/icons/hide_' + (mesh.visible ? 'off' : 'on') + '.svg'"
+                 (click)="toggleMesh(mesh)"
                  (dblclick)="toggleMeshOnly(mesh)">
+          </div>
         </div>
       </ng-container>
       <ng-container *ngIf="uiGroups !== null">
         <div class="controls-list" *ngFor="let group of uiGroups | keyvalue">
           <label [for]="'visibility_' + group.key">{{ group.key }}</label>
-          <input [id]="'visibility_' + group.key" type='checkbox' [checked]="group.value.visible"
-                 (change)="toggleUiGroup(group.key)"
+          <div class="checkbox-wrapper">
+            <input [id]="'visibility_' + group.key" type='checkbox' [checked]="group.value.visible"
+                   (change)="toggleUiGroup(group.key)"
+                   (dblclick)="toggleUiGroupOnly(group.key)">
+            <img [src]="'assets/editor/icons/hide_' + (group.value.visible ? 'off' : 'on') + '.svg'"
+                 (click)="toggleUiGroup(group.key)"
                  (dblclick)="toggleUiGroupOnly(group.key)">
+          </div>
         </div>
       </ng-container>
     </ng-container>

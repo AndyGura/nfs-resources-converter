@@ -33,6 +33,63 @@
       margin: 0;
     }
 
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+
+      h4 {
+        margin: 0;
+      }
+    }
+
+    .icon-button {
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #444444;
+      }
+
+      img {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .checkbox-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+
+      input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+        z-index: 1;
+      }
+
+      img {
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
+      }
+    }
+
     .controls-list {
       width: 100%;
       display: flex;

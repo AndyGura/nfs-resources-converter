@@ -16,6 +16,7 @@ import {
 export type ViewMode = 'material' | 'wireframe' | 'unlit' | 'edges';
 
 export class ViewModeController {
+  public onFrameAll?: () => void;
   private _viewMode: ViewMode = 'material';
   private originalMaterials: Map<Mesh, Material | Material[]> = new Map();
   private edgeLines: LineSegments[] = [];
@@ -46,6 +47,10 @@ export class ViewModeController {
   setViewMode(mode: ViewMode): void {
     this._viewMode = mode;
     this.applyViewMode();
+  }
+
+  public frameAll(): void {
+    this.onFrameAll?.();
   }
 
   private captureOriginalMaterials(): void {

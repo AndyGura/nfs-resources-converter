@@ -232,6 +232,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
     this.viewModeController = new ViewModeController(this.world.visualScene.nativeScene!, this.ambientLight);
+    this.viewModeController.onFrameAll = () => this.placeRendererAtHome();
     this.world.visualScene.nativeScene!.add(this.ambientLight);
     this.skySphere = new Entity3d({
       object3D: this.world.visualScene.factory.createPrimitive(
@@ -266,12 +267,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         background: 0xaaaaaa,
       },
     );
-    this.renderer.camera.position = { x: 0, y: 0, z: 2.5 };
-    this.renderer.camera.rotation = Qtrn.lookAt(
-      this.renderer.camera.position,
-      Pnt3.add(this.renderer.camera.position, Pnt3.Y),
-      Pnt3.Z,
-    );
+    this.placeRendererAtHome();
     createInlineTickController(this.world)
       .pipe(takeUntil(this.destroyed$))
       .subscribe(() => {
@@ -480,6 +476,20 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
     } else {
       this.terrainChunksObjLocation = undefined;
+    }
+  }
+
+  public placeRendererAtHome(): void {
+    if (this.renderer) {
+      this.renderer.camera.position = { x: 0, y: 0, z: 2.5 };
+      this.renderer.camera.rotation = Qtrn.lookAt(
+        this.renderer.camera.position,
+        Pnt3.add(this.renderer.camera.position, Pnt3.Y),
+        Pnt3.Z,
+      );
+    }
+    if (this.controller) {
+      this.controller.reset();
     }
   }
 
