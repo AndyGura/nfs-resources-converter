@@ -14,4 +14,8 @@ export class ViewModeToolbarComponent {
   setViewMode(mode: ViewMode): void {
     this.viewModeChanged.emit(mode);
   }
+
+  frameAll(): void {
+    this.viewModeController?.frameAll();
+  }
 }

@@ -29,6 +29,7 @@ import {
 } from '@gg-web-engine/three';
 import {
   AmbientLight,
+  Box3,
   ClampToEdgeWrapping,
   Material,
   Mesh,
@@ -217,6 +218,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
   viewModeController?: ViewModeController;
+  private isFirstFrame = true;
 
   get viewMode(): ViewMode {
     return this.viewModeController?.viewMode || 'material';
@@ -252,12 +254,20 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
       });
     }
     this.world.addEntity(this.controller);
+    if (this._cameraControl === 'orbit') {
+      this.controller.spherical = { phi: 1.22, theta: -1.32, radius: 10 };
+    } else {
+      this.controller.spherical = { phi: Math.PI - 1.22, theta: -1.32 + Math.PI, radius: 1 };
+    }
+    this.renderer.position = Pnt3.fromSpherical(this.controller.spherical);
+    this.isFirstFrame = true;
   }
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
     await this.world.init();
     this.viewModeController = new ViewModeController(this.world.visualScene.nativeScene!, this.ambientLight);
+    this.viewModeController.onFrameAll = () => this.frameAll();
     this.world.visualScene.nativeScene!.add(this.ambientLight);
     let rendererSize$: BehaviorSubject<Point2> = new BehaviorSubject<Point2>({ x: 1, y: 1 });
     this.renderer = this.world.addRenderer(
@@ -322,26 +332,51 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
         this.onObjectLoaded.next(object);
         this.entity = new Entity3d<TypeDocOf<ThreeGgWorld>>({ object3D: new ThreeDisplayObjectComponent(object) });
         this.world.addEntity(this.entity);
-        let bounds = { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } };
-        const calculatedBounds = this.entity.object3D!.getBoundings();
-        if (!isNaN(calculatedBounds.min.x) && !isNaN(calculatedBounds.max.x)) {
-          bounds = calculatedBounds;
-        }
-        const cameraTarget = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
-        const cameraPosSpherical = { phi: 1.22, theta: -1.32, radius: Pnt3.dist(bounds.min, bounds.max) };
-        if (this.controller instanceof OrbitCameraController) {
-          this.controller.target = cameraTarget;
-          this.controller.spherical = cameraPosSpherical;
-        } else {
-          // negate vector
-          cameraPosSpherical.phi = Math.PI - cameraPosSpherical.phi;
-          cameraPosSpherical.theta += Math.PI;
-          this.renderer.position = Pnt3.sub(cameraTarget, Pnt3.fromSpherical(cameraPosSpherical));
-          this.controller.spherical = cameraPosSpherical;
-        }
+        this.frameAll();
         this.cdr.markForCheck();
       }
     });
+  }
+
+  public frameAll(): void {
+    if (this.entity) {
+      let bounds = { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } };
+      const box = new Box3();
+      let hasVisible = false;
+      for (const mesh of this.displayMeshes) {
+        if (mesh.visible) {
+          box.expandByObject(mesh);
+          hasVisible = true;
+        }
+      }
+      if (hasVisible) {
+        bounds = {
+          min: { x: box.min.x, y: box.min.y, z: box.min.z },
+          max: { x: box.max.x, y: box.max.y, z: box.max.z },
+        };
+      }
+      const cameraTarget = Pnt3.scalarMult(Pnt3.add(bounds.min, bounds.max), 0.5);
+      const radius = Pnt3.dist(bounds.min, bounds.max);
+      let phi = this.controller.spherical.phi;
+      let theta = this.controller.spherical.theta;
+      if (this.isFirstFrame || (phi === 0 && theta === 0)) {
+        phi = 1.22;
+        theta = -1.32;
+        if (!(this.controller instanceof OrbitCameraController)) {
+          phi = Math.PI - phi;
+          theta += Math.PI;
+        }
+        this.isFirstFrame = false;
+      }
+      if (this.controller instanceof OrbitCameraController) {
+        this.controller.target = cameraTarget;
+        this.controller.spherical = { phi, theta, radius };
+      } else {
+        this.renderer.position = Pnt3.sub(cameraTarget, Pnt3.fromSpherical({ phi, theta, radius }));
+        this.controller.spherical = { phi, theta, radius };
+      }
+      this.cdr.markForCheck();
+    }
   }
 
   public setViewMode(mode: ViewMode): void {
@@ -379,6 +414,26 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     for (const m of this.uiGroups[alias].meshes) {
       m.visible = true;
     }
+  }
+
+  public toggleAllVisibility(): void {
+    if (this.uiGroups) {
+      const allVisible = Object.values(this.uiGroups).every(g => g.visible);
+      const newState = !allVisible;
+      for (const group of Object.values(this.uiGroups)) {
+        group.visible = newState;
+        for (const mesh of group.meshes) {
+          mesh.visible = newState;
+        }
+      }
+    } else {
+      const allVisible = this.displayMeshes.every(m => m.visible);
+      const newState = !allVisible;
+      for (const mesh of this.displayMeshes) {
+        mesh.visible = newState;
+      }
+    }
+    this.cdr.markForCheck();
   }
 
   // TODO use set.intersection after upgrading typescript

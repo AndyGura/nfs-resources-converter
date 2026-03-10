@@ -1,4 +1,8 @@
 <div class="view-mode-toolbar">
+  <button (click)="frameAll()" title="Frame all">
+    <img src="assets/editor/icons/home.svg" alt="Frame all">
+  </button>
+  <div class="separator"></div>
   <button *ngFor="let option of viewModeController?.listViewModes"
           [class.selected]="currentViewMode === option"
           (click)="setViewMode($any(option))"
