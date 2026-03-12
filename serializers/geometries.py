@@ -297,8 +297,11 @@ class CrpGeometrySerializer(BaseFileSerializer):
 
         for (i, article) in enumerate(data['articles']):
             names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
-            assert len(names) == 1, f"Inconsistent name parts amount found for part {i}"
-            name = names[0]['data']
+            if len(names) == 0:
+                name = "article_" + str(i)
+            else:
+                assert len(names) == 1, f"Inconsistent name parts amount found for part {i}"
+                name = names[0]['data']
 
             v = [x['data'] for x in article['parts'] if x['choice_index'] == vertex_choice_index]
             uv = [x['data'] for x in article['parts'] if x['choice_index'] == uv_choice_index]
