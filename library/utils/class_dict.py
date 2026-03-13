@@ -43,7 +43,7 @@ class ClassDict(dict):
             elif isinstance(value, list):
                 res[key] = [x.to_dict()
                             if isinstance(x, ClassDict)
-                            else dict(x) if isinstance(x, Iterable) else x
+                            else dict(x) if isinstance(x, Iterable) and not isinstance(x, str) else x
                             for x in value]
             elif isinstance(value, Iterable) and not isinstance(value, str):
                 res[key] = dict(value)
