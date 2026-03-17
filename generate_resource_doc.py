@@ -553,7 +553,8 @@ Did not find what you need or some given data is wrong? Please submit an
 
             for key, field in resource.field_blocks:
                 extras = resource.field_extras_map[key]
-                if extras.get('usage', 'everywhere') == 'ui_only':
+                usage = extras.get('usage', 'everywhere')
+                if usage != 'everywhere' and 'doc' not in usage:
                     continue
                 if extras.get('custom_offset'):
                     offset = extras.get('custom_offset')

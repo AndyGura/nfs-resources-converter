@@ -250,10 +250,10 @@ class MapColFile(DeclarativeCompoundBlock):
             {'description': 'A part of block, where extra blocks data is located. Offsets are defined in '
                             'previous "extrablock_offsets" field. Item type:'
                             '<br/>- [ColExtraBlock](#colextrablock)',
-             'usage': 'skip_ui'})
+             'usage': 'io,doc'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
                        {'description': 'Extrablocks',
-                        'usage': 'ui_only'})
+                        'usage': 'ui'})
 
     def serializer_class(self):
         from serializers import JsonSerializer

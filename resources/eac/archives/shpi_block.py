@@ -76,7 +76,7 @@ class ShpiBlock(BaseArchiveBlock):
                                          '<br/>- [Palette24Bit](#palette24bit)'
                                          '<br/>- [Palette32Bit](#palette32bit)'
                                          '<br/>- [ShpiText](#shpitext)',
-                          'usage': 'skip_ui'})
+                          'usage': 'io,doc'})
         children = (ArrayBlock(length=(0, 'num_items + ?'),
                                child=AutoDetectBlock(possible_blocks=[
                                    Bitmap4Bit(),
@@ -97,7 +97,7 @@ class ShpiBlock(BaseArchiveBlock):
                                        for x in (sorted(ctx.data('items_descr'), key=lambda x: x['offset'])
                                                  + [{'offset': ctx.read_bytes_amount}])
                                    ) if x > 0), 'item_length'))])),
-                    {'usage': 'ui_only'})
+                    {'usage': 'ui'})
 
     def new_data(self):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
