@@ -83,10 +83,10 @@ class MiscPart(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
         data = (BytesBlock(length=lambda ctx: ctx.data('len')),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class MaterialPartData(DeclarativeCompoundBlock):
@@ -112,9 +112,9 @@ class MaterialPart(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MaterialPart offset)'})
-        data = (MaterialPartData(), {'usage': 'ui_only'})
+        data = (MaterialPartData(), {'usage': 'ui'})
 
 
 class FSHPart(DeclarativeCompoundBlock):
@@ -127,15 +127,15 @@ class FSHPart(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         len = (IntegerBlock(length=3, programmatic_value=lambda ctx: sum(ShpiBlock().estimate_packed_size(shpi, None)
                                                                          for shpi in ctx.data('data'))),
-               {'usage': 'skip_ui',
+               {'usage': 'io,doc',
                 'description': 'Length'})
         num_fsh = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
                    {'description': 'Number of FSH files'})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current FSHPart offset)'})
         data = (ArrayBlock(child=ShpiBlock(), length=lambda ctx: ctx.data('num_fsh')),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class BasePart(DeclarativeCompoundBlock):
@@ -149,10 +149,10 @@ class BasePart(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
         data = (BytesBlock(length=lambda ctx: ctx.data('len')),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class NamePart(DeclarativeCompoundBlock):
@@ -166,10 +166,10 @@ class NamePart(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
         data = (NullTerminatedUTF8Block(length=None),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class CullingPartData(DeclarativeCompoundBlock):
@@ -189,10 +189,10 @@ class CullingPart(DeclarativeCompoundBlock):
                {'description': 'Length'})
         num_data = IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data')))
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
         data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=CullingPartData()),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class TransformationPart(DeclarativeCompoundBlock):
@@ -207,11 +207,11 @@ class TransformationPart(DeclarativeCompoundBlock):
         num_matrices = (IntegerBlock(length=4, programmatic_value=lambda ctx: 1),
                         {'description': 'Number of Transformation Matrices (always 1)'})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
         data = (ArrayBlock(length=lambda ctx: ctx.data('num_matrices'),
                            child=ArrayBlock(length=16, child=DecimalBlock(length=4))),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class VertexData(DeclarativeCompoundBlock):
@@ -229,15 +229,15 @@ class VertexPart(DeclarativeCompoundBlock):
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
         len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) * 16),
-               {'usage': 'skip_ui',
+               {'usage': 'io,doc',
                 'description': 'Length'})
         num_vertices = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
                         {'description': 'Number of vertices'})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current part offset)'})
         data = (ArrayBlock(length=lambda ctx: ctx.data('num_vertices'), child=VertexData()),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class NormalData(DeclarativeCompoundBlock):
@@ -259,10 +259,10 @@ class NormalPart(DeclarativeCompoundBlock):
         num_normals = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
                        {'description': 'Number of normals'})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
         data = (ArrayBlock(length=lambda ctx: ctx.data('num_normals'), child=NormalData()),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class UVData(DeclarativeCompoundBlock):
@@ -282,10 +282,10 @@ class UVPart(DeclarativeCompoundBlock):
                {'description': 'Length'})
         num_data = IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data')))
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
         data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=UVData()),
-                {'usage': 'ui_only'})
+                {'usage': 'ui'})
 
 
 class TriangleInfoRowBase(DeclarativeCompoundBlock):
@@ -386,9 +386,9 @@ class TrianglePart(DeclarativeCompoundBlock):
         num_indices = (IntegerBlock(length=4),
                        {'description': 'Number of Indices'})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
-        data = (TriangleData(), {'usage': 'ui_only'})
+        data = (TriangleData(), {'usage': 'ui'})
 
 
 class EffectData(DeclarativeCompoundBlock):
@@ -421,9 +421,9 @@ class EffectPart(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         offset = (IntegerBlock(length=4),
-                  {'usage': 'skip_ui',
+                  {'usage': 'io,doc',
                    'description': 'Offset (Relative from current MiscPart offset)'})
-        data = (EffectData(), {'usage': 'ui_only'})
+        data = (EffectData(), {'usage': 'ui'})
 
 
 class PartBlock(DelegateBlock):
@@ -486,7 +486,7 @@ class Article(DeclarativeCompoundBlock):
                          {'description': 'Length of Parttable pointed to (* 16)'})
         offset = (IntegerBlock(length=4),
                   {'description': 'Offset (Relative from current Article offset * 16)'})
-        parts = (ArrayBlock(child=PartBlock(), length=(0, '?')), {'usage': 'ui_only'})
+        parts = (ArrayBlock(child=PartBlock(), length=(0, '?')), {'usage': 'ui'})
 
 
 def determine_misc_part_type(ctx):
@@ -533,10 +533,10 @@ class CrpGeometry(DeclarativeCompoundBlock):
                       {'description': 'Array of misc parts'})
         parts = (ArrayBlock(child=PartBlock(),
                             length=lambda ctx: determine_num_parts(ctx)),
-                 {'usage': 'skip_ui',
+                 {'usage': 'io,doc',
                   'description': 'Array of parts'})
         raw_data = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
-                    {'usage': 'skip_ui',
+                    {'usage': 'io,doc',
                      'description': 'Raw data'})
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
