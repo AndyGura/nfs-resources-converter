@@ -51,7 +51,7 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
     let fields: { index: number; key: string }[] =
       this.schema?.fields
         .map((f: { name: string; usage?: string }, i: number) => ({ index: i, name: f.name, usage: f.usage }))
-        .filter((f: { usage?: string }) => (f.usage || 'everywhere') !== 'skip_ui')
+        .filter((f: { usage?: string }) => !f.usage || f.usage == 'everywhere' || f.usage.includes('ui'))
         .map((f: { index: number; name: string }) => ({ index: f.index, key: f.name })) || [];
     if (this.fieldWhitelist) {
       fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));

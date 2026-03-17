@@ -14,10 +14,10 @@ class FieldExtras(TypedDict, total=False):
       - is_unknown: bool — Marks a field whose purpose/meaning is not fully known.
       - custom_offset: Union[int, str] — For documentation: shows how the field's offset is calculated
         if it is not placed sequentially. Accepts an absolute integer offset or an expression string.
-      - usage: str — Where the field should be used. Allowed values:
-        'everywhere' (default) — used in IO, UI, and docs;
-        'ui_only' — shown only in UI; ignored for IO and docs;
-        'skip_ui' — used in IO and docs but hidden in UI.
+      - usage: str — Where the field should be used. Possible values:
+        -- coma-separated strings, e.g. 'ui,io'.
+           Possible values are: 'ui', 'io', 'doc' for GUI editor, reading/writing data, and documentation, respectively.
+        -- None or 'everywhere' (default) — used in IO, UI, and docs; same as 'ui,io,doc'
     """
     description: str
     is_unknown: bool
@@ -80,7 +80,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             return '?'
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
-            if usage == 'ui_only':
+            if usage != 'everywhere' and 'io' not in usage:
                 continue
             field_size_doc = field.size_doc_str
             try:
@@ -106,7 +106,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
-            if usage == 'ui_only':
+            if usage != 'everywhere' and 'io' not in usage:
                 continue
             res[name] = field.unpack(ctx=self_ctx, name=name)
         return res
@@ -116,7 +116,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
         res = 0
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
-            if usage == 'ui_only':
+            if usage != 'everywhere' and 'io' not in usage:
                 continue
             res += field.estimate_packed_size(data=data.get(name), ctx=self_ctx)
         return res
@@ -126,7 +126,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
         res = 0
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
-            if usage == 'ui_only':
+            if usage != 'everywhere' and 'io' not in usage:
                 continue
             if name == child_name:
                 return res
@@ -139,7 +139,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
         self_ctx.result = bytes()
         for name, field in self.field_blocks:
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
-            if usage == 'ui_only':
+            if usage != 'everywhere' and 'io' not in usage:
                 continue
             self_ctx.result += field.pack(data=data.get(name), ctx=self_ctx, name=name)
         return self_ctx.result

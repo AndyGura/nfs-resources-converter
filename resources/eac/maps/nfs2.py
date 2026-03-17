@@ -64,13 +64,13 @@ class TrkBlock(DeclarativeCompoundBlock):
                                'custom_offset': 'extrablocks_offset + 64'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
                        {'description': 'Extrablocks',
-                        'usage': 'ui_only'})
+                        'usage': 'ui'})
         extrablocks_bytes = (BytesBlock(length=lambda ctx: ctx.data('block_size') - ctx.local_buffer_pos),
                              {
                                  'description': 'A part of block, where extrablocks data is located. Offsets to the entries '
                                                 'are defined in `extrablock_offsets` block. Item type:'
                                                 '<br/>- [ColExtraBlock](#colextrablock)',
-                                 'usage': 'skip_ui'})
+                                 'usage': 'io,doc'})
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)

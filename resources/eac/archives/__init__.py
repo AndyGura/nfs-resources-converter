@@ -129,9 +129,9 @@ class WwwwBlock(BaseArchiveBlock):
                                       '<br/>- [ShpiBlock](#shpiblock)'
                                       '<br/>- [OripGeometry](#oripgeometry)'
                                       '<br/>- [WwwwBlock](#wwwwblock)',
-                       'usage': 'skip_ui'})
+                       'usage': 'io,doc'})
         children = (ArrayBlock(length=(0, 'num_items'), child=None),
-                    {'usage': 'ui_only'})
+                    {'usage': 'ui'})
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -213,9 +213,9 @@ class BigfBlock(BaseArchiveBlock):
                                       '<br/>- [GeoGeometry](#geogeometry)'
                                       '<br/>- [ShpiBlock](#shpiblock)'
                                       '<br/>- [BigfBlock](#bigfblock)',
-                       'usage': 'skip_ui'})
+                       'usage': 'io,doc'})
         children = (ArrayBlock(length=(0, 'num_items'), child=None),
-                    {'usage': 'ui_only'})
+                    {'usage': 'ui'})
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -267,10 +267,10 @@ class SoundBank(DeclarativeCompoundBlock):
         wave_data = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
                      {'description': 'Raw byte data, which is sliced according to provided offsets and used as wave '
                                      'data',
-                      'usage': 'skip_ui'})
+                      'usage': 'io,doc'})
         children = (ArrayBlock(child=EacsAudioFile(), length=(0, 'amount of non-zero elements in items_descr')),
                     {'description': 'EACS audios',
-                     'usage': 'ui_only'})
+                     'usage': 'ui'})
 
     def serializer_class(self):
         from serializers import SoundBankSerializer
