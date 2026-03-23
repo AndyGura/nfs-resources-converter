@@ -69,6 +69,9 @@ class DelegateBlock(DataBlock):
         assert name == 'data'
         return self.possible_blocks[unpacked_data['choice_index']], unpacked_data['data']
 
+    def get_choice_index_by_class_name(self, class_name):
+        return [x.__class__.__name__ for x in self.possible_blocks].index(class_name)
+
     def new_data(self):
         return {'choice_index': 0,
                 'data': self.possible_blocks[0].new_data()}

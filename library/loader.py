@@ -32,7 +32,10 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             from resources.eac.maps.nfs3 import FrdMap
             return FrdMap
     if header_str:
-        if file_path and header_str == '#ver' and file_path.endswith('INFO'):
+        if header_str in [' raC', 'karT']:
+            from resources.eac.geometries import CrpGeometry
+            return CrpGeometry
+        elif file_path and header_str == '#ver' and file_path.endswith('INFO'):
             from resources.eac.misc import DashDeclarationFile
             return DashDeclarationFile
         elif header_str == '1SNh':
@@ -229,6 +232,8 @@ def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
             block_class = probe_block_class(bdata, path)
             block = block_class()
             DataBlock.root_read_ctx.buffer = bdata
+            DataBlock.root_read_ctx.read_start_offset = 0
+            DataBlock.root_read_ctx.read_bytes_amount = getsize(path)
             data = block.unpack(DataBlock.root_read_ctx, name=name, read_bytes_amount=getsize(path))
             files_cache[name] = (block, data)
     return name, block, data

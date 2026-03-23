@@ -55,16 +55,19 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
         print(f"WARNING: Block class {instance.__class__.__name__} is referenced but not presented in the file")
     return f'[{name}](#{name.lower()})'
 
+
 def render_description(extras):
     description = extras.get("description", "Unknown purpose" if extras.get("is_unknown") else "-")
     # find parts in description like "<br/>- [GeoGeometry](#geogeometry)" and filter them with possible_blocks_filter
     if possible_blocks_filter:
         possible_block_class_names = [x.__name__.replace("Resource", "") for x in possible_blocks_filter]
         block_ref_pattern = re.compile(r'<br/>\s*-\s*\[([A-Za-z0-9_]+)\]\(#.*?\)')
+
         def remove_if_filtered_out(match):
             if match.group(1) not in possible_block_class_names:
                 return ''
             return match.group(0)
+
         return block_ref_pattern.sub(remove_if_filtered_out, description)
     return description
 
@@ -436,7 +439,9 @@ EXPORT_RESOURCES = {
     'nfs5': {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
-        'file_list': f"""**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+        'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
 **\*.ENV** image archive. {render_type(archives.ShpiBlock())}
 
@@ -447,8 +452,43 @@ EXPORT_RESOURCES = {
                 archives.BigfBlock(),
                 archives.BigfItemDescriptionBlock(),
             ],
-            # 'Geometries': [
-            # ],
+            'Geometries': [
+                geometries.nfs5.CrpGeometry(),
+
+                geometries.nfs5.ArticlePart(),
+                geometries.nfs5.TextPart2(),
+                geometries.nfs5.TextPart4(),
+                geometries.nfs5.MaterialPart(),
+                geometries.nfs5.FSHPart(),
+                geometries.nfs5.CullingPart(),
+                geometries.nfs5.EffectPart(),
+                geometries.nfs5.NormalPart(),
+                geometries.nfs5.TrianglePart(),
+                geometries.nfs5.TransformationPart(),
+                geometries.nfs5.UVPart(),
+                geometries.nfs5.VertexPart(),
+                geometries.nfs5.UnkPart2(),
+                geometries.nfs5.UnkPart4(),
+
+                geometries.nfs5.MaterialPartData(),
+                geometries.nfs5.CullingPartData(),
+                geometries.nfs5.CullingInfoRow(),
+
+                geometries.nfs5.EffectPartData(),
+
+                geometries.nfs5.NormalPartData(),
+                geometries.nfs5.NormalInfoRow(),
+
+                geometries.nfs5.TrianglePartData(),
+                geometries.nfs5.TriangleInfoRowBase(),
+                geometries.nfs5.IndexRow(),
+
+                geometries.nfs5.UVData(),
+                geometries.nfs5.UVInfoRow(),
+
+                geometries.nfs5.VertexData(),
+                geometries.nfs5.VertexInfoRow(),
+            ],
             # 'Maps': [
             # ],
             # 'Physics': [
