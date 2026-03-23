@@ -4,8 +4,8 @@ from .nfs2 import (
     GeoGeometry,
 )
 from .nfs5 import (
-    Article,
-    MiscPart,
+    ArticlePart,
+    UnkPart4,
     MaterialPart,
     FSHPart,
     CrpGeometry,

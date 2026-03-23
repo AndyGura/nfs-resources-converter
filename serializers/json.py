@@ -16,8 +16,11 @@ class JsonSerializer(BaseFileSerializer):
     def __make_dict(self, block, data):
         res = rec_dd()
         for key, value in data.items():
-            usage = block.field_extras_map[key].get('usage')
-            show_by_usage = usage == 'everywhere' or 'ui' in usage
+            try:
+                usage = block.field_extras_map[key].get('usage', 'everywhere')
+                show_by_usage = usage == 'everywhere' or 'ui' in usage
+            except AttributeError:
+                show_by_usage = True
             if isinstance(block, CompoundBlock) and (block.field_extras_map[key].get('is_unknown') or not show_by_usage):
                 continue
             try:

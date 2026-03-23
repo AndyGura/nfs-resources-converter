@@ -146,7 +146,7 @@ class DocumentationCtxData:
     def __mul__(self, other):
         a = str(self)
         b = str(other)
-        if '+' in a or '-' in a:
+        if '+' in a or '-' in a or '/' in a:
             a = f'({a})'
         if '+' in b or '-' in b:
             b = f'({b})'
@@ -155,22 +155,76 @@ class DocumentationCtxData:
     def __rmul__(self, other):
         a = str(other)
         b = str(self)
-        if '+' in a or '-' in a:
+        if '+' in a or '-' in a or '/' in a:
             a = f'({a})'
         if '+' in b or '-' in b:
             b = f'({b})'
         return DocumentationCtxData(f'{a}*{b}')
+
+    def __floordiv__(self, other):
+        a = str(self)
+        b = str(other)
+        if '+' in a or '-' in a:
+            a = f'({a})'
+        if '+' in b or '-' in b or '*' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a}/{b}')
+
+    def __rfloordiv__(self, other):
+        a = str(other)
+        b = str(self)
+        if '+' in a or '-' in a:
+            a = f'({a})'
+        if '+' in b or '-' in b or '*' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a}/{b}')
+
+    def __lshift__(self, other):
+        a = str(self)
+        b = str(other)
+        if '+' in a or '-' in a or '*' in a or '/' in a:
+            a = f'({a})'
+        if '+' in b or '-' in a or '*' in a or '/' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a} << {b}')
+
+    def __rlshift__(self, other):
+        a = str(other)
+        b = str(self)
+        if '+' in a or '-' in a or '*' in a or '/' in a:
+            a = f'({a})'
+        if '+' in b or '-' in a or '*' in a or '/' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a} << {b}')
+
+    def __rshift__(self, other):
+        a = str(self)
+        b = str(other)
+        if '+' in a or '-' in a or '*' in a or '/' in a:
+            a = f'({a})'
+        if '+' in b or '-' in a or '*' in a or '/' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a} >> {b}')
+
+    def __rrshift__(self, other):
+        a = str(other)
+        b = str(self)
+        if '+' in a or '-' in a or '*' in a or '/' in a:
+            a = f'({a})'
+        if '+' in b or '-' in a or '*' in a or '/' in b:
+            b = f'({b})'
+        return DocumentationCtxData(f'{a} >> {b}')
 
 
 class DocumentationContext(BaseContext):
 
     @property
     def read_bytes_remaining(self):
-        return 'up to end of block'
+        return DocumentationCtxData('up to end of block')
 
     @property
     def local_buffer_pos(self):
-        return 'local_offset'
+        return DocumentationCtxData('local_offset')
 
     def get_or_create_child(self, name: str, block=None):
         existing_child = self.children.get('name')

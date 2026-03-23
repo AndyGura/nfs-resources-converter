@@ -238,13 +238,15 @@ class CrpGeometrySerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path)
 
-        fsh_parts = [x['data'] for x in data['misc_parts'] if x['choice_index'] == 2]
+        misc_choice = block.field_blocks_map['common_parts'].child
+        fsh_parts = [x['data'] for x in data['common_parts'] if
+                     x['choice_index'] == misc_choice.get_choice_index_by_class_name("FSHPart")]
         from serializers import ShpiArchiveSerializer
         shpi_block = ShpiBlock()
         for fsh_part in fsh_parts:
-            assert fsh_part['num_fsh'] == 1
+            assert fsh_part['num_data'] == 1
             fsh_data = fsh_part['data'][0]
-            idx = fsh_part["index"]
+            idx = fsh_part["idx"]
             ShpiArchiveSerializer().serialize(fsh_data, path_join(path, f'textures/{idx}/'),
                                               join_id(id, f'fsh_parts/{idx}'), shpi_block)
 
@@ -260,7 +262,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
         uv_choice_index = choice.get_choice_index_by_class_name("UVPart")
         triangle_choice_index = choice.get_choice_index_by_class_name("TrianglePart")
         transform_choice_index = choice.get_choice_index_by_class_name("TransformationPart")
-        name_choice_index = choice.get_choice_index_by_class_name("NamePart")
+        name_choice_index = choice.get_choice_index_by_class_name("TextPart4")
 
         def extract_vertices(part):
             return [
@@ -279,10 +281,10 @@ class CrpGeometrySerializer(BaseFileSerializer):
             return res
 
         def extract_indices(part):
-            num_indices = part['num_indices']
+            num_data = part['num_data']
             try:
                 offset = part['data']['index_rows'][0]['offset']
-                indices = part['data']['index_table'][offset:offset + num_indices]
+                indices = part['data']['index_table'][offset:offset + num_data]
                 # take into account VertexInfoRow
                 try:
                     vertex_info_row = next(x['data'] for x in part['data']['info_rows'] if x['choice_index'] == 3)
@@ -312,7 +314,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
 
                 lod_level = vx["part_info"]["lod"]
                 try:
-                    transform_matrix = next(x for x in t if x["part_info"]["lod"] == lod_level)['data'][0]
+                    transform_matrix = next(x for x in t if x["part_info"]["lod"] == lod_level)['data']
                 except StopIteration:
                     transform_matrix = None
 
@@ -338,7 +340,8 @@ class CrpGeometrySerializer(BaseFileSerializer):
                                 part_mesh.vertices[j][k] += fix[j][k]
                     uvx = next(x for x in uv if x["part_info"]["lod"] == lod_level)
                     indices = extract_indices(trix)
-                    part_mesh.vertex_uvs = extract_uvs(len(part_mesh.vertices), indices, trix['data']['index_table_2'], uvx)
+                    part_mesh.vertex_uvs = extract_uvs(len(part_mesh.vertices), indices, trix['data']['uv_index_table'],
+                                                       uvx)
                     part_mesh.polygons = [
                         [indices[i], indices[i + 1], indices[i + 2]]
                         for i in range(0, len(indices), 3)

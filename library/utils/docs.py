@@ -46,7 +46,7 @@ def multiply_doc_numbers(a, b):
             [mnsd, mxsd] = b.split('..') if ('..' in b) else [b, b]
             return f'{multiply_doc_numbers(mnld, mnsd)}..{multiply_doc_numbers(mxld, mxsd)}'
         else:
-            if needs_parentheses(a):
+            if needs_parentheses(a) or '/' in a:
                 a = f'({a})'
             if needs_parentheses(b):
                 b = f'({b})'
