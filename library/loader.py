@@ -232,6 +232,8 @@ def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
             block_class = probe_block_class(bdata, path)
             block = block_class()
             DataBlock.root_read_ctx.buffer = bdata
+            DataBlock.root_read_ctx.read_start_offset = 0
+            DataBlock.root_read_ctx.read_bytes_amount = getsize(path)
             data = block.unpack(DataBlock.root_read_ctx, name=name, read_bytes_amount=getsize(path))
             files_cache[name] = (block, data)
     return name, block, data
