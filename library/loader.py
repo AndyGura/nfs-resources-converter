@@ -116,9 +116,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         # TODO Bitmap32Bit1010102
         # elif resource_id == 0x6A:
         #     pass
-        # TODO Bitmap16Bit4444
-        # elif resource_id == 0x6D:
-        #     pass
+        elif resource_id == 0x6D:
+            from resources.eac.bitmaps import Bitmap16Bit4444
+            return Bitmap16Bit4444
         elif resource_id == 0x6F:
             from resources.eac.misc import ShpiText
             return ShpiText

@@ -495,6 +495,7 @@ EXPORT_RESOURCES = {
             # ],
             'Bitmaps': [
                 bitmaps.Bitmap8Bit(),
+                bitmaps.Bitmap16Bit4444(),
                 bitmaps.Bitmap16Bit0565(),
                 bitmaps.Bitmap16Bit1555(),
                 bitmaps.Bitmap24Bit(),

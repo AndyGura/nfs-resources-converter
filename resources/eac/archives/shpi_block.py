@@ -10,7 +10,7 @@ from library.read_blocks import (CompoundBlock,
                                  AutoDetectBlock,
                                  BytesBlock)
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
+from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap16Bit4444, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
 from resources.eac.misc import ShpiText
 from resources.eac.palettes import (Palette24BitDos,
                                     Palette24Bit,
@@ -65,6 +65,7 @@ class ShpiBlock(BaseArchiveBlock):
                                          'entries (palettes and texts). Possible item types:'
                                          '<br/>- [Bitmap4Bit](#bitmap4bit)'
                                          '<br/>- [Bitmap8Bit](#bitmap8bit)'
+                                         '<br/>- [Bitmap16Bit4444](#bitmap16bit4444)'
                                          '<br/>- [Bitmap16Bit0565](#bitmap16bit0565)'
                                          '<br/>- [Bitmap16Bit1555](#bitmap16bit1555)'
                                          '<br/>- [Bitmap24Bit](#bitmap24bit)'
@@ -81,6 +82,7 @@ class ShpiBlock(BaseArchiveBlock):
                                child=AutoDetectBlock(possible_blocks=[
                                    Bitmap4Bit(),
                                    Bitmap8Bit(),
+                                   Bitmap16Bit4444(),
                                    Bitmap16Bit0565(),
                                    Bitmap16Bit1555(),
                                    Bitmap24Bit(),

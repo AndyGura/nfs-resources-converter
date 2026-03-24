@@ -74,6 +74,24 @@ class Color32BitBlock(IntegerBlock):
         return super().write((data & 0xff_ff_ff_00) >> 8 | (data & 0xff) << 24, ctx, name)
 
 
+class Color16Bit4444Block(IntegerBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA games 16-bit 4444 color, aaaarrrr_ggggbbbb',
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(length=2, **kwargs)
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        number = super().read(ctx, name)
+        value = transform_color_bitness(number, 4, 4, 4, 4)
+        return value
+
+
 class Color16Bit0565Block(IntegerBlock):
     # Tested on NFS2 tracks
     transparent_color = 0x00_FB_00_FF

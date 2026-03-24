@@ -11,7 +11,7 @@ from resources.eac.fields.colors import (
     Color16Bit1555Block,
     Color16Bit0565Block,
     Color32BitBlock,
-    Color24BitLittleEndianField
+    Color24BitLittleEndianField, Color16Bit4444Block
 )
 
 
@@ -20,6 +20,27 @@ class AnyBitmapBlock(DeclarativeCompoundBlock):
     def serializer_class(self):
         from serializers import BitmapSerializer
         return BitmapSerializer
+
+
+class Bitmap16Bit4444(AnyBitmapBlock, DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x6d)),
+                       {'description': 'Resource ID'})
+        block_size = (IntegerBlock(length=3),
+                      {'description': 'Bitmap block size 16+2\\*width\\*height + trailing bytes length'})
+        width = (IntegerBlock(length=2),
+                 {'description': 'Bitmap width in pixels'})
+        height = (IntegerBlock(length=2),
+                  {'description': 'Bitmap height in pixels'})
+        unk = (BytesBlock(length=4),
+               {'is_unknown': True})
+        x = (IntegerBlock(length=2),
+             {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
+        y = (IntegerBlock(length=2),
+             {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
+        bitmap = (ArrayBlock(child=Color16Bit4444Block(simplified=True),
+                             length=lambda ctx: ctx.data('width') * ctx.data('height')),
+                  {'description': 'Colors of bitmap pixels'})
 
 
 class Bitmap16Bit0565(AnyBitmapBlock, DeclarativeCompoundBlock):
