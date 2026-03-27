@@ -1,13 +1,15 @@
 name: Release
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [main]
+    paths-ignore:
+      - 'frontend/dist/**'
+      - 'version.py'
 
 jobs:
   release:
-    if: github.event.pull_request.merged == true
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-22.04
     outputs:
       version: ${{ steps.bump.outputs.version }}
