@@ -41,6 +41,8 @@ Milestones are AI-generated to guide public planning and will evolve over time.
 
 First of all, you need to install `ffmpeg` and `blender` (version 4+). These are required for both release artifacts and development mode.
 
+For the GUI application, Google Chrome or Chromium is recommended for the best experience. If not found, the application will try to use your system's default web browser.
+
 ### Release Artifacts (Recommended)
 
 You can use pre-built installers for Windows, Linux, and macOS from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
@@ -61,6 +63,13 @@ You can use pre-built installers for Windows, Linux, and macOS from the [Release
 1. Download `nfs-resources-converter-macos.dmg`.
 2. Open the DMG file and drag "NFS Resources Converter.app" to your "Applications" folder.
 3. This will also enable opening associated files directly from the Finder.
+
+> [!IMPORTANT]
+> Since the application is not signed, macOS may block it. To open it:
+> 1. Right-click (or Control-click) the application in the "Applications" folder.
+> 2. Select **Open** from the menu.
+> 3. Click **Open** in the confirmation dialog.
+> Alternatively, go to **System Settings > Privacy & Security** and click **Open Anyway** at the bottom.
 
 ### Development Mode
 

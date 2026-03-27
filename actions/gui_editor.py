@@ -1,7 +1,7 @@
 import os
+import shutil
 import sys
 import tempfile
-from distutils.dir_util import copy_tree
 
 import eel
 
@@ -27,10 +27,20 @@ def run_gui_editor(file_path=None):
     # Create directory for all files needed by GUI
     static_dir = tempfile.TemporaryDirectory()
     static_path = static_dir.name
-    copy_tree(_get_frontend_dist_path(), static_path)
+    shutil.copytree(_get_frontend_dist_path(), static_path, dirs_exist_ok=True)
 
     api = API(static_path, file_path)
     eel.init(static_path)
-    eel.start('index.html', port=0)
+    try:
+        eel.start('index.html', port=0)
+    except (EnvironmentError, OSError) as e:
+        # Fallback to default browser if Chrome/Chromium is not found
+        print(f"Failed to start GUI in app mode: {e}")
+        print("Retrying in default browser...")
+        try:
+            eel.start('index.html', port=0, mode='default')
+        except Exception as e:
+            print(f"Failed to start GUI: {e}")
+            sys.exit(1)
 
     static_dir.cleanup()

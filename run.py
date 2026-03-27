@@ -16,6 +16,9 @@ class Action(Enum):
 
 
 if __name__ == "__main__":
+    # macOS sometimes adds a -psn_ argument when opening from Finder
+    sys.argv = [arg for arg in sys.argv if not arg.startswith('-psn_')]
+
     # check if first argument is a valid action. If not, it is a file
     action = None
     if len(sys.argv) > 1:
