@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-fsh">
+    <comment>FSH Image File</comment>
+    <glob pattern="*.fsh"/>
+  </mime-type>
+  <mime-type type="application/x-fam">
+    <comment>FAM Archive File</comment>
+    <glob pattern="*.fam"/>
+  </mime-type>
+  <mime-type type="application/x-qfs">
+    <comment>QFS Compressed File</comment>
+    <glob pattern="*.qfs"/>
+  </mime-type>
+  <mime-type type="application/x-tri">
+    <comment>TRI Track File</comment>
+    <glob pattern="*.tri"/>
+  </mime-type>
+</mime-info>

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=NFS Resources Converter
+Exec=nfs-resources-converter %f
+Icon=nfs-resources-converter
+Type=Application
+Categories=Development;
+MimeType=application/x-fsh;application/x-fam;application/x-qfs;application/x-tri;
+Terminal=false

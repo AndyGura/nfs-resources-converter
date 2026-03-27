@@ -39,18 +39,51 @@ Milestones are AI-generated to guide public planning and will evolve over time.
 
 # Installation:
 
-0) Install Python 3.9+, pip, ffmpeg, blender (version 4+)
-1) Make sure that `blender` and `ffmpeg` commands work in terminal (cmd). If not, either fix your system environment variable PATH, or reboot your system if software was just installed, or set an absolute path to executables in the settings file (use `python run.py show_settings` to find its location)
-2) Install dependencies `pip install -r requirements.txt`
+First of all, you need to install `ffmpeg` and `blender` (version 4+). These are required for both release artifacts and development mode.
+
+### Release Artifacts (Recommended)
+
+You can use pre-built installers for Windows, Linux, and macOS from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
+
+#### Windows
+1. Download `nfs-resources-converter-windows-setup.exe`.
+2. Run the installer to install the application and set up file associations (`*.fsh`, `*.fam`, `*.qfs`, `*.tri` etc.).
+
+#### Linux (Debian/Ubuntu)
+1. Download `nfs-resources-converter-linux.deb`.
+2. Install the package using `apt` or `dpkg`:
+   ```bash
+   sudo apt install ./nfs-resources-converter-linux.deb
+   ```
+3. This will install the application and configure desktop integration and MIME types.
+
+#### macOS
+1. Download `nfs-resources-converter-macos.dmg`.
+2. Open the DMG file and drag "NFS Resources Converter.app" to your "Applications" folder.
+3. This will also enable opening associated files directly from the Finder.
+
+### Development Mode
+
+If you want to run the project from source:
+
+0) Install Python 3.9+ and pip
+1) Install dependencies `pip install -r requirements.txt`
+
+All commands below will work in development mode if you replace the binary file name with "python run.py", for instance:
+
+```bash
+python run.py NFSSE/SIMDATA/MISC/AL1.TRI
+```
 
 # Usage:
 
 ## GUI Application (Main Entry Point)
-```
-python run.py gui
+
+```bash
+./nfs-resources-converter
 ```
 
-This command launches the GUI application, which is now the main interface for the project. The GUI provides:
+This command launches the GUI application, which is the main interface for the project. The GUI provides:
 
 - **File Management**: Open, close, save, and reload resource files
 - **Resource Viewer/Editor**: View and edit the contents of supported game resource files
@@ -59,8 +92,8 @@ This command launches the GUI application, which is now the main interface for t
 
 You can also open a specific file directly:
 
-```
-python run.py gui NFSSE/SIMDATA/MISC/AL1.TRI
+```bash
+./nfs-resources-converter NFSSE/SIMDATA/MISC/AL1.TRI
 ```
 
 **WARNING**: The editor does not make backups and saved file consistency is not guaranteed! Use only on copied files.
@@ -70,7 +103,7 @@ The following command line tools are still available for those who prefer termin
 
 ### Converter
 ```
-python run.py convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED
+./nfs-resources-converter convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED
 ```
 
 This command will recursively walk over the `/media/fast/NFSSE` directory, parse all supported resources and save them 
@@ -81,14 +114,14 @@ You can also point the script to a single file to convert just that file.
 
 ### Show Settings Location
 ```
-python run.py show_settings
+./nfs-resources-converter show_settings
 ```
 
 This command displays the full path to the settings file used by the application. The settings file is stored in your home directory.
 
 ### Uncompress File
 ```
-python run.py uncompress /path/to/compressed/file.qfs
+./nfs-resources-converter uncompress /path/to/compressed/file.qfs
 ```
 
 This command uncompresses compressed game resource files and saves uncompressed data to file. 
@@ -102,14 +135,14 @@ through the block actions menu (flash icon at the top).
 Makes open track fully flat. Useful for testing car acceleration/deceleration dynamics.
 
 ```
-python run.py custom_command --custom-command flatten_track examples/maps/TR3.TRI --out examples/maps/flat/
+./nfs-resources-converter custom_command --custom-command flatten_track examples/maps/TR3.TRI --out examples/maps/flat/
 ```
 
 #### *.TRI: reverse track
 Makes track go backwards. Note that reversed tracks may have some issues and glitches.
 
 ```
-python run.py custom_command --custom-command reverse_track examples/maps/TR3.TRI --out examples/maps/reversed/
+./nfs-resources-converter custom_command --custom-command reverse_track examples/maps/TR3.TRI --out examples/maps/reversed/
 ```
 
 #### *.TRI: scale track
@@ -117,7 +150,7 @@ Scales track length without affecting road width, props etc.
 Scale with factor 0.5 (make track 2x shorter):
 
 ```
-python run.py custom_command --custom-command scale_track --custom-command-args=0.5 /media/fast/AL1.TRI --out /media/fast/AL1_SCALED.TRI
+./nfs-resources-converter custom_command --custom-command scale_track --custom-command-args=0.5 /media/fast/AL1.TRI --out /media/fast/AL1_SCALED.TRI
 ```
 
 # Support me

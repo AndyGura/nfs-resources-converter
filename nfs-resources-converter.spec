@@ -42,20 +42,60 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='nfs-resources-converter',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='nfs-resources-converter',
+)
+app = BUNDLE(
+    coll,
+    name='NFS Resources Converter.app',
+    icon=None,
+    bundle_identifier='com.andygura.nfs-resources-converter',
+    info_plist={
+        'CFBundleDocumentTypes': [
+            {
+                'CFBundleTypeName': 'FSH Image Archive File',
+                'CFBundleTypeExtensions': ['fsh'],
+                'CFBundleTypeRole': 'Editor',
+                'LSHandlerRank': 'Owner',
+            },
+            {
+                'CFBundleTypeName': 'FAM Archive File',
+                'CFBundleTypeExtensions': ['fam'],
+                'CFBundleTypeRole': 'Editor',
+                'LSHandlerRank': 'Owner',
+            },
+            {
+                'CFBundleTypeName': 'QFS Compressed image Archive File',
+                'CFBundleTypeExtensions': ['qfs'],
+                'CFBundleTypeRole': 'Editor',
+                'LSHandlerRank': 'Owner',
+            },
+            {
+                'CFBundleTypeName': 'TRI Track File',
+                'CFBundleTypeExtensions': ['tri'],
+                'CFBundleTypeRole': 'Editor',
+                'LSHandlerRank': 'Owner',
+            },
+        ],
+    },
 )
