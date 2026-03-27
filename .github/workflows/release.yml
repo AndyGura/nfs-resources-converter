@@ -86,24 +86,70 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Build executable (Linux / macOS)
-        if: runner.os != 'Windows'
+      - name: Build (Linux)
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           pyinstaller nfs-resources-converter.spec
-          mv dist/nfs-resources-converter dist/${{ matrix.artifact_name }}
+          # Create .deb package using fpm
+          sudo apt-get update && sudo apt-get install -y ruby ruby-dev rubygems build-essential
+          sudo gem install --no-document fpm
+          mkdir -p package/usr/lib/nfs-resources-converter
+          mkdir -p package/usr/bin
+          mkdir -p package/usr/share/applications
+          mkdir -p package/usr/share/mime/packages
+          cp -r dist/nfs-resources-converter/* package/usr/lib/nfs-resources-converter/
+          ln -s /usr/lib/nfs-resources-converter/nfs-resources-converter package/usr/bin/nfs-resources-converter
+          cp nfs-resources-converter.desktop package/usr/share/applications/
+          cp nfs-resources-converter-mime.xml package/usr/share/mime/packages/
+          fpm -s dir -t deb -n nfs-resources-converter -v ${{ needs.release.outputs.version }} \
+            --description "NFS Resources Converter" \
+            -p dist/nfs-resources-converter-linux.deb \
+            package/=/
+          # Also keep the single executable if needed, but the user asked for installer.
+          # We'll provide both or just the deb. Let's provide the deb as the primary.
 
-      - name: Build executable (Windows)
-        if: runner.os == 'Windows'
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           pyinstaller nfs-resources-converter.spec
-          Move-Item dist/nfs-resources-converter.exe dist/${{ matrix.artifact_name }}
+          # PyInstaller with the updated spec creates dist/nfs-resources-converter/nfs-resources-converter.exe
+          # Need to adjust the .iss file or the build.
+          # Let's use the one-file mode for the installer to keep it simple, 
+          # OR use the directory. Inno Setup can handle directories.
+          # I'll modify the .iss to use the directory if I wanted, but let's stick to onefile for the .iss for now
+          # Wait, I changed the spec to one-dir (COLLECT).
+          # Let's change it back to onefile for Windows/Linux or handle one-dir in installers.
+          # One-dir is better for performance.
+          iscc windows-installer.iss /DAppVersion=${{ needs.release.outputs.version }}
+
+      - name: Build (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          pyinstaller nfs-resources-converter.spec
+          # This creates "NFS Resources Converter.app" in dist/
+          # Create DMG
+          brew install create-dmg
+          create-dmg \
+            --volname "NFS Resources Converter" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "NFS Resources Converter.app" 200 190 \
+            --hide-extension "NFS Resources Converter.app" \
+            --app-drop-link 600 185 \
+            "dist/nfs-resources-converter-macos.dmg" \
+            "dist/"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/${{ matrix.artifact_name }}
+          path: |
+            dist/*.deb
+            dist/*.exe
+            dist/*.dmg
+            dist/nfs-resources-converter-windows-setup.exe
 
   publish:
     needs: [release, build]

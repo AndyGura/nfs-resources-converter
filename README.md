@@ -43,7 +43,24 @@ First of all, you need to install `ffmpeg` and `blender` (version 4+). These are
 
 ### Release Artifacts (Recommended)
 
-You can use pre-built binaries for Windows, Linux and macOS from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
+You can use pre-built installers for Windows, Linux, and macOS from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
+
+#### Windows
+1. Download `nfs-resources-converter-windows-setup.exe`.
+2. Run the installer to install the application and set up file associations (`*.fsh`, `*.fam`, `*.qfs`, `*.tri` etc.).
+
+#### Linux (Debian/Ubuntu)
+1. Download `nfs-resources-converter-linux.deb`.
+2. Install the package using `apt` or `dpkg`:
+   ```bash
+   sudo apt install ./nfs-resources-converter-linux.deb
+   ```
+3. This will install the application and configure desktop integration and MIME types.
+
+#### macOS
+1. Download `nfs-resources-converter-macos.dmg`.
+2. Open the DMG file and drag "NFS Resources Converter.app" to your "Applications" folder.
+3. This will also enable opening associated files directly from the Finder.
 
 ### Development Mode
 
