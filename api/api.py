@@ -4,11 +4,11 @@ This class initializes and manages all API endpoints.
 """
 
 import eel
-
 from .endpoints.conversion_api import ConversionAPI
 from .endpoints.file_api import FileAPI
 from .endpoints.resource_api import ResourceAPI
 from .endpoints.serialization_api import SerializationAPI
+from version import __version__
 
 
 class API:
@@ -67,3 +67,10 @@ class API:
         eel.expose(self.conversion_api.patch_general_config)
         eel.expose(self.conversion_api.patch_conversion_config)
         eel.expose(self.conversion_api.test_executable)
+
+        # Version API
+        eel.expose(self.get_version)
+
+    def get_version(self) -> str:
+        """Return the current application version."""
+        return __version__

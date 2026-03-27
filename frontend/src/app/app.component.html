@@ -93,5 +93,6 @@
       <mat-icon>support</mat-icon>
       <span>Support me</span>
     </button>
+    <span *ngIf="eelDelegate.version$ | async as version"  class="app-version">v{{ version }}</span>
   </mat-menu>
 </ng-template>

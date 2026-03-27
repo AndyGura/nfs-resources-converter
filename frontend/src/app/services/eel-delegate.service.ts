@@ -35,14 +35,15 @@ export class EelDelegateService {
   >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-
   public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
+  public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
 
   constructor(private readonly ngZone: NgZone) {
     eel.expose(this.wrapHandler(this.openFile), 'open_file');
     eel.expose(this.wrapHandler(this.updateConversionProgress), 'update_conversion_progress');
     eel['on_angular_ready']();
     this.syncRecentFiles().then();
+    this.syncVersion().then();
     // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
     setTimeout(async () => {
       while (true) {
@@ -75,6 +76,11 @@ export class EelDelegateService {
     const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
     this.openedResource$.next({ ...res, id: res.name });
     await this.syncRecentFiles();
+  }
+
+  public async syncVersion() {
+    const version = await eel['get_version']()();
+    this.version$.next(version);
   }
 
   public async syncRecentFiles() {
