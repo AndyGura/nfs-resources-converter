@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          OLD=$(python3 -c "from version import __version__; print(__version__)")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD"
+          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+          sed -i "s/__version__ = '.*'/__version__ = '$NEW'/" version.py
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.py
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
+          git push
+
+      - name: Tag release
+        run: |
+          git tag "v${{ steps.bump.outputs.version }}"
+          git push origin "v${{ steps.bump.outputs.version }}"
+
+  build:
+    needs: release
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact_name: nfs-resources-converter-linux
+          - os: windows-latest
+            artifact_name: nfs-resources-converter-windows.exe
+          - os: macos-latest
+            artifact_name: nfs-resources-converter-macos
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Build executable (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          pyinstaller nfs-resources-converter.spec
+          mv dist/nfs-resources-converter dist/${{ matrix.artifact_name }}
+
+      - name: Build executable (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pyinstaller nfs-resources-converter.spec
+          Move-Item dist/nfs-resources-converter.exe dist/${{ matrix.artifact_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.artifact_name }}
+
+  publish:
+    needs: [release, build]
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.release.outputs.version }}
+          name: v${{ needs.release.outputs.version }}
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

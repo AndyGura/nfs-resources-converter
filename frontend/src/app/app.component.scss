@@ -12,6 +12,11 @@ app-landing-page {
   flex: 1 1 auto;
 }
 
+.app-version {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-left: 8px;
+}
 #content-wrapper {
   display: flex;
   flex-direction: column;
