@@ -3,9 +3,6 @@ name: Release
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - 'frontend/dist/**'
-      - 'version.py'
 
 jobs:
   release:
