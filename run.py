@@ -16,8 +16,35 @@ class Action(Enum):
 
 
 if __name__ == "__main__":
-    # macOS sometimes adds a -psn_ argument when opening from Finder
-    sys.argv = [arg for arg in sys.argv if not arg.startswith('-psn_')]
+    # On macOS, files opened via Finder are delivered through Apple Events (odoc),
+    # not as command-line arguments. We intercept the event here before the GUI starts.
+    _macos_open_file = None
+    if sys.platform == 'darwin':
+        try:
+            from AppKit import NSApplication, NSObject
+
+            class _AppDelegate(NSObject):
+                def application_openFile_(self, app, filename):
+                    global _macos_open_file
+                    _macos_open_file = filename
+                    return True
+
+            _app = NSApplication.sharedApplication()
+            _delegate = _AppDelegate.alloc().init()
+            _app.setDelegate_(_delegate)
+            # Process pending events (including the odoc Apple Event) without blocking
+            import time
+            _deadline = time.time() + 0.5
+            while time.time() < _deadline:
+                _event = _app.nextEventMatchingMask_untilDate_inMode_dequeue_(
+                    0xFFFFFFFF, None, 'kCFRunLoopDefaultMode', True
+                )
+                if _event:
+                    _app.sendEvent_(_event)
+                if _macos_open_file:
+                    break
+        except Exception:
+            pass
 
     # check if first argument is a valid action. If not, it is a file
     action = None
@@ -37,7 +64,8 @@ if __name__ == "__main__":
         if args.file is not None and os.path.isdir(args.file):
             raise Exception('Cannot open GUI for directory, use path to file')
         from actions.gui_editor import run_gui_editor
-        run_gui_editor(str(args.file) if args.file is not None else None)
+        file_to_open = str(args.file) if args.file is not None else _macos_open_file
+        run_gui_editor(file_to_open)
     elif action == Action.convert:
         if args.file is None:
             raise Exception('file argument is required for convert action')
