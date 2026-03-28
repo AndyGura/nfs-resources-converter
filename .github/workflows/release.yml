@@ -187,4 +187,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add version.py
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
+          git pull --rebase origin main
           git push
