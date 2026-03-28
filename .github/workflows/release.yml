@@ -80,7 +80,7 @@ jobs:
       - name: Build (Linux)
         if: matrix.os == 'ubuntu-22.04'
         run: |
-          pyinstaller nfs-resources-converter.spec
+          # pyinstaller nfs-resources-converter.spec
           # Create .deb package using fpm
           # sudo apt-get update && sudo apt-get install -y ruby ruby-dev rubygems build-essential
           # sudo gem install --no-document fpm
@@ -117,7 +117,7 @@ jobs:
       - name: Build (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          pyinstaller nfs-resources-converter.spec
+          # pyinstaller nfs-resources-converter.spec
           # This creates "NFS Resources Converter.app" in dist/
           # Create DMG
           # brew install create-dmg

@@ -1,5 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
+import os
+sys.path.append(os.path.abspath('.'))
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 block_cipher = None
