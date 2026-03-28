@@ -12,7 +12,7 @@ jobs:
     if: "contains(github.event.head_commit.message, '[release]')"
     runs-on: ubuntu-22.04
     outputs:
-      version: ${{ steps.bump.outputs.version }}
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
       - name: Checkout repository
@@ -21,27 +21,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Bump patch version
-        id: bump
+      - name: Get current version
+        id: get_version
         run: |
-          OLD=$(python3 -c "from version import __version__; print(__version__)")
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD"
-          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
-          sed -i "s/__version__ = '.*'/__version__ = '$NEW'/" version.py
-          echo "version=$NEW" >> "$GITHUB_OUTPUT"
-
-      - name: Commit version bump
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add version.py
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
-          git push
+          VERSION=$(python3 -c "from version import __version__; print(__version__)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Tag release
         run: |
-          git tag "v${{ steps.bump.outputs.version }}"
-          git push origin "v${{ steps.bump.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.get_version.outputs.version }}"
+          git push origin "v${{ steps.get_version.outputs.version }}"
 
   build:
     needs: release
@@ -169,3 +160,31 @@ jobs:
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  bump-version:
+    needs: publish
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          OLD=$(python3 -c "from version import __version__; print(__version__)")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD"
+          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+          sed -i "s/__version__ = '.*'/__version__ = '$NEW'/" version.py
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.py
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
+          git push
