@@ -40,11 +40,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            artifact_name: nfs-resources-converter-linux
+            artifact_name: nfs-resources-converter-linux-${{ needs.release.outputs.version }}
           - os: windows-latest
-            artifact_name: nfs-resources-converter-windows.exe
+            artifact_name: nfs-resources-converter-windows-${{ needs.release.outputs.version }}.exe
           - os: macos-latest
-            artifact_name: nfs-resources-converter-macos
+            artifact_name: nfs-resources-converter-macos-${{ needs.release.outputs.version }}
 
     runs-on: ${{ matrix.os }}
 
@@ -82,20 +82,20 @@ jobs:
         run: |
           pyinstaller nfs-resources-converter.spec
           # Create .deb package using fpm
-          sudo apt-get update && sudo apt-get install -y ruby ruby-dev rubygems build-essential
-          sudo gem install --no-document fpm
-          mkdir -p package/usr/lib/nfs-resources-converter
-          mkdir -p package/usr/bin
-          mkdir -p package/usr/share/applications
-          mkdir -p package/usr/share/mime/packages
-          cp -r dist/nfs-resources-converter/* package/usr/lib/nfs-resources-converter/
-          ln -s /usr/lib/nfs-resources-converter/nfs-resources-converter package/usr/bin/nfs-resources-converter
-          cp nfs-resources-converter.desktop package/usr/share/applications/
-          cp nfs-resources-converter-mime.xml package/usr/share/mime/packages/
-          fpm -s dir -t deb -n nfs-resources-converter -v ${{ needs.release.outputs.version }} \
-            --description "NFS Resources Converter" \
-            -p dist/nfs-resources-converter-linux.deb \
-            package/=/
+          # sudo apt-get update && sudo apt-get install -y ruby ruby-dev rubygems build-essential
+          # sudo gem install --no-document fpm
+          # mkdir -p package/usr/lib/nfs-resources-converter
+          # mkdir -p package/usr/bin
+          # mkdir -p package/usr/share/applications
+          # mkdir -p package/usr/share/mime/packages
+          # cp -r dist/nfs-resources-converter/* package/usr/lib/nfs-resources-converter/
+          # ln -s /usr/lib/nfs-resources-converter/nfs-resources-converter package/usr/bin/nfs-resources-converter
+          # cp nfs-resources-converter.desktop package/usr/share/applications/
+          # cp nfs-resources-converter-mime.xml package/usr/share/mime/packages/
+          # fpm -s dir -t deb -n nfs-resources-converter -v ${{ needs.release.outputs.version }} \
+          #   --description "NFS Resources Converter" \
+          #   -p dist/nfs-resources-converter-linux.deb \
+          #   package/=/
           # Also keep the single executable if needed, but the user asked for installer.
           # We'll provide both or just the deb. Let's provide the deb as the primary.
 
@@ -120,17 +120,17 @@ jobs:
           pyinstaller nfs-resources-converter.spec
           # This creates "NFS Resources Converter.app" in dist/
           # Create DMG
-          brew install create-dmg
-          create-dmg \
-            --volname "NFS Resources Converter" \
-            --window-pos 200 120 \
-            --window-size 800 400 \
-            --icon-size 100 \
-            --icon "NFS Resources Converter.app" 200 190 \
-            --hide-extension "NFS Resources Converter.app" \
-            --app-drop-link 600 185 \
-            "dist/nfs-resources-converter-macos.dmg" \
-            "dist/"
+          # brew install create-dmg
+          # create-dmg \
+          #   --volname "NFS Resources Converter" \
+          #   --window-pos 200 120 \
+          #   --window-size 800 400 \
+          #   --icon-size 100 \
+          #   --icon "NFS Resources Converter.app" 200 190 \
+          #   --hide-extension "NFS Resources Converter.app" \
+          #   --app-drop-link 600 185 \
+          #   "dist/nfs-resources-converter-macos-${{ needs.release.outputs.version }}.dmg" \
+          #   "dist/"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -140,7 +140,7 @@ jobs:
             dist/*.deb
             dist/*.exe
             dist/*.dmg
-            dist/nfs-resources-converter-windows-setup.exe
+            dist/nfs-resources-converter-windows-setup-*.exe
 
   publish:
     needs: [release, build]

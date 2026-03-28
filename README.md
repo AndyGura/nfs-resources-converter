@@ -43,40 +43,29 @@ First of all, you need to install `ffmpeg` and `blender` (version 4+). These are
 
 For the GUI application, Google Chrome or Chromium is recommended for the best experience. If not found, the application will try to use your system's default web browser.
 
-### Release Artifacts (Recommended)
+### Release Artifacts (Recommended for Windows)
 
-You can use pre-built installers for Windows, Linux, and macOS from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
+You can use pre-built installer for Windows from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
 
 #### Windows
-1. Download `nfs-resources-converter-windows-setup.exe`.
+1. Download `nfs-resources-converter-windows-setup-<version>.exe`.
 2. Run the installer to install the application and set up file associations (`*.fsh`, `*.fam`, `*.qfs`, `*.tri` etc.).
 
-#### Linux (Debian/Ubuntu)
-1. Download `nfs-resources-converter-linux.deb`.
-2. Install the package using `apt` or `dpkg`:
-   ```bash
-   sudo apt install ./nfs-resources-converter-linux.deb
-   ```
-3. This will install the application and configure desktop integration and MIME types.
+### Development Mode (Recommended for Linux and macOS)
 
-#### macOS
-1. Download `nfs-resources-converter-macos.dmg`.
-2. Open the DMG file and drag "NFS Resources Converter.app" to your "Applications" folder.
-3. This will also enable opening associated files directly from the Finder.
-
-> [!IMPORTANT]
-> Since the application is not signed, macOS may block it. To open it:
-> 1. Right-click (or Control-click) the application in the "Applications" folder.
-> 2. Select **Open** from the menu.
-> 3. Click **Open** in the confirmation dialog.
-> Alternatively, go to **System Settings > Privacy & Security** and click **Open Anyway** at the bottom.
-
-### Development Mode
-
-If you want to run the project from source:
+If you want to run the project from source (required for Linux and macOS):
 
 0) Install Python 3.9+ and pip
 1) Install dependencies `pip install -r requirements.txt`
+2) Run the application: `python run.py`
+
+### Support for macOS and Linux Binaries (Help Wanted!)
+
+Currently, pre-built binary support for macOS and Linux is suspended because:
+- **macOS**: Issues with opening files directly from Finder (even when associated).
+- **Linux**: The standalone binary fails to launch.
+
+If you are an experienced developer on these platforms and would like to help restore binary support, your contributions are highly welcome! In the meantime, please use the **Development Mode** described above.
 
 All commands below will work in development mode if you replace the binary file name with "python run.py", for instance:
 

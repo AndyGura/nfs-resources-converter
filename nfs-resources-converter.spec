@@ -21,6 +21,7 @@ datas = (
     + [('frontend/dist/gui', 'frontend/dist/gui')]
 )
 
+from version import __version__
 a = Analysis(
     ['run.py'],
     pathex=['.'],
@@ -44,7 +45,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='nfs-resources-converter',
+    name=f'nfs-resources-converter-{__version__}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -63,11 +64,11 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='nfs-resources-converter',
+    name=f'nfs-resources-converter-{__version__}',
 )
 app = BUNDLE(
     coll,
-    name='NFS Resources Converter.app',
+    name=f'NFS Resources Converter-{__version__}.app',
     icon=None,
     bundle_identifier='com.andygura.nfs-resources-converter',
     info_plist={
