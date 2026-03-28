@@ -4,5 +4,5 @@ Exec=nfs-resources-converter %f
 Icon=nfs-resources-converter
 Type=Application
 Categories=Development;
-MimeType=application/x-fsh;application/x-fam;application/x-qfs;application/x-tri;
+MimeType=application/x-as4;application/x-asf;application/x-bnk;application/x-cfm;application/x-col;application/x-eas;application/x-env;application/x-fam;application/x-ffn;application/x-frd;application/x-fsh;application/x-geo;application/x-msk;application/x-pbs;application/x-pdn;application/x-qfs;application/x-tgv;application/x-tri;application/x-trk;application/x-uv;application/x-viv;application/x-crp;
 Terminal=false

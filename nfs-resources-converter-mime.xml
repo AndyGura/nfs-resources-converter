@@ -1,19 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-  <mime-type type="application/x-fsh">
-    <comment>FSH Image File</comment>
-    <glob pattern="*.fsh"/>
+  <mime-type type="application/x-as4">
+    <comment>AS4 Audio File</comment>
+    <glob pattern="*.as4"/>
+  </mime-type>
+  <mime-type type="application/x-asf">
+    <comment>ASF Audio File</comment>
+    <glob pattern="*.asf"/>
+  </mime-type>
+  <mime-type type="application/x-bnk">
+    <comment>BNK Sound Bank File</comment>
+    <glob pattern="*.bnk"/>
+  </mime-type>
+  <mime-type type="application/x-cfm">
+    <comment>CFM Car 3D Model File</comment>
+    <glob pattern="*.cfm"/>
+  </mime-type>
+  <mime-type type="application/x-col">
+    <comment>COL Track Data File</comment>
+    <glob pattern="*.col"/>
+  </mime-type>
+  <mime-type type="application/x-eas">
+    <comment>EAS Audio File</comment>
+    <glob pattern="*.eas"/>
+  </mime-type>
+  <mime-type type="application/x-env">
+    <comment>ENV Image Archive File</comment>
+    <glob pattern="*.env"/>
   </mime-type>
   <mime-type type="application/x-fam">
     <comment>FAM Archive File</comment>
     <glob pattern="*.fam"/>
   </mime-type>
+  <mime-type type="application/x-ffn">
+    <comment>FFN Bitmap Font File</comment>
+    <glob pattern="*.ffn"/>
+  </mime-type>
+  <mime-type type="application/x-frd">
+    <comment>FRD Track File</comment>
+    <glob pattern="*.frd"/>
+  </mime-type>
+  <mime-type type="application/x-fsh">
+    <comment>FSH Image Archive File</comment>
+    <glob pattern="*.fsh"/>
+  </mime-type>
+  <mime-type type="application/x-geo">
+    <comment>GEO Car 3D Model File</comment>
+    <glob pattern="*.geo"/>
+  </mime-type>
+  <mime-type type="application/x-msk">
+    <comment>MSK Archive File</comment>
+    <glob pattern="*.msk"/>
+  </mime-type>
+  <mime-type type="application/x-pbs">
+    <comment>PBS Car Physics File</comment>
+    <glob pattern="*.pbs"/>
+  </mime-type>
+  <mime-type type="application/x-pdn">
+    <comment>PDN Car Characteristic File</comment>
+    <glob pattern="*.pdn"/>
+  </mime-type>
   <mime-type type="application/x-qfs">
-    <comment>QFS Compressed File</comment>
+    <comment>QFS Compressed Image Archive File</comment>
     <glob pattern="*.qfs"/>
+  </mime-type>
+  <mime-type type="application/x-tgv">
+    <comment>TGV Video File</comment>
+    <glob pattern="*.tgv"/>
   </mime-type>
   <mime-type type="application/x-tri">
     <comment>TRI Track File</comment>
     <glob pattern="*.tri"/>
+  </mime-type>
+  <mime-type type="application/x-trk">
+    <comment>TRK Track File</comment>
+    <glob pattern="*.trk"/>
+  </mime-type>
+  <mime-type type="application/x-uv">
+    <comment>UV Video File</comment>
+    <glob pattern="*.uv"/>
+  </mime-type>
+  <mime-type type="application/x-viv">
+    <comment>VIV Archive File</comment>
+    <glob pattern="*.viv"/>
+  </mime-type>
+  <mime-type type="application/x-crp">
+    <comment>CRP Geometry File</comment>
+    <glob pattern="*.crp"/>
   </mime-type>
 </mime-info>

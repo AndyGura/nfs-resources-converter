@@ -196,7 +196,7 @@ def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str,
     (file_id, block, data) = require_file(file_path)
     if not data:
         return (id, None, None), (file_id, None, None)
-    if file_path == id:
+    if file_id == id:
         return (file_id, block, data), (file_id, block, data)
     resource_path = [x for x in id.split('__')[1].split('/') if x]
     (res_block, res) = (block, data)
