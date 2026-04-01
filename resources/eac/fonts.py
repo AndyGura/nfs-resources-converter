@@ -1,8 +1,9 @@
 from typing import Dict
 
-from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock
+from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock, \
+    AutoDetectBlock
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.bitmaps import Bitmap4Bit
+from resources.eac.bitmaps import Bitmap4Bit, Bitmap8Bit
 
 
 class GlyphDefinition(DeclarativeCompoundBlock):
@@ -55,23 +56,22 @@ class FfnFont(DeclarativeCompoundBlock):
                        {'description': 'Line height ?'})
         unk3 = (BytesBlock(length=7),
                 {'is_unknown': True})
-        bdata_ptr = (IntegerBlock(length=2,
+        bdata_ptr = (IntegerBlock(length=4,
                                   programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
                                       ctx.get_full_data(),
                                       'bitmap')),
                      {'description': 'Pointer to bitmap block'})
-        unk4 = (IntegerBlock(length=1, value_validator=Eq(0)),
-                {'is_unknown': True})
-        unk5 = (IntegerBlock(length=1, value_validator=Eq(0)),
-                {'is_unknown': True})
         definitions = (ArrayBlock(child=GlyphDefinition(), length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})
         skip_bytes = (BytesBlock(length=(lambda ctx: ctx.data('bdata_ptr') - ctx.buffer.tell(),
                                          'up to offset bdata_ptr')),
                       {'description': '4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36)'})
-        bitmap = (Bitmap4Bit(),
+        bitmap = (AutoDetectBlock(possible_blocks=[Bitmap4Bit(), Bitmap8Bit()]),
                   {'description': 'Font atlas bitmap data',
                    'custom_offset': 'bdata_ptr'})
+        remaining_bytes = (BytesBlock(length=(lambda ctx: ctx.read_bytes_remaining,
+                                             'remaining bytes')),
+                           {'is_unknown': True})
 
     def serializer_class(self):
         from serializers import FfnFontSerializer

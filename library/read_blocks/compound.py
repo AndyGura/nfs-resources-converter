@@ -65,10 +65,15 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
         return field
 
     def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
-        field = self.field_blocks_map.get(name)
+        path = name.split('/')
+        field = self.field_blocks_map.get(path[0])
         if field is None:
-            raise BlockDefinitionException(f'Cannot find field {name}')
-        return field, unpacked_data.get(name)
+            raise BlockDefinitionException(f'Cannot find field {path[0]}')
+        udata = unpacked_data.get(path[0])
+        if len(path) > 1:
+            return field.get_child_block_with_data(udata, '/'.join(path[1:]))
+        else:
+            return field, udata
 
     # For auto-generated documentation only
     @property

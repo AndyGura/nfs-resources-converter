@@ -14,8 +14,8 @@ class FfnFontSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, id=id, block=None)
         image_serializer = BitmapSerializer()
-        image_serializer.serialize(data["bitmap"], path_join(path, 'bitmap'),
-                                   block=block.get_child_block_with_data(data, 'bitmap')[0])
+        (bblock, bdata) = block.get_child_block_with_data(data, 'bitmap/data')
+        image_serializer.serialize(bdata, path_join(path, 'bitmap'), block=bblock)
         with open(path_join(path, 'font.fnt'), 'w') as file:
             file.write(f'info face="{id.split("/")[-1]}" size={data["font_size"]}\n')
             file.write(f'common lineHeight={data["line_height"]}\n')
