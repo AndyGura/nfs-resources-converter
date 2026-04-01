@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-03-31 18:06:05.449990+00:00*
+*Last time updated: 2026-04-01 09:38:57.772464+00:00*
 
 
 # **Info by file extensions** #
@@ -398,12 +398,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 19 | **unk2** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
 | 21 | **unk3** | 7 | Bytes | Unknown purpose |
-| 28 | **bdata_ptr** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
-| 30 | **unk4** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 31 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 32 | **definitions** | num_glyphs\*11 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
 | 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
-| bdata_ptr | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
+| bdata_ptr | **bitmap** | 16..? | One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit) | Font atlas bitmap data |
+| bdata_ptr + 16..? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
 #### **Size**: 11 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
