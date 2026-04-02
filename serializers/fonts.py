@@ -17,11 +17,11 @@ class FfnFontSerializer(BaseFileSerializer):
         (bblock, bdata) = block.get_child_block_with_data(data, 'bitmap/data')
         image_serializer.serialize(bdata, path_join(path, 'bitmap'), block=bblock)
         with open(path_join(path, 'font.fnt'), 'w') as file:
-            file.write(f'info face="{id.split("/")[-1]}" size={data["font_size"]}\n')
-            file.write(f'common lineHeight={data["line_height"]}\n')
+            file.write(f'info face="{id.split("/")[-1]}" size=24\n')
+            file.write(f'common lineHeight=32\n')
             file.write(f'page id=0 file="bitmap.png"\n')
             file.write(f'chars count={data["num_glyphs"]}\n')
-            for symbol in data["definitions"]:
+            for symbol in data['definitions']['data']:
                 file.write(f'char id={symbol["code"]}    x={symbol["x"]}     y={symbol["y"]}     '
                            f'width={symbol["width"]}    height={symbol["height"]}   '
                            f'xoffset={symbol["x_offset"]}     yoffset={symbol["y_offset"]}     '
@@ -36,12 +36,10 @@ class FfnFontSerializer(BaseFileSerializer):
         with open(path_join(path, 'font.fnt')) as f:
             lines = [l.rstrip() for l in f]
             info_part = '\n'.join([l for l in lines if not l.startswith('char ')])
-            data['font_size'] = int(re.search(r"\ssize=(\d+)", info_part).groups()[0])
-            data['line_height'] = int(re.search(r"\slineHeight=(\d+)", info_part).groups()[0])
             data['num_glyphs'] = int(re.search(r"\scount=(\d+)", info_part).groups()[0])
             glyph_def_lines = [l for l in lines if l.startswith('char ')]
             assert len(glyph_def_lines) == data['num_glyphs']
-            data['definitions'] = []
+            data['definitions'] = { 'choice_index': 0, 'data': [] }
             for i, glyph_def in enumerate(glyph_def_lines):
                 m = re.search(
                     r"char\sid=(\d+).*\sx=(\d+).*\sy=(\d+).*\swidth=(\d+).*\sheight=(\d+).*\sxoffset=(-?\d+).*\syoffset=(-?\d+).*\sxadvance=(-?\d+).*",
@@ -49,7 +47,7 @@ class FfnFontSerializer(BaseFileSerializer):
                 if not m:
                     continue
                 values = [int(x) for x in m.groups()]
-                data['definitions'].append({
+                data['definitions']['data'].append({
                     'code': values[0],
                     'x': values[1],
                     'y': values[2],
