@@ -32,6 +32,7 @@ import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.comp
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { CrpPartInfo1BlockUiComponent } from './eac/crp-part-info-1.block-ui/crp-part-info-1.block-ui.component';
 import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp-part-info-2.block-ui.component';
+import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 import { Resource, ResourceError } from './types';
 
 @Component({
@@ -70,6 +71,7 @@ export class EditorComponent implements OnDestroy {
     FenceType: FenceTypeBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
     EacsAudioFile: EacsAudioBlockUiComponent,
+    FfnFont: FontBlockUiComponent,
     // NFS2 blocks
     GeoGeometry: GeoGeometryBlockUiComponent,
     TrkMap: TrkMapBlockUiComponent,

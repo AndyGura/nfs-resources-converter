@@ -29,7 +29,8 @@ class OripPolygon(DeclarativeCompoundBlock):
                                         "polygon is a triangle. If xxx0_0100 - it's a quad. Also there is only "
                                         "one polygon for entire TNFS with type == 2 in burnt sienna props. If "
                                         "ignore this polygon everything still looks great"})
-        mapping = (BitFlagsBlock(flag_names=[(0, 'two_sided'),
+        mapping = (BitFlagsBlock(length=1,
+                                 flag_names=[(0, 'two_sided'),
                                              (1, 'flip_normal'),
                                              (4, 'use_uv')]),
                    {'description': 'Rendering properties of the polygon'})

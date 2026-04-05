@@ -5,6 +5,36 @@ from library.context import WriteContext, ReadContext
 from library.read_blocks import IntegerBlock, CompoundBlock
 
 
+class Point2D(CompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        schema = super().schema
+        return {
+            **schema,
+            'block_description': 'Point in 2D space (x,y), where each coordinate is: '
+                                 + schema['fields'][0]['schema']['block_description'] + (
+                                     ', normalized' if self.normalized else ''
+                                 ),
+            'inline_description': True,
+        }
+
+    def __init__(self, child, normalized=False, **kwargs):
+        self.normalized = normalized
+        super().__init__(fields=[('x', child, {}),
+                                 ('y', child, {})], **kwargs)
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        if self.normalized:
+            length = math.sqrt(data['x'] ** 2 + data['y'] ** 2)
+            if length == 0:
+                data['y'] = 1.0
+            elif length != 1:
+                data['x'] /= length
+                data['y'] /= length
+        return super().write(data, ctx, name)
+
+
 class Point3D(CompoundBlock):
 
     @property

@@ -42,6 +42,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatOptionModule } from '@angular/material/core';
+import { MatTabsModule } from '@angular/material/tabs';
 import { NgxMatColorPickerModule } from '@angular-material-components/color-picker';
 import { HexEditorModule } from 'ngx-hex-editor';
 import { SidenavResListComponent } from './common/sidenav-res-list/sidenav-res-list.component';
@@ -51,6 +52,7 @@ import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
 import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
 import { CrpPartInfo1BlockUiComponent } from './eac/crp-part-info-1.block-ui/crp-part-info-1.block-ui.component';
 import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp-part-info-2.block-ui.component';
+import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -87,6 +89,7 @@ import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp
     ViewModeToolbarComponent,
     CrpPartInfo1BlockUiComponent,
     CrpPartInfo2BlockUiComponent,
+    FontBlockUiComponent,
   ],
   imports: [
     CommonModule,
@@ -107,6 +110,7 @@ import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp
     MatProgressSpinnerModule,
     MatMenuModule,
     MatOptionModule,
+    MatTabsModule,
     NgxMatColorPickerModule,
     HexEditorModule,
   ],

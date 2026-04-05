@@ -1,0 +1,63 @@
+<div class="font-editor-container" *ngIf="resource">
+  <div class="top-section">
+    <div class="top-left">
+      <mat-tab-group class="header-tabs">
+        <mat-tab label="Font">
+          <div class="tab-content">
+            <app-compound-block-ui [resource]="resource"
+                                  [fieldBlacklist]="['bitmap']"
+                                  [hideBlockActions]="true"
+                                  (changed)="changed.emit()"></app-compound-block-ui>
+          </div>
+        </mat-tab>
+        <mat-tab label="Bitmap">
+          <div class="tab-content">
+            <app-compound-block-ui [resource]="resource"
+                                  [fieldWhitelist]="['bitmap']"
+                                  [hideBlockActions]="true"
+                                  (changed)="changed.emit()"></app-compound-block-ui>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+
+    <div class="top-center">
+      <div class="text-preview-container">
+        <div class="preview-title">Font Preview</div>
+        <textarea (input)="onTextChange($event)" >{{ _text$.getValue() }}</textarea>
+        <div class="canvas-scroll-container">
+          <div #textPreviewContainer class="pixi-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-right">
+      <div class="preview-container">
+        <div class="preview-title">Char Preview</div>
+        <canvas #fullBitmapCanvas></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-section">
+    <div class="table-container">
+      <table class="glyph-table">
+        <thead>
+          <tr>
+            <th *ngFor="let key of glyphKeys">{{ key }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let glyph of glyphs; let i = index"
+              [class.selected]="i === (_selectedGlyphIndex$ | async)"
+              (click)="selectGlyph(i)">
+            <td *ngFor="let key of glyphKeys">
+              <input *ngIf="key !== 'symbol'" type="number" [value]="glyph[key]" (change)="onCellChange(i, key, $event)">
+              <div *ngIf="key === 'symbol'" class="symbol-cell">{{ getSymbol(glyph['code']) }}</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

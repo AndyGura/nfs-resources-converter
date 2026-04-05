@@ -1,4 +1,4 @@
-name: Build frontend
+name: Build extras
 
 on:
   push:
@@ -17,6 +17,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate resources documentation
+        run: python generate_resource_doc.py
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,14 +46,15 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Commit frontend/dist
+      - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f frontend/dist
+          git add resources/*.md
           if git diff --cached --quiet; then
-            echo "No changes to frontend/dist, skipping commit"
+            echo "No changes to commit, skipping"
           else
-            git commit -m "chore: build frontend dist [skip ci]"
+            git commit -m "chore: build frontend and generate documentation [skip ci]"
             git push
           fi

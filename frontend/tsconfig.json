@@ -20,9 +20,11 @@
     "target": "es2022",
     "module": "es2020",
     "lib": [
-      "es2020",
-      "dom"
-    ]
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "skipLibCheck": true
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

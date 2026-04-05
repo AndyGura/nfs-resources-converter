@@ -50,7 +50,8 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif header_str == 'wwww':
             from resources.eac.archives import WwwwBlock
             return WwwwBlock
-        elif header_str == 'FNTF':
+        elif header_str in ['FNTF', 'FNTP', 'FNTS', 'FNTX', 'FNTM', 'FNTG', 'FNTA',
+                            'FntF', 'FntP', 'FntS', 'FntX', 'FntM', 'FntG', 'FntA']:
             from resources.eac.fonts import FfnFont
             return FfnFont
         elif header_str == 'ORIP':
@@ -125,10 +126,7 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif resource_id == 0x78:
             from resources.eac.bitmaps import Bitmap16Bit0565
             return Bitmap16Bit0565
-        # TODO Bitmap4Bit (with palette)
-        # elif resource_id == 0x79:
-        #     pass
-        elif resource_id == 0x7A:
+        elif resource_id in [0x79, 0x7A]:
             from resources.eac.bitmaps import Bitmap4Bit
             return Bitmap4Bit
         elif resource_id == 0x7B:

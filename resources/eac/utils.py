@@ -44,6 +44,8 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
 def determine_palette_for_8_bit_bitmap(block: Bitmap8Bit, data: dict, id: str) -> dict:
     from library import require_resource
     palette_data, palette_block = None, None
+    if id.rfind('__children') == -1 and id.rfind('/children') == -1:
+        return None, None
     shpi_id = id[:max(id.rfind('__children'), id.rfind('/children'))]
     (_, shpi_block, shpi_data), _ = require_resource(shpi_id)
     # in most cases next item in the shpi is the palette without alias in he SHPI header,
