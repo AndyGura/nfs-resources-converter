@@ -11,7 +11,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { MainService } from '../../../../services/main.service';
 import { filter, Subject, takeUntil } from 'rxjs';
 import { NavigationService } from '../../../../services/navigation.service';
-import { joinId } from '../../../../utils/join-id';
+import { idSuffix, joinId } from '../../../../utils/join-id';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
 @Component({
@@ -83,8 +83,12 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
         ),
       )
       .subscribe(async ([blockId, value]) => {
-        const key = blockId.substring(this.resource!.id.length + 1);
-        this.data[key] = value;
+        // TODO is it ok at all?
+        if (blockId === this.resource!.id) {
+          this.resource!.data = value;
+          return;
+        }
+        this.data[idSuffix(this.resource!.id, blockId)] = value;
       });
   }
 

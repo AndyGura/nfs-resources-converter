@@ -2,12 +2,12 @@ from typing import Dict
 
 from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock, \
     AutoDetectBlock, BitFlagsBlock, DelegateBlock
-from library.read_blocks.misc.value_validators import Eq
+from library.read_blocks.misc.value_validators import Or
 from resources.eac.bitmaps import Bitmap4Bit, Bitmap8Bit
 from resources.eac.fields.misc import Point2D
 
 
-class GlyphDefinitionV1(DeclarativeCompoundBlock):
+class GlyphDefinition11(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         code = (IntegerBlock(length=2),
                 {'description': 'Code of symbol'})
@@ -27,7 +27,7 @@ class GlyphDefinitionV1(DeclarativeCompoundBlock):
                     {'description': 'Offset (y) for drawing the character image'})
 
 
-class GlyphDefinitionV2(DeclarativeCompoundBlock):
+class GlyphDefinition12(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         code = (IntegerBlock(length=2),
                 {'description': 'Code of symbol'})
@@ -46,7 +46,33 @@ class GlyphDefinitionV2(DeclarativeCompoundBlock):
         y_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (y) for drawing the character image'})
         num_kern = (IntegerBlock(length=1, is_signed=False),
-                    {'description': 'Number of kerning pairs for this glyph?'})
+                    {'description': 'Number of kerning pairs for this glyph'})
+
+
+class GlyphDefinition16(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        code = (IntegerBlock(length=2),
+                {'description': 'Code of symbol'})
+        width = (IntegerBlock(length=1),
+                 {'description': 'Width of symbol in font bitmap'})
+        height = (IntegerBlock(length=1),
+                  {'description': 'Height of symbol in font bitmap'})
+        x = (IntegerBlock(length=2),
+             {'description': 'Position (x) of symbol in font bitmap'})
+        y = (IntegerBlock(length=2),
+             {'description': 'Position (y) of symbol in font bitmap'})
+        y_advance = (IntegerBlock(length=1),
+                     {'description': 'Gap between this symbol and next one in rendered text (vertical)'})
+        x_offset = (IntegerBlock(length=1, is_signed=True),
+                    {'description': 'Offset (x) for drawing the character image'})
+        y_offset = (IntegerBlock(length=1, is_signed=True),
+                    {'description': 'Offset (y) for drawing the character image'})
+        num_kern = (IntegerBlock(length=1, is_signed=False),
+                    {'description': 'Number of kerning pairs for this glyph'})
+        kern_index = (IntegerBlock(length=2, is_signed=False),
+                      {'description': 'Index in kerning table?'})
+        x_advance = (IntegerBlock(length=2, is_signed=False),
+                     {'description': 'Gap between this symbol and next one in rendered text'})
 
 
 class FfnFont(DeclarativeCompoundBlock):
@@ -59,7 +85,8 @@ class FfnFont(DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(length=4, value_validator=Eq('FNTF')),
+        resource_id = (UTF8Block(length=4, value_validator=Or(['FNTF', 'FNTP', 'FNTS', 'FNTX', 'FNTM', 'FNTG', 'FNTA',
+                                                              'FntF', 'FntP', 'FntS', 'FntX', 'FntM', 'FntG', 'FntA'])),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4,
                                    programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
@@ -68,7 +95,17 @@ class FfnFont(DeclarativeCompoundBlock):
         num_glyphs = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('definitions'))),
                       {'description': 'Amount of symbols, defined in this font'})
-        flags = BitFlagsBlock(length=4, flag_names=[])
+        flags = BitFlagsBlock(length=4, flag_names=[(0, 'antialiased'),
+                                                    (1, 'dropshadow'),
+                                                    (2, 'outline'),
+                                                    (3, 'vram'),
+                                                    (8, 'baseline_0'),
+                                                    (9, 'baseline_1'),
+                                                    (10, 'orientation'),
+                                                    (11, 'direction'),
+                                                    (16, 'encoding_0'),
+                                                    (17, 'encoding_1'),
+                                                    (18, 'format')])
         center = Point2D(child=IntegerBlock(length=1, is_signed=False))
         ascent = IntegerBlock(length=1, is_signed=False)
         descent = IntegerBlock(length=1, is_signed=False)
@@ -81,13 +118,15 @@ class FfnFont(DeclarativeCompoundBlock):
                      {'description': 'Pointer to bitmap block'})
         skip_bytes_0 = BytesBlock(length=(lambda ctx: ctx.data('char_info_ptr') - ctx.buffer.tell(),
                                           'up to offset char_info_ptr'))
-        definitions = (DelegateBlock(possible_blocks=[ArrayBlock(child=GlyphDefinitionV1(),
+        definitions = (DelegateBlock(possible_blocks=[ArrayBlock(child=GlyphDefinition11(),
                                                                  length=lambda ctx: ctx.data('num_glyphs')),
-                                                      ArrayBlock(child=GlyphDefinitionV2(),
+                                                      ArrayBlock(child=GlyphDefinition12(),
+                                                                 length=lambda ctx: ctx.data('num_glyphs')),
+                                                      ArrayBlock(child=GlyphDefinition16(),
                                                                  length=lambda ctx: ctx.data('num_glyphs'))],
-                                     choice_index=lambda ctx, **_: 1
-                                     if ctx.data('version') >= 200
-                                     else 0),
+                                     choice_index=lambda ctx, **_: 0 if (ctx.data('version') < 200)
+                                     else 2 if ctx.data('flags/format')
+                                     else 1),
                        {'description': 'Definitions of chars in this bitmap font'})
         skip_bytes_1 = (BytesBlock(length=(lambda ctx: ctx.data('bdata_ptr') - ctx.buffer.tell(),
                                            'up to offset bdata_ptr')),

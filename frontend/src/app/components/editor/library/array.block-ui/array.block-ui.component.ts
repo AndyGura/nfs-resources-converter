@@ -9,7 +9,7 @@ import {
   Output,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { joinId } from '../../../../utils/join-id';
+import { idSuffix, joinId } from '../../../../utils/join-id';
 import { MainService } from '../../../../services/main.service';
 import { filter, Subject, takeUntil } from 'rxjs';
 import { NavigationService } from '../../../../services/navigation.service';
@@ -99,8 +99,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
         ),
       )
       .subscribe(async ([blockId, value]) => {
-        const key = blockId.substring(this.resource!.id.length + 1);
-        this.resourceData[+key] = value;
+        this.resourceData[+idSuffix(this.resource!.id, blockId)] = value;
       });
   }
 
