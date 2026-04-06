@@ -7,7 +7,8 @@ from library.read_blocks import (CompoundBlock,
                                  DelegateBlock,
                                  SkipBlock,
                                  EnumLookupDelegateBlock,
-                                 LengthPrefixedArrayBlock)
+                                 LengthPrefixedArrayBlock,
+                                 OptionalBlock)
 from library.utils.docs import add_doc_numbers
 from resources.eac import (archives,
                            bitmaps,
@@ -42,6 +43,8 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
         return description + '<br/>'.join(['- ' + render_type(x, possible_blocks_filter) for x in possible_blocks])
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
+        if isinstance(instance, OptionalBlock):
+            return f'Optional (if {schema["criteria"]}): {render_type(instance.child, possible_blocks_filter)}'
         if isinstance(instance, ArrayBlock):
             if isinstance(instance, LengthPrefixedArrayBlock):
                 descr += f'<br/>Length field type: {instance.length_block.schema["block_description"]}'

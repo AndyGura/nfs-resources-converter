@@ -215,8 +215,71 @@ class DocumentationCtxData:
             b = f'({b})'
         return DocumentationCtxData(f'{a} >> {b}')
 
+    def __eq__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} == {b}')
+
+    def __ne__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} != {b}')
+
+    def __lt__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} < {b}')
+
+    def __le__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} <= {b}')
+
+    def __gt__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} > {b}')
+
+    def __ge__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} >= {b}')
+
+    def __and__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} & {b}')
+
+    def __rand__(self, other):
+        a = str(other)
+        b = str(self)
+        return DocumentationCtxData(f'{a} & {b}')
+
+    def __or__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} | {b}')
+
+    def __ror__(self, other):
+        a = str(other)
+        b = str(self)
+        return DocumentationCtxData(f'{a} | {b}')
+
+    def __xor__(self, other):
+        a = str(self)
+        b = str(other)
+        return DocumentationCtxData(f'{a} ^ {b}')
+
+    def __rxor__(self, other):
+        a = str(other)
+        b = str(self)
+        return DocumentationCtxData(f'{a} ^ {b}')
+
 
 class DocumentationContext(BaseContext):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.buffer = type('MockBuffer', (), {'tell': lambda *args, **kwargs: DocumentationCtxData('offset')})()
 
     @property
     def read_bytes_remaining(self):
