@@ -8,7 +8,8 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  BytesBlock,
                                  DelegateBlock,
                                  BitFlagsBlock,
-                                 FixedPointBlock)
+                                 FixedPointBlock,
+                                 Padding)
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.fields.misc import Point3D
@@ -163,7 +164,7 @@ class OripGeometry(DeclarativeCompoundBlock):
                                 programmatic_value=lambda ctx: 112 + len(ctx.data('polygons')) * 12),
                    {'description': 'An offset to vertex_uvs. Always equals to `112 + num_polygons*12`'})
         num_polygons = (IntegerBlock(length=4,
-                                      programmatic_value=lambda ctx: len(ctx.data('polygons'))),
+                                     programmatic_value=lambda ctx: len(ctx.data('polygons'))),
                         {'description': 'Amount of polygons'})
         polygons_ptr = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(112)),
                         {'description': 'An offset to polygons block'})
@@ -215,40 +216,38 @@ class OripGeometry(DeclarativeCompoundBlock):
                                length=lambda ctx: ctx.data('num_polygons')),
                     {'description': 'A block with polygons of the geometry. Probably should be a start point when '
                                     'building model from this file'})
+        unk_uvs = Padding(to=(lambda ctx: ctx.data('uvs_ptr'), 'uvs_ptr'))
         vertex_uvs = (ArrayBlock(child=OripVertexUV(),
                                  length=lambda ctx: ctx.data('num_uvs')),
-                      {'description': 'A table of texture coordinates. Items are retrieved by index, located in vmap',
-                       'custom_offset': 'uvs_ptr'})
+                      {'description': 'A table of texture coordinates. Items are retrieved by index, located in vmap'})
+        unk_tex_ids = Padding(to=(lambda ctx: ctx.data('tex_ids_ptr'), 'tex_ids_ptr'))
         tex_ids = (ArrayBlock(child=OripTextureName(),
                               length=lambda ctx: ctx.data('num_tex_ids')),
                    {'description': 'A table of texture references. Items are retrieved by index, located in '
-                                   'polygon item',
-                    'custom_offset': 'tex_ids_ptr'})
-        offset = (BytesBlock(
-            length=(lambda ctx: ctx.read_start_offset + ctx.data('tex_nmb_ptr') - ctx.buffer.tell(),
-                    'space up to offset `tex_nmb_ptr`'),
-            allow_negative_length=True),
+                                   'polygon item'})
+        offset = (Padding(to=(lambda ctx: ctx.data('tex_nmb_ptr'), 'tex_nmb_ptr'),
+                          allow_negative_length=True),
                   {'description': 'In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in'
                                   ' case of DIABLO.CFM it\'s length is equal to -3, meaning that last 3 bytes from '
                                   'texture names block are reused by next block'})
         tex_nmb = (ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=1), length=20),
                               length=lambda ctx: ctx.data('num_tex_nmb')),
-                   {'is_unknown': True,
-                    'custom_offset': 'tex_nmb_ptr'})
+                   {'is_unknown': True})
+        unk_ren_ord = Padding(to=(lambda ctx: ctx.data('ren_ord_ptr'), 'ren_ord_ptr'))
         render_order = (ArrayBlock(child=RenderOrderBlock(),
                                    length=lambda ctx: ctx.data('num_ren_ord')),
-                        {'description': 'Render order. The exact mechanism how it works is unknown',
-                         'custom_offset': 'ren_ord_ptr'})
+                        {'description': 'Render order. The exact mechanism how it works is unknown'})
+        unk_fxp = Padding(to=(lambda ctx: ctx.data('fxp_ptr'), 'fxp_ptr'))
         fx_polys = (ArrayBlock(child=NamedIndex(),
                                length=lambda ctx: ctx.data('num_fxp')),
                     {'description': 'Indexes of polygons which participate in visual effects such as engine smoke, '
-                                    'dust particles, tyre trails? Presented in car CFM-s. ',
-                     'custom_offset': 'fxp_ptr'})
+                                    'dust particles, tyre trails? Presented in car CFM-s. '})
+        unk_lbl = Padding(to=(lambda ctx: ctx.data('lbl_ptr'), 'lbl_ptr'))
         labels = (ArrayBlock(child=NamedIndex(),
                              length=lambda ctx: ctx.data('num_lbl')),
                   {'description': 'Marks special polygons for the game, where it should change texture on runtime such '
-                                  'as tyres, tail lights',
-                   'custom_offset': 'lbl_ptr'})
+                                  'as tyres, tail lights'})
+        unk_vrtx = Padding(to=(lambda ctx: ctx.data('vrtx_ptr'), 'vrtx_ptr'))
         vertices = (ArrayBlock(child=DelegateBlock(
             possible_blocks=[Point3D(child=FixedPointBlock(length=4, fraction_bits=7, is_signed=True)),
                              Point3D(child=FixedPointBlock(length=4, fraction_bits=4, is_signed=True))],
@@ -257,8 +256,8 @@ class OripGeometry(DeclarativeCompoundBlock):
                 else 1)),
             length=lambda ctx: ctx.data('num_vrtx')),
                     {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. '
-                                    'The unit is meter',
-                     'custom_offset': 'vrtx_ptr'})
+                                    'The unit is meter'})
+        unk_vmap = Padding(to=(lambda ctx: ctx.data('vmap_ptr'), 'vmap_ptr'))
         vmap = (ArrayBlock(child=IntegerBlock(length=4),
                            length=(lambda ctx: floor(
                                (ctx.data('block_size') + ctx.read_start_offset - ctx.buffer.tell()) / 4), '?')),
@@ -266,8 +265,7 @@ class OripGeometry(DeclarativeCompoundBlock):
                                 "vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, "
                                 "a lookup to this table, and value from here is an index of item in vertices. "
                                 "When building UV-s, polygon defines offset_2d, a lookup to this table, and "
-                                "value from here is an index of item in vertex_uvs",
-                 'custom_offset': 'vmap_ptr'})
+                                "value from here is an index of item in vertex_uvs"})
 
     def serializer_class(self):
         from serializers import OripGeometrySerializer

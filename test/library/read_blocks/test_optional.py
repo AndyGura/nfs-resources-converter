@@ -72,7 +72,7 @@ class TestOptional(unittest.TestCase):
         opt = OptionalBlock(child=IntegerBlock(length=2), criteria=lambda ctx: ctx.data('has_optional') == 1)
         schema = opt.schema
         self.assertTrue(schema['is_optional'])
-        self.assertEqual(schema['block_class_mro'], 'OptionalBlock__IntegerBlock__DataBlock')
+        self.assertEqual(schema['block_class_mro'], 'IntegerBlock__DataBlock')
         # Check inlined child properties
         self.assertEqual(schema['block_description'], '2-bytes unsigned integer (little endian)')
         self.assertEqual(schema['criteria'], 'has_optional == 1')
