@@ -13,12 +13,14 @@ class OptionalBlock(DataBlock):
             self.criteria_label = criteria[1]
         else:
             self.criteria = criteria
-        self.default_value = default_value
+        if default_value is not None:
+            self.default_value = default_value
+        else:
+            self.default_value = self.child.new_data()
 
     @property
     def size_doc_str(self):
-        child_size = self.child.size_doc_str
-        return f'0..{child_size}'
+        return f'0..{self.child.size_doc_str}'
 
     @property
     def schema(self) -> Dict:
@@ -29,7 +31,7 @@ class OptionalBlock(DataBlock):
         }
 
     def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
-        return self.child, unpacked_data.get(name)
+        return self.child.get_child_block_with_data(unpacked_data, name)
 
     def new_data(self):
         return self.default_value

@@ -1,7 +1,8 @@
 import unittest
 from io import BytesIO
 from library.context import ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, OptionalBlock
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, OptionalBlock, ArrayBlock, \
+    LengthPrefixedArrayBlock
 
 
 class OptionalTestBlock(DeclarativeCompoundBlock):
@@ -84,3 +85,33 @@ class TestOptional(unittest.TestCase):
         )
         schema = opt.schema
         self.assertEqual(schema['criteria'], 'has_optional is set')
+
+    def test_should_automatically_have_default_value(self):
+        field = OptionalBlock(
+            child=LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1)),
+            criteria=lambda ctx: False
+        )
+        self.assertEqual(field.new_data(), [])
+
+    def test_get_child_block_with_data(self):
+        class OptionalTestBlock(DeclarativeCompoundBlock):
+            class Fields(DeclarativeCompoundBlock.Fields):
+                has_optional = IntegerBlock(length=1)
+                # should use [] as default value automatically here
+                optional_field = OptionalBlock(
+                    child=LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1)),
+                    criteria=lambda ctx: ctx.data('has_optional') == 1
+                )
+                marker = IntegerBlock(length=1)
+        block = OptionalTestBlock()
+
+        data = bytes([1, 2, 0x34, 0x12, 0xFF])
+        res = block.unpack(ReadContext(BytesIO(data)))
+        (ob, od) = block.get_child_block_with_data(res, 'optional_field')
+        self.assertEqual(od, [0x34, 0x12])
+        self.assertEqual(ob.get_child_block_with_data(od, '1')[1], 0x12)
+
+        data = bytes([0, 0xFF])
+        res = block.unpack(ReadContext(BytesIO(data)))
+        (ob, od) = block.get_child_block_with_data(res, 'optional_field')
+        self.assertEqual(od, [])

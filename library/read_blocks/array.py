@@ -130,6 +130,9 @@ class LengthPrefixedArrayBlock(ArrayBlock):
     def size_doc_str(self):
         return f'{self.length_block.size_doc_str}..?'
 
+    def new_data(self):
+        return []
+
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
         resolved_length = self.length_block.unpack(ctx=self_ctx, name='length')
