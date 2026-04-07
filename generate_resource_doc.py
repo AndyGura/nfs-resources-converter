@@ -6,8 +6,10 @@ from library.read_blocks import (CompoundBlock,
                                  DataBlock,
                                  DelegateBlock,
                                  SkipBlock,
+                                 Padding,
                                  EnumLookupDelegateBlock,
-                                 LengthPrefixedArrayBlock)
+                                 LengthPrefixedArrayBlock,
+                                 OptionalBlock)
 from library.utils.docs import add_doc_numbers
 from resources.eac import (archives,
                            bitmaps,
@@ -42,6 +44,8 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
         return description + '<br/>'.join(['- ' + render_type(x, possible_blocks_filter) for x in possible_blocks])
     if not isinstance(instance, CompoundBlock) or schema["inline_description"]:
         descr = schema['block_description']
+        if isinstance(instance, OptionalBlock):
+            return f'Optional (if {schema["criteria"]}): {render_type(instance.child, possible_blocks_filter)}'
         if isinstance(instance, ArrayBlock):
             if isinstance(instance, LengthPrefixedArrayBlock):
                 descr += f'<br/>Length field type: {instance.length_block.schema["block_description"]}'
@@ -606,6 +610,9 @@ Did not find what you need or some given data is wrong? Please submit an
                     tmp_arr_field = ArrayBlock(child=field.child, length=lambda ctx: ctx.data(f"num_{key}"))
                     new_contents += render_field(offset, key, tmp_arr_field, extras)
                     offset = add_doc_numbers(offset, tmp_arr_field.size_doc_str)
+                elif isinstance(field, Padding):
+                    new_contents += render_field(offset, key, field, extras)
+                    offset = field.to[1] if isinstance(field.to, tuple) else field.to
                 else:
                     new_contents += render_field(offset, key, field, extras)
                     offset = add_doc_numbers(offset, field.size_doc_str)
