@@ -1,11 +1,12 @@
 from typing import Dict
 
+from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock,
                                  SubByteArrayBlock,
                                  BytesBlock,
                                  ArrayBlock)
-from library.read_blocks.misc.value_validators import Eq
+from library.read_blocks.misc.value_validators import Eq, Or
 from library.utils import transform_bitness
 from resources.eac.fields.colors import (
     Color16Bit1555Block,
@@ -70,13 +71,12 @@ class Bitmap4Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Single-channel image, 4 bits per pixel. Used in FFN font files and some NFS2SE ' \
-                                 'SHPI directories as some small sprites, like "dot". Seems to be always used as ' \
-                                 'alpha channel, so we save it as white image with alpha mask',
+            'block_description': 'Single-channel image, 4 bits per pixel. If resource_id is 0x79, then values in each '
+                                 'byte are swapped',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7A)),
+        resource_id = (IntegerBlock(length=1, value_validator=Or([0x79, 0x7A])),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
                       {'description': 'Bitmap block size 16+width\\*height/2 + trailing bytes length'})
@@ -97,6 +97,21 @@ class Bitmap4Bit(AnyBitmapBlock, DeclarativeCompoundBlock):
                                                                                       | transform_bitness(x, 4),
                                                      value_serialize_func=lambda x: (x & 0xFF) >> 4)),
                   {'description': 'Font atlas bitmap data, array of bitmap rows'})
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        if data['resource_id'] == 0x79:
+            for row in data['bitmap']:
+                for i in range(0, len(row), 2):
+                    row[i], row[i + 1] = row[i + 1], row[i]
+        return data
+
+    def write(self, data, ctx: ReadContext = None, name: str = '') -> bytes:
+        if data['resource_id'] == 0x79:
+            for row in data['bitmap']:
+                for i in range(0, len(row), 2):
+                    row[i], row[i + 1] = row[i + 1], row[i]
+        return super().write(data, ctx, name)
 
 
 class Bitmap8Bit(AnyBitmapBlock, DeclarativeCompoundBlock):

@@ -38,12 +38,15 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
         super().serialize(data, path, id=id, block=block)
         (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
-        if palette_block is None:
-            raise SerializationException('Palette not found for 8bit bitmap')
         colors = []
-        palette_colors = [c for c in palette_data['colors']]
-        if palette_data['last_color_transparent']:
-            palette_colors[255] = 0
+        palette_colors = []
+        if palette_block is None:
+            for i in range(256):
+                palette_colors.append(0xffffff00 | i)
+        else:
+            palette_colors = [c for c in palette_data['colors']]
+            if palette_data['last_color_transparent']:
+                palette_colors[255] = 0
         for index in data['bitmap']:
             try:
                 colors.append(palette_colors[index])

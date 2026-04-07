@@ -612,7 +612,7 @@ Did not find what you need or some given data is wrong? Please submit an
                     offset = add_doc_numbers(offset, tmp_arr_field.size_doc_str)
                 elif isinstance(field, Padding):
                     new_contents += render_field(offset, key, field, extras)
-                    offset = field.to[1] if isinstance(field.to, tuple) else field.to
+                    offset = field.to_descr
                 else:
                     new_contents += render_field(offset, key, field, extras)
                     offset = add_doc_numbers(offset, field.size_doc_str)

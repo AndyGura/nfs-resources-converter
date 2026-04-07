@@ -95,7 +95,7 @@ class NullTerminatedUTF8Block(DataBlock):
     # For auto-generated documentation only
     @property
     def size_doc_str(self):
-        return '?'
+        return '1..?'
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         res = b''

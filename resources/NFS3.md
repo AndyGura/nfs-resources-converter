@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2025-10-25 12:54:15.835991+00:00*
+*Last time updated: 2026-04-07 15:52:48.024449+00:00*
 
 
 # **Info by file extensions** #
@@ -43,15 +43,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
-| 16 + num_items\*8..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
+| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
 ### **BigfItemDescriptionBlock** ###
-#### **Size**: 8..? bytes ####
+#### **Size**: 9..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
 ## **Maps** ##
 ### **FrdMap** ###
 #### **Size**: 36..? bytes ####
@@ -311,10 +311,10 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Bitmaps** ##
 ### **Bitmap4Bit** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: Single-channel image, 4 bits per pixel. Used in FFN font files and some NFS2SE SHPI directories as some small sprites, like "dot". Seems to be always used as alpha channel, so we save it as white image with alpha mask ####
+#### **Description**: Single-channel image, 4 bits per pixel. If resource_id is 0x79, then values in each byte are swapped ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7a | Resource ID |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer. One of ['0x79', '0x7a'] | Resource ID |
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+width\*height/2 + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels. Has to be an even number (at least in the FFN font) |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
@@ -403,7 +403,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 32 | **definitions** | num_glyphs\*11 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
-| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
+| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Padding bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
 | bdata_ptr | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
 ### **GlyphDefinition** ###
 #### **Size**: 11 bytes ####

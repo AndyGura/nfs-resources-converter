@@ -21,7 +21,8 @@ class GeoPolygon(DeclarativeCompoundBlock):
                                      '"uv_flip" else `[[0, 0], [1, 0], [1, 1], [0, 1]]`'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        mapping = (BitFlagsBlock(flag_names=[(0, 'is_triangle'),
+        mapping = (BitFlagsBlock(length=1,
+                                 flag_names=[(0, 'is_triangle'),
                                              (1, 'uv_flip'),
                                              (2, 'flip_normal'),
                                              (4, 'double_sided')]),

@@ -16,6 +16,7 @@ export type ResourceError = {
 export type BlockSchema = {
   block_class_mro: string;
   serializable_to_disc: boolean;
+  hide_navigation_bar?: boolean;
   value_validator?: { type: 'eq', expected_value: any } | { type: 'or', possible_values: any[] };
   custom_actions?: CustomAction[]
 } & any;

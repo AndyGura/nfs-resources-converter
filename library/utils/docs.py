@@ -1,10 +1,30 @@
+import re
+
 # TODO probably we can create a dedicated class for that and do it in a more easy way
-def add_doc_numbers(a, b):
+def add_doc_numbers(a, b, show_expressions=True, produce_ranges=False):
+    if not show_expressions:
+        if not isinstance(a, int) and not a.isdigit() and not re.fullmatch(r"^\d+\.\.[\d\\?]+$", a):
+            a = '?'
+        if not isinstance(b, int) and not b.isdigit() and not re.fullmatch(r"^\d+\.\.[\d\\?]+$", b):
+            b = '?'
     if a == '?' or b == '?':
+        if produce_ranges:
+            if isinstance(a, int) or a.isdigit():
+                return f'{a}..?'
+            elif re.fullmatch(r"^\d+\.\.[\d\\?]+$", a):
+                return f'{a.split("..")[0]}..?'
+            elif isinstance(b, int) or b.isdigit():
+                return f'{b}..?'
+            elif re.fullmatch(r"^\d+\.\.[\d\\?]+$", b):
+                return f'{b.split("..")[0]}..?'
         return '?'
     try:
         return str(int(a) + int(b))
     except ValueError:
+        if isinstance(a, int):
+            a = str(a)
+        if isinstance(b, int):
+            b = str(b)
         if a == '0':
             return b
         if b == '0':

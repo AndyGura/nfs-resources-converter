@@ -46,6 +46,16 @@ class TestArray(unittest.TestCase):
         field = ArrayBlock(length=3, child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
         self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 3)
 
+    def test_size_doc_str(self):
+        field = ArrayBlock(length=3, child=IntegerBlock(length=1))
+        self.assertEqual(field.size_doc_str, "3")
+        field = ArrayBlock(length=3, child=IntegerBlock(length=2))
+        self.assertEqual(field.size_doc_str, "6")
+        field = ArrayBlock(length=lambda ctx: 5, child=IntegerBlock(length=1))
+        self.assertEqual(field.size_doc_str, "5")
+        field = ArrayBlock(length=(2, "2 items"), child=IntegerBlock(length=4))
+        self.assertEqual(field.size_doc_str, "2 items*4")
+
 
 class TestLengthPrefixedArray(unittest.TestCase):
 
@@ -109,6 +119,10 @@ class TestLengthPrefixedArray(unittest.TestCase):
         self.assertEqual(field.new_data(), [])
         self.assertEqual(field.pack(field.new_data()), bytes([0]))
 
+    def test_size_doc_str(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
+        self.assertEqual(field.size_doc_str, "1..?")
+
 
 class TestSubByteArray(unittest.TestCase):
 
@@ -141,3 +155,9 @@ class TestSubByteArray(unittest.TestCase):
     def test_estimate_packed_size(self):
         field = SubByteArrayBlock(length=5, bits_per_value=5)
         self.assertEqual(field.estimate_packed_size([1, 2, 3]), 2)
+
+    def test_size_doc_str(self):
+        field = SubByteArrayBlock(length=4, bits_per_value=6)
+        self.assertEqual(field.size_doc_str, "3")
+        field = SubByteArrayBlock(length=5, bits_per_value=5)
+        self.assertEqual(field.size_doc_str, "4")

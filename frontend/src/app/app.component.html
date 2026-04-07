@@ -10,7 +10,7 @@
         <mat-icon fontIcon="save"></mat-icon>
     </button>
   </mat-toolbar>
-  <app-navigation-bar></app-navigation-bar>
+  <app-navigation-bar *ngIf="!(navigation.resourceToRender$ | async)?.schema?.hide_navigation_bar"></app-navigation-bar>
   <div id="content-wrapper">
       <div class="scroll-bounds-snapper"></div>
       <app-editor [resource]="(mainService.customActionRunning$ | async)

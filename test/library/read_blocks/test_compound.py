@@ -48,6 +48,34 @@ class TestCompound(unittest.TestCase):
         ])
         self.assertEqual(field.offset_to_child_when_packed({'foo': 'test_str', 'bar': 2}, 'bar'), 8)
 
+    def test_size_doc_str(self):
+        field = CompoundBlock(fields=[
+            ('a', IntegerBlock(length=1), {}),
+            ('b', IntegerBlock(length=2), {}),
+        ])
+        self.assertEqual(field.size_doc_str, "3")
+
+        field = CompoundBlock(fields=[
+            ('a', IntegerBlock(length=1), {}),
+            ('b', UTF8Block(length=lambda ctx: 5), {}),
+        ])
+        self.assertEqual(field.size_doc_str, "6")
+
+    def test_size_doc_str_usage(self):
+        field = CompoundBlock(fields=[
+            ('a', IntegerBlock(length=1), {}),
+            ('b', IntegerBlock(length=2), {'usage': 'doc'}),  # excluded from IO
+        ])
+        self.assertEqual(field.size_doc_str, "1")
+
+    def test_size_doc_str_strip_expressions(self):
+        field = CompoundBlock(fields=[
+            ('a', IntegerBlock(length=1), {}),
+            ('len', IntegerBlock(length=1), {}),
+            ('b', UTF8Block(length=lambda ctx: ctx.data('len')), {}),
+        ])
+        self.assertEqual(field.size_doc_str, "2..?")
+
 
 class SimpleBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
