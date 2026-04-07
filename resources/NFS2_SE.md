@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-02-24 23:27:37.250115+00:00*
+*Last time updated: 2026-04-07 15:52:47.974488+00:00*
 
 
 # **Info by file extensions** #
@@ -45,15 +45,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
-| 16 + num_items\*8..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
+| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
 ### **BigfItemDescriptionBlock** ###
-#### **Size**: 8..? bytes ####
+#### **Size**: 9..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
 ## **Geometries** ##
 ### **GeoGeometry** ###
 #### **Size**: 1804..? bytes ####
@@ -109,7 +109,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 36 | **unk3** | 8 | 8-bytes unsigned integer (little endian). Always == 0x1 | Unknown purpose |
 | 44 | **unk4** | 8 | 8-bytes unsigned integer (little endian). Always == 0x1 | Unknown purpose |
 | 52 | **vertices** | num_vrtx\*6 | Array of `num_vrtx` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertex coordinates. The unit is meter |
-| 52 + num_vrtx\*6 | **offset** | (num_vrtx % 2) ? 6 : 0 | Bytes | Data offset, happens when `num_vrtx` is odd |
+| 52 + num_vrtx\*6 | **offset** | up to offset 52 + ceil(num_vrtx/2)\*12 | Padding bytes | Data offset, happens when `num_vrtx` is odd |
 | 52 + ceil(num_vrtx/2)\*12 | **polygons** | num_plgn\*12 | Array of `num_plgn` items<br/>Item type: [GeoPolygon](#geopolygon) | Array of mesh polygons |
 ### **GeoPolygon** ###
 #### **Size**: 12 bytes ####
@@ -132,7 +132,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks (nblk) |
 | 32 | **superblock_offsets** | num_superblocks\*4 | Array of `num_superblocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the superblocks |
 | 32 + num_superblocks\*4 | **block_positions** | num_blocks\*12 | Array of `num_blocks` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Positions of blocks in the world |
-| 32 + num_superblocks\*4 + num_blocks\*12 | **skip_bytes** | up to offset superblock_offsets[0] | Bytes | Useless padding |
+| 32 + num_superblocks\*4 + num_blocks\*12 | **skip_bytes** | up to offset superblock_offsets[0] | Padding bytes | Useless padding |
 | superblock_offsets[0] | **superblocks** | num_superblocks\*12..? | Array of `num_superblocks` items<br/>Item type: [TrkSuperBlock](#trksuperblock) | Superblocks |
 ### **TrkSuperBlock** ###
 #### **Size**: 12..? bytes ####
@@ -164,7 +164,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 82 | **unk1** | 6 | 6-bytes unsigned integer (little endian) | Unknown purpose |
 | 88 | **vertices** | (nv8+nv1)\*6 | Array of `nv8+nv1` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertices |
 | 88 + (nv8+nv1)\*6 | **polygons** | (np4+np2+np1)\*8 | Array of `np4+np2+np1` items<br/>Item type: [ColPolygon](#colpolygon) | Polygons |
-| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **unk2** | up to (extrablocks_offset+64) | Bytes | Unknown purpose |
+| 88 + (nv8+nv1)\*6 + (np4+np2+np1)\*8 | **unk2** | up to offset extrablocks_offset + 64 | Padding bytes | Unknown purpose |
 | extrablocks_offset + 64 | **extrablock_offsets** | num_extrablocks\*4 | Array of `num_extrablocks` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset to each of the extrablocks |
 | extrablocks_offset + 64 + num_extrablocks\*4 | **extrablocks_bytes** | block_size-local_offset | Bytes | A part of block, where extrablocks data is located. Offsets to the entries are defined in `extrablock_offsets` block. Item type:<br/>- [ColExtraBlock](#colextrablock) |
 ### **MapColFile** ###
@@ -282,10 +282,10 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Bitmaps** ##
 ### **Bitmap4Bit** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: Single-channel image, 4 bits per pixel. Used in FFN font files and some NFS2SE SHPI directories as some small sprites, like "dot". Seems to be always used as alpha channel, so we save it as white image with alpha mask ####
+#### **Description**: Single-channel image, 4 bits per pixel. If resource_id is 0x79, then values in each byte are swapped ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7a | Resource ID |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer. One of ['0x79', '0x7a'] | Resource ID |
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+width\*height/2 + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels. Has to be an even number (at least in the FFN font) |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
@@ -374,7 +374,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 32 | **definitions** | num_glyphs\*11 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
-| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
+| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Padding bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
 | bdata_ptr | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
 ### **GlyphDefinition** ###
 #### **Size**: 11 bytes ####
