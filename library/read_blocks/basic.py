@@ -207,13 +207,22 @@ class Padding(BytesBlock):
     def __init__(self, to, is_global=False, **kwargs):
         # handle case where 'to' is a tuple (lambda, description)
         to_lambda = to[0] if isinstance(to, tuple) else to
-        to_descr = to[1] if isinstance(to, tuple) else to
+        if isinstance(to, tuple):
+            to_descr = to[1]
+        elif callable(to):
+            try:
+                to_descr = to(DocumentationContext())
+            except:
+                to_descr = '?'
+        else:
+            to_descr = str(to)
         super().__init__(length=(
             lambda ctx: (to_lambda(ctx) if callable(to_lambda) else to_lambda) -
                         (ctx.buffer.tell() if is_global else ctx.local_buffer_pos),
             f"up to offset {to_descr}"),
             **kwargs)
         self.to = to
+        self.to_descr = to_descr
         self.is_global = is_global
 
     @property

@@ -48,3 +48,16 @@ class TestStrings(unittest.TestCase):
         field = UTF8Block(length=4)
         data = field.pack("Te")
         self.assertEqual(data, bytes([84, 101, 0, 0]))
+
+    def test_size_doc_str(self):
+        field = UTF8Block(length=4)
+        self.assertEqual(field.size_doc_str, "4")
+        field = UTF8Block(length=(5, "5 chars"))
+        self.assertEqual(field.size_doc_str, "5 chars")
+        field = UTF8Block(length=lambda ctx: 10)
+        self.assertEqual(field.size_doc_str, "10")
+
+    def test_null_terminated_size_doc_str(self):
+        from library.read_blocks.strings import NullTerminatedUTF8Block
+        field = NullTerminatedUTF8Block(length=None)
+        self.assertEqual(field.size_doc_str, "1..?")

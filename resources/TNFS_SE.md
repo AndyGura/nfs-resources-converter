@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-04-01 09:38:57.649635+00:00*
+*Last time updated: 2026-04-07 15:52:47.878540+00:00*
 
 
 # **Info by file extensions** #
@@ -104,14 +104,21 @@ Did not find what you need or some given data is wrong? Please submit an
 | 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28 + num_fxp*12` |
 | 100 | **unknowns1** | 12 | Bytes | Unknown purpose |
 | 112 | **polygons** | num_polygons\*12 | Array of `num_polygons` items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
+| 112 + num_polygons\*12 | **unk_uvs** | up to offset uvs_ptr | Padding bytes | - |
 | uvs_ptr | **vertex_uvs** | num_uvs\*8 | Array of `num_uvs` items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in vmap |
+| uvs_ptr + num_uvs\*8 | **unk_tex_ids** | up to offset tex_ids_ptr | Padding bytes | - |
 | tex_ids_ptr | **tex_ids** | num_tex_ids\*20 | Array of `num_tex_ids` items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
-| tex_ids_ptr + num_tex_ids\*20 | **offset** | space up to offset `tex_nmb_ptr` | Bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
+| tex_ids_ptr + num_tex_ids\*20 | **offset** | up to offset tex_nmb_ptr | Padding bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
 | tex_nmb_ptr | **tex_nmb** | num_tex_nmb\*20 | Array of `num_tex_nmb` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| tex_nmb_ptr + num_tex_nmb\*20 | **unk_ren_ord** | up to offset ren_ord_ptr | Padding bytes | - |
 | ren_ord_ptr | **render_order** | num_ren_ord\*28 | Array of `num_ren_ord` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
+| ren_ord_ptr + num_ren_ord\*28 | **unk_fxp** | up to offset fxp_ptr | Padding bytes | - |
 | fxp_ptr | **fx_polys** | num_fxp\*12 | Array of `num_fxp` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Indexes of polygons which participate in visual effects such as engine smoke, dust particles, tyre trails? Presented in car CFM-s.  |
+| fxp_ptr + num_fxp\*12 | **unk_lbl** | up to offset lbl_ptr | Padding bytes | - |
 | lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Marks special polygons for the game, where it should change texture on runtime such as tyres, tail lights |
+| lbl_ptr + num_lbl\*12 | **unk_vrtx** | up to offset vrtx_ptr | Padding bytes | - |
 | vrtx_ptr | **vertices** | num_vrtx\*12 | Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. The unit is meter |
+| vrtx_ptr + num_vrtx\*12 | **unk_vmap** | up to offset vmap_ptr | Padding bytes | - |
 | vmap_ptr | **vmap** | ? | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertices. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs |
 ### **OripPolygon** ###
 #### **Size**: 12 bytes ####
@@ -353,10 +360,10 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Bitmaps** ##
 ### **Bitmap4Bit** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: Single-channel image, 4 bits per pixel. Used in FFN font files and some NFS2SE SHPI directories as some small sprites, like "dot". Seems to be always used as alpha channel, so we save it as white image with alpha mask ####
+#### **Description**: Single-channel image, 4 bits per pixel. If resource_id is 0x79, then values in each byte are swapped ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7a | Resource ID |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer. One of ['0x79', '0x7a'] | Resource ID |
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+width\*height/2 + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels. Has to be an even number (at least in the FFN font) |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
@@ -385,18 +392,20 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "FNTF" | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes |
-| 8 | **unk0** | 2 | Bytes | Unknown purpose |
+| 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
+| 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unk1** | 6 | Bytes | Unknown purpose |
+| 12 | **unk2** | 6 | Bytes | Unknown purpose |
 | 18 | **font_size** | 1 | 1-byte unsigned integer | Font size ? |
-| 19 | **unk2** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 19 | **unk3** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
-| 21 | **unk3** | 7 | Bytes | Unknown purpose |
-| 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
+| 21 | **unk4** | 7 | Bytes. Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
+| 28 | **bdata_ptr** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
+| 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 32 | **definitions** | num_glyphs\*11 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
-| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
-| bdata_ptr | **bitmap** | 16..? | One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit) | Font atlas bitmap data |
-| bdata_ptr + 16..? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
+| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Padding bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
+| bdata_ptr | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
 ### **GlyphDefinition** ###
 #### **Size**: 11 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -461,7 +470,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
 | 36 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 40 | **offset** | space up to offset (wave_data_offset + 40) | Bytes | - |
+| 40 | **offset** | up to offset wave_data_offset + 40 | Padding bytes | - |
 | wave_data_offset + 40 | **wave_data** | min(`remaining file bytes`, `wave_data_length` \* `sound_resolution`) | Bytes | Wave data is here |
 ### **EacsAudioFile** ###
 #### **Size**: 32..? bytes ####
@@ -469,8 +478,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **header** | 32 | [EacsAudioHeader](#eacsaudioheader) | - |
-| 32 | **offset** | space up to offset `header.wave_data_offset` (global) | Bytes | Unknown purpose |
-| wave_data_offset (global) | **wave_data** | min(`remaining file bytes`, `header.wave_data_length` \* `header.sound_resolution`) | Bytes | Wave data is here. If header.sound_resolution == 1, contains signed bytes, else - unsigned |
+| 32 | **offset** | up to offset header/wave_data_offset | Padding bytes | Unknown purpose |
+| header/wave_data_offset | **wave_data** | min(`remaining file bytes`, `header.wave_data_length` \* `header.sound_resolution`) | Bytes | Wave data is here. If header.sound_resolution == 1, contains signed bytes, else - unsigned |
 ### **SoundBankHeaderEntry** ###
 #### **Size**: 72 bytes ####
 #### **Description**: Uknown wrapper around EACS header block, which is used in *.BNK files ####

@@ -130,6 +130,7 @@ class BitFlagsBlock(IntegerBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema,
+                'flag_names': self.flag_name_map,
                 'block_description': f'{self.length * 8} flags container<br/><details><summary>flag names (from least to most significant)</summary>'
                                      + '<br/>'.join(
                     [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>'}

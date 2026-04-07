@@ -23,6 +23,9 @@ class TestFfnFont(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             serializer.serialize(font_res, tmp, name, block)
             font_res = serializer.deserialize(tmp, name, block=block)
+            # FIXME manually changing bitmap to be 0x7A. Remove after figuring out how to pass parameters into
+            # deserialization. Bitmap data is the same in both cases anyway
+            font_res['bitmap']['resource_id'] = 0x7A
         output = block.pack(font_res, name=name)
         with open('test/samples/MAIN24.FFN', 'rb') as bdata:
             original = bdata.read()

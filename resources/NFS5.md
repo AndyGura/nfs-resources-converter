@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-03-24 07:42:38.420811+00:00*
+*Last time updated: 2026-04-07 15:52:48.074348+00:00*
 
 
 # **Info by file extensions** #
@@ -39,15 +39,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*8..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
-| 16 + num_items\*8..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
+| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
 ### **BigfItemDescriptionBlock** ###
-#### **Size**: 8..? bytes ####
+#### **Size**: 9..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 8 | **name** | ? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
 ## **Geometries** ##
 ### **CrpGeometry** ###
 #### **Size**: 16..? bytes ####

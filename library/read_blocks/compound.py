@@ -1,9 +1,11 @@
 from abc import ABC
+import re
 from typing import Dict, List, Tuple, Any, TypedDict, Callable, Union
 
 from library.context import ReadContext, WriteContext
 from library.exceptions import BlockDefinitionException, DataIntegrityException
 from library.read_blocks.basic import DataBlock, DataBlockWithChildren
+from library.utils.docs import add_doc_numbers
 
 
 class FieldExtras(TypedDict, total=False):
@@ -78,9 +80,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
     # For auto-generated documentation only
     @property
     def size_doc_str(self):
-        min_acc = 0
-        unknown_size = False
-
+        acc = 0
         if callable(self.fields):
             return '?'
         for name, field in self.field_blocks:
@@ -88,17 +88,8 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             if usage != 'everywhere' and 'io' not in usage:
                 continue
             field_size_doc = field.size_doc_str
-            try:
-                min_acc += int(field_size_doc)
-            except ValueError:
-                # if inner compound block with size range
-                if '..?' in field_size_doc:
-                    try:
-                        min_acc += int(field_size_doc[:field_size_doc.index('..?')])
-                    except:
-                        pass
-                unknown_size = True
-        return str(min_acc) if not unknown_size else f'{min_acc}..?'
+            acc = add_doc_numbers(acc, field_size_doc, show_expressions=False, produce_ranges=True)
+        return acc
 
     def new_data(self):
         res = dict()

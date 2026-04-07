@@ -2,11 +2,11 @@
     <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
     <mat-selection-list (selectionChange)="onSelection($event)"
                         [disabled]="disabled">
-        <mat-list-option *ngFor="let flag of (resource.data | keyvalue)"
-                         [value]="flag.key"
-                         [selected]="resource.data[$any(flag.key)]"
+        <mat-list-option *ngFor="let flag of resource.schema.flag_names"
+                         [value]="flag"
+                         [selected]="resource.data[flag]"
                          [disabled]="disabled">
-            {{flag.key}}
+            {{flag}}
         </mat-list-option>
     </mat-selection-list>
 </ng-container>

@@ -1,8 +1,8 @@
 import unittest
 from io import BytesIO
+
 from library.context import ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, OptionalBlock, ArrayBlock, \
-    LengthPrefixedArrayBlock
+from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, OptionalBlock, LengthPrefixedArrayBlock
 
 
 class OptionalTestBlock(DeclarativeCompoundBlock):
@@ -69,6 +69,18 @@ class TestOptional(unittest.TestCase):
         opt = OptionalBlock(child=IntegerBlock(length=2), criteria=lambda ctx: True)
         self.assertEqual(opt.size_doc_str, '0..2')
 
+        from library.read_blocks.smart_fields import DelegateBlock
+        opt2 = OptionalBlock(child=DelegateBlock(possible_blocks=[IntegerBlock(length=2), IntegerBlock(length=4)]),
+                             criteria=lambda ctx: True)
+        self.assertEqual(opt2.size_doc_str, '0..4')
+
+        from library.read_blocks.compound import CompoundBlock
+        opt2 = OptionalBlock(child=CompoundBlock(fields=[
+            ('a', IntegerBlock(length=4), {}),
+            ('b', OptionalBlock(child=IntegerBlock(length=4), criteria=None), {})
+        ]), criteria=lambda ctx: True)
+        self.assertEqual(opt2.size_doc_str, '0..8')
+
     def test_schema(self):
         opt = OptionalBlock(child=IntegerBlock(length=2), criteria=lambda ctx: ctx.data('has_optional') == 1)
         schema = opt.schema
@@ -103,6 +115,7 @@ class TestOptional(unittest.TestCase):
                     criteria=lambda ctx: ctx.data('has_optional') == 1
                 )
                 marker = IntegerBlock(length=1)
+
         block = OptionalTestBlock()
 
         data = bytes([1, 2, 0x34, 0x12, 0xFF])
