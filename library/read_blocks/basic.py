@@ -11,7 +11,7 @@ from library.utils import represent_value_as_str
 class DataBlock(ABC):
     root_read_ctx = ReadContext()
 
-    def __init__(self, value_validator: ValueValidator=None, programmatic_value=None, **kwargs):
+    def __init__(self, value_validator: ValueValidator = None, programmatic_value=None, **kwargs):
         self.value_validator = value_validator
         self.programmatic_value = programmatic_value
 
@@ -201,3 +201,24 @@ class SkipBlock(DataBlock):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return bytes()
+
+
+class Padding(BytesBlock):
+    def __init__(self, to, is_global=False, **kwargs):
+        # handle case where 'to' is a tuple (lambda, description)
+        to_lambda = to[0] if isinstance(to, tuple) else to
+        to_descr = to[1] if isinstance(to, tuple) else to
+        super().__init__(length=(
+            lambda ctx: (to_lambda(ctx) if callable(to_lambda) else to_lambda) -
+                        (ctx.buffer.tell() if is_global else ctx.local_buffer_pos),
+            f"up to offset {to_descr}"),
+            **kwargs)
+        self.to = to
+        self.is_global = is_global
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Padding bytes',
+        }

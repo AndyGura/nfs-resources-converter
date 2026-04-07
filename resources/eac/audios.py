@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock, ArrayBlock
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock, ArrayBlock, Padding
 from library.read_blocks.misc.value_validators import Eq
 
 
@@ -74,9 +74,8 @@ class EacsAudioFile(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         header = EacsAudioHeader()
-        offset = (BytesBlock(
-            length=(lambda ctx: ctx.data('header/wave_data_offset') - ctx.buffer.tell(),
-                    'space up to offset `header.wave_data_offset` (global)')),
+        offset = (Padding(to=lambda ctx: ctx.data('header/wave_data_offset'),
+                          is_global=True),
                   {'is_unknown': True})
         wave_data = (
             BytesBlock(length=(lambda ctx: min(ctx.read_bytes_remaining,
@@ -85,8 +84,7 @@ class EacsAudioFile(DeclarativeCompoundBlock):
                                'min(`remaining file bytes`, '
                                '`header.wave_data_length` * `header.sound_resolution`)')),
             {'description': 'Wave data is here. If header.sound_resolution == 1, contains signed bytes, '
-                            'else - unsigned',
-             'custom_offset': 'wave_data_offset (global)'})
+                            'else - unsigned'})
 
     def serializer_class(self):
         from serializers import EacsAudioSerializer
@@ -137,14 +135,12 @@ class AsfAudio(DeclarativeCompoundBlock):
                                             ' to start of the file itself'})
         unk2 = (IntegerBlock(length=4),
                 {'is_unknown': True})
-        offset = BytesBlock(
-            length=(lambda ctx: ctx.data('wave_data_offset') + 40 - ctx.local_buffer_pos,
-                    'space up to offset (wave_data_offset + 40)'), )
+        offset = Padding(to=(lambda ctx: ctx.data('wave_data_offset') + 40,
+                             'wave_data_offset + 40'))
         wave_data = (BytesBlock(length=(lambda ctx: min(ctx.read_bytes_remaining,
                                                         ctx.data('wave_data_length') * ctx.data('sound_resolution')),
                                         'min(`remaining file bytes`, `wave_data_length` * `sound_resolution`)')),
-                     {'description': 'Wave data is here',
-                      'custom_offset': 'wave_data_offset + 40'})
+                     {'description': 'Wave data is here'})
 
     def serializer_class(self):
         from serializers import FfmpegSupportedAudioSerializer

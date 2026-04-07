@@ -104,6 +104,11 @@ class TestLengthPrefixedArray(unittest.TestCase):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4), child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
         self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 7)
 
+    def test_new_data(self):
+        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
+        self.assertEqual(field.new_data(), [])
+        self.assertEqual(field.pack(field.new_data()), bytes([0]))
+
 
 class TestSubByteArray(unittest.TestCase):
 

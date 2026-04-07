@@ -4,9 +4,9 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
                                  ArrayBlock,
-                                 BytesBlock,
                                  BitFlagsBlock,
-                                 FixedPointBlock)
+                                 FixedPointBlock,
+                                 Padding)
 from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import Point3D
 
@@ -62,12 +62,12 @@ class GeoMesh(DeclarativeCompoundBlock):
         vertices = (ArrayBlock(length=lambda ctx: ctx.data('num_vrtx'),
                                child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True))),
                     {'description': 'Vertex coordinates. The unit is meter'})
-        offset = (BytesBlock(length=(lambda ctx: 0 if ctx.data('num_vrtx') % 2 == 0 else 6, '(num_vrtx % 2) ? 6 : 0')),
+        offset = (Padding(to=(lambda ctx: 52 + (ctx.data('num_vrtx') + 1) // 2 * 12,
+                             '52 + ceil(num_vrtx/2)*12')),
                   {'description': 'Data offset, happens when `num_vrtx` is odd'})
         polygons = (ArrayBlock(length=lambda ctx: ctx.data('num_plgn'),
                                child=GeoPolygon()),
-                    {'description': 'Array of mesh polygons',
-                     'custom_offset': '52 + ceil(num_vrtx/2)*12'})
+                    {'description': 'Array of mesh polygons'})
 
 
 class GeoGeometry(DeclarativeCompoundBlock):

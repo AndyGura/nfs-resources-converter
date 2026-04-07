@@ -6,7 +6,8 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  BytesBlock,
                                  ArrayBlock,
-                                 FixedPointBlock)
+                                 FixedPointBlock,
+                                 Padding)
 from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import Point3D
 from resources.eac.maps.nfs_common import ColPolygon, ColExtraBlock
@@ -54,14 +55,12 @@ class TrkBlock(DeclarativeCompoundBlock):
         polygons = (ArrayBlock(child=ColPolygon(),
                                length=lambda ctx: ctx.data('np4') + ctx.data('np2') + ctx.data('np1')),
                     {'description': 'Polygons'})
-        unk2 = (BytesBlock(
-            length=(lambda ctx: 64 + ctx.data('extrablocks_offset') - ctx.local_buffer_pos,
-                    'up to (extrablocks_offset+64)')),
+        unk2 = (Padding(to=(lambda ctx: 64 + ctx.data('extrablocks_offset'),
+                            'extrablocks_offset + 64')),
                 {'is_unknown': True})
         extrablock_offsets = (ArrayBlock(child=IntegerBlock(length=4, is_signed=False),
                                          length=lambda ctx: ctx.data('num_extrablocks')),
-                              {'description': 'Offset to each of the extrablocks',
-                               'custom_offset': 'extrablocks_offset + 64'})
+                              {'description': 'Offset to each of the extrablocks'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
                        {'description': 'Extrablocks',
                         'usage': 'ui'})
@@ -126,13 +125,12 @@ class TrkMap(DeclarativeCompoundBlock):
         block_positions = (ArrayBlock(child=Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                                       length=lambda ctx: ctx.data('num_blocks')),
                            {'description': 'Positions of blocks in the world'})
-        skip_bytes = (BytesBlock(length=(lambda ctx: ctx.data('superblock_offsets/0') - ctx.buffer.tell(),
-                                         'up to offset superblock_offsets[0]')),
+        skip_bytes = (Padding(to=(lambda ctx: ctx.data('superblock_offsets/0'),
+                                  'superblock_offsets[0]')),
                       {'description': 'Useless padding'})
         superblocks = (ArrayBlock(child=TrkSuperBlock(),
                                   length=lambda ctx: ctx.data('num_superblocks')),
-                       {'description': 'Superblocks',
-                        'custom_offset': 'superblock_offsets[0]'})
+                       {'description': 'Superblocks'})
 
     def serializer_class(self):
         from serializers import TrkMapSerializer

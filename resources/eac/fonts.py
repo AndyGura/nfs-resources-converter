@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock
+from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock, Padding
 from library.read_blocks.misc.value_validators import Eq
 from resources.eac.bitmaps import Bitmap4Bit
 
@@ -68,12 +68,10 @@ class FfnFont(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         definitions = (ArrayBlock(child=GlyphDefinition(), length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})
-        skip_bytes = (BytesBlock(length=(lambda ctx: ctx.data('bdata_ptr') - ctx.buffer.tell(),
-                                         'up to offset bdata_ptr')),
+        skip_bytes = (Padding(to=lambda ctx: ctx.data('bdata_ptr')),
                       {'description': '4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36)'})
         bitmap = (Bitmap4Bit(),
-                  {'description': 'Font atlas bitmap data',
-                   'custom_offset': 'bdata_ptr'})
+                  {'description': 'Font atlas bitmap data'})
 
     def serializer_class(self):
         from serializers import FfnFontSerializer
