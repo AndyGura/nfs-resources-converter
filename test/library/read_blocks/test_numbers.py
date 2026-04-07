@@ -167,3 +167,9 @@ class TestShortNumber(unittest.TestCase):
         field.unpack(ReadContext(BytesIO(bytes([0, 12]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([1, 244]))))
+
+    def test_size_doc_str(self):
+        field = IntegerBlock(length=1)
+        self.assertEqual(field.size_doc_str, "1")
+        field = IntegerBlock(length=4)
+        self.assertEqual(field.size_doc_str, "4")

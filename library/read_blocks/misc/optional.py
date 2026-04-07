@@ -1,3 +1,4 @@
+import re
 from typing import Union, Callable, Dict, Any, Tuple
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.read_blocks.basic import DataBlock
@@ -20,6 +21,8 @@ class OptionalBlock(DataBlock):
 
     @property
     def size_doc_str(self):
+        if re.fullmatch(r"^\d+\.\.[\d\\?]+$", self.child.size_doc_str):
+            return f'0..{self.child.size_doc_str.split("..")[1]}'
         return f'0..{self.child.size_doc_str}'
 
     @property

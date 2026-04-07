@@ -177,7 +177,8 @@ class PropDescr(DeclarativeCompoundBlock):
                                      '/Parsers/TriFile.cs#L202) project'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        flags = (BitFlagsBlock(flag_names=[(2, 'is_animated')]),
+        flags = (BitFlagsBlock(length=1,
+                               flag_names=[(2, 'is_animated')]),
                  {'description': 'Different modes of prop'})
         type = (EnumByteBlock(enum_names=[(1, 'model'), (4, 'bitmap'), (6, 'two_sided_bitmap')]),
                 {'description': 'Type of prop'})

@@ -32,14 +32,27 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Commit frontend/dist
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build documentation
+        run: python generate_resource_doc.py
+
+      - name: Commit frontend/dist and documentation
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f frontend/dist
+          git add resources
           if git diff --cached --quiet; then
-            echo "No changes to frontend/dist, skipping commit"
+            echo "No changes to commit, skipping"
           else
-            git commit -m "chore: build frontend dist [skip ci]"
+            git commit -m "chore: build frontend dist and documentation [skip ci]"
             git push
           fi
