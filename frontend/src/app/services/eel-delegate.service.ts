@@ -1,17 +1,16 @@
 import { Injectable, NgZone } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
 
-declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
-
-type GeneralConfig = {
+// These types are used by consumers of this service
+export type GeneralConfig = {
   blender_executable: string;
   ffmpeg_executable: string;
   print_errors: boolean;
   print_blender_log: boolean;
 };
 
-type ConversionConfig = {
+export type ConversionConfig = {
   multiprocess_processes_count: number;
   input_path: string;
   output_path: string;
@@ -30,98 +29,92 @@ type ConversionConfig = {
   providedIn: 'root',
 })
 export class EelDelegateService {
+  private _implPromise: Promise<any> | null = null;
+  private _impl: any = null;
+
   public readonly openedResource$: BehaviorSubject<Resource | ResourceError | null> = new BehaviorSubject<
     Resource | ResourceError | null
   >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-  public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
+  public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject<[number, number]>([0, 0]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
 
   constructor(private readonly ngZone: NgZone) {
-    eel.expose(this.wrapHandler(this.openFile), 'open_file');
-    eel.expose(this.wrapHandler(this.updateConversionProgress), 'update_conversion_progress');
-    eel['on_angular_ready']();
-    this.syncRecentFiles().then();
-    this.syncVersion().then();
-    // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
-    setTimeout(async () => {
-      while (true) {
-        if (eel._websocket) {
-          eel._websocket.onclose = () => window.close();
-          break;
-        }
-        await new Promise(r => setTimeout(r, 0));
-      }
-    }, 0);
+    this.initImpl().then();
   }
 
-  private wrapHandler(handler: (...args: any[]) => unknown) {
-    return (...args: any[]) => {
-      try {
-        NgZone.assertInAngularZone();
-        handler.bind(this)(...args);
-      } catch (err) {
-        this.ngZone.run(handler, this, args);
-      }
-    };
+  private async initImpl() {
+    if (!this._implPromise) {
+      this._implPromise = import(/* webpackChunkName: "eel" */ './eel-delegate-impl/eel-delegate-impl.service').then(
+        m => {
+          this._impl = new m.EelDelegateImplService(this.ngZone);
+          // Sync subjects from impl to this wrapper
+          this._impl.openedResource$.subscribe((v: any) => {
+            if (this.openedResource$.getValue() !== v) this.openedResource$.next(v);
+          });
+          this._impl.openedResourcePath$.subscribe((v: any) => {
+            if (this.openedResourcePath$.getValue() !== v) this.openedResourcePath$.next(v);
+          });
+          this._impl.recentFiles$.subscribe((v: any) => {
+            if (this.recentFiles$.getValue() !== v) this.recentFiles$.next(v);
+          });
+          this._impl.conversionProgress$.subscribe((v: any) => {
+            if (this.conversionProgress$.getValue() !== v) this.conversionProgress$.next(v);
+          });
+          this._impl.version$.subscribe((v: any) => {
+            if (this.version$.getValue() !== v) this.version$.next(v);
+          });
+          return this._impl;
+        },
+      );
+    }
+    return this._implPromise;
+  }
+
+  private async getImpl() {
+    if (this._impl) return this._impl;
+    return await this.initImpl();
   }
 
   public async openFile(path: string, forceReload: boolean = false) {
-    if (!path) {
-      return;
-    }
-    this.openedResource$.next(null);
-    this.openedResourcePath$.next(path);
-    const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
-    this.openedResource$.next({ ...res, id: res.name });
-    await this.syncRecentFiles();
+    return (await this.getImpl()).openFile(path, forceReload);
   }
 
   public async syncVersion() {
-    const version = await eel['get_version']()();
-    this.version$.next(version);
+    return (await this.getImpl()).syncVersion();
   }
 
   public async syncRecentFiles() {
-    const files = await eel['get_recent_files']()();
-    this.recentFiles$.next(files);
+    return (await this.getImpl()).syncRecentFiles();
   }
 
   updateConversionProgress(current: number, total: number): void {
-    this.conversionProgress$.next([current, total]);
+    this.getImpl().then(impl => impl.updateConversionProgress(current, total));
   }
 
   public async openFileDialog(): Promise<string | null> {
-    return await eel['open_file_dialog']()();
+    return (await this.getImpl()).openFileDialog();
   }
 
   public async openFileWithSystemApp(path: string) {
-    await eel['open_file_with_system_app'](path)();
+    return (await this.getImpl()).openFileWithSystemApp(path);
   }
 
   public async retrieveValue<T = any>(id: string): Promise<T> {
-    return await eel['retrieve_value'](id)();
+    return (await this.getImpl()).retrieveValue(id);
   }
 
   public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
-    return eel['run_custom_action'](name, action, args)();
+    return (await this.getImpl()).runCustomAction(name, action, args);
   }
 
   public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
-    const current = this.openedResource$.getValue();
-    if (!current) return;
-    const updatedData = await eel['save_file'](this.openedResourcePath$.getValue(), changes)();
-    this.openedResource$.next({
-      id: current.id,
-      name: current.name,
-      schema: current.schema,
-      data: updatedData,
-    });
+    return (await this.getImpl()).saveFile(changes);
   }
 
   public async serializeResource(id: string, settingsPatch: any = {}): Promise<string[]> {
-    return eel['serialize_resource'](id, settingsPatch)();
+    return (await this.getImpl()).serializeResource(id, settingsPatch);
   }
 
   public async serializeResourceTmp(
@@ -129,39 +122,39 @@ export class EelDelegateService {
     changes: { id: string; value: any }[],
     settingsPatch: any = {},
   ): Promise<string[]> {
-    return eel['serialize_resource_tmp'](id, changes, settingsPatch)();
+    return (await this.getImpl()).serializeResourceTmp(id, changes, settingsPatch);
   }
 
   public async serializeReversible(id: string, changes: { id: string; value: any }[]): Promise<[string[], boolean]> {
-    return eel['serialize_reversible'](id, changes)();
+    return (await this.getImpl()).serializeReversible(id, changes);
   }
 
   public async deserializeResource(id: string): Promise<BlockData | ReadError> {
-    return eel['deserialize_resource'](id)();
+    return (await this.getImpl()).deserializeResource(id);
   }
 
   public async selectDirectoryDialog(): Promise<string | null> {
-    return await eel['select_directory_dialog']()();
+    return (await this.getImpl()).selectDirectoryDialog();
   }
 
   public async getGeneralConfig(): Promise<GeneralConfig> {
-    return await eel['get_general_config']()();
+    return (await this.getImpl()).getGeneralConfig();
   }
 
   public async getConversionConfig(): Promise<ConversionConfig> {
-    return await eel['get_conversion_config']()();
+    return (await this.getImpl()).getConversionConfig();
   }
 
   public async patchGeneralConfig(data: Partial<GeneralConfig>): Promise<GeneralConfig> {
-    return await eel['patch_general_config'](data)();
+    return (await this.getImpl()).patchGeneralConfig(data);
   }
 
   public async patchConversionConfig(data: Partial<ConversionConfig>): Promise<ConversionConfig> {
-    return await eel['patch_conversion_config'](data)();
+    return (await this.getImpl()).patchConversionConfig(data);
   }
 
   public async testExecutable(executablePath: string): Promise<any> {
-    return await eel['test_executable'](executablePath)();
+    return (await this.getImpl()).testExecutable(executablePath);
   }
 
   public async convertFiles(
@@ -169,19 +162,14 @@ export class EelDelegateService {
     outputPath: string,
     settings?: any,
   ): Promise<{ success: boolean; error?: string; output_path?: string }> {
-    return await eel['convert_files'](inputPath, outputPath, settings)();
+    return (await this.getImpl()).convertFiles(inputPath, outputPath, settings);
   }
 
   public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
-    return await eel['start_file'](path)();
+    return (await this.getImpl()).startFile(path);
   }
 
   public async closeFile(): Promise<{ success: boolean; message: string }> {
-    const result = await eel['close_file']()();
-    if (result.success) {
-      this.openedResource$.next(null);
-      this.openedResourcePath$.next(null);
-    }
-    return result;
+    return (await this.getImpl()).closeFile();
   }
 }
