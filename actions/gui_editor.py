@@ -1,4 +1,6 @@
+import glob
 import os
+import shutil
 import sys
 import tempfile
 from distutils.dir_util import copy_tree
@@ -27,10 +29,14 @@ def run_gui_editor(file_path=None):
     # Create directory for all files needed by GUI
     static_dir = tempfile.TemporaryDirectory()
     static_path = static_dir.name
-    copy_tree(_get_frontend_dist_path(), static_path)
-
+    src = _get_frontend_dist_path()
+    # copy only eel.*.js
+    for f in glob.glob(os.path.join(src, "eel.*.js")):
+        shutil.copy2(f, static_path)
     api = API(static_path, file_path)
     eel.init(static_path)
+    # copy all files
+    copy_tree(src, static_path)
     eel.start('index.html', port=0)
 
     static_dir.cleanup()
