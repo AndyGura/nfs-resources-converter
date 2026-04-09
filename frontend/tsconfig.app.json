@@ -11,6 +11,7 @@
     "src/app/components/editor/types.ts"
   ],
   "include": [
+    "src/**/*.ts",
     "src/**/*.d.ts"
   ]
 }
