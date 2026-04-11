@@ -6,6 +6,7 @@
 
 app-landing-page {
   flex-grow: 1;
+  padding-top: 64px;
 }
 
 .flex-spacer {
@@ -17,9 +18,24 @@ app-landing-page {
   opacity: 0.7;
   margin-left: 16px;
 }
+mat-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
 #content-wrapper {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   padding: 1rem;
+}
+
+#viewport {
+  padding-top: 64px; /* toolbar */
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
 }
