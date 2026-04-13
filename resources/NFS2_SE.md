@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-04-07 15:52:47.974488+00:00*
+*Last time updated: 2026-04-13 00:41:51.172929+00:00*
 
 
 # **Info by file extensions** #
@@ -46,7 +46,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
-| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
+| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [GeoGeometry](#geogeometry)<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock) |
 ### **BigfItemDescriptionBlock** ###
 #### **Size**: 9..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -57,44 +57,13 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Geometries** ##
 ### **GeoGeometry** ###
 #### **Size**: 1804..? bytes ####
-#### **Description**: A set of 3D meshes, used for cars and props. Contains multiple meshes with high details, medium and low LOD-s. Below `part_hp_x` is a high-poly part, `part_mp_x` and `part_lp_x` are medium and low-poly parts respectively ####
+#### **Description**: A set of 3D meshes, used for cars and props. Contains multiple meshes with high details, medium and low LOD-s ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 4 | **unk1** | 128 | Array of `32` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 132 | **unk2** | 8 | 8-bytes unsigned integer (little endian) | Unknown purpose |
-| 140 | **part_hp_0** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Body Part |
-| 192..? | **part_hp_1** | 52..? | [GeoMesh](#geomesh) | High-Poly Main Body Part |
-| 244..? | **part_hp_2** | 52..? | [GeoMesh](#geomesh) | High-Poly Ground Part |
-| 296..? | **part_hp_3** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Part |
-| 348..? | **part_hp_4** | 52..? | [GeoMesh](#geomesh) | High-Poly Back Part |
-| 400..? | **part_hp_5** | 52..? | [GeoMesh](#geomesh) | High-Poly Left Side Part |
-| 452..? | **part_hp_6** | 52..? | [GeoMesh](#geomesh) | High-Poly Right Side Part |
-| 504..? | **part_hp_7** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Left Side Part |
-| 556..? | **part_hp_8** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Right Side Part |
-| 608..? | **part_hp_9** | 52..? | [GeoMesh](#geomesh) | High-Poly Spoiler Part |
-| 660..? | **part_hp_10** | 52..? | [GeoMesh](#geomesh) | High-Poly Additional Part |
-| 712..? | **part_hp_11** | 52..? | [GeoMesh](#geomesh) | High-Poly Backlights |
-| 764..? | **part_hp_12** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Right Wheel |
-| 816..? | **part_hp_13** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Right Wheel Part |
-| 868..? | **part_hp_14** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Left Wheel |
-| 920..? | **part_hp_15** | 52..? | [GeoMesh](#geomesh) | High-Poly Front Left Wheel Part |
-| 972..? | **part_hp_16** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Right Wheel |
-| 1024..? | **part_hp_17** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Right Wheel Part |
-| 1076..? | **part_hp_18** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Left Wheel |
-| 1128..? | **part_hp_19** | 52..? | [GeoMesh](#geomesh) | High-Poly Rear Left Wheel Part |
-| 1180..? | **part_mp_0** | 52..? | [GeoMesh](#geomesh) | Medium-Poly Additional Body Part |
-| 1232..? | **part_mp_1** | 52..? | [GeoMesh](#geomesh) | Medium-Poly Main Body Part |
-| 1284..? | **part_mp_2** | 52..? | [GeoMesh](#geomesh) | Medium-Poly Ground Part |
-| 1336..? | **part_lp_0** | 52..? | [GeoMesh](#geomesh) | Low-Poly Wheel Part |
-| 1388..? | **part_lp_1** | 52..? | [GeoMesh](#geomesh) | Low-Poly Main Part |
-| 1440..? | **part_lp_2** | 52..? | [GeoMesh](#geomesh) | Low-Poly Side Part |
-| 1492..? | **part_res_0** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
-| 1544..? | **part_res_1** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
-| 1596..? | **part_res_2** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
-| 1648..? | **part_res_3** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
-| 1700..? | **part_res_4** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
-| 1752..? | **part_res_5** | 52..? | [GeoMesh](#geomesh) | Reserved space for part |
+| 140 | **parts** | 1664..? | Array of `32` items<br/>Item type: [GeoMesh](#geomesh) | Array of 32 body parts: 20 high poly, 3 medium poly, 3 low poly and 6 reserved spaces. Description of each of them:<br/>0: High-Poly Additional Body Part<br/>1: High-Poly Main Body Part<br/>2: High-Poly Ground Part<br/>3: High-Poly Front Part<br/>4: High-Poly Back Part<br/>5: High-Poly Left Side Part<br/>6: High-Poly Right Side Part<br/>7: High-Poly Additional Left Side Part<br/>8: High-Poly Additional Right Side Part<br/>9: High-Poly Spoiler Part<br/>10: High-Poly Additional Part<br/>11: High-Poly Backlights<br/>12: High-Poly Front Right Wheel<br/>13: High-Poly Front Right Wheel Part<br/>14: High-Poly Front Left Wheel<br/>15: High-Poly Front Left Wheel Part<br/>16: High-Poly Rear Right Wheel<br/>17: High-Poly Rear Right Wheel Part<br/>18: High-Poly Rear Left Wheel<br/>19: High-Poly Rear Left Wheel Part<br/>20: Medium-Poly Additional Body Part<br/>21: Medium-Poly Main Body Part<br/>22: Medium-Poly Ground Part<br/>23: Low-Poly Wheel Part<br/>24: Low-Poly Main Part<br/>25: Low-Poly Side Part<br/> |
 ### **GeoMesh** ###
 #### **Size**: 52..? bytes ####
 #### **Description**: A single mesh, can use multiple textures ####
