@@ -3,7 +3,7 @@
     [matTooltip]='resourceDescription' matTooltipPosition='above'
     (click)='navigation.navigateToId(resource!.id)'>{{ name }}</h2>
 <app-block-actions *ngIf='!hideBlockActions' [resource]='this.resource'></app-block-actions>
-<div class='container'>
+<div class='container' [class.horizontal]='preferHorizontalLayout'>
   <ng-container *ngFor='let f of fieldKeys; trackBy: fieldTrackBy'>
     <app-editor
       *ngIf='!(main.hideHiddenFields$ | async) || (!schema?.fields[f.index].is_unknown && (schema?.fields[f.index].schema.value_validator === undefined || schema?.fields[f.index].schema.value_validator?.type === "or") && !schema?.fields[f.index].schema.is_programmatic)'

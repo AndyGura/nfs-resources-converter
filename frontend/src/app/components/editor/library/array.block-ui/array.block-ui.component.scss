@@ -1,7 +1,6 @@
 :host {
   width: 100%;
   padding-bottom: 1.34375em; // as .mat-form-field-wrapper
-  margin: 0 1rem;
 }
 
 .divider {
@@ -14,9 +13,10 @@
 ::ng-deep {
   .mat-expansion-panel-body {
     display: flex;
-    justify-content: space-evenly;
-    column-gap: 1rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    row-gap: 1rem;
+    flex-wrap: nowrap;
   }
 }
 

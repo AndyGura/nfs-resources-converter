@@ -175,7 +175,7 @@ export class EditorComponent implements OnDestroy {
               const id = this._resource!.id;
               const data = this._resource!.data;
               if (data instanceof Array) {
-                if (this._resource!.schema.block_class_mro.startsWith('BytesBlock')) {
+                if (this._resource!.schema.block_class_mro.includes('BytesBlock')) {
                   // for bytes block we save whole array
                   this.mainService.dataBlockChange$.next([id, data]);
                 } else {

@@ -211,7 +211,7 @@ class BigfBlock(BaseArchiveBlock):
                       {'description': 'A part of block, where items data is located. Offsets and lengths are defined '
                                       'in previous block. Possible item types:'
                                       '<br/>- [GeoGeometry](#geogeometry)'
-                                      '<br/>- [ShpiBlock](#shpiblock)'
+                                      '<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file'
                                       '<br/>- [BigfBlock](#bigfblock)',
                        'usage': 'io,doc'})
         children = (ArrayBlock(length=(0, 'num_items'), child=None),
@@ -223,6 +223,9 @@ class BigfBlock(BaseArchiveBlock):
         child_block = AutoDetectBlock(possible_blocks=[
             GeoGeometry(),
             ShpiBlock(),
+            RefPackBlock(),
+            Qfs2Block(),
+            Qfs3Block(),
             self,
             BytesBlock(
                 length=(lambda ctx: next(x

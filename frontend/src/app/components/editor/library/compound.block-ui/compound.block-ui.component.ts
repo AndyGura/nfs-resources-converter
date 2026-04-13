@@ -28,6 +28,7 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
   @Input() hideBlockActions: boolean = false;
 
   @Input() disabled: boolean = false;
+  @Input() preferHorizontalLayout: boolean = false;
 
   get name(): string | null {
     return this.resource && this.resource.name;
