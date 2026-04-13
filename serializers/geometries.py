@@ -167,9 +167,15 @@ class GeoGeometrySerializer(BaseFileSerializer):
             raise DataIntegrityException('Cannot find QFS archive for GEO geometry')
         super().serialize(data, path)
         meshes = []
-        for key, part in data.items():
-            if not key.startswith('part') or not part['num_plgn']:
-                continue
+        for i, part in enumerate(data['parts']):
+            if i < 20:
+                key = f'part_hp_{i}'
+            elif i < 23:
+                key = f'part_mp_{i - 20}'
+            elif i < 26:
+                key = f'part_lp_{i - 23}'
+            else:
+                key = f'part_res_{i - 26}'
             mesh = Mesh()
             mesh.name = key
             mesh.vertices = [[v['x'], v['y'], v['z']] for v in part['vertices']]

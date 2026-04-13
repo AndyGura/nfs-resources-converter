@@ -3,6 +3,7 @@ File API endpoint for the NFS Resources Converter.
 This module handles all file-related operations.
 """
 
+import os
 import traceback
 from typing import Dict, Optional, Any
 
@@ -106,22 +107,23 @@ class FileAPI:
                 'data': None
             }
         try:
+            if update_recent_files:
+                # Update recent files
+                abs_path = os.path.abspath(path)
+                recent_files = general_config().recent_files
+                if not isinstance(recent_files, list):
+                    recent_files = []
+                if abs_path in recent_files:
+                    recent_files.remove(abs_path)
+                recent_files.insert(0, abs_path)
+                recent_files = recent_files[:10]
+                set_config(SECTION_GENERAL, 'recent_files', ','.join(recent_files))
             if force_reload:
                 clear_file_cache(path)
             (name, block, data) = require_file(path)
             self.current_file_name = name
             self.current_file_data = data
             self.current_file_block = block
-            if update_recent_files:
-                # Update recent files
-                recent_files = general_config().recent_files
-                if not isinstance(recent_files, list):
-                    recent_files = []
-                if path in recent_files:
-                    recent_files.remove(path)
-                recent_files.insert(0, path)
-                recent_files = recent_files[:10]
-                set_config(SECTION_GENERAL, 'recent_files', ','.join(recent_files))
         except Exception as ex:
             if general_config().print_errors:
                 traceback.print_exc()
