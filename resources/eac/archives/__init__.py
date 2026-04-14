@@ -16,10 +16,6 @@ from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
-from resources.eac.compressions.qfs2 import Qfs2Compression
-from resources.eac.compressions.qfs3 import Qfs3Compression
-from resources.eac.compressions.ref_pack import RefPackCompression
-from resources.eac.geometries import OripGeometry, GeoGeometry, CrpGeometry
 from .base_archive_block import BaseArchiveBlock
 
 class CompressedBlock(AutoDetectBlock):
@@ -29,6 +25,7 @@ class CompressedBlock(AutoDetectBlock):
         return None
 
     def __init__(self, **kwargs):
+        from resources.eac.geometries import CrpGeometry
         super().__init__(possible_blocks=[ShpiBlock(),
                                           CarSimplifiedPerformanceSpec(),
                                           CarPerformanceSpec(),
@@ -74,6 +71,7 @@ class RefPackBlock(CompressedBlock):
 
     @property
     def algorithm(self):
+        from resources.eac.compressions.ref_pack import RefPackCompression
         return RefPackCompression().uncompress
 
 
@@ -81,6 +79,7 @@ class Qfs2Block(CompressedBlock):
 
     @property
     def algorithm(self):
+        from resources.eac.compressions.qfs2 import Qfs2Compression
         return Qfs2Compression().uncompress
 
 
@@ -88,6 +87,7 @@ class Qfs3Block(CompressedBlock):
 
     @property
     def algorithm(self):
+        from resources.eac.compressions.qfs3 import Qfs3Compression
         return Qfs3Compression().uncompress
 
 
@@ -134,6 +134,7 @@ class WwwwBlock(BaseArchiveBlock):
                     {'usage': 'ui'})
 
     def __init__(self, **kwargs):
+        from resources.eac.geometries import OripGeometry
         super().__init__(**kwargs)
         # UI Array child block for referencing self in possible blocks
         self.child_block = AutoDetectBlock(possible_blocks=[
@@ -218,6 +219,7 @@ class BigfBlock(BaseArchiveBlock):
                     {'usage': 'ui'})
 
     def __init__(self, **kwargs):
+        from resources.eac.geometries import GeoGeometry
         super().__init__(**kwargs)
         # write array field child block for referencing self in possible blocks
         child_block = AutoDetectBlock(possible_blocks=[

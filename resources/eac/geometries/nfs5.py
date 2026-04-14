@@ -1,76 +1,21 @@
 from os import SEEK_CUR
 from typing import Dict
 
-from library.context import ReadContext, WriteContext
+from library.context import ReadContext
 from library.exceptions import BlockDefinitionException
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
                                  IntegerBlock,
                                  ArrayBlock,
                                  BytesBlock,
-                                 DelegateBlock, DecimalBlock)
+                                 DelegateBlock,
+                                 DecimalBlock,
+                                 SubByteCompoundBlock,
+                                 )
 from library.read_blocks.misc.value_validators import Eq, Or
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.archives.shpi_block import ShpiBlock
 from resources.eac.fields.misc import Point3D
-
-
-class CrpPartInfo1(IntegerBlock):
-    @property
-    def schema(self):
-        return {
-            **super().schema,
-            'block_description': 'Part info type 1: [dddd_aaaa_aaaa_llll]'
-                                 '<br/>d - Damage switch (0x8 means damaged)'
-                                 '<br/>a - animation index'
-                                 '<br/>l - Level of detail',
-        }
-
-    def __init__(self, **kwargs):
-        super().__init__(length=2, is_signed=False, **kwargs)
-
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        data = super().read(ctx, name, read_bytes_amount)
-        return {
-            'damage': data >> 12,
-            'animation_index': (data >> 4) & 0xff,
-            'lod': data & 0xf,
-        }
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = (data['damage'] & 0xf) << 12
-        value = value | ((data['animation_index'] & 0xff) << 4)
-        value = value | (data['lod'] & 0xf)
-        return super().write(value, ctx, name)
-
-
-class CrpPartInfo2(IntegerBlock):
-    @property
-    def schema(self):
-        return {
-            **super().schema,
-            'block_description': 'Part info type 2: [llll_uuuu_uuuu_pppp]'
-                                 '<br/>l - Level of detail'
-                                 '<br/>u - unknown'
-                                 '<br/>p - part index',
-        }
-
-    def __init__(self, **kwargs):
-        super().__init__(length=2, is_signed=False, **kwargs)
-
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        data = super().read(ctx, name, read_bytes_amount)
-        return {
-            'lod': data >> 12,
-            'unk': (data >> 4) & 0xff,
-            'part_index': data & 0xf,
-        }
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        value = (data['lod'] & 0xf) << 12
-        value = value | ((data['unk'] & 0xff) << 4)
-        value = value | (data['part_index'] & 0xf)
-        return super().write(value, ctx, name)
 
 
 class UnkPart2(DeclarativeCompoundBlock):
@@ -259,7 +204,11 @@ class CullingPart(DeclarativeCompoundBlock):
                 'block_description': 'A part referencing to an array of [CullingPartData](#cullingpartdata) blocks'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (CrpPartInfo1(),
+        part_info = (SubByteCompoundBlock(length=2, schema=[
+            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+            (8, 'animation_index', 'number', [], 'animation index'),
+            (4, 'lod', 'number', [], 'Level of detail'),
+        ]),
                      {'description': 'Part matching info. Part should be used with others that have same values'})
         identifier = (UTF8Block(length=2, value_validator=Eq("n$")),
                       {'description': 'Identifier'})
@@ -286,7 +235,11 @@ class TransformationPart(DeclarativeCompoundBlock):
                                      'is stored as 4-bytes float number (little-endian).'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (CrpPartInfo1(),
+        part_info = (SubByteCompoundBlock(length=2, schema=[
+            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+            (8, 'animation_index', 'number', [], 'animation index'),
+            (4, 'lod', 'number', [], 'Level of detail'),
+        ]),
                      {'description': 'Part matching info. Part should be used with others that have same values'})
         identifier = (UTF8Block(length=2, value_validator=Eq('rt')),
                       {'description': 'Identifier'})
@@ -326,7 +279,11 @@ class VertexPart(DeclarativeCompoundBlock):
                                      ' mesh vertices'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (CrpPartInfo1(),
+        part_info = (SubByteCompoundBlock(length=2, schema=[
+            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+            (8, 'animation_index', 'number', [], 'animation index'),
+            (4, 'lod', 'number', [], 'Level of detail'),
+        ]),
                      {'description': 'Part matching info. Part should be used with others that have same values'})
         identifier = (UTF8Block(length=2, value_validator=Eq("tv")),
                       {'description': 'Identifier'})
@@ -359,7 +316,11 @@ class NormalPart(DeclarativeCompoundBlock):
                 'block_description': 'A part referencing to an array of [NormalPartData](#normalpartdata) blocks, describing mesh normals'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (CrpPartInfo1(),
+        part_info = (SubByteCompoundBlock(length=2, schema=[
+            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+            (8, 'animation_index', 'number', [], 'animation index'),
+            (4, 'lod', 'number', [], 'Level of detail'),
+        ]),
                      {'description': 'Part matching info. Part should be used with others that have same values'})
         identifier = (UTF8Block(length=2, value_validator=Eq('mn')),
                       {'description': 'Identifier'})
@@ -390,7 +351,11 @@ class UVPart(DeclarativeCompoundBlock):
                 'block_description': 'A part referencing to an array of [UVData](#uvdata) blocks, representing texture coordinates'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (CrpPartInfo1(),
+        part_info = (SubByteCompoundBlock(length=2, schema=[
+            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+            (8, 'animation_index', 'number', [], 'animation index'),
+            (4, 'lod', 'number', [], 'Level of detail'),
+        ]),
                      {'description': 'Part matching info. Part should be used with others that have same values'})
         identifier = (UTF8Block(length=2, value_validator=Eq('vu')),
                       {'description': 'Identifier'})
@@ -509,7 +474,11 @@ class TrianglePart(DeclarativeCompoundBlock):
                 'block_description': 'A part referencing to [TrianglePartData](#TrianglePartData) block, describes mesh faces'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (CrpPartInfo2(),
+        part_info = (SubByteCompoundBlock(length=2, schema=[
+            (4, 'lod', 'number', [], 'Level of detail'),
+            (8, 'unk', 'number', [], 'unknown'),
+            (4, 'part_index', 'number', [], 'part index'),
+        ]),
                      {'description': 'Part matching info. Part should be used with others that have same values'})
         identifier = (UTF8Block(length=2, value_validator=Eq('rp')),
                       {'description': 'Identifier'})
@@ -552,7 +521,11 @@ class EffectPart(DeclarativeCompoundBlock):
                 'block_description': 'A part referencing to an array of [EffectPartData](#effectpartdata) blocks'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (CrpPartInfo1(),
+        part_info = (SubByteCompoundBlock(length=2, schema=[
+            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+            (8, 'animation_index', 'number', [], 'animation index'),
+            (4, 'lod', 'number', [], 'Level of detail'),
+        ]),
                      {'description': 'Part matching info. Part should be used with others that have same values'})
         identifier = (UTF8Block(length=2, value_validator=Eq('fe')),
                       {'description': 'Identifier'})

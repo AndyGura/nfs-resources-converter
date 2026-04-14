@@ -9,9 +9,10 @@ from library.read_blocks import (BitFlagsBlock,
                                  SubByteArrayBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
-                                 FixedPointBlock)
+                                 FixedPointBlock,
+                                 SubByteCompoundBlock)
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.fields.misc import FenceType, Point3D
+from resources.eac.fields.misc import Point3D
 from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8, Nfs1TimeField
 
 
@@ -234,7 +235,11 @@ class TerrainEntry(DeclarativeCompoundBlock):
         block_number = IntegerBlock(length=4, is_signed=False, value_validator=Eq(0))
         unknown = (IntegerBlock(length=1, value_validator=Eq(0)),
                    {'is_unknown': True})
-        fence = FenceType()
+        fence = SubByteCompoundBlock(length=1, schema=[
+            (1, 'has_left_fence', 'boolean', [], 'flag is add left fence'),
+            (1, 'has_right_fence', 'boolean', [], 'flag is add right fence'),
+            (6, 'texture_id', 'number', [], 'texture id'),
+        ])
         texture_ids = (ArrayBlock(child=IntegerBlock(length=1), length=10),
                        {'description': 'Texture ids to be used for terrain'})
         rows = (ArrayBlock(

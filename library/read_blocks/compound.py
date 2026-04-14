@@ -1,10 +1,10 @@
 from abc import ABC
-import re
-from typing import Dict, List, Tuple, Any, TypedDict, Callable, Union
+from typing import Dict, List, Tuple, Any, TypedDict, Union
 
 from library.context import ReadContext, WriteContext
 from library.exceptions import BlockDefinitionException, DataIntegrityException
 from library.read_blocks.basic import DataBlock, DataBlockWithChildren
+from library.read_blocks.numbers import IntegerBlock
 from library.utils.docs import add_doc_numbers
 
 
@@ -139,6 +139,124 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
                 continue
             self_ctx.result += field.pack(data=data.get(name), ctx=self_ctx, name=name)
         return self_ctx.result
+
+
+class SubByteCompoundBlock(IntegerBlock):
+
+    ### schema type: (size, alias, type, details, description)
+    ### example 1: (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)')
+    ### example 2: (1, 'is_damaged', 'boolean', [], 'Flag is damaged')
+    ### example 3: (2, 'test_enum', 'enum', ['A', 'B', 'C', 'D'], '...')
+    def __init__(self, schema: List[Tuple[int, str, str, List[str], str]], **kwargs):
+        super().__init__(**kwargs)
+        self._schema_def = schema
+        total_bits = sum(size for size, _, _, _, _ in schema)
+        if total_bits != self.length * 8:
+            raise BlockDefinitionException(f"SubByteCompoundBlock schema total bits ({total_bits}) "
+                                           f"does not match length * 8 ({self.length * 8})")
+
+    @property
+    def schema(self) -> Dict:
+        block_description = f'Sub-byte compound block'
+        if self.length > 1:
+            block_description += f' ({self.byte_order} endian)'
+        block_description += ':'
+        for size, alias, type_name, details, description in self._schema_def:
+            if type_name == 'boolean':
+                block_description += f'<br/>1-bit flag "{alias}"'
+            elif type_name == 'number':
+                block_description += f'<br/>{size}-bits int "{alias}"'
+            elif type_name == 'enum':
+                block_description += f'<br/>{size}-bits enum:'
+                for i, v in enumerate(details):
+                    block_description += f'<br/>&nbsp;&nbsp;- {i}: {v}'
+
+        return {
+            **super().schema,
+            'block_description': block_description,
+            'inline_description': True,
+            'sub_byte_schema': [
+                {
+                    'size': size,
+                    'alias': alias,
+                    'type': type_name,
+                    'details': details,
+                    'description': description
+                } for size, alias, type_name, details, description in self._schema_def
+            ]
+        }
+
+    def new_data(self):
+        res = {}
+        for size, alias, type_name, details in self._schema_def:
+            if type_name == 'boolean':
+                res[alias] = False
+            elif type_name == 'enum':
+                res[alias] = details[0][1] if details else '0'
+            else:
+                res[alias] = 0
+        return res
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        raw_value = super().read(ctx, name, read_bytes_amount)
+        res = {}
+        current_bit = self.length * 8
+        for size, alias, type_name, details, _ in self._schema_def:
+            current_bit -= size
+            value = (raw_value >> current_bit) & ((1 << size) - 1)
+            if type_name == 'boolean':
+                res[alias] = bool(value)
+            elif type_name == 'enum':
+                mapping = {i: v for i, v in enumerate(details)}
+                res[alias] = mapping.get(value, str(value))
+            else:
+                res[alias] = value
+        return res
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        return self.length
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        res = 0
+        current_bit = self.length * 8
+        for size, alias, type_name, details, _ in self._schema_def:
+            current_bit -= size
+            value = data.get(alias)
+            if type_name == 'boolean':
+                int_val = 1 if value else 0
+            elif type_name == 'enum':
+                mapping = {v: i for i, v in enumerate(details)}
+                try:
+                    int_val = mapping[value]
+                except KeyError:
+                    int_val = int(value)
+            else:
+                int_val = int(value)
+            res |= (int_val & ((1 << size) - 1)) << current_bit
+        return super().write(res, ctx, name)
+
+class BitFlagsBlock(SubByteCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'flag_names': self.flag_name_map,
+                'block_description': f'{self.length * 8} flags container<br/><details><summary>flag names (from least to most significant)</summary>'
+                                     + '<br/>'.join(
+                    [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>'}
+
+    def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
+        self.flag_names = flag_names
+        length = kwargs.pop('length', None)
+        if length is None:
+            raise Exception('BitFlagsBlock requires length')
+        schema = []
+        self.flag_name_map = [str(i) for i in range(length * 8)]
+        for value, name in self.flag_names:
+            self.flag_name_map[value] = name
+        for i in range(length * 8 - 1, -1, -1):
+            schema.append((1, self.flag_name_map[i], 'boolean', '', ''))
+        super().__init__(length=length, schema=schema, **kwargs)
 
 
 class CompoundBlockFields(ABC):
