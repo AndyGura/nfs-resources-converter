@@ -92,6 +92,39 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   ) {
   }
 
+  get enableArrayEditing(): boolean {
+    return (
+      !this.schema?.block_class_mro?.includes('SubByteArrayBlock')
+      && (!this.schema?.length && this.schema?.length !== 0)
+    );
+  }
+
+  async addItem() {
+    if (!this.resource || !this.enableArrayEditing) return;
+    const newItem = await this.main.getNewItemData(this.resource.id);
+    if (newItem === null) return;
+    this.resourceData.push(newItem);
+    this.buildChildren();
+    this.updatePageIndexes();
+    this.pageIndex = Math.max(0, this.pageIndexes.length - 1);
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
+  removeItem(index: number) {
+    if (!this.resource || !this.enableArrayEditing) return;
+    this.resourceData.splice(index, 1);
+    this.buildChildren();
+    this.updatePageIndexes();
+    if (this.pageIndex >= this.pageIndexes.length && this.pageIndex > 0) {
+      this.pageIndex--;
+    }
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
   get isTable(): boolean {
     return !!this.tableColumns && this.tableColumns.length > 0;
   }

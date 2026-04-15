@@ -28,6 +28,7 @@
   display: flex;
   flex-direction: column;
   row-gap: 1rem;
+  overflow-x: auto;
 }
 
 table, th, td {
@@ -97,6 +98,72 @@ table {
           }
         }
       }
+    }
+  }
+}
+
+.add-item-button {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.index-cell {
+  position: relative;
+  min-width: 40px;
+  text-align: center;
+
+  .remove-item-button {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+
+    ::ng-deep .mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+      color: #f44336; // Material warn color
+    }
+  }
+
+  &.editable:hover {
+    .index-number {
+      visibility: hidden;
+    }
+    .remove-item-button {
+      display: inline-block;
+      padding: 0;
+    }
+  }
+}
+
+.item-wrapper {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fafafa;
+    padding: 0 8px;
+    margin-bottom: 4px;
+
+    .item-index {
+      font-weight: bold;
+      color: rgba(0, 0, 0, 0.54);
     }
   }
 }

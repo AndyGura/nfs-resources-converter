@@ -34,8 +34,16 @@
       </thead>
       <tbody>
       <tr *ngFor='let i of renderIndexes'>
-        <td>
-          <span>{{ pageIndex * pageSize + i }}</span>
+        <td class="index-cell" [class.editable]="!disabled && enableArrayEditing">
+          <span class="index-number">{{ pageIndex * pageSize + i }}</span>
+          <button mat-icon-button
+                  color="warn"
+                  class="remove-item-button"
+                  *ngIf="!disabled && enableArrayEditing"
+                  (click)="removeItem(pageIndex * pageSize + i)"
+                  matTooltip="Remove item">
+            <mat-icon>delete</mat-icon>
+          </button>
         </td>
         <ng-container *ngIf='tableCompoundFields; else simpleDataCell'>
           <ng-container *ngFor='let f of tableCompoundFields'>
@@ -75,7 +83,14 @@
       </tr>
       </tbody>
     </table>
-
+    <button mat-button
+            color="primary"
+            (click)="addItem()"
+            *ngIf="!disabled && enableArrayEditing"
+            class="add-item-button">
+      <mat-icon>add</mat-icon>
+      Add Item
+    </button>
     <ng-template [ngTemplateOutlet]='paginator'></ng-template>
   </div>
 </ng-container>
@@ -99,9 +114,32 @@
       <ng-template [ngTemplateOutlet]='paginator'></ng-template>
 
       <ng-container *ngFor='let i of this.renderIndexes'>
-        <app-editor [resource]='children[pageIndex * pageSize + i]'
-                    [disabled]='disabled'></app-editor>
+        <div class="item-wrapper">
+          <div class="item-header" *ngIf="!disabled && enableArrayEditing">
+            <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+            <button mat-icon-button
+                    color="warn"
+                    (click)="removeItem(pageIndex * pageSize + i)"
+                    matTooltip="Remove item">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          <div class="item-header" *ngIf="!disabled && !enableArrayEditing">
+            <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+          </div>
+          <app-editor [resource]='children[pageIndex * pageSize + i]'
+                      [disabled]='disabled'></app-editor>
+        </div>
       </ng-container>
+
+      <button mat-button
+              color="primary"
+              (click)="addItem()"
+              *ngIf="!disabled && enableArrayEditing"
+              class="add-item-button">
+        <mat-icon>add</mat-icon>
+        Add Item
+      </button>
 
       <ng-template [ngTemplateOutlet]='paginator'></ng-template>
       <p *ngIf='(resourceData || []).length == 0'>Empty array</p>
