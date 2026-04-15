@@ -106,6 +106,10 @@ export class EelDelegateImplService {
     return eel['run_custom_action'](name, action, args)();
   }
 
+  public async getNewItemData(id: string): Promise<any> {
+    return eel['get_new_item_data'](id)();
+  }
+
   public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
     const current = this.openedResource$.getValue();
     if (!current) return;

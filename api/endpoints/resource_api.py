@@ -64,3 +64,18 @@ class ResourceAPI:
         action_func = getattr(res_block, f'action_{action["method"]}')
         action_func(name=name, read_data=read_data, **args)
         return None if action.get('is_pure', False) else self.render_data(read_data)
+    
+    def get_new_item_data(self, resource_id: str) -> Any:
+        """
+        Get new item data for a resource.
+        
+        Args:
+            resource_id: ID of the resource
+            
+        Returns:
+            The new item data
+        """
+        (_, res_block, _) = require_resource(resource_id)[0]
+        if hasattr(res_block, 'child'):
+            return self.render_data(res_block.child.new_data())
+        return None

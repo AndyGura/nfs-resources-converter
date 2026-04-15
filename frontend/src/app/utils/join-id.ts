@@ -1,5 +1,8 @@
 export const joinId = (a: string, b: string | number) => a + (a.includes('__') ? '/' : '__') + b;
 export const idSuffix = (baseId: string, id: string) => {
+  if (baseId === id) {
+    return '';
+  }
   let next = id.substring(baseId.length);
   if (next.startsWith('/')) {
     return next.substring(1);

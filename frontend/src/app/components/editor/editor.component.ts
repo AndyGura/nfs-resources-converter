@@ -12,7 +12,7 @@ import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-u
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
-import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
+import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
@@ -21,7 +21,6 @@ import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geo
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { joinId } from '../../utils/join-id';
 import isObject from 'lodash/isObject';
-import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
@@ -30,8 +29,6 @@ import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
-import { CrpPartInfo1BlockUiComponent } from './eac/crp-part-info-1.block-ui/crp-part-info-1.block-ui.component';
-import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp-part-info-2.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 import { Resource, ResourceError } from './types';
 
@@ -46,7 +43,7 @@ export class EditorComponent implements OnDestroy {
     ArrayBlock: ArrayBlockUiComponent,
     SubByteArrayBlock: ArrayBlockUiComponent,
 
-    BitFlagsBlock: FlagsBlockUiComponent,
+    SubByteCompoundBlock: SubByteCompoundBlockUiComponent,
     BytesBlock: BinaryBlockUiComponent,
     CompoundBlock: CompoundBlockUiComponent,
     DataBlock: FallbackBlockUiComponent,
@@ -68,7 +65,6 @@ export class EditorComponent implements OnDestroy {
     BaseArchiveBlock: BaseArchiveBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
     WwwwBlock: WwwwBlockUiComponent,
-    FenceType: FenceTypeBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
     EacsAudioFile: EacsAudioBlockUiComponent,
     FfnFont: FontBlockUiComponent,
@@ -79,8 +75,6 @@ export class EditorComponent implements OnDestroy {
     FrdMap: FrdMapBlockUiComponent,
     // NFS5 blocks
     CrpGeometry: CrpGeometryBlockUiComponent,
-    CrpPartInfo1: CrpPartInfo1BlockUiComponent,
-    CrpPartInfo2: CrpPartInfo2BlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
@@ -177,7 +171,7 @@ export class EditorComponent implements OnDestroy {
               const id = this._resource!.id;
               const data = this._resource!.data;
               if (data instanceof Array) {
-                if (this._resource!.schema.block_class_mro.startsWith('BytesBlock')) {
+                if (this._resource!.schema.block_class_mro.includes('BytesBlock')) {
                   // for bytes block we save whole array
                   this.mainService.dataBlockChange$.next([id, data]);
                 } else {

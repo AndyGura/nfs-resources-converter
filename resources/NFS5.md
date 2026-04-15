@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-04-07 15:52:48.074348+00:00*
+*Last time updated: 2026-04-14 17:04:08.504590+00:00*
 
 
 # **Info by file extensions** #
@@ -40,7 +40,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
-| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock)<br/>- [BigfBlock](#bigfblock) |
+| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock) |
 ### **BigfItemDescriptionBlock** ###
 #### **Size**: 9..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -119,7 +119,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A part referencing to an array of [CullingPartData](#cullingpartdata) blocks ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | Part matching info. Part should be used with others that have same values |
+| 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
 | 2 | **identifier** | 2 | UTF-8 string. Always == "n$" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Data length in bytes |
@@ -130,7 +130,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A part referencing to an array of [EffectPartData](#effectpartdata) blocks ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | Part matching info. Part should be used with others that have same values |
+| 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
 | 2 | **identifier** | 2 | UTF-8 string. Always == "fe" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Data length in bytes |
@@ -141,7 +141,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A part referencing to an array of [NormalPartData](#normalpartdata) blocks, describing mesh normals ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | Part matching info. Part should be used with others that have same values |
+| 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
 | 2 | **identifier** | 2 | UTF-8 string. Always == "mn" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Data length in bytes |
@@ -152,7 +152,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A part referencing to [TrianglePartData](#TrianglePartData) block, describes mesh faces ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 2: [llll_uuuu_uuuu_pppp]<br/>l - Level of detail<br/>u - unknown<br/>p - part index | Part matching info. Part should be used with others that have same values |
+| 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "lod"<br/>8-bits int "unk"<br/>4-bits int "part_index" | Part matching info. Part should be used with others that have same values |
 | 2 | **identifier** | 2 | UTF-8 string. Always == "rp" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Data length in bytes |
@@ -163,7 +163,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A part referencing to a transformation matrix. If exists, matrix should be applied to the mesh. Matrix is a 4x4 matrix in row-major order, where each number is stored as 4-bytes float number (little-endian). ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | Part matching info. Part should be used with others that have same values |
+| 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
 | 2 | **identifier** | 2 | UTF-8 string. Always == "rt" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian). Always == 0x40 | Data length in bytes |
@@ -174,7 +174,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A part referencing to an array of [UVData](#uvdata) blocks, representing texture coordinates ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | Part matching info. Part should be used with others that have same values |
+| 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
 | 2 | **identifier** | 2 | UTF-8 string. Always == "vu" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Data length in bytes |
@@ -185,7 +185,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A part referencing to an array of [VertexData](#vertexdata) blocks, representing mesh vertices ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **part_info** | 2 | Part info type 1: [dddd_aaaa_aaaa_llll]<br/>d - Damage switch (0x8 means damaged)<br/>a - animation index<br/>l - Level of detail | Part matching info. Part should be used with others that have same values |
+| 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
 | 2 | **identifier** | 2 | UTF-8 string. Always == "tv" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Data length in bytes |
