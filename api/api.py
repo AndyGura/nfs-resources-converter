@@ -52,6 +52,7 @@ class API:
         # Resource API
         eel.expose(self.resource_api.retrieve_value)
         eel.expose(self.resource_api.run_custom_action)
+        eel.expose(self.resource_api.get_new_item_data)
 
         # Serialization API
         eel.expose(self.serialization_api.serialize_resource)

@@ -18,11 +18,18 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
 
     @property
     def schema(self) -> Dict:
-        return {
+        schema = {
             **super().schema,
             'block_description': f'Array of `{self.length_doc_str}` items',
             'child_schema': self.child.schema
         }
+        len = self._length
+        if isinstance(len, tuple):
+            # cut off the documentation
+            (len, _) = len
+        if not callable(len):
+            schema['length'] = len
+        return schema
 
     # For auto-generated documentation only
     @property

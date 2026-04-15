@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-04-07 15:52:47.878540+00:00*
+*Last time updated: 2026-04-15 06:47:25.143454+00:00*
 
 
 # **Info by file extensions** #
@@ -221,7 +221,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
 | 12 | **unknown** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 13 | **fence** | 1 | TNFS fence type field. fence type: [lrtttttt]<br/>l - flag is add left fence<br/>r - flag is add right fence<br/>tttttt - texture id | - |
+| 13 | **fence** | 1 | Sub-byte compound block:<br/>1-bit flag "has_left_fence"<br/>1-bit flag "has_right_fence"<br/>6-bits int "texture_id" | - |
 | 14 | **texture_ids** | 10 | Array of `10` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
 | 24 | **rows** | 264 | Array of `4` items<br/>Item size: 66 bytes<br/>Item type: Array of `11` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part | Terrain vertex positions. The unit is meter |
 ### **AIEntry** ###
@@ -427,7 +427,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
 | 1 | **unk0** | 3 | Bytes | Unknown purpose |
 | 4 | **unk1_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 8 | **unk1** | 2\*unk1_length\*4 | Array of `2*unk1_length` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 8 | **unk1** | 8\*unk1_length | Bytes | Unknown purpose |
 ### **Palette24BitDos** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####

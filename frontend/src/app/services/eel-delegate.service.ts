@@ -109,6 +109,10 @@ export class EelDelegateService {
     return (await this.getImpl()).runCustomAction(name, action, args);
   }
 
+  public async getNewItemData(id: string): Promise<any> {
+    return (await this.getImpl()).getNewItemData(id);
+  }
+
   public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
     return (await this.getImpl()).saveFile(changes);
   }

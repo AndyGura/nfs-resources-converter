@@ -9,7 +9,7 @@ import { StringBlockUiComponent } from './library/string.block-ui/string.block-u
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
-import { FlagsBlockUiComponent } from './library/flags.block-ui/flags.block-ui.component';
+import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
 import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
@@ -19,7 +19,6 @@ import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.componen
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
-import { FenceTypeBlockUiComponent } from './eac/fence-type.block-ui/fence-type.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
@@ -27,6 +26,7 @@ import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-ar
 import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -49,8 +49,6 @@ import { MinimapComponent } from './common/minimap/minimap.component';
 import { BlockActionsComponent } from './common/block-actions/block-actions.component';
 import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
 import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
-import { CrpPartInfo1BlockUiComponent } from './eac/crp-part-info-1.block-ui/crp-part-info-1.block-ui.component';
-import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp-part-info-2.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -63,7 +61,7 @@ import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp
     ArrayBlockUiComponent,
     BinaryBlockUiComponent,
     EnumBlockUiComponent,
-    FlagsBlockUiComponent,
+    SubByteCompoundBlockUiComponent,
     DelegateBlockUiComponent,
     SkipBlockUiComponent,
     BitmapBlockUiComponent,
@@ -73,7 +71,6 @@ import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp
     TriMapBlockUiComponent,
     OripGeometryBlockUiComponent,
     CrpGeometryBlockUiComponent,
-    FenceTypeBlockUiComponent,
     SoundbankBlockUiComponent,
     EacsAudioBlockUiComponent,
     GeoGeometryBlockUiComponent,
@@ -85,8 +82,6 @@ import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp
     BlockActionsComponent,
     ObjViewerComponent,
     ViewModeToolbarComponent,
-    CrpPartInfo1BlockUiComponent,
-    CrpPartInfo2BlockUiComponent,
   ],
   imports: [
     CommonModule,
@@ -107,6 +102,7 @@ import { CrpPartInfo2BlockUiComponent } from './eac/crp-part-info-2.block-ui/crp
     MatProgressSpinnerModule,
     MatMenuModule,
     MatOptionModule,
+    MatCheckboxModule,
     NgxMatColorPickerModule,
     HexEditorModule,
   ],

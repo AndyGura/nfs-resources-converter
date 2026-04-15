@@ -50,6 +50,11 @@ export class MainService {
       }
     });
     this.dataBlockChange$.subscribe(async ([blockId, value]) => {
+      // ignore if block id starts with one of the already changed data blocks
+      // data in parent block is updated automatically
+      if (Object.keys(this.changedDataBlocks).some(key => blockId.startsWith(key) && key !== blockId)) {
+        return;
+      }
       this.changedDataBlocks[blockId] = value;
       this.updateUnsavedChanges();
       const originalValue = await this.eelDelegate.retrieveValue(blockId);
@@ -141,5 +146,9 @@ export class MainService {
       }),
     );
     this.clearUnsavedChanges();
+  }
+
+  public async getNewItemData(id: string): Promise<any> {
+    return this.eelDelegate.getNewItemData(id);
   }
 }

@@ -2,31 +2,185 @@
     id='title'
     (click)='navigation.navigateToId(resource!.id)'
     matTooltipPosition='above'>{{ name }}</h2>
-<mat-expansion-panel
-  (opened)='onContentsTrigger(true)'
-  (closed)='onContentsTrigger(false)'>
-  <mat-expansion-panel-header [matTooltip]='resourceDescription' matTooltipPosition='above'>
-    <mat-panel-title>
-      {{ name }}
-    </mat-panel-title>
-    <mat-panel-description *ngIf="(resourceData || []).length > 0">
-      Click to view items (<b>{{ (resourceData || []).length }}</b>)
-    </mat-panel-description>
-    <mat-panel-description *ngIf="(resourceData || []).length == 0">
-      Empty array
-    </mat-panel-description>
-  </mat-expansion-panel-header>
-  <ng-container *ngIf='renderContents'>
+
+<ng-container *ngIf="isTable; else standardViewExpansion">
+  <div class="table-container">
+    <table>
+      <thead>
+      <tr *ngIf='hasSubFields'>
+        <th rowspan="2"> # </th>
+        <ng-container *ngFor='let f of tableCompoundFields'>
+          <th *ngIf='!f.subFields' rowspan="2"> {{ f.key }} </th>
+          <th *ngIf='f.subFields' [attr.colspan]='f.subFields.length'> {{ f.key }} </th>
+        </ng-container>
+      </tr>
+      <tr *ngIf='hasSubFields'>
+        <ng-container *ngFor='let f of tableCompoundFields'>
+          <ng-container *ngIf='f.subFields'>
+            <th *ngFor='let sf of f.subFields'> {{ sf.key }} </th>
+          </ng-container>
+        </ng-container>
+      </tr>
+
+      <tr *ngIf='!hasSubFields'>
+        <th> # </th>
+        <ng-container *ngIf='tableCompoundFields; else simpleHeader'>
+          <th *ngFor='let f of tableCompoundFields'> {{ f.key }} </th>
+        </ng-container>
+        <ng-template #simpleHeader>
+          <th> Data </th>
+        </ng-template>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor='let i of renderIndexes'>
+        <td class="index-cell" [class.editable]="!disabled">
+          <span class="index-number">{{ pageIndex * pageSize + i }}</span>
+          <div class="item-actions" *ngIf="!disabled">
+            <button mat-icon-button
+                    color="primary"
+                    class="move-item-button"
+                    [disabled]="pageIndex * pageSize + i === 0"
+                    (click)="moveItemUp(pageIndex * pageSize + i)"
+                    matTooltip="Move up">
+              <mat-icon>arrow_upward</mat-icon>
+            </button>
+            <button mat-icon-button
+                    color="primary"
+                    class="move-item-button"
+                    [disabled]="pageIndex * pageSize + i === resourceData.length - 1"
+                    (click)="moveItemDown(pageIndex * pageSize + i)"
+                    matTooltip="Move down">
+              <mat-icon>arrow_downward</mat-icon>
+            </button>
+            <button mat-icon-button
+                    color="warn"
+                    class="remove-item-button"
+                    *ngIf="enableArrayEditing"
+                    (click)="removeItem(pageIndex * pageSize + i)"
+                    matTooltip="Remove item">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </td>
+        <ng-container *ngIf='tableCompoundFields; else simpleDataCell'>
+          <ng-container *ngFor='let f of tableCompoundFields'>
+            <td *ngIf='!f.subFields'>
+              <ng-container *ngTemplateOutlet='inputField; context: {
+                schema: children[pageIndex * pageSize + i].schema.fields[f.index].schema,
+                value: children[pageIndex * pageSize + i].data[f.key],
+                parentId: children[pageIndex * pageSize + i].id,
+                index: pageIndex * pageSize + i,
+                field: f.key
+              }'></ng-container>
+            </td>
+            <ng-container *ngIf='f.subFields'>
+              <td *ngFor='let sf of f.subFields'>
+                <ng-container *ngTemplateOutlet='inputField; context: {
+                  schema: children[pageIndex * pageSize + i].schema.fields[f.index].schema.fields[sf.index].schema,
+                  value: children[pageIndex * pageSize + i].data[f.key][sf.key],
+                  parentId: joinId(children[pageIndex * pageSize + i].id, f.key),
+                  index: pageIndex * pageSize + i,
+                  field: sf.key
+                }'></ng-container>
+              </td>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+        <ng-template #simpleDataCell>
+          <td>
+            <ng-container *ngTemplateOutlet='inputField; context: {
+              schema: children[pageIndex * pageSize + i].schema,
+              value: children[pageIndex * pageSize + i].data,
+              parentId: children[pageIndex * pageSize + i].id,
+              index: pageIndex * pageSize + i,
+              field: null
+            }'></ng-container>
+          </td>
+        </ng-template>
+      </tr>
+      </tbody>
+    </table>
+    <button mat-button
+            color="primary"
+            (click)="addItem()"
+            *ngIf="!disabled && enableArrayEditing"
+            class="add-item-button">
+      <mat-icon>add</mat-icon>
+      Add Item
+    </button>
     <ng-template [ngTemplateOutlet]='paginator'></ng-template>
-    <ng-container *ngFor='let i of this.renderIndexes'>
-      <app-editor *ngIf='(pageIndex * pageSize + i) < children.length'
-                  [resource]='children[pageIndex * pageSize + i]'
-                  [disabled]='disabled'></app-editor>
+  </div>
+</ng-container>
+
+<ng-template #standardViewExpansion>
+  <mat-expansion-panel
+    (opened)='onContentsTrigger(true)'
+    (closed)='onContentsTrigger(false)'>
+    <mat-expansion-panel-header [matTooltip]='resourceDescription' matTooltipPosition='above'>
+      <mat-panel-title>
+        {{ name }}
+      </mat-panel-title>
+      <mat-panel-description *ngIf="(resourceData || []).length > 0">
+        Click to view items (<b>{{ (resourceData || []).length }}</b>)
+      </mat-panel-description>
+      <mat-panel-description *ngIf="(resourceData || []).length == 0">
+        Empty array
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    <ng-container *ngIf='renderContents'>
+      <ng-template [ngTemplateOutlet]='paginator'></ng-template>
+
+      <ng-container *ngFor='let i of this.renderIndexes'>
+        <div class="item-wrapper">
+          <div class="item-header" *ngIf="!disabled">
+            <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+            <div class="item-actions">
+              <button mat-icon-button
+                      color="primary"
+                      [disabled]="pageIndex * pageSize + i === 0"
+                      (click)="moveItemUp(pageIndex * pageSize + i)"
+                      matTooltip="Move up">
+                <mat-icon>arrow_upward</mat-icon>
+              </button>
+              <button mat-icon-button
+                      color="primary"
+                      [disabled]="pageIndex * pageSize + i === resourceData.length - 1"
+                      (click)="moveItemDown(pageIndex * pageSize + i)"
+                      matTooltip="Move down">
+                <mat-icon>arrow_downward</mat-icon>
+              </button>
+              <button mat-icon-button
+                      color="warn"
+                      *ngIf="enableArrayEditing"
+                      (click)="removeItem(pageIndex * pageSize + i)"
+                      matTooltip="Remove item">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+          <div class="item-header" *ngIf="disabled">
+            <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+          </div>
+          <app-editor [resource]='children[pageIndex * pageSize + i]'
+                      [disabled]='disabled'></app-editor>
+        </div>
+      </ng-container>
+
+      <button mat-button
+              color="primary"
+              (click)="addItem()"
+              *ngIf="!disabled && enableArrayEditing"
+              class="add-item-button">
+        <mat-icon>add</mat-icon>
+        Add Item
+      </button>
+
+      <ng-template [ngTemplateOutlet]='paginator'></ng-template>
+      <p *ngIf='(resourceData || []).length == 0'>Empty array</p>
     </ng-container>
-    <ng-template [ngTemplateOutlet]='paginator'></ng-template>
-    <p *ngIf='(resourceData || []).length == 0'>Empty array</p>
-  </ng-container>
-</mat-expansion-panel>
+  </mat-expansion-panel>
+</ng-template>
 
 <ng-template #paginator>
   <div *ngIf='(resourceData || []).length > 0'
@@ -50,5 +204,57 @@
         </mat-select>
       </mat-form-field>
     </div>
+  </div>
+</ng-template>
+
+<ng-template #inputField let-schema='schema' let-value='value' let-parentId='parentId' let-index='index' let-field='field'>
+  <div class="compact-input">
+    <ng-container *ngIf="schema.value_validator?.type === 'or'; else regularInput">
+      <select
+        [disabled]="disabled"
+        [ngModel]="value"
+        (change)="onTableFieldChange(parentId, index, field, $any($event.target).value)">
+        <option *ngFor="let v of schema.value_validator.possible_values" [value]="v">{{ v }}</option>
+      </select>
+    </ng-container>
+
+    <ng-template #regularInput>
+      <input *ngIf="isNumeric(schema.block_class_mro)"
+             type="number"
+             [max]="schema.max_value"
+             [min]="schema.min_value"
+             [step]="schema.value_interval"
+             [disabled]="disabled || schema.value_validator?.type === 'eq'"
+             [ngModel]="value"
+             (change)="onTableFieldChange(parentId, index, field, +$any($event.target).value)">
+
+      <input *ngIf="isString(schema.block_class_mro)"
+             type="text"
+             [disabled]="disabled || schema.value_validator?.type === 'eq'"
+             [maxlength]="getMaxLength(schema)"
+             [minlength]="getMinLength(schema)"
+             [ngModel]="value"
+             (change)="onTableFieldChange(parentId, index, field, $any($event.target).value)">
+
+      <ng-container *ngIf="isEnum(schema.block_class_mro)">
+        <select *ngIf="isKnownEnumValue(schema, value); else unknownEnum"
+                [disabled]="disabled"
+                [ngModel]="value"
+                (change)="onTableFieldChange(parentId, index, field, $any($event.target).value)">
+          <option *ngFor="let enumValue of schema.enum_names"
+                  [value]="enumValue[1]">
+            {{enumValue[1]}}
+          </option>
+        </select>
+        <ng-template #unknownEnum>
+          <input type="number"
+                 [min]="0"
+                 [max]="(schema.length || 1) * 256 - 1"
+                 [disabled]="disabled"
+                 [ngModel]="value"
+                 (change)="onTableFieldChange(parentId, index, field, +$any($event.target).value)">
+        </ng-template>
+      </ng-container>
+    </ng-template>
   </div>
 </ng-template>

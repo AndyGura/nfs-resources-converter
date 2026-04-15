@@ -27,6 +27,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   @Input()
   set resource(value: Resource | null) {
     this._resource = value;
+    this.checkIfTable();
+    if (this.isTable) {
+      this.renderContents = true;
+    }
     this.buildChildren();
     this.renderPage(0, this.minPageSize);
     this.updatePageIndexes();
@@ -79,11 +83,191 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
+  protected readonly joinId = joinId;
+
   constructor(
     public main: MainService,
     private readonly cdr: ChangeDetectorRef,
     public readonly navigation: NavigationService,
-  ) {}
+  ) {
+  }
+
+  get enableArrayEditing(): boolean {
+    return (
+      !this.schema?.block_class_mro?.includes('SubByteArrayBlock')
+      && (!this.schema?.length && this.schema?.length !== 0)
+    );
+  }
+
+  async addItem() {
+    if (!this.resource || !this.enableArrayEditing) return;
+    const newItem = await this.main.getNewItemData(this.resource.id);
+    if (newItem === null) return;
+    this.resourceData.push(newItem);
+    this.buildChildren();
+    this.updatePageIndexes();
+    this.pageIndex = Math.max(0, this.pageIndexes.length - 1);
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
+  removeItem(index: number) {
+    if (!this.resource || !this.enableArrayEditing) return;
+    this.resourceData.splice(index, 1);
+    this.buildChildren();
+    this.updatePageIndexes();
+    if (this.pageIndex >= this.pageIndexes.length && this.pageIndex > 0) {
+      this.pageIndex--;
+    }
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
+  moveItemUp(index: number) {
+    if (index <= 0 || !this.resource) return;
+    const temp = this.resourceData[index];
+    this.resourceData[index] = this.resourceData[index - 1];
+    this.resourceData[index - 1] = temp;
+    this.buildChildren();
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
+  moveItemDown(index: number) {
+    if (index >= this.resourceData.length - 1 || !this.resource) return;
+    const temp = this.resourceData[index];
+    this.resourceData[index] = this.resourceData[index + 1];
+    this.resourceData[index + 1] = temp;
+    this.buildChildren();
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
+  get isTable(): boolean {
+    return !!this.tableColumns && this.tableColumns.length > 0;
+  }
+
+  tableBlockTypeWhitelist = [
+    'IntegerBlock',
+    'FixedPointBlock',
+    'DecimalBlock',
+    'UTF8Block',
+    'NullTerminatedUTF8Block',
+    'EnumByteBlock'
+  ];
+  tableColumns: string[] | null = null;
+  tableCompoundFields: { key: string; index: number; subFields?: { key: string; index: number }[] }[] | null = null;
+  hasSubFields: boolean = false;
+
+  isNumeric(mro: string): boolean {
+    return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some((w) => mro.startsWith(w + '__'));
+  }
+
+  isString(mro: string): boolean {
+    return ['UTF8Block', 'NullTerminatedUTF8Block'].some((w) => mro.startsWith(w + '__'));
+  }
+
+  isEnum(mro: string): boolean {
+    return mro.startsWith('EnumByteBlock__');
+  }
+
+  isKnownEnumValue(schema: any, value: any): boolean {
+    return !!schema.enum_names.find(([_, v]: string[]) => v == value);
+  }
+
+  getMinLength(schema: any): number | null {
+    if (!isNaN(+schema.length)) {
+      return +schema.length;
+    }
+    return null;
+  }
+
+  getMaxLength(schema: any): number | null {
+    if (!isNaN(+schema.length)) {
+      return +schema.length;
+    }
+    return null;
+  }
+
+  onTableFieldChange(parentId: string, index: number, field: string | null, value: any): void {
+    // we do not want to emit "changed" here as we normally do, because it leads to change of whole array data
+    // emit dataBlockChange$ directly instead
+    if (field) {
+      const data = this.resourceData[index];
+      const parentParts = parentId.split('/');
+      const lastPart = parentParts[parentParts.length - 1];
+
+      if (isNaN(+lastPart)) {
+        // nested compound
+        data[lastPart][field] = value;
+      } else {
+        data[field] = value;
+      }
+
+      this.main.dataBlockChange$.next([joinId(parentId, field), value]);
+    } else {
+      this.resourceData[index] = value;
+      this.main.dataBlockChange$.next([parentId, value]);
+    }
+  }
+
+  private checkIfTable(): void {
+    const childSchema = this.schema?.child_schema;
+    if (!childSchema) {
+      return;
+    }
+    const mro = childSchema.block_class_mro || '';
+    const isWhitelisted = (className: string) => {
+      return this.tableBlockTypeWhitelist.some((w) => className.startsWith(w + '__'));
+    };
+
+    if (isWhitelisted(mro)) {
+      this.tableColumns = ['index', 'data'];
+      this.hasSubFields = false;
+    } else if (mro.includes('CompoundBlock__')) {
+      const fields = childSchema.fields || [];
+      const uiFields = fields
+        .map((f: any, i: number) => ({ ...f, index: i }))
+        .filter((f: any) => !f.usage || f.usage === 'everywhere' || f.usage.includes('ui'));
+
+      const isNestedWhitelisted = (f: any) => {
+        const nestedMro = f.schema.block_class_mro || '';
+        if (isWhitelisted(nestedMro)) {
+          return true;
+        }
+        if (nestedMro.includes('CompoundBlock__')) {
+          const subFields = (f.schema.fields || [])
+            .filter((sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'));
+          return subFields.length > 0 && subFields.every((sf: any) => isWhitelisted(sf.schema.block_class_mro || ''));
+        }
+        return false;
+      };
+
+      const allChildrenWhitelisted = uiFields.every(isNestedWhitelisted);
+      if (allChildrenWhitelisted && uiFields.length > 0) {
+        this.hasSubFields = uiFields.some((f: any) => (f.schema.block_class_mro || '').includes('CompoundBlock__'));
+        this.tableCompoundFields = uiFields.map((f: any) => {
+          const nestedMro = f.schema.block_class_mro || '';
+          if (nestedMro.includes('CompoundBlock__')) {
+            const subFields = (f.schema.fields || [])
+              .map((sf: any, i: number) => ({ ...sf, index: i }))
+              .filter((sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'));
+            return {
+              key: f.name,
+              index: f.index,
+              subFields: subFields.map((sf: any) => ({ key: sf.name, index: sf.index })),
+            };
+          }
+          return { key: f.name, index: f.index };
+        });
+        this.tableColumns = ['index', ...this.tableCompoundFields!.map((f) => f.key)];
+      }
+    }
+  }
 
   ngAfterViewInit(): void {
     this.main.dataBlockChange$
@@ -99,6 +283,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
         ),
       )
       .subscribe(async ([blockId, value]) => {
+        if (blockId === this.resource!.id) {
+          this.resource!.data = value;
+          return;
+        }
         this.resourceData[+idSuffix(this.resource!.id, blockId)] = value;
       });
   }
@@ -126,11 +314,12 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   }
 
   renderPage(pageIndex: number, pageSize: number) {
-    if (this.pageSize !== pageSize) {
-      this.renderIndexes = new Array(pageSize).fill(null).map((_, i) => i);
-    }
-    this.goToIndex = this.pageIndex = pageIndex;
+    this.pageIndex = pageIndex;
     this.pageSize = pageSize;
+    this.goToIndex = pageIndex;
+    const totalItems = (this.resourceData || []).length;
+    const itemsOnPage = Math.min(pageSize, totalItems - pageIndex * pageSize);
+    this.renderIndexes = Array.from(Array(Math.max(0, itemsOnPage)).keys());
 
     this.cdr.markForCheck();
   }
@@ -138,8 +327,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   updatePageIndexes() {
     this.goToIndex = this.pageIndex;
     this.pageIndexes = [];
-    for (let i = 0; i < Math.ceil((this.resourceData || []).length / this.pageSize); i++) {
-      this.pageIndexes.push(i);
+    if (this.pageSize > 0) {
+      for (let i = 0; i < Math.ceil((this.resourceData || []).length / this.pageSize); i++) {
+        this.pageIndexes.push(i);
+      }
     }
   }
 }

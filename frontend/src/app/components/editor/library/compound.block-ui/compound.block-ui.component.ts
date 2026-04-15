@@ -84,7 +84,6 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
         ),
       )
       .subscribe(async ([blockId, value]) => {
-        // TODO is it ok at all?
         if (blockId === this.resource!.id) {
           this.resource!.data = value;
           return;
