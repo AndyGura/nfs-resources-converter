@@ -104,7 +104,8 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     'NullTerminatedUTF8Block'
   ];
   tableColumns: string[] | null = null;
-  tableCompoundFields: { key: string; index: number }[] | null = null;
+  tableCompoundFields: { key: string; index: number; subFields?: { key: string; index: number }[] }[] | null = null;
+  hasSubFields: boolean = false;
 
   isNumeric(mro: string): boolean {
     return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some((w) => mro.startsWith(w + '__'));
@@ -132,7 +133,17 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     // we do not want to emit "changed" here as we normally do, because it leads to change of whole array data
     // emit dataBlockChange$ directly instead
     if (field) {
-      this.resourceData[index][field] = value;
+      const data = this.resourceData[index];
+      const parentParts = parentId.split('/');
+      const lastPart = parentParts[parentParts.length - 1];
+
+      if (isNaN(+lastPart)) {
+        // nested compound
+        data[lastPart][field] = value;
+      } else {
+        data[field] = value;
+      }
+
       this.main.dataBlockChange$.next([joinId(parentId, field), value]);
     } else {
       this.resourceData[index] = value;
@@ -152,15 +163,43 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
     if (isWhitelisted(mro)) {
       this.tableColumns = ['index', 'data'];
+      this.hasSubFields = false;
     } else if (mro.includes('CompoundBlock__')) {
       const fields = childSchema.fields || [];
       const uiFields = fields
         .map((f: any, i: number) => ({ ...f, index: i }))
         .filter((f: any) => !f.usage || f.usage === 'everywhere' || f.usage.includes('ui'));
 
-      const allChildrenWhitelisted = uiFields.every((f: any) => isWhitelisted(f.schema.block_class_mro || ''));
+      const isNestedWhitelisted = (f: any) => {
+        const nestedMro = f.schema.block_class_mro || '';
+        if (isWhitelisted(nestedMro)) {
+          return true;
+        }
+        if (nestedMro.includes('CompoundBlock__')) {
+          const subFields = (f.schema.fields || [])
+            .filter((sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'));
+          return subFields.length > 0 && subFields.every((sf: any) => isWhitelisted(sf.schema.block_class_mro || ''));
+        }
+        return false;
+      };
+
+      const allChildrenWhitelisted = uiFields.every(isNestedWhitelisted);
       if (allChildrenWhitelisted && uiFields.length > 0) {
-        this.tableCompoundFields = uiFields.map((f: any) => ({ key: f.name, index: f.index }));
+        this.hasSubFields = uiFields.some((f: any) => (f.schema.block_class_mro || '').includes('CompoundBlock__'));
+        this.tableCompoundFields = uiFields.map((f: any) => {
+          const nestedMro = f.schema.block_class_mro || '';
+          if (nestedMro.includes('CompoundBlock__')) {
+            const subFields = (f.schema.fields || [])
+              .map((sf: any, i: number) => ({ ...sf, index: i }))
+              .filter((sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'));
+            return {
+              key: f.name,
+              index: f.index,
+              subFields: subFields.map((sf: any) => ({ key: sf.name, index: sf.index })),
+            };
+          }
+          return { key: f.name, index: f.index };
+        });
         this.tableColumns = ['index', ...this.tableCompoundFields!.map((f) => f.key)];
       }
     }

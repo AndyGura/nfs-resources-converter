@@ -7,7 +7,22 @@
   <div class="table-container">
     <table>
       <thead>
-      <tr>
+      <tr *ngIf='hasSubFields'>
+        <th rowspan="2"> # </th>
+        <ng-container *ngFor='let f of tableCompoundFields'>
+          <th *ngIf='!f.subFields' rowspan="2"> {{ f.key }} </th>
+          <th *ngIf='f.subFields' [attr.colspan]='f.subFields.length'> {{ f.key }} </th>
+        </ng-container>
+      </tr>
+      <tr *ngIf='hasSubFields'>
+        <ng-container *ngFor='let f of tableCompoundFields'>
+          <ng-container *ngIf='f.subFields'>
+            <th *ngFor='let sf of f.subFields'> {{ sf.key }} </th>
+          </ng-container>
+        </ng-container>
+      </tr>
+
+      <tr *ngIf='!hasSubFields'>
         <th> # </th>
         <ng-container *ngIf='tableCompoundFields; else simpleHeader'>
           <th *ngFor='let f of tableCompoundFields'> {{ f.key }} </th>
@@ -23,15 +38,28 @@
           <span>{{ pageIndex * pageSize + i }}</span>
         </td>
         <ng-container *ngIf='tableCompoundFields; else simpleDataCell'>
-          <td *ngFor='let f of tableCompoundFields'>
-            <ng-container *ngTemplateOutlet='inputField; context: {
-              schema: children[pageIndex * pageSize + i].schema.fields[f.index].schema,
-              value: children[pageIndex * pageSize + i].data[f.key],
-              parentId: children[pageIndex * pageSize + i].id,
-              index: pageIndex * pageSize + i,
-              field: f.key
-            }'></ng-container>
-          </td>
+          <ng-container *ngFor='let f of tableCompoundFields'>
+            <td *ngIf='!f.subFields'>
+              <ng-container *ngTemplateOutlet='inputField; context: {
+                schema: children[pageIndex * pageSize + i].schema.fields[f.index].schema,
+                value: children[pageIndex * pageSize + i].data[f.key],
+                parentId: children[pageIndex * pageSize + i].id,
+                index: pageIndex * pageSize + i,
+                field: f.key
+              }'></ng-container>
+            </td>
+            <ng-container *ngIf='f.subFields'>
+              <td *ngFor='let sf of f.subFields'>
+                <ng-container *ngTemplateOutlet='inputField; context: {
+                  schema: children[pageIndex * pageSize + i].schema.fields[f.index].schema.fields[sf.index].schema,
+                  value: children[pageIndex * pageSize + i].data[f.key][sf.key],
+                  parentId: joinId(children[pageIndex * pageSize + i].id, f.key),
+                  index: pageIndex * pageSize + i,
+                  field: sf.key
+                }'></ng-container>
+              </td>
+            </ng-container>
+          </ng-container>
         </ng-container>
         <ng-template #simpleDataCell>
           <td>
@@ -49,7 +77,6 @@
     </table>
 
     <ng-template [ngTemplateOutlet]='paginator'></ng-template>
-    <p *ngIf='(resourceData || []).length == 0'>Empty array</p>
   </div>
 </ng-container>
 
