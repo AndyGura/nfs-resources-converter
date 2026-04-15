@@ -27,6 +27,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   @Input()
   set resource(value: Resource | null) {
     this._resource = value;
+    this.checkIfTable();
+    if (this.isTable) {
+      this.renderContents = true;
+    }
     this.buildChildren();
     this.renderPage(0, this.minPageSize);
     this.updatePageIndexes();
@@ -79,11 +83,88 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
+  protected readonly joinId = joinId;
+
   constructor(
     public main: MainService,
     private readonly cdr: ChangeDetectorRef,
     public readonly navigation: NavigationService,
-  ) {}
+  ) {
+  }
+
+  get isTable(): boolean {
+    return !!this.tableColumns && this.tableColumns.length > 0;
+  }
+
+  tableBlockTypeWhitelist = [
+    'IntegerBlock',
+    'FixedPointBlock',
+    'DecimalBlock',
+    'UTF8Block',
+    'NullTerminatedUTF8Block'
+  ];
+  tableColumns: string[] | null = null;
+  tableCompoundFields: { key: string; index: number }[] | null = null;
+
+  isNumeric(mro: string): boolean {
+    return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some((w) => mro.startsWith(w + '__'));
+  }
+
+  isString(mro: string): boolean {
+    return ['UTF8Block', 'NullTerminatedUTF8Block'].some((w) => mro.startsWith(w + '__'));
+  }
+
+  getMinLength(schema: any): number | null {
+    if (!isNaN(+schema.length)) {
+      return +schema.length;
+    }
+    return null;
+  }
+
+  getMaxLength(schema: any): number | null {
+    if (!isNaN(+schema.length)) {
+      return +schema.length;
+    }
+    return null;
+  }
+
+  onTableFieldChange(parentId: string, index: number, field: string | null, value: any): void {
+    // we do not want to emit "changed" here as we normally do, because it leads to change of whole array data
+    // emit dataBlockChange$ directly instead
+    if (field) {
+      this.resourceData[index][field] = value;
+      this.main.dataBlockChange$.next([joinId(parentId, field), value]);
+    } else {
+      this.resourceData[index] = value;
+      this.main.dataBlockChange$.next([parentId, value]);
+    }
+  }
+
+  private checkIfTable(): void {
+    const childSchema = this.schema?.child_schema;
+    if (!childSchema) {
+      return;
+    }
+    const mro = childSchema.block_class_mro || '';
+    const isWhitelisted = (className: string) => {
+      return this.tableBlockTypeWhitelist.some((w) => className.startsWith(w + '__'));
+    };
+
+    if (isWhitelisted(mro)) {
+      this.tableColumns = ['index', 'data'];
+    } else if (mro.includes('CompoundBlock__')) {
+      const fields = childSchema.fields || [];
+      const uiFields = fields
+        .map((f: any, i: number) => ({ ...f, index: i }))
+        .filter((f: any) => !f.usage || f.usage === 'everywhere' || f.usage.includes('ui'));
+
+      const allChildrenWhitelisted = uiFields.every((f: any) => isWhitelisted(f.schema.block_class_mro || ''));
+      if (allChildrenWhitelisted && uiFields.length > 0) {
+        this.tableCompoundFields = uiFields.map((f: any) => ({ key: f.name, index: f.index }));
+        this.tableColumns = ['index', ...this.tableCompoundFields!.map((f) => f.key)];
+      }
+    }
+  }
 
   ngAfterViewInit(): void {
     this.main.dataBlockChange$
@@ -126,11 +207,12 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   }
 
   renderPage(pageIndex: number, pageSize: number) {
-    if (this.pageSize !== pageSize) {
-      this.renderIndexes = new Array(pageSize).fill(null).map((_, i) => i);
-    }
-    this.goToIndex = this.pageIndex = pageIndex;
+    this.pageIndex = pageIndex;
     this.pageSize = pageSize;
+    this.goToIndex = pageIndex;
+    const totalItems = (this.resourceData || []).length;
+    const itemsOnPage = Math.min(pageSize, totalItems - pageIndex * pageSize);
+    this.renderIndexes = Array.from(Array(Math.max(0, itemsOnPage)).keys());
 
     this.cdr.markForCheck();
   }
@@ -138,8 +220,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   updatePageIndexes() {
     this.goToIndex = this.pageIndex;
     this.pageIndexes = [];
-    for (let i = 0; i < Math.ceil((this.resourceData || []).length / this.pageSize); i++) {
-      this.pageIndexes.push(i);
+    if (this.pageSize > 0) {
+      for (let i = 0; i < Math.ceil((this.resourceData || []).length / this.pageSize); i++) {
+        this.pageIndexes.push(i);
+      }
     }
   }
 }

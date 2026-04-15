@@ -66,8 +66,7 @@ class PaletteReference(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         unk1_length = (IntegerBlock(length=4),
                        {'is_unknown': True})
-        unk1 = (ArrayBlock(length=lambda ctx: 2 * ctx.data('unk1_length'),
-                           child=IntegerBlock(length=4)),
+        unk1 = (BytesBlock(length=lambda ctx: 8 * ctx.data('unk1_length')),
                 {'is_unknown': True})
 
     @property

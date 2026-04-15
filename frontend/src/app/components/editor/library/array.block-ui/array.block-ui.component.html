@@ -2,31 +2,85 @@
     id='title'
     (click)='navigation.navigateToId(resource!.id)'
     matTooltipPosition='above'>{{ name }}</h2>
-<mat-expansion-panel
-  (opened)='onContentsTrigger(true)'
-  (closed)='onContentsTrigger(false)'>
-  <mat-expansion-panel-header [matTooltip]='resourceDescription' matTooltipPosition='above'>
-    <mat-panel-title>
-      {{ name }}
-    </mat-panel-title>
-    <mat-panel-description *ngIf="(resourceData || []).length > 0">
-      Click to view items (<b>{{ (resourceData || []).length }}</b>)
-    </mat-panel-description>
-    <mat-panel-description *ngIf="(resourceData || []).length == 0">
-      Empty array
-    </mat-panel-description>
-  </mat-expansion-panel-header>
-  <ng-container *ngIf='renderContents'>
-    <ng-template [ngTemplateOutlet]='paginator'></ng-template>
-    <ng-container *ngFor='let i of this.renderIndexes'>
-      <app-editor *ngIf='(pageIndex * pageSize + i) < children.length'
-                  [resource]='children[pageIndex * pageSize + i]'
-                  [disabled]='disabled'></app-editor>
-    </ng-container>
+
+<ng-container *ngIf="isTable; else standardViewExpansion">
+  <div class="table-container">
+    <table>
+      <thead>
+      <tr>
+        <th> # </th>
+        <ng-container *ngIf='tableCompoundFields; else simpleHeader'>
+          <th *ngFor='let f of tableCompoundFields'> {{ f.key }} </th>
+        </ng-container>
+        <ng-template #simpleHeader>
+          <th> Data </th>
+        </ng-template>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor='let i of renderIndexes'>
+        <td>
+          <span>{{ pageIndex * pageSize + i }}</span>
+        </td>
+        <ng-container *ngIf='tableCompoundFields; else simpleDataCell'>
+          <td *ngFor='let f of tableCompoundFields'>
+            <ng-container *ngTemplateOutlet='inputField; context: {
+              schema: children[pageIndex * pageSize + i].schema.fields[f.index].schema,
+              value: children[pageIndex * pageSize + i].data[f.key],
+              parentId: children[pageIndex * pageSize + i].id,
+              index: pageIndex * pageSize + i,
+              field: f.key
+            }'></ng-container>
+          </td>
+        </ng-container>
+        <ng-template #simpleDataCell>
+          <td>
+            <ng-container *ngTemplateOutlet='inputField; context: {
+              schema: children[pageIndex * pageSize + i].schema,
+              value: children[pageIndex * pageSize + i].data,
+              parentId: children[pageIndex * pageSize + i].id,
+              index: pageIndex * pageSize + i,
+              field: null
+            }'></ng-container>
+          </td>
+        </ng-template>
+      </tr>
+      </tbody>
+    </table>
+
     <ng-template [ngTemplateOutlet]='paginator'></ng-template>
     <p *ngIf='(resourceData || []).length == 0'>Empty array</p>
-  </ng-container>
-</mat-expansion-panel>
+  </div>
+</ng-container>
+
+<ng-template #standardViewExpansion>
+  <mat-expansion-panel
+    (opened)='onContentsTrigger(true)'
+    (closed)='onContentsTrigger(false)'>
+    <mat-expansion-panel-header [matTooltip]='resourceDescription' matTooltipPosition='above'>
+      <mat-panel-title>
+        {{ name }}
+      </mat-panel-title>
+      <mat-panel-description *ngIf="(resourceData || []).length > 0">
+        Click to view items (<b>{{ (resourceData || []).length }}</b>)
+      </mat-panel-description>
+      <mat-panel-description *ngIf="(resourceData || []).length == 0">
+        Empty array
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    <ng-container *ngIf='renderContents'>
+      <ng-template [ngTemplateOutlet]='paginator'></ng-template>
+
+      <ng-container *ngFor='let i of this.renderIndexes'>
+        <app-editor [resource]='children[pageIndex * pageSize + i]'
+                    [disabled]='disabled'></app-editor>
+      </ng-container>
+
+      <ng-template [ngTemplateOutlet]='paginator'></ng-template>
+      <p *ngIf='(resourceData || []).length == 0'>Empty array</p>
+    </ng-container>
+  </mat-expansion-panel>
+</ng-template>
 
 <ng-template #paginator>
   <div *ngIf='(resourceData || []).length > 0'
@@ -50,5 +104,37 @@
         </mat-select>
       </mat-form-field>
     </div>
+  </div>
+</ng-template>
+
+<ng-template #inputField let-schema='schema' let-value='value' let-parentId='parentId' let-index='index' let-field='field'>
+  <div class="compact-input">
+    <ng-container *ngIf="schema.value_validator?.type === 'or'; else regularInput">
+      <select
+        [disabled]="disabled"
+        [ngModel]="value"
+        (change)="onTableFieldChange(parentId, index, field, $any($event.target).value)">
+        <option *ngFor="let v of schema.value_validator.possible_values" [value]="v">{{ v }}</option>
+      </select>
+    </ng-container>
+
+    <ng-template #regularInput>
+      <input *ngIf="isNumeric(schema.block_class_mro)"
+             type="number"
+             [max]="schema.max_value"
+             [min]="schema.min_value"
+             [step]="schema.value_interval"
+             [disabled]="disabled || schema.value_validator?.type === 'eq'"
+             [ngModel]="value"
+             (change)="onTableFieldChange(parentId, index, field, +$any($event.target).value)">
+
+      <input *ngIf="isString(schema.block_class_mro)"
+             type="text"
+             [disabled]="disabled || schema.value_validator?.type === 'eq'"
+             [maxlength]="getMaxLength(schema)"
+             [minlength]="getMinLength(schema)"
+             [ngModel]="value"
+             (change)="onTableFieldChange(parentId, index, field, $any($event.target).value)">
+    </ng-template>
   </div>
 </ng-template>
