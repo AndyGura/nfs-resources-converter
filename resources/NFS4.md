@@ -1,6 +1,6 @@
 # **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2026-04-13 00:41:51.269768+00:00*
+*Last time updated: 2026-04-15 22:11:40.048701+00:00*
 
 
 # **Info by file extensions** #
@@ -129,24 +129,26 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 48..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == "FNTF" | Resource ID |
+| 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes |
-| 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
-| 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unk2** | 6 | Bytes | Unknown purpose |
-| 18 | **font_size** | 1 | 1-byte unsigned integer | Font size ? |
-| 19 | **unk3** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
-| 21 | **unk4** | 7 | Bytes. Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
-| 28 | **bdata_ptr** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
-| 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 32 | **definitions** | num_glyphs\*11 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
-| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Padding bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
-| bdata_ptr | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
+| 12 | **flags** | 4 | 32 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: antialiased<br/>1: dropshadow<br/>2: outline<br/>3: vram<br/>8: baseline_0<br/>9: baseline_1<br/>10: orientation<br/>11: direction<br/>16: encoding_0<br/>17: encoding_1<br/>18: format</details> | - |
+| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | - |
+| 18 | **ascent** | 1 | 1-byte unsigned integer | - |
+| 19 | **descent** | 1 | 1-byte unsigned integer | - |
+| 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
+| 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
+| 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
+| 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | - |
+| definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*16 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
+| ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | - |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
+| ? | **padding_2** | up to offset bdata_ptr | Padding bytes | - |
+| bdata_ptr | **bitmap** | 16..? | One of types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit) | Font atlas bitmap data |
+| bdata_ptr + 16..? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
-#### **Size**: 11 bytes ####
+#### **Size**: 11..16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **code** | 2 | 2-bytes unsigned integer (little endian) | Code of symbol |
@@ -154,9 +156,20 @@ Did not find what you need or some given data is wrong? Please submit an
 | 3 | **height** | 1 | 1-byte unsigned integer | Height of symbol in font bitmap |
 | 4 | **x** | 2 | 2-bytes unsigned integer (little endian) | Position (x) of symbol in font bitmap |
 | 6 | **y** | 2 | 2-bytes unsigned integer (little endian) | Position (y) of symbol in font bitmap |
-| 8 | **x_advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
+| 8 | **advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
 | 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
+| 11 | **num_kern** | 0..1 | Optional (if ^^version >= 200): 1-byte unsigned integer | Number of kerning pairs for this glyph |
+| 11..12 | **kern_index** | 0..2 | Optional (if ^^flags/format): 2-bytes unsigned integer (little endian) | Index in kerning table? |
+| 11..14 | **x_advance** | 0..2 | Optional (if ^^flags/format): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
+### **KerningItem** ###
+#### **Size**: 4 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **left** | 1 | 1-byte unsigned integer | Code of left glyph |
+| 1 | **unk** | 1 | 1-byte unsigned integer | - |
+| 2 | **kerning** | 1 | 1-byte signed integer | - |
+| 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |
 ## **Palettes** ##
 ### **Palette16BitDos** ###
 #### **Size**: 16..? bytes ####
