@@ -101,7 +101,8 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     'FixedPointBlock',
     'DecimalBlock',
     'UTF8Block',
-    'NullTerminatedUTF8Block'
+    'NullTerminatedUTF8Block',
+    'EnumByteBlock'
   ];
   tableColumns: string[] | null = null;
   tableCompoundFields: { key: string; index: number; subFields?: { key: string; index: number }[] }[] | null = null;
@@ -113,6 +114,14 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   isString(mro: string): boolean {
     return ['UTF8Block', 'NullTerminatedUTF8Block'].some((w) => mro.startsWith(w + '__'));
+  }
+
+  isEnum(mro: string): boolean {
+    return mro.startsWith('EnumByteBlock__');
+  }
+
+  isKnownEnumValue(schema: any, value: any): boolean {
+    return !!schema.enum_names.find(([_, v]: string[]) => v == value);
   }
 
   getMinLength(schema: any): number | null {

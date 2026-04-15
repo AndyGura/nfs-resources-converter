@@ -162,6 +162,26 @@
              [minlength]="getMinLength(schema)"
              [ngModel]="value"
              (change)="onTableFieldChange(parentId, index, field, $any($event.target).value)">
+
+      <ng-container *ngIf="isEnum(schema.block_class_mro)">
+        <select *ngIf="isKnownEnumValue(schema, value); else unknownEnum"
+                [disabled]="disabled"
+                [ngModel]="value"
+                (change)="onTableFieldChange(parentId, index, field, $any($event.target).value)">
+          <option *ngFor="let enumValue of schema.enum_names"
+                  [value]="enumValue[1]">
+            {{enumValue[1]}}
+          </option>
+        </select>
+        <ng-template #unknownEnum>
+          <input type="number"
+                 [min]="0"
+                 [max]="(schema.length || 1) * 256 - 1"
+                 [disabled]="disabled"
+                 [ngModel]="value"
+                 (change)="onTableFieldChange(parentId, index, field, +$any($event.target).value)">
+        </ng-template>
+      </ng-container>
     </ng-template>
   </div>
 </ng-template>
