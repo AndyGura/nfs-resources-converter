@@ -3,12 +3,13 @@ from typing import Dict
 from library.read_blocks import (IntegerBlock,
                                  UTF8Block,
                                  DeclarativeCompoundBlock,
-                                 BitFlagsBlock,
                                  LengthPrefixedArrayBlock,
                                  AutoDetectBlock,
                                  BytesBlock,
                                  ArrayBlock,
-                                 Padding)
+                                 Padding,
+                                 SubByteCompoundBlock,
+                                 )
 from library.read_blocks.misc.optional import OptionalBlock
 from library.read_blocks.misc.value_validators import Or
 from resources.eac.bitmaps import Bitmap4Bit, Bitmap8Bit
@@ -37,10 +38,10 @@ class GlyphDefinition(DeclarativeCompoundBlock):
                                   criteria=lambda ctx: ctx.data('../../version') >= 200),
                     {'description': 'Number of kerning pairs for this glyph'})
         kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                    criteria=lambda ctx: ctx.data('../../flags/format')),
+                                    criteria=lambda ctx: ctx.data('../../flags/format') == '16-bytes'),
                       {'description': 'Index in kerning table?'})
         x_advance = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                   criteria=lambda ctx: ctx.data('../../flags/format')),
+                                   criteria=lambda ctx: ctx.data('../../flags/format') == '16-bytes'),
                      {'description': 'Gap between this symbol and next one in rendered text?'})
 
 
@@ -76,17 +77,18 @@ class FfnFont(DeclarativeCompoundBlock):
         num_glyphs = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('definitions'))),
                       {'description': 'Amount of symbols, defined in this font'})
-        flags = BitFlagsBlock(length=4, flag_names=[(0, 'antialiased'),
-                                                    (1, 'dropshadow'),
-                                                    (2, 'outline'),
-                                                    (3, 'vram'),
-                                                    (8, 'baseline_0'),
-                                                    (9, 'baseline_1'),
-                                                    (10, 'orientation'),
-                                                    (11, 'direction'),
-                                                    (16, 'encoding_0'),
-                                                    (17, 'encoding_1'),
-                                                    (18, 'format')])
+        flags = SubByteCompoundBlock(length=4, schema=[
+            (1, 'antialiased', 'boolean', [], ''),
+            (1, 'dropshadow', 'boolean', [], ''),
+            (1, 'outline', 'boolean', [], ''),
+            (1, 'vram', 'boolean', [], ''),
+            (2, 'baseline', 'enum', ['Roman (english)', 'Ideographic (Kanji)', 'Hanging (Arabic)', 'Unknown'], ''),
+            (1, 'orientation', 'enum', ['Horizontal', 'Vertical'], ''),
+            (1, 'direction', 'enum', ['LTR', 'RTL'], ''),
+            (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
+            (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
+            (21, 'unk', 'number', [], ''),
+        ])
         center = Point2D(child=IntegerBlock(length=1, is_signed=False))
         ascent = IntegerBlock(length=1, is_signed=False)
         descent = IntegerBlock(length=1, is_signed=False)
