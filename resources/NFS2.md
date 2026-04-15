@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2026-04-13 00:41:51.121343+00:00*
+*Last time updated: 2026-04-15 06:47:25.192941+00:00*
 
 
 # **Info by file extensions** #
@@ -358,7 +358,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
 | 1 | **unk0** | 3 | Bytes | Unknown purpose |
 | 4 | **unk1_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 8 | **unk1** | 2\*unk1_length\*4 | Array of `2*unk1_length` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 8 | **unk1** | 8\*unk1_length | Bytes | Unknown purpose |
 ### **Palette24Bit** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
