@@ -21,7 +21,7 @@ class FfnFontSerializer(BaseFileSerializer):
             file.write(f'common lineHeight={data["ascent"] + data["descent"]}\n')
             file.write(f'page id=0 file="bitmap.png"\n')
             file.write(f'chars count={data["num_glyphs"]}\n')
-            for symbol in data['definitions']['data']:
+            for symbol in data['definitions']:
                 file.write(f'char id={symbol["code"]}    x={symbol["x"]}     y={symbol["y"]}     '
                            f'width={symbol["width"]}    height={symbol["height"]}   '
                            f'xoffset={symbol["x_offset"]}     yoffset={symbol["y_offset"]}     '

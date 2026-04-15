@@ -147,6 +147,7 @@ EXPORT_RESOURCES = {
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
+                fonts.KerningItem(),
             ],
             'Palettes': [
                 palettes.PaletteReference(),
@@ -229,6 +230,7 @@ EXPORT_RESOURCES = {
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
+                fonts.KerningItem(),
             ],
             'Palettes': [
                 palettes.PaletteReference(),
@@ -302,6 +304,7 @@ EXPORT_RESOURCES = {
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
+                fonts.KerningItem(),
             ],
             'Palettes': [
                 palettes.PaletteReference(),
@@ -384,6 +387,7 @@ EXPORT_RESOURCES = {
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
+                fonts.KerningItem(),
             ],
             'Palettes': [
                 palettes.Palette16Bit(),
@@ -428,6 +432,7 @@ EXPORT_RESOURCES = {
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
+                fonts.KerningItem(),
             ],
             'Palettes': [
                 palettes.Palette16BitDos(),

@@ -1,63 +1,98 @@
-<div class="font-editor-container" *ngIf="resource">
-  <div class="top-section">
-    <div class="top-left">
-      <mat-tab-group class="header-tabs">
-        <mat-tab label="Font">
+<mat-tab-group class="font-editor-tabs" *ngIf="resource">
+  <mat-tab label="Font">
+    <div class="font-editor-container">
+      <div class="top-section">
+        <div class="top-left">
           <div class="tab-content">
             <app-compound-block-ui [resource]="resource"
-                                  [fieldBlacklist]="['bitmap']"
-                                  [hideBlockActions]="true"
-                                  (changed)="changed.emit()"></app-compound-block-ui>
+                                   [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
+                                   [hideBlockActions]="true"
+                                   (changed)="changed.emit()"></app-compound-block-ui>
           </div>
-        </mat-tab>
-        <mat-tab label="Bitmap">
-          <div class="tab-content">
-            <app-compound-block-ui [resource]="resource"
-                                  [fieldWhitelist]="['bitmap']"
-                                  [hideBlockActions]="true"
-                                  (changed)="changed.emit()"></app-compound-block-ui>
-          </div>
-        </mat-tab>
-      </mat-tab-group>
-    </div>
+        </div>
 
-    <div class="top-center">
-      <div class="text-preview-container">
-        <div class="preview-title">Font Preview</div>
-        <textarea (input)="onTextChange($event)" >{{ _text$.getValue() }}</textarea>
-        <div class="canvas-scroll-container">
-          <div #textPreviewContainer class="pixi-container"></div>
+        <div class="top-center">
+          <div class="text-preview-container">
+            <div class="preview-title">Font Preview</div>
+            <textarea (input)="onTextChange($event)">{{ _text$.getValue() }}</textarea>
+            <div class="canvas-scroll-container">
+              <div #textPreviewContainer class="pixi-container"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="top-right">
+          <div class="preview-container">
+            <div class="preview-title">Char Preview</div>
+            <canvas #fullBitmapCanvas></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-section">
+        <div class="tables-row">
+          <div class="table-container">
+            <h3>Glyphs</h3>
+            <table class="glyph-table">
+              <thead>
+              <tr>
+                <th *ngFor="let key of glyphKeys">{{ key }}</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let glyph of glyphs; let i = index"
+                  [class.selected]="i === (_selectedGlyphIndex$ | async)"
+                  (click)="selectGlyph(i)">
+                <td *ngFor="let key of glyphKeys">
+                  <input *ngIf="key !== 'symbol'" type="number" [value]="glyph[key]"
+                         (change)="onCellChange(i, key, $event)">
+                  <div *ngIf="key === 'symbol'" class="symbol-cell">{{ getSymbol(glyph['code']) }}</div>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-container" *ngIf="kernings && kernings.length > 0">
+            <h3>Kernings</h3>
+            <table class="glyph-table">
+              <thead>
+              <tr>
+                <ng-container *ngFor="let key of kerningKeys">
+                  <th *ngIf="key !== 'Unk' || !(main.hideHiddenFields$ | async)">{{ key }}</th>
+                </ng-container>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let kerning of kernings; let i = index">
+                <ng-container *ngFor="let key of kerningKeys">
+                  <td *ngIf="key !== 'Unk' || !(main.hideHiddenFields$ | async)">
+                    <div *ngIf="key === 'Left Symbol'" class="symbol-cell">{{ getSymbol(kerning['left']) }}</div>
+                    <div *ngIf="key === 'Right Symbol'" class="symbol-cell">{{ getSymbol(kerning['right']) }}</div>
+                    <input *ngIf="key === 'Left Symbol Code'" type="number" [value]="kerning['left']"
+                           (change)="onKerningCellChange(i, key, $event)">
+                    <input *ngIf="key === 'Right Symbol Code'" type="number" [value]="kerning['right']"
+                           (change)="onKerningCellChange(i, key, $event)">
+                    <input *ngIf="key === 'Kerning'" type="number" min="-128" max="128" [value]="kerning['kerning']"
+                           (change)="onKerningCellChange(i, key, $event)">
+                    <input *ngIf="key === 'Unk'" type="number" [value]="kerning['unk']"
+                           (change)="onKerningCellChange(i, key, $event)">
+                  </td>
+                </ng-container>
+              </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="top-right">
-      <div class="preview-container">
-        <div class="preview-title">Char Preview</div>
-        <canvas #fullBitmapCanvas></canvas>
-      </div>
+  </mat-tab>
+  <mat-tab label="Bitmap">
+    <div class="tab-content">
+      <app-compound-block-ui [resource]="resource"
+                             [fieldWhitelist]="['bitmap']"
+                             [hideBlockActions]="true"
+                             (changed)="changed.emit()"></app-compound-block-ui>
     </div>
-  </div>
-
-  <div class="bottom-section">
-    <div class="table-container">
-      <table class="glyph-table">
-        <thead>
-          <tr>
-            <th *ngFor="let key of glyphKeys">{{ key }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let glyph of glyphs; let i = index"
-              [class.selected]="i === (_selectedGlyphIndex$ | async)"
-              (click)="selectGlyph(i)">
-            <td *ngFor="let key of glyphKeys">
-              <input *ngIf="key !== 'symbol'" type="number" [value]="glyph[key]" (change)="onCellChange(i, key, $event)">
-              <div *ngIf="key === 'symbol'" class="symbol-cell">{{ getSymbol(glyph['code']) }}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+  </mat-tab>
+</mat-tab-group>

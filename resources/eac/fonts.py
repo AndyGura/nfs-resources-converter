@@ -1,13 +1,21 @@
 from typing import Dict
 
-from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock, \
-    AutoDetectBlock, BitFlagsBlock, DelegateBlock
+from library.read_blocks import (IntegerBlock,
+                                 UTF8Block,
+                                 DeclarativeCompoundBlock,
+                                 BitFlagsBlock,
+                                 LengthPrefixedArrayBlock,
+                                 AutoDetectBlock,
+                                 BytesBlock,
+                                 ArrayBlock,
+                                 Padding)
+from library.read_blocks.misc.optional import OptionalBlock
 from library.read_blocks.misc.value_validators import Or
 from resources.eac.bitmaps import Bitmap4Bit, Bitmap8Bit
 from resources.eac.fields.misc import Point2D
 
 
-class GlyphDefinition11(DeclarativeCompoundBlock):
+class GlyphDefinition(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         code = (IntegerBlock(length=2),
                 {'description': 'Code of symbol'})
@@ -19,60 +27,31 @@ class GlyphDefinition11(DeclarativeCompoundBlock):
              {'description': 'Position (x) of symbol in font bitmap'})
         y = (IntegerBlock(length=2),
              {'description': 'Position (y) of symbol in font bitmap'})
-        x_advance = (IntegerBlock(length=1),
-                     {'description': 'Gap between this symbol and next one in rendered text'})
+        advance = (IntegerBlock(length=1),
+                   {'description': 'Gap between this symbol and next one in rendered text'})
         x_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (x) for drawing the character image'})
         y_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (y) for drawing the character image'})
-
-
-class GlyphDefinition12(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        code = (IntegerBlock(length=2),
-                {'description': 'Code of symbol'})
-        width = (IntegerBlock(length=1),
-                 {'description': 'Width of symbol in font bitmap'})
-        height = (IntegerBlock(length=1),
-                  {'description': 'Height of symbol in font bitmap'})
-        x = (IntegerBlock(length=2),
-             {'description': 'Position (x) of symbol in font bitmap'})
-        y = (IntegerBlock(length=2),
-             {'description': 'Position (y) of symbol in font bitmap'})
-        x_advance = (IntegerBlock(length=1),
-                     {'description': 'Gap between this symbol and next one in rendered text'})
-        x_offset = (IntegerBlock(length=1, is_signed=True),
-                    {'description': 'Offset (x) for drawing the character image'})
-        y_offset = (IntegerBlock(length=1, is_signed=True),
-                    {'description': 'Offset (y) for drawing the character image'})
-        num_kern = (IntegerBlock(length=1, is_signed=False),
+        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
+                                  criteria=lambda ctx: ctx.data('../../version') >= 200),
                     {'description': 'Number of kerning pairs for this glyph'})
-
-
-class GlyphDefinition16(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        code = (IntegerBlock(length=2),
-                {'description': 'Code of symbol'})
-        width = (IntegerBlock(length=1),
-                 {'description': 'Width of symbol in font bitmap'})
-        height = (IntegerBlock(length=1),
-                  {'description': 'Height of symbol in font bitmap'})
-        x = (IntegerBlock(length=2),
-             {'description': 'Position (x) of symbol in font bitmap'})
-        y = (IntegerBlock(length=2),
-             {'description': 'Position (y) of symbol in font bitmap'})
-        y_advance = (IntegerBlock(length=1),
-                     {'description': 'Gap between this symbol and next one in rendered text (vertical)'})
-        x_offset = (IntegerBlock(length=1, is_signed=True),
-                    {'description': 'Offset (x) for drawing the character image'})
-        y_offset = (IntegerBlock(length=1, is_signed=True),
-                    {'description': 'Offset (y) for drawing the character image'})
-        num_kern = (IntegerBlock(length=1, is_signed=False),
-                    {'description': 'Number of kerning pairs for this glyph'})
-        kern_index = (IntegerBlock(length=2, is_signed=False),
+        kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
+                                    criteria=lambda ctx: ctx.data('../../flags/format')),
                       {'description': 'Index in kerning table?'})
-        x_advance = (IntegerBlock(length=2, is_signed=False),
-                     {'description': 'Gap between this symbol and next one in rendered text'})
+        x_advance = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
+                                   criteria=lambda ctx: ctx.data('../../flags/format')),
+                     {'description': 'Gap between this symbol and next one in rendered text?'})
+
+
+class KerningItem(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        left = (IntegerBlock(length=1),
+                {'description': 'Code of left glyph'})
+        unk = (IntegerBlock(length=1))
+        kerning = (IntegerBlock(length=1, is_signed=True))
+        right = (IntegerBlock(length=1),
+                 {'description': 'Code of right glyph'})
 
 
 class FfnFont(DeclarativeCompoundBlock):
@@ -82,11 +61,13 @@ class FfnFont(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'serializable_to_disc': True,
+            'hide_navigation_bar': True,
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, value_validator=Or(['FNTF', 'FNTP', 'FNTS', 'FNTX', 'FNTM', 'FNTG', 'FNTA',
-                                                              'FntF', 'FntP', 'FntS', 'FntX', 'FntM', 'FntG', 'FntA'])),
+                                                               'FntF', 'FntP', 'FntS', 'FntX', 'FntM', 'FntG',
+                                                               'FntA'])),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4,
                                    programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
@@ -109,28 +90,32 @@ class FfnFont(DeclarativeCompoundBlock):
         center = Point2D(child=IntegerBlock(length=1, is_signed=False))
         ascent = IntegerBlock(length=1, is_signed=False)
         descent = IntegerBlock(length=1, is_signed=False)
-        char_info_ptr = IntegerBlock(length=4)
-        kerning_table_ptr = IntegerBlock(length=4)
+        definitions_ptr = (IntegerBlock(length=4,
+                                        programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
+                                            ctx.get_full_data(),
+                                            'definitions')),
+                           {'description': 'Pointer to definitions block'})
+        kernings_ptr = (IntegerBlock(length=4,
+                                     programmatic_value=lambda ctx: (
+                                         0 if len(ctx.data('kenrings') == 0)
+                                         else ctx.block.offset_to_child_when_packed(
+                                             ctx.get_full_data(), 'kernings'))),
+                        {'description': 'Pointer to kernings. 0 if there is no kernings table'})
         bdata_ptr = (IntegerBlock(length=4,
                                   programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
                                       ctx.get_full_data(),
                                       'bitmap')),
                      {'description': 'Pointer to bitmap block'})
-        skip_bytes_0 = BytesBlock(length=(lambda ctx: ctx.data('char_info_ptr') - ctx.buffer.tell(),
-                                          'up to offset char_info_ptr'))
-        definitions = (DelegateBlock(possible_blocks=[ArrayBlock(child=GlyphDefinition11(),
-                                                                 length=lambda ctx: ctx.data('num_glyphs')),
-                                                      ArrayBlock(child=GlyphDefinition12(),
-                                                                 length=lambda ctx: ctx.data('num_glyphs')),
-                                                      ArrayBlock(child=GlyphDefinition16(),
-                                                                 length=lambda ctx: ctx.data('num_glyphs'))],
-                                     choice_index=lambda ctx, **_: 0 if (ctx.data('version') < 200)
-                                     else 2 if ctx.data('flags/format')
-                                     else 1),
+        padding_0 = Padding(to=lambda ctx: ctx.data('definitions_ptr'))
+        definitions = (ArrayBlock(child=GlyphDefinition(),
+                                  length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})
-        skip_bytes_1 = (BytesBlock(length=(lambda ctx: ctx.data('bdata_ptr') - ctx.buffer.tell(),
-                                           'up to offset bdata_ptr')),
-                        {'description': '4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36)'})
+        padding_1 = OptionalBlock(child=Padding(to=lambda ctx: ctx.data('kernings_ptr')),
+                                  criteria=lambda ctx: ctx.data('kernings_ptr') != 0)
+        kernings = (OptionalBlock(child=LengthPrefixedArrayBlock(child=KerningItem(),
+                                                                 length_block=IntegerBlock(length=4)),
+                                  criteria=lambda ctx: ctx.data('kernings_ptr') != 0))
+        padding_2 = Padding(to=lambda ctx: ctx.data('bdata_ptr'))
         bitmap = (AutoDetectBlock(possible_blocks=[Bitmap4Bit(), Bitmap8Bit()]),
                   {'description': 'Font atlas bitmap data',
                    'custom_offset': 'bdata_ptr'})

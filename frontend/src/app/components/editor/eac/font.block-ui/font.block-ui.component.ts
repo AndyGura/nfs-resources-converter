@@ -15,6 +15,7 @@ import { BehaviorSubject, combineLatest, Subject, takeUntil } from 'rxjs';
 import { Resource } from '../../types';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { NavigationService } from '../../../../services/navigation.service';
+import { MainService } from '../../../../services/main.service';
 import * as PIXI from 'pixi.js';
 import { BitmapFont, BitmapText, Assets, bitmapFontTextParser, Cache } from 'pixi.js';
 
@@ -52,6 +53,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   constructor(
     private readonly eelDelegate: EelDelegateService,
     public readonly navigation: NavigationService,
+    public readonly main: MainService,
     private readonly ngZone: NgZone
   ) {}
 
@@ -307,13 +309,27 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   }
 
   get glyphs(): any[] {
-    return this.resource?.data?.definitions?.data || [];
+    const defs = this.resource?.data?.definitions;
+    if (Array.isArray(defs)) return defs;
+    if (defs && Array.isArray(defs.data)) return defs.data;
+    return [];
   }
 
   get glyphKeys(): string[] {
     const glyphs = this.glyphs;
     if (glyphs.length === 0) return [];
-    return ['symbol', ...Object.keys(glyphs[0])];
+    return ['symbol', ...Object.keys(glyphs[0]).filter(k => k !== 'num_kern' && k !== 'kern_index')];
+  }
+
+  get kernings(): any[] {
+    const kerns = this.resource?.data?.kernings;
+    if (Array.isArray(kerns)) return kerns;
+    if (kerns && Array.isArray(kerns.data)) return kerns.data;
+    return [];
+  }
+
+  get kerningKeys(): string[] {
+    return ['Left Symbol', 'Right Symbol', 'Left Symbol Code', 'Right Symbol Code', 'Kerning', 'Unk'];
   }
 
   getSymbol(code: any): string {
@@ -332,7 +348,26 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     if (glyph) {
       glyph[key] = parseInt(value, 10);
       this.changed.emit();
-      this._resource$.next(this.resource);
+      this._resource$.next({ ...this.resource! });
+    }
+  }
+
+  onKerningCellChange(index: number, key: string, event: any) {
+    const value = event.target.value;
+    const kerning = this.kernings[index];
+    if (kerning) {
+      let fieldKey = '';
+      if (key === 'Left Symbol Code') fieldKey = 'left';
+      else if (key === 'Right Symbol Code') fieldKey = 'right';
+      else if (key === 'Kerning') fieldKey = 'kerning';
+      else if (key === 'Unk') fieldKey = 'unk';
+
+      if (fieldKey) {
+        kerning[fieldKey] = parseInt(value, 10);
+        this.changed.emit();
+        // Since we modified the array directly, and we want to trigger change detection
+        this._resource$.next({ ...this.resource! });
+      }
     }
   }
 
