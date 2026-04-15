@@ -125,6 +125,28 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.cdr.markForCheck();
   }
 
+  moveItemUp(index: number) {
+    if (index <= 0 || !this.resource) return;
+    const temp = this.resourceData[index];
+    this.resourceData[index] = this.resourceData[index - 1];
+    this.resourceData[index - 1] = temp;
+    this.buildChildren();
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
+  moveItemDown(index: number) {
+    if (index >= this.resourceData.length - 1 || !this.resource) return;
+    const temp = this.resourceData[index];
+    this.resourceData[index] = this.resourceData[index + 1];
+    this.resourceData[index + 1] = temp;
+    this.buildChildren();
+    this.renderPage(this.pageIndex, this.pageSize);
+    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.cdr.markForCheck();
+  }
+
   get isTable(): boolean {
     return !!this.tableColumns && this.tableColumns.length > 0;
   }
@@ -261,6 +283,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
         ),
       )
       .subscribe(async ([blockId, value]) => {
+        if (blockId === this.resource!.id) {
+          this.resource!.data = value;
+          return;
+        }
         this.resourceData[+idSuffix(this.resource!.id, blockId)] = value;
       });
   }
