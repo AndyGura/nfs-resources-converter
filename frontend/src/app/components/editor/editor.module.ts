@@ -7,6 +7,7 @@ import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.b
 import { NumberBlockUiComponent } from './library/number.block-ui/number.block-ui.component';
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
+import { DataTableComponent } from './common/data-table/data-table.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
@@ -59,6 +60,7 @@ import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/
     NumberBlockUiComponent,
     StringBlockUiComponent,
     ArrayBlockUiComponent,
+    DataTableComponent,
     BinaryBlockUiComponent,
     EnumBlockUiComponent,
     SubByteCompoundBlockUiComponent,
