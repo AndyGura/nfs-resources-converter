@@ -13,7 +13,7 @@ export interface ArrayTableColumn {
   index: number;
   readonly?: boolean;
   description?: string;
-  subFields?: { key: string; index: number; readonly?: boolean; description?: string }[];
+  subFields?: { key: string; index: number; readonly?: boolean; description?: string; schema?: any }[];
   schema?: any;
 }
 
@@ -35,8 +35,15 @@ export class DataTableComponent {
     this.hasSubFields = value?.some(col => col.subFields && col.subFields.length > 0) || false;
   }
 
-  @Input() data: any[] = [];
-  @Input() itemSchema: any = null;
+  @Input()
+  set data(value: any[]) {
+    this._data = value;
+    this.isPrimitive = value && value.length > 0 && (typeof value[0] !== 'object' || value[0] === null);
+  }
+  get data(): any[] {
+    return this._data;
+  }
+  private _data: any[] = [];
   @Input() renderIndexes: number[] = [];
   @Input() disabled: boolean = false;
   @Input() enableArrayEditing: boolean = false;
@@ -51,6 +58,7 @@ export class DataTableComponent {
   @Output() focusedElement = new EventEmitter<[string[], number]>();
 
   public hasSubFields: boolean = false;
+  public isPrimitive: boolean = false;
 
   constructor(
     private cdr: ChangeDetectorRef,

@@ -61,10 +61,10 @@
         <ng-container *ngFor='let f of columns'>
           <td *ngIf='!f.subFields'>
             <ng-container *ngTemplateOutlet='inputField; context: {
-                schema: itemSchema.fields[f.index].schema,
-                value: data[getGlobalIndex(i)][f.key],
+                schema: f.schema,
+                value: isPrimitive ? data[getGlobalIndex(i)] : data[getGlobalIndex(i)][f.key],
                 index: getGlobalIndex(i),
-                field: f.key,
+                field: isPrimitive ? null : f.key,
                 subField: null,
                 readonly: f.readonly
               }'></ng-container>
@@ -72,7 +72,7 @@
           <ng-container *ngIf='f.subFields'>
             <td *ngFor='let sf of f.subFields'>
               <ng-container *ngTemplateOutlet='inputField; context: {
-                  schema: itemSchema.fields[f.index].schema.fields[sf.index].schema,
+                  schema: sf.schema,
                   value: data[getGlobalIndex(i)][f.key][sf.key],
                   index: getGlobalIndex(i),
                   field: f.key,
@@ -86,7 +86,7 @@
       <ng-template #simpleDataCell>
         <td>
           <ng-container *ngTemplateOutlet='inputField; context: {
-              schema: itemSchema,
+              schema: columns && columns.length > 0 ? columns[0].schema : null,
               value: data[getGlobalIndex(i)],
               index: getGlobalIndex(i),
               field: null,
@@ -109,7 +109,7 @@
 </button>
 
 <ng-template #inputField let-schema='schema' let-value='value' let-index='index' let-field='field' let-subField='subField' let-readonly='readonly'>
-  <div class="compact-input">
+  <div class="compact-input" *ngIf="schema">
     <ng-container *ngIf="schema.value_validator?.type === 'or'; else regularInput">
       <select
         [disabled]="disabled || readonly"
