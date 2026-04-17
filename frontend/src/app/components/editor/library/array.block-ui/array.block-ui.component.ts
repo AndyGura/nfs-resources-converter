@@ -15,6 +15,8 @@ import { filter, Subject, takeUntil } from 'rxjs';
 import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
+import { ArrayTableColumn } from '../../common/data-table/data-table.component';
+
 @Component({
   selector: 'app-array-block-ui',
   templateUrl: './array.block-ui.component.html',
@@ -85,18 +87,18 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   protected readonly joinId = joinId;
 
-  constructor(
-    public main: MainService,
-    private readonly cdr: ChangeDetectorRef,
-    public readonly navigation: NavigationService,
-  ) {
-  }
-
   get enableArrayEditing(): boolean {
     return (
       !this.schema?.block_class_mro?.includes('SubByteArrayBlock')
       && (!this.schema?.length && this.schema?.length !== 0)
     );
+  }
+
+  constructor(
+    public main: MainService,
+    private readonly cdr: ChangeDetectorRef,
+    public readonly navigation: NavigationService,
+  ) {
   }
 
   async addItem() {
@@ -160,60 +162,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     'EnumByteBlock'
   ];
   tableColumns: string[] | null = null;
-  tableCompoundFields: { key: string; index: number; subFields?: { key: string; index: number }[] }[] | null = null;
-  hasSubFields: boolean = false;
-
-  isNumeric(mro: string): boolean {
-    return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some((w) => mro.startsWith(w + '__'));
-  }
-
-  isString(mro: string): boolean {
-    return ['UTF8Block', 'NullTerminatedUTF8Block'].some((w) => mro.startsWith(w + '__'));
-  }
-
-  isEnum(mro: string): boolean {
-    return mro.startsWith('EnumByteBlock__');
-  }
-
-  isKnownEnumValue(schema: any, value: any): boolean {
-    return !!schema.enum_names.find(([_, v]: string[]) => v == value);
-  }
-
-  getMinLength(schema: any): number | null {
-    if (!isNaN(+schema.length)) {
-      return +schema.length;
-    }
-    return null;
-  }
-
-  getMaxLength(schema: any): number | null {
-    if (!isNaN(+schema.length)) {
-      return +schema.length;
-    }
-    return null;
-  }
-
-  onTableFieldChange(parentId: string, index: number, field: string | null, value: any): void {
-    // we do not want to emit "changed" here as we normally do, because it leads to change of whole array data
-    // emit dataBlockChange$ directly instead
-    if (field) {
-      const data = this.resourceData[index];
-      const parentParts = parentId.split('/');
-      const lastPart = parentParts[parentParts.length - 1];
-
-      if (isNaN(+lastPart)) {
-        // nested compound
-        data[lastPart][field] = value;
-      } else {
-        data[field] = value;
-      }
-
-      this.main.dataBlockChange$.next([joinId(parentId, field), value]);
-    } else {
-      this.resourceData[index] = value;
-      this.main.dataBlockChange$.next([parentId, value]);
-    }
-  }
+  arrayTableColumns: ArrayTableColumn[] | null = null;
 
   private checkIfTable(): void {
     const childSchema = this.schema?.child_schema;
@@ -227,7 +176,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
     if (isWhitelisted(mro)) {
       this.tableColumns = ['index', 'data'];
-      this.hasSubFields = false;
+      this.arrayTableColumns = [];
     } else if (mro.includes('CompoundBlock__')) {
       const fields = childSchema.fields || [];
       const uiFields = fields
@@ -249,8 +198,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
       const allChildrenWhitelisted = uiFields.every(isNestedWhitelisted);
       if (allChildrenWhitelisted && uiFields.length > 0) {
-        this.hasSubFields = uiFields.some((f: any) => (f.schema.block_class_mro || '').includes('CompoundBlock__'));
-        this.tableCompoundFields = uiFields.map((f: any) => {
+        this.arrayTableColumns = uiFields.map((f: any) => {
           const nestedMro = f.schema.block_class_mro || '';
           if (nestedMro.includes('CompoundBlock__')) {
             const subFields = (f.schema.fields || [])
@@ -259,12 +207,24 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
             return {
               key: f.name,
               index: f.index,
-              subFields: subFields.map((sf: any) => ({ key: sf.name, index: sf.index })),
+              description: f.description,
+              subFields: subFields.map((sf: any) => ({
+                key: sf.name,
+                index: sf.index,
+                readonly: sf.schema.value_validator?.type === 'eq',
+                description: sf.description
+              })),
+              readonly: false, // compound itself isn't editable as a single value
             };
           }
-          return { key: f.name, index: f.index };
+          return {
+            key: f.name,
+            index: f.index,
+            readonly: f.schema.value_validator?.type === 'eq',
+            description: f.description
+          };
         });
-        this.tableColumns = ['index', ...this.tableCompoundFields!.map((f) => f.key)];
+        this.tableColumns = ['index', ...this.arrayTableColumns!.map((f) => f.key)];
       }
     }
   }
@@ -294,6 +254,28 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
+  }
+
+  onTableDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }): void {
+    if (!this.resource) return;
+    const { index, field, subField, value } = event;
+    const item = this.resourceData[index];
+    let targetId = joinId(this.resource.id, index);
+
+    if (field) {
+      targetId = joinId(targetId, field);
+      if (subField) {
+        targetId = joinId(targetId, subField);
+        item[field][subField] = value;
+      } else {
+        item[field] = value;
+      }
+    } else {
+      this.resourceData[index] = value;
+    }
+
+    this.main.dataBlockChange$.next([targetId, value]);
+    this.cdr.markForCheck();
   }
 
   onContentsTrigger(open: boolean): void {
