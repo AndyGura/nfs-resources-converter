@@ -176,7 +176,12 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
     if (isWhitelisted(mro)) {
       this.tableColumns = ['index', 'data'];
-      this.arrayTableColumns = [];
+      this.arrayTableColumns = [{
+        key: 'data',
+        index: 0,
+        schema: childSchema,
+        readonly: childSchema.value_validator?.type === 'eq',
+      }];
     } else if (mro.includes('CompoundBlock__')) {
       const fields = childSchema.fields || [];
       const uiFields = fields
@@ -212,16 +217,19 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
                 key: sf.name,
                 index: sf.index,
                 readonly: sf.schema.value_validator?.type === 'eq',
-                description: sf.description
+                description: sf.description,
+                schema: sf.schema,
               })),
               readonly: false, // compound itself isn't editable as a single value
+              schema: f.schema,
             };
           }
           return {
             key: f.name,
             index: f.index,
             readonly: f.schema.value_validator?.type === 'eq',
-            description: f.description
+            description: f.description,
+            schema: f.schema,
           };
         });
         this.tableColumns = ['index', ...this.arrayTableColumns!.map((f) => f.key)];
@@ -267,8 +275,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
       if (subField) {
         targetId = joinId(targetId, subField);
         item[field][subField] = value;
-      } else {
+      } else if (typeof item === 'object' && item !== null) {
         item[field] = value;
+      } else {
+        this.resourceData[index] = value;
       }
     } else {
       this.resourceData[index] = value;

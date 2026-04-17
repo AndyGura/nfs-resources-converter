@@ -6,7 +6,6 @@
 <ng-container *ngIf="isTable; else standardViewExpansion">
   <data-table
     [data]="resourceData"
-    [itemSchema]="schema?.child_schema"
     [renderIndexes]="renderIndexes"
     [columns]="arrayTableColumns"
     [disabled]="disabled"
