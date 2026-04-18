@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -17,7 +18,8 @@ import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { NavigationService } from '../../../../services/navigation.service';
 import { MainService } from '../../../../services/main.service';
 import * as PIXI from 'pixi.js';
-import { BitmapFont, BitmapText, Assets, bitmapFontTextParser, Cache } from 'pixi.js';
+import { Assets, BitmapFont, bitmapFontTextParser, BitmapText, Cache } from 'pixi.js';
+import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 
 @Component({
   selector: 'app-font-block-ui',
@@ -33,8 +35,15 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   _selectedGlyphIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   _text$: BehaviorSubject<string> = new BehaviorSubject<string>('The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~');
 
+  _glyphColumns: ArrayTableColumn[] = [];
+  _kerningColumns: ArrayTableColumn[] = [];
+  _renderIndexesGlyphs: number[] = [];
+  _renderIndexesKernings: number[] = [];
+
   @Input() set resource(value: Resource | null) {
     this._resource$.next(value);
+    this.updateColumns(value);
+    this.updateRenderIndexes(value);
   }
 
   get resource(): Resource | null {
@@ -54,8 +63,10 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     private readonly eelDelegate: EelDelegateService,
     public readonly navigation: NavigationService,
     public readonly main: MainService,
-    private readonly ngZone: NgZone
-  ) {}
+    private readonly ngZone: NgZone,
+    private readonly cdr: ChangeDetectorRef,
+  ) {
+  }
 
   async ngAfterViewInit(): Promise<void> {
     this._pixiApp = new PIXI.Application();
@@ -132,7 +143,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     // Disable anti-aliasing (image smoothing)
     ctx.imageSmoothingEnabled = false;
 
-    const glyphs = res.data.definitions.data;
+    const glyphs = res.data.definitions;
     const glyph = glyphs[index];
 
     if (glyph) {
@@ -148,8 +159,8 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
       // The area we want to focus on (in image coordinates)
       const minX = Math.min(glyph.x, originX, originX + x_advance);
       const maxX = Math.max(glyph.x + glyph.width, originX, originX + x_advance);
-      const minY = Math.min(glyph.y, originY, originY + (glyph.y_advance || 0));
-      const maxY = Math.max(glyph.y + glyph.height, originY, originY + (glyph.y_advance || 0));
+      const minY = Math.min(glyph.y, originY, originY + (glyph.advance || 0));
+      const maxY = Math.max(glyph.y + glyph.height, originY, originY + (glyph.advance || 0));
 
       const targetWidth = maxX - minX;
       const targetHeight = maxY - minY;
@@ -190,7 +201,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
         glyphCanvasX,
         glyphCanvasY,
         glyphCanvasW,
-        glyphCanvasH
+        glyphCanvasH,
       );
 
       // Draw offset (x_offset, y_offset)
@@ -210,34 +221,35 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
 
       // Draw advance (Blue)
       // Advance is usually from the origin.
-      if (glyph.x_advance !== undefined) {
+      let xAdvance = glyph.x_advance || glyph.advance;
+      if (xAdvance !== undefined) {
         ctx.strokeStyle = '#4040ff';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(originCanvasX, originCanvasY);
-        ctx.lineTo(originCanvasX + glyph.x_advance * ratio, originCanvasY);
+        ctx.lineTo(originCanvasX + xAdvance * ratio, originCanvasY);
         ctx.stroke();
 
         // Little tick at the end of advance
         ctx.beginPath();
-        ctx.moveTo(originCanvasX + glyph.x_advance * ratio, originCanvasY - 5);
-        ctx.lineTo(originCanvasX + glyph.x_advance * ratio, originCanvasY + 5);
+        ctx.moveTo(originCanvasX + xAdvance * ratio, originCanvasY - 5);
+        ctx.lineTo(originCanvasX + xAdvance * ratio, originCanvasY + 5);
         ctx.stroke();
       }
 
-      // Draw vertical advance (y_advance)
-      if (glyph.y_advance !== undefined && glyph.y_advance !== 0) {
+      // Draw vertical advance (advance means "y_advance" if x_advance is presen)
+      if (glyph.x_advance !== undefined && glyph.advance !== 0) {
         ctx.strokeStyle = '#ff40ff'; // Purple/Magenta for vertical advance
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(originCanvasX, originCanvasY);
-        ctx.lineTo(originCanvasX, originCanvasY + glyph.y_advance * ratio);
+        ctx.lineTo(originCanvasX, originCanvasY + glyph.advance * ratio);
         ctx.stroke();
 
         // Little tick at the end of vertical advance
         ctx.beginPath();
-        ctx.moveTo(originCanvasX - 5, originCanvasY + glyph.y_advance * ratio);
-        ctx.lineTo(originCanvasX + 5, originCanvasY + glyph.y_advance * ratio);
+        ctx.moveTo(originCanvasX - 5, originCanvasY + glyph.advance * ratio);
+        ctx.lineTo(originCanvasX + 5, originCanvasY + glyph.advance * ratio);
         ctx.stroke();
       }
     } else {
@@ -258,23 +270,23 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     const fontName = `Font_${res.id.replace(/\//g, '_')}`;
 
     if (imagePath && fntText && this._fontId !== fontName) {
-        const texture = await Assets.load(imagePath);
-        const bitmapFontData = bitmapFontTextParser.parse(fntText);
-        bitmapFontData.fontFamily = fontName; // Ensure the parsed data has our unique font name
-        const font = new BitmapFont({
-          data: bitmapFontData,
-          textures: [texture],
-        });
-        Cache.set(fontName, font);
-        this._fontId = fontName;
+      const texture = await Assets.load(imagePath);
+      const bitmapFontData = bitmapFontTextParser.parse(fntText);
+      bitmapFontData.fontFamily = fontName; // Ensure the parsed data has our unique font name
+      const font = new BitmapFont({
+        data: bitmapFontData,
+        textures: [texture],
+      });
+      Cache.set(fontName, font);
+      this._fontId = fontName;
     }
 
     if (!this._bitmapText) {
       this._bitmapText = new BitmapText({
-          text: text,
-          style: {
-              fontFamily: fontName,
-          }
+        text: text,
+        style: {
+          fontFamily: fontName,
+        },
       });
       this._pixiApp.stage.addChild(this._bitmapText);
     } else {
@@ -290,8 +302,96 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     const containerWidth = this.textPreviewContainer.nativeElement.clientWidth;
     const targetHeight = Math.max(bounds.height + 40, 200, this.textPreviewContainer.nativeElement.clientHeight);
     if (this._pixiApp.renderer.width !== containerWidth || this._pixiApp.renderer.height !== targetHeight) {
-        this._pixiApp.renderer.resize(containerWidth, targetHeight);
+      this._pixiApp.renderer.resize(containerWidth, targetHeight);
     }
+  }
+
+  private updateColumns(res: Resource | null) {
+    if (!res) return;
+    const glyphs = this.glyphs;
+    if (glyphs.length > 0) {
+      const gSchema = res.schema.fields.find((f: any) => f.name === 'definitions')?.schema;
+      const gItemSchema = gSchema?.child_schema;
+      if (gItemSchema) {
+        this._glyphColumns = [
+          { key: 'symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+          ...gItemSchema.fields.map((f: any, i: number) => ({ key: f.name, index: i, schema: f.schema })),
+        ];
+      }
+    }
+
+    const kernings = this.kernings;
+    if (kernings.length > 0) {
+      const kSchema = res.schema.fields.find((f: any) => f.name === 'kernings')?.schema;
+      const kItemSchema = kSchema?.child_schema;
+      if (kItemSchema) {
+        this._kerningColumns = [
+          { key: 'Left Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+          { key: 'Right Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+          ...kItemSchema.fields.map((f: any, i: number) => {
+            let key = f.key;
+            if (key === 'left') key = 'Left Symbol Code';
+            else if (key === 'right') key = 'Right Symbol Code';
+            else if (key === 'kerning') key = 'Kerning';
+            else if (key === 'unk') key = 'Unk';
+            return { key, index: i, schema: f.schema };
+          }),
+        ];
+      }
+    }
+  }
+
+  private updateRenderIndexes(res: Resource | null) {
+    this._renderIndexesGlyphs = this.glyphs.map((_, i) => i);
+    this._renderIndexesKernings = this.kernings.map((_, i) => i);
+  }
+
+
+  onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
+    const glyph = this.glyphs[event.index];
+    if (glyph && event.field && event.field !== 'symbol') {
+      glyph[event.field] = event.value;
+      this.changed.emit();
+      this._resource$.next({ ...this.resource! });
+      this.cdr.markForCheck();
+    }
+  }
+
+  onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
+    const kerning = this.kernings[event.index];
+    if (kerning && event.field && event.field !== 'Left Symbol' && event.field !== 'Right Symbol') {
+      // Mapping back from DataTable display keys to data keys if necessary
+      let dataField = event.field;
+      if (dataField === 'Left Symbol Code') dataField = 'left';
+      else if (dataField === 'Right Symbol Code') dataField = 'right';
+      else if (dataField === 'Kerning') dataField = 'kerning';
+      else if (dataField === 'Unk') dataField = 'unk';
+
+      kerning[dataField] = event.value;
+      this.changed.emit();
+      this._resource$.next({ ...this.resource! });
+      this.cdr.markForCheck();
+    }
+  }
+
+  onGlyphFocused(event: [string[], number]) {
+    this.selectGlyph(event[1]);
+  }
+
+  get glyphsWithSymbols(): any[] {
+    return this.glyphs.map(g => ({ ...g, symbol: this.getSymbol(g.code) }));
+  }
+
+  get kerningsWithSymbols(): any[] {
+    return (this.kernings || []).map(k => ({
+      ...k,
+      'Left Symbol': this.getSymbol(k.left),
+      'Right Symbol': this.getSymbol(k.right),
+      'Left Symbol Code': k.left,
+      'Right Symbol Code': k.right,
+      'Kerning': k.kerning,
+      'Unk': k.unk,
+    }));
   }
 
   onTextChange(event: Event) {
@@ -334,11 +434,11 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
 
   getSymbol(code: any): string {
     try {
-        const codepoint = parseInt(code, 10);
-        if (isNaN(codepoint)) return '';
-        return String.fromCodePoint(codepoint);
+      const codepoint = parseInt(code, 10);
+      if (isNaN(codepoint)) return '';
+      return String.fromCodePoint(codepoint);
     } catch (e) {
-        return '';
+      return '';
     }
   }
 

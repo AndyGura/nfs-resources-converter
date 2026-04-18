@@ -33,55 +33,29 @@
         <div class="tables-row">
           <div class="table-container">
             <h3>Glyphs</h3>
-            <table class="glyph-table">
-              <thead>
-              <tr>
-                <th *ngFor="let key of glyphKeys">{{ key }}</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr *ngFor="let glyph of glyphs; let i = index"
-                  [class.selected]="i === (_selectedGlyphIndex$ | async)"
-                  (click)="selectGlyph(i)">
-                <td *ngFor="let key of glyphKeys">
-                  <input *ngIf="key !== 'symbol'" type="number" [value]="glyph[key]"
-                         (change)="onCellChange(i, key, $event)">
-                  <div *ngIf="key === 'symbol'" class="symbol-cell">{{ getSymbol(glyph['code']) }}</div>
-                </td>
-              </tr>
-              </tbody>
-            </table>
+            <data-table [data]="glyphsWithSymbols"
+                        [renderIndexes]="_renderIndexesGlyphs"
+                        [columns]="_glyphColumns"
+                        [enableArrayEditing]="true"
+                        (addItem)="addGlyph()"
+                        (removeItem)="removeGlyph($event)"
+                        (moveItemUp)="moveGlyphUp($event)"
+                        (moveItemDown)="moveGlyphDown($event)"
+                        (dataChanged)="onGlyphDataChanged($event)"
+                        (focusedElement)="onGlyphFocused($event)"></data-table>
           </div>
 
-          <div class="table-container" *ngIf="kernings && kernings.length > 0">
+          <div class="table-container">
             <h3>Kernings</h3>
-            <table class="glyph-table">
-              <thead>
-              <tr>
-                <ng-container *ngFor="let key of kerningKeys">
-                  <th *ngIf="key !== 'Unk' || !(main.hideHiddenFields$ | async)">{{ key }}</th>
-                </ng-container>
-              </tr>
-              </thead>
-              <tbody>
-              <tr *ngFor="let kerning of kernings; let i = index">
-                <ng-container *ngFor="let key of kerningKeys">
-                  <td *ngIf="key !== 'Unk' || !(main.hideHiddenFields$ | async)">
-                    <div *ngIf="key === 'Left Symbol'" class="symbol-cell">{{ getSymbol(kerning['left']) }}</div>
-                    <div *ngIf="key === 'Right Symbol'" class="symbol-cell">{{ getSymbol(kerning['right']) }}</div>
-                    <input *ngIf="key === 'Left Symbol Code'" type="number" [value]="kerning['left']"
-                           (change)="onKerningCellChange(i, key, $event)">
-                    <input *ngIf="key === 'Right Symbol Code'" type="number" [value]="kerning['right']"
-                           (change)="onKerningCellChange(i, key, $event)">
-                    <input *ngIf="key === 'Kerning'" type="number" min="-128" max="128" [value]="kerning['kerning']"
-                           (change)="onKerningCellChange(i, key, $event)">
-                    <input *ngIf="key === 'Unk'" type="number" [value]="kerning['unk']"
-                           (change)="onKerningCellChange(i, key, $event)">
-                  </td>
-                </ng-container>
-              </tr>
-              </tbody>
-            </table>
+            <data-table [data]="kerningsWithSymbols"
+                        [renderIndexes]="_renderIndexesKernings"
+                        [columns]="_kerningColumns"
+                        [enableArrayEditing]="true"
+                        (addItem)="addKerning()"
+                        (removeItem)="removeKerning($event)"
+                        (moveItemUp)="moveKerningUp($event)"
+                        (moveItemDown)="moveKerningDown($event)"
+                        (dataChanged)="onKerningDataChanged($event)"></data-table>
           </div>
         </div>
       </div>

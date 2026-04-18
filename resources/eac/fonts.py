@@ -99,7 +99,7 @@ class FfnFont(DeclarativeCompoundBlock):
                            {'description': 'Pointer to definitions block'})
         kernings_ptr = (IntegerBlock(length=4,
                                      programmatic_value=lambda ctx: (
-                                         0 if len(ctx.data('kenrings') == 0)
+                                         0 if len(ctx.data('kernings') == 0)
                                          else ctx.block.offset_to_child_when_packed(
                                              ctx.get_full_data(), 'kernings'))),
                         {'description': 'Pointer to kernings. 0 if there is no kernings table'})
