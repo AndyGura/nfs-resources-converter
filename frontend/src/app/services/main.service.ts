@@ -11,6 +11,7 @@ import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../
 })
 export class MainService {
   private readonly _hasUnsavedChanges$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  private readonly _stagedChanges$: BehaviorSubject<{ [key: string]: any }> = new BehaviorSubject<{ [key: string]: any }>({});
   resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
@@ -72,6 +73,11 @@ export class MainService {
 
   private updateUnsavedChanges() {
     this._hasUnsavedChanges$.next(Object.keys(this.changedDataBlocks).length > 0);
+    this._stagedChanges$.next({ ...this.changedDataBlocks });
+  }
+
+  get stagedChanges$(): Observable<{ [key: string]: any }> {
+    return this._stagedChanges$.asObservable();
   }
   get hasUnsavedChanges$(): Observable<boolean> {
     return this._hasUnsavedChanges$.asObservable();

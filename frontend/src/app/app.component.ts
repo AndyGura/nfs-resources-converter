@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { NavigationService } from './services/navigation.service';
 import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -16,6 +17,8 @@ import { ConfigComponent } from './components/config/config.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
+  readonly isProduction = environment.production;
+
   constructor(
     readonly eelDelegate: EelDelegateService,
     readonly mainService: MainService,
@@ -87,6 +90,19 @@ export class AppComponent {
 
   openBmac() {
     window.open('https://www.buymeacoffee.com/andygura', '_blank');
+  }
+
+  formatChangeId(id: string): string {
+    const doubleUnderscoreIndex = id.lastIndexOf('__');
+    if (doubleUnderscoreIndex === -1) {
+      return id;
+    }
+    return id.substring(doubleUnderscoreIndex + 2);
+  }
+
+  getStagedChangesCount(changes: { [key: string]: any } | null): number {
+    if (!changes) return 0;
+    return Object.keys(changes).filter(key => key !== '__has_external_changes__').length;
   }
 
   openConverter() {
