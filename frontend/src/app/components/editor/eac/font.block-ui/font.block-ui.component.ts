@@ -20,6 +20,7 @@ import { MainService } from '../../../../services/main.service';
 import * as PIXI from 'pixi.js';
 import { Assets, BitmapFont, bitmapFontTextParser, BitmapText, Cache } from 'pixi.js';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
+import { joinId } from '../../../../utils/join-id';
 
 @Component({
   selector: 'app-font-block-ui',
@@ -346,6 +347,36 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     this._renderIndexesKernings = this.kernings.map((_, i) => i);
   }
 
+  async addGlyph() {
+    const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'definitions'));
+    this.glyphs.push(newItem);
+    this._renderIndexesGlyphs = this.glyphs.map((_, i) => i);
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
+    this.cdr.markForCheck();
+  }
+
+  removeGlyph(index: number) {
+    this.glyphs.splice(index, 1);
+    this._renderIndexesGlyphs = this.glyphs.map((_, i) => i);
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
+    this.cdr.markForCheck();
+  }
+
+  moveGlyphUp(index: number) {
+    const temp = this.glyphs[index];
+    this.glyphs[index] = this.glyphs[index - 1];
+    this.glyphs[index - 1] = temp;
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
+    this.cdr.markForCheck();
+  }
+
+  moveGlyphDown(index: number) {
+    const temp = this.glyphs[index];
+    this.glyphs[index] = this.glyphs[index + 1];
+    this.glyphs[index + 1] = temp;
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
+    this.cdr.markForCheck();
+  }
 
   onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
     const glyph = this.glyphs[event.index];
@@ -355,6 +386,37 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
       this._resource$.next({ ...this.resource! });
       this.cdr.markForCheck();
     }
+  }
+
+  async addKerning() {
+    const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'kernings'));
+    this.kernings.push(newItem);
+    this._renderIndexesKernings = this.kernings.map((_, i) => i);
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    this.cdr.markForCheck();
+  }
+
+  removeKerning(index: number) {
+    this.kernings.splice(index, 1);
+    this._renderIndexesKernings = this.kernings.map((_, i) => i);
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    this.cdr.markForCheck();
+  }
+
+  moveKerningUp(index: number) {
+    const temp = this.kernings[index];
+    this.kernings[index] = this.kernings[index - 1];
+    this.kernings[index - 1] = temp;
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    this.cdr.markForCheck();
+  }
+
+  moveKerningDown(index: number) {
+    const temp = this.kernings[index];
+    this.kernings[index] = this.kernings[index + 1];
+    this.kernings[index + 1] = temp;
+    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    this.cdr.markForCheck();
   }
 
   onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
@@ -409,10 +471,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   }
 
   get glyphs(): any[] {
-    const defs = this.resource?.data?.definitions;
-    if (Array.isArray(defs)) return defs;
-    if (defs && Array.isArray(defs.data)) return defs.data;
-    return [];
+    return this.resource?.data?.definitions;
   }
 
   get glyphKeys(): string[] {
@@ -422,10 +481,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   }
 
   get kernings(): any[] {
-    const kerns = this.resource?.data?.kernings;
-    if (Array.isArray(kerns)) return kerns;
-    if (kerns && Array.isArray(kerns.data)) return kerns.data;
-    return [];
+    return this.resource?.data?.kernings;
   }
 
   get kerningKeys(): string[] {

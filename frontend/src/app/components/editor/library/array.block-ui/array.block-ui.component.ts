@@ -79,7 +79,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   pageSizeOptions = [10, 25, 50, 100];
   protected children: Resource[] = [];
 
-  renderIndexes: number[] = [];
+  renderIndexes: number[] = []; // TODO remove that
   goToIndex: number = 0;
   pageIndexes: number[] = [];
 
