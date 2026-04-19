@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { Resource } from '../../types';
+import { MainService } from '../../../../services/main.service';
 
 @Component({
   selector: 'app-angle-block-ui',
@@ -36,6 +37,7 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
   mousedown(event: MouseEvent) {
     this.dragging = true;
     this.updateRotation(event);
+    this.onFocus();
   }
 
   @HostListener('mousemove', ['$event'])
@@ -46,12 +48,18 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
   }
 
   @HostListener('mouseup')
-  @HostListener('mouseleave')
   mouseout() {
     this.dragging = false;
+    this.onBlur();
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef) {}
+  @HostListener('mouseleave')
+  mouseleave() {
+    this.dragging = false;
+    this.onBlur();
+  }
+
+  constructor(private readonly cdr: ChangeDetectorRef, private mainService: MainService) {}
 
   private updateRotation(mouseEvent: MouseEvent) {
     const rect = this.picker!.nativeElement.getBoundingClientRect();
@@ -65,5 +73,17 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     this.resource!.data = newAngle;
     this.changed.emit();
     this.cdr.markForCheck();
+  }
+
+  onFocus() {
+    if (this.resource) {
+      this.mainService.focusedResourceId$.next(this.resource.id);
+    }
+  }
+
+  onBlur() {
+    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
+      this.mainService.focusedResourceId$.next(null);
+    }
   }
 }

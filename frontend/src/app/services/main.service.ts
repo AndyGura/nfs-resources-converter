@@ -21,6 +21,7 @@ export class MainService {
   dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
 
   public hideHiddenFields$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
+  public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   constructor(readonly eelDelegate: EelDelegateService) {
     this.eelDelegate.openedResource$.subscribe(value => {

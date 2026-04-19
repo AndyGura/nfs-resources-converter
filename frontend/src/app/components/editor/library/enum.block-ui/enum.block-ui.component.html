@@ -4,7 +4,9 @@
         <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
         <mat-select [(value)]="resource.data"
                     (selectionChange)="changed.emit()"
-                    [disabled]="disabled">
+                    [disabled]="disabled"
+                    (focus)="onFocus()"
+                    (blur)="onBlur()">
             <mat-option *ngFor="let enumValue of resource.schema.enum_names"
                         [value]="enumValue[1]"
                         [disabled]="disabled">
@@ -20,7 +22,9 @@
                    [min]="0"
                    [max]="(resource.schema.length || 1) * 256 - 1"
                    [(ngModel)]="resource.data"
-                   (change)="changed.emit()">
+                   (change)="changed.emit()"
+                   (focus)="onFocus()"
+                   (blur)="onBlur()">
         </mat-form-field>
     </ng-template>
 </ng-container>

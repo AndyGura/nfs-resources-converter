@@ -63,6 +63,19 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
+  onFocusedElement(event: [string[], number]) {
+    const [path, index] = event;
+    if (this.resource) {
+      this.main.focusedResourceId$.next(joinId(this.resource.id, index.toString(), ...path));
+    }
+  }
+
+  onBlur() {
+    if (this.main.focusedResourceId$.getValue()?.startsWith(this.resource?.id || '')) {
+      this.main.focusedResourceId$.next(null);
+    }
+  }
+
   get schema(): BlockSchema | null {
     return this._resource?.schema;
   }

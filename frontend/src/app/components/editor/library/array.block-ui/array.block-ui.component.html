@@ -16,6 +16,8 @@
     (moveItemUp)="moveItemUp($event)"
     (moveItemDown)="moveItemDown($event)"
     (dataChanged)="onTableDataChanged($event)"
+    (focusedElement)="onFocusedElement($event)"
+    (blur)="onBlur()"
   ></data-table>
   <ng-template [ngTemplateOutlet]='paginator'></ng-template>
 </ng-container>
