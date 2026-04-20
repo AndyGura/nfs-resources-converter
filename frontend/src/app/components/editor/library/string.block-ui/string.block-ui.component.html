@@ -6,7 +6,9 @@
       <mat-select
         [disabled]="disabled"
         [(ngModel)]="resource.data"
-        (selectionChange)="changed.emit()">
+        (selectionChange)="changed.emit()"
+        (focus)="onFocus()"
+        (blur)="onBlur()">
         <mat-option *ngFor="let v of resource.schema.value_validator.possible_values" [value]="v">{{ v }}</mat-option>
       </mat-select>
     </ng-container>
@@ -16,6 +18,8 @@
              [disabled]="disabled || resource.schema.value_validator?.type === 'eq'"
              [maxlength]="maxLength" [minlength]="minLength"
              [(ngModel)]="resource.data"
-             (change)="changed.emit()">
+             (change)="changed.emit()"
+             (focus)="onFocus()"
+             (blur)="onBlur()">
     </ng-template>
 </mat-form-field>

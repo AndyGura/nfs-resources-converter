@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { Resource } from '../../types';
+import { MainService } from '../../../../services/main.service';
 
 @Component({
   selector: 'app-string-block-ui',
@@ -32,5 +33,17 @@ export class StringBlockUiComponent implements GuiComponentInterface {
   minLength: number | null = null;
   maxLength: number | null = null;
 
-  constructor() {}
+  constructor(private mainService: MainService) {}
+
+  onFocus() {
+    if (this.resource) {
+      this.mainService.focusedResourceId$.next(this.resource.id);
+    }
+  }
+
+  onBlur() {
+    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
+      this.mainService.focusedResourceId$.next(null);
+    }
+  }
 }

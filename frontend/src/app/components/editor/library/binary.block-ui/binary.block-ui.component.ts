@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Ou
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject } from 'rxjs';
 import { Resource } from '../../types';
+import { MainService } from '../../../../services/main.service';
 
 @Component({
   selector: 'app-binary-block-ui',
@@ -34,10 +35,22 @@ export class BinaryBlockUiComponent implements GuiComponentInterface {
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor() {}
+  constructor(private mainService: MainService) {}
 
   onDataChange(arr: Uint8Array) {
     this._resource!.data = Array.from(arr);
     this.changed.emit();
+  }
+
+  onFocus() {
+    if (this.resource) {
+      this.mainService.focusedResourceId$.next(this.resource.id);
+    }
+  }
+
+  onBlur() {
+    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
+      this.mainService.focusedResourceId$.next(null);
+    }
   }
 }

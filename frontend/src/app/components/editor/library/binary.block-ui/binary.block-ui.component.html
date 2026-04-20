@@ -3,4 +3,7 @@
             (dataChange)='onDataChange($event)'
             [maxRows]='8'
             [showOffsets]='((data$ | async) || empty).length > 16'
-            [readOnly]='disabled'>
+            [readOnly]='disabled'
+            (focus)='onFocus()'
+            (blur)='onBlur()'>
+</hex-editor>

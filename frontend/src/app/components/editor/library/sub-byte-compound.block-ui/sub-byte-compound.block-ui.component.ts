@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { Resource } from '../../types';
+import { MainService } from '../../../../services/main.service';
+import { joinId } from '../../../../utils/join-id';
 
 @Component({
   selector: 'app-sub-byte-compound-block-ui',
@@ -19,5 +21,17 @@ export class SubByteCompoundBlockUiComponent implements GuiComponentInterface {
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor() {}
+  constructor(private mainService: MainService) {}
+
+  onFocus(alias: string) {
+    if (this.resource) {
+      this.mainService.focusedResourceId$.next(joinId(this.resource.id, alias));
+    }
+  }
+
+  onBlur(alias: string) {
+    if (this.mainService.focusedResourceId$.getValue() === joinId(this.resource?.id || '', alias)) {
+      this.mainService.focusedResourceId$.next(null);
+    }
+  }
 }
