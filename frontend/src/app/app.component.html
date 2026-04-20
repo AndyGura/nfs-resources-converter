@@ -4,6 +4,20 @@
     <span class="flex-spacer"></span>
     <app-block-actions [resource]="this.mainService.resource$ | async"></app-block-actions>
     <mat-divider vertical></mat-divider>
+    <ng-container *ngIf="!isProduction">
+      <button mat-button [matMenuTriggerFor]="stagedChangesMenu"
+              [disabled]="getStagedChangesCount(mainService.stagedChanges$ | async) === 0">
+        Staged changes ({{ getStagedChangesCount(mainService.stagedChanges$ | async) }})
+      </button>
+      <mat-menu #stagedChangesMenu="matMenu">
+        <ng-container *ngFor="let change of (mainService.stagedChanges$ | async | keyvalue)">
+          <button mat-menu-item *ngIf="change.key !== '__has_external_changes__'"
+                  [disabled]="true" style="opacity: 1; cursor: default;">
+            <span>{{ formatChangeId(change.key) }} -> {{ change.value }}</span>
+          </button>
+        </ng-container>
+      </mat-menu>
+    </ng-container>
     <button mat-icon-button (click)="saveResource()"
             [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async)"
             matTooltip="Save changes to file">

@@ -36,6 +36,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.buildChildren();
     this.renderPage(0, this.minPageSize);
     this.updatePageIndexes();
+    this.updatePagedData();
   }
 
   get resource(): Resource | null {
@@ -62,6 +63,19 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
+  onFocusedElement(event: [string[], number]) {
+    const [path, index] = event;
+    if (this.resource) {
+      this.main.focusedResourceId$.next(joinId(this.resource.id, index.toString(), ...path));
+    }
+  }
+
+  onBlur() {
+    if (this.main.focusedResourceId$.getValue()?.startsWith(this.resource?.id || '')) {
+      this.main.focusedResourceId$.next(null);
+    }
+  }
+
   get schema(): BlockSchema | null {
     return this._resource?.schema;
   }
@@ -78,10 +92,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   pageSize: number = 0;
   pageSizeOptions = [10, 25, 50, 100];
   protected children: Resource[] = [];
-
-  renderIndexes: number[] = []; // TODO remove that
   goToIndex: number = 0;
   pageIndexes: number[] = [];
+  public pagedData: any[] = [];
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -110,6 +123,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.updatePageIndexes();
     this.pageIndex = Math.max(0, this.pageIndexes.length - 1);
     this.renderPage(this.pageIndex, this.pageSize);
+    this.updatePagedData();
     this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
     this.cdr.markForCheck();
   }
@@ -123,6 +137,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
       this.pageIndex--;
     }
     this.renderPage(this.pageIndex, this.pageSize);
+    this.updatePagedData();
     this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
     this.cdr.markForCheck();
   }
@@ -134,6 +149,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.resourceData[index - 1] = temp;
     this.buildChildren();
     this.renderPage(this.pageIndex, this.pageSize);
+    this.updatePagedData();
     this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
     this.cdr.markForCheck();
   }
@@ -145,6 +161,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.resourceData[index + 1] = temp;
     this.buildChildren();
     this.renderPage(this.pageIndex, this.pageSize);
+    this.updatePagedData();
     this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
     this.cdr.markForCheck();
   }
@@ -256,6 +273,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
           return;
         }
         this.resourceData[+idSuffix(this.resource!.id, blockId)] = value;
+        this.updatePagedData();
       });
   }
 
@@ -285,6 +303,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }
 
     this.main.dataBlockChange$.next([targetId, value]);
+    this.updatePagedData();
     this.cdr.markForCheck();
   }
 
@@ -309,10 +328,8 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.pageIndex = pageIndex;
     this.pageSize = pageSize;
     this.goToIndex = pageIndex;
-    const totalItems = (this.resourceData || []).length;
-    const itemsOnPage = Math.min(pageSize, totalItems - pageIndex * pageSize);
-    this.renderIndexes = Array.from(Array(Math.max(0, itemsOnPage)).keys());
 
+    this.updatePagedData();
     this.cdr.markForCheck();
   }
 
@@ -324,5 +341,17 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
         this.pageIndexes.push(i);
       }
     }
+  }
+
+  private updatePagedData(): void {
+    if (this.pageSize > 0) {
+      this.pagedData = (this.resourceData || []).slice(this.pageIndex * this.pageSize, (this.pageIndex + 1) * this.pageSize);
+    } else {
+      this.pagedData = this.resourceData || [];
+    }
+  }
+
+  trackByFn(index: number, item: any): any {
+    return index;
   }
 }

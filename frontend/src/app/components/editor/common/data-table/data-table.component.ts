@@ -4,6 +4,8 @@ import {
   Component,
   EventEmitter,
   Input,
+  IterableDiffers,
+  DoCheck,
   Output,
 } from '@angular/core';
 import { isNaN } from 'lodash';
@@ -23,7 +25,7 @@ export interface ArrayTableColumn {
   styleUrls: ['./data-table.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DataTableComponent {
+export class DataTableComponent implements DoCheck {
 
   private _columns: ArrayTableColumn[] | null = null;
   get columns(): ArrayTableColumn[] | null {
@@ -35,20 +37,42 @@ export class DataTableComponent {
     this.hasSubFields = value?.some(col => col.subFields && col.subFields.length > 0) || false;
   }
 
+  private _pageIndex: number = 0;
+  @Input()
+  set pageIndex(value: number) {
+    this._pageIndex = value;
+    this.updatePagedData();
+  }
+  get pageIndex(): number {
+    return this._pageIndex;
+  }
+
+  private _pageSize: number = 0;
+  @Input()
+  set pageSize(value: number) {
+    this._pageSize = value;
+    this.updatePagedData();
+  }
+  get pageSize(): number {
+    return this._pageSize;
+  }
+
   @Input()
   set data(value: any[]) {
     this._data = value;
     this.isPrimitive = value && value.length > 0 && (typeof value[0] !== 'object' || value[0] === null);
+    this.iterableDiffer = this.differs.find(value).create();
+    this.updatePagedData();
   }
   get data(): any[] {
     return this._data;
   }
   private _data: any[] = [];
-  @Input() renderIndexes: number[] = [];
   @Input() disabled: boolean = false;
   @Input() enableArrayEditing: boolean = false;
-  @Input() pageIndex: number = 0;
-  @Input() pageSize: number = 0;
+
+  public pagedData: any[] = [];
+  private iterableDiffer: any;
 
   @Output() addItem = new EventEmitter<void>();
   @Output() removeItem = new EventEmitter<number>();
@@ -62,7 +86,16 @@ export class DataTableComponent {
 
   constructor(
     private cdr: ChangeDetectorRef,
+    private differs: IterableDiffers,
   ) {}
+
+  ngDoCheck(): void {
+    const changes = this.iterableDiffer?.diff(this.data);
+    if (changes) {
+      this.updatePagedData();
+      this.cdr.markForCheck();
+    }
+  }
 
   isNumeric(mro: string): boolean {
     return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some((w) => mro.startsWith(w + '__'));
@@ -108,5 +141,17 @@ export class DataTableComponent {
 
   getGlobalIndex(i: number): number {
     return this.pageIndex * this.pageSize + i;
+  }
+
+  private updatePagedData(): void {
+    if (this.pageSize > 0) {
+      this.pagedData = this.data.slice(this.pageIndex * this.pageSize, (this.pageIndex + 1) * this.pageSize);
+    } else {
+      this.pagedData = this.data;
+    }
+  }
+
+  trackByFn(index: number, item: any): any {
+    return index;
   }
 }

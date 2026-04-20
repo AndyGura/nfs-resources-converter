@@ -6,7 +6,6 @@
 <ng-container *ngIf="isTable; else standardViewExpansion">
   <data-table
     [data]="resourceData"
-    [renderIndexes]="renderIndexes"
     [columns]="arrayTableColumns"
     [disabled]="disabled"
     [enableArrayEditing]="enableArrayEditing"
@@ -17,6 +16,8 @@
     (moveItemUp)="moveItemUp($event)"
     (moveItemDown)="moveItemDown($event)"
     (dataChanged)="onTableDataChanged($event)"
+    (focusedElement)="onFocusedElement($event)"
+    (blur)="onBlur()"
   ></data-table>
   <ng-template [ngTemplateOutlet]='paginator'></ng-template>
 </ng-container>
@@ -39,7 +40,7 @@
     <ng-container *ngIf='renderContents'>
       <ng-template [ngTemplateOutlet]='paginator'></ng-template>
 
-      <ng-container *ngFor='let i of this.renderIndexes'>
+      <ng-container *ngFor='let item of pagedData; let i = index; trackBy: trackByFn'>
         <div class="item-wrapper">
           <div class="item-header" *ngIf="!disabled">
             <span class="item-index">#{{ pageIndex * pageSize + i }}</span>

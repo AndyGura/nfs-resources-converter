@@ -8,6 +8,8 @@
       <div *ngIf="field.type === 'boolean'" class="sub-byte-field">
         <mat-checkbox [(ngModel)]="resource.data[field.alias]"
                       (change)="changed.emit()"
+                      (focus)="onFocus(field.alias)"
+                      (blur)="onBlur(field.alias)"
                       [disabled]="disabled"
                       [matTooltip]="field.description" matTooltipPosition="above">
           {{ field.alias }}
@@ -19,6 +21,8 @@
           <input matInput type="number"
                  [(ngModel)]="resource.data[field.alias]"
                  (change)="changed.emit()"
+                 (focus)="onFocus(field.alias)"
+                 (blur)="onBlur(field.alias)"
                  [disabled]="disabled">
         </mat-form-field>
       </div>
@@ -27,6 +31,8 @@
           <mat-label>{{ field.alias }}</mat-label>
           <mat-select [(ngModel)]="resource.data[field.alias]"
                       (selectionChange)="changed.emit()"
+                      (focus)="onFocus(field.alias)"
+                      (blur)="onBlur(field.alias)"
                       [disabled]="disabled">
             <mat-option *ngFor="let option of field.details" [value]="option">
               {{ option }}

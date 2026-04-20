@@ -1,4 +1,4 @@
-export const joinId = (a: string, b: string | number) => a + (a.includes('__') ? '/' : '__') + b;
+export const joinId = (a: string, ...b: (string | number)[]) => a + (a.includes('__') ? '/' : '__') + b.join('/');
 export const idSuffix = (baseId: string, id: string) => {
   if (baseId === id) {
     return '';

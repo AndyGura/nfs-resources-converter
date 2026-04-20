@@ -27,7 +27,7 @@
     </tr>
     </thead>
     <tbody>
-    <tr *ngFor='let i of renderIndexes'>
+    <tr *ngFor='let item of pagedData; let i = index; trackBy: trackByFn'>
       <td class="index-cell" [class.editable]="!disabled">
         <span class="index-number">{{ getGlobalIndex(i) }}</span>
         <div class="item-actions" *ngIf="!disabled">
@@ -62,7 +62,7 @@
           <td *ngIf='!f.subFields'>
             <ng-container *ngTemplateOutlet='inputField; context: {
                 schema: f.schema,
-                value: isPrimitive ? data[getGlobalIndex(i)] : data[getGlobalIndex(i)][f.key],
+                value: isPrimitive ? item : item[f.key],
                 index: getGlobalIndex(i),
                 field: isPrimitive ? null : f.key,
                 subField: null,
@@ -73,7 +73,7 @@
             <td *ngFor='let sf of f.subFields'>
               <ng-container *ngTemplateOutlet='inputField; context: {
                   schema: sf.schema,
-                  value: data[getGlobalIndex(i)][f.key][sf.key],
+                  value: item[f.key][sf.key],
                   index: getGlobalIndex(i),
                   field: f.key,
                   subField: sf.key,
@@ -87,7 +87,7 @@
         <td>
           <ng-container *ngTemplateOutlet='inputField; context: {
               schema: columns && columns.length > 0 ? columns[0].schema : null,
-              value: data[getGlobalIndex(i)],
+              value: item,
               index: getGlobalIndex(i),
               field: null,
               subField: null,
