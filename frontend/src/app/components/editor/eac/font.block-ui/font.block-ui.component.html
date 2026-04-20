@@ -34,7 +34,6 @@
           <div class="table-container">
             <h3>Glyphs</h3>
             <data-table [data]="glyphsWithSymbols"
-                        [renderIndexes]="_renderIndexesGlyphs"
                         [columns]="_glyphColumns"
                         [enableArrayEditing]="true"
                         (addItem)="addGlyph()"
@@ -48,7 +47,6 @@
           <div class="table-container">
             <h3>Kernings</h3>
             <data-table [data]="kerningsWithSymbols"
-                        [renderIndexes]="_renderIndexesKernings"
                         [columns]="_kerningColumns"
                         [enableArrayEditing]="true"
                         (addItem)="addKerning()"

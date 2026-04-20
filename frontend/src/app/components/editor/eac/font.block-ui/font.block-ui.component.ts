@@ -38,13 +38,10 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
 
   _glyphColumns: ArrayTableColumn[] = [];
   _kerningColumns: ArrayTableColumn[] = [];
-  _renderIndexesGlyphs: number[] = [];
-  _renderIndexesKernings: number[] = [];
 
   @Input() set resource(value: Resource | null) {
     this._resource$.next(value);
     this.updateColumns(value);
-    this.updateRenderIndexes(value);
   }
 
   get resource(): Resource | null {
@@ -342,22 +339,15 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     }
   }
 
-  private updateRenderIndexes(res: Resource | null) {
-    this._renderIndexesGlyphs = this.glyphs.map((_, i) => i);
-    this._renderIndexesKernings = this.kernings.map((_, i) => i);
-  }
-
   async addGlyph() {
     const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'definitions'));
     this.glyphs.push(newItem);
-    this._renderIndexesGlyphs = this.glyphs.map((_, i) => i);
     this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
     this.cdr.markForCheck();
   }
 
   removeGlyph(index: number) {
     this.glyphs.splice(index, 1);
-    this._renderIndexesGlyphs = this.glyphs.map((_, i) => i);
     this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
     this.cdr.markForCheck();
   }
@@ -391,14 +381,12 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   async addKerning() {
     const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'kernings'));
     this.kernings.push(newItem);
-    this._renderIndexesKernings = this.kernings.map((_, i) => i);
     this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
     this.cdr.markForCheck();
   }
 
   removeKerning(index: number) {
     this.kernings.splice(index, 1);
-    this._renderIndexesKernings = this.kernings.map((_, i) => i);
     this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
     this.cdr.markForCheck();
   }
