@@ -1,8 +1,9 @@
 <mat-tab-group class="font-editor-tabs" *ngIf="resource">
   <mat-tab label="Font">
     <div class="font-editor-container">
-      <div class="top-section">
-        <div class="top-left">
+      <div class="section top-section">
+        <div>
+          <div class="preview-title">Font header</div>
           <div class="tab-content">
             <app-compound-block-ui [resource]="resource"
                                    [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
@@ -11,9 +12,9 @@
           </div>
         </div>
 
-        <div class="top-center">
+        <div>
+          <div class="preview-title">Font Preview</div>
           <div class="text-preview-container">
-            <div class="preview-title">Font Preview</div>
             <textarea (input)="onTextChange($event)">{{ _text$.getValue() }}</textarea>
             <div class="canvas-scroll-container">
               <div #textPreviewContainer class="pixi-container"></div>
@@ -21,18 +22,18 @@
           </div>
         </div>
 
-        <div class="top-right">
+        <div>
+          <div class="preview-title">Char Preview</div>
           <div class="preview-container">
-            <div class="preview-title">Char Preview</div>
             <canvas #fullBitmapCanvas></canvas>
           </div>
         </div>
       </div>
 
-      <div class="bottom-section">
-        <div class="tables-row">
+      <div class="section bottom-section">
+        <div>
+          <div class="preview-title">Glyphs</div>
           <div class="table-container">
-            <h3>Glyphs</h3>
             <data-table [data]="glyphsWithSymbols"
                         [columns]="_glyphColumns"
                         [enableArrayEditing]="true"
@@ -43,9 +44,11 @@
                         (dataChanged)="onGlyphDataChanged($event)"
                         (focusedElement)="onGlyphFocused($event)"></data-table>
           </div>
+        </div>
 
+        <div>
+          <div class="preview-title">Kernings</div>
           <div class="table-container">
-            <h3>Kernings</h3>
             <data-table [data]="kerningsWithSymbols"
                         [columns]="_kerningColumns"
                         [enableArrayEditing]="true"
