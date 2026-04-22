@@ -31,8 +31,9 @@ class FfnFontSerializer(BaseFileSerializer):
         import re
         data = block.new_data()
         image_serializer = BitmapSerializer()
-        data['bitmap'] = image_serializer.deserialize(path_join(path, 'bitmap'),
-                                                      block=block.get_child_block_with_data(data, 'bitmap')[0])
+        # FIXME only Bitmap4Bit is supported here
+        data['bitmap']['data'] = image_serializer.deserialize(path_join(path, 'bitmap'),
+                                                              block=block.get_child_block_with_data(data, 'bitmap')[0].possible_blocks[0])
         with open(path_join(path, 'font.fnt')) as f:
             lines = [l.rstrip() for l in f]
             info_part = '\n'.join([l for l in lines if not l.startswith('char ')])
