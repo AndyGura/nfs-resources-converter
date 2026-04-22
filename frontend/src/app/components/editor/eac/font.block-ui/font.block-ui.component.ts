@@ -17,8 +17,6 @@ import { Resource } from '../../types';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { NavigationService } from '../../../../services/navigation.service';
 import { MainService } from '../../../../services/main.service';
-import * as PIXI from 'pixi.js';
-import { Assets, BitmapFont, bitmapFontTextParser, BitmapText, Cache } from 'pixi.js';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
 
@@ -30,7 +28,7 @@ import { joinId } from '../../../../utils/join-id';
 })
 export class FontBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
   @ViewChild('fullBitmapCanvas') fullBitmapCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('textPreviewContainer') textPreviewContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('textPreviewCanvas') textPreviewCanvas!: ElementRef<HTMLCanvasElement>;
 
   _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   _selectedGlyphIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
@@ -52,9 +50,6 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
   private _image: HTMLImageElement | null = null;
-  private _pixiApp: PIXI.Application | null = null;
-  private _bitmapText: BitmapText | null = null;
-  private _fontId: string | null = null;
   private _resizeObserver: ResizeObserver | null = null;
 
   constructor(
@@ -67,12 +62,6 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   }
 
   async ngAfterViewInit(): Promise<void> {
-    this._pixiApp = new PIXI.Application();
-    await this._pixiApp.init({
-      background: '#000000',
-    });
-    this.textPreviewContainer.nativeElement.appendChild(this._pixiApp.canvas);
-
     combineLatest([this._resource$, this._selectedGlyphIndex$, this._text$])
       .pipe(takeUntil(this.destroyed$))
       .subscribe(([res, index, text]) => {
@@ -85,19 +74,18 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
         const index = this._selectedGlyphIndex$.getValue();
         if (res) {
           this.renderFullBitmap(res, index);
-          this.renderTextPreviewPIXI(res, this._text$.getValue(), '', ''); // Trigger PIXI resize
+          this.renderTextPreview(res, this._text$.getValue());
         }
       });
     });
     this._resizeObserver.observe(this.fullBitmapCanvas.nativeElement);
-    this._resizeObserver.observe(this.textPreviewContainer.nativeElement);
+    this._resizeObserver.observe(this.textPreviewCanvas.nativeElement);
   }
 
   private async render(res: Resource | null, index: number, text: string) {
-    if (!res || !this.fullBitmapCanvas || !this._pixiApp) return;
+    if (!res || !this.fullBitmapCanvas) return;
     const paths = await this.eelDelegate.serializeResource(res.id);
     const imagePath = paths.find(x => x.endsWith('.png'));
-    const fntPath = paths.find(x => x.endsWith('.fnt'));
     if (!imagePath) return;
 
     const finalImagePath = `${imagePath}?t=${new Date().getTime()}`;
@@ -108,16 +96,8 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
       await new Promise(resolve => (this._image!.onload = resolve));
     }
 
-    let fntTextContent = '';
-    try {
-      const response = await fetch(fntPath!);
-      fntTextContent = await response.text();
-    } catch (e) {
-      console.error('Failed to load .fnt file, falling back to resource data', e);
-    }
-
     this.renderFullBitmap(res, index);
-    await this.renderTextPreviewPIXI(res, text, fntTextContent, finalImagePath);
+    this.renderTextPreview(res, text);
   }
 
   private renderFullBitmap(res: Resource, index: number) {
@@ -262,45 +242,77 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     }
   }
 
-  private async renderTextPreviewPIXI(res: Resource, text: string, fntText: string, imagePath: string) {
-    if (!this._pixiApp) return;
+  private renderTextPreview(res: Resource, text: string) {
+    const canvas = this.textPreviewCanvas.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !this._image) return;
 
-    const fontName = `Font_${res.id.replace(/\//g, '_')}`;
+    const definitions: any[] = res.data.definitions;
+    const kernings: any[] = res.data.kernings || [];
 
-    if (imagePath && fntText && this._fontId !== fontName) {
-      const texture = await Assets.load(imagePath);
-      const bitmapFontData = bitmapFontTextParser.parse(fntText);
-      bitmapFontData.fontFamily = fontName; // Ensure the parsed data has our unique font name
-      const font = new BitmapFont({
-        data: bitmapFontData,
-        textures: [texture],
-      });
-      Cache.set(fontName, font);
-      this._fontId = fontName;
+    const charMap = new Map<number, any>();
+    for (const def of definitions) {
+      charMap.set(def.code, def);
     }
 
-    if (!this._bitmapText) {
-      this._bitmapText = new BitmapText({
-        text: text,
-        style: {
-          fontFamily: fontName,
-        },
-      });
-      this._pixiApp.stage.addChild(this._bitmapText);
-    } else {
-      this._bitmapText.text = text;
-      if (this._fontId === fontName) {
-        this._bitmapText.style.fontFamily = fontName;
+    const kerningMap = new Map<string, number>();
+    for (const kern of kernings) {
+      kerningMap.set(`${kern.left}_${kern.right}`, kern.kerning);
+    }
+
+    const lines = text.split('\n');
+    const lineHeight = (res.data.line_height || 32);
+    const padding = 20;
+
+    // Measure text to set canvas height
+    let totalHeight = padding * 2;
+    for (let i = 0; i < lines.length; i++) {
+      totalHeight += lineHeight;
+    }
+
+    const canvasWidth = canvas.parentElement?.clientWidth || 800;
+    canvas.width = canvasWidth;
+    canvas.height = Math.max(totalHeight, 200);
+
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.imageSmoothingEnabled = false;
+
+    let cursorY = padding + (res.data.base || lineHeight * 0.8);
+
+    for (const line of lines) {
+      let cursorX = padding;
+      let prevCharCode: number | null = null;
+
+      for (let i = 0; i < line.length; i++) {
+        const charCode = line.charCodeAt(i);
+        const glyph = charMap.get(charCode);
+
+        if (glyph) {
+          if (prevCharCode !== null) {
+            const kerning = kerningMap.get(`${prevCharCode}_${charCode}`) || 0;
+            cursorX += kerning;
+          }
+
+          const x = cursorX + (glyph.x_offset || 0);
+          const y = cursorY + (glyph.y_offset || 0) - (res.data.base || lineHeight * 0.8);
+
+          ctx.drawImage(
+            this._image,
+            glyph.x, glyph.y, glyph.width, glyph.height,
+            x, y, glyph.width, glyph.height
+          );
+
+          cursorX += (glyph.x_advance || glyph.advance || 0);
+          prevCharCode = charCode;
+        } else {
+          // Fallback for space or missing characters
+          cursorX += lineHeight * 0.3;
+          prevCharCode = null;
+        }
       }
-    }
-
-    // Adjust canvas size to fit text if needed, or just let PIXI handle it with resizeTo
-    // But we might want to manually set height based on text
-    const bounds = this._bitmapText.getBounds();
-    const containerWidth = this.textPreviewContainer.nativeElement.clientWidth;
-    const targetHeight = Math.max(bounds.height + 40, 200, this.textPreviewContainer.nativeElement.clientHeight);
-    if (this._pixiApp.renderer.width !== containerWidth || this._pixiApp.renderer.height !== targetHeight) {
-      this._pixiApp.renderer.resize(containerWidth, targetHeight);
+      cursorY += lineHeight;
     }
   }
 

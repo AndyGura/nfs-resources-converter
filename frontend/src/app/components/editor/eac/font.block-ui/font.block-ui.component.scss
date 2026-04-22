@@ -112,11 +112,10 @@
     background: #eee;
     border: 1px solid #ddd;
 
-    .pixi-container {
+    canvas {
       display: block;
       width: 100%;
-      height: 100%;
-      overflow: hidden;
+      background: #000000;
     }
   }
 }
