@@ -25,7 +25,7 @@ class FfnFontSerializer(BaseFileSerializer):
                 file.write(f'char id={symbol["code"]}    x={symbol["x"]}     y={symbol["y"]}     '
                            f'width={symbol["width"]}    height={symbol["height"]}   '
                            f'xoffset={symbol["x_offset"]}     yoffset={symbol["y_offset"]}     '
-                           f'xadvance={symbol["x_advance"]}    page=0  chnl=0\n')
+                           f'xadvance={symbol["advance"]}    page=0  chnl=0\n')
 
     def deserialize(self, path: str, id=None, block: DataBlock = None, **kwargs):
         import re
@@ -39,10 +39,7 @@ class FfnFontSerializer(BaseFileSerializer):
             data['num_glyphs'] = int(re.search(r"\scount=(\d+)", info_part).groups()[0])
             glyph_def_lines = [l for l in lines if l.startswith('char ')]
             assert len(glyph_def_lines) == data['num_glyphs']
-            # decide format based on what fields we have in FNT or just default to 12
-            # actually we should check the block choice_index
-            choice_index = block.get_child_block_with_data(data, 'definitions')[0].choice_index(data)
-            data['definitions'] = { 'choice_index': choice_index, 'data': [] }
+            data['definitions'] = []
             for i, glyph_def in enumerate(glyph_def_lines):
                 m = re.search(
                     r"char\sid=(\d+).*\sx=(\d+).*\sy=(\d+).*\swidth=(\d+).*\sheight=(\d+).*\sxoffset=(-?\d+).*\syoffset=(-?\d+).*\sxadvance=(-?\d+).*",
@@ -58,13 +55,10 @@ class FfnFontSerializer(BaseFileSerializer):
                     'height': values[4],
                     'x_offset': values[5],
                     'y_offset': values[6],
-                    'x_advance': values[7],
+                    'advance': values[7],
                 }
-                if choice_index == 1:
-                    glyph_data['y_advance'] = 0 # unknown from FNT
-                    glyph_data['num_kern'] = 0
-                    glyph_data['kern_index'] = 0
-                elif data['version'] >= 200:
-                    glyph_data['num_kern'] = 0
-                data['definitions']['data'].append(glyph_data)
+                glyph_data['x_advance'] = 0
+                glyph_data['num_kern'] = 0
+                glyph_data['kern_index'] = 0
+                data['definitions'].append(glyph_data)
         return data

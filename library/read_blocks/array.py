@@ -98,9 +98,10 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
+        self_ctx = WriteContext(data=data, block=self, parent=ctx)
         res = 0
         for item in data:
-            res += self.child.estimate_packed_size(data=item, ctx=ctx)
+            res += self.child.estimate_packed_size(data=item, ctx=self_ctx)
         return res
 
     def offset_to_child_when_packed(self, data, child_name: str, ctx: WriteContext = None):
@@ -112,9 +113,10 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         if self.child.__class__ == IntegerBlock and self.child.length == 1 and not self.child.is_signed:
             return bytes(data)
+        self_ctx = WriteContext(data=data, block=self, parent=ctx, name=name)
         res = bytes()
         for i, item in enumerate(data):
-            res += self.child.pack(data=item, ctx=ctx, name=str(i))
+            res += self.child.pack(data=item, ctx=self_ctx, name=str(i))
         return res
 
 

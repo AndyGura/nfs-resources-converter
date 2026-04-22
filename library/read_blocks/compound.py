@@ -188,11 +188,11 @@ class SubByteCompoundBlock(IntegerBlock):
 
     def new_data(self):
         res = {}
-        for size, alias, type_name, details in self._schema_def:
+        for size, alias, type_name, details, description in self._schema_def:
             if type_name == 'boolean':
                 res[alias] = False
             elif type_name == 'enum':
-                res[alias] = details[0][1] if details else '0'
+                res[alias] = details[0] if details else '0'
             else:
                 res[alias] = 0
         return res
