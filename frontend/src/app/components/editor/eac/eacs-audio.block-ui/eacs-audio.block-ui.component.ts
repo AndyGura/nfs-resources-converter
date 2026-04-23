@@ -7,7 +7,7 @@ import { NavigationService } from '../../../../services/navigation.service';
 import { Resource } from '../../types';
 
 @Component({
-  selector: 'app-eacs-audio.block-ui',
+  selector: 'app-eacs-audio-block-ui',
   templateUrl: './eacs-audio.block-ui.component.html',
   styleUrls: ['./eacs-audio.block-ui.component.scss'],
 })
