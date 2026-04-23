@@ -1,7 +1,6 @@
 <div id='header'>
-  <mat-label
-    *ngIf='resource?.name && resource?.name != (main.resource$ | async)?.name && resource?.name != (navigation.resourceToRender$ | async)?.name'
-    [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource?.name }}
+  <mat-label *ngIf='!hideName'
+             [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource?.name }}
   </mat-label>
   <audio controls *ngIf='audioUrl$ | async'>
     <source [src]='audioUrl$ | async'>

@@ -7,6 +7,7 @@
           <div class="tab-content">
             <app-compound-block-ui [resource]="resource"
                                    [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
+                                   [hideName]="true"
                                    [hideBlockActions]="true"
                                    (changed)="changed.emit()"></app-compound-block-ui>
           </div>
@@ -64,10 +65,10 @@
   </mat-tab>
   <mat-tab label="Bitmap">
     <div class="tab-content">
-      <app-compound-block-ui [resource]="resource"
-                             [fieldWhitelist]="['bitmap']"
+      <app-delegate-block-ui [resource]="getChildResource(resource, 'bitmap')"
+                             [hideName]="true"
                              [hideBlockActions]="true"
-                             (changed)="changed.emit()"></app-compound-block-ui>
+                             (changed)="changed.emit()"></app-delegate-block-ui>
     </div>
   </mat-tab>
 </mat-tab-group>

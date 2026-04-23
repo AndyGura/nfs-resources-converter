@@ -9,7 +9,7 @@ import { BlockData, Resource } from '../../types';
 type DelegateBlockData = { choice_index: number; data: BlockData };
 
 @Component({
-  selector: 'app-delegate.block-ui',
+  selector: 'app-delegate-block-ui',
   templateUrl: './delegate.block-ui.component.html',
   styleUrls: ['./delegate.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +35,8 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
   }
 
   @Input() resourceDescription: string = '';
+
+  @Input() hideName: boolean = false;
 
   @Input() hideBlockActions: boolean = false;
 
@@ -67,7 +69,6 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
         ...this._resource,
         id: joinId(this._resource.id, 'data'),
         data: this.choiceDataCaches[this._resource.data.choice_index],
-        name: '', // name is displayed in this block, no need to duplicate
         schema: this._resource.schema.possible_resource_schemas[this._resource.data.choice_index],
       };
     }

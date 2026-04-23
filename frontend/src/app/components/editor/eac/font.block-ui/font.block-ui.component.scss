@@ -76,9 +76,14 @@
 
 .table-container {
   padding: 5px;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
+  height: 100%;
+
+  data-table {
+    min-width: fit-content;
+  }
 }
 
 .tab-content {

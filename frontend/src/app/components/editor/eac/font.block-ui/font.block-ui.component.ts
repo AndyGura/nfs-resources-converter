@@ -12,13 +12,14 @@ import {
   ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { BehaviorSubject, combineLatest, Subject, takeUntil } from 'rxjs';
+import { auditTime, BehaviorSubject, combineLatest, debounceTime, startWith, Subject, takeUntil } from 'rxjs';
 import { Resource } from '../../types';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { NavigationService } from '../../../../services/navigation.service';
 import { MainService } from '../../../../services/main.service';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
+import { getChildResource } from '../../../../utils/get-child-resource';
 
 @Component({
   selector: 'app-font-block-ui',
@@ -40,6 +41,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   @Input() set resource(value: Resource | null) {
     this._resource$.next(value);
     this.updateColumns(value);
+    this.refreshImage().then();
   }
 
   get resource(): Resource | null {
@@ -50,7 +52,9 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
   private _image: HTMLImageElement | null = null;
+  private _imageRefreshed$: Subject<void> = new Subject<void>();
   private _resizeObserver: ResizeObserver | null = null;
+  private _resized$: Subject<void> = new Subject<void>();
 
   constructor(
     private readonly eelDelegate: EelDelegateService,
@@ -62,45 +66,47 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   }
 
   async ngAfterViewInit(): Promise<void> {
-    combineLatest([this._resource$, this._selectedGlyphIndex$, this._text$])
-      .pipe(takeUntil(this.destroyed$))
-      .subscribe(([res, index, text]) => {
-        this.render(res, index, text);
+    combineLatest([this._text$, this._imageRefreshed$, this._resized$, this.main.dataBlockChange$.pipe(startWith(null))])
+      .pipe(takeUntil(this.destroyed$), auditTime(50))
+      .subscribe(([text]) => {
+        this.ngZone.run(() => {
+          this.renderTextPreview(text);
+        });
+      });
+
+
+    combineLatest([this._selectedGlyphIndex$, this._imageRefreshed$, this._resized$, this.main.dataBlockChange$.pipe(startWith(null))])
+      .pipe(takeUntil(this.destroyed$), auditTime(50))
+      .subscribe(([index]) => {
+        this.ngZone.run(() => {
+          this.renderFullBitmap(index);
+        });
       });
 
     this._resizeObserver = new ResizeObserver(() => {
-      this.ngZone.run(() => {
-        const res = this.resource;
-        const index = this._selectedGlyphIndex$.getValue();
-        if (res) {
-          this.renderFullBitmap(res, index);
-          this.renderTextPreview(res, this._text$.getValue());
-        }
-      });
+      this._resized$.next();
     });
     this._resizeObserver.observe(this.fullBitmapCanvas.nativeElement);
     this._resizeObserver.observe(this.textPreviewCanvas.nativeElement);
   }
 
-  private async render(res: Resource | null, index: number, text: string) {
-    if (!res || !this.fullBitmapCanvas) return;
-    const paths = await this.eelDelegate.serializeResource(res.id);
+  private async refreshImage() {
+    if (!this.resource) return;
+    const paths = await this.eelDelegate.serializeResource(this.resource.id);
     const imagePath = paths.find(x => x.endsWith('.png'));
-    if (!imagePath) return;
-
-    const finalImagePath = `${imagePath}?t=${new Date().getTime()}`;
-
-    if (!this._image || this._image.src !== finalImagePath) {
-      this._image = new Image();
-      this._image.src = finalImagePath;
-      await new Promise(resolve => (this._image!.onload = resolve));
+    if (!imagePath) {
+      this._image = null;
+      return;
     }
-
-    this.renderFullBitmap(res, index);
-    this.renderTextPreview(res, text);
+    this._image = new Image();
+    this._image.src = `${imagePath}?t=${new Date().getTime()}`;
+    await new Promise(resolve => (this._image!.onload = resolve));
+    this._imageRefreshed$.next();
   }
 
-  private renderFullBitmap(res: Resource, index: number) {
+  private renderFullBitmap(index: number) {
+    let res = this.resource;
+    if (!res) return;
     const canvas = this.fullBitmapCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx || !this._image) return;
@@ -242,7 +248,9 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     }
   }
 
-  private renderTextPreview(res: Resource, text: string) {
+  private renderTextPreview(text: string) {
+    let res = this.resource;
+    if (!res) return;
     const canvas = this.textPreviewCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx || !this._image) return;
@@ -464,28 +472,12 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     this._selectedGlyphIndex$.next(index);
   }
 
-  onNavigateToBitmap() {
-    if (this.resource) {
-      this.navigation.navigateToId(this.resource.id + '/bitmap');
-    }
-  }
-
   get glyphs(): any[] {
     return this.resource?.data?.definitions;
   }
 
-  get glyphKeys(): string[] {
-    const glyphs = this.glyphs;
-    if (glyphs.length === 0) return [];
-    return ['symbol', ...Object.keys(glyphs[0]).filter(k => k !== 'num_kern' && k !== 'kern_index')];
-  }
-
   get kernings(): any[] {
     return this.resource?.data?.kernings;
-  }
-
-  get kerningKeys(): string[] {
-    return ['Left Symbol', 'Right Symbol', 'Left Symbol Code', 'Right Symbol Code', 'Kerning', 'Unk'];
   }
 
   getSymbol(code: any): string {
@@ -498,40 +490,14 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     }
   }
 
-  onCellChange(index: number, key: string, event: any) {
-    const value = event.target.value;
-    const glyph = this.glyphs[index];
-    if (glyph) {
-      glyph[key] = parseInt(value, 10);
-      this.changed.emit();
-      this._resource$.next({ ...this.resource! });
-    }
-  }
-
-  onKerningCellChange(index: number, key: string, event: any) {
-    const value = event.target.value;
-    const kerning = this.kernings[index];
-    if (kerning) {
-      let fieldKey = '';
-      if (key === 'Left Symbol Code') fieldKey = 'left';
-      else if (key === 'Right Symbol Code') fieldKey = 'right';
-      else if (key === 'Kerning') fieldKey = 'kerning';
-      else if (key === 'Unk') fieldKey = 'unk';
-
-      if (fieldKey) {
-        kerning[fieldKey] = parseInt(value, 10);
-        this.changed.emit();
-        // Since we modified the array directly, and we want to trigger change detection
-        this._resource$.next({ ...this.resource! });
-      }
-    }
-  }
-
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
+    this._imageRefreshed$.complete();
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
     }
   }
+
+  protected readonly getChildResource = getChildResource;
 }
