@@ -5,7 +5,8 @@
 3) Check that the app opens up
 4) Check that the app shows the latest version in the menu
 5) Check that all files from test/golden_sample_corpus can be opened with the application from the explorer app (or using terminal on MacOS/Linux)
-6) Convert all game files on all 3 platforms, check diffs. Expect no changes expect what the new release brought
+6) Run TestGamesDirectory script, commit changes in the report. Expect no regressed values in it
+7) Convert all game files on all 3 platforms, check diffs. Expect no changes expect what the new release brought
 
 Whenever something went wrong during tests: 
 1) create a hotfix branch
