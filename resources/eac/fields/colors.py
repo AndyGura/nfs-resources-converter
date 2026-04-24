@@ -91,6 +91,14 @@ class Color16Bit4444Block(IntegerBlock):
         value = transform_color_bitness(number, 4, 4, 4, 4)
         return value
 
+    def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:
+        alpha = (value & 0xff) >> 4
+        red = (value & 0xff000000) >> 28
+        green = (value & 0xff0000) >> 20
+        blue = (value & 0xff00) >> 12
+        value = alpha << 12 | red << 8 | green << 4 | blue
+        return super().write(value, ctx, name)
+
 
 class Color16Bit0565Block(IntegerBlock):
     # Tested on NFS2 tracks
