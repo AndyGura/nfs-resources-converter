@@ -14,7 +14,11 @@ class Qfs2Compression(BaseCompressionAlgorithm):
 
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int):
         uncompressed: bytearray = bytearray()
-        buffer.seek(2, SEEK_CUR)  # skip header
+        # skip header
+        buffer.seek(1, SEEK_CUR)
+        hdr2 = read_byte(buffer)
+        if hdr2 != 0xfb:
+            raise ValueError("Invalid QFS2 file header")
         output_length = read_3int(buffer, byteorder='big')
         value_indicator = read_byte(buffer)
         patterns_count = read_byte(buffer)

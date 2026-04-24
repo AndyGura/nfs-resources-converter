@@ -1,4 +1,4 @@
-<h2 *ngIf='name && name != (main.resource$ | async)?.name && name != (navigation.resourceToRender$ | async)?.name'
+<h2 *ngIf='!hideName'
     id='title'
     [matTooltip]='resourceDescription' matTooltipPosition='above'
     (click)='navigation.navigateToId(resource!.id)'>{{ name }}</h2>

@@ -31,7 +31,9 @@ class RefPackCompression(BaseCompressionAlgorithm):
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int):
         uncompressed: bytearray = bytearray()
         use_4_bytes, contains_compressed_size = self._parse_archive_flags(read_byte(buffer))
-        buffer.seek(1, SEEK_CUR)  # skip RefPack indicator 0xfb
+        hdr2 = read_byte(buffer)
+        if hdr2 != 0xfb:
+            raise ValueError("Invalid RefPack file header")
         output_length = (read_byte(buffer) << 16) + (read_byte(buffer) << 8) + read_byte(buffer)
         bytes_used = 5
         if contains_compressed_size:

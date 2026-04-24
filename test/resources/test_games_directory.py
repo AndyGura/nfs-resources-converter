@@ -97,17 +97,20 @@ class TestGamesDirectory(unittest.TestCase):
                                                                     '.ICO', '.ID0', '.ID1', '.ID2', '.NAM', '.TIL', '.ENG',
                                                                     '.GER', '.ION']]
         all_files = [x for x in all_files if x[-3:].upper() not in ['.UC', '.UV']]
-        all_files = [x for x in all_files if x[-2:].upper() not in ['.0']]
+        all_files = [x for x in all_files if x[-2:].upper() not in ['.0', '.O']]
+
+        # tmp
+        # all_files = [x for x in all_files if x[-4:].upper() == '.FSH']
 
         total_files = len(all_files)
 
-        for file_path in all_files:
+        for i, file_path in enumerate(all_files):
             # Get file extension
             ext = file_path[-4:].upper()
             extension_stats[ext]["total"] += 1
 
             # Print file name and "..." to indicate processing has started
-            sys.stdout.write(f"{file_path}...")
+            sys.stdout.write(f"{i} / {total_files} {file_path}...")
             sys.stdout.flush()
 
             try:

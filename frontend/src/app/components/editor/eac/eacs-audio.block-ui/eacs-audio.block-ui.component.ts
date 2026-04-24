@@ -7,7 +7,7 @@ import { NavigationService } from '../../../../services/navigation.service';
 import { Resource } from '../../types';
 
 @Component({
-  selector: 'app-eacs-audio.block-ui',
+  selector: 'app-eacs-audio-block-ui',
   templateUrl: './eacs-audio.block-ui.component.html',
   styleUrls: ['./eacs-audio.block-ui.component.scss'],
 })
@@ -25,6 +25,8 @@ export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterVi
 
   @Input() resourceDescription: string = '';
 
+  @Input() hideName: boolean = false;
+
   @Input() hideBlockActions: boolean = false;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
@@ -35,7 +37,8 @@ export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterVi
     private readonly eelDelegate: EelDelegateService,
     public readonly main: MainService,
     public readonly navigation: NavigationService,
-  ) {}
+  ) {
+  }
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {

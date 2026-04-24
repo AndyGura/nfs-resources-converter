@@ -1,7 +1,6 @@
 <div id='header'>
-  <mat-label
-    *ngIf='resource?.name && resource?.name != (main.resource$ | async)?.name && resource?.name != (navigation.resourceToRender$ | async)?.name'
-    [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource?.name }}
+  <mat-label *ngIf='!hideName'
+             [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource?.name }}
   </mat-label>
   <audio controls *ngIf='audioUrl$ | async'>
     <source [src]='audioUrl$ | async'>
@@ -12,7 +11,5 @@
   <app-block-actions *ngIf='!hideBlockActions' [resource]='this.resource'></app-block-actions>
 </div>
 <app-compound-block-ui [resource]='_resource$ | async'
-                       [hideBlockActions]='true'
-                       [fieldBlacklist]="[
-                        'wave_data',
-                       ]"></app-compound-block-ui>
+                       [hideName]='true'
+                       [hideBlockActions]='true'></app-compound-block-ui>
