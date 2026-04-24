@@ -47,6 +47,8 @@ class Qfs3Compression(BaseCompressionAlgorithm, AsmRunner):
 
         self.available_acc_bits = 0
         file_header = self.accumulator = read_short(buffer, 'big')
+        if (file_header & 0xfb) != 0xfb:
+            raise ValueError("Invalid QFS3 file header")
         self.read_next(buffer)
         self.esi = self.accumulator << 16
         # if compressed size presented

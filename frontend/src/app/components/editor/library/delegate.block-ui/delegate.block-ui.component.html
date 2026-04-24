@@ -1,6 +1,6 @@
 <ng-container *ngIf='resourceData'>
   <mat-label
-    *ngIf='resource?.name && resource?.name != (main.resource$ | async)?.name && resource?.name != (navigation.resourceToRender$ | async)?.name'
+    *ngIf='!hideName'
     [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource?.name }}
   </mat-label>
   <div id='resource-type-container'>
@@ -16,5 +16,5 @@
     </mat-select>
     <app-block-actions [resource]='this.childResource'></app-block-actions>
   </div>
-  <app-editor [resource]='this.childResource' [hideBlockActions]='true' [disabled]='disabled'></app-editor>
+  <app-editor [resource]='this.childResource' [hideName]='true' [hideBlockActions]='true' [disabled]='disabled'></app-editor>
 </ng-container>

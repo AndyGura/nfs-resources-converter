@@ -25,6 +25,8 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
 
   @Input() resourceDescription: string = '';
 
+  @Input() hideName: boolean = false;
+
   @Input() hideBlockActions: boolean = false;
 
   @Input() disabled: boolean = false;

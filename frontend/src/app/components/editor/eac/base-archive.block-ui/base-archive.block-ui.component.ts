@@ -39,6 +39,8 @@ export class BaseArchiveBlockUiComponent implements GuiComponentInterface {
     return this._resource?.data;
   }
 
+  @Input() hideName: boolean = false;
+
   @Input() hideBlockActions: boolean = false;
 
   resourceMap: { [key: string]: Resource } = {};

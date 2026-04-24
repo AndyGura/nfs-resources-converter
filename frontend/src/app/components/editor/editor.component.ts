@@ -102,6 +102,15 @@ export class EditorComponent implements OnDestroy {
     }
   }
 
+  private _hideName: boolean = false;
+  @Input()
+  set hideName(value: boolean) {
+    this._hideName = value;
+    if (this._component) {
+      this._component.instance.hideName = value;
+    }
+  }
+
   private _hideBlockActions: boolean = false;
   @Input()
   set hideBlockActions(value: boolean) {
@@ -124,7 +133,13 @@ export class EditorComponent implements OnDestroy {
     if (!resA || !resB) {
       return !resA === !resB;
     }
-    return resA.id === resB.id && this.deep.deepEquals(resA.data, resB.data);
+    if (resA.id !== resB.id) {
+      return false;
+    }
+    if (resA === resB || resA.data === resB.data) {
+      return true;
+    }
+    return this.deep.deepEquals(resA.data, resB.data);
   }
 
   @Input()
@@ -188,6 +203,7 @@ export class EditorComponent implements OnDestroy {
         }
         this._component!.instance.resource = this._resource;
         this._component!.instance.resourceDescription = this._resourceDescription;
+        this._component!.instance.hideName = this._hideName;
         this._component!.instance.hideBlockActions = this._hideBlockActions;
         this._component!.instance.disabled = this._disabled;
       }

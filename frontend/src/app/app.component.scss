@@ -1,3 +1,5 @@
+@use '../variables';
+
 :host {
   height: 100%;
   display: flex;
@@ -24,18 +26,19 @@ mat-toolbar {
   left: 0;
   right: 0;
   z-index: 1000;
+  height: variables.$header-height !important;
 }
 
 #content-wrapper {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  padding: 1rem;
+  padding: variables.$viewport-padding;
 }
 
 #viewport {
-  padding-top: 64px; /* toolbar */
-  min-height: calc(100vh - 64px);
+  padding-top: variables.$header-height;
+  min-height: variables.$viewport-height;
   display: flex;
   flex-direction: column;
 }
