@@ -58,8 +58,8 @@ export class EditorComponent implements OnDestroy {
     SkipBlock: SkipBlockUiComponent,
     // NFS1 blocks
     AngleBlock: AngleBlockUiComponent,
-    AnyBitmapBlock: BitmapBlockUiComponent,
-    BasePalette: PaletteBlockUiComponent,
+    EacImage: BitmapBlockUiComponent,
+    EacPalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
     BaseArchiveBlock: BaseArchiveBlockUiComponent,
     TriMap: TriMapBlockUiComponent,

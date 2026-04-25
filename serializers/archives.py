@@ -6,10 +6,10 @@ import serializers
 from library.exceptions import DataIntegrityException
 from library.utils import format_exception, path_join
 from library.utils.id import join_id
-from resources.eac.archives import ShpiBlock
-from resources.eac.bitmaps import AnyBitmapBlock, Bitmap8Bit
+from resources.eac.archives import ShpiBlock, PaletteReference
+from resources.eac.bitmaps import EacImage
 from resources.eac.geometries import OripGeometry
-from resources.eac.palettes import PaletteReference, BasePalette, Palette24BitDos
+from resources.eac.palettes import EacPalette
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
 
@@ -42,7 +42,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 # that's a resource, assigned to the previous bitmap
                 if i > 0 and items[i - 1][0] is not None:
                     suffix = 'extra'
-                    if isinstance(item_block, BasePalette):
+                    if isinstance(item_block, EacPalette):
                         suffix = 'pal'
                     name = f'{items[i - 1][0]}_{suffix}'
                 else:
@@ -52,7 +52,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 skipped_resources.append((name, format_exception(item_data)))
                 continue
             try:
-                if not self.settings.images__save_images_only or isinstance(item_block, AnyBitmapBlock):
+                if not self.settings.images__save_images_only or isinstance(item_block, EacImage):
                     serializer = serializers.get_serializer(item_block, item_data)
                     file_name = escape_chars(name).replace('/', '_')
                     if save_image_names.get(file_name):
@@ -71,7 +71,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 skipped_resources.append((name, format_exception(ex)))
         if not self.settings.images__save_images_only:
             with open(path_join(path, 'positions.txt'), 'w') as f:
-                for name, item in [(name, data) for name, data, block in items if isinstance(block, AnyBitmapBlock)]:
+                for name, item in [(name, data) for name, data, block in items if isinstance(block, EacImage)]:
                     f.write(f"{name}: {item['x']}, {item['y']}\n")
         if self.settings.maps__save_spherical_skybox_texture:
             try:
@@ -179,19 +179,19 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             palette[-1] = transparent
         child_field = block.field_blocks_map['children'].child
         new_shpi = block.new_data()
-        pal_block = Palette24BitDos()
-        img_block = Bitmap8Bit()
+        pal_block = EacPalette()
+        img_block = EacImage()
         pal = pal_block.new_data()
-        pal['colors'] = palette
+        pal['colors']['data'] = palette
         for pal_alias in generate_palettes:
             new_shpi['children'].append({'choice_index': next(i for (i, b) in enumerate(child_field.possible_blocks) if
-                                                              isinstance(b, Palette24BitDos)),
+                                                              isinstance(b, EacPalette)),
                                          'data': pal})
             new_shpi['children_aliases'].append(pal_alias)
             new_shpi['offset_payloads'].append(b'')
         image_serializer = BitmapWithPaletteSerializer()
         bitmap8_choice = next(i for i in range(len(child_field.possible_blocks)) if
-                              isinstance(child_field.possible_blocks[i], Bitmap8Bit))
+                              isinstance(child_field.possible_blocks[i], EacImage))
         for name in file_names:
             alias = name[:-4]
             img = image_serializer.deserialize(path_join(path, name),

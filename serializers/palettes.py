@@ -7,6 +7,6 @@ class PaletteSerializer(BaseFileSerializer):
         super().serialize(data, path, id=id, block=block)
         with open(f'{path}.pal.txt', 'w') as f:
             f.write(f'{block.__class__.__name__}\n')
-            f.write('Palette used in bitmap serialization. Contains mapping bitmap data bytes to RGBA colors.\n')
-            for i, color in enumerate(data['colors']):
+            for i, color in enumerate(data['colors']['data']):
                 f.write(f'\n{hex(i)}:\t#{hex(color)}')
+            f.write('\n')

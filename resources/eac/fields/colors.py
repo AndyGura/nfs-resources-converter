@@ -49,10 +49,6 @@ class Color24BitBigEndianField(Color24BitBlock):
         super().__init__(byte_order="big", **kwargs)
 
 
-class Color24BitLittleEndianField(Color24BitBlock):
-    pass
-
-
 class Color32BitBlock(IntegerBlock):
     @property
     def schema(self) -> Dict:
@@ -72,32 +68,6 @@ class Color32BitBlock(IntegerBlock):
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         # RGBA => ARGB
         return super().write((data & 0xff_ff_ff_00) >> 8 | (data & 0xff) << 24, ctx, name)
-
-
-class Color16Bit4444Block(IntegerBlock):
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'EA games 16-bit 4444 color, aaaarrrr_ggggbbbb',
-        }
-
-    def __init__(self, **kwargs):
-        super().__init__(length=2, **kwargs)
-
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        number = super().read(ctx, name)
-        value = transform_color_bitness(number, 4, 4, 4, 4)
-        return value
-
-    def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:
-        alpha = (value & 0xff) >> 4
-        red = (value & 0xff000000) >> 28
-        green = (value & 0xff0000) >> 20
-        blue = (value & 0xff00) >> 12
-        value = alpha << 12 | red << 8 | green << 4 | blue
-        return super().write(value, ctx, name)
 
 
 class Color16Bit0565Block(IntegerBlock):
@@ -154,27 +124,3 @@ class Color16BitDosBlock(IntegerBlock):
         blue = (value & 0xff00) >> 11
         value = red << 11 | green << 5 | blue
         return super().write(value, ctx, name)
-
-
-class Color16Bit1555Block(IntegerBlock):
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'EA games 16-bit 1555 color, arrrrrgg_gggbbbbb',
-        }
-
-    def __init__(self, **kwargs):
-        super().__init__(length=2, **kwargs)
-
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        number = super().read(ctx, name)
-        return transform_color_bitness(number, 1, 5, 5, 5)
-
-    def write(self, value, ctx: WriteContext = None, name: str = '') -> bytes:
-        red = (value & 0xff000000) >> 27
-        green = (value & 0xff0000) >> 18
-        blue = (value & 0xff00) >> 11
-        alpha = value & 0xff >> 7
-        return super().write(alpha << 15 | red << 10 | green << 5 | blue, ctx, name)

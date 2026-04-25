@@ -403,8 +403,8 @@ for obj in bpy.context.selected_objects:
                 for ti, texture_name in enumerate(shpi_data['children_aliases']):
                     texture_block = shpi_block.field_blocks_map['children'].child.possible_blocks[
                         shpi_data['children'][ti]['choice_index']]
-                    from resources.eac.bitmaps import AnyBitmapBlock
-                    if not isinstance(texture_block, AnyBitmapBlock):
+                    from resources.eac.bitmaps import EacImage
+                    if not isinstance(texture_block, EacImage):
                         continue
                     additional_textures.append(f"props/{descr['data']['data']['resource_id']}/0/assets/{texture_name}")
         return (meshes, additional_textures)

@@ -2,7 +2,7 @@ from typing import Dict
 
 from library.read_blocks import IntegerBlock, UTF8Block, BytesBlock, ArrayBlock, DeclarativeCompoundBlock, Padding
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.bitmaps import Bitmap4Bit
+from resources.eac.bitmaps import EacImage
 
 
 class GlyphDefinition(DeclarativeCompoundBlock):
@@ -70,8 +70,8 @@ class FfnFont(DeclarativeCompoundBlock):
                        {'description': 'Definitions of chars in this bitmap font'})
         skip_bytes = (Padding(to=lambda ctx: ctx.data('bdata_ptr')),
                       {'description': '4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36)'})
-        bitmap = (Bitmap4Bit(),
-                  {'description': 'Font atlas bitmap data'})
+        bitmap = (EacImage(),
+                  {'description': 'Font atlas bitmap data. Usually 4bit'})
 
     def serializer_class(self):
         from serializers import FfnFontSerializer

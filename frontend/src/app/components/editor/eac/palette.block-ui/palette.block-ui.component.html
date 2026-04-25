@@ -1,7 +1,7 @@
 <app-compound-block-ui [resource]="resource"
                        [fieldBlacklist]="['colors']"></app-compound-block-ui>
 <div id="colors-container">
-    <div *ngFor="let color of resourceData?.colors; let i = index" class="color-box"
+    <div *ngFor="let color of resourceData?.colors.data; let i = index" class="color-box"
          [ngStyle]="{'background-color': '#' + lpad(color.toString(16), '0', 8) }"
          [matTooltip]="i + ': #' + color.toString(16)"
          (click)="onColorClicked($any($event.currentTarget!), i)"></div>

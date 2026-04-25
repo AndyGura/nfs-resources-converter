@@ -3,7 +3,7 @@ from io import BytesIO
 from os.path import getsize
 from typing import Dict
 
-from .shpi_block import ShpiBlock
+from .shpi_block import ShpiBlock, PaletteReference
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,

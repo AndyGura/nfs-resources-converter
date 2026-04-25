@@ -10,14 +10,9 @@ from library.read_blocks import (CompoundBlock,
                                  AutoDetectBlock,
                                  BytesBlock)
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.bitmaps import Bitmap8Bit, Bitmap4Bit, Bitmap16Bit0565, Bitmap16Bit4444, Bitmap32Bit, Bitmap16Bit1555, Bitmap24Bit
+from resources.eac.bitmaps import EacImage
 from resources.eac.misc import ShpiText
-from resources.eac.palettes import (Palette24BitDos,
-                                    Palette24Bit,
-                                    Palette32Bit,
-                                    Palette16Bit,
-                                    PaletteReference,
-                                    Palette16BitDos)
+from resources.eac.palettes import EacPalette
 from .base_archive_block import BaseArchiveBlock
 
 
@@ -26,6 +21,26 @@ def determine_shpi_length(ctx):
         return ctx.read_bytes_remaining
     except Exception:
         return ctx.data('length') - 16 - 8 * ctx.data('num_items')
+
+
+class PaletteReference(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7C)),
+                       {'description': 'Resource ID'})
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        unk1_length = (IntegerBlock(length=4),
+                       {'is_unknown': True})
+        unk1 = (BytesBlock(length=lambda ctx: 8 * ctx.data('unk1_length')),
+                {'is_unknown': True})
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
+                                 'Probably a reference to palette which should be used, that\'s why named so',
+        }
 
 
 class ShpiBlock(BaseArchiveBlock):
@@ -63,36 +78,16 @@ class ShpiBlock(BaseArchiveBlock):
                           'description': 'A part of block, where items data is located. Offsets to some of the entries are '
                                          'defined in `items_descr` block. Between them there can be non-indexed '
                                          'entries (palettes and texts). Possible item types:'
-                                         '<br/>- [Bitmap4Bit](#bitmap4bit)'
-                                         '<br/>- [Bitmap8Bit](#bitmap8bit)'
-                                         '<br/>- [Bitmap16Bit4444](#bitmap16bit4444)'
-                                         '<br/>- [Bitmap16Bit0565](#bitmap16bit0565)'
-                                         '<br/>- [Bitmap16Bit1555](#bitmap16bit1555)'
-                                         '<br/>- [Bitmap24Bit](#bitmap24bit)'
-                                         '<br/>- [Bitmap32Bit](#bitmap32bit)'
+                                         '<br/>- [EacImage](#eacimage)'
+                                         '<br/>- [EacPalette](#eacpalette)'
                                          '<br/>- [PaletteReference](#palettereference)'
-                                         '<br/>- [Palette16BitDos](#palette16bitdos)'
-                                         '<br/>- [Palette16Bit](#palette16bit)'
-                                         '<br/>- [Palette24BitDos](#palette24bitdos)'
-                                         '<br/>- [Palette24Bit](#palette24bit)'
-                                         '<br/>- [Palette32Bit](#palette32bit)'
                                          '<br/>- [ShpiText](#shpitext)',
                           'usage': 'io,doc'})
         children = (ArrayBlock(length=(0, 'num_items + ?'),
                                child=AutoDetectBlock(possible_blocks=[
-                                   Bitmap4Bit(),
-                                   Bitmap8Bit(),
-                                   Bitmap16Bit4444(),
-                                   Bitmap16Bit0565(),
-                                   Bitmap16Bit1555(),
-                                   Bitmap24Bit(),
-                                   Bitmap32Bit(),
+                                   EacImage(),
+                                   EacPalette(),
                                    PaletteReference(),
-                                   Palette16BitDos(),
-                                   Palette16Bit(),
-                                   Palette24BitDos(),
-                                   Palette24Bit(),
-                                   Palette32Bit(),
                                    ShpiText(),
                                    BytesBlock(length=(lambda ctx: next(x for x in (
                                        x['offset'] - ctx.local_buffer_pos
@@ -147,12 +142,7 @@ class ShpiBlock(BaseArchiveBlock):
         children.append(child)
         aliases.append(alias)
         # Try to read optional extra block after 8-bit bitmap data
-        try:
-            bitmap8_choice = next(
-                idx for idx, blk in enumerate(child_field.possible_blocks) if isinstance(blk, Bitmap8Bit))
-        except StopIteration:
-            bitmap8_choice = -1
-        if bitmap8_choice != -1 and self_ctx.data('shpi_dir') != 'WRAP' and child.get('choice_index') == bitmap8_choice:
+        if self_ctx.data('shpi_dir') != 'WRAP' and isinstance(child['data'], dict) and child['data'].get('resource_id') == '8Bit':
             extra_abs = offset + child['data']['block_size']
             next_abs = abs_offsets[i + 1][1] if i < len(abs_offsets) - 1 else None
             if child['data']['block_size'] > 0 and (next_abs is None or extra_abs < next_abs):

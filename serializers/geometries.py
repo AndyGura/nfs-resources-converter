@@ -4,7 +4,7 @@ from library.exceptions import DataIntegrityException
 from library.utils import path_join
 from library.utils.id import join_id
 from resources.eac.archives import ShpiBlock
-from resources.eac.bitmaps import AnyBitmapBlock
+from resources.eac.bitmaps import EacImage
 from serializers import BaseFileSerializer
 from serializers.common.three_d import SubMesh, Mesh, export_scenes, Scene
 
@@ -130,7 +130,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
             texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
                 textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, AnyBitmapBlock):
+            if not isinstance(texture_block, EacImage):
                 continue
             scene.mtl_texture_names.append(texture_name)
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
@@ -225,7 +225,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
         for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
             texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
                 textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, AnyBitmapBlock):
+            if not isinstance(texture_block, EacImage):
                 continue
             scene.mtl_texture_names.append(texture_name)
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'

@@ -38,7 +38,7 @@ export class PaletteBlockUiComponent implements GuiComponentInterface {
       return;
     }
     this.selectedIndex = index;
-    const color = this.resourceData.colors[index] || 0;
+    const color = this.resourceData.colors.data[index] || 0;
     this.picker.select(
       new Color((color & 0xff000000) >>> 24, (color & 0xff0000) >>> 16, (color & 0xff00) >>> 8, color & 0xff),
     );
@@ -56,7 +56,7 @@ export class PaletteBlockUiComponent implements GuiComponentInterface {
       return;
     }
     if (this.selectedIndex !== null) {
-      this.resourceData.colors[this.selectedIndex] = color ? parseInt(color.toHex8String().substring(1), 16) : 0;
+      this.resourceData.colors.data[this.selectedIndex] = color ? parseInt(color.toHex8String().substring(1), 16) : 0;
       this.changed.emit();
     }
   }

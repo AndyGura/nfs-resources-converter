@@ -132,7 +132,7 @@ class EnumByteBlock(IntegerBlock):
         return {**super().schema,
                 'enum_names': self.enum_names,
                 'block_description': 'Enum of 256 possible values<br/><details><summary>Value names:</summary>'
-                                     + '<br/>'.join([f'{i}: {x}'
+                                     + '<br/>'.join([f'{i} ({hex(i)}): {x}'
                                                      for i, x in enumerate(self.enum_name_map)
                                                      if x != str(i)]) + '</details>'}
 

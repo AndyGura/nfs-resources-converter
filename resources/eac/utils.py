@@ -1,6 +1,5 @@
-from resources.eac.archives import ShpiBlock, WwwwBlock
-from resources.eac.bitmaps import Bitmap8Bit
-from resources.eac.palettes import BasePalette, PaletteReference
+from resources.eac.archives import ShpiBlock, WwwwBlock, PaletteReference
+from resources.eac.palettes import EacPalette
 
 
 def _get_palette_from_shpi(shpi_block, shpi_data: dict):
@@ -11,7 +10,7 @@ def _get_palette_from_shpi(shpi_block, shpi_data: dict):
         try:
             idx = shpi_data['children_aliases'].index(name)
             block = child_field.possible_blocks[shpi_data['children'][idx]['choice_index']]
-            if block and isinstance(block, BasePalette):
+            if block and isinstance(block, EacPalette):
                 return block, shpi_data['children'][idx]['data']
         except ValueError:
             pass
@@ -41,7 +40,7 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
     return palette_block, palette_data
 
 
-def determine_palette_for_8_bit_bitmap(block: Bitmap8Bit, data: dict, id: str) -> dict:
+def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
     from library import require_resource
     palette_data, palette_block = None, None
     if id.rfind('__children') == -1 and id.rfind('/children') == -1:
@@ -63,7 +62,7 @@ def determine_palette_for_8_bit_bitmap(block: Bitmap8Bit, data: dict, id: str) -
     if next_idx < len(shpi_data['children_aliases']) and shpi_data['children_aliases'][next_idx] is None:
         next_item = shpi_data['children'][next_idx]
         next_item_block = shpi_block.field_blocks_map['children'].child.possible_blocks[next_item['choice_index']]
-        if isinstance(next_item_block, BasePalette):
+        if isinstance(next_item_block, EacPalette):
             palette_data, palette_block = next_item['data'], next_item_block
     if (palette_block is None
             or isinstance(palette_block, PaletteReference)

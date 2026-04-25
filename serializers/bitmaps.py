@@ -1,9 +1,5 @@
-from typing import Any
-
 from PIL import Image
 
-from library.exceptions import SerializationException
-from resources.eac.bitmaps import Bitmap4Bit
 from resources.eac.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
@@ -12,24 +8,31 @@ from serializers.misc.path_utils import escape_chars
 class BitmapSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+        if data['resource_id'].startswith('8Bit'):
+            return BitmapWithPaletteSerializer().serialize(data, path, id=id, block=block, **kwargs)
         super().serialize(data, path, id=id, block=block)
-        bitmap = data['bitmap']
-        if isinstance(block, Bitmap4Bit):
-            bitmap = [item for row in bitmap for item in row]
+        if data['resource_id'].startswith('4Bit'):
+            bitmap = [item for row in data['bitmap']['data'] for item in row]
+        else:
+            bitmap = data['bitmap']['data']
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(f'{escape_chars(path)}.png')
 
     def deserialize(self, path: str, id=None, block=None, **kwargs):
+        # TODO
+        # if data['resource_id'].startswith('8Bit'):
+        #     return BitmapWithPaletteSerializer().serialize(data, path, id=id, block=block, **kwargs)
         image = Image.open(path + '.png')
         image_rgba = image.convert("RGBA")
         data = block.new_data()
         data['width'] = image.width
         data['height'] = image.height
         bitmap = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
-        if isinstance(block, Bitmap4Bit):
-            bitmap = [bitmap[i:i + image.width] for i in range(0, len(bitmap), image.width)]
-        data['bitmap'] = bitmap
+        if data['resource_id'].startswith('4Bit'):
+            data['bitmap']['data'] = [bitmap[i:i + image.width] for i in range(0, len(bitmap), image.width)]
+        else:
+            data['bitmap']['data'] = bitmap
         return data
 
 
@@ -44,10 +47,10 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             for i in range(256):
                 palette_colors.append(0xffffff00 | i)
         else:
-            palette_colors = [c for c in palette_data['colors']]
+            palette_colors = [c for c in palette_data['colors']['data']]
             if palette_data['last_color_transparent']:
                 palette_colors[255] = 0
-        for index in data['bitmap']:
+        for index in data['bitmap']['data']:
             try:
                 colors.append(palette_colors[index])
             except IndexError:
