@@ -1,5 +1,5 @@
 import { Injectable, NgZone } from '@angular/core';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
 
 // These types are used by consumers of this service
@@ -117,16 +117,11 @@ export class EelDelegateService {
     return (await this.getImpl()).saveFile(changes);
   }
 
-  public async serializeResource(id: string, settingsPatch: any = {}): Promise<string[]> {
-    return (await this.getImpl()).serializeResource(id, settingsPatch);
-  }
-
-  public async serializeResourceTmp(
-    id: string,
-    changes: { id: string; value: any }[],
-    settingsPatch: any = {},
-  ): Promise<string[]> {
-    return (await this.getImpl()).serializeResourceTmp(id, changes, settingsPatch);
+  public async serializeResource(id: string, changes: {
+    id: string;
+    value: any
+  }[] = [], settingsPatch: any = {}): Promise<string[]> {
+    return (await this.getImpl()).serializeResource(id, changes, settingsPatch);
   }
 
   public async serializeReversible(id: string, changes: { id: string; value: any }[]): Promise<[string[], boolean]> {

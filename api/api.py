@@ -57,7 +57,6 @@ class API:
         # Serialization API
         eel.expose(self.serialization_api.serialize_resource)
         eel.expose(self.serialization_api.serialize_reversible)
-        eel.expose(self.serialization_api.serialize_resource_tmp)
         eel.expose(self.serialization_api.deserialize_resource)
 
         # Conversion API

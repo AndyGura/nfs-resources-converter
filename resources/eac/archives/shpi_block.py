@@ -8,7 +8,7 @@ from library.read_blocks import (CompoundBlock,
                                  IntegerBlock,
                                  ArrayBlock,
                                  AutoDetectBlock,
-                                 BytesBlock)
+                                 BytesBlock, LengthPrefixedArrayBlock)
 from library.read_blocks.misc.value_validators import Eq
 from resources.eac.bitmaps import EacImage, EacPalette
 from resources.eac.misc import ShpiText
@@ -28,9 +28,8 @@ class PaletteReference(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        unk1_length = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('unk1')) / 8),
-                       {'is_unknown': True})
-        unk1 = (BytesBlock(length=lambda ctx: 8 * ctx.data('unk1_length')),
+        unk1 = (LengthPrefixedArrayBlock(length_block=(IntegerBlock(length=4)),
+                                         child=BytesBlock(length=8)),
                 {'is_unknown': True})
 
     @property
@@ -141,7 +140,8 @@ class ShpiBlock(BaseArchiveBlock):
         children.append(child)
         aliases.append(alias)
         # Try to read optional extra block after 8-bit bitmap data
-        if self_ctx.data('shpi_dir') != 'WRAP' and isinstance(child['data'], dict) and child['data'].get('resource_id') == '8Bit':
+        if self_ctx.data('shpi_dir') != 'WRAP' and isinstance(child['data'], dict) and child['data'].get(
+                'resource_id') == '8Bit':
             extra_abs = offset + child['data']['block_size']
             next_abs = abs_offsets[i + 1][1] if i < len(abs_offsets) - 1 else None
             if child['data']['block_size'] > 0 and (next_abs is None or extra_abs < next_abs):

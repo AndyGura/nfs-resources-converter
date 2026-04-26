@@ -122,16 +122,8 @@ export class EelDelegateImplService {
     });
   }
 
-  public async serializeResource(id: string, settingsPatch: any = {}): Promise<string[]> {
-    return eel['serialize_resource'](id, settingsPatch)();
-  }
-
-  public async serializeResourceTmp(
-    id: string,
-    changes: { id: string; value: any }[],
-    settingsPatch: any = {},
-  ): Promise<string[]> {
-    return eel['serialize_resource_tmp'](id, changes, settingsPatch)();
+  public async serializeResource(id: string, changes = [], settingsPatch: any = {}): Promise<string[]> {
+    return eel['serialize_resource'](id, changes, settingsPatch)();
   }
 
   public async serializeReversible(id: string, changes: { id: string; value: any }[]): Promise<[string[], boolean]> {

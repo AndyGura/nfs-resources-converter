@@ -42,18 +42,22 @@ class SerializationAPI:
         """
         return convert_bytes(serialize_exceptions(data))
 
-    def serialize_resource(self, id: str, settings_patch: Dict = {}) -> List[str]:
+    def serialize_resource(self, id: str, changes: Dict, settings_patch: Dict = {}) -> List[str]:
         """
         Serialize a resource.
         
         Args:
             id: ID of the resource
+            changes: Changes to apply
             settings_patch: Settings to patch
             
         Returns:
             List of exported file paths
         """
         (_, res_block, res), (_, top_level_block, top_level_res) = require_resource(id)
+        if len(changes) > 0:
+            res = deepcopy(res)
+            apply_delta_to_resource(id, res, changes)
         serializer = get_serializer(res_block, res)
         path = path_join(self.api.static_path, 'resources', *id.split('/'))
         if settings_patch:
@@ -92,33 +96,6 @@ class SerializationAPI:
                                Path(normal_slashes_path[:normal_slashes_path.rindex('/')]).glob(
                                    normal_slashes_path[(normal_slashes_path.rindex('/') + 1):] + '.*'))
                 if not x.is_dir()], reverse_flag
-
-    def serialize_resource_tmp(self, id: str, changes: Dict, settings_patch: Dict = {}) -> List[str]:
-        """
-        Serialize a resource temporarily.
-        
-        Args:
-            id: ID of the resource
-            changes: Changes to apply
-            settings_patch: Settings to patch
-            
-        Returns:
-            List of exported file paths
-        """
-        (_, res_block, resource), _ = require_resource(id)
-        resource = deepcopy(resource)
-        apply_delta_to_resource(id, resource, changes)
-        serializer = get_serializer(res_block, resource)
-        path = path_join(self.api.static_path, 'resources_tmp', *id.split('/'))
-        if settings_patch:
-            serializer.patch_settings(settings_patch)
-        serializer.serialize(resource, path, id, res_block)
-        normal_slashes_path = path.replace('\\', '/')
-        return [str(x)[len(self.api.static_path):]
-                for x in chain(Path(normal_slashes_path).glob("**/*"),
-                               Path(normal_slashes_path[:normal_slashes_path.rindex('/')]).glob(
-                                   normal_slashes_path[(normal_slashes_path.rindex('/') + 1):] + '.*'))
-                if not x.is_dir()]
 
     def deserialize_resource(self, id: str) -> Any:
         """
