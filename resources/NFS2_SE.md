@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-04-26 11:02:35.418900+00:00*
+*Last time updated: 2026-04-26 15:47:59.172454+00:00*
 
 
 # **Info by file extensions** #
@@ -43,8 +43,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
 | 1 | **unk0** | 3 | Bytes | Unknown purpose |
-| 4 | **unk1_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 8 | **unk1** | 8\*unk1_length | Bytes | Unknown purpose |
+| 4 | **num_unk1** | 4 | 4-bytes unsigned integer (little endian) | Length of unk1 array |
+| 8 | **unk1** | num_unk1\*8 | Array of `num_unk1` items<br/>Item size: 8 bytes<br/>Item type: Bytes | Unknown purpose |
 ### **BigfBlock** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: A block-container with various data: image archives, GEO geometries, sound banks, other BIGF blocks... ####
