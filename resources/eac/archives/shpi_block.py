@@ -10,9 +10,8 @@ from library.read_blocks import (CompoundBlock,
                                  AutoDetectBlock,
                                  BytesBlock)
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.bitmaps import EacImage
+from resources.eac.bitmaps import EacImage, EacPalette
 from resources.eac.misc import ShpiText
-from resources.eac.palettes import EacPalette
 from .base_archive_block import BaseArchiveBlock
 
 

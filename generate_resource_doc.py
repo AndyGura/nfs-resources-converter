@@ -14,7 +14,6 @@ from library.utils.docs import add_doc_numbers
 from resources.eac import (archives,
                            bitmaps,
                            fonts,
-                           palettes,
                            misc,
                            geometries,
                            maps,
@@ -143,7 +142,7 @@ EXPORT_RESOURCES = {
             ],
             'Images': [
                 bitmaps.EacImage(),
-                palettes.EacPalette(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -218,7 +217,7 @@ EXPORT_RESOURCES = {
             # ],
             'Images': [
                 bitmaps.EacImage(),
-                palettes.EacPalette(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -283,7 +282,7 @@ EXPORT_RESOURCES = {
             # ],
             'Images': [
                 bitmaps.EacImage(),
-                palettes.EacPalette(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -354,7 +353,7 @@ EXPORT_RESOURCES = {
             # ],
             'Images': [
                 bitmaps.EacImage(),
-                palettes.EacPalette(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -390,7 +389,7 @@ EXPORT_RESOURCES = {
             # ],
             'Images': [
                 bitmaps.EacImage(),
-                palettes.EacPalette(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -461,7 +460,7 @@ EXPORT_RESOURCES = {
             # ],
             'Images': [
                 bitmaps.EacImage(),
-                palettes.EacPalette(),
+                bitmaps.EacPalette(),
             ],
             # 'Fonts': [
             # ],
@@ -491,7 +490,7 @@ EXPORT_RESOURCES = {
             # ],
             'Images': [
                 bitmaps.EacImage(),
-                palettes.EacPalette(),
+                bitmaps.EacPalette(),
             ],
             # 'Fonts': [
             # ],

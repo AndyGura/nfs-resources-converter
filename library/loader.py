@@ -68,7 +68,7 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
     try:
         resource_id = header_bytes[0]
         if resource_id in [0x22, 0x24, 0x29, 0x2A, 0x2D]:
-            from resources.eac.palettes import EacPalette
+            from resources.eac.bitmaps import EacPalette
             return EacPalette
         # TODO PIXEL_PAL4_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
         # elif resource_id == 0x5C:

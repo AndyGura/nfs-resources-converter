@@ -1,5 +1,5 @@
 from resources.eac.archives import ShpiBlock, WwwwBlock, PaletteReference
-from resources.eac.palettes import EacPalette
+from resources.eac.bitmaps import EacPalette
 
 
 def _get_palette_from_shpi(shpi_block, shpi_data: dict):

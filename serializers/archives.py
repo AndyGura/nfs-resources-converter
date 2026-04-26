@@ -7,9 +7,8 @@ from library.exceptions import DataIntegrityException
 from library.utils import format_exception, path_join
 from library.utils.id import join_id
 from resources.eac.archives import ShpiBlock, PaletteReference
-from resources.eac.bitmaps import EacImage
+from resources.eac.bitmaps import EacImage, EacPalette
 from resources.eac.geometries import OripGeometry
-from resources.eac.palettes import EacPalette
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
 

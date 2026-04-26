@@ -2,7 +2,6 @@ import unittest
 from io import BytesIO
 
 from library.context import ReadContext
-from resources.eac.fields.colors import Color24BitDosBlock
 from resources.eac.fields.numbers import Nfs1Angle14, Nfs1Angle8
 
 
