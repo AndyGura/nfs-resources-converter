@@ -186,7 +186,7 @@ class EacPalette(DeclarativeCompoundBlock):
         colors = (EnumLookupDelegateBlock(enum_field='resource_id',
                                           blocks=[
                                               ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
-                                                         child=IntegerBlock(length=3)),
+                                                         child=IntegerBlock(length=3, byte_order='big')),
                                               ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
                                                          child=IntegerBlock(length=3, byte_order='big')),
                                               ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
