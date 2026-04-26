@@ -93,7 +93,7 @@ class EacImage(DeclarativeCompoundBlock):
             data['bitmap']['data'] = [transform_color_bitness(x, 1, 5, 5, 5)
                                       for x in data['bitmap']['data']]
         elif data['resource_id'] == '24Bit color format bitmap':
-            data['bitmap']['data'] = [x << 8 | 0xFF for x in data['bitmap']['data']]
+            data['bitmap']['data'] = [(x << 8) | 0xFF for x in data['bitmap']['data']]
         elif data['resource_id'] == '32Bit color format bitmap':
             # ARGB => RGBA
             data['bitmap']['data'] = [(x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24 for x in
@@ -143,7 +143,7 @@ class EacImage(DeclarativeCompoundBlock):
                 alpha = pxl & 0xff >> 7
                 copied['bitmap']['data'][i] = alpha << 15 | red << 10 | green << 5 | blue
         elif copied['resource_id'] == '24Bit color format bitmap':
-            copied['bitmap']['data'] = [x >> 8 | 0xFF for x in copied['bitmap']['data']]
+            copied['bitmap']['data'] = [x >> 8 for x in copied['bitmap']['data']]
         elif copied['resource_id'] == '32Bit color format bitmap':
             # RGBA => ARGB
             copied['bitmap']['data'] = [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in copied['bitmap']['data']]
