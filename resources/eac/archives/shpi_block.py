@@ -28,7 +28,7 @@ class PaletteReference(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
-        unk1_length = (IntegerBlock(length=4),
+        unk1_length = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('unk1')) / 8),
                        {'is_unknown': True})
         unk1 = (BytesBlock(length=lambda ctx: 8 * ctx.data('unk1_length')),
                 {'is_unknown': True})
