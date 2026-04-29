@@ -131,11 +131,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     if (blockId) {
       const paths = await this.eelDelegate.serializeResource(
         blockId,
-        Object.entries(this.main.changedDataBlocks)
-          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
-          .map(([id, value]) => {
-            return { id, value };
-          }),
+        null,
         this.serializerSettings,
       );
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
@@ -145,7 +141,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, [], this.serializerSettings);
+      const paths = await this.eelDelegate.serializeResource(blockId, null, this.serializerSettings);
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;

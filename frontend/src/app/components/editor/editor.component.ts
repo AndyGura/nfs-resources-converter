@@ -160,7 +160,9 @@ export class EditorComponent implements OnDestroy {
       this._resource = value;
       this._resourceError = null;
     }
-    this.dataBlockUiHost.viewContainerRef.clear();
+    if (!reuseComponent) {
+      this.dataBlockUiHost.viewContainerRef.clear();
+    }
     if (this._resource) {
       if (this._resource.schema.block_class_mro) {
         if (!reuseComponent) {
@@ -206,6 +208,9 @@ export class EditorComponent implements OnDestroy {
         this._component!.instance.hideName = this._hideName;
         this._component!.instance.hideBlockActions = this._hideBlockActions;
         this._component!.instance.disabled = this._disabled;
+        if (reuseComponent) {
+          this._component!.changeDetectorRef.markForCheck();
+        }
       }
     }
   }

@@ -20,7 +20,7 @@ class TestFfnFont(unittest.TestCase):
         import tempfile
         from serializers import get_serializer
         serializer = get_serializer(block, font_res)
-        self.assertTrue(serializer.setup_for_reversible_serialization())
+        self.assertTrue(serializer.ui_serialization().reversible)
         with tempfile.TemporaryDirectory() as tmp:
             serializer.serialize(font_res, tmp, name, block)
             font_res = serializer.deserialize(tmp, name, block=block)

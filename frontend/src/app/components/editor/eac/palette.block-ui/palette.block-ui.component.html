@@ -1,4 +1,6 @@
 <app-compound-block-ui [resource]="resource"
+                       [hideBlockActions]='hideBlockActions'
+                       [hideName]='hideName'
                        [fieldBlacklist]="['colors']"></app-compound-block-ui>
 <div id="colors-container">
     <div *ngFor="let color of resourceData?.colors.data; let i = index" class="color-box"

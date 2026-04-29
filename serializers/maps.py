@@ -409,7 +409,7 @@ for obj in bpy.context.selected_objects:
                     additional_textures.append(f"props/{descr['data']['data']['resource_id']}/0/assets/{texture_name}")
         return (meshes, additional_textures)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
         is_opened = data['loop_chunk'] == 0
 
@@ -591,7 +591,7 @@ for obj in bpy.context.selected_objects:
             })
 
         # export scenes
-        export_scenes(scenes, path, self.settings)
+        return export_scenes(scenes, path, self.settings)
 
 
 class TrkMapSerializer(BaseFileSerializer):
@@ -599,7 +599,7 @@ class TrkMapSerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id, block, **kwargs)
         from library import require_resource
         try:
@@ -772,7 +772,7 @@ for obj in bpy.context.selected_objects:
                 traceback.print_exc()
 
         # export scenes
-        export_scenes(scenes, path, self.settings)
+        return export_scenes(scenes, path, self.settings)
 
 
 class FrdMapSerializer(BaseFileSerializer):
@@ -780,7 +780,7 @@ class FrdMapSerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id, block, **kwargs)
         from library import require_resource
         try:
@@ -909,4 +909,4 @@ for obj in bpy.context.selected_objects:
                 traceback.print_exc()
 
         # export scenes
-        export_scenes(scenes, path, self.settings)
+        return export_scenes(scenes, path, self.settings)

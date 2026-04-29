@@ -15,6 +15,7 @@ import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
+import { ErrorDialogComponent } from './components/error.dialog/error.dialog.component';
 import { MAT_COLOR_FORMATS, NGX_MAT_COLOR_FORMATS } from '@angular-material-components/color-picker';
 import { NavigationBarComponent } from './components/navigation-bar/navigation-bar.component';
 import { EditorModule } from './components/editor/editor.module';
@@ -28,7 +29,7 @@ import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
 
 @NgModule({
-  declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, LandingPageComponent],
+  declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, ErrorDialogComponent, LandingPageComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,

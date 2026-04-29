@@ -43,6 +43,7 @@ class API:
         eel.expose(self.file_api.on_angular_ready)
         eel.expose(self.file_api.get_recent_files)
         eel.expose(self.file_api.open_file_dialog)
+        eel.expose(self.file_api.save_file_dialog)
         eel.expose(self.file_api.open_file)
         eel.expose(self.file_api.open_file_with_system_app)
         eel.expose(self.file_api.start_file)
@@ -56,7 +57,6 @@ class API:
 
         # Serialization API
         eel.expose(self.serialization_api.serialize_resource)
-        eel.expose(self.serialization_api.serialize_reversible)
         eel.expose(self.serialization_api.deserialize_resource)
 
         # Conversion API

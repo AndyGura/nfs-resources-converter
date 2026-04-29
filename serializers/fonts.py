@@ -1,3 +1,5 @@
+from typing import List
+
 from library.read_blocks import DataBlock
 from library.utils import path_join
 from serializers import BaseFileSerializer, BitmapSerializer
@@ -8,15 +10,22 @@ class FfnFontSerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def setup_for_reversible_serialization(self) -> bool:
-        return True
+    def ui_serialization(self):
+        return {
+            'file_type': 'fnt + png',
+            'is_directory': False,
+            'output_file_name_suffix': None,
+            'reversible': True,
+            'reversible_settings_patch': {}
+        }
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id=id, block=None)
         image_serializer = BitmapSerializer()
-        image_serializer.serialize(data["bitmap"], path_join(path, 'bitmap'),
-                                   block=block.get_child_block_with_data(data, 'bitmap')[0])
-        with open(path_join(path, 'font.fnt'), 'w') as file:
+        output = image_serializer.serialize(data["bitmap"], path_join(path, 'bitmap'),
+                                            block=block.get_child_block_with_data(data, 'bitmap')[0])
+        fnt_path = path_join(path, 'font.fnt')
+        with open(fnt_path, 'w') as file:
             file.write(f'info face="{id.split("/")[-1]}" size={data["font_size"]}\n')
             file.write(f'common lineHeight={data["line_height"]}\n')
             file.write(f'page id=0 file="bitmap.png"\n')
@@ -26,8 +35,10 @@ class FfnFontSerializer(BaseFileSerializer):
                            f'width={symbol["width"]}    height={symbol["height"]}   '
                            f'xoffset={symbol["x_offset"]}     yoffset={symbol["y_offset"]}     '
                            f'xadvance={symbol["x_advance"]}    page=0  chnl=0\n')
+        output.append(fnt_path)
+        return output
 
-    def deserialize(self, path: str, id=None, block: DataBlock = None, **kwargs):
+    def deserialize(self, file_paths: List[str], id=None, block: DataBlock = None, **kwargs):
         import re
         data = block.new_data()
         image_serializer = BitmapSerializer()

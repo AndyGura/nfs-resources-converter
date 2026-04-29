@@ -48,7 +48,6 @@ class ShpiBlock(BaseArchiveBlock):
         return {
             **super().schema,
             'block_description': 'A container of images and palettes for them',
-            'serializable_to_disc': True,
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):

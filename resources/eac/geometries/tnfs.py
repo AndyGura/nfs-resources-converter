@@ -149,7 +149,7 @@ class OripGeometry(DeclarativeCompoundBlock):
         unk1 = (IntegerBlock(length=4, value_validator=Eq(0)),
                 {'is_unknown': True})
         num_vrtx = (IntegerBlock(length=4,
-                                 programmatic_value=lambda ctx: len(ctx.data('vertices'))),
+                                 programmatic_value=lambda ctx: len(ctx.data('vertices/data'))),
                     {'description': 'Amount of vertices'})
         unk2 = (BytesBlock(length=4),
                 {'is_unknown': True})
@@ -249,19 +249,23 @@ class OripGeometry(DeclarativeCompoundBlock):
                   {'description': 'Marks special polygons for the game, where it should change texture on runtime such '
                                   'as tyres, tail lights'})
         unk_vrtx = Padding(to=(lambda ctx: ctx.data('vrtx_ptr'), 'vrtx_ptr'))
-        vertices = (ArrayBlock(child=DelegateBlock(
-            possible_blocks=[Point3D(child=FixedPointBlock(length=4, fraction_bits=7, is_signed=True)),
-                             Point3D(child=FixedPointBlock(length=4, fraction_bits=4, is_signed=True))],
-            choice_index=lambda ctx, **_: (
-                0 if ctx.buffer.name.endswith('.CFM')
-                else 1)),
-            length=lambda ctx: ctx.data('num_vrtx')),
+        vertices = (DelegateBlock(choice_index=lambda ctx, **_: (0 if ctx.buffer.name.endswith('.CFM')
+                                                                 else 1),
+                                  possible_blocks=[
+                                      ArrayBlock(child=Point3D(child=FixedPointBlock(length=4, fraction_bits=7,
+                                                                                     is_signed=True)),
+                                                 length=lambda ctx: ctx.data('num_vrtx')),
+                                      ArrayBlock(child=Point3D(child=FixedPointBlock(length=4, fraction_bits=4,
+                                                                                     is_signed=True)),
+                                                 length=lambda ctx: ctx.data('num_vrtx')),
+                                  ]),
                     {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. '
                                     'The unit is meter'})
         unk_vmap = Padding(to=(lambda ctx: ctx.data('vmap_ptr'), 'vmap_ptr'))
         vmap = (ArrayBlock(child=IntegerBlock(length=4),
                            length=(lambda ctx: floor(
                                (ctx.data('block_size') + ctx.read_start_offset - ctx.buffer.tell()) / 4), '?')),
+
                 {'description': "A LUT for both 3D and 2D vertices. Every item is an index of either item in "
                                 "vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, "
                                 "a lookup to this table, and value from here is an index of item in vertices. "

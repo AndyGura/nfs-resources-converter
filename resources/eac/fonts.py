@@ -27,13 +27,6 @@ class GlyphDefinition(DeclarativeCompoundBlock):
 
 class FfnFont(DeclarativeCompoundBlock):
 
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'serializable_to_disc': True,
-        }
-
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, value_validator=Eq('FNTF')),
                        {'description': 'Resource ID'})

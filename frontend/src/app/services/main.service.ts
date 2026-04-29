@@ -24,6 +24,7 @@ export class MainService {
   public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   constructor(readonly eelDelegate: EelDelegateService) {
+    this.eelDelegate.changedDataBlocks = this.changedDataBlocks;
     this.eelDelegate.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();
       if (value?.data.error_class) {
@@ -97,19 +98,20 @@ export class MainService {
 
   private async processExternalChanges(id: string, call: () => Promise<BlockData | ReadError>): Promise<void> {
     this.customActionRunning$.next(true);
-    const res: BlockData | ReadError = await call();
-    if (!!(res as ReadError).error_class) {
-      this.customActionRunning$.next(false);
-      throw res;
-    }
+    try {
+      const res: BlockData | ReadError = await call();
+      if (!!(res as ReadError).error_class) {
+        this.customActionRunning$.next(false);
+        throw res;
+      }
     if (this.resource$.getValue()!.id === id) {
       this.resource$.getValue()!.data = res;
-    } else {
-      let dataPath = id
+      } else {
+        let dataPath = id
         .substring(this.resource$.getValue()!.id.length)
-        .replace('__', '/')
-        .split('/')
-        .filter(x => x);
+          .replace('__', '/')
+          .split('/')
+          .filter(x => x);
       let data: any = this.resource$.getValue()!.data;
       for (const key of dataPath.slice(0, dataPath.length - 1)) {
         data = data[key] || data[+key];
@@ -119,11 +121,13 @@ export class MainService {
         lastKey = +lastKey;
       }
       data[lastKey] = res;
+      }
+      this.clearUnsavedChanges();
+      this.changedDataBlocks['__has_external_changes__'] = 1;
+      this.updateUnsavedChanges();
+    } finally {
+      this.customActionRunning$.next(false);
     }
-    this.clearUnsavedChanges();
-    this.changedDataBlocks['__has_external_changes__'] = 1;
-    this.updateUnsavedChanges();
-    this.customActionRunning$.next(false);
   }
 
   public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
@@ -134,8 +138,8 @@ export class MainService {
     }
   }
 
-  public async deserializeResource(id: string) {
-    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id));
+  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
+    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id, filePaths, extraOpts));
   }
 
   public async reloadResource() {

@@ -1,6 +1,8 @@
 import { Injectable, NgZone } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject } from 'rxjs';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
+import { ErrorDialogComponent } from '../components/error.dialog/error.dialog.component';
 
 // These types are used by consumers of this service
 export type GeneralConfig = {
@@ -40,7 +42,9 @@ export class EelDelegateService {
   public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject<[number, number]>([0, 0]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
 
-  constructor(private readonly ngZone: NgZone) {
+  public changedDataBlocks: { [key: string]: any } = {};
+
+  constructor(private readonly ngZone: NgZone, private readonly dialog: MatDialog) {
     this.initImpl().then();
   }
 
@@ -77,83 +81,105 @@ export class EelDelegateService {
     return await this.initImpl();
   }
 
+  private async runSafe<T>(func: () => Promise<T>): Promise<T> {
+    try {
+      return await func();
+    } catch (err: any) {
+      this.dialog.open(ErrorDialogComponent, {
+        data: { message: err.message || err.errorText || err.toString() },
+      });
+      throw err;
+    }
+  }
+
   public async openFile(path: string, forceReload: boolean = false) {
-    return (await this.getImpl()).openFile(path, forceReload);
+    return this.runSafe(async () => (await this.getImpl()).openFile(path, forceReload));
   }
 
   public async syncVersion() {
-    return (await this.getImpl()).syncVersion();
+    return this.runSafe(async () => (await this.getImpl()).syncVersion());
   }
 
   public async syncRecentFiles() {
-    return (await this.getImpl()).syncRecentFiles();
+    return this.runSafe(async () => (await this.getImpl()).syncRecentFiles());
   }
 
   updateConversionProgress(current: number, total: number): void {
-    this.getImpl().then(impl => impl.updateConversionProgress(current, total));
+    this.getImpl().then(impl => {
+      try {
+        impl.updateConversionProgress(current, total);
+      } catch (err: any) {
+        this.dialog.open(ErrorDialogComponent, {
+          data: { message: err.message || err.errorText || err.toString() },
+        });
+        throw err;
+      }
+    });
   }
 
   public async openFileDialog(): Promise<string | null> {
-    return (await this.getImpl()).openFileDialog();
+    return this.runSafe(async () => (await this.getImpl()).openFileDialog());
+  }
+
+  public async saveFileDialog(fileName?: string): Promise<string | null> {
+    return this.runSafe(async () => (await this.getImpl()).saveFileDialog(fileName));
   }
 
   public async openFileWithSystemApp(path: string) {
-    return (await this.getImpl()).openFileWithSystemApp(path);
+    return this.runSafe(async () => (await this.getImpl()).openFileWithSystemApp(path));
   }
 
   public async retrieveValue<T = any>(id: string): Promise<T> {
-    return (await this.getImpl()).retrieveValue(id);
+    return this.runSafe(async () => (await this.getImpl()).retrieveValue(id));
   }
 
   public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
-    return (await this.getImpl()).runCustomAction(name, action, args);
+    return this.runSafe(async () => (await this.getImpl()).runCustomAction(name, action, args));
   }
 
   public async getNewItemData(id: string): Promise<any> {
-    return (await this.getImpl()).getNewItemData(id);
+    return this.runSafe(async () => (await this.getImpl()).getNewItemData(id));
   }
 
   public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
-    return (await this.getImpl()).saveFile(changes);
+    return this.runSafe(async () => (await this.getImpl()).saveFile(changes));
   }
 
-  public async serializeResource(id: string, changes: {
-    id: string;
-    value: any
-  }[] = [], settingsPatch: any = {}): Promise<string[]> {
-    return (await this.getImpl()).serializeResource(id, changes, settingsPatch);
+  public async serializeResource(blockId: string, path: string | null = null, settingsPatch: any = {}): Promise<string[]> {
+    let changes = Object.entries(this.changedDataBlocks)
+      .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
+      .map(([id, value]) => {
+        return { id, value };
+      });
+    return this.runSafe(async () => (await this.getImpl()).serializeResource(blockId, path, changes, settingsPatch));
   }
 
-  public async serializeReversible(id: string, changes: { id: string; value: any }[]): Promise<[string[], boolean]> {
-    return (await this.getImpl()).serializeReversible(id, changes);
-  }
-
-  public async deserializeResource(id: string): Promise<BlockData | ReadError> {
-    return (await this.getImpl()).deserializeResource(id);
+  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<BlockData | ReadError> {
+    return this.runSafe(async () => (await this.getImpl()).deserializeResource(id, filePaths, extraOpts));
   }
 
   public async selectDirectoryDialog(): Promise<string | null> {
-    return (await this.getImpl()).selectDirectoryDialog();
+    return this.runSafe(async () => (await this.getImpl()).selectDirectoryDialog());
   }
 
   public async getGeneralConfig(): Promise<GeneralConfig> {
-    return (await this.getImpl()).getGeneralConfig();
+    return this.runSafe(async () => (await this.getImpl()).getGeneralConfig());
   }
 
   public async getConversionConfig(): Promise<ConversionConfig> {
-    return (await this.getImpl()).getConversionConfig();
+    return this.runSafe(async () => (await this.getImpl()).getConversionConfig());
   }
 
   public async patchGeneralConfig(data: Partial<GeneralConfig>): Promise<GeneralConfig> {
-    return (await this.getImpl()).patchGeneralConfig(data);
+    return this.runSafe(async () => (await this.getImpl()).patchGeneralConfig(data));
   }
 
   public async patchConversionConfig(data: Partial<ConversionConfig>): Promise<ConversionConfig> {
-    return (await this.getImpl()).patchConversionConfig(data);
+    return this.runSafe(async () => (await this.getImpl()).patchConversionConfig(data));
   }
 
   public async testExecutable(executablePath: string): Promise<any> {
-    return (await this.getImpl()).testExecutable(executablePath);
+    return this.runSafe(async () => (await this.getImpl()).testExecutable(executablePath));
   }
 
   public async convertFiles(
@@ -161,14 +187,14 @@ export class EelDelegateService {
     outputPath: string,
     settings?: any,
   ): Promise<{ success: boolean; error?: string; output_path?: string }> {
-    return (await this.getImpl()).convertFiles(inputPath, outputPath, settings);
+    return this.runSafe(async () => (await this.getImpl()).convertFiles(inputPath, outputPath, settings));
   }
 
   public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
-    return (await this.getImpl()).startFile(path);
+    return this.runSafe(async () => (await this.getImpl()).startFile(path));
   }
 
   public async closeFile(): Promise<{ success: boolean; message: string }> {
-    return (await this.getImpl()).closeFile();
+    return this.runSafe(async () => (await this.getImpl()).closeFile());
   }
 }

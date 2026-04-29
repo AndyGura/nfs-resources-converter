@@ -15,7 +15,13 @@ export type ResourceError = {
 // TODO improve typing here
 export type BlockSchema = {
   block_class_mro: string;
-  serializable_to_disc: boolean;
+  serialization?: {
+    file_type: string | null,
+    is_directory: boolean | null,
+    output_file_name_suffix: string | null,
+    reversible: boolean,
+    reversible_settings_patch: any
+  } | null;
   hide_navigation_bar?: boolean;
   value_validator?: { type: 'eq', expected_value: any } | { type: 'or', possible_values: any[] };
   custom_actions?: CustomAction[]

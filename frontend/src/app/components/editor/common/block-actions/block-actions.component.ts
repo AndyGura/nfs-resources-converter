@@ -7,6 +7,7 @@ import { RunCustomActionDialogComponent } from '../../../run-custom-action.dialo
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Resource, CustomAction } from '../../types';
+import { lastIdPart } from '../../../../utils/join-id';
 
 @Component({
   selector: 'app-block-actions',
@@ -17,8 +18,6 @@ export class BlockActionsComponent {
   @Input()
   public resource: Resource | null = null;
 
-  isInReversibleSerializationState = false;
-
   constructor(
     readonly mainService: MainService,
     readonly eelDelegate: EelDelegateService,
@@ -27,21 +26,43 @@ export class BlockActionsComponent {
     private readonly snackBar: MatSnackBar,
   ) {}
 
-  async serializeBlockReversible() {
+  async serialize() {
     if (!this.resource) {
       return;
     }
-    // TODO get local changes
-    const [files, isReversible] = await this.eelDelegate.serializeReversible(this.resource.id, []);
-    const commonPathPart = files.reduce((commonBeginning, currentString) => {
-      let j = 0;
-      while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {
-        j++;
-      }
-      return commonBeginning.substring(0, j);
-    });
-    await this.eelDelegate.openFileWithSystemApp(commonPathPart);
-    this.isInReversibleSerializationState = isReversible;
+    let resId = this.resource.id;
+    let nameHint = lastIdPart(resId);
+    // filter out delegate block internals
+    while (nameHint == 'data') {
+      resId = resId.substring(0, resId.length - nameHint.length);
+      nameHint = lastIdPart(resId);
+    }
+    if (this.resource.schema.serialization.is_directory) {
+      nameHint += '/'
+    } else {
+      nameHint += this.resource.schema.serialization.output_file_name_suffix || '';
+    }
+    let path = await this.eelDelegate.saveFileDialog(nameHint);
+    if (!path) {
+      return;
+    }
+    const files = await this.eelDelegate.serializeResource(this.resource.id, path, this.resource.schema.serialization.reversible_settings_patch);
+    debugger;
+    if (files && files.length > 0) {
+      const commonPathPart = files.reduce((commonBeginning, currentString) => {
+        let j = 0;
+        while (j < commonBeginning.length && j < currentString.length && commonBeginning[j] === currentString[j]) {
+          j++;
+        }
+        return commonBeginning.substring(0, j);
+      });
+      const lastSlashIndex = commonPathPart.lastIndexOf('/');
+      const commonFolder = lastSlashIndex !== -1 ? commonPathPart.substring(0, lastSlashIndex) : commonPathPart;
+      const snackBarRef = this.snackBar.open('Files exported', 'Open location', { duration: 10000 });
+      snackBarRef.onAction().subscribe(() => {
+        this.eelDelegate.openFileWithSystemApp(commonFolder);
+      });
+    }
     this.cdr.markForCheck();
   }
 
@@ -49,9 +70,16 @@ export class BlockActionsComponent {
     if (!this.resource) {
       return;
     }
-    await this.mainService.deserializeResource(this.resource.id);
-    this.isInReversibleSerializationState = false;
-    this.cdr.markForCheck();
+    // TODO need to select more than one file, or directory
+    let paths = await this.eelDelegate.openFileDialog();
+    if (!paths) {
+      return;
+    }
+    try {
+      await this.mainService.deserializeResource(this.resource.id, [paths]);
+    } finally {
+      this.cdr.markForCheck();
+    }
   }
 
   async runCustomAction(action: CustomAction) {

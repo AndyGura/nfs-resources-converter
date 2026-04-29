@@ -149,7 +149,6 @@ class TestDeclarativeCompound(unittest.TestCase):
             {
                 'block_class_mro': 'BindingBlockWithDoc__DeclarativeCompoundBlock__CompoundBlock__DataBlockWithChildren__DataBlock',
                 'block_description': '',
-                'serializable_to_disc': False,
                 'inline_description': False,
                 'fields': [
                     {
@@ -158,7 +157,6 @@ class TestDeclarativeCompound(unittest.TestCase):
                             'block_class_mro': 'IntegerBlock__DataBlock',
                             'block_description': '1-byte unsigned integer. Always == 0x2',
                             'value_validator': {'type': 'eq', 'expected_value': 2},
-                            'serializable_to_disc': False,
                             'min_value': 0,
                             'max_value': 255,
                             'value_interval': 1,
@@ -172,7 +170,6 @@ class TestDeclarativeCompound(unittest.TestCase):
                         'schema': {
                             'block_class_mro': 'IntegerBlock__DataBlock',
                             'block_description': '1-byte unsigned integer',
-                            'serializable_to_disc': False,
                             'is_programmatic': True,
                             'min_value': 0,
                             'max_value': 255,
@@ -187,15 +184,13 @@ class TestDeclarativeCompound(unittest.TestCase):
                         'schema': {
                             'block_class_mro': 'ArrayBlock__DataBlockWithChildren__DataBlock',
                             'block_description': 'Array of `len` items',
-                            'serializable_to_disc': False,
                             'child_schema': {
                                 'block_class_mro': 'IntegerBlock__DataBlock',
                                 'block_description': '1-byte unsigned integer',
-                                'serializable_to_disc': False,
                                 'min_value': 0,
                                 'max_value': 255,
                                 'value_interval': 1
-                            },
+                        },
                         },
                         'is_unknown': False,
                         'usage': 'everywhere',

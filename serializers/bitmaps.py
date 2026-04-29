@@ -1,3 +1,5 @@
+from typing import List
+
 from PIL import Image
 
 from resources.eac.utils import determine_palette_for_8_bit_bitmap
@@ -7,7 +9,16 @@ from serializers.misc.path_utils import escape_chars
 
 class BitmapSerializer(BaseFileSerializer):
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def ui_serialization(self):
+        return {
+            'file_type': 'png',
+            'is_directory': False,
+            'output_file_name_suffix': '.png',
+            'reversible': True,
+            'reversible_settings_patch': {}
+        }
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         if data['resource_id'].startswith('8Bit'):
             return BitmapWithPaletteSerializer().serialize(data, path, id=id, block=block, **kwargs)
         super().serialize(data, path, id=id, block=block)
@@ -15,11 +26,15 @@ class BitmapSerializer(BaseFileSerializer):
             bitmap = [item for row in data['bitmap']['data'] for item in row]
         else:
             bitmap = data['bitmap']['data']
+        file_path = escape_chars(path)
+        if not file_path.endswith('.png'):
+            file_path += '.png'
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
-                        bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(f'{escape_chars(path)}.png')
+                        bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(file_path)
+        return [file_path]
 
-    def deserialize(self, path: str, id=None, block=None, **kwargs):
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
         # TODO
         # if data['resource_id'].startswith('8Bit'):
         #     return BitmapWithPaletteSerializer().serialize(data, path, id=id, block=block, **kwargs)
@@ -38,18 +53,60 @@ class BitmapSerializer(BaseFileSerializer):
 
 class PaletteSerializer(BaseFileSerializer):
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def ui_serialization(self):
+        return {
+            'file_type': 'txt',
+            'is_directory': False,
+            'output_file_name_suffix': '.pal.txt',
+            'reversible': True,
+            'reversible_settings_patch': {}
+        }
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        if not path.endswith('.pal.txt'):
+            path += '.pal.txt'
         super().serialize(data, path, id=id, block=block)
-        with open(f'{path}.pal.txt', 'w') as f:
+        with open(path, 'w') as f:
             f.write(f'{block.__class__.__name__}\n')
+            f.write(f'Color model: {data["resource_id"]}\n')
             for i, color in enumerate(data['colors']['data']):
                 f.write(f'\n{hex(i)}:\t#{hex(color)}')
             f.write('\n')
+        return [path]
 
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
+        data = block.new_data()
+        colors = []
+        if len(file_paths) != 1:
+            raise Exception('PaletteSerializer can only deserialize one file')
+        with open(file_paths[0], 'r') as f:
+            lines = f.readlines()
+            if len(lines) > 1 and lines[1].startswith('Color model: '):
+                new_resource_id = lines[1].strip().replace('Color model: ', '')
+                if new_resource_id not in block.field_blocks_map['resource_id'].enum_name_map:
+                    raise Exception(f'Invalid palette file format, unknown color model: "{new_resource_id}"')
+            else:
+                raise Exception('Invalid palette file format, missing color model line')
+            try:
+                for line in lines[1:]:
+                    line = line.strip()
+                    if line and ':' in line:
+                        parts = line.split(':\t#')
+                        if len(parts) == 2:
+                            color_hex = parts[1].strip()
+                            color = int(color_hex, 16)
+                            colors.append(color)
+            except Exception as e:
+                raise Exception(f'Error while parsing palette file: {e}')
+
+        data['resource_id'] = new_resource_id
+        data['colors']['data'] = colors
+        return data
+    
 
 class BitmapWithPaletteSerializer(BaseFileSerializer):
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id=id, block=block)
         (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
         colors = []
@@ -66,11 +123,15 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
                 colors.append(palette_colors[index])
             except IndexError:
                 colors.append(0)
+        file_path = escape_chars(path)
+        if not file_path.endswith('.png'):
+            file_path += '.png'
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
-                        bytes().join([c.to_bytes(4, 'big') for c in colors])).save(f'{escape_chars(path)}.png')
+                        bytes().join([c.to_bytes(4, 'big') for c in colors])).save(file_path)
+        return [file_path]
 
-    def deserialize(self, path: str, id=None, block=None, palette=None, **kwargs):
+    def deserialize(self, file_paths: List[str], id=None, block=None, palette=None, **kwargs):
         source = Image.open(path)
         transparency = palette[255]
         im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24,

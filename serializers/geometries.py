@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import List
 
 from library.exceptions import DataIntegrityException
 from library.utils import path_join
@@ -28,7 +29,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         except KeyError:
             pass
         # new vertex creation
-        vertex = block_data['vertices'][block_data['vmap'][index_3D]]['data']
+        vertex = block_data['vertices']['data'][block_data['vmap'][index_3D]]
         model.vertices.append([vertex['x'], vertex['y'], vertex['z']])
         vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
         # setup texture coordinate
@@ -118,7 +119,7 @@ class OripGeometrySerializer(BaseFileSerializer):
             sub_model.change_axes(new_z='y', new_y='z')
         return shpi_id, textures_shpi_block, textures_shpi_data, sub_models
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
         shpi_id, textures_shpi_block, textures_shpi_data, sub_models = self.build_mesh(data, id)
 
@@ -138,7 +139,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         from serializers import ShpiArchiveSerializer
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
                                           textures_shpi_block)
-        export_scenes([scene], path, self.settings)
+        return export_scenes([scene], path, self.settings)
 
 
 class GeoGeometrySerializer(BaseFileSerializer):
@@ -146,7 +147,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         from library import require_resource
         if 'CARDATA.VIV' in id:
             # NFS2 SE
@@ -233,7 +234,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
         from serializers import ShpiArchiveSerializer
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
                                           textures_shpi_block)
-        export_scenes([scene], path, self.settings)
+        return export_scenes([scene], path, self.settings)
 
 
 class CrpGeometrySerializer(BaseFileSerializer):
@@ -241,7 +242,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
 
         misc_choice = block.field_blocks_map['common_parts'].child
@@ -365,4 +366,4 @@ class CrpGeometrySerializer(BaseFileSerializer):
                     part_mesh.change_axes(new_y='z', new_z='y')
                     mesh.extend(part_mesh)
 
-        export_scenes([scene], path, self.settings)
+        return export_scenes([scene], path, self.settings)

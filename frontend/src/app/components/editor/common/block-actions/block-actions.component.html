@@ -1,14 +1,13 @@
-<ng-container *ngIf="resource?.schema?.serializable_to_disc">
+<ng-container *ngIf="resource?.schema?.serialization">
   <button mat-icon-button
-          *ngIf="isInReversibleSerializationState"
-          matTooltip="Deserialize back from common format"
+          *ngIf="resource?.schema?.serialization?.reversible"
+          [matTooltip]="'Deserialize from ' + (resource?.schema?.serialization?.file_type || 'common format')"
           (click)="deserialize()">
     <mat-icon fontIcon="upload"></mat-icon>
   </button>
   <button mat-icon-button
-          [disabled]="isInReversibleSerializationState"
-          matTooltip="Serialize to common format"
-          (click)="serializeBlockReversible()">
+          [matTooltip]="'Serialize to ' + (resource?.schema?.serialization?.file_type || 'common format')"
+          (click)="serialize()">
     <mat-icon fontIcon="download"></mat-icon>
   </button>
 </ng-container>

@@ -388,7 +388,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   private async loadTerrainChunks(blockId?: string) {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, [], {
+      const paths = await this.eelDelegate.serializeResource(blockId, null, {
         geometry__save_obj: true,
         geometry__save_blend: false,
         geometry__export_to_gg_web_engine: false,
@@ -457,11 +457,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     if (blockId) {
       const paths = await this.eelDelegate.serializeResource(
         blockId,
-        Object.entries(this.mainService.changedDataBlocks)
-          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
-          .map(([id, value]) => {
-            return { id, value };
-          }),
+        null,
         {
           geometry__save_obj: true,
           geometry__save_blend: false,

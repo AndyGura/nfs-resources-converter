@@ -42,78 +42,55 @@ class SerializationAPI:
         """
         return convert_bytes(serialize_exceptions(data))
 
-    def serialize_resource(self, id: str, changes: Dict, settings_patch: Dict = {}) -> List[str]:
+    def serialize_resource(self, id: str, path=None, changes=None, settings_patch=None) -> List[str]:
         """
         Serialize a resource.
         
         Args:
             id: ID of the resource
+            path: Path to save the serialized resource
             changes: Changes to apply
             settings_patch: Settings to patch
             
         Returns:
             List of exported file paths
         """
+        if settings_patch is None:
+            settings_patch = {}
         (_, res_block, res), (_, top_level_block, top_level_res) = require_resource(id)
-        if len(changes) > 0:
+        if changes:
             res = deepcopy(res)
             apply_delta_to_resource(id, res, changes)
         serializer = get_serializer(res_block, res)
-        path = path_join(self.api.static_path, 'resources', *id.split('/'))
+        static_tmp_dir = False
+        if path is None:
+            path = path_join(self.api.static_path, 'resources', *id.split('/'))
+            static_tmp_dir = True
+        path = path.replace('\\', '/')
         if settings_patch:
             serializer.patch_settings(settings_patch)
-        serializer.serialize(res, path, id, res_block)
-        normal_slashes_path = path.replace('\\', '/')
-        exported_file_paths = [str(x)[len(self.api.static_path):]
-                               for x in chain(Path(normal_slashes_path).glob("**/*"),
-                                              Path(normal_slashes_path[:normal_slashes_path.rindex('/')]).glob(
-                                                  normal_slashes_path[
-                                                  (normal_slashes_path.rindex('/') + 1):] + '.*'))
-                               if not x.is_dir()]
-        return [x.replace('\\', '/') for x in exported_file_paths]
+        exported_file_paths = serializer.serialize(res, path, id, res_block) or []
+        exported_file_paths = [x.replace('\\', '/') for x in exported_file_paths]
+        if static_tmp_dir:
+            exported_file_paths = [x[len(self.api.static_path):] for x in exported_file_paths]
+        return exported_file_paths
 
-    def serialize_reversible(self, id: str, changes: Dict) -> Tuple[List[str], bool]:
-        """
-        Serialize a resource with ability to serialize it back.
-        
-        Args:
-            id: ID of the resource
-            changes: Changes to apply
-            
-        Returns:
-            Tuple of (file list, flag indicating if it's possible to deserialize files back)
-        """
-        (id, res_block, resource), _ = require_resource(id)
-        resource = deepcopy(resource)
-        apply_delta_to_resource(id, resource, changes)
-        serializer = get_serializer(res_block, resource)
-        path = path_join(self.api.static_path, 'resources_edit', *id.split('/'))
-        reverse_flag = serializer.setup_for_reversible_serialization()
-        serializer.serialize(resource, path, id, res_block)
-        normal_slashes_path = path.replace('\\', '/')
-        return [str(x)[len(self.api.static_path):]
-                for x in chain(Path(normal_slashes_path).glob("**/*"),
-                               Path(normal_slashes_path[:normal_slashes_path.rindex('/')]).glob(
-                                   normal_slashes_path[(normal_slashes_path.rindex('/') + 1):] + '.*'))
-                if not x.is_dir()], reverse_flag
-
-    def deserialize_resource(self, id: str) -> Any:
+    def deserialize_resource(self, id: str, file_paths : List[str], extra_opts=None) -> Any:
         """
         Deserialize a resource.
         
         Args:
             id: ID of the resource
+            file_paths: List of file paths to use when deserializing
+            extra_opts: Additional options for deserialization
             
         Returns:
             The deserialized resource
         """
         (id, res_block, resource), _ = require_resource(id)
         serializer = get_serializer(res_block, resource)
-        path = path_join(self.api.static_path, 'resources_edit', *id.split('/'))
-        updated_data = serializer.deserialize(path, id, res_block)
+        updated_data = serializer.deserialize(file_paths, id, res_block, **(extra_opts or {}))
         resource.clear()
         resource.update(updated_data)
         remove_file_or_directory(path_join(self.api.static_path, 'resources', *id.split('/')))
-        remove_file_or_directory(path_join(self.api.static_path, 'resources_tmp', *id.split('/')))
-        remove_file_or_directory(path_join(self.api.static_path, 'resources_edit', *id.split('/')))
         return self.render_data(resource)

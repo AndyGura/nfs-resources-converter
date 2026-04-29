@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+from typing import List
 
 from library.read_blocks import CompoundBlock
 from serializers import BaseFileSerializer
@@ -33,10 +34,11 @@ class JsonSerializer(BaseFileSerializer):
                 res[key] = value
         return res
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         if path.endswith('/') or path.endswith('\\'):
             path += id[id.rindex('/') + 1:]
         super().serialize(data, path)
         json_str = json.dumps(convert_bytes(self.__make_dict(block, data)), indent=4)
         with open(f'{path}.json', 'w') as file:
             file.write(json_str)
+        return [f'{path}.json']

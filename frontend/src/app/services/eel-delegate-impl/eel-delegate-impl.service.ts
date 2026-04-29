@@ -94,6 +94,10 @@ export class EelDelegateImplService {
     return await eel['open_file_dialog']()();
   }
 
+  public async saveFileDialog(fileName?: string): Promise<string | null> {
+    return await eel['save_file_dialog'](fileName || null)();
+  }
+
   public async openFileWithSystemApp(path: string) {
     await eel['open_file_with_system_app'](path)();
   }
@@ -122,16 +126,12 @@ export class EelDelegateImplService {
     });
   }
 
-  public async serializeResource(id: string, changes = [], settingsPatch: any = {}): Promise<string[]> {
-    return eel['serialize_resource'](id, changes, settingsPatch)();
+  public async serializeResource(id: string, path: string | null = null, changes = [], settingsPatch: any = {}): Promise<string[]> {
+    return eel['serialize_resource'](id, path, changes, settingsPatch)();
   }
 
-  public async serializeReversible(id: string, changes: { id: string; value: any }[]): Promise<[string[], boolean]> {
-    return eel['serialize_reversible'](id, changes)();
-  }
-
-  public async deserializeResource(id: string): Promise<BlockData | ReadError> {
-    return eel['deserialize_resource'](id)();
+  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<BlockData | ReadError> {
+    return eel['deserialize_resource'](id, filePaths, extraOpts)();
   }
 
   public async selectDirectoryDialog(): Promise<string | null> {

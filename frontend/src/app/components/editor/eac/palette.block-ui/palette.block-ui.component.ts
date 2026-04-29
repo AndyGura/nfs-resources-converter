@@ -22,12 +22,25 @@ import { joinId } from '../../../../utils/join-id';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaletteBlockUiComponent implements GuiComponentInterface {
+  private _resource: Resource | null = null;
+
   @Input()
-  resource: Resource | null = null;
+  set resource(value: Resource | null) {
+    this._resource = value;
+    this.cdr.markForCheck();
+  }
+
+  get resource(): Resource | null {
+    return this._resource;
+  }
 
   get resourceData(): BlockData | null {
     return this.resource?.data;
   }
+
+  @Input() hideName: boolean = false;
+
+  @Input() hideBlockActions: boolean = false;
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -64,13 +77,15 @@ export class PaletteBlockUiComponent implements GuiComponentInterface {
   }
 
   onColorChange(color: Color | null) {
-    if (!this.resourceData) {
+    if (!this.resource || !this.resourceData) {
       this.selectedIndex = null;
       return;
     }
     if (this.selectedIndex !== null) {
-      this.resourceData.colors.data[this.selectedIndex] = color ? parseInt(color.toHex8String().substring(1), 16) : 0;
-      this.changed.emit();
+      const value = color ? parseInt(color.toHex8String().substring(1), 16) : 0;
+      this.resourceData.colors.data[this.selectedIndex] = value;
+      this.mainService.dataBlockChange$.next([joinId(this.resource.id, 'colors/data', this.selectedIndex), value]);
+      this.cdr.markForCheck();
     }
   }
 
