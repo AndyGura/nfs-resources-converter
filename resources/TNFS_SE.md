@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-04-26 15:47:59.073674+00:00*
+*Last time updated: 2026-04-29 21:06:42.039412+00:00*
 
 
 # **Info by file extensions** #
@@ -126,8 +126,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | fxp_ptr + num_fxp\*12 | **unk_lbl** | up to offset lbl_ptr | Padding bytes | - |
 | lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Marks special polygons for the game, where it should change texture on runtime such as tyres, tail lights |
 | lbl_ptr + num_lbl\*12 | **unk_vrtx** | up to offset vrtx_ptr | Padding bytes | - |
-| vrtx_ptr | **vertices** | num_vrtx\*12 | Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: One of types:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. The unit is meter |
-| vrtx_ptr + num_vrtx\*12 | **unk_vmap** | up to offset vmap_ptr | Padding bytes | - |
+| vrtx_ptr | **vertices** | ? | One of types:<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. The unit is meter |
+| ? | **unk_vmap** | up to offset vmap_ptr | Padding bytes | - |
 | vmap_ptr | **vmap** | ? | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertices. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs |
 ### **OripPolygon** ###
 #### **Size**: 12 bytes ####
