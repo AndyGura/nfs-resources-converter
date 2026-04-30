@@ -78,7 +78,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         if not self.settings.images__save_images_only:
             with open(path_join(path, 'positions.txt'), 'w') as f:
                 for name, item in [(name, data) for name, data, block in items if isinstance(block, EacImage)]:
-                    f.write(f"{name}: {item['x']}, {item['y']}\n")
+                    f.write(f"{name}: {item['position']['x']}, {item['position']['y']}\n")
             output.append(path_join(path, 'positions.txt'))
         if self.settings.maps__save_spherical_skybox_texture:
             try:
@@ -89,7 +89,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     nfs1_panorama_to_spherical(id[id.index('.FAM') - 7:id.index('.FAM') - 4],
                                                path_join(path, 'horz.png'),
                                                path_join(path, 'spherical.png'),
-                                               horz['pivot_y'])
+                                               horz['pivot']['y'])
                     output.append(path_join(path, 'spherical.png'))
                 elif ('TRACKS/PC/TR0' in id or 'TRACKS/SE/TR0' in id) and ('0.QFS' in id or '0M.QFS' in id):
                     # build NFS2 horizon texture

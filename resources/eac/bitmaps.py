@@ -12,6 +12,7 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  EnumLookupDelegateBlock,
                                  )
 from library.utils import transform_bitness, transform_color_bitness
+from resources.eac.fields.misc import Point2D
 
 
 class EacImage(DeclarativeCompoundBlock):
@@ -32,16 +33,14 @@ class EacImage(DeclarativeCompoundBlock):
                  {'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
                   {'description': 'Bitmap height in pixels'})
-        unk = (BytesBlock(length=2),
-               {'is_unknown': True})
-        pivot_y = (IntegerBlock(length=2),
-                   {'description': 'For "horz" bitmap in TNFS FAM files: Y coordinate of the horizon line on '
-                                   'the image. Higher value = image as horizon will be put higher on the screen. '
-                                   'Seems to affect only open tracks'})
-        x = (IntegerBlock(length=2),
-             {'description': 'X coordinate of bitmap position on screen. Used for menu/dash sprites'})
-        y = (IntegerBlock(length=2),
-             {'description': 'Y coordinate of bitmap position on screen. Used for menu/dash sprites'})
+        pivot = (Point2D(child=IntegerBlock(length=2)),
+                 {'is_unknown': True,
+                  'description': 'Seems like x coordinate is not used at all. y coordinate is used in horizon '
+                                 'textures in TNFS FAM files: higher value = image as horizon will be put higher '
+                                 'on the screen. Seems to affect only open tracks'})
+        position = (Point2D(child=IntegerBlock(length=2)),
+                    {'is_unknown': True,
+                     'description': 'Bitmap position on screen. Used for menu/dash sprites'})
         bitmap = (EnumLookupDelegateBlock(enum_field='resource_id',
                                           blocks=[
                                               ArrayBlock(child=IntegerBlock(length=2),
@@ -50,16 +49,22 @@ class EacImage(DeclarativeCompoundBlock):
                                                          length=lambda ctx: ctx.data('width') * ctx.data('height')),
                                               ArrayBlock(length=lambda ctx: ctx.data('height'),
                                                          child=SubByteArrayBlock(bits_per_value=4,
-                                                                                 length=lambda ctx: ctx.data('../width'),
-                                                                                 value_deserialize_func=lambda x: 0xFFFFFF00
-                                                                                                                  | transform_bitness(x, 4),
-                                                                                 value_serialize_func=lambda x: (x & 0xFF) >> 4)),
+                                                                                 length=lambda ctx: ctx.data(
+                                                                                     '../width'),
+                                                                                 value_deserialize_func=lambda
+                                                                                     x: 0xFFFFFF00
+                                                                                        | transform_bitness(x, 4),
+                                                                                 value_serialize_func=lambda x: (
+                                                                                                                            x & 0xFF) >> 4)),
                                               ArrayBlock(length=lambda ctx: ctx.data('height'),
                                                          child=SubByteArrayBlock(bits_per_value=4,
-                                                                                 length=lambda ctx: ctx.data('../width'),
-                                                                                 value_deserialize_func=lambda x: 0xFFFFFF00
-                                                                                                                  | transform_bitness(x, 4),
-                                                                                 value_serialize_func=lambda x: (x & 0xFF) >> 4)),
+                                                                                 length=lambda ctx: ctx.data(
+                                                                                     '../width'),
+                                                                                 value_deserialize_func=lambda
+                                                                                     x: 0xFFFFFF00
+                                                                                        | transform_bitness(x, 4),
+                                                                                 value_serialize_func=lambda x: (
+                                                                                                                            x & 0xFF) >> 4)),
                                               ArrayBlock(child=IntegerBlock(length=1),
                                                          length=lambda ctx: ctx.data('width') * ctx.data('height')),
                                               ArrayBlock(child=IntegerBlock(length=2),
@@ -234,7 +239,8 @@ class EacPalette(DeclarativeCompoundBlock):
             assert data['num_colors'] == data['num_colors1']
         # I'm not sure how game decides whether it should draw 255th color transparent or not.
         # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
-        data['last_color_transparent'] = not data['resource_id'].startswith('32Bit') and len(data['colors']['data']) >= 256 and 'SLIDES/' not in ctx.ctx_path
+        data['last_color_transparent'] = not data['resource_id'].startswith('32Bit') and len(
+            data['colors']['data']) >= 256 and 'SLIDES/' not in ctx.ctx_path
         if data['resource_id'] == '24BitDos color format palette':
             data['colors']['data'] = [(x & 0x3F3F3F) << 10 | 255 for x in data['colors']['data']]
         elif data['resource_id'] == '24Bit color format palette':
