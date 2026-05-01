@@ -77,12 +77,14 @@ class TestBitmap(unittest.TestCase):
         data = self.block.unpack(ReadContext(buf))
         self.assertEqual(data['bitmap']['data'][0], 0x42)
 
+    # FIXME this one is broken
     def test_bitmap_16bit_1555_should_be_translated_correctly(self):
         # 0x8000 -> A=1, R=0, G=0, B=0 -> 0x000000FF
         buf = self._gen_single_pixel_bitmap(0x7E, bytes([0x00, 0x80]))
         data = self.block.unpack(ReadContext(buf))
         self.assertEqual(data['bitmap']['data'][0], 0x000000FF)
 
+    # FIXME this one is broken
     def test_bitmap_16bit_1555_should_be_saved_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x7E, bytes([0, 0]))
         data = self.block.unpack(ReadContext(buf))

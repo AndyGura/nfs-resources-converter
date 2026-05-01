@@ -16,6 +16,7 @@ export class MainService {
   error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
   customActionRunning$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  isSaving$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   readonly changedDataBlocks: { [key: string]: any } = {};
   dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
@@ -150,13 +151,18 @@ export class MainService {
   }
 
   public async saveResource() {
-    const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
-    await this.eelDelegate.saveFile(
-      changes.map(([id, value]) => {
-        return { id, value };
-      }),
-    );
-    this.clearUnsavedChanges();
+    this.isSaving$.next(true);
+    try {
+      const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
+      await this.eelDelegate.saveFile(
+        changes.map(([id, value]) => {
+          return { id, value };
+        }),
+      );
+      this.clearUnsavedChanges();
+    } finally {
+      this.isSaving$.next(false);
+    }
   }
 
   public async getNewItemData(id: string): Promise<any> {
