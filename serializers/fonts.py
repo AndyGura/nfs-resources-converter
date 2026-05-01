@@ -2,7 +2,7 @@ from typing import List
 
 from library.read_blocks import DataBlock
 from library.utils import path_join
-from serializers import BaseFileSerializer, BitmapSerializer
+from serializers import BaseFileSerializer, ImageSerializer
 
 
 class FfnFontSerializer(BaseFileSerializer):
@@ -21,7 +21,7 @@ class FfnFontSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id=id, block=None)
-        image_serializer = BitmapSerializer()
+        image_serializer = ImageSerializer()
         output = image_serializer.serialize(data["bitmap"], path_join(path, 'bitmap'),
                                             block=block.get_child_block_with_data(data, 'bitmap')[0])
         fnt_path = path_join(path, 'font.fnt')
@@ -41,7 +41,7 @@ class FfnFontSerializer(BaseFileSerializer):
     def deserialize(self, file_paths: List[str], id=None, block: DataBlock = None, **kwargs):
         import re
         data = block.new_data()
-        image_serializer = BitmapSerializer()
+        image_serializer = ImageSerializer()
         data['bitmap'] = image_serializer.deserialize(path_join(path, 'bitmap'),
                                                       block=block.get_child_block_with_data(data, 'bitmap')[0])
         with open(path_join(path, 'font.fnt')) as f:

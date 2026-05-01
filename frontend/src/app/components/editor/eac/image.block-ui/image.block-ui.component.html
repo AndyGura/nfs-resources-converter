@@ -29,18 +29,23 @@
 <div class="preview-wrapper">
   <div class="image-container"
        #imageContainer
-       *ngIf="imageUrl$ | async as imageUrl"
        (wheel)="onWheel($event)"
        (mousedown)="onMouseDown($event)"
        (mousemove)="onMouseMove($event)"
        (mouseup)="onMouseUp()"
        (mouseleave)="onMouseLeave()"
        [class.panning]="isPanning">
-    <img [src]="imageUrl"
+    <img *ngIf="imageUrl$ | async as imageUrl"
+         [src]="imageUrl"
          [style.width.px]="(resource?.data?.width || 0) * zoom / 100"
          [style.height.px]="(resource?.data?.height || 0) * zoom / 100"
          draggable="false"
          (dragstart)="false">
+    <div *ngIf="!(imageUrl$ | async)"
+         class="image-placeholder"
+         [style.width.px]="(resource?.data?.width || 0) * zoom / 100"
+         [style.height.px]="(resource?.data?.height || 0) * zoom / 100">
+    </div>
   </div>
   <app-block-actions *ngIf='!hideBlockActions' [resource]='this.resource'></app-block-actions>
 </div>

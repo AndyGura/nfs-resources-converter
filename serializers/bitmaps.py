@@ -7,7 +7,7 @@ from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
 
 
-class BitmapSerializer(BaseFileSerializer):
+class ImageSerializer(BaseFileSerializer):
 
     def ui_serialization(self):
         return {
@@ -35,19 +35,23 @@ class BitmapSerializer(BaseFileSerializer):
         return [file_path]
 
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
-        # TODO
+        # TODO make it differently
         # if data['resource_id'].startswith('8Bit'):
         #     return BitmapWithPaletteSerializer().serialize(data, path, id=id, block=block, **kwargs)
-        image = Image.open(path + '.png')
+        if len(file_paths) != 1:
+            raise Exception('ImageSerializer can only deserialize one file at once')
+        image = Image.open(file_paths[0])
         image_rgba = image.convert("RGBA")
         data = block.new_data()
+        data['resource_id'] = '32Bit color format bitmap'
         data['width'] = image.width
         data['height'] = image.height
         bitmap = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
-        if data['resource_id'].startswith('4Bit'):
-            data['bitmap']['data'] = [bitmap[i:i + image.width] for i in range(0, len(bitmap), image.width)]
-        else:
-            data['bitmap']['data'] = bitmap
+        data['bitmap']['data'] = bitmap
+        # if data['resource_id'].startswith('4Bit'):
+        #     data['bitmap']['data'] = [bitmap[i:i + image.width] for i in range(0, len(bitmap), image.width)]
+        # else:
+        #     data['bitmap']['data'] = bitmap
         return data
 
 
@@ -78,7 +82,7 @@ class PaletteSerializer(BaseFileSerializer):
         data = block.new_data()
         colors = []
         if len(file_paths) != 1:
-            raise Exception('PaletteSerializer can only deserialize one file')
+            raise Exception('PaletteSerializer can only deserialize one file at once')
         with open(file_paths[0], 'r') as f:
             lines = f.readlines()
             if len(lines) > 1 and lines[1].startswith('Color model: '):

@@ -83,17 +83,22 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
       if (res) {
+        this.imageUrl$.next(null);
+        setTimeout(() => this.fitZoom(), 0);
         const paths = await this.eelDelegate.serializeResource(res.id);
-        this.imageUrl$.next(paths.find(x => x.endsWith('.png')) || null);
+        let url = paths.find(x => x.endsWith('.png'));
+        if (!url) {
+          this.imageUrl$.next(null);
+        } else {
+          this.imageUrl$.next(url + '?ts=' + Date.now());
+        }
       } else {
         this.imageUrl$.next(null);
       }
     });
 
     this.imageUrl$.pipe(takeUntil(this.destroyed$)).subscribe(url => {
-      if (url) {
-        setTimeout(() => this.fitZoom(), 0);
-      }
+      this.cdr.markForCheck();
     });
   }
 
@@ -158,7 +163,7 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
     if (!this.imageContainer || !this.resource?.data) return;
 
     const container = this.imageContainer.nativeElement;
-    const imgElement = container.querySelector('img');
+    const imgElement = container.querySelector('img, .image-placeholder');
     if (!imgElement) return;
 
     const scrollLeft = container.scrollLeft;

@@ -164,8 +164,8 @@ class EacImage(DeclarativeCompoundBlock):
         return super().write(copied, ctx, name)
 
     def serializer_class(self):
-        from serializers import BitmapSerializer
-        return BitmapSerializer
+        from serializers import ImageSerializer
+        return ImageSerializer
 
 
 class EacPalette(DeclarativeCompoundBlock):
