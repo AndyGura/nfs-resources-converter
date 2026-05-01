@@ -1,0 +1,50 @@
+<div class="header" *ngIf="resource">
+
+  <div class="stats" *ngIf="resource.data">
+    <mat-label
+      *ngIf='!hideName && resource?.name'
+      [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource.name }}
+    </mat-label>
+    <span class="stat-item">
+      <i class="stat-label">Size:</i> {{ resource.data.width }}x{{ resource.data.height }}
+    </span>
+  </div>
+
+  <div class="actions">
+    <button mat-icon-button (click)="zoomOut()" title="Zoom Out">
+      <mat-icon>zoom_out</mat-icon>
+    </button>
+    <mat-slider [min]="minZoomLog" [max]="maxZoomLog" step="0.01" [discrete]="false" title="Zoom">
+      <input matSliderThumb [(ngModel)]="sliderValue">
+    </mat-slider>
+    <button mat-icon-button (click)="zoomIn()" title="Zoom In">
+      <mat-icon>zoom_in</mat-icon>
+    </button>
+    <button mat-stroked-button (click)="resetZoom()" title="Reset to 100%">100%</button>
+    <button mat-stroked-button (click)="fitZoom()" title="Fit to view">Fit</button>
+    <span class="zoom-level">{{ zoom }}%</span>
+  </div>
+</div>
+
+<div class="preview-wrapper">
+  <div class="image-container"
+       #imageContainer
+       *ngIf="imageUrl$ | async as imageUrl"
+       (wheel)="onWheel($event)"
+       (mousedown)="onMouseDown($event)"
+       (mousemove)="onMouseMove($event)"
+       (mouseup)="onMouseUp()"
+       (mouseleave)="onMouseLeave()"
+       [class.panning]="isPanning">
+    <img [src]="imageUrl"
+         [style.width.px]="(resource?.data?.width || 0) * zoom / 100"
+         [style.height.px]="(resource?.data?.height || 0) * zoom / 100"
+         draggable="false"
+         (dragstart)="false">
+  </div>
+  <app-block-actions *ngIf='!hideBlockActions' [resource]='this.resource'></app-block-actions>
+</div>
+
+<app-compound-block-ui [resource]="resource"
+                       [hideName]="true"
+                       [hideBlockActions]="true"></app-compound-block-ui>

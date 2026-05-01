@@ -13,7 +13,7 @@ import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.comp
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
-import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
+import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
 import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
@@ -51,6 +51,8 @@ import { BlockActionsComponent } from './common/block-actions/block-actions.comp
 import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
 import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
 
+import { MatSliderModule } from '@angular/material/slider';
+
 @NgModule({
   declarations: [
     EditorComponent,
@@ -66,7 +68,7 @@ import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/
     SubByteCompoundBlockUiComponent,
     DelegateBlockUiComponent,
     SkipBlockUiComponent,
-    BitmapBlockUiComponent,
+    ImageBlockUiComponent,
     PaletteBlockUiComponent,
     AngleBlockUiComponent,
     WwwwBlockUiComponent,
@@ -105,6 +107,7 @@ import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/
     MatMenuModule,
     MatOptionModule,
     MatCheckboxModule,
+    MatSliderModule,
     NgxMatColorPickerModule,
     HexEditorModule,
   ],

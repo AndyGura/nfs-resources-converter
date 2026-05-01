@@ -27,20 +27,20 @@ class EacImage(DeclarativeCompoundBlock):
                                                  (0x7D, '32Bit color format bitmap')]),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=3),
-                      {
-                          'description': 'Bitmap block size 16+<color_bytes_amount>\\*width\\*height + trailing bytes length'})
+                      {'description': 'Bitmap block size 16+<pixel_byteness>\\*width\\*height + trailing bytes length'})
         width = (IntegerBlock(length=2),
-                 {'description': 'Bitmap width in pixels'})
+                 {'usage': 'io,doc',
+                  'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2),
-                  {'description': 'Bitmap height in pixels'})
+                  {'usage': 'io,doc',
+                   'description': 'Bitmap height in pixels'})
         pivot = (Point2D(child=IntegerBlock(length=2)),
                  {'is_unknown': True,
                   'description': 'Seems like x coordinate is not used at all. y coordinate is used in horizon '
                                  'textures in TNFS FAM files: higher value = image as horizon will be put higher '
                                  'on the screen. Seems to affect only open tracks'})
         position = (Point2D(child=IntegerBlock(length=2)),
-                    {'is_unknown': True,
-                     'description': 'Bitmap position on screen. Used for menu/dash sprites'})
+                    {'description': 'Bitmap position on screen. Used for menu/dash sprites. Unknown for others'})
         bitmap = (EnumLookupDelegateBlock(enum_field='resource_id',
                                           blocks=[
                                               ArrayBlock(child=IntegerBlock(length=2),
@@ -55,7 +55,7 @@ class EacImage(DeclarativeCompoundBlock):
                                                                                      x: 0xFFFFFF00
                                                                                         | transform_bitness(x, 4),
                                                                                  value_serialize_func=lambda x: (
-                                                                                                                            x & 0xFF) >> 4)),
+                                                                                                                        x & 0xFF) >> 4)),
                                               ArrayBlock(length=lambda ctx: ctx.data('height'),
                                                          child=SubByteArrayBlock(bits_per_value=4,
                                                                                  length=lambda ctx: ctx.data(
@@ -64,7 +64,7 @@ class EacImage(DeclarativeCompoundBlock):
                                                                                      x: 0xFFFFFF00
                                                                                         | transform_bitness(x, 4),
                                                                                  value_serialize_func=lambda x: (
-                                                                                                                            x & 0xFF) >> 4)),
+                                                                                                                        x & 0xFF) >> 4)),
                                               ArrayBlock(child=IntegerBlock(length=1),
                                                          length=lambda ctx: ctx.data('width') * ctx.data('height')),
                                               ArrayBlock(child=IntegerBlock(length=2),
@@ -74,7 +74,8 @@ class EacImage(DeclarativeCompoundBlock):
                                               ArrayBlock(child=IntegerBlock(length=4),
                                                          length=lambda ctx: ctx.data('width') * ctx.data('height')),
                                           ]),
-                  {'description': 'Pixel color table. For 8Bit bitmap each value represents an index of color in the '
+                  {'usage': 'io,doc',
+                   'description': 'Pixel color table. For 8Bit bitmap each value represents an index of color in the '
                                   'attached palette. Palette can be stored: <br/>'
                                   '- right after 8Bit image<br/>'
                                   '- as !pal/!PAL in the same SHPI<br/>'

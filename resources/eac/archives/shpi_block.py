@@ -60,7 +60,8 @@ class ShpiBlock(BaseArchiveBlock):
                                   programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
                      {'description': 'An amount of items'})
         shpi_dir = (UTF8Block(length=4),
-                    {'description': 'One of: "LN32", "GIMX", "WRAP". The purpose is unknown'})
+                    {'is_unknown': True,
+                     'description': 'One of: "LN32", "GIMX", "WRAP". The purpose is unknown'})
         items_descr = (ArrayBlock(child=CompoundBlock(fields=[('name', UTF8Block(length=4), {}),
                                                               ('offset', IntegerBlock(length=4), {})],
                                                       inline_description='8-bytes record, first 4 bytes is a UTF-8 '
