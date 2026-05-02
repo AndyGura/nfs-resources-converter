@@ -144,7 +144,7 @@ class EacImage(DeclarativeCompoundBlock):
         elif copied['resource_id'] == '16Bit_1555 color format bitmap':
             for (i, pxl) in enumerate(copied['bitmap']['data']):
                 red = (pxl & 0xff000000) >> 27
-                green = (pxl & 0xff0000) >> 18
+                green = (pxl & 0xff0000) >> 19
                 blue = (pxl & 0xff00) >> 11
                 alpha = pxl & 0xff >> 7
                 copied['bitmap']['data'][i] = alpha << 15 | red << 10 | green << 5 | blue
