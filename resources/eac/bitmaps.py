@@ -11,8 +11,28 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
                                  )
-from library.utils import transform_bitness, transform_color_bitness
+from library.utils import transform_bitness, extract_number
 from resources.eac.fields.misc import Point2D
+
+
+def transform_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_bitness):
+    alpha = transform_bitness(extract_number(color, alpha_bitness, red_bitness + green_bitness + blue_bitness),
+                              alpha_bitness) if alpha_bitness else 0xFF
+    red = transform_bitness(extract_number(color, red_bitness, green_bitness + blue_bitness), red_bitness)
+    green = transform_bitness(extract_number(color, green_bitness, blue_bitness), green_bitness)
+    blue = transform_bitness(extract_number(color, blue_bitness), blue_bitness)
+    return red << 24 | green << 16 | blue << 8 | alpha
+
+
+def revert_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_bitness):
+    alpha = (color & 0xff) >> (8 - alpha_bitness)
+    red = (color & 0xff000000) >> (32 - red_bitness)
+    green = (color & 0xff0000) >> (24 - green_bitness)
+    blue = (color & 0xff00) >> (16 - blue_bitness)
+    return (alpha << (red_bitness + green_bitness + blue_bitness)
+            | red << (green_bitness + blue_bitness)
+            | green << blue_bitness
+            | blue)
 
 
 class EacImage(DeclarativeCompoundBlock):
@@ -125,29 +145,16 @@ class EacImage(DeclarativeCompoundBlock):
     def write(self, data, ctx: WriteContext = None, name: str = ''):
         copied = deepcopy(data)
         if copied['resource_id'] == '16Bit_4444 color format bitmap':
-            for (i, pxl) in enumerate(copied['bitmap']['data']):
-                alpha = (pxl & 0xff) >> 4
-                red = (pxl & 0xff000000) >> 28
-                green = (pxl & 0xff0000) >> 20
-                blue = (pxl & 0xff00) >> 12
-                copied['bitmap']['data'][i] = alpha << 12 | red << 8 | green << 4 | blue
+            copied['bitmap']['data'] = [revert_color_bitness(x, 4, 4, 4, 4) for x in copied['bitmap']['data']]
         elif copied['resource_id'] == '16Bit_0565 color format bitmap':
             for (i, pxl) in enumerate(copied['bitmap']['data']):
                 if (pxl & 0xff) < 128:
                     # transparent
                     copied['bitmap']['data'][i] = 0x7c0
                 else:
-                    red = (pxl & 0xff000000) >> 27
-                    green = (pxl & 0xff0000) >> 18
-                    blue = (pxl & 0xff00) >> 11
-                    copied['bitmap']['data'][i] = red << 11 | green << 5 | blue
+                    copied['bitmap']['data'][i] = revert_color_bitness(pxl, 0, 5, 6, 5)
         elif copied['resource_id'] == '16Bit_1555 color format bitmap':
-            for (i, pxl) in enumerate(copied['bitmap']['data']):
-                red = (pxl & 0xff000000) >> 27
-                green = (pxl & 0xff0000) >> 19
-                blue = (pxl & 0xff00) >> 11
-                alpha = pxl & 0xff >> 7
-                copied['bitmap']['data'][i] = alpha << 15 | red << 10 | green << 5 | blue
+            copied['bitmap']['data'] = [revert_color_bitness(x, 1, 5, 5, 5) for x in copied['bitmap']['data']]
         elif copied['resource_id'] == '24Bit color format bitmap':
             copied['bitmap']['data'] = [x >> 8 for x in copied['bitmap']['data']]
         elif copied['resource_id'] == '32Bit color format bitmap':
