@@ -276,11 +276,7 @@ class EacPalette(DeclarativeCompoundBlock):
         elif copied['resource_id'] == '24Bit color format palette':
             copied['colors']['data'] = [x >> 8 for x in copied['colors']['data']]
         elif copied['resource_id'] == '16BitUnk color format palette':
-            for (i, pxl) in enumerate(copied['colors']['data']):
-                red = (pxl & 0xff000000) >> 27
-                green = (pxl & 0xff0000) >> 18
-                blue = (pxl & 0xff00) >> 11
-                copied['colors']['data'][i] = red << 11 | green << 5 | blue
+            copied['colors']['data'] = [revert_color_bitness(x, 0, 5, 6, 5) for x in copied['colors']['data']]
         elif copied['resource_id'] == '32Bit color format palette':
             # RGBA => ARGB
             for (i, pxl) in enumerate(copied['colors']['data']):
@@ -291,10 +287,7 @@ class EacPalette(DeclarativeCompoundBlock):
                     # transparent
                     copied['colors']['data'][i] = 0x7c0
                 else:
-                    red = (pxl & 0xff000000) >> 27
-                    green = (pxl & 0xff0000) >> 18
-                    blue = (pxl & 0xff00) >> 11
-                    copied['colors']['data'][i] = red << 11 | green << 5 | blue
+                    copied['colors']['data'][i] = revert_color_bitness(pxl, 0, 5, 6, 5)
         else:
             raise NotImplementedError(f"Palette resource ID {copied['resource_id']} is not supported")
         return super().write(copied, ctx, name)
