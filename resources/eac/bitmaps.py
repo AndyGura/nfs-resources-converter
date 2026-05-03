@@ -107,6 +107,31 @@ class EacImage(DeclarativeCompoundBlock):
                                   'Color model is selected according to `resource_id` field. Color models are '
                                   'described [here](eac_colors.md)'})
 
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'custom_actions': [{
+                'method': 'convert_to_4bit',
+                'title': 'Convert to 4bit',
+                'description': 'Converts bitmap to 4bit format.',
+                'is_pure': False,
+                'args': [
+                    {
+                        'id': 'channel',
+                        'title': 'Channel',
+                        'type': 'enum_string',
+                        'choices': ['alpha', 'red', 'green', 'blue']
+                    },
+                    {
+                        'id': 'swapped',
+                        'title': 'Swapped bits',
+                        'type': 'bool',
+                    }
+                ],
+            }]
+        }
+
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         if data['resource_id'] == '16Bit_4444 color format bitmap':
@@ -176,6 +201,37 @@ class EacImage(DeclarativeCompoundBlock):
     def serializer_class(self):
         from serializers import ImageSerializer
         return ImageSerializer
+
+    def action_convert_to_4bit(self, read_data, channel, swapped, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = '4Bit' if not swapped else '4Bit (swapped)'
+        if current_color_format == target_color_format:
+            raise Exception('Image is already in the target color format')
+        elif current_color_format == '8Bit':
+            raise NotImplementedError('Conversion from 8Bit to 4Bit is not supported yet')
+        elif current_color_format.startswith('4Bit'):
+            pass
+        else:
+            # RGBA -> 4Bit
+            new_bitmap = []
+            if channel == 'alpha':
+                (mask, offs) = (0xff, 0)
+            elif channel == 'red':
+                (mask, offs) = (0xff000000, 24)
+            elif channel == 'green':
+                (mask, offs) = (0xff0000, 16)
+            elif channel == 'blue':
+                (mask, offs) = (0xff00, 8)
+            else:
+                raise ValueError(f'Invalid channel: {channel}')
+            for j in range(read_data['height']):
+                new_bitmap.append([])
+                for i in range(read_data['width']):
+                    pxl = read_data['bitmap']['data'][j * read_data['width'] + i]
+                    new_bitmap[j].append(0xffffff00 | ((pxl & mask) >> offs))
+            read_data['bitmap']['data'] = new_bitmap
+        read_data['resource_id'] = target_color_format
+        return
 
 
 class EacPalette(DeclarativeCompoundBlock):

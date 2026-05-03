@@ -1,4 +1,5 @@
 import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -11,6 +12,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -32,6 +35,7 @@ import { ConfigComponent } from './components/config/config.component';
 @NgModule({
   declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, ErrorDialogComponent, LandingPageComponent],
   imports: [
+    CommonModule,
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
@@ -43,6 +47,8 @@ import { ConfigComponent } from './components/config/config.component';
     MatIconModule,
     MatDialogModule,
     MatMenuModule,
+    MatSelectModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     MatProgressBarModule,

@@ -44,4 +44,6 @@ export type CustomActionArgument = { id: string; title: string } & (
   | { type: 'file_output', file_name_suffix: string }
   | { type: 'number' }
   | { type: 'string' }
+  | { type: 'bool' }
+  | { type: 'enum_string', choices: string[] }
   );
