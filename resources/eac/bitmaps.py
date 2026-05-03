@@ -185,7 +185,7 @@ class EacPalette(DeclarativeCompoundBlock):
                                                  (0x29, '16BitUnk color format palette'),
                                                  (0x2A, '32Bit color format palette'),
                                                  # TODO colors 15-0 ? found here https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
-                                                 (0x2D, '16Bit_0565 color format palette')]),
+                                                 (0x2D, '16Bit_1555 color format palette')]),
                        {'description': 'Resource ID'})
         unk0 = (BytesBlock(length=3),
                 {'is_unknown': True})
@@ -262,12 +262,8 @@ class EacPalette(DeclarativeCompoundBlock):
             # ARGB => RGBA
             for (i, pxl) in enumerate(data['colors']['data']):
                 data['colors']['data'][i] = (pxl & 0x00_ff_ff_ff) << 8 | (pxl & 0xff_00_00_00) >> 24
-        elif data['resource_id'] == '16Bit_0565 color format palette':
-            for (i, pxl) in enumerate(data['colors']['data']):
-                if pxl == 0x7c0:
-                    data['colors']['data'][i] = 0  # transparent
-                else:
-                    data['colors']['data'][i] = transform_color_bitness(pxl, 0, 5, 6, 5)
+        elif data['resource_id'] == '16Bit_1555 color format palette':
+            data['colors']['data'] = [transform_color_bitness(x, 1, 5, 5, 5) for x in data['colors']['data']]
         else:
             raise NotImplementedError(f"Palette resource ID {data['resource_id']} is not supported")
         return data
@@ -284,13 +280,8 @@ class EacPalette(DeclarativeCompoundBlock):
             # RGBA => ARGB
             for (i, pxl) in enumerate(copied['colors']['data']):
                 copied['colors']['data'][i] = (pxl & 0xff_ff_ff_00) >> 8 | (pxl & 0xff) << 24
-        elif copied['resource_id'] == '16Bit_0565 color format palette':
-            for (i, pxl) in enumerate(copied['colors']['data']):
-                if (pxl & 0xff) < 128:
-                    # transparent
-                    copied['colors']['data'][i] = 0x7c0
-                else:
-                    copied['colors']['data'][i] = revert_color_bitness(pxl, 0, 5, 6, 5)
+        elif copied['resource_id'] == '16Bit_1555 color format palette':
+            copied['colors']['data'] = [revert_color_bitness(x, 1, 5, 5, 5) for x in copied['colors']['data']]
         else:
             raise NotImplementedError(f"Palette resource ID {copied['resource_id']} is not supported")
         return super().write(copied, ctx, name)

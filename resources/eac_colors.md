@@ -35,7 +35,7 @@ grayscale images in some cases.
 **Found in games**:
 - `NFS5`
 
-### 16Bit_0565 (bitmap resource id: 0x78, palette resource id: 0x2D)
+### 16Bit_0565 (bitmap resource id: 0x78)
 - **Description**: 16-bit 0565 color.
 - **Bit layout**: `rrrrrggg_gggbbbbb` (2 bytes).
 - **Special Case**: `0x7c0` (corresponding to `0x00FB00` RGB) is treated as fully transparent (Alpha = 0). Tested on NFS2 tracks.
@@ -47,7 +47,7 @@ grayscale images in some cases.
 - `NFS4`
 - `NFS5`
 
-### 16Bit_1555 (bitmap resource id: 0x7E)
+### 16Bit_1555 (bitmap resource id: 0x7E, palette resource id: 0x2D)
 - **Description**: 16-bit 1555 color.
 - **Bit layout**: `arrrrrgg_gggbbbbb` (2 bytes).
 

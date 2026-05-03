@@ -185,15 +185,15 @@ class TestPalette(unittest.TestCase):
         serialized_color = self.block.pack(data)[16:]
         self.assertListEqual(list(serialized_color), [0x78, 0x56, 0x34, 0x12])
 
-    def test_color_16bit_0565_should_be_translated_correctly(self):
+    def test_color_16bit_1555_should_be_translated_correctly(self):
         # 0xF800 -> R=31, G=0, B=0 -> 0xFF0000FF
-        buf = self._gen_single_color_palette(0x2D, bytes([0x00, 0xF8]))
+        buf = self._gen_single_color_palette(0x2D, bytes([0x34, 0x92]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['colors']['data'][0], 0xFF0000FF)
+        self.assertEqual(data['colors']['data'][0], 0x218CA5FF)
 
-    def test_color_16bit_0565_should_be_saved_correctly(self):
+    def test_color_16bit_1555_should_be_saved_correctly(self):
         buf = self._gen_single_color_palette(0x2D, bytes([0, 0]))
         data = self.block.unpack(ReadContext(buf))
-        data['colors']['data'][0] = 0xFF0000FF
+        data['colors']['data'][0] = 0x218CA5FF
         serialized_color = self.block.pack(data)[16:]
-        self.assertListEqual(list(serialized_color), [0x00, 0xF8])
+        self.assertListEqual(list(serialized_color), [0x34, 0x92])
