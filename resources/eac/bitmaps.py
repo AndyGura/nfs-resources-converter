@@ -1,4 +1,5 @@
 from copy import deepcopy
+from functools import lru_cache
 from typing import Tuple, Any, Dict
 
 from library.context import ReadContext, WriteContext
@@ -15,6 +16,7 @@ from library.utils import transform_bitness, extract_number
 from resources.eac.fields.misc import Point2D
 
 
+@lru_cache(maxsize=256)
 def transform_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_bitness):
     alpha = transform_bitness(extract_number(color, alpha_bitness, red_bitness + green_bitness + blue_bitness),
                               alpha_bitness) if alpha_bitness else 0xFF
@@ -24,6 +26,7 @@ def transform_color_bitness(color, alpha_bitness, red_bitness, green_bitness, bl
     return red << 24 | green << 16 | blue << 8 | alpha
 
 
+@lru_cache(maxsize=256)
 def revert_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_bitness):
     alpha = (color & 0xff) >> (8 - alpha_bitness)
     red = (color & 0xff000000) >> (32 - red_bitness)
