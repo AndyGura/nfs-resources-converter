@@ -111,25 +111,65 @@ class EacImage(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'custom_actions': [{
-                'method': 'convert_to_4bit',
-                'title': 'Convert to 4bit',
-                'description': 'Converts bitmap to 4bit format.',
-                'is_pure': False,
-                'args': [
-                    {
-                        'id': 'channel',
-                        'title': 'Channel',
-                        'type': 'enum_string',
-                        'choices': ['alpha', 'red', 'green', 'blue']
-                    },
-                    {
-                        'id': 'swapped',
-                        'title': 'Swapped bits',
-                        'type': 'bool',
-                    }
-                ],
-            }]
+            'custom_actions': [
+                {
+                    'method': 'convert_to_4bit',
+                    'title': 'Convert to 4bit',
+                    'description': 'Converts bitmap to 4bit format.',
+                    'is_pure': False,
+                    'args': [
+                        {
+                            'id': 'channel',
+                            'title': 'Channel',
+                            'type': 'enum_string',
+                            'choices': ['alpha', 'red', 'green', 'blue']
+                        },
+                        {
+                            'id': 'swapped',
+                            'title': 'Swapped bits',
+                            'type': 'bool',
+                        }
+                    ],
+                },
+                {
+                    'method': 'convert_to_8bit',
+                    'title': 'Convert to 8bit',
+                    'description': 'Converts bitmap to 8bit format.',
+                    'is_pure': False,
+                    'args': [
+                        {
+                            'id': 'channel',
+                            'title': 'Channel',
+                            'type': 'enum_string',
+                            'choices': ['alpha', 'red', 'green', 'blue']
+                        }
+                    ],
+                },
+                {
+                    'method': 'convert_to_rgba',
+                    'title': 'Convert to RGBA',
+                    'description': 'Converts bitmap to RGBA format.',
+                    'is_pure': False,
+                    'args': [
+                        {
+                            'id': 'color_mode',
+                            'title': 'Color mode',
+                            'type': 'enum_string',
+                            'choices': ['16Bit_4444 color format bitmap',
+                                        '16Bit_0565 color format bitmap',
+                                        '16Bit_1555 color format bitmap',
+                                        '24Bit color format bitmap',
+                                        '32Bit color format bitmap']
+                        },
+                        {
+                            'id': 'output_colors',
+                            'title': 'Output colors',
+                            'type': 'enum_string',
+                            'choices': ['transparent-white', 'black-white']
+                        }
+                    ],
+                }
+            ]
         }
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -202,6 +242,19 @@ class EacImage(DeclarativeCompoundBlock):
         from serializers import ImageSerializer
         return ImageSerializer
 
+    def _get_channel_mask_offset(self, channel):
+        if channel == 'alpha':
+            (mask, offs) = (0xff, 0)
+        elif channel == 'red':
+            (mask, offs) = (0xff000000, 24)
+        elif channel == 'green':
+            (mask, offs) = (0xff0000, 16)
+        elif channel == 'blue':
+            (mask, offs) = (0xff00, 8)
+        else:
+            raise ValueError(f'Invalid channel: {channel}')
+        return mask, offs
+
     def action_convert_to_4bit(self, read_data, channel, swapped, **kwargs):
         current_color_format = read_data['resource_id']
         target_color_format = '4Bit' if not swapped else '4Bit (swapped)'
@@ -218,17 +271,8 @@ class EacImage(DeclarativeCompoundBlock):
         elif current_color_format.startswith('4Bit'):
             pass
         else:
-            # RGBA -> 4Bit
-            if channel == 'alpha':
-                (mask, offs) = (0xff, 0)
-            elif channel == 'red':
-                (mask, offs) = (0xff000000, 24)
-            elif channel == 'green':
-                (mask, offs) = (0xff0000, 16)
-            elif channel == 'blue':
-                (mask, offs) = (0xff00, 8)
-            else:
-                raise ValueError(f'Invalid channel: {channel}')
+            # RGBA
+            (mask, offs) = self._get_channel_mask_offset(channel)
             new_bitmap = []
             for j in range(read_data['height']):
                 new_bitmap.append([])
@@ -236,6 +280,44 @@ class EacImage(DeclarativeCompoundBlock):
                     pxl = read_data['bitmap']['data'][j * read_data['width'] + i]
                     new_bitmap[j].append(0xffffff00 | ((pxl & mask) >> offs))
             read_data['bitmap']['data'] = new_bitmap
+        read_data['resource_id'] = target_color_format
+        return
+
+    def action_convert_to_8bit(self, read_data, channel, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = '8Bit'
+        if current_color_format == target_color_format:
+            raise Exception('Image is already in the target color format')
+        elif current_color_format.startswith('4Bit'):
+            new_bitmap = []
+            for j in range(read_data['height']):
+                for i in range(read_data['width']):
+                    pxl = read_data['bitmap']['data'][j][i]
+                    new_bitmap.append(transform_bitness(pxl & 0xff, 4))
+            read_data['bitmap']['data'] = new_bitmap
+        else:
+            # RGBA
+            (mask, offs) = self._get_channel_mask_offset(channel)
+            read_data['bitmap']['data'] = [(pxl & mask) >> offs for pxl in read_data['bitmap']['data']]
+        read_data['resource_id'] = target_color_format
+        return
+
+    def action_convert_to_rgba(self, read_data, color_mode, output_colors, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = color_mode
+        new_bitmap = []
+        if current_color_format.startswith('4Bit'):
+            for j in range(read_data['height']):
+                for i in range(read_data['width']):
+                    pxl = read_data['bitmap']['data'][j][i]
+                    new_bitmap.append(transform_bitness(pxl & 0xff, 4))
+        elif current_color_format == '8Bit':
+            new_bitmap = read_data['bitmap']['data']
+        if new_bitmap:
+            if output_colors == 'transparent-white':
+                read_data['bitmap']['data'] = [x | 0xffffff00 for x in new_bitmap]
+            elif output_colors == 'black-white':
+                read_data['bitmap']['data'] = [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap]
         read_data['resource_id'] = target_color_format
         return
 
