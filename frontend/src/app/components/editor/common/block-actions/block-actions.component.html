@@ -12,7 +12,7 @@
   </button>
 </ng-container>
 <button mat-icon-button
-        *ngIf="resource?.schema.custom_actions?.length > 0"
+        *ngIf="!hideCustomActions && resource?.schema.custom_actions?.length > 0"
         [matMenuTriggerFor]="customActionsMenu"
         matTooltip="Run custom action">
   <mat-icon fontIcon="bolt"></mat-icon>

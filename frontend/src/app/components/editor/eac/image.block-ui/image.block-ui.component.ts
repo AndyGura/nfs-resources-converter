@@ -14,7 +14,8 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { MainService } from '../../../../services/main.service';
-import { Resource } from '../../types';
+import { CustomAction, Resource } from '../../types';
+import { CustomActionService } from '../../../../services/custom-action.service';
 
 @Component({
   selector: 'image-block-ui',
@@ -78,6 +79,7 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
     private readonly eelDelegate: EelDelegateService,
     public readonly main: MainService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly customActionService: CustomActionService,
   ) {}
 
   async ngAfterViewInit() {
@@ -190,17 +192,6 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
       container.scrollLeft = newRelativeX + imgOffsetLeft - anchorX;
       container.scrollTop = newRelativeY + imgOffsetTop - anchorY;
     })
-
-    // setTimeout(() => {
-    //   const newImgRect = imgElement.getBoundingClientRect();
-    //   const newContainerRect = container.getBoundingClientRect();
-    //
-    //   const imgOffsetLeft = newImgRect.left - newContainerRect.left + container.scrollLeft;
-    //   const imgOffsetTop = newImgRect.top - newContainerRect.top + container.scrollTop;
-    //
-    //   container.scrollLeft = newRelativeX + imgOffsetLeft - anchorX;
-    //   container.scrollTop = newRelativeY + imgOffsetTop - anchorY;
-    // }, 0);
   }
 
   onMouseDown(event: MouseEvent) {
@@ -253,6 +244,32 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
       if (this.zoom <= 0) {
         this.zoom = 100;
       }
+      this.cdr.markForCheck();
+    }
+  }
+
+  customActionSimplifiedFormat(resourceId: string): 'rgba' | '4bit' | '8bit' {
+    if (resourceId.startsWith('4Bit')) {
+      return '4bit';
+    } else if (resourceId === '8Bit') {
+      return '8bit';
+    } else {
+      return 'rgba';
+    }
+  }
+
+  async onFormatChange(newFormat: string) {
+    if (!this.resource) return;
+    const currentFormatSmpl = this.customActionSimplifiedFormat(this.resource.data.resource_id);
+    const newFormatSmpl = this.customActionSimplifiedFormat(newFormat);
+    if (newFormatSmpl === currentFormatSmpl) {
+      this.resource.data.resource_id = newFormat;
+      this.changed.next();
+      return;
+    }
+    const action = this.resource.schema.custom_actions.find((a: CustomAction) => a.method === 'convert_to_' + newFormatSmpl);
+    if (action) {
+      await this.customActionService.runCustomAction(this.resource, action);
       this.cdr.markForCheck();
     }
   }

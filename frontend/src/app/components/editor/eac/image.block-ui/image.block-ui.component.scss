@@ -44,6 +44,10 @@
     align-items: center;
     gap: 0.5rem;
 
+    mat-form-field {
+      width: 250px;
+    }
+
     mat-slider {
       flex: 1;
       min-width: 100px;
@@ -118,6 +122,10 @@
     image-rendering: crisp-edges;
     outline: #00000088 dotted 2px;
   }
+}
+
+mat-form-field {
+  width: 100%;
 }
 
 app-compound-block-ui {
