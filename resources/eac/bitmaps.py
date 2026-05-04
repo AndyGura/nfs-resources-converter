@@ -208,12 +208,17 @@ class EacImage(DeclarativeCompoundBlock):
         if current_color_format == target_color_format:
             raise Exception('Image is already in the target color format')
         elif current_color_format == '8Bit':
-            raise NotImplementedError('Conversion from 8Bit to 4Bit is not supported yet')
+            new_bitmap = []
+            for j in range(read_data['height']):
+                new_bitmap.append([])
+                for i in range(read_data['width']):
+                    pxl = read_data['bitmap']['data'][j * read_data['width'] + i]
+                    new_bitmap[j].append(0xffffff00 | pxl)
+            read_data['bitmap']['data'] = new_bitmap
         elif current_color_format.startswith('4Bit'):
             pass
         else:
             # RGBA -> 4Bit
-            new_bitmap = []
             if channel == 'alpha':
                 (mask, offs) = (0xff, 0)
             elif channel == 'red':
@@ -224,6 +229,7 @@ class EacImage(DeclarativeCompoundBlock):
                 (mask, offs) = (0xff00, 8)
             else:
                 raise ValueError(f'Invalid channel: {channel}')
+            new_bitmap = []
             for j in range(read_data['height']):
                 new_bitmap.append([])
                 for i in range(read_data['width']):
