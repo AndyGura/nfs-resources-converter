@@ -42,6 +42,7 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
   @Input() hideBlockActions: boolean = false;
 
   @ViewChild('imageContainer') imageContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('formatSelect') formatSelect?: any;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
   zoom = 100;
@@ -269,7 +270,16 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }
     const action = this.resource.schema.custom_actions.find((a: CustomAction) => a.method === 'convert_to_' + newFormatSmpl);
     if (action) {
-      await this.customActionService.runCustomAction(this.resource, action);
+      const success = await this.customActionService.runCustomAction(this.resource, action);
+      if (!success && this.formatSelect) {
+        // restore value in dropdown
+        this.formatSelect.control.setValue(this.resource.data.resource_id, { emitEvent: false });
+        this.cdr.markForCheck();
+      }
+    } else {
+      if (this.formatSelect) {
+        this.formatSelect.control.setValue(this.resource.data.resource_id, { emitEvent: false });
+      }
       this.cdr.markForCheck();
     }
   }
