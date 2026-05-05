@@ -4,7 +4,6 @@ from library.read_blocks import (IntegerBlock,
                                  UTF8Block,
                                  DeclarativeCompoundBlock,
                                  LengthPrefixedArrayBlock,
-                                 AutoDetectBlock,
                                  BytesBlock,
                                  ArrayBlock,
                                  Padding,
@@ -12,7 +11,7 @@ from library.read_blocks import (IntegerBlock,
                                  )
 from library.read_blocks.misc.optional import OptionalBlock
 from library.read_blocks.misc.value_validators import Or
-from resources.eac.bitmaps import Bitmap4Bit, Bitmap8Bit
+from resources.eac.bitmaps import EacImage
 from resources.eac.fields.misc import Point2D
 
 
@@ -118,9 +117,8 @@ class FfnFont(DeclarativeCompoundBlock):
                                                                  length_block=IntegerBlock(length=4)),
                                   criteria=lambda ctx: ctx.data('kernings_ptr') != 0))
         padding_2 = Padding(to=lambda ctx: ctx.data('bdata_ptr'))
-        bitmap = (AutoDetectBlock(possible_blocks=[Bitmap4Bit(), Bitmap8Bit()]),
-                  {'description': 'Font atlas bitmap data',
-                   'custom_offset': 'bdata_ptr'})
+        bitmap = (EacImage(),
+                  {'description': 'Font atlas bitmap data'})
         remaining_bytes = (BytesBlock(length=(lambda ctx: ctx.read_bytes_remaining,
                                               'remaining bytes')),
                            {'is_unknown': True})
