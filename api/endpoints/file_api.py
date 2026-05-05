@@ -88,6 +88,60 @@ class FileAPI:
             return None
         return filename
 
+    def save_file_dialog(self, file_name: Optional[str] = None) -> Optional[str]:
+        """
+        Open a save file dialog and return the selected file path.
+    
+        Args:
+            file_name: Optional default file name or directory path to use
+    
+        Returns:
+            The selected file path or None if canceled
+        """
+        from tkinter import Tk
+        from tkinter.filedialog import asksaveasfilename
+        import os
+
+        root = Tk()
+        root.withdraw()
+        root.update()
+        # Bring the dialog to front on macOS
+        root.lift()
+        root.attributes('-topmost', True)
+        root.after_idle(root.attributes, '-topmost', False)
+
+        # Determine initial directory and filename
+        initialdir = None
+        initialfile = None
+
+        if file_name:
+            if os.path.isdir(file_name):
+                # If file_name is a directory, use it as initialdir
+                initialdir = file_name
+            else:
+                # If file_name contains a path, split it
+                dir_part = os.path.dirname(file_name)
+                file_part = os.path.basename(file_name)
+
+                if dir_part and os.path.isdir(dir_part):
+                    initialdir = dir_part
+                    initialfile = file_part
+                elif dir_part:
+                    # Directory doesn't exist, just use the filename
+                    initialfile = file_name
+                else:
+                    # No directory component, just a filename
+                    initialfile = file_name
+
+        filename = asksaveasfilename(
+            initialdir=initialdir,
+            initialfile=initialfile
+        )
+        root.destroy()
+        if not filename:
+            return None
+        return filename
+
     def open_file(self, path: str, force_reload: bool = False, update_recent_files: bool = True) -> Dict[str, Any]:
         """
         Open a file and return its data.
@@ -148,9 +202,12 @@ class FileAPI:
             return {"success": False, "error": str(e)}
 
     def open_file_with_system_app(self, path: str):
-        if path.startswith('/') or path.startswith('\\'):
-            path = path[1:]
-        start_file(path_join(self.api.static_path, path))
+        if os.path.isabs(path):
+            start_file(path)
+        else:
+            if path.startswith('/') or path.startswith('\\'):
+                path = path[1:]
+            start_file(path_join(self.api.static_path, path))
 
     def close_file(self) -> Dict[str, Any]:
         """

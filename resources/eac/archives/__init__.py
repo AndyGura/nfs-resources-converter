@@ -3,7 +3,7 @@ from io import BytesIO
 from os.path import getsize
 from typing import Dict
 
-from .shpi_block import ShpiBlock
+from .shpi_block import ShpiBlock, PaletteReference
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,
@@ -107,7 +107,6 @@ class WwwwBlock(BaseArchiveBlock):
             **super().schema,
             'block_description': 'A block-container with various data: image archives, geometries, other wwww blocks. '
                                  'If has ORIP 3D model, next item is always SHPI block with textures to this 3D model',
-            'serializable_to_disc': True,
         }
         delattr(self, 'schema_call_recv')
         return schema
@@ -190,7 +189,6 @@ class BigfBlock(BaseArchiveBlock):
             **super().schema,
             'block_description': 'A block-container with various data: image archives, GEO geometries, sound banks, '
                                  'other BIGF blocks...',
-            'serializable_to_disc': False,
         }
         delattr(self, 'schema_call_recv')
         return schema

@@ -1,4 +1,5 @@
 import subprocess
+from typing import List
 
 from config import general_config
 from serializers import BaseFileSerializer
@@ -6,8 +7,9 @@ from serializers import BaseFileSerializer
 
 class FfmpegSupportedVideoSerializer(BaseFileSerializer):
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
+        output_path = f'{path}.mp4'
         subprocess.run([general_config().ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", data,
                         # add video on black square so we will not have transparent pixels (displays wrong in chrome)
                         '-filter_complex',
@@ -16,4 +18,5 @@ class FfmpegSupportedVideoSerializer(BaseFileSerializer):
                         "-c:a", "mp3",
                         "-vprofile", "main",
                         "-pix_fmt", "yuv420p",
-                        f'{path}.mp4'], check=True)
+                        output_path], check=True)
+        return [output_path]

@@ -14,7 +14,6 @@ from library.utils.docs import add_doc_numbers
 from resources.eac import (archives,
                            bitmaps,
                            fonts,
-                           palettes,
                            misc,
                            geometries,
                            maps,
@@ -116,6 +115,7 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
+                archives.PaletteReference(),
                 archives.WwwwBlock(),
                 archives.SoundBank(),
             ],
@@ -140,19 +140,14 @@ EXPORT_RESOURCES = {
                 car_specs.CarPerformanceSpec(),
                 car_specs.CarSimplifiedPerformanceSpec(),
             ],
-            'Bitmaps': [
-                bitmaps.Bitmap4Bit(),
-                bitmaps.Bitmap8Bit(),
+            'Images': [
+                bitmaps.EacImage(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
                 fonts.KerningItem(),
-            ],
-            'Palettes': [
-                palettes.PaletteReference(),
-                palettes.Palette24BitDos(),
-                palettes.Palette24Bit(),
             ],
             'Audio': [
                 audios.AsfAudio(),
@@ -190,6 +185,7 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
+                archives.PaletteReference(),
                 archives.BigfBlock(),
                 archives.BigfItemDescriptionBlock(),
             ],
@@ -220,22 +216,14 @@ EXPORT_RESOURCES = {
             ],
             # 'Physics': [
             # ],
-            'Bitmaps': [
-                bitmaps.Bitmap4Bit(),
-                bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap16Bit0565(),
-                bitmaps.Bitmap24Bit(),
-                bitmaps.Bitmap32Bit(),
+            'Images': [
+                bitmaps.EacImage(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
                 fonts.KerningItem(),
-            ],
-            'Palettes': [
-                palettes.PaletteReference(),
-                palettes.Palette24Bit(),
-                palettes.Palette32Bit(),
             ],
             # 'Audio': [
             # ],
@@ -263,6 +251,7 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
+                archives.PaletteReference(),
                 archives.BigfBlock(),
                 archives.BigfItemDescriptionBlock(),
             ],
@@ -293,25 +282,14 @@ EXPORT_RESOURCES = {
             ],
             # 'Physics': [
             # ],
-            'Bitmaps': [
-                bitmaps.Bitmap4Bit(),
-                bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap16Bit0565(),
-                bitmaps.Bitmap16Bit1555(),
-                bitmaps.Bitmap24Bit(),
-                bitmaps.Bitmap32Bit(),
+            'Images': [
+                bitmaps.EacImage(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
                 fonts.KerningItem(),
-            ],
-            'Palettes': [
-                palettes.PaletteReference(),
-                palettes.Palette16BitDos(),
-                palettes.Palette16Bit(),
-                palettes.Palette24Bit(),
-                palettes.Palette32Bit(),
             ],
             # 'Audio': [
             # ],
@@ -376,22 +354,14 @@ EXPORT_RESOURCES = {
             ],
             # 'Physics': [
             # ],
-            'Bitmaps': [
-                bitmaps.Bitmap4Bit(),
-                bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap16Bit0565(),
-                bitmaps.Bitmap16Bit1555(),
-                bitmaps.Bitmap24Bit(),
-                bitmaps.Bitmap32Bit(),
+            'Images': [
+                bitmaps.EacImage(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
                 fonts.KerningItem(),
-            ],
-            'Palettes': [
-                palettes.Palette16Bit(),
-                palettes.Palette32Bit(),
             ],
             # 'Audio': [
             # ],
@@ -421,23 +391,14 @@ EXPORT_RESOURCES = {
             # ],
             # 'Physics': [
             # ],
-            'Bitmaps': [
-                bitmaps.Bitmap4Bit(),
-                bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap16Bit0565(),
-                bitmaps.Bitmap16Bit1555(),
-                bitmaps.Bitmap24Bit(),
-                bitmaps.Bitmap32Bit(),
+            'Images': [
+                bitmaps.EacImage(),
+                bitmaps.EacPalette(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
                 fonts.GlyphDefinition(),
                 fonts.KerningItem(),
-            ],
-            'Palettes': [
-                palettes.Palette16BitDos(),
-                palettes.Palette16Bit(),
-                palettes.Palette32Bit(),
             ],
             # 'Audio': [
             # ],
@@ -502,21 +463,12 @@ EXPORT_RESOURCES = {
             # ],
             # 'Physics': [
             # ],
-            'Bitmaps': [
-                bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap16Bit4444(),
-                bitmaps.Bitmap16Bit0565(),
-                bitmaps.Bitmap16Bit1555(),
-                bitmaps.Bitmap24Bit(),
-                bitmaps.Bitmap32Bit(),
+            'Images': [
+                bitmaps.EacImage(),
+                bitmaps.EacPalette(),
             ],
             # 'Fonts': [
             # ],
-            'Palettes': [
-                palettes.Palette16BitDos(),
-                palettes.Palette16Bit(),
-                palettes.Palette32Bit(),
-            ],
             # 'Audio': [
             # ],
             # 'Misc': [
@@ -541,15 +493,12 @@ EXPORT_RESOURCES = {
             # ],
             # 'Physics': [
             # ],
-            'Bitmaps': [
-                bitmaps.Bitmap8Bit(),
-                bitmaps.Bitmap32Bit(),
+            'Images': [
+                bitmaps.EacImage(),
+                bitmaps.EacPalette(),
             ],
             # 'Fonts': [
             # ],
-            'Palettes': [
-                palettes.Palette32Bit(),
-            ],
             # 'Audio': [
             # ],
             # 'Misc': [

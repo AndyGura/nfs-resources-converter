@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
@@ -70,9 +71,10 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(public readonly main: MainService, public readonly navigation: NavigationService) {}
+  constructor(public readonly main: MainService, public readonly navigation: NavigationService, private readonly cdr: ChangeDetectorRef) {}
 
   ngAfterViewInit(): void {
+    // TODO make this work in all components I guess?
     this.main.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
@@ -91,6 +93,7 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
           return;
         }
         this.data[idSuffix(this.resource!.id, blockId)] = value;
+        this.cdr.markForCheck();
       });
   }
 

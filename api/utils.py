@@ -19,6 +19,7 @@ def apply_delta_to_resource(resource_id, resource, changes: Dict):
     for delta in changes:
         if not delta['id'].startswith(resource_id + suffix):
             warning('Skipped change ' + delta['id'] + '. Wrong ID')
+            continue
         sub_id = delta['id'][len(resource_id) + len(suffix):]
         field = resource
         for subkey in sub_id.split('/')[:-1]:

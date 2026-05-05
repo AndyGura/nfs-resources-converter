@@ -1,6 +1,7 @@
 import json
 import subprocess
 import wave
+from typing import List
 
 from config import general_config
 from library.utils import audio_ima_adpcm_codec
@@ -9,7 +10,7 @@ from serializers import BaseFileSerializer
 
 class EacsAudioSerializer(BaseFileSerializer):
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
         wave_bytes = data['wave_data']
         if data['header']['compression'] == 2:
@@ -33,6 +34,7 @@ class EacsAudioSerializer(BaseFileSerializer):
                 "loop_start_time_ms": loop_start_time_ms,
                 "loop_end_time_ms": loop_end_time_ms
             }, indent=4))
+        return [f'{path}.wav', f'{path}.meta.json']
 
     def _save_wave_data(self, eacs_header, wave_data, path):
         with wave.open(f'{path}.wav', "w") as wf:
@@ -44,15 +46,18 @@ class EacsAudioSerializer(BaseFileSerializer):
 
 class FfmpegSupportedAudioSerializer(BaseFileSerializer):
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
+        wav_path = f'{path}.wav'
+        meta_path =f'{path}.meta.json'
         subprocess.run(
-            [general_config().ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", id, f'{path}.wav'],
+            [general_config().ffmpeg_executable, "-y", "-nostats", '-loglevel', '0', "-i", id, wav_path],
             check=True)
-        with open(f'{path}.meta.json', 'w') as file:
+        with open(meta_path, 'w') as file:
             loop_start_time_ms = 1000 * data['repeat_loop_beginning'] / data['sampling_rate']
             loop_end_time_ms = loop_start_time_ms + 1000 * data['repeat_loop_length'] / data['sampling_rate']
             file.write(json.dumps({
                 "loop_start_time_ms": loop_start_time_ms,
                 "loop_end_time_ms": loop_end_time_ms
             }, indent=4))
+        return [wav_path, meta_path]

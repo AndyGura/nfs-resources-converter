@@ -9,11 +9,7 @@ from library.read_blocks import DataBlock
 # performance, because we spawn process per file, and it doesn't need to load all those classes every time
 def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
     if file_path:
-        # test resource
-        if file_path.endswith('nfsrc_test_resource.bin'):
-            from resources.test_resource import TestResource
-            return TestResource
-        elif file_path.endswith('.BNK'):
+        if file_path.endswith('.BNK'):
             from resources.eac.archives import SoundBank
             return SoundBank
         elif file_path.endswith('.PBS__uncompressed'):
@@ -71,22 +67,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             return MapColFile
     try:
         resource_id = header_bytes[0]
-        if resource_id == 0x22:
-            from resources.eac.palettes import Palette24BitDos
-            return Palette24BitDos
-        elif resource_id == 0x24:
-            from resources.eac.palettes import Palette24Bit
-            return Palette24Bit
-        elif resource_id == 0x29:
-            from resources.eac.palettes import Palette16BitDos
-            return Palette16BitDos
-        elif resource_id == 0x2A:
-            from resources.eac.palettes import Palette32Bit
-            return Palette32Bit
-        elif resource_id == 0x2D:
-            # TODO colors 15-0 ? found here https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
-            from resources.eac.palettes import Palette16Bit
-            return Palette16Bit
+        if resource_id in [0x22, 0x24, 0x29, 0x2A, 0x2D]:
+            from resources.eac.bitmaps import EacPalette
+            return EacPalette
         # TODO PIXEL_PAL4_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
         # elif resource_id == 0x5C:
         #     pass
@@ -117,33 +100,15 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         # TODO Bitmap32Bit1010102
         # elif resource_id == 0x6A:
         #     pass
-        elif resource_id == 0x6D:
-            from resources.eac.bitmaps import Bitmap16Bit4444
-            return Bitmap16Bit4444
         elif resource_id == 0x6F:
             from resources.eac.misc import ShpiText
             return ShpiText
-        elif resource_id == 0x78:
-            from resources.eac.bitmaps import Bitmap16Bit0565
-            return Bitmap16Bit0565
-        elif resource_id in [0x79, 0x7A]:
-            from resources.eac.bitmaps import Bitmap4Bit
-            return Bitmap4Bit
-        elif resource_id == 0x7B:
-            from resources.eac.bitmaps import Bitmap8Bit
-            return Bitmap8Bit
+        elif resource_id in [0x6D, 0x78, 0x79, 0x7A, 0x7B, 0x7E, 0x7F, 0x7D]:
+            from resources.eac.bitmaps import EacImage
+            return EacImage
         elif resource_id == 0x7C:
-            from resources.eac.palettes import PaletteReference
+            from resources.eac.archives import PaletteReference
             return PaletteReference
-        elif resource_id == 0x7D:
-            from resources.eac.bitmaps import Bitmap32Bit
-            return Bitmap32Bit
-        elif resource_id == 0x7E:
-            from resources.eac.bitmaps import Bitmap16Bit1555
-            return Bitmap16Bit1555
-        elif resource_id == 0x7F:
-            from resources.eac.bitmaps import Bitmap24Bit
-            return Bitmap24Bit
         # QFS1
         # if resource_id & 0b0001_0000:
         elif header_bytes[1] == 0xfb and (resource_id & 0b1111_1110) == 0x10:

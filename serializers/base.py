@@ -1,7 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from os.path import getsize
-from typing import Dict
+from typing import Dict, List
 
 from config import conversion_config
 from library.utils.id import join_id
@@ -13,14 +13,23 @@ class ResourceSerializer(ABC):
     def patch_settings(self, settings_patch: dict):
         self.settings.update(settings_patch)
 
-    def setup_for_reversible_serialization(self) -> bool:
-        return False
+    def ui_serialization(self):
+        # example
+        # return {
+        #     'file_type': None,
+        #     'is_directory': False,
+        #     'output_file_name_suffix': None,
+        #     'reversible': False,
+        #     'reversible_settings_patch': {}
+        # }
+        # return null to disable serialization from UI
+        return None
 
     @abstractmethod
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         raise NotImplementedError
 
-    def deserialize(self, path: str, id=None, block=None, **kwargs):
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
         raise NotImplementedError
 
 
@@ -32,7 +41,7 @@ class DelegateBlockSerializer(ResourceSerializer):
         serializer = get_serializer(sub_block, sub_data)
         return serializer.is_dir
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> Dict:
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         from serializers import get_serializer
         sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']
         serializer = get_serializer(sub_block, sub_data)
@@ -44,8 +53,9 @@ class BaseFileSerializer(ResourceSerializer):
     def __init__(self, is_dir=False):
         self.is_dir = is_dir
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         os.makedirs(path if self.is_dir else os.path.dirname(path), exist_ok=True)
+        return []
 
 
 class PlainBinarySerializer(BaseFileSerializer):
@@ -53,16 +63,24 @@ class PlainBinarySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=False)
 
-    def setup_for_reversible_serialization(self) -> bool:
-        return True
+    def ui_serialization(self):
+        return {
+            'file_type': 'binary',
+            'is_directory': False,
+            'output_file_name_suffix': '.bin',
+            'reversible': True,
+            'reversible_settings_patch': {}
+        }
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         if path.endswith('/') or path.endswith('\\'):
             path += id[id.rindex('/') + 1:]
         super().serialize(data, path)
-        with open(f'{path}.bin', 'wb') as file:
+        output_path = f'{path}.bin'
+        with open(output_path, 'wb') as file:
             file.write(data)
+        return [output_path]
 
-    def deserialize(self, path: str, id=None, block=None, **kwargs):
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
         with open(f'{path}.bin', 'rb') as file:
             return file.read(getsize(f'{path}.bin'))

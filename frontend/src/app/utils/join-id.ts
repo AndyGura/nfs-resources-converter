@@ -13,3 +13,8 @@ export const idSuffix = (baseId: string, id: string) => {
     throw new Error('Cannot extract valid suffix from id "' + id + '" in "' + baseId + '"');
   }
 }
+
+export const lastIdPart = (id: string) => {
+  const parts = id.split(/\/|__/).filter(part => part !== '');
+  return parts[parts.length - 1];
+};

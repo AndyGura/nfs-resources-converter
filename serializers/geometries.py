@@ -1,10 +1,11 @@
 from collections import defaultdict
+from typing import List
 
 from library.exceptions import DataIntegrityException
 from library.utils import path_join
 from library.utils.id import join_id
 from resources.eac.archives import ShpiBlock
-from resources.eac.bitmaps import AnyBitmapBlock
+from resources.eac.bitmaps import EacImage
 from serializers import BaseFileSerializer
 from serializers.common.three_d import SubMesh, Mesh, export_scenes, Scene
 
@@ -28,7 +29,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         except KeyError:
             pass
         # new vertex creation
-        vertex = block_data['vertices'][block_data['vmap'][index_3D]]['data']
+        vertex = block_data['vertices']['data'][block_data['vmap'][index_3D]]
         model.vertices.append([vertex['x'], vertex['y'], vertex['z']])
         vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
         # setup texture coordinate
@@ -118,7 +119,7 @@ class OripGeometrySerializer(BaseFileSerializer):
             sub_model.change_axes(new_z='y', new_y='z')
         return shpi_id, textures_shpi_block, textures_shpi_data, sub_models
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
         shpi_id, textures_shpi_block, textures_shpi_data, sub_models = self.build_mesh(data, id)
 
@@ -130,7 +131,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
             texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
                 textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, AnyBitmapBlock):
+            if not isinstance(texture_block, EacImage):
                 continue
             scene.mtl_texture_names.append(texture_name)
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
@@ -138,7 +139,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         from serializers import ShpiArchiveSerializer
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
                                           textures_shpi_block)
-        export_scenes([scene], path, self.settings)
+        return export_scenes([scene], path, self.settings)
 
 
 class GeoGeometrySerializer(BaseFileSerializer):
@@ -146,7 +147,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         from library import require_resource
         if 'CARDATA.VIV' in id:
             # NFS2 SE
@@ -225,7 +226,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
         for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
             texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
                 textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, AnyBitmapBlock):
+            if not isinstance(texture_block, EacImage):
                 continue
             scene.mtl_texture_names.append(texture_name)
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
@@ -233,7 +234,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
         from serializers import ShpiArchiveSerializer
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
                                           textures_shpi_block)
-        export_scenes([scene], path, self.settings)
+        return export_scenes([scene], path, self.settings)
 
 
 class CrpGeometrySerializer(BaseFileSerializer):
@@ -241,7 +242,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs):
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
 
         misc_choice = block.field_blocks_map['common_parts'].child
@@ -365,4 +366,4 @@ class CrpGeometrySerializer(BaseFileSerializer):
                     part_mesh.change_axes(new_y='z', new_z='y')
                     mesh.extend(part_mesh)
 
-        export_scenes([scene], path, self.settings)
+        return export_scenes([scene], path, self.settings)

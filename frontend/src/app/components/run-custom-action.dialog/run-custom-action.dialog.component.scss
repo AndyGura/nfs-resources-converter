@@ -2,4 +2,8 @@ form {
   padding: 0 24px;
   display: flex;
   flex-direction: column;
+
+  .action-arg-checkbox {
+    margin-bottom: 16px;
+  }
 }

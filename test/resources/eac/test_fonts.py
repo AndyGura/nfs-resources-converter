@@ -14,19 +14,19 @@ class TestFfnFont(unittest.TestCase):
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
-    @unittest.skip
+    @unittest.skip("Bitmap resource ID 4Bit is not supported yet for deserialization")
     def test_ffn_can_be_reconstructed_from_files(self):
         (name, block, font_res) = require_file('test/samples/MAIN24.FFN')
         import tempfile
         from serializers import get_serializer
         serializer = get_serializer(block, font_res)
-        self.assertTrue(serializer.setup_for_reversible_serialization())
+        self.assertTrue(serializer.ui_serialization().reversible)
         with tempfile.TemporaryDirectory() as tmp:
             serializer.serialize(font_res, tmp, name, block)
             font_res = serializer.deserialize(tmp, name, block=block)
             # FIXME manually changing bitmap to be 0x7A. Remove after figuring out how to pass parameters into
             # deserialization. Bitmap data is the same in both cases anyway
-            font_res['bitmap']['data']['resource_id'] = 0x7A
+            font_res['bitmap']['resource_id'] = '4Bit'
             # TODO decide what to do with unknown fields
             font_res['version'] = 100
             # TODO ascent/descent, maybe other fields

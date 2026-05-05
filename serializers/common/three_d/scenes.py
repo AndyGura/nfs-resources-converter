@@ -38,7 +38,7 @@ class Scene:
         self.skip_mtl_export = skip_mtl_export
 
 
-def export_scenes(scenes: List[Scene], output_path: str, settings):
+def export_scenes(scenes: List[Scene], output_path: str, settings) -> List[str]:
     mtl_entry_template = Template("""
 
 newmtl $texture_name
@@ -96,9 +96,11 @@ if "$extras_file_path":
 $extra_script
     """)
 
+    exported_files = []
     for scene in scenes:
         if not scene.skip_obj_export:
-            with open(path_join(output_path, f'{scene.obj_name}.obj'), 'w') as f:
+            file_path = path_join(output_path, f'{scene.obj_name}.obj')
+            with open(file_path, 'w') as f:
                 if scene.mtl_name:
                     f.write(f'mtllib {scene.mtl_name}.mtl')
                 face_index_increment = 1
@@ -106,19 +108,24 @@ $extra_script
                     obj, fii = sub_model.to_obj(face_index_increment)
                     f.write(obj)
                     face_index_increment += fii
+            exported_files.append(file_path)
         if scene.dummies or scene.curves:
-            with open(path_join(output_path, f'{scene.obj_name}_extra.json'), 'w') as f:
+            file_path = path_join(output_path, f'{scene.obj_name}_extra.json')
+            with open(file_path, 'w') as f:
                 f.write(json.dumps({
                     'dummies': scene.dummies,
                     'curves': scene.curves
                 }, indent=4, sort_keys=True))
+            exported_files.append(file_path)
         if scene.mtl_name and not scene.skip_mtl_export:
-            with open(path_join(output_path, f'{scene.mtl_name}.mtl'), 'w') as f:
+            file_path = path_join(output_path, f'{scene.mtl_name}.mtl')
+            with open(file_path, 'w') as f:
                 for texture_name in sorted(list({x for x in scene.mtl_texture_names})):
                     f.write(mtl_entry_template.substitute({
                         'texture_name': texture_name,
                         'texture_path': scene.mtl_texture_path_func(texture_name),
                     }))
+            exported_files.append(file_path)
 
     if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:
         script = script_base
@@ -128,16 +135,20 @@ $extra_script
                 'extras_file_path': f'{scene.obj_name}_extra.json',
                 'extra_script': scene.extra_script,
             })
+            file_path = path_join(os.getcwd(), output_path, scene.name)
             if settings.geometry__export_to_gg_web_engine:
                 script += '\n' + construct_blender_export_script(
-                    file_name=path_join(os.getcwd(), output_path, scene.name),
+                    file_name=file_path,
                     export_materials='EXPORT' if scene.bake_textures else 'NONE')
+                exported_files.append(file_path + '.glb')
+                exported_files.append(file_path + '.meta')
             if settings.geometry__save_blend:
-                script += '\n\n' + get_blender_save_script(
-                    out_blend_name=path_join(os.getcwd(), output_path, scene.name))
+                script += '\n\n' + get_blender_save_script(out_blend_name=file_path)
+                exported_files.append(file_path + '.blend')
         run_blender(path=output_path, script=script)
 
     if not settings.geometry__save_obj:
+        exported_files = [x for x in exported_files if not (x.endswith('.obj') or x.endswith('_extra.json') or x.endswith('.mtl'))]
         for scene in scenes:
             if not scene.skip_obj_export:
                 os.unlink(path_join(output_path, scene.obj_name + '.obj'))
@@ -147,3 +158,4 @@ $extra_script
                 pass
             if scene.mtl_name and not scene.skip_mtl_export:
                 os.unlink(path_join(output_path, scene.mtl_name + '.mtl'))
+    return exported_files

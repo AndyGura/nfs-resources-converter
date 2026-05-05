@@ -27,9 +27,13 @@ export class RunCustomActionDialogComponent {
       if (arg.type === 'number') {
         validators.push(Validators.pattern(/^\d+(\.\d+)?$/)); // Allow integers and decimals
       }
-      let defaultValue = '';
+      let defaultValue: string | boolean = '';
       if (arg.type === 'file_output') {
         defaultValue = data.resourceName + arg.file_name_suffix;
+      } else if (arg.type === 'enum_string') {
+        defaultValue = arg.choices[0] || '';
+      } else if (arg.type === 'bool') {
+        defaultValue = false;
       }
       formData[arg.id] = [defaultValue, validators];
     }

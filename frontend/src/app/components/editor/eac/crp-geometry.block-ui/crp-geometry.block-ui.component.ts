@@ -71,13 +71,9 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResourceTmp(
+      const paths = await this.eelDelegate.serializeResource(
         blockId,
-        Object.entries(this.mainService.changedDataBlocks)
-          .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
-          .map(([id, value]) => {
-            return { id, value };
-          }),
+        null,
         this.serializerSettings,
       );
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
@@ -87,7 +83,7 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
 
   private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, this.serializerSettings);
+      const paths = await this.eelDelegate.serializeResource(blockId, null, this.serializerSettings);
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;

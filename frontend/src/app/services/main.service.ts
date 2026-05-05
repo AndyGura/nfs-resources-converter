@@ -16,6 +16,7 @@ export class MainService {
   error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
   customActionRunning$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  isSaving$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   readonly changedDataBlocks: { [key: string]: any } = {};
   dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
@@ -24,6 +25,7 @@ export class MainService {
   public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   constructor(readonly eelDelegate: EelDelegateService) {
+    this.eelDelegate.changedDataBlocks = this.changedDataBlocks;
     this.eelDelegate.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();
       if (value?.data.error_class) {
@@ -97,19 +99,20 @@ export class MainService {
 
   private async processExternalChanges(id: string, call: () => Promise<BlockData | ReadError>): Promise<void> {
     this.customActionRunning$.next(true);
-    const res: BlockData | ReadError = await call();
-    if (!!(res as ReadError).error_class) {
-      this.customActionRunning$.next(false);
-      throw res;
-    }
+    try {
+      const res: BlockData | ReadError = await call();
+      if (!!(res as ReadError).error_class) {
+        this.customActionRunning$.next(false);
+        throw res;
+      }
     if (this.resource$.getValue()!.id === id) {
       this.resource$.getValue()!.data = res;
-    } else {
-      let dataPath = id
+      } else {
+        let dataPath = id
         .substring(this.resource$.getValue()!.id.length)
-        .replace('__', '/')
-        .split('/')
-        .filter(x => x);
+          .replace('__', '/')
+          .split('/')
+          .filter(x => x);
       let data: any = this.resource$.getValue()!.data;
       for (const key of dataPath.slice(0, dataPath.length - 1)) {
         data = data[key] || data[+key];
@@ -119,11 +122,13 @@ export class MainService {
         lastKey = +lastKey;
       }
       data[lastKey] = res;
+      }
+      this.clearUnsavedChanges();
+      this.changedDataBlocks['__has_external_changes__'] = 1;
+      this.updateUnsavedChanges();
+    } finally {
+      this.customActionRunning$.next(false);
     }
-    this.clearUnsavedChanges();
-    this.changedDataBlocks['__has_external_changes__'] = 1;
-    this.updateUnsavedChanges();
-    this.customActionRunning$.next(false);
   }
 
   public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
@@ -134,8 +139,8 @@ export class MainService {
     }
   }
 
-  public async deserializeResource(id: string) {
-    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id));
+  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
+    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id, filePaths, extraOpts));
   }
 
   public async reloadResource() {
@@ -146,13 +151,18 @@ export class MainService {
   }
 
   public async saveResource() {
-    const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
-    await this.eelDelegate.saveFile(
-      changes.map(([id, value]) => {
-        return { id, value };
-      }),
-    );
-    this.clearUnsavedChanges();
+    this.isSaving$.next(true);
+    try {
+      const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
+      await this.eelDelegate.saveFile(
+        changes.map(([id, value]) => {
+          return { id, value };
+        }),
+      );
+      this.clearUnsavedChanges();
+    } finally {
+      this.isSaving$.next(false);
+    }
   }
 
   public async getNewItemData(id: string): Promise<any> {

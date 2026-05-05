@@ -6,7 +6,7 @@ import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.b
 import { NumberBlockUiComponent } from './library/number.block-ui/number.block-ui.component';
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
-import { BitmapBlockUiComponent } from './eac/bitmap.block-ui/bitmap.block-ui.component';
+import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
@@ -59,8 +59,8 @@ export class EditorComponent implements OnDestroy {
     SkipBlock: SkipBlockUiComponent,
     // NFS1 blocks
     AngleBlock: AngleBlockUiComponent,
-    AnyBitmapBlock: BitmapBlockUiComponent,
-    BasePalette: PaletteBlockUiComponent,
+    EacImage: ImageBlockUiComponent,
+    EacPalette: PaletteBlockUiComponent,
     OripGeometry: OripGeometryBlockUiComponent,
     BaseArchiveBlock: BaseArchiveBlockUiComponent,
     TriMap: TriMapBlockUiComponent,
@@ -162,7 +162,9 @@ export class EditorComponent implements OnDestroy {
       this._resource = value;
       this._resourceError = null;
     }
-    this.dataBlockUiHost.viewContainerRef.clear();
+    if (!reuseComponent) {
+      this.dataBlockUiHost.viewContainerRef.clear();
+    }
     if (this._resource) {
       if (this._resource.schema.block_class_mro) {
         if (!reuseComponent) {
@@ -208,6 +210,9 @@ export class EditorComponent implements OnDestroy {
         this._component!.instance.hideName = this._hideName;
         this._component!.instance.hideBlockActions = this._hideBlockActions;
         this._component!.instance.disabled = this._disabled;
+        if (reuseComponent) {
+          this._component!.changeDetectorRef.markForCheck();
+        }
       }
     }
   }
