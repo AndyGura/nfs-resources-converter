@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-04-15 06:47:25.245022+00:00*
+*Last time updated: 2026-05-03 01:42:26.972435+00:00*
 
 
 # **Info by file extensions** #
@@ -35,7 +35,16 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (little endian) | An amount of items |
 | 12 | **shpi_dir** | 4 | UTF-8 string | One of: "LN32", "GIMX", "WRAP". The purpose is unknown |
 | 16 | **items_descr** | num_items\*8 | Array of `num_items` items<br/>Item size: 8 bytes<br/>Item type: 8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | An array of items, each of them represents name of SHPI item (image or palette) and offset to item data in file, relatively to SHPI block start (where resource id string is presented). Names are not always unique |
-| 16 + num_items\*8 | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets to some of the entries are defined in `items_descr` block. Between them there can be non-indexed entries (palettes and texts). Possible item types:<br/>- [Bitmap4Bit](#bitmap4bit)<br/>- [Bitmap8Bit](#bitmap8bit)<br/>- [Bitmap16Bit0565](#bitmap16bit0565)<br/>- [Bitmap16Bit1555](#bitmap16bit1555)<br/>- [Bitmap24Bit](#bitmap24bit)<br/>- [Bitmap32Bit](#bitmap32bit)<br/>- [PaletteReference](#palettereference)<br/>- [Palette16BitDos](#palette16bitdos)<br/>- [Palette16Bit](#palette16bit)<br/>- [Palette24Bit](#palette24bit)<br/>- [Palette32Bit](#palette32bit)<br/>- [ShpiText](#shpitext) |
+| 16 + num_items\*8 | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets to some of the entries are defined in `items_descr` block. Between them there can be non-indexed entries (palettes and texts). Possible item types:<br/>- [EacImage](#eacimage)<br/>- [EacPalette](#eacpalette)<br/>- [PaletteReference](#palettereference)<br/>- [ShpiText](#shpitext) |
+### **PaletteReference** ###
+#### **Size**: 8..? bytes ####
+#### **Description**: Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. Probably a reference to palette which should be used, that's why named so ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **num_unk1** | 4 | 4-bytes unsigned integer (little endian) | Length of unk1 array |
+| 8 | **unk1** | num_unk1\*8 | Array of `num_unk1` items<br/>Item size: 8 bytes<br/>Item type: Bytes | Unknown purpose |
 ### **BigfBlock** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: A block-container with various data: image archives, GEO geometries, sound banks, other BIGF blocks... ####
@@ -151,7 +160,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Block size in bytes |
-| 4 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>2: textures_map<br/>4: block_numbers<br/>5: polygon_map<br/>6: median_polygons<br/>7: props_7<br/>8: prop_descriptions<br/>9: lanes<br/>13: road_vectors<br/>15: collision_data<br/>18: props_18<br/>19: props_19</details> | Type of the data records |
+| 4 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>2 (0x2): textures_map<br/>4 (0x4): block_numbers<br/>5 (0x5): polygon_map<br/>6 (0x6): median_polygons<br/>7 (0x7): props_7<br/>8 (0x8): prop_descriptions<br/>9 (0x9): lanes<br/>13 (0xd): road_vectors<br/>15 (0xf): collision_data<br/>18 (0x12): props_18<br/>19 (0x13): props_19</details> | Type of the data records |
 | 5 | **unk** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 6 | **num_data_records** | 2 | 2-bytes unsigned integer (little endian) | Amount of data records |
 | 8 | **data_records** | ? | Type according to enum `type`:<br/>- Array of `num_data_records` items<br/>Item type: [TexturesMapExtraDataRecord](#texturesmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_data_records` items<br/>Item type: [PolygonMapExtraDataRecord](#polygonmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [MedianExtraDataRecord](#medianextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropDescriptionExtraDataRecord](#propdescriptionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [LanesExtraDataRecord](#lanesextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [RoadVectorsExtraDataRecord](#roadvectorsextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [CollisionExtraDataRecord](#collisionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Bytes | Data records |
@@ -161,7 +170,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **texture_number** | 2 | 2-bytes unsigned integer (little endian) | Texture number in QFS file |
 | 2 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 3 | **alignment** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: rotate_180<br/>3: rotate_270<br/>5: normal<br/>9: rotate_90<br/>16: flip_v<br/>18: rotate_270_2<br/>20: flip_h<br/>24: rotate_90_2</details> | Alignment data, which game uses instead of UV-s when rendering mesh.I use UV-s (0,1; 1,1; 1,0; 0,0) and modify them according to enum value names |
+| 3 | **alignment** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): rotate_180<br/>3 (0x3): rotate_270<br/>5 (0x5): normal<br/>9 (0x9): rotate_90<br/>16 (0x10): flip_v<br/>18 (0x12): rotate_270_2<br/>20 (0x14): flip_h<br/>24 (0x18): rotate_90_2</details> | Alignment data, which game uses instead of UV-s when rendering mesh.I use UV-s (0,1; 1,1; 1,0; 0,0) and modify them according to enum value names |
 | 4 | **luminosity** | 3 | Color RGB values | Luminosity color |
 | 7 | **black** | 3 | Color RGB values | Unknown, usually black |
 ### **PolygonMapExtraDataRecord** ###
@@ -170,7 +179,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **vectors_idx** | 1 | 1-byte unsigned integer | An index of entry in road_vectors extrablock |
-| 1 | **car_behavior** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0: unk0<br/>1: unk1</details> | - |
+| 1 | **car_behavior** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0 (0x0): unk0<br/>1 (0x1): unk1</details> | - |
 ### **MedianExtraDataRecord** ###
 #### **Size**: 8 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -196,7 +205,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size in bytes |
-| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1: static_prop<br/>3: animated_prop</details> | Object type |
+| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): static_prop<br/>3 (0x3): animated_prop</details> | Object type |
 | 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | An index of 3D model in "prop_descriptions" extrablock |
 | 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | Object positioning in 3D space |
 ### **PropDescriptionExtraDataRecord** ###
@@ -248,82 +257,30 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **texture** | 2 | 2-bytes unsigned integer (little endian) | Texture number. It is not a number of texture in QFS file. Instead, it is an index of mapping entry in corresponding COL file, which contains real texture number |
 | 2 | **texture2** | 2 | 2-bytes signed integer (little endian) | 255 (texture number for the other side == none ?) |
 | 4 | **vertices** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Polygon vertices (indexes from vertex table) |
-## **Bitmaps** ##
-### **Bitmap4Bit** ###
+## **Images** ##
+### **EacImage** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: Single-channel image, 4 bits per pixel. If resource_id is 0x79, then values in each byte are swapped ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. One of ['0x79', '0x7a'] | Resource ID |
-| 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+width\*height/2 + trailing bytes length |
-| 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels. Has to be an even number (at least in the FFN font) |
-| 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 4 | Bytes | Unknown purpose |
-| 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | height\*ceil((^width)\*4/8) | Array of `height` items<br/>Item size: ceil((^width)\*4/8) bytes<br/>Item type: Array of `^width` sub-byte numbers. Each number consists of 4 bits | Font atlas bitmap data, array of bitmap rows |
-### **Bitmap8Bit** ###
-#### **Size**: 16..? bytes ####
-#### **Description**: 8bit bitmap can be serialized to image only with palette. Basically, for every pixel it uses 8-bit index of color in assigned palette. The tricky part is to determine how the game understands which palette to use. In most cases, if bitmap has embedded palette, it should be used, EXCEPT Autumn Valley fence texture: there embedded palette should be ignored. In all other cases it is tricky even more: it uses !pal or !PAL palette from own SHPI archive, if it is WWWW archive, palette can be in a different SHPI before this one. In CONTROL directory most of QFS files use !pal even from different QFS file! It is a mystery how to reliably pick palette ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7b | Resource ID |
-| 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+width\*height + trailing bytes length |
+| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
+| 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+<pixel_byteness>\*width\*height + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 10 | **pivot_y** | 2 | 2-bytes unsigned integer (little endian) | For "horz" bitmap in TNFS FAM files: Y coordinate of the horizon line on the image. Higher value = image as horizon will be put higher on the screen. Seems to affect only open tracks |
-| 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | width\*height | Array of `width*height` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Color indexes of bitmap pixels. The actual colors are in assigned to this bitmap palette |
-### **Bitmap16Bit0565** ###
+| 8 | **pivot** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Seems like x coordinate is not used at all. y coordinate is used in horizon textures in TNFS FAM files: higher value = image as horizon will be put higher on the screen. Seems to affect only open tracks |
+| 12 | **position** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Bitmap position on screen. Used for menu/dash sprites. Unknown for others |
+| 16 | **bitmap** | ? | Type according to enum `resource_id`:<br/>- Array of `width*height` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `width*height` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `height` items<br/>Item size: ceil((^width)\*4/8) bytes<br/>Item type: Array of `^width` sub-byte numbers. Each number consists of 4 bits<br/>- Array of `height` items<br/>Item size: ceil((^width)\*4/8) bytes<br/>Item type: Array of `^width` sub-byte numbers. Each number consists of 4 bits<br/>- Array of `width*height` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer<br/>- Array of `width*height` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `width*height` items<br/>Item size: 3 bytes<br/>Item type: 3-bytes unsigned integer (little endian)<br/>- Array of `width*height` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Pixel color table. For 8Bit bitmap each value represents an index of color in the attached palette. Palette can be stored: <br/>- right after 8Bit image<br/>- as !pal/!PAL in the same SHPI<br/>- in a different SHPI before this one (if it is WWWW archive)<br/>- even in different QFS file (TNFS, CONTROL directory).<br/>Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md) |
+### **EacPalette** ###
 #### **Size**: 16..? bytes ####
+#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black: thy are reserved for cop car siren ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x78 | Resource ID |
-| 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length |
-| 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
-| 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 4 | Bytes | Unknown purpose |
-| 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | width\*height\*2 | Array of `width*height` items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent | Colors of bitmap pixels |
-### **Bitmap16Bit1555** ###
-#### **Size**: 16..? bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7e | Resource ID |
-| 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+2\*width\*height + trailing bytes length |
-| 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
-| 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 4 | Bytes | Unknown purpose |
-| 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | width\*height\*2 | Array of `width*height` items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 1555 color, arrrrrgg_gggbbbbb | Colors of bitmap pixels |
-### **Bitmap24Bit** ###
-#### **Size**: 16..? bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7f | Resource ID |
-| 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+3\*width\*height + trailing bytes length |
-| 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
-| 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 4 | Bytes | Unknown purpose |
-| 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | width\*height\*3 | Array of `width*height` items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit color (little-endian), rrrrrrrr_gggggggg_bbbbbbbb | Colors of bitmap pixels |
-### **Bitmap32Bit** ###
-#### **Size**: 16..? bytes ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7d | Resource ID |
-| 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+4\*width\*height + trailing bytes length |
-| 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
-| 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **unk** | 4 | Bytes | Unknown purpose |
-| 12 | **x** | 2 | 2-bytes unsigned integer (little endian) | X coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 14 | **y** | 2 | 2-bytes unsigned integer (little endian) | Y coordinate of bitmap position on screen. Used for menu/dash sprites |
-| 16 | **bitmap** | width\*height\*4 | Array of `width*height` items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb | Colors of bitmap pixels |
+| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>34 (0x22): 24BitDos color format palette<br/>36 (0x24): 24Bit color format palette<br/>41 (0x29): 16BitUnk color format palette<br/>42 (0x2a): 32Bit color format palette<br/>45 (0x2d): 16Bit_1555 color format palette</details> | Resource ID |
+| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
+| 6 | **unk1** | 2 | Bytes | Unknown purpose |
+| 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equals to num_colors? |
+| 10 | **unk2** | 6 | Bytes | Unknown purpose |
+| 16 | **colors** | ? | Type according to enum `resource_id`:<br/>- Array of `num_colors` items<br/>Item size: 3 bytes<br/>Item type: 3-bytes unsigned integer (big endian)<br/>- Array of `num_colors` items<br/>Item size: 3 bytes<br/>Item type: 3-bytes unsigned integer (big endian)<br/>- Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_colors` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian)<br/>- Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Colors LUT. Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md) |
 ## **Fonts** ##
 ### **FfnFont** ###
 #### **Size**: 48..? bytes ####
@@ -344,7 +301,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 32 | **definitions** | num_glyphs\*11 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
 | 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Padding bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
-| bdata_ptr | **bitmap** | 16..? | [Bitmap4Bit](#bitmap4bit) | Font atlas bitmap data |
+| bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data. Usually 4bit |
 ### **GlyphDefinition** ###
 #### **Size**: 11 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -357,64 +314,6 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **x_advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
 | 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
-## **Palettes** ##
-### **PaletteReference** ###
-#### **Size**: 8..? bytes ####
-#### **Description**: Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. Probably a reference to palette which should be used, that's why named so ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
-| 1 | **unk0** | 3 | Bytes | Unknown purpose |
-| 4 | **unk1_length** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 8 | **unk1** | 8\*unk1_length | Bytes | Unknown purpose |
-### **Palette16BitDos** ###
-#### **Size**: 16..? bytes ####
-#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x29 | Resource ID |
-| 1 | **unk0** | 3 | Bytes | Unknown purpose |
-| 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
-| 6 | **unk1** | 2 | Bytes | Unknown purpose |
-| 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to num_colors? |
-| 10 | **unk2** | 6 | Bytes | Unknown purpose |
-| 16 | **colors** | num_colors\*2 | Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 16-bit color, not tested properly | Colors LUT |
-### **Palette16Bit** ###
-#### **Size**: 16..? bytes ####
-#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x2d | Resource ID |
-| 1 | **unk0** | 3 | Bytes | Unknown purpose |
-| 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
-| 6 | **unk1** | 2 | Bytes | Unknown purpose |
-| 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to num_colors? |
-| 10 | **unk2** | 6 | Bytes | Unknown purpose |
-| 16 | **colors** | num_colors\*2 | Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: EA games 16-bit 0565 color, rrrrrggg_gggbbbbb. 0x7c0 (0x00FB00 RGB) is always transparent | Colors LUT |
-### **Palette24Bit** ###
-#### **Size**: 16..? bytes ####
-#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x24 | Resource ID |
-| 1 | **unk0** | 3 | Bytes | Unknown purpose |
-| 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
-| 6 | **unk1** | 2 | Bytes | Unknown purpose |
-| 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to num_colors? |
-| 10 | **unk2** | 6 | Bytes | Unknown purpose |
-| 16 | **colors** | num_colors\*3 | Array of `num_colors` items<br/>Item size: 3 bytes<br/>Item type: EA games 24-bit color (big-endian), rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
-### **Palette32Bit** ###
-#### **Size**: 16..? bytes ####
-#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black for unknown reason ####
-| Offset | Name | Size (bytes) | Type | Description |
-| --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x2a | Resource ID |
-| 1 | **unk0** | 3 | Bytes | Unknown purpose |
-| 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
-| 6 | **unk1** | 2 | Bytes | Unknown purpose |
-| 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equal to num_colors? |
-| 10 | **unk2** | 6 | Bytes | Unknown purpose |
-| 16 | **colors** | num_colors\*4 | Array of `num_colors` items<br/>Item size: 4 bytes<br/>Item type: EA games 32-bit ARGB color, aaaaaaaa_rrrrrrrr_gggggggg_bbbbbbbb | Colors LUT |
 ## **Misc** ##
 ### **ShpiText** ###
 #### **Size**: 8..? bytes ####

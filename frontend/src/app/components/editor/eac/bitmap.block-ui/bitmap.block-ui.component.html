@@ -1,7 +1,0 @@
-<app-compound-block-ui [resource]="_resource$ | async"
-                       [preferHorizontalLayout]="true"
-                       [fieldBlacklist]="[
-                        'bitmap',
-                        'palette',
-                       ]"></app-compound-block-ui>
-<img *ngIf="imageUrl$ | async" [src]="imageUrl$ | async">

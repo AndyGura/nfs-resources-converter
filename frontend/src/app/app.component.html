@@ -19,9 +19,10 @@
       </mat-menu>
     </ng-container>
     <button mat-icon-button (click)="saveResource()"
-            [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async)"
+            [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async) || (mainService.isSaving$ | async)"
             matTooltip="Save changes to file">
-      <mat-icon fontIcon="save"></mat-icon>
+      <mat-icon *ngIf="!(mainService.isSaving$ | async)" fontIcon="save"></mat-icon>
+      <mat-spinner *ngIf="mainService.isSaving$ | async" mode="indeterminate" [diameter]="24" color="accent"></mat-spinner>
     </button>
   </mat-toolbar>
   <div id="viewport">
@@ -73,8 +74,9 @@
     </button>
     <mat-divider></mat-divider>
     <button mat-menu-item (click)="saveResource()"
-            [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async)">
-      <mat-icon>save</mat-icon>
+            [disabled]="!(mainService.resource$ | async) || !(mainService.hasUnsavedChanges$ | async) || (mainService.isSaving$ | async)">
+      <mat-icon *ngIf="!(mainService.isSaving$ | async)">save</mat-icon>
+      <mat-progress-spinner *ngIf="mainService.isSaving$ | async" [diameter]="24" mode="indeterminate" style="margin-right: 16px; display: inline-block; vertical-align: middle;"></mat-progress-spinner>
       <span>Save</span>
     </button>
     <button mat-menu-item (click)="reloadResource()"

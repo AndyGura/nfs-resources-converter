@@ -1,0 +1,133 @@
+@use '../../../../../variables';
+
+:host {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  row-gap: 1rem;
+  box-sizing: border-box;
+}
+
+.header {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+
+  .stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+
+    mat-label {
+      font-weight: bold;
+    }
+
+    .stat-label {
+      font-weight: bold;
+      font-style: normal;
+      color: #666;
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    mat-form-field {
+      width: 250px;
+    }
+
+    mat-slider {
+      flex: 1;
+      min-width: 100px;
+      max-width: 250px;
+    }
+
+    .zoom-level {
+      min-width: 3rem;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+
+      &:hover {
+        color: #3f51b5;
+      }
+    }
+  }
+}
+
+.preview-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  app-block-actions {
+    position: absolute;
+    top: 0;
+    right: 1rem;
+    z-index: 10;
+
+    ::ng-deep {
+      .mat-mdc-button-base {
+        color: white;
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+      }
+    }
+  }
+}
+
+.image-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: calc(variables.$viewport-height * 0.6);
+  max-height:  calc(variables.$viewport-height * 0.6);
+  overflow: auto;
+  display: grid;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #aaaaaa;
+  background-image: linear-gradient(45deg, #808080 25%, transparent 25%),
+  linear-gradient(-45deg, #808080 25%, transparent 25%),
+  linear-gradient(45deg, transparent 75%, #808080 75%),
+  linear-gradient(-45deg, transparent 75%, #808080 75%);
+  background-size: 16px 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  cursor: grab;
+
+  &.panning {
+    cursor: grabbing;
+  }
+
+  img, .image-placeholder {
+    margin: auto;
+    max-width: none;
+    max-height: none;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    outline: #00000088 dotted 2px;
+  }
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+app-compound-block-ui {
+  place-self: flex-start;
+}

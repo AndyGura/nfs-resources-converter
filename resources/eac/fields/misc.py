@@ -2,7 +2,7 @@ import math
 from typing import Dict
 
 from library.context import WriteContext
-from library.read_blocks import IntegerBlock, CompoundBlock, SubByteCompoundBlock
+from library.read_blocks import IntegerBlock, CompoundBlock
 
 
 class Point2D(CompoundBlock):

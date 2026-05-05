@@ -36,7 +36,10 @@ class DelegateBlock(DataBlock):
     def size_doc_str(self):
         int_min = None
         int_max = 0
-        for size_doc in [x.size_doc_str for x in self.possible_blocks]:
+        possible_size_docs = [x.size_doc_str for x in self.possible_blocks]
+        if len(possible_size_docs) > 0 and all(x == possible_size_docs[0] for x in possible_size_docs):
+            return possible_size_docs[0]
+        for size_doc in possible_size_docs:
             try:
                 size = int(size_doc)
                 int_min = min(int_min, size) if int_min is not None else size
@@ -159,3 +162,9 @@ class EnumLookupDelegateBlock(DelegateBlock):
                                        f'According to enum {enum_field}'),
                          **kwargs)
         self.enum_field = enum_field
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        data['choice_index'] = _enum_lookup(ctx, self.enum_field, len(self.possible_blocks) - 1)
+        return super().write(data, ctx, name)
+
+

@@ -27,12 +27,13 @@ class DataBlock(ABC):
             'block_class_mro': '__'.join(
                 [x.__name__ for x in self.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
             'block_description': '',
-            'serializable_to_disc': False,
         }
         if self.value_validator:
             s['value_validator'] = self.value_validator.schema()
         if self.programmatic_value:
             s['is_programmatic'] = True
+        if self.serializer_class():
+            s['serialization'] = self.serializer_class()().ui_serialization()
         return s
 
     def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
