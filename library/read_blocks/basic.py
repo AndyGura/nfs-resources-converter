@@ -36,6 +36,9 @@ class DataBlock(ABC):
             s['serialization'] = self.serializer_class()().ui_serialization()
         return s
 
+    def get_child_block(self, name: str) -> 'DataBlock':
+        return None
+
     def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
         return None, unpacked_data.get(name)
 

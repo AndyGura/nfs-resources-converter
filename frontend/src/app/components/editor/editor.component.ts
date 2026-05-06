@@ -67,7 +67,7 @@ export class EditorComponent implements OnDestroy {
     WwwwBlock: WwwwBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
     EacsAudioFile: EacsAudioBlockUiComponent,
-    FfnFont: FontBlockUiComponent,
+    // FfnFont: FontBlockUiComponent,
     // NFS2 blocks
     GeoGeometry: GeoGeometryBlockUiComponent,
     TrkMap: TrkMapBlockUiComponent,

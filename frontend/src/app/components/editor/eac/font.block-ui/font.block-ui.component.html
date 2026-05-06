@@ -65,10 +65,10 @@
   </mat-tab>
   <mat-tab label="Bitmap">
     <div class="tab-content">
-      <app-delegate-block-ui [resource]="getChildResource(resource, 'bitmap')"
-                             [hideName]="true"
-                             [hideBlockActions]="true"
-                             (changed)="changed.emit()"></app-delegate-block-ui>
+      <image-block-ui [resource]="getChildResource(resource, 'bitmap')"
+                      [hideName]="true"
+                      [hideBlockActions]="true"
+                      (changed)="changed.emit()"></image-block-ui>
     </div>
   </mat-tab>
 </mat-tab-group>

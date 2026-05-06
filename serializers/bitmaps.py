@@ -38,6 +38,8 @@ class ImageSerializer(BaseFileSerializer):
         # TODO make it differently
         # if data['resource_id'].startswith('8Bit'):
         #     return BitmapWithPaletteSerializer().serialize(data, path, id=id, block=block, **kwargs)
+        if len(file_paths) == 0:
+            raise Exception('No image file provided to ImageSerializer')
         if len(file_paths) != 1:
             raise Exception('ImageSerializer can only deserialize one file at once')
         image = Image.open(file_paths[0])

@@ -71,11 +71,13 @@ class FfnFont(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4,
                                    programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
-                      {'description': 'The length of this FFN block in bytes'})
+                      {'usage': 'io,doc',
+                       'description': 'The length of this FFN block in bytes'})
         version = IntegerBlock(length=2, is_signed=False)
         num_glyphs = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('definitions'))),
-                      {'description': 'Amount of symbols, defined in this font'})
+                      {'usage': 'io,doc',
+                       'description': 'Amount of symbols, defined in this font'})
         flags = SubByteCompoundBlock(length=4, schema=[
             (1, 'antialiased', 'boolean', [], ''),
             (1, 'dropshadow', 'boolean', [], ''),
@@ -95,18 +97,21 @@ class FfnFont(DeclarativeCompoundBlock):
                                         programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
                                             ctx.get_full_data(),
                                             'definitions')),
-                           {'description': 'Pointer to definitions block'})
+                           {'usage': 'io,doc',
+                            'description': 'Pointer to definitions block'})
         kernings_ptr = (IntegerBlock(length=4,
                                      programmatic_value=lambda ctx: (
                                          0 if len(ctx.data('kernings')) == 0
                                          else ctx.block.offset_to_child_when_packed(
                                              ctx.get_full_data(), 'kernings'))),
-                        {'description': 'Pointer to kernings. 0 if there is no kernings table'})
+                        {'usage': 'io,doc',
+                         'description': 'Pointer to kernings. 0 if there is no kernings table'})
         bdata_ptr = (IntegerBlock(length=4,
                                   programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
                                       ctx.get_full_data(),
                                       'bitmap')),
-                     {'description': 'Pointer to bitmap block'})
+                     {'usage': 'io,doc',
+                      'description': 'Pointer to bitmap block'})
         padding_0 = Padding(to=lambda ctx: ctx.data('definitions_ptr'))
         definitions = (ArrayBlock(child=GlyphDefinition(),
                                   length=lambda ctx: ctx.data('num_glyphs')),

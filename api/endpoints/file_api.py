@@ -66,15 +66,18 @@ class FileAPI:
             return []
         return recent_files
 
-    def open_file_dialog(self) -> Optional[str]:
+    def open_file_dialog(self, multiple: bool = False) -> Optional[Any]:
         """
-        Open a file dialog and return the selected file path.
+        Open a file dialog and return the selected file path(s).
+
+        Args:
+            multiple: Whether to allow selecting multiple files
 
         Returns:
-            The selected file path or None if canceled
+            The selected file path, list of paths, or None if canceled
         """
         from tkinter import Tk
-        from tkinter.filedialog import askopenfilename
+        from tkinter.filedialog import askopenfilename, askopenfilenames
         root = Tk()
         root.withdraw()
         root.update()
@@ -82,7 +85,12 @@ class FileAPI:
         root.lift()
         root.attributes('-topmost', True)
         root.after_idle(root.attributes, '-topmost', False)
-        filename = askopenfilename()
+        if multiple:
+            filename = askopenfilenames()
+            if filename:
+                filename = list(filename)
+        else:
+            filename = askopenfilename()
         root.destroy()
         if not filename:
             return None

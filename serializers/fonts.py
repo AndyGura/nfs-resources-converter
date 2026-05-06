@@ -19,15 +19,60 @@ class FfnFontSerializer(BaseFileSerializer):
             'reversible_settings_patch': {}
         }
 
+    # TODO list which fields should be handled in serialize/deserialize:
+    # [ ] resource_id
+    # [ ] version
+    # [✓] num_glyphs
+    # [ ] flags/antialiased
+    # [ ] flags/dropshadow
+    # [ ] flags/outline
+    # [ ] flags/vram
+    # [ ] flags/baseline
+    # [ ] flags/orientation
+    # [ ] flags/direction
+    # [ ] flags/encoding
+    # [ ] flags/format
+    # [ ] flags/unk
+    # [ ] center
+    # [ ] ascent
+    # [ ] descent
+    # [✓] definitions_ptr
+    # [✓] kernings_ptr
+    # [✓] bdata_ptr
+    # [ ] padding_0
+    # [ ] definitions/code
+    # [ ] definitions/width
+    # [ ] definitions/height
+    # [ ] definitions/x
+    # [ ] definitions/y
+    # [ ] definitions/advance
+    # [ ] definitions/x_offset
+    # [ ] definitions/y_offset
+    # [ ] definitions/num_kern
+    # [ ] definitions/kern_index
+    # [ ] definitions/x_advance
+    # [ ] padding_1
+    # [ ] kernings/left
+    # [ ] kernings/unk
+    # [ ] kernings/kerning
+    # [ ] kernings/right
+    # [ ] padding_2
+    # [✓] bitmap
+    # [ ] remaining_bytes
+
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id=id, block=None)
         image_serializer = ImageSerializer()
-        (bblock, bdata) = block.get_child_block_with_data(data, 'bitmap/data')
+        (bblock, bdata) = block.get_child_block_with_data(data, 'bitmap')
         output = image_serializer.serialize(bdata, path_join(path, 'bitmap'), block=bblock)
         fnt_path = path_join(path, 'font.fnt')
+
+        line_height = data["ascent"] + data["descent"]
+
         with open(fnt_path, 'w') as file:
-            file.write(f'info face="{id.split("/")[-1]}" size={data["font_size"]}\n')
-            file.write(f'common lineHeight={data["line_height"]}\n')
+            file.write(f'info face="{id.split("/")[-1]}" size={line_height} bold=0 italic=0\n')
+            file.write(f'common lineHeight={line_height} base={data["ascent"]}\n')
+
             file.write(f'page id=0 file="bitmap.png"\n')
             file.write(f'chars count={data["num_glyphs"]}\n')
             for symbol in data['definitions']:
@@ -39,18 +84,21 @@ class FfnFontSerializer(BaseFileSerializer):
         return output
 
     def deserialize(self, file_paths: List[str], id=None, block: DataBlock = None, **kwargs):
+        try:
+            fnt_file_path = next(x for x in file_paths if x.endswith('.fnt'))
+        except StopIteration:
+            raise Exception('No .fnt file found in provided paths')
+
         import re
         data = block.new_data()
         image_serializer = ImageSerializer()
-        # FIXME only Bitmap4Bit is supported here
-        data['bitmap']['data'] = image_serializer.deserialize(path_join(path, 'bitmap'),
-                                                              block=block.get_child_block_with_data(data, 'bitmap')[0].possible_blocks[0])
-        with open(path_join(path, 'font.fnt')) as f:
+        data['bitmap'] = image_serializer.deserialize([x for x in file_paths if x.endswith('.png')],
+                                                      block=block.get_child_block('bitmap'))
+        with open(fnt_file_path) as f:
             lines = [l.rstrip() for l in f]
             info_part = '\n'.join([l for l in lines if not l.startswith('char ')])
-            data['num_glyphs'] = int(re.search(r"\scount=(\d+)", info_part).groups()[0])
             glyph_def_lines = [l for l in lines if l.startswith('char ')]
-            assert len(glyph_def_lines) == data['num_glyphs']
+            assert len(glyph_def_lines) == int(re.search(r"\scount=(\d+)", info_part).groups()[0])
             data['definitions'] = []
             for i, glyph_def in enumerate(glyph_def_lines):
                 m = re.search(
