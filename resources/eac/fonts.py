@@ -1,3 +1,4 @@
+from itertools import count
 from typing import Dict
 
 from library.read_blocks import (IntegerBlock,
@@ -33,7 +34,8 @@ class GlyphDefinition(DeclarativeCompoundBlock):
                     {'description': 'Offset (x) for drawing the character image'})
         y_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (y) for drawing the character image'})
-        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
+        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False,
+                                                     programmatic_value=lambda ctx: sum(1 for x in ctx.data('../../kernings') if x['right'] == ctx.data('code'))),
                                   criteria=lambda ctx: ctx.data('../../version') >= 200),
                     {'description': 'Number of kerning pairs for this glyph'})
         kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
@@ -112,16 +114,19 @@ class FfnFont(DeclarativeCompoundBlock):
                                       'bitmap')),
                      {'usage': 'io,doc',
                       'description': 'Pointer to bitmap block'})
-        padding_0 = Padding(to=lambda ctx: ctx.data('definitions_ptr'))
+        padding_0 = (Padding(to=lambda ctx: ctx.data('definitions_ptr')),
+                     {'is_unknown': True})
         definitions = (ArrayBlock(child=GlyphDefinition(),
                                   length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})
-        padding_1 = OptionalBlock(child=Padding(to=lambda ctx: ctx.data('kernings_ptr')),
-                                  criteria=lambda ctx: ctx.data('kernings_ptr') != 0)
+        padding_1 = (OptionalBlock(child=Padding(to=lambda ctx: ctx.data('kernings_ptr')),
+                                  criteria=lambda ctx: ctx.data('kernings_ptr') != 0),
+                     {'is_unknown': True})
         kernings = (OptionalBlock(child=LengthPrefixedArrayBlock(child=KerningItem(),
                                                                  length_block=IntegerBlock(length=4)),
                                   criteria=lambda ctx: ctx.data('kernings_ptr') != 0))
-        padding_2 = Padding(to=lambda ctx: ctx.data('bdata_ptr'))
+        padding_2 = (Padding(to=lambda ctx: ctx.data('bdata_ptr')),
+                     {'is_unknown': True})
         bitmap = (EacImage(),
                   {'description': 'Font atlas bitmap data'})
         remaining_bytes = (BytesBlock(length=(lambda ctx: ctx.read_bytes_remaining,
