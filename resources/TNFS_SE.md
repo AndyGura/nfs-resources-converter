@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-05-05 00:22:48.396788+00:00*
+*Last time updated: 2026-05-07 00:13:03.996884+00:00*
 
 
 # **Info by file extensions** #
@@ -406,11 +406,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
 | 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
 | 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
-| 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | - |
+| 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
 | definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*16 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
-| ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | - |
+| ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
 | ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
-| ? | **padding_2** | up to offset bdata_ptr | Padding bytes | - |
+| ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
 | bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
 | ? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
