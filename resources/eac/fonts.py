@@ -1,4 +1,3 @@
-from itertools import count
 from typing import Dict
 
 from library.read_blocks import (IntegerBlock,
@@ -34,8 +33,12 @@ class GlyphDefinition(DeclarativeCompoundBlock):
                     {'description': 'Offset (x) for drawing the character image'})
         y_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (y) for drawing the character image'})
-        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False,
-                                                     programmatic_value=lambda ctx: sum(1 for x in ctx.data('../../kernings') if x['right'] == ctx.data('code'))),
+        # TODO this feels like should have a programmatic value
+        # programmatic_value=lambda ctx: sum(
+        #                                                          1 for x in ctx.data('../../kernings') if
+        #                                                          x['left'] == ctx.data('code'))
+        # but this does not work
+        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
                                   criteria=lambda ctx: ctx.data('../../version') >= 200),
                     {'description': 'Number of kerning pairs for this glyph'})
         kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
@@ -48,12 +51,17 @@ class GlyphDefinition(DeclarativeCompoundBlock):
 
 class KerningItem(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        left = (IntegerBlock(length=1),
+        left = (IntegerBlock(length=2),
                 {'description': 'Code of left glyph'})
-        unk = (IntegerBlock(length=1))
         kerning = (IntegerBlock(length=1, is_signed=True))
         right = (IntegerBlock(length=1),
                  {'description': 'Code of right glyph'})
+
+def _block_size_delta(ctx):
+    if ctx.data('version') <= 101:
+        return len(ctx.data('padding_2'))
+    else:
+        return 0
 
 
 class FfnFont(DeclarativeCompoundBlock):
@@ -72,9 +80,13 @@ class FfnFont(DeclarativeCompoundBlock):
                                                                'FntA'])),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4,
-                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())
+                                                                  - len(ctx.data('remaining_bytes'))
+                                                                  - _block_size_delta(ctx)),
                       {'usage': 'io,doc',
-                       'description': 'The length of this FFN block in bytes'})
+                       'description': 'The length of this FFN block in bytes. Does not include "remaining_bytes" '
+                                      'length. For older versions (I set version <= 101, but it can be anywhere < 309), '
+                                      '"padding_2" length is not included as well'})
         version = IntegerBlock(length=2, is_signed=False)
         num_glyphs = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('definitions'))),
@@ -120,7 +132,7 @@ class FfnFont(DeclarativeCompoundBlock):
                                   length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})
         padding_1 = (OptionalBlock(child=Padding(to=lambda ctx: ctx.data('kernings_ptr')),
-                                  criteria=lambda ctx: ctx.data('kernings_ptr') != 0),
+                                   criteria=lambda ctx: ctx.data('kernings_ptr') != 0),
                      {'is_unknown': True})
         kernings = (OptionalBlock(child=LengthPrefixedArrayBlock(child=KerningItem(),
                                                                  length_block=IntegerBlock(length=4)),
@@ -129,6 +141,8 @@ class FfnFont(DeclarativeCompoundBlock):
                      {'is_unknown': True})
         bitmap = (EacImage(),
                   {'description': 'Font atlas bitmap data'})
+        padding_3 = (Padding(to=(lambda ctx: ctx.data('block_size') + _block_size_delta(ctx), 'block_size + padding_2 length (version <= 101)')),
+                     {'is_unknown': True})
         remaining_bytes = (BytesBlock(length=(lambda ctx: ctx.read_bytes_remaining,
                                               'remaining bytes')),
                            {'is_unknown': True})

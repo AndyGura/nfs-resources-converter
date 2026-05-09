@@ -373,6 +373,8 @@ EXPORT_RESOURCES = {
         'file_name': 'NFS4.md',
         'title': 'NFS 4 High Stakes file specs',
         'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
@@ -410,6 +412,8 @@ EXPORT_RESOURCES = {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
         'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+        
+**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
@@ -467,8 +471,11 @@ EXPORT_RESOURCES = {
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
             ],
-            # 'Fonts': [
-            # ],
+            'Fonts': [
+                fonts.FfnFont(),
+                fonts.GlyphDefinition(),
+                fonts.KerningItem(),
+            ],
             # 'Audio': [
             # ],
             # 'Misc': [
@@ -478,7 +485,9 @@ EXPORT_RESOURCES = {
     'nfs6': {
         'file_name': 'NFS6.md',
         'title': 'NFS 6 Hot Pursuit 2 file specs',
-        'file_list': f"""**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+
+**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
 **\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
@@ -497,8 +506,11 @@ EXPORT_RESOURCES = {
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
             ],
-            # 'Fonts': [
-            # ],
+            'Fonts': [
+                fonts.FfnFont(),
+                fonts.GlyphDefinition(),
+                fonts.KerningItem(),
+            ],
             # 'Audio': [
             # ],
             # 'Misc': [
