@@ -5,7 +5,7 @@ This module handles all file-related operations.
 
 import os
 import traceback
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 import eel
 
@@ -66,7 +66,7 @@ class FileAPI:
             return []
         return recent_files
 
-    def open_file_dialog(self, multiple: bool = False) -> Optional[Any]:
+    def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
         Open a file dialog and return the selected file path(s).
 

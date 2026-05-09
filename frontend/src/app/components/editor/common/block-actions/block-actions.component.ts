@@ -76,7 +76,7 @@ export class BlockActionsComponent {
       return;
     }
     try {
-      await this.mainService.deserializeResource(this.resource.id, Array.isArray(paths) ? paths : [paths]);
+      await this.mainService.deserializeResource(this.resource.id, paths);
     } finally {
       this.cdr.markForCheck();
     }

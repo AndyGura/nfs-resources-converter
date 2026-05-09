@@ -90,7 +90,7 @@ export class EelDelegateImplService {
     this.conversionProgress$.next([current, total]);
   }
 
-  public async openFileDialog(multiple: boolean = false): Promise<string | string[] | null> {
+  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
     return await eel['open_file_dialog'](multiple)();
   }
 

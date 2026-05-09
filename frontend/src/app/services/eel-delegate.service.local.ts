@@ -129,7 +129,7 @@ export class EelDelegateService {
     }
   }
 
-  public async openFileDialog(multiple: boolean = false): Promise<string | string[] | null> {
+  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
     return this.runSafe(async () => await eel['open_file_dialog'](multiple)());
   }
 
