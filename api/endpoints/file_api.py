@@ -85,16 +85,17 @@ class FileAPI:
         root.lift()
         root.attributes('-topmost', True)
         root.after_idle(root.attributes, '-topmost', False)
+        filenames = []
         if multiple:
-            filename = askopenfilenames()
-            if filename:
-                filename = list(filename)
+            selection = askopenfilenames()
+            if selection:
+                filenames = list(selection)
         else:
             filename = askopenfilename()
+            if filename:
+                filenames = [filename]
         root.destroy()
-        if not filename:
-            return None
-        return filename
+        return filenames
 
     def save_file_dialog(self, file_name: Optional[str] = None) -> Optional[str]:
         """
