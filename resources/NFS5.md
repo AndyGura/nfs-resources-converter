@@ -1,11 +1,13 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-05-03 01:42:27.093981+00:00*
+*Last time updated: 2026-05-09 16:17:15.104905+00:00*
 
 
 # **Info by file extensions** #
 
 **\*.crp** geometry file. [CrpGeometry](#crpgeometry), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+        
+**\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
@@ -360,3 +362,49 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Always equals to num_colors? |
 | 10 | **unk2** | 6 | Bytes | Unknown purpose |
 | 16 | **colors** | ? | Type according to enum `resource_id`:<br/>- Array of `num_colors` items<br/>Item size: 3 bytes<br/>Item type: 3-bytes unsigned integer (big endian)<br/>- Array of `num_colors` items<br/>Item size: 3 bytes<br/>Item type: 3-bytes unsigned integer (big endian)<br/>- Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_colors` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian)<br/>- Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Colors LUT. Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md) |
+## **Fonts** ##
+### **FfnFont** ###
+#### **Size**: 48..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
+| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include "remaining_bytes" length. For older versions (I set version <= 101, but it can be anywhere < 309), "padding_2" length is not included as well |
+| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
+| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>1-bit flag "antialiased"<br/>1-bit flag "dropshadow"<br/>1-bit flag "outline"<br/>1-bit flag "vram"<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>21-bits int "unk" | - |
+| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | - |
+| 18 | **ascent** | 1 | 1-byte unsigned integer | - |
+| 19 | **descent** | 1 | 1-byte unsigned integer | - |
+| 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
+| 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
+| 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
+| 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
+| definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*16 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
+| ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
+| ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
+| bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
+| ? | **padding_3** | up to offset block_size + padding_2 length (version <= 101) | Padding bytes | Unknown purpose |
+| block_size + padding_2 length (version <= 101) | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
+### **GlyphDefinition** ###
+#### **Size**: 11..16 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **code** | 2 | 2-bytes unsigned integer (little endian) | Code of symbol |
+| 2 | **width** | 1 | 1-byte unsigned integer | Width of symbol in font bitmap |
+| 3 | **height** | 1 | 1-byte unsigned integer | Height of symbol in font bitmap |
+| 4 | **x** | 2 | 2-bytes unsigned integer (little endian) | Position (x) of symbol in font bitmap |
+| 6 | **y** | 2 | 2-bytes unsigned integer (little endian) | Position (y) of symbol in font bitmap |
+| 8 | **advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
+| 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
+| 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
+| 11 | **num_kern** | 0..1 | Optional (if ^^version >= 200): 1-byte unsigned integer | Number of kerning pairs for this glyph |
+| 11..12 | **kern_index** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Index in kerning table? |
+| 11..14 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
+### **KerningItem** ###
+#### **Size**: 4 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
+| 2 | **kerning** | 1 | 1-byte signed integer | - |
+| 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |

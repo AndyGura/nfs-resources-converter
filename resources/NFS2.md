@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2026-05-07 00:13:04.046178+00:00*
+*Last time updated: 2026-05-09 16:17:14.974961+00:00*
 
 
 # **Info by file extensions** #
@@ -291,7 +291,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
-| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes |
+| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include "remaining_bytes" length. For older versions (I set version <= 101, but it can be anywhere < 309), "padding_2" length is not included as well |
 | 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
 | 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>1-bit flag "antialiased"<br/>1-bit flag "dropshadow"<br/>1-bit flag "outline"<br/>1-bit flag "vram"<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>21-bits int "unk" | - |
@@ -307,7 +307,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
 | ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
 | bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
-| ? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
+| ? | **padding_3** | up to offset block_size + padding_2 length (version <= 101) | Padding bytes | Unknown purpose |
+| block_size + padding_2 length (version <= 101) | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
 #### **Size**: 11..16 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -327,8 +328,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 4 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **left** | 1 | 1-byte unsigned integer | Code of left glyph |
-| 1 | **unk** | 1 | 1-byte unsigned integer | - |
+| 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
 | 2 | **kerning** | 1 | 1-byte signed integer | - |
 | 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |
 ## **Misc** ##
