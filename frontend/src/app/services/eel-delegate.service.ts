@@ -10,6 +10,8 @@ export type GeneralConfig = {
   ffmpeg_executable: string;
   print_errors: boolean;
   print_blender_log: boolean;
+  recent_files: string[];
+  show_hidden_fields: boolean;
 };
 
 export type ConversionConfig = {

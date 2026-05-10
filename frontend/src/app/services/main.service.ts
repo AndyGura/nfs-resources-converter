@@ -25,6 +25,15 @@ export class MainService {
   public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
   constructor(readonly eelDelegate: EelDelegateService) {
+    this.eelDelegate.getGeneralConfig().then(config => {
+      this.hideHiddenFields$.next(!config.show_hidden_fields);
+      this.hideHiddenFields$.subscribe(async (hide) => {
+        const currentConfig = await this.eelDelegate.getGeneralConfig();
+        if (currentConfig.show_hidden_fields !== !hide) {
+          await this.eelDelegate.patchGeneralConfig({ show_hidden_fields: !hide });
+        }
+      });
+    });
     this.eelDelegate.changedDataBlocks = this.changedDataBlocks;
     this.eelDelegate.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();

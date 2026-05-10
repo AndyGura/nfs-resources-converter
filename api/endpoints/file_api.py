@@ -54,18 +54,6 @@ class FileAPI:
         if self.api.initial_file_path:
             eel.open_file(self.api.initial_file_path)
 
-    def get_recent_files(self):
-        """
-        Get the list of recently opened files.
-
-        Returns:
-            List of file paths
-        """
-        recent_files = general_config().recent_files
-        if not isinstance(recent_files, list):
-            return []
-        return recent_files
-
     def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
         Open a file dialog and return the selected file path(s).
