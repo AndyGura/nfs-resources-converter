@@ -1,5 +1,6 @@
 from typing import Dict
 
+from library.context import ReadContext
 from library.read_blocks import (IntegerBlock,
                                  UTF8Block,
                                  DeclarativeCompoundBlock,
@@ -16,6 +17,18 @@ from resources.eac.fields.misc import Point2D
 
 
 class GlyphDefinition(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'description': 'Glyph definition.<br/>'
+                           '- for FNT version < 200 has length 11 bytes.<br/>'
+                           '- for versions >= 200 and < 300 - 12 bytes, last byte is padding.<br/>'
+                           '- for versions >= 300 - 12th byte is num_kern.<br/>'
+                           '- for versions >= 321 it may be 16 bytes if "format" flag is set to 16-bytes',
+        }
+
     class Fields(DeclarativeCompoundBlock.Fields):
         code = (IntegerBlock(length=2),
                 {'description': 'Code of symbol'})
@@ -33,19 +46,24 @@ class GlyphDefinition(DeclarativeCompoundBlock):
                     {'description': 'Offset (x) for drawing the character image'})
         y_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (y) for drawing the character image'})
+        # 12-th byte
         # TODO this feels like should have a programmatic value
         # programmatic_value=lambda ctx: sum(
         #                                                          1 for x in ctx.data('../../kernings') if
         #                                                          x['left'] == ctx.data('code'))
         # but this does not work
         num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
-                                  criteria=lambda ctx: ctx.data('../../version') >= 200),
+                                  criteria=lambda ctx: ctx.data('../../version') >= 300),
                     {'description': 'Number of kerning pairs for this glyph'})
+        pad = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
+                             criteria=lambda ctx: 200 <= ctx.data('../../version') < 300),
+               {'description': 'Padding'})
+        # 13th - 16th bytes
         kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                    criteria=lambda ctx: ctx.data('../../flags/format') == '16-bytes'),
+                                    criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes'),
                       {'description': 'Index in kerning table?'})
         x_advance = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                   criteria=lambda ctx: ctx.data('../../flags/format') == '16-bytes'),
+                                   criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes'),
                      {'description': 'Gap between this symbol and next one in rendered text?'})
 
 
@@ -56,6 +74,7 @@ class KerningItem(DeclarativeCompoundBlock):
         kerning = (IntegerBlock(length=1, is_signed=True))
         right = (IntegerBlock(length=1),
                  {'description': 'Code of right glyph'})
+
 
 def _block_size_delta(ctx):
     if ctx.data('version') <= 101:
@@ -96,13 +115,16 @@ class FfnFont(DeclarativeCompoundBlock):
             (1, 'antialiased', 'boolean', [], ''),
             (1, 'dropshadow', 'boolean', [], ''),
             (1, 'outline', 'boolean', [], ''),
-            (1, 'vram', 'boolean', [], ''),
+            (1, 'vram', 'boolean', [],
+             'VRAM fonts are the default, they have extra space around the characters so that uv extraction will work under hardware.'),
+            (4, 'drawpad', 'number', [], 'pad to save 4 other draw attribute bits'),
             (2, 'baseline', 'enum', ['Roman (english)', 'Ideographic (Kanji)', 'Hanging (Arabic)', 'Unknown'], ''),
             (1, 'orientation', 'enum', ['Horizontal', 'Vertical'], ''),
             (1, 'direction', 'enum', ['LTR', 'RTL'], ''),
+            (4, 'layoutpad', 'number', [], 'pad to save 4 other layout bits'),
             (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
             (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
-            (21, 'unk', 'number', [], ''),
+            (13, 'pad', 'number', [], 'pad structure to 32 bits'),
         ])
         center = Point2D(child=IntegerBlock(length=1, is_signed=False))
         ascent = IntegerBlock(length=1, is_signed=False)
@@ -141,11 +163,22 @@ class FfnFont(DeclarativeCompoundBlock):
                      {'is_unknown': True})
         bitmap = (EacImage(),
                   {'description': 'Font atlas bitmap data'})
-        padding_3 = (Padding(to=(lambda ctx: ctx.data('block_size') + _block_size_delta(ctx), 'block_size + padding_2 length (version <= 101)')),
+        padding_3 = (Padding(to=(lambda ctx: ctx.data('block_size') + _block_size_delta(ctx),
+                                 'block_size + padding_2 length (version <= 101)')),
                      {'is_unknown': True})
         remaining_bytes = (BytesBlock(length=(lambda ctx: ctx.read_bytes_remaining,
                                               'remaining bytes')),
                            {'is_unknown': True})
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        # assertions for structure consistency. This block won't work correctly if these ptr-s are not in order
+        if data['kernings_ptr'] != 0:
+            assert data['definitions_ptr'] < data['kernings_ptr']
+            assert data['kernings_ptr'] < data['bdata_ptr']
+        else:
+            assert data['definitions_ptr'] < data['bdata_ptr']
+        return data
 
     def serializer_class(self):
         from serializers import FfnFontSerializer

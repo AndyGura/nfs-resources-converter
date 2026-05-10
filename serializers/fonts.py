@@ -56,12 +56,14 @@ class FfnFontSerializer(BaseFileSerializer):
                                        'version': data['version'],
                                        'dropshadow': data['flags']['dropshadow'],
                                        'vram': 1 if data['flags']['vram'] else 0,
+                                       'drawpad': data['flags']['drawpad'],
                                        'baseline': data['flags']['baseline'],
                                        'orientation': data['flags']['orientation'],
                                        'direction': data['flags']['direction'],
+                                       'layoutpad': data['flags']['layoutpad'],
                                        'encoding': data['flags']['encoding'],
                                        'format': data['flags']['format'],
-                                       'unk': data['flags']['unk'],
+                                       'pad': data['flags']['pad'],
                                        'center_x': data['center']['x'],
                                        'center_y': data['center']['y'], })
             write_fnt_line('page', {'id': 0, 'file': 'bitmap.png'})
@@ -126,18 +128,22 @@ class FfnFontSerializer(BaseFileSerializer):
                     data['flags']['dropshadow'] = custom_part['dropshadow'] == 1
                 if 'vram' in custom_part:
                     data['flags']['vram'] = custom_part['vram'] == 1
+                if 'drawpad' in custom_part:
+                    data['flags']['drawpad'] = custom_part['drawpad']
                 if 'baseline' in custom_part:
                     data['flags']['baseline'] = custom_part['baseline']
                 if 'orientation' in custom_part:
                     data['flags']['orientation'] = custom_part['orientation']
                 if 'direction' in custom_part:
                     data['flags']['direction'] = custom_part['direction']
+                if 'layoutpad' in custom_part:
+                    data['flags']['layoutpad'] = custom_part['layoutpad']
                 if 'encoding' in custom_part:
                     data['flags']['encoding'] = custom_part['encoding']
                 if 'format' in custom_part:
                     data['flags']['format'] = custom_part['format']
-                if 'unk' in custom_part:
-                    data['flags']['unk'] = custom_part['unk']
+                if 'pad' in custom_part:
+                    data['flags']['pad'] = custom_part['pad']
                 if 'center_x' in custom_part:
                     data['center']['x'] = custom_part['center_x']
                 if 'center_y' in custom_part:
