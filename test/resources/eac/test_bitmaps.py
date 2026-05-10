@@ -28,12 +28,12 @@ class TestBitmap(unittest.TestCase):
         # 0x1234 -> A=1, R=2, G=3, B=4 -> 0x22334411
         buf = self._gen_single_pixel_bitmap(0x6D, bytes([0x34, 0x12]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0], 0x22334411)
+        self.assertEqual(data['bitmap'][0], 0x22334411)
 
     def test_bitmap_16bit_4444_should_be_saved_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x6D, bytes([0, 0]))
         data = self.block.unpack(ReadContext(buf))
-        data['bitmap']['data'][0] = 0x22334411
+        data['bitmap'][0] = 0x22334411
         serialized_pixel = self._get_serialized_pixel_data(data)
         self.assertListEqual(list(serialized_pixel), [0x34, 0x12])
 
@@ -44,12 +44,12 @@ class TestBitmap(unittest.TestCase):
         # blue part: 10100 -> 1010_0101 -> 165
         buf = self._gen_single_pixel_bitmap(0x78, bytes([0x34, 0x12]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0], 0x1045A5FF)
+        self.assertEqual(data['bitmap'][0], 0x1045A5FF)
 
     def test_bitmap_16bit_0565_should_be_saved_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x78, bytes([0, 0]))
         data = self.block.unpack(ReadContext(buf))
-        data['bitmap']['data'][0] = 0x1045A5FF
+        data['bitmap'][0] = 0x1045A5FF
         serialized_pixel = self._get_serialized_pixel_data(data)
         self.assertListEqual(list(serialized_pixel), [0x34, 0x12])
 
@@ -57,31 +57,31 @@ class TestBitmap(unittest.TestCase):
         # 0x07C0 is transparent
         buf = self._gen_single_pixel_bitmap(0x78, bytes([0xC0, 0x07]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0], 0)
+        self.assertEqual(data['bitmap'][0], 0)
 
     def test_bitmap_16bit_0565_transparent_should_be_saved_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x78, bytes([0, 0]))
         data = self.block.unpack(ReadContext(buf))
-        data['bitmap']['data'][0] = 0
+        data['bitmap'][0] = 0
         serialized_pixel = self._get_serialized_pixel_data(data)
         self.assertListEqual(list(serialized_pixel), [0xC0, 0x07])
 
     def test_bitmap_4bit_should_be_translated_correctly(self):
         buf = self._gen_two_pixels_bitmap(0x7A, bytes([0x12]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0][0], 0xFFFFFF11)
-        self.assertEqual(data['bitmap']['data'][0][1], 0xFFFFFF22)
+        self.assertEqual(data['bitmap'][0][0], 0xFFFFFF11)
+        self.assertEqual(data['bitmap'][0][1], 0xFFFFFF22)
 
     def test_bitmap_4bit_swapped_should_be_translated_correctly(self):
         buf = self._gen_two_pixels_bitmap(0x79, bytes([0x12]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0][0], 0xFFFFFF22)
-        self.assertEqual(data['bitmap']['data'][0][1], 0xFFFFFF11)
+        self.assertEqual(data['bitmap'][0][0], 0xFFFFFF22)
+        self.assertEqual(data['bitmap'][0][1], 0xFFFFFF11)
 
     def test_bitmap_8bit_should_be_translated_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x7B, bytes([0x42]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0], 0x42)
+        self.assertEqual(data['bitmap'][0], 0x42)
 
     def test_bitmap_16bit_1555_should_be_translated_correctly(self):
         # 0x9234 -> 0b1001001000110100
@@ -91,24 +91,24 @@ class TestBitmap(unittest.TestCase):
         # blue part: 10100 -> 1010_0101 -> 165
         buf = self._gen_single_pixel_bitmap(0x7E, bytes([0x34, 0x92]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0], 0x218CA5FF)
+        self.assertEqual(data['bitmap'][0], 0x218CA5FF)
 
     def test_bitmap_16bit_1555_should_be_saved_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x7E, bytes([0, 0]))
         data = self.block.unpack(ReadContext(buf))
-        data['bitmap']['data'][0] = 0x218CA5FF
+        data['bitmap'][0] = 0x218CA5FF
         serialized_pixel = self._get_serialized_pixel_data(data)
         self.assertListEqual(list(serialized_pixel), [0x34, 0x92])
 
     def test_bitmap_24bit_should_be_translated_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x7F, bytes([0x56, 0x34, 0x12]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0], 0x123456FF)
+        self.assertEqual(data['bitmap'][0], 0x123456FF)
 
     def test_bitmap_24bit_should_be_saved_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x7F, bytes([0, 0, 0]))
         data = self.block.unpack(ReadContext(buf))
-        data['bitmap']['data'][0] = 0x123456FF
+        data['bitmap'][0] = 0x123456FF
         serialized_pixel = self._get_serialized_pixel_data(data)
         self.assertListEqual(list(serialized_pixel), [0x56, 0x34, 0x12])
 
@@ -116,12 +116,12 @@ class TestBitmap(unittest.TestCase):
         # ARGB 0x12345678 -> RGBA 0x34567812
         buf = self._gen_single_pixel_bitmap(0x7D, bytes([0x78, 0x56, 0x34, 0x12]))
         data = self.block.unpack(ReadContext(buf))
-        self.assertEqual(data['bitmap']['data'][0], 0x34567812)
+        self.assertEqual(data['bitmap'][0], 0x34567812)
 
     def test_bitmap_32bit_should_be_saved_correctly(self):
         buf = self._gen_single_pixel_bitmap(0x7D, bytes([0, 0, 0, 0]))
         data = self.block.unpack(ReadContext(buf))
-        data['bitmap']['data'][0] = 0x34567812
+        data['bitmap'][0] = 0x34567812
         serialized_pixel = self._get_serialized_pixel_data(data)
         self.assertListEqual(list(serialized_pixel), [0x78, 0x56, 0x34, 0x12])
 

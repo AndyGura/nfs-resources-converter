@@ -1,10 +1,14 @@
 from copy import deepcopy
 from functools import lru_cache
+from io import BytesIO
+from math import ceil
 from typing import Tuple, Any, Dict
 
+import numpy as np
+
 from library.context import ReadContext, WriteContext
-from library.read_blocks import DataBlock
-from library.read_blocks import (DeclarativeCompoundBlock,
+from library.read_blocks import (DataBlock,
+                                 DeclarativeCompoundBlock,
                                  IntegerBlock,
                                  SubByteArrayBlock,
                                  BytesBlock,
@@ -23,7 +27,7 @@ def transform_color_bitness(color, alpha_bitness, red_bitness, green_bitness, bl
     red = transform_bitness(extract_number(color, red_bitness, green_bitness + blue_bitness), red_bitness)
     green = transform_bitness(extract_number(color, green_bitness, blue_bitness), green_bitness)
     blue = transform_bitness(extract_number(color, blue_bitness), blue_bitness)
-    return red << 24 | green << 16 | blue << 8 | alpha
+    return int(red << 24 | green << 16 | blue << 8 | alpha)
 
 
 @lru_cache(maxsize=256)
@@ -36,6 +40,19 @@ def revert_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_
             | red << (green_bitness + blue_bitness)
             | green << blue_bitness
             | blue)
+
+
+def get_bitmap_len(resource_id, width, height):
+    if resource_id[:2] == '16':
+        return 2 * width * height
+    elif resource_id[:2] == '24':
+        return 3 * width * height
+    elif resource_id[:2] == '32':
+        return 4 * width * height
+    elif resource_id[:1] == '4':
+        return ceil(width / 2) * height
+    elif resource_id[:1] == '8':
+        return width * height
 
 
 class EacImage(DeclarativeCompoundBlock):
@@ -64,39 +81,9 @@ class EacImage(DeclarativeCompoundBlock):
                                  'on the screen. Seems to affect only open tracks'})
         position = (Point2D(child=IntegerBlock(length=2)),
                     {'description': 'Bitmap position on screen. Used for menu/dash sprites. Unknown for others'})
-        bitmap = (EnumLookupDelegateBlock(enum_field='resource_id',
-                                          blocks=[
-                                              ArrayBlock(child=IntegerBlock(length=2),
-                                                         length=lambda ctx: ctx.data('width') * ctx.data('height')),
-                                              ArrayBlock(child=IntegerBlock(length=2),
-                                                         length=lambda ctx: ctx.data('width') * ctx.data('height')),
-                                              ArrayBlock(length=lambda ctx: ctx.data('height'),
-                                                         child=SubByteArrayBlock(bits_per_value=4,
-                                                                                 length=lambda ctx: ctx.data(
-                                                                                     '../width'),
-                                                                                 value_deserialize_func=lambda
-                                                                                     x: 0xFFFFFF00
-                                                                                        | transform_bitness(x, 4),
-                                                                                 value_serialize_func=lambda x: (
-                                                                                                                        x & 0xFF) >> 4)),
-                                              ArrayBlock(length=lambda ctx: ctx.data('height'),
-                                                         child=SubByteArrayBlock(bits_per_value=4,
-                                                                                 length=lambda ctx: ctx.data(
-                                                                                     '../width'),
-                                                                                 value_deserialize_func=lambda
-                                                                                     x: 0xFFFFFF00
-                                                                                        | transform_bitness(x, 4),
-                                                                                 value_serialize_func=lambda x: (
-                                                                                                                        x & 0xFF) >> 4)),
-                                              ArrayBlock(child=IntegerBlock(length=1),
-                                                         length=lambda ctx: ctx.data('width') * ctx.data('height')),
-                                              ArrayBlock(child=IntegerBlock(length=2),
-                                                         length=lambda ctx: ctx.data('width') * ctx.data('height')),
-                                              ArrayBlock(child=IntegerBlock(length=3),
-                                                         length=lambda ctx: ctx.data('width') * ctx.data('height')),
-                                              ArrayBlock(child=IntegerBlock(length=4),
-                                                         length=lambda ctx: ctx.data('width') * ctx.data('height')),
-                                          ]),
+        bitmap = (BytesBlock(
+            length=(lambda ctx: get_bitmap_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
+                    'width * height * pixel_byteness')),
                   {'usage': 'io,doc',
                    'description': 'Pixel color table. For 8Bit bitmap each value represents an index of color in the '
                                   'attached palette. Palette can be stored: <br/>'
@@ -172,32 +159,54 @@ class EacImage(DeclarativeCompoundBlock):
             ]
         }
 
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        length = super().estimate_packed_size(data, ctx)
+        # original assumes length if bitmap == length of array, which is not true
+        length -= len(data['bitmap'])
+        length += get_bitmap_len(data['resource_id'], data['width'], data['height'])
+        return length
+
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
+
         if data['resource_id'] == '16Bit_4444 color format bitmap':
-            data['bitmap']['data'] = [transform_color_bitness(x, 4, 4, 4, 4)
-                                      for x in data['bitmap']['data']]
+            bitmap = np.frombuffer(data['bitmap'], dtype='<u2')
+            data['bitmap'] = [transform_color_bitness(x, 4, 4, 4, 4)
+                              for x in bitmap]
         elif data['resource_id'] == '16Bit_0565 color format bitmap':
-            for (i, pxl) in enumerate(data['bitmap']['data']):
+            bitmap = np.frombuffer(data['bitmap'], dtype='<u2')
+            data['bitmap'] = []
+            for pxl in bitmap:
                 if pxl == 0x7c0:
-                    data['bitmap']['data'][i] = 0  # transparent
+                    data['bitmap'].append(0)  # transparent
                 else:
-                    data['bitmap']['data'][i] = transform_color_bitness(pxl, 0, 5, 6, 5)
+                    data['bitmap'].append(transform_color_bitness(pxl, 0, 5, 6, 5))
+        elif data['resource_id'].startswith('4Bit'):
+            field = ArrayBlock(length=data['height'],
+                               child=SubByteArrayBlock(bits_per_value=4,
+                                                       length=data['width'],
+                                                       value_deserialize_func=(lambda x:
+                                                                               0xFFFFFF00
+                                                                               | transform_bitness(x, 4)),
+                                                       value_serialize_func=lambda x: (x & 0xFF) >> 4))
+            data['bitmap'] = field.unpack(ReadContext(BytesIO(data['bitmap'])))
+            if data['resource_id'] == '4Bit (swapped)':
+                for row in data['bitmap']:
+                    for i in range(0, len(row), 2):
+                        row[i], row[i + 1] = row[i + 1], row[i]
+        elif data['resource_id'] == '8Bit':
+            data['bitmap'] = list(data['bitmap'])
         elif data['resource_id'] == '16Bit_1555 color format bitmap':
-            data['bitmap']['data'] = [transform_color_bitness(x, 1, 5, 5, 5)
-                                      for x in data['bitmap']['data']]
+            bitmap = np.frombuffer(data['bitmap'], dtype='<u2')
+            data['bitmap'] = [transform_color_bitness(x, 1, 5, 5, 5)
+                              for x in bitmap]
         elif data['resource_id'] == '24Bit color format bitmap':
-            data['bitmap']['data'] = [(x << 8) | 0xFF for x in data['bitmap']['data']]
+            field = ArrayBlock(child=IntegerBlock(length=3), length=data['width'] * data['height'])
+            data['bitmap'] = [(x << 8) | 0xFF for x in field.unpack(ReadContext(BytesIO(data['bitmap'])))]
         elif data['resource_id'] == '32Bit color format bitmap':
+            bitmap = np.frombuffer(data['bitmap'], dtype='<u4')
             # ARGB => RGBA
-            data['bitmap']['data'] = [(x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24 for x in
-                                      data['bitmap']['data']]
-        elif data['resource_id'] == '4Bit (swapped)':
-            for row in data['bitmap']['data']:
-                for i in range(0, len(row), 2):
-                    row[i], row[i + 1] = row[i + 1], row[i]
-        elif data['resource_id'] in ['4Bit', '8Bit']:
-            pass
+            data['bitmap'] = [int((x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24) for x in bitmap]
         else:
             raise NotImplementedError(f"Bitmap resource ID {data['resource_id']} is not supported")
         return data
@@ -213,27 +222,42 @@ class EacImage(DeclarativeCompoundBlock):
     def write(self, data, ctx: WriteContext = None, name: str = ''):
         copied = deepcopy(data)
         if copied['resource_id'] == '16Bit_4444 color format bitmap':
-            copied['bitmap']['data'] = [revert_color_bitness(x, 4, 4, 4, 4) for x in copied['bitmap']['data']]
+            arr = [revert_color_bitness(x, 4, 4, 4, 4) for x in copied['bitmap']]
+            copied['bitmap'] = np.asarray(arr, dtype='<u2').tobytes()
         elif copied['resource_id'] == '16Bit_0565 color format bitmap':
-            for (i, pxl) in enumerate(copied['bitmap']['data']):
+            arr = []
+            for pxl in copied['bitmap']:
                 if (pxl & 0xff) < 128:
                     # transparent
-                    copied['bitmap']['data'][i] = 0x7c0
+                    arr.append(0x7c0)
                 else:
-                    copied['bitmap']['data'][i] = revert_color_bitness(pxl, 0, 5, 6, 5)
+                    arr.append(revert_color_bitness(pxl, 0, 5, 6, 5))
+            copied['bitmap'] = np.asarray(arr, dtype='<u2').tobytes()
+        elif copied['resource_id'].startswith('4Bit'):
+            field = ArrayBlock(length=copied['height'],
+                               child=SubByteArrayBlock(bits_per_value=4,
+                                                       length=copied['width'],
+                                                       value_deserialize_func=(lambda x:
+                                                                               0xFFFFFF00
+                                                                               | transform_bitness(x, 4)),
+                                                       value_serialize_func=lambda x: (x & 0xFF) >> 4))
+            if copied['resource_id'] == '4Bit (swapped)':
+                for row in copied['bitmap']:
+                    for i in range(0, len(row), 2):
+                        row[i], row[i + 1] = row[i + 1], row[i]
+            copied['bitmap'] = field.pack(copied['bitmap'])
+        elif copied['resource_id'] == '8Bit':
+            copied['bitmap'] = bytes(copied['bitmap'])
         elif copied['resource_id'] == '16Bit_1555 color format bitmap':
-            copied['bitmap']['data'] = [revert_color_bitness(x, 1, 5, 5, 5) for x in copied['bitmap']['data']]
+            arr = [revert_color_bitness(x, 1, 5, 5, 5) for x in copied['bitmap']]
+            copied['bitmap'] = np.asarray(arr, dtype='<u2').tobytes()
         elif copied['resource_id'] == '24Bit color format bitmap':
-            copied['bitmap']['data'] = [x >> 8 for x in copied['bitmap']['data']]
+            field = ArrayBlock(child=IntegerBlock(length=3), length=copied['width'] * copied['height'])
+            copied['bitmap'] = field.pack([x >> 8 for x in copied['bitmap']])
         elif copied['resource_id'] == '32Bit color format bitmap':
             # RGBA => ARGB
-            copied['bitmap']['data'] = [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in copied['bitmap']['data']]
-        elif copied['resource_id'] == '4Bit (swapped)':
-            for row in copied['bitmap']['data']:
-                for i in range(0, len(row), 2):
-                    row[i], row[i + 1] = row[i + 1], row[i]
-        elif copied['resource_id'] in ['4Bit', '8Bit']:
-            pass
+            arr = [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in copied['bitmap']]
+            copied['bitmap'] = np.asarray(arr, dtype='<u4').tobytes()
         else:
             raise NotImplementedError(f"Bitmap resource ID {copied['resource_id']} is not supported")
         return super().write(copied, ctx, name)
@@ -265,9 +289,9 @@ class EacImage(DeclarativeCompoundBlock):
             for j in range(read_data['height']):
                 new_bitmap.append([])
                 for i in range(read_data['width']):
-                    pxl = read_data['bitmap']['data'][j * read_data['width'] + i]
+                    pxl = read_data['bitmap'][j * read_data['width'] + i]
                     new_bitmap[j].append(0xffffff00 | pxl)
-            read_data['bitmap']['data'] = new_bitmap
+            read_data['bitmap'] = new_bitmap
         elif current_color_format.startswith('4Bit'):
             pass
         else:
@@ -277,9 +301,9 @@ class EacImage(DeclarativeCompoundBlock):
             for j in range(read_data['height']):
                 new_bitmap.append([])
                 for i in range(read_data['width']):
-                    pxl = read_data['bitmap']['data'][j * read_data['width'] + i]
+                    pxl = read_data['bitmap'][j * read_data['width'] + i]
                     new_bitmap[j].append(0xffffff00 | ((pxl & mask) >> offs))
-            read_data['bitmap']['data'] = new_bitmap
+            read_data['bitmap'] = new_bitmap
         read_data['resource_id'] = target_color_format
         return
 
@@ -292,13 +316,13 @@ class EacImage(DeclarativeCompoundBlock):
             new_bitmap = []
             for j in range(read_data['height']):
                 for i in range(read_data['width']):
-                    pxl = read_data['bitmap']['data'][j][i]
+                    pxl = read_data['bitmap'][j][i]
                     new_bitmap.append(transform_bitness(pxl & 0xff, 4))
-            read_data['bitmap']['data'] = new_bitmap
+            read_data['bitmap'] = new_bitmap
         else:
             # RGBA
             (mask, offs) = self._get_channel_mask_offset(channel)
-            read_data['bitmap']['data'] = [(pxl & mask) >> offs for pxl in read_data['bitmap']['data']]
+            read_data['bitmap'] = [(pxl & mask) >> offs for pxl in read_data['bitmap']]
         read_data['resource_id'] = target_color_format
         return
 
@@ -309,15 +333,15 @@ class EacImage(DeclarativeCompoundBlock):
         if current_color_format.startswith('4Bit'):
             for j in range(read_data['height']):
                 for i in range(read_data['width']):
-                    pxl = read_data['bitmap']['data'][j][i]
+                    pxl = read_data['bitmap'][j][i]
                     new_bitmap.append(transform_bitness(pxl & 0xff, 4))
         elif current_color_format == '8Bit':
-            new_bitmap = read_data['bitmap']['data']
+            new_bitmap = read_data['bitmap']
         if new_bitmap:
             if output_colors == 'transparent-white':
-                read_data['bitmap']['data'] = [x | 0xffffff00 for x in new_bitmap]
+                read_data['bitmap'] = [x | 0xffffff00 for x in new_bitmap]
             elif output_colors == 'black-white':
-                read_data['bitmap']['data'] = [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap]
+                read_data['bitmap'] = [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap]
         read_data['resource_id'] = target_color_format
         return
 

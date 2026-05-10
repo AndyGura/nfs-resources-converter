@@ -9,6 +9,7 @@ import eel
 
 import config
 from library import require_file
+from library.loader import clear_file_cache
 from library.utils import format_exception, path_join
 from serializers import get_serializer
 
@@ -98,6 +99,8 @@ class ConversionAPI:
             if config.general_config().print_errors:
                 traceback.print_exc()
             return ex
+        finally:
+            clear_file_cache(path)
 
     def convert_files(self, input_path: str, output_path: str, custom_settings: Dict[str, Any] = None) -> Dict[
         str, Any]:

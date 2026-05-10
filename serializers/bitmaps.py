@@ -23,9 +23,9 @@ class ImageSerializer(BaseFileSerializer):
             return BitmapWithPaletteSerializer().serialize(data, path, id=id, block=block, **kwargs)
         super().serialize(data, path, id=id, block=block)
         if data['resource_id'].startswith('4Bit'):
-            bitmap = [item for row in data['bitmap']['data'] for item in row]
+            bitmap = [item for row in data['bitmap'] for item in row]
         else:
-            bitmap = data['bitmap']['data']
+            bitmap = data['bitmap']
         file_path = escape_chars(path)
         if not file_path.endswith('.png'):
             file_path += '.png'
@@ -47,11 +47,11 @@ class ImageSerializer(BaseFileSerializer):
         data['width'] = image.width
         data['height'] = image.height
         bitmap = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
-        data['bitmap']['data'] = bitmap
+        data['bitmap'] = bitmap
         # if data['resource_id'].startswith('4Bit'):
-        #     data['bitmap']['data'] = [bitmap[i:i + image.width] for i in range(0, len(bitmap), image.width)]
+        #     data['bitmap'] = [bitmap[i:i + image.width] for i in range(0, len(bitmap), image.width)]
         # else:
-        #     data['bitmap']['data'] = bitmap
+        #     data['bitmap'] = bitmap
         return data
 
 
@@ -122,7 +122,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
             palette_colors = [c for c in palette_data['colors']['data']]
             if palette_data['last_color_transparent']:
                 palette_colors[255] = 0
-        for index in data['bitmap']['data']:
+        for index in data['bitmap']:
             try:
                 colors.append(palette_colors[index])
             except IndexError:
