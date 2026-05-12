@@ -70,13 +70,13 @@ export class BlockActionsComponent {
     if (!this.resource) {
       return;
     }
-    // TODO need to select more than one file, or directory
-    let paths = await this.eelDelegate.openFileDialog();
+    // TODO need a way to select directory?
+    let paths = await this.eelDelegate.openFileDialog(true);
     if (!paths) {
       return;
     }
     try {
-      await this.mainService.deserializeResource(this.resource.id, [paths]);
+      await this.mainService.deserializeResource(this.resource.id, paths);
     } finally {
       this.cdr.markForCheck();
     }

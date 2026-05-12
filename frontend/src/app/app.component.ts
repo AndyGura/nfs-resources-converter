@@ -30,9 +30,9 @@ export class AppComponent {
   }
 
   async openFile() {
-    const fileName = await this.eelDelegate.openFileDialog();
-    if (fileName) {
-      await this.eelDelegate.openFile(fileName, true);
+    const fileNames = await this.eelDelegate.openFileDialog();
+    if (fileNames.length > 0) {
+      await this.eelDelegate.openFile(fileNames[0], true);
     }
   }
 

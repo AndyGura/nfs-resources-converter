@@ -5,7 +5,7 @@ This module handles all file-related operations.
 
 import os
 import traceback
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 import eel
 
@@ -54,27 +54,18 @@ class FileAPI:
         if self.api.initial_file_path:
             eel.open_file(self.api.initial_file_path)
 
-    def get_recent_files(self):
+    def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
-        Get the list of recently opened files.
+        Open a file dialog and return the selected file paths.
+
+        Args:
+            multiple: Whether to allow selecting multiple files
 
         Returns:
-            List of file paths
-        """
-        recent_files = general_config().recent_files
-        if not isinstance(recent_files, list):
-            return []
-        return recent_files
-
-    def open_file_dialog(self) -> Optional[str]:
-        """
-        Open a file dialog and return the selected file path.
-
-        Returns:
-            The selected file path or None if canceled
+            The list of selected file paths
         """
         from tkinter import Tk
-        from tkinter.filedialog import askopenfilename
+        from tkinter.filedialog import askopenfilename, askopenfilenames
         root = Tk()
         root.withdraw()
         root.update()
@@ -82,11 +73,17 @@ class FileAPI:
         root.lift()
         root.attributes('-topmost', True)
         root.after_idle(root.attributes, '-topmost', False)
-        filename = askopenfilename()
+        filenames = []
+        if multiple:
+            selection = askopenfilenames()
+            if selection:
+                filenames = list(selection)
+        else:
+            filename = askopenfilename()
+            if filename:
+                filenames = [filename]
         root.destroy()
-        if not filename:
-            return None
-        return filename
+        return filenames
 
     def save_file_dialog(self, file_name: Optional[str] = None) -> Optional[str]:
         """

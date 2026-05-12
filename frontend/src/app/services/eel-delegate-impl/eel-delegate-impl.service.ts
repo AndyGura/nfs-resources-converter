@@ -9,6 +9,8 @@ type GeneralConfig = {
   ffmpeg_executable: string;
   print_errors: boolean;
   print_blender_log: boolean;
+  recent_files: string[];
+  show_hidden_fields: boolean;
 };
 
 type ConversionConfig = {
@@ -82,16 +84,16 @@ export class EelDelegateImplService {
   }
 
   public async syncRecentFiles() {
-    const files = await eel['get_recent_files']()();
-    this.recentFiles$.next(files);
+    const cfg = await this.getGeneralConfig();
+    return this.recentFiles$.next(cfg.recent_files || []);
   }
 
   updateConversionProgress(current: number, total: number): void {
     this.conversionProgress$.next([current, total]);
   }
 
-  public async openFileDialog(): Promise<string | null> {
-    return await eel['open_file_dialog']()();
+  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
+    return await eel['open_file_dialog'](multiple)();
   }
 
   public async saveFileDialog(fileName?: string): Promise<string | null> {

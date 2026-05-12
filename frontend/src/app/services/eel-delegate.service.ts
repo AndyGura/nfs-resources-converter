@@ -10,6 +10,8 @@ export type GeneralConfig = {
   ffmpeg_executable: string;
   print_errors: boolean;
   print_blender_log: boolean;
+  recent_files: string[];
+  show_hidden_fields: boolean;
 };
 
 export type ConversionConfig = {
@@ -117,8 +119,8 @@ export class EelDelegateService {
     });
   }
 
-  public async openFileDialog(): Promise<string | null> {
-    return this.runSafe(async () => (await this.getImpl()).openFileDialog());
+  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
+    return this.runSafe(async () => (await this.getImpl()).openFileDialog(multiple));
   }
 
   public async saveFileDialog(fileName?: string): Promise<string | null> {
