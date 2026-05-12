@@ -47,3 +47,9 @@ Root: HKCR; Subkey: ".tri"; ValueType: string; ValueName: ""; ValueData: "NFSRes
 Root: HKCR; Subkey: "NFSResourcesConverter.tri"; ValueType: string; ValueName: ""; ValueData: "TRI Track File"; Flags: uninsdeletekey
 Root: HKCR; Subkey: "NFSResourcesConverter.tri\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
 Root: HKCR; Subkey: "NFSResourcesConverter.tri\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+
+; .ffn
+Root: HKCR; Subkey: ".ffn"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.ffn"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "NFSResourcesConverter.ffn"; ValueType: string; ValueName: ""; ValueData: "FFN Bitmap Font File"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "NFSResourcesConverter.ffn\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
+Root: HKCR; Subkey: "NFSResourcesConverter.ffn\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""

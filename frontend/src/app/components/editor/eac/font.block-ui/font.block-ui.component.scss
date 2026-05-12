@@ -1,0 +1,143 @@
+@use '../../../../../variables';
+
+:host {
+  // fullscreen
+  margin: - variables.$viewport-padding;
+  max-width: unset;
+  height: variables.$viewport-height;
+}
+
+.font-editor-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  ::ng-deep .mat-tab-body-wrapper {
+    flex: 1;
+    min-height: 0;
+  }
+
+  ::ng-deep .mat-tab-body {
+    height: 100%;
+  }
+}
+
+.font-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background-color: #f0f0f0;
+  padding: 5px;
+  height: calc(100% - 10px);
+  overflow: hidden;
+}
+
+.section {
+  display: flex;
+  gap: 5px;
+
+  > div {
+    flex: 1;
+    min-width: 0;
+    background: white;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    .preview-title {
+      padding: 2px 5px;
+      background: #e0e0e0;
+      border-bottom: 1px solid #ccc;
+      font-size: 12px;
+    }
+  }
+
+  &.top-section {
+    height: 350px;
+    max-height: 50%;
+  }
+
+  &.bottom-section {
+    flex: 1;
+    min-height: 0;
+
+    > div {
+      &:first-child {
+        flex: 2;
+      }
+
+      &:nth-child(2) {
+        flex: 1;
+      }
+    }
+  }
+}
+
+.table-container {
+  padding: 5px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  data-table {
+    min-width: fit-content;
+  }
+}
+
+.tab-content {
+  padding: variables.$viewport-padding;
+  overflow: auto;
+  min-height: 0;
+}
+
+.header-tabs {
+  height: 100%;
+}
+
+.text-preview-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 5px;
+
+  textarea {
+    width: 100%;
+    height: 80px;
+    margin-bottom: 5px;
+    font-family: monospace;
+    font-size: 12px;
+    resize: none;
+  }
+
+  .canvas-scroll-container {
+    flex: 1;
+    overflow: auto;
+    background: #eee;
+    border: 1px solid #ddd;
+
+    canvas {
+      display: block;
+      width: 100%;
+      background: #000000;
+    }
+  }
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+
+  canvas {
+    flex: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    background: #595959;
+  }
+}

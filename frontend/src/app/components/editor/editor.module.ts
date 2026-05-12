@@ -43,6 +43,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatOptionModule } from '@angular/material/core';
+import { MatTabsModule } from '@angular/material/tabs';
 import { NgxMatColorPickerModule } from '@angular-material-components/color-picker';
 import { HexEditorModule } from 'ngx-hex-editor';
 import { SidenavResListComponent } from './common/sidenav-res-list/sidenav-res-list.component';
@@ -50,6 +51,7 @@ import { MinimapComponent } from './common/minimap/minimap.component';
 import { BlockActionsComponent } from './common/block-actions/block-actions.component';
 import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
 import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
+import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 
 import { MatSliderModule } from '@angular/material/slider';
 
@@ -86,6 +88,7 @@ import { MatSliderModule } from '@angular/material/slider';
     BlockActionsComponent,
     ObjViewerComponent,
     ViewModeToolbarComponent,
+    FontBlockUiComponent,
   ],
   imports: [
     CommonModule,
@@ -108,6 +111,7 @@ import { MatSliderModule } from '@angular/material/slider';
     MatOptionModule,
     MatCheckboxModule,
     MatSliderModule,
+    MatTabsModule,
     NgxMatColorPickerModule,
     HexEditorModule,
   ],

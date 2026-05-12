@@ -29,6 +29,7 @@ import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
+import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 import { Resource, ResourceError } from './types';
 
 @Component({
@@ -66,6 +67,7 @@ export class EditorComponent implements OnDestroy {
     WwwwBlock: WwwwBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
     EacsAudioFile: EacsAudioBlockUiComponent,
+    // FfnFont: FontBlockUiComponent,
     // NFS2 blocks
     GeoGeometry: GeoGeometryBlockUiComponent,
     TrkMap: TrkMapBlockUiComponent,

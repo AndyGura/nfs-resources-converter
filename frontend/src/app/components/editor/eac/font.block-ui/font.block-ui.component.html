@@ -1,0 +1,74 @@
+<mat-tab-group class="font-editor-tabs" *ngIf="resource">
+  <mat-tab label="Font">
+    <div class="font-editor-container">
+      <div class="section top-section">
+        <div>
+          <div class="preview-title">Font header</div>
+          <div class="tab-content">
+            <app-compound-block-ui [resource]="resource"
+                                   [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
+                                   [hideName]="true"
+                                   [hideBlockActions]="true"
+                                   (changed)="changed.emit()"></app-compound-block-ui>
+          </div>
+        </div>
+
+        <div>
+          <div class="preview-title">Font Preview</div>
+          <div class="text-preview-container">
+            <textarea (input)="onTextChange($event)">{{ _text$.getValue() }}</textarea>
+            <div class="canvas-scroll-container">
+              <canvas #textPreviewCanvas></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="preview-title">Char Preview</div>
+          <div class="preview-container">
+            <canvas #fullBitmapCanvas></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="section bottom-section">
+        <div>
+          <div class="preview-title">Glyphs</div>
+          <div class="table-container">
+            <data-table [data]="glyphsWithSymbols"
+                        [columns]="_glyphColumns"
+                        [enableArrayEditing]="true"
+                        (addItem)="addGlyph()"
+                        (removeItem)="removeGlyph($event)"
+                        (moveItemUp)="moveGlyphUp($event)"
+                        (moveItemDown)="moveGlyphDown($event)"
+                        (dataChanged)="onGlyphDataChanged($event)"
+                        (focusedElement)="onGlyphFocused($event)"></data-table>
+          </div>
+        </div>
+
+        <div>
+          <div class="preview-title">Kernings</div>
+          <div class="table-container">
+            <data-table [data]="kerningsWithSymbols"
+                        [columns]="_kerningColumns"
+                        [enableArrayEditing]="true"
+                        (addItem)="addKerning()"
+                        (removeItem)="removeKerning($event)"
+                        (moveItemUp)="moveKerningUp($event)"
+                        (moveItemDown)="moveKerningDown($event)"
+                        (dataChanged)="onKerningDataChanged($event)"></data-table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-tab>
+  <mat-tab label="Bitmap">
+    <div class="tab-content">
+      <image-block-ui [resource]="getChildResource(resource, 'bitmap')"
+                      [hideName]="true"
+                      [hideBlockActions]="true"
+                      (changed)="changed.emit()"></image-block-ui>
+    </div>
+  </mat-tab>
+</mat-tab-group>
