@@ -1,8 +1,8 @@
 import { Injectable, NgZone } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject } from 'rxjs';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
-import { ErrorDialogComponent } from '../components/error.dialog/error.dialog.component';
+import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
 

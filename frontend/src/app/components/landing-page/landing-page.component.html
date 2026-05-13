@@ -8,10 +8,10 @@
         Open File
       </button>
 
-      <div class="recent-files" *ngIf="((eelDelegate.recentFiles$ | async) || []).length > 0">
+      <div class="recent-files" *ngIf="((api.recentFiles$ | async) || []).length > 0">
         <h3>Recent Files</h3>
         <div class="recent-files-list">
-          <button mat-button *ngFor="let file of (eelDelegate.recentFiles$ | async)" (click)="openRecentFile(file)">
+          <button mat-button *ngFor="let file of (api.recentFiles$ | async)" (click)="openRecentFile(file)">
             <mat-icon>history</mat-icon>
             {{ getFileName(file) }}
           </button>

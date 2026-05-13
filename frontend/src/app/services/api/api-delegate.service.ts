@@ -1,8 +1,8 @@
 import { Injectable, NgZone } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject } from 'rxjs';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
-import { ErrorDialogComponent } from '../components/error.dialog/error.dialog.component';
+import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
 
 // These types are used by consumers of this service
 export type GeneralConfig = {
@@ -32,7 +32,7 @@ export type ConversionConfig = {
 @Injectable({
   providedIn: 'root',
 })
-export class EelDelegateService {
+export class ApiDelegateService {
   private _implPromise: Promise<any> | null = null;
   private _impl: any = null;
 
@@ -52,9 +52,9 @@ export class EelDelegateService {
 
   private async initImpl() {
     if (!this._implPromise) {
-      this._implPromise = import(/* webpackChunkName: "eel" */ './eel-delegate-impl/eel-delegate-impl.service').then(
+      this._implPromise = import(/* webpackChunkName: "eel" */ './api-delegate-impl.service').then(
         m => {
-          this._impl = new m.EelDelegateImplService(this.ngZone);
+          this._impl = new m.ApiDelegateImplService(this.ngZone);
           // Sync subjects from impl to this wrapper
           this._impl.openedResource$.subscribe((v: any) => {
             if (this.openedResource$.getValue() !== v) this.openedResource$.next(v);

@@ -28,7 +28,6 @@ import {
   Renderer3dEntity,
 } from '@gg-web-engine/core';
 import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, takeUntil } from 'rxjs';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import {
   AmbientLight,
   CubeReflectionMapping,
@@ -222,7 +221,6 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   constructor(
-    private readonly eelDelegate: EelDelegateService,
     private readonly cdr: ChangeDetectorRef,
     private readonly mainService: MainService,
   ) {
@@ -363,7 +361,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
     this.previewQfsLoading$.next(true);
     try {
-      const files = await this.eelDelegate.serializeResource(path);
+      const files = await this.mainService.api.serializeResource(path);
       const loader = new TextureLoader();
       const skyPath = files.find(x => x.endsWith('spherical.png'));
       if (skyPath) {
@@ -388,7 +386,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   private async loadTerrainChunks(blockId?: string) {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, null, {
+      const paths = await this.mainService.api.serializeResource(blockId, null, {
         geometry__save_obj: true,
         geometry__save_blend: false,
         geometry__export_to_gg_web_engine: false,
@@ -455,7 +453,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   private async postTmpUpdates(blockId: string | undefined) {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(
+      const paths = await this.mainService.api.serializeResource(
         blockId,
         null,
         {

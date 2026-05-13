@@ -1,5 +1,4 @@
 import { ChangeDetectorRef, Component, Input } from '@angular/core';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Resource, CustomAction } from '../../types';
@@ -20,7 +19,6 @@ export class BlockActionsComponent {
 
   constructor(
     readonly mainService: MainService,
-    readonly eelDelegate: EelDelegateService,
     readonly cdr: ChangeDetectorRef,
     private readonly customActionService: CustomActionService,
     private readonly snackBar: MatSnackBar,
@@ -42,11 +40,11 @@ export class BlockActionsComponent {
     } else {
       nameHint += this.resource.schema.serialization.output_file_name_suffix || '';
     }
-    let path = await this.eelDelegate.saveFileDialog(nameHint);
+    let path = await this.mainService.api.saveFileDialog(nameHint);
     if (!path) {
       return;
     }
-    const files = await this.eelDelegate.serializeResource(this.resource.id, path, this.resource.schema.serialization.reversible_settings_patch);
+    const files = await this.mainService.api.serializeResource(this.resource.id, path, this.resource.schema.serialization.reversible_settings_patch);
     debugger;
     if (files && files.length > 0) {
       const commonPathPart = files.reduce((commonBeginning, currentString) => {
@@ -60,7 +58,7 @@ export class BlockActionsComponent {
       const commonFolder = lastSlashIndex !== -1 ? commonPathPart.substring(0, lastSlashIndex) : commonPathPart;
       const snackBarRef = this.snackBar.open('Files exported', 'Open location', { duration: 10000 });
       snackBarRef.onAction().subscribe(() => {
-        this.eelDelegate.openFileWithSystemApp(commonFolder);
+        this.mainService.api.openFileWithSystemApp(commonFolder);
       });
     }
     this.cdr.markForCheck();
@@ -71,7 +69,7 @@ export class BlockActionsComponent {
       return;
     }
     // TODO need a way to select directory?
-    let paths = await this.eelDelegate.openFileDialog(true);
+    let paths = await this.mainService.api.openFileDialog(true);
     if (!paths) {
       return;
     }

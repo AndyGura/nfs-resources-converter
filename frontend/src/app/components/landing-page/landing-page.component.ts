@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { EelDelegateService } from '../../services/eel-delegate.service';
+import { ApiDelegateService } from '../../services/api/api-delegate.service';
 
 @Component({
   selector: 'app-landing-page',
@@ -7,17 +7,17 @@ import { EelDelegateService } from '../../services/eel-delegate.service';
   styleUrls: ['./landing-page.component.scss'],
 })
 export class LandingPageComponent {
-  constructor(public readonly eelDelegate: EelDelegateService) {}
+  constructor(public readonly api: ApiDelegateService) {}
 
   async openFile() {
-    const fileNames = await this.eelDelegate.openFileDialog();
+    const fileNames = await this.api.openFileDialog();
     if (fileNames.length > 0) {
-      await this.eelDelegate.openFile(fileNames[0], true);
+      await this.api.openFile(fileNames[0], true);
     }
   }
 
   async openRecentFile(path: string) {
-    await this.eelDelegate.openFile(path, true);
+    await this.api.openFile(path, true);
   }
 
   getFileName(path: string): string {

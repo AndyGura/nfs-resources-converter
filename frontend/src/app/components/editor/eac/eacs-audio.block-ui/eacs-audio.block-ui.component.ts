@@ -1,7 +1,6 @@
 import { AfterViewInit, Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
 import { NavigationService } from '../../../../services/navigation.service';
 import { Resource } from '../../types';
@@ -34,7 +33,6 @@ export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterVi
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   constructor(
-    private readonly eelDelegate: EelDelegateService,
     public readonly main: MainService,
     public readonly navigation: NavigationService,
   ) {
@@ -44,7 +42,7 @@ export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterVi
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
       this.audioUrl$.next(null);
       if (res) {
-        const paths = await this.eelDelegate.serializeResource(res.id);
+        const paths = await this.main.api.serializeResource(res.id);
         this.audioUrl$.next(paths.find(x => x.endsWith('.wav')) || null);
       }
     });

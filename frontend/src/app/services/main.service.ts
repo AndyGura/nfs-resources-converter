@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { EelDelegateService } from './eel-delegate.service';
+import { ApiDelegateService } from './api/api-delegate.service';
 import isEqual from 'lodash/isEqual';
 import isNumber from 'lodash/isNumber';
 import { findNestedObjects } from '../utils/find-nested-object';
@@ -24,18 +24,18 @@ export class MainService {
   public hideHiddenFields$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  constructor(readonly eelDelegate: EelDelegateService) {
-    this.eelDelegate.getGeneralConfig().then(config => {
+  constructor(public readonly api: ApiDelegateService) {
+    this.api.getGeneralConfig().then(config => {
       this.hideHiddenFields$.next(!config.show_hidden_fields);
       this.hideHiddenFields$.subscribe(async (hide) => {
-        const currentConfig = await this.eelDelegate.getGeneralConfig();
+        const currentConfig = await this.api.getGeneralConfig();
         if (currentConfig.show_hidden_fields !== !hide) {
-          await this.eelDelegate.patchGeneralConfig({ show_hidden_fields: !hide });
+          await this.api.patchGeneralConfig({ show_hidden_fields: !hide });
         }
       });
     });
-    this.eelDelegate.changedDataBlocks = this.changedDataBlocks;
-    this.eelDelegate.openedResource$.subscribe(value => {
+    this.api.changedDataBlocks = this.changedDataBlocks;
+    this.api.openedResource$.subscribe(value => {
       this.clearUnsavedChanges();
       if (value?.data.error_class) {
         this.error$.next(value);
@@ -70,7 +70,7 @@ export class MainService {
       }
       this.changedDataBlocks[blockId] = value;
       this.updateUnsavedChanges();
-      const originalValue = await this.eelDelegate.retrieveValue(blockId);
+      const originalValue = await this.api.retrieveValue(blockId);
       // if was changed by another concurrent call during awaiting
       if (this.changedDataBlocks[blockId] != value) {
         return;
@@ -142,20 +142,20 @@ export class MainService {
 
   public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
     if (action.is_pure) {
-      await this.eelDelegate.runCustomAction(id, action, args);
+      await this.api.runCustomAction(id, action, args);
     } else {
-      return this.processExternalChanges(id, () => this.eelDelegate.runCustomAction(id, action, args));
+      return this.processExternalChanges(id, () => this.api.runCustomAction(id, action, args));
     }
   }
 
   public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
-    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id, filePaths, extraOpts));
+    return this.processExternalChanges(id, () => this.api.deserializeResource(id, filePaths, extraOpts));
   }
 
   public async reloadResource() {
-    const path = this.eelDelegate.openedResourcePath$.getValue();
+    const path = this.api.openedResourcePath$.getValue();
     if (path) {
-      this.eelDelegate.openFile(path, true).then();
+      this.api.openFile(path, true).then();
     }
   }
 
@@ -163,7 +163,7 @@ export class MainService {
     this.isSaving$.next(true);
     try {
       const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
-      await this.eelDelegate.saveFile(
+      await this.api.saveFile(
         changes.map(([id, value]) => {
           return { id, value };
         }),
@@ -175,6 +175,6 @@ export class MainService {
   }
 
   public async getNewItemData(id: string): Promise<any> {
-    return this.eelDelegate.getNewItemData(id);
+    return this.api.getNewItemData(id);
   }
 }

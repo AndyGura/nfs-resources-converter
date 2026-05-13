@@ -137,9 +137,9 @@
     </div>
 
     <div *ngIf="isConverting" class="progress-container">
-      <mat-progress-bar mode="determinate" [value]="(eelDelegate.conversionProgress$ | async)![1] > 0 ? ((eelDelegate.conversionProgress$ | async)![0] / (eelDelegate.conversionProgress$ | async)![1]) * 100 : 0" class="progress-bar"></mat-progress-bar>
+      <mat-progress-bar mode="determinate" [value]="(api.conversionProgress$ | async)![1] > 0 ? ((api.conversionProgress$ | async)![0] / (api.conversionProgress$ | async)![1]) * 100 : 0" class="progress-bar"></mat-progress-bar>
       <div class="progress-text">
-        {{ (eelDelegate.conversionProgress$ | async)![0] }} / {{ (eelDelegate.conversionProgress$ | async)![1] }} files processed
+        {{ (api.conversionProgress$ | async)![0] }} / {{ (api.conversionProgress$ | async)![1] }} files processed
       </div>
     </div>
   </form>

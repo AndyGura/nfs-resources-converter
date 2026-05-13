@@ -71,8 +71,8 @@
               "namedChunks": true,
               "fileReplacements": [
                 {
-                  "replace": "src/app/services/eel-delegate.service.ts",
-                  "with": "src/app/services/eel-delegate.service.local.ts"
+                  "replace": "src/app/services/api/api-delegate.service.ts",
+                  "with": "src/app/services/api/api-delegate.service.local.ts"
                 }
               ]
             }

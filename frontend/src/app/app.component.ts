@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
-import { EelDelegateService } from './services/eel-delegate.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MainService } from './services/main.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -20,7 +19,6 @@ export class AppComponent {
   readonly isProduction = environment.production;
 
   constructor(
-    readonly eelDelegate: EelDelegateService,
     readonly mainService: MainService,
     readonly dialog: MatDialog,
     readonly navigation: NavigationService,
@@ -30,17 +28,17 @@ export class AppComponent {
   }
 
   async openFile() {
-    const fileNames = await this.eelDelegate.openFileDialog();
+    const fileNames = await this.mainService.api.openFileDialog();
     if (fileNames.length > 0) {
-      await this.eelDelegate.openFile(fileNames[0], true);
+      await this.mainService.api.openFile(fileNames[0], true);
     }
   }
 
   async openRecentFile(path: string) {
-    if (this.eelDelegate.openedResourcePath$.getValue() === path) {
+    if (this.mainService.api.openedResourcePath$.getValue() === path) {
       return;
     }
-    await this.eelDelegate.openFile(path, true);
+    await this.mainService.api.openFile(path, true);
   }
 
   getFileName(path: string): string {
@@ -51,7 +49,7 @@ export class AppComponent {
   }
 
   closeFile() {
-    this.eelDelegate.closeFile().then();
+    this.mainService.api.closeFile().then();
   }
 
   async saveResource() {

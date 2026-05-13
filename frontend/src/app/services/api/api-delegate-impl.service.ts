@@ -29,7 +29,7 @@ type ConversionConfig = {
 };
 
 @Injectable()
-export class EelDelegateImplService {
+export class ApiDelegateImplService {
   public readonly openedResource$: BehaviorSubject<Resource | ResourceError | null> = new BehaviorSubject<
     Resource | ResourceError | null
   >(null);

@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { MainService } from '../../../../services/main.service';
 import { Object3D } from 'three';
 import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
@@ -44,7 +43,6 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
   customControls: ObjViewerCustomControl[] = [];
 
   constructor(
-    private readonly eelDelegate: EelDelegateService,
     private readonly mainService: MainService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
@@ -71,7 +69,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
         const idParts = this.resource?.id.split('/')!;
         idParts.pop();
         idParts[idParts.length - 1] = '' + (+idParts[idParts.length - 1] + 1);
-        const shpiData = await this.eelDelegate.retrieveValue(idParts.join('/') + '/data');
+        const shpiData = await this.mainService.api.retrieveValue(idParts.join('/') + '/data');
         const paletteIndex = shpiData.children_aliases.findIndex((x: string) => x === '!PAL');
         if (paletteIndex == -1) throw new Error('Not a car');
         const meshController = new TnfsCarMeshController(
@@ -129,7 +127,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(
+      const paths = await this.mainService.api.serializeResource(
         blockId,
         null,
         this.serializerSettings,
@@ -141,7 +139,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
 
   private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, null, this.serializerSettings);
+      const paths = await this.mainService.api.serializeResource(blockId, null, this.serializerSettings);
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;

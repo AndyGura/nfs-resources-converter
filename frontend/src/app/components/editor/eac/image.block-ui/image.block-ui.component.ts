@@ -11,7 +11,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { MainService } from '../../../../services/main.service';
 import { CustomAction, Resource } from '../../types';
@@ -77,7 +76,6 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   constructor(
-    private readonly eelDelegate: EelDelegateService,
     public readonly main: MainService,
     private readonly cdr: ChangeDetectorRef,
     private readonly customActionService: CustomActionService,
@@ -88,7 +86,7 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
       if (res) {
         this.imageUrl$.next(null);
         setTimeout(() => this.fitZoom(), 0);
-        const paths = await this.eelDelegate.serializeResource(res.id);
+        const paths = await this.main.api.serializeResource(res.id);
         let url = paths.find(x => x.endsWith('.png'));
         if (!url) {
           this.imageUrl$.next(null);
