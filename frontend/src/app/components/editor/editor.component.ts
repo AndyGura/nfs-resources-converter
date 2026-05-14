@@ -1,34 +1,11 @@
 import { ChangeDetectionStrategy, Component, ComponentRef, Input, OnDestroy, Type, ViewChild } from '@angular/core';
 import { DataBlockUIDirective } from './data-block-ui.directive';
 import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
-import { GuiComponentInterface } from './gui-component.interface';
-import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
-import { NumberBlockUiComponent } from './library/number.block-ui/number.block-ui.component';
-import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
-import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
-import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
-import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
-import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
-import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
-import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
-import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
-import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
-import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
+import { GuiComponentInterfaceNew } from './gui-component.interface';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
-import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
-import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
 import { joinId } from '../../utils/join-id';
 import isObject from 'lodash/isObject';
-import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
-import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
-import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
-import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
-import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
-import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
-import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
-import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { Resource, ResourceError } from './types';
 
 @Component({
@@ -38,46 +15,48 @@ import { Resource, ResourceError } from './types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditorComponent implements OnDestroy {
-  static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
-    ArrayBlock: ArrayBlockUiComponent,
-    SubByteArrayBlock: ArrayBlockUiComponent,
-
-    SubByteCompoundBlock: SubByteCompoundBlockUiComponent,
-    BytesBlock: BinaryBlockUiComponent,
-    CompoundBlock: CompoundBlockUiComponent,
+  static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterfaceNew> } = {
+    // General
     DataBlock: FallbackBlockUiComponent,
-    DelegateBlock: DelegateBlockUiComponent,
-    EnumByteBlock: EnumBlockUiComponent,
 
-    IntegerBlock: NumberBlockUiComponent,
-    DecimalBlock: NumberBlockUiComponent,
-
-    UTF8Block: StringBlockUiComponent,
-    NullTerminatedUTF8Block: StringBlockUiComponent,
-
-    SkipBlock: SkipBlockUiComponent,
-    // NFS1 blocks
-    AngleBlock: AngleBlockUiComponent,
-    EacImage: ImageBlockUiComponent,
-    EacPalette: PaletteBlockUiComponent,
-    OripGeometry: OripGeometryBlockUiComponent,
-    BaseArchiveBlock: BaseArchiveBlockUiComponent,
-    TriMap: TriMapBlockUiComponent,
-    WwwwBlock: WwwwBlockUiComponent,
-    SoundBank: SoundbankBlockUiComponent,
-    EacsAudioFile: EacsAudioBlockUiComponent,
-    // NFS2 blocks
-    GeoGeometry: GeoGeometryBlockUiComponent,
-    TrkMap: TrkMapBlockUiComponent,
-    // NFS3 blocks
-    FrdMap: FrdMapBlockUiComponent,
-    // NFS5 blocks
-    CrpGeometry: CrpGeometryBlockUiComponent,
+    // ArrayBlock: ArrayBlockUiComponent,
+    // SubByteArrayBlock: ArrayBlockUiComponent,
+    //
+    // SubByteCompoundBlock: SubByteCompoundBlockUiComponent,
+    // BytesBlock: BinaryBlockUiComponent,
+    // CompoundBlock: CompoundBlockUiComponent,
+    // DelegateBlock: DelegateBlockUiComponent,
+    // EnumByteBlock: EnumBlockUiComponent,
+    //
+    // IntegerBlock: NumberBlockUiComponent,
+    // DecimalBlock: NumberBlockUiComponent,
+    //
+    // UTF8Block: StringBlockUiComponent,
+    // NullTerminatedUTF8Block: StringBlockUiComponent,
+    //
+    // SkipBlock: SkipBlockUiComponent,
+    // // NFS1 blocks
+    // AngleBlock: AngleBlockUiComponent,
+    // EacImage: ImageBlockUiComponent,
+    // EacPalette: PaletteBlockUiComponent,
+    // OripGeometry: OripGeometryBlockUiComponent,
+    // BaseArchiveBlock: BaseArchiveBlockUiComponent,
+    // TriMap: TriMapBlockUiComponent,
+    // WwwwBlock: WwwwBlockUiComponent,
+    // SoundBank: SoundbankBlockUiComponent,
+    // EacsAudioFile: EacsAudioBlockUiComponent,
+    // // NFS2 blocks
+    // GeoGeometry: GeoGeometryBlockUiComponent,
+    // TrkMap: TrkMapBlockUiComponent,
+    // // NFS3 blocks
+    // FrdMap: FrdMapBlockUiComponent,
+    // // NFS5 blocks
+    // CrpGeometry: CrpGeometryBlockUiComponent,
   };
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
 
-  _component: ComponentRef<GuiComponentInterface> | null = null;
+  _component: ComponentRef<GuiComponentInterfaceNew> | null = null;
   _componentChangedSub: Subscription | null = null;
 
   private destroyed$: Subject<void> = new Subject<void>();
@@ -129,27 +108,27 @@ export class EditorComponent implements OnDestroy {
     }
   }
 
-  resourceEqual(resA: Resource | ResourceError | null, resB: Resource | ResourceError | null): boolean {
-    if (!resA || !resB) {
-      return !resA === !resB;
-    }
-    if (resA.id !== resB.id) {
-      return false;
-    }
-    if (resA === resB || resA.data === resB.data) {
-      return true;
-    }
-    return this.deep.deepEquals(resA.data, resB.data);
-  }
+  // resourceEqual(resA: Resource | ResourceError | null, resB: Resource | ResourceError | null): boolean {
+  //   if (!resA || !resB) {
+  //     return !resA === !resB;
+  //   }
+  //   if (resA.id !== resB.id) {
+  //     return false;
+  //   }
+  //   if (resA === resB || resA.data === resB.data) {
+  //     return true;
+  //   }
+  //   return this.deep.deepEquals(resA.data, resB.data);
+  // }
 
   @Input()
   public set resource(value: Resource | ResourceError | null) {
-    if (this.resourceEqual(value, this._resourceError || this._resource)) {
-      return;
-    }
     this.resourceSet$.next();
-    // TODO reusing components does not work for some reason. At least when child is compound block with the same schema
-    let reuseComponent = false; //!!this._component && value && this._resource && value.schema.block_class_mro === this._resource.schema.block_class_mro;
+    let reuseComponent =
+      !!this._component &&
+      value &&
+      this._resource &&
+      value.schema.block_class_mro === this._resource.schema.block_class_mro;
     if (!value) {
       this._resource = null;
       this._resourceError = null;
@@ -166,7 +145,7 @@ export class EditorComponent implements OnDestroy {
     if (this._resource) {
       if (this._resource.schema.block_class_mro) {
         if (!reuseComponent) {
-          let component: Type<GuiComponentInterface> | undefined;
+          let component: Type<GuiComponentInterfaceNew> | undefined;
           for (const className of this._resource.schema.block_class_mro.split('__')) {
             component = EditorComponent.DATA_BLOCK_COMPONENTS_MAP[className];
             if (component) {
@@ -203,7 +182,10 @@ export class EditorComponent implements OnDestroy {
               }
             });
         }
-        this._component!.instance.resource = this._resource;
+        this._component!.instance.resourceId = this._resource.id;
+        this._component!.instance.resourceName = this._resource.name;
+        this._component!.instance.resourceSchema = this._resource.schema;
+        this._component!.instance.resourceData = this._resource.data;
         this._component!.instance.resourceDescription = this._resourceDescription;
         this._component!.instance.hideName = this._hideName;
         this._component!.instance.hideBlockActions = this._hideBlockActions;
@@ -215,7 +197,7 @@ export class EditorComponent implements OnDestroy {
     }
   }
 
-  constructor(readonly mainService: MainService, private readonly deep: NgxDeepEqualsPureService) {}
+  constructor(readonly mainService: MainService) {}
 
   ngOnDestroy(): void {
     this.destroyed$.next();

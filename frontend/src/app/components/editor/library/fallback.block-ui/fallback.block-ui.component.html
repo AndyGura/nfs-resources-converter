@@ -1,3 +1,9 @@
-<p [matTooltip]="resourceDescription" matTooltipPosition="above">{{ resource?.name }}>
-  GUI component for block {{ (resource?.schema?.block_class_mro || '').split('__')[0] }} not implemented :(
-</p>
+<mat-form-field appearance="fill" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+  <mat-label *ngIf="resourceName && !hideName">{{ resourceName }}</mat-label>
+  <div class="fallback-container">
+    <mat-icon color="warn">warning</mat-icon>
+    <span class="message" [innerHTML]="displayClass + ' UI not implemented'">
+    </span>
+  </div>
+  <input matInput style="display: none" [disabled]="true">
+</mat-form-field>
