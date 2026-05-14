@@ -153,11 +153,20 @@ export class ApiDelegateImplService {
     });
   }
 
-  public async serializeResource(id: string, path: string | null = null, changes = [], settingsPatch: any = {}): Promise<string[]> {
+  public async serializeResource(
+    id: string,
+    path: string | null = null,
+    changes = [],
+    settingsPatch: any = {},
+  ): Promise<string[]> {
     return this.enqueue(() => eel['serialize_resource'](id, path, changes, settingsPatch)());
   }
 
-  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<BlockData | ReadError> {
+  public async deserializeResource(
+    id: string,
+    filePaths: string[],
+    extraOpts: any = {},
+  ): Promise<BlockData | ReadError> {
     return this.enqueue(() => eel['deserialize_resource'](id, filePaths, extraOpts)());
   }
 
