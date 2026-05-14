@@ -48,10 +48,9 @@ export type ViewFilterOpts = {
   filterGroups: string[];
   checkedIndex: number;
   pickFunction: (object: Object3D) => number;
-}
+};
 
 class ViewFilter {
-
   private _meshes: Object3D[] = [];
 
   get opts(): ViewFilterOpts {
@@ -67,8 +66,7 @@ class ViewFilter {
     this.selectFirstNonEmptyGroup();
   }
 
-  constructor(private _opts: ViewFilterOpts) {
-  }
+  constructor(private _opts: ViewFilterOpts) {}
 
   isGroupEmpty(group: string): boolean {
     const groupIndex = this._opts.filterGroups.indexOf(group);
@@ -93,38 +91,37 @@ class ViewFilter {
     }
     this._opts.checkedIndex = 0;
   }
-
 }
 
 type Control =
   | {
-  label: string;
-  type: 'checkbox';
-  value: boolean;
-  change: (value: boolean) => void;
-}
+      label: string;
+      type: 'checkbox';
+      value: boolean;
+      change: (value: boolean) => void;
+    }
   | {
-  label: string;
-  type: 'radio';
-  options: string[];
-  value: string;
-  change: (value: string) => void;
-}
+      label: string;
+      type: 'radio';
+      options: string[];
+      value: string;
+      change: (value: string) => void;
+    }
   | {
-  label: string;
-  type: 'color';
-  value: number;
-  change: (value: number) => void;
-}
+      label: string;
+      type: 'color';
+      value: number;
+      change: (value: number) => void;
+    }
   | {
-  label: string;
-  type: 'slider';
-  value: number;
-  minValue: number;
-  maxValue: number;
-  valueStep: number;
-  change: (value: number) => void;
-};
+      label: string;
+      type: 'slider';
+      value: number;
+      minValue: number;
+      maxValue: number;
+      valueStep: number;
+      change: (value: number) => void;
+    };
 
 export type ObjViewerCustomControl = {
   title: string;
@@ -149,7 +146,6 @@ export const setupNfs1Texture = (texture: Texture) => {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ObjViewerComponent implements AfterViewInit, OnDestroy {
-
   private _cameraControl: 'orbit' | 'free' = 'orbit';
   get cameraControl(): 'orbit' | 'free' {
     return this._cameraControl;
@@ -214,7 +210,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   meshes: Object3D[] = [];
   displayMeshes: Object3D[] = [];
-  uiGroups: { [prefix: string]: { visible: boolean, meshes: Object3D[] } } | null = null;
+  uiGroups: { [prefix: string]: { visible: boolean; meshes: Object3D[] } } | null = null;
 
   ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
   viewModeController?: ViewModeController;
@@ -224,8 +220,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef) {
-  }
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
   private setupCameraController() {
     if (this.controller) {

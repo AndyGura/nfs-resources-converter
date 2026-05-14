@@ -36,7 +36,7 @@ export class BlockActionsComponent {
       nameHint = lastIdPart(resId);
     }
     if (this.resource.schema.serialization.is_directory) {
-      nameHint += '/'
+      nameHint += '/';
     } else {
       nameHint += this.resource.schema.serialization.output_file_name_suffix || '';
     }
@@ -44,7 +44,11 @@ export class BlockActionsComponent {
     if (!path) {
       return;
     }
-    const files = await this.mainService.api.serializeResource(this.resource.id, path, this.resource.schema.serialization.reversible_settings_patch);
+    const files = await this.mainService.api.serializeResource(
+      this.resource.id,
+      path,
+      this.resource.schema.serialization.reversible_settings_patch,
+    );
     debugger;
     if (files && files.length > 0) {
       const commonPathPart = files.reduce((commonBeginning, currentString) => {

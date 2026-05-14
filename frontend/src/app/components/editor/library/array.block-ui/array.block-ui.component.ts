@@ -102,8 +102,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   get enableArrayEditing(): boolean {
     return (
-      !this.schema?.block_class_mro?.includes('SubByteArrayBlock')
-      && (!this.schema?.length && this.schema?.length !== 0)
+      !this.schema?.block_class_mro?.includes('SubByteArrayBlock') && !this.schema?.length && this.schema?.length !== 0
     );
   }
 
@@ -111,8 +110,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     public main: MainService,
     private readonly cdr: ChangeDetectorRef,
     public readonly navigation: NavigationService,
-  ) {
-  }
+  ) {}
 
   async addItem() {
     if (!this.resource || !this.enableArrayEditing) return;
@@ -176,7 +174,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     'DecimalBlock',
     'UTF8Block',
     'NullTerminatedUTF8Block',
-    'EnumByteBlock'
+    'EnumByteBlock',
   ];
   tableColumns: string[] | null = null;
   arrayTableColumns: ArrayTableColumn[] | null = null;
@@ -188,17 +186,19 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }
     const mro = childSchema.block_class_mro || '';
     const isWhitelisted = (className: string) => {
-      return this.tableBlockTypeWhitelist.some((w) => className.startsWith(w + '__'));
+      return this.tableBlockTypeWhitelist.some(w => className.startsWith(w + '__'));
     };
 
     if (isWhitelisted(mro)) {
       this.tableColumns = ['index', 'data'];
-      this.arrayTableColumns = [{
-        key: 'data',
-        index: 0,
-        schema: childSchema,
-        readonly: childSchema.value_validator?.type === 'eq',
-      }];
+      this.arrayTableColumns = [
+        {
+          key: 'data',
+          index: 0,
+          schema: childSchema,
+          readonly: childSchema.value_validator?.type === 'eq',
+        },
+      ];
     } else if (mro.includes('CompoundBlock__')) {
       const fields = childSchema.fields || [];
       const uiFields = fields
@@ -211,8 +211,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
           return true;
         }
         if (nestedMro.includes('CompoundBlock__')) {
-          const subFields = (f.schema.fields || [])
-            .filter((sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'));
+          const subFields = (f.schema.fields || []).filter(
+            (sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'),
+          );
           return subFields.length > 0 && subFields.every((sf: any) => isWhitelisted(sf.schema.block_class_mro || ''));
         }
         return false;
@@ -249,7 +250,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
             schema: f.schema,
           };
         });
-        this.tableColumns = ['index', ...this.arrayTableColumns!.map((f) => f.key)];
+        this.tableColumns = ['index', ...this.arrayTableColumns!.map(f => f.key)];
       }
     }
   }
@@ -345,7 +346,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   private updatePagedData(): void {
     if (this.pageSize > 0) {
-      this.pagedData = (this.resourceData || []).slice(this.pageIndex * this.pageSize, (this.pageIndex + 1) * this.pageSize);
+      this.pagedData = (this.resourceData || []).slice(
+        this.pageIndex * this.pageSize,
+        (this.pageIndex + 1) * this.pageSize,
+      );
     } else {
       this.pagedData = this.resourceData || [];
     }

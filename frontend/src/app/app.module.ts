@@ -33,7 +33,13 @@ import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
 
 @NgModule({
-  declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, ErrorDialogComponent, LandingPageComponent],
+  declarations: [
+    AppComponent,
+    ConfirmDialogComponent,
+    RunCustomActionDialogComponent,
+    ErrorDialogComponent,
+    LandingPageComponent,
+  ],
   imports: [
     CommonModule,
     BrowserModule,

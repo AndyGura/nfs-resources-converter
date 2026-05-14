@@ -42,10 +42,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(
-    public readonly main: MainService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  constructor(public readonly main: MainService, private readonly cdr: ChangeDetectorRef) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
@@ -127,11 +124,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.main.api.serializeResource(
-        blockId,
-        null,
-        this.serializerSettings,
-      );
+      const paths = await this.main.api.serializeResource(blockId, null, this.serializerSettings);
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;
@@ -158,7 +151,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     name: 'LOD',
     filterGroups: ['High-poly', 'Medium-poly', 'Low-poly', 'Reserved', 'Unknown'],
     checkedIndex: 0,
-    pickFunction: (object) => {
+    pickFunction: object => {
       if (object.name.startsWith('part_hp')) {
         return 0;
       } else if (object.name.startsWith('part_mp')) {
@@ -170,8 +163,8 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
       } else {
         return 4;
       }
-    }
-  }
+    },
+  };
 
   ngOnDestroy(): void {
     this.destroyed$.next();

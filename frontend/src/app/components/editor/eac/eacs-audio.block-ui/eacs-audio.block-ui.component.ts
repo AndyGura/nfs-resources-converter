@@ -32,11 +32,7 @@ export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterVi
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor(
-    public readonly main: MainService,
-    public readonly navigation: NavigationService,
-  ) {
-  }
+  constructor(public readonly main: MainService, public readonly navigation: NavigationService) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {

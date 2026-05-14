@@ -11,7 +11,9 @@ import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../
 })
 export class MainService {
   private readonly _hasUnsavedChanges$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-  private readonly _stagedChanges$: BehaviorSubject<{ [key: string]: any }> = new BehaviorSubject<{ [key: string]: any }>({});
+  private readonly _stagedChanges$: BehaviorSubject<{ [key: string]: any }> = new BehaviorSubject<{
+    [key: string]: any;
+  }>({});
   resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
@@ -27,7 +29,7 @@ export class MainService {
   constructor(public readonly api: ApiDelegateService) {
     this.api.getGeneralConfig().then(config => {
       this.hideHiddenFields$.next(!config.show_hidden_fields);
-      this.hideHiddenFields$.subscribe(async (hide) => {
+      this.hideHiddenFields$.subscribe(async hide => {
         const currentConfig = await this.api.getGeneralConfig();
         if (currentConfig.show_hidden_fields !== !hide) {
           await this.api.patchGeneralConfig({ show_hidden_fields: !hide });
@@ -114,23 +116,23 @@ export class MainService {
         this.customActionRunning$.next(false);
         throw res;
       }
-    if (this.resource$.getValue()!.id === id) {
-      this.resource$.getValue()!.data = res;
+      if (this.resource$.getValue()!.id === id) {
+        this.resource$.getValue()!.data = res;
       } else {
         let dataPath = id
-        .substring(this.resource$.getValue()!.id.length)
+          .substring(this.resource$.getValue()!.id.length)
           .replace('__', '/')
           .split('/')
           .filter(x => x);
-      let data: any = this.resource$.getValue()!.data;
-      for (const key of dataPath.slice(0, dataPath.length - 1)) {
-        data = data[key] || data[+key];
-      }
-      let lastKey: any = dataPath[dataPath.length - 1];
-      if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
-        lastKey = +lastKey;
-      }
-      data[lastKey] = res;
+        let data: any = this.resource$.getValue()!.data;
+        for (const key of dataPath.slice(0, dataPath.length - 1)) {
+          data = data[key] || data[+key];
+        }
+        let lastKey: any = dataPath[dataPath.length - 1];
+        if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
+          lastKey = +lastKey;
+        }
+        data[lastKey] = res;
       }
       this.clearUnsavedChanges();
       this.changedDataBlocks['__has_external_changes__'] = 1;

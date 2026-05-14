@@ -5,7 +5,7 @@ import {
   EventEmitter,
   Input,
   Output,
-  ViewChild
+  ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { NgxMatColorPickerComponent } from '@angular-material-components/color-picker/lib/components/color-picker/color-picker.component';
@@ -46,10 +46,7 @@ export class PaletteBlockUiComponent implements GuiComponentInterface {
 
   @ViewChild('picker') picker!: NgxMatColorPickerComponent;
 
-  constructor(
-    private readonly mainService: MainService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  constructor(private readonly mainService: MainService, private readonly cdr: ChangeDetectorRef) {}
 
   lpad(str: string, padString: string, length: number) {
     while (str.length < length) str = padString + str;

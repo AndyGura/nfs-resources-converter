@@ -220,11 +220,7 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(
-    private readonly cdr: ChangeDetectorRef,
-    private readonly mainService: MainService,
-  ) {
-  }
+  constructor(private readonly cdr: ChangeDetectorRef, private readonly mainService: MainService) {}
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
@@ -453,20 +449,16 @@ export class TrkMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   private async postTmpUpdates(blockId: string | undefined) {
     if (blockId) {
-      const paths = await this.mainService.api.serializeResource(
-        blockId,
-        null,
-        {
-          geometry__save_obj: true,
-          geometry__save_blend: false,
-          geometry__export_to_gg_web_engine: false,
-          maps__save_as_chunked: true,
-          maps__save_invisible_wall_collisions: false,
-          maps__save_terrain_collisions: false,
-          maps__save_spherical_skybox_texture: true,
-          maps__add_props_to_obj: false,
-        },
-      );
+      const paths = await this.mainService.api.serializeResource(blockId, null, {
+        geometry__save_obj: true,
+        geometry__save_blend: false,
+        geometry__export_to_gg_web_engine: false,
+        maps__save_as_chunked: true,
+        maps__save_invisible_wall_collisions: false,
+        maps__save_terrain_collisions: false,
+        maps__save_spherical_skybox_texture: true,
+        maps__add_props_to_obj: false,
+      });
       this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
     } else {
       this.terrainChunksObjLocation = undefined;

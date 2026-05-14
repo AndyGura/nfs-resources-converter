@@ -173,8 +173,8 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
     const imgRect = imgElement.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
 
-    const relativeX = (anchorX + scrollLeft) - (imgRect.left - containerRect.left + scrollLeft);
-    const relativeY = (anchorY + scrollTop) - (imgRect.top - containerRect.top + scrollTop);
+    const relativeX = anchorX + scrollLeft - (imgRect.left - containerRect.left + scrollLeft);
+    const relativeY = anchorY + scrollTop - (imgRect.top - containerRect.top + scrollTop);
 
     const newRelativeX = relativeX * zoomRatio;
     const newRelativeY = relativeY * zoomRatio;
@@ -190,7 +190,7 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
       container.scrollLeft = newRelativeX + imgOffsetLeft - anchorX;
       container.scrollTop = newRelativeY + imgOffsetTop - anchorY;
-    })
+    });
   }
 
   onMouseDown(event: MouseEvent) {
@@ -208,8 +208,8 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
     event.preventDefault();
     const x = event.pageX - this.imageContainer.nativeElement.offsetLeft;
     const y = event.pageY - this.imageContainer.nativeElement.offsetTop;
-    const walkX = (x - this.startX);
-    const walkY = (y - this.startY);
+    const walkX = x - this.startX;
+    const walkY = y - this.startY;
     this.imageContainer.nativeElement.scrollLeft = this.startScrollLeft - walkX;
     this.imageContainer.nativeElement.scrollTop = this.startScrollTop - walkY;
   }
@@ -266,7 +266,9 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
       this.changed.next();
       return;
     }
-    const action = this.resource.schema.custom_actions.find((a: CustomAction) => a.method === 'convert_to_' + newFormatSmpl);
+    const action = this.resource.schema.custom_actions.find(
+      (a: CustomAction) => a.method === 'convert_to_' + newFormatSmpl,
+    );
     if (action) {
       const success = await this.customActionService.runCustomAction(this.resource, action);
       if (!success && this.formatSelect) {

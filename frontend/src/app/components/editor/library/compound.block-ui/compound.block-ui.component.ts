@@ -71,7 +71,11 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(public readonly main: MainService, public readonly navigation: NavigationService, private readonly cdr: ChangeDetectorRef) {}
+  constructor(
+    public readonly main: MainService,
+    public readonly navigation: NavigationService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
   ngAfterViewInit(): void {
     // TODO make this work in all components I guess?

@@ -393,36 +393,32 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(
-    private readonly cdr: ChangeDetectorRef,
-    private readonly mainService: MainService,
-  ) {
-  }
+  constructor(private readonly cdr: ChangeDetectorRef, private readonly mainService: MainService) {}
 
   get previewFamPossibleLocations(): string[] {
     const blockId = this.resource?.id;
     if (blockId) {
       return [
         blockId.substring(0, blockId.indexOf('MISC')) +
-        'ETRACKFM' +
-        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-        '_001.FAM',
+          'ETRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_001.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-        'GTRACKFM' +
-        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-        '_001.FAM',
+          'GTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_001.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-        'NTRACKFM' +
-        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-        '_M01.FAM',
+          'NTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_M01.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-        'NTRACKFM' +
-        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-        '_R01.FAM',
+          'NTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_R01.FAM',
         blockId.substring(0, blockId.indexOf('MISC')) +
-        'NTRACKFM' +
-        blockId.substr(blockId.indexOf('MISC') + 4, 4) +
-        '_T01.FAM',
+          'NTRACKFM' +
+          blockId.substr(blockId.indexOf('MISC') + 4, 4) +
+          '_T01.FAM',
       ];
     } else {
       return [];
@@ -694,20 +690,16 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   private async postTmpUpdates(blockId: string | undefined) {
     if (blockId) {
-      const paths = await this.mainService.api.serializeResource(
-        blockId,
-        null,
-        {
-          geometry__save_obj: true,
-          geometry__save_blend: false,
-          geometry__export_to_gg_web_engine: false,
-          maps__save_as_chunked: true,
-          maps__save_invisible_wall_collisions: false,
-          maps__save_terrain_collisions: false,
-          maps__save_spherical_skybox_texture: true,
-          maps__add_props_to_obj: false,
-        },
-      );
+      const paths = await this.mainService.api.serializeResource(blockId, null, {
+        geometry__save_obj: true,
+        geometry__save_blend: false,
+        geometry__export_to_gg_web_engine: false,
+        maps__save_as_chunked: true,
+        maps__save_invisible_wall_collisions: false,
+        maps__save_terrain_collisions: false,
+        maps__save_spherical_skybox_texture: true,
+        maps__add_props_to_obj: false,
+      });
       this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
     } else {
       this.terrainChunksObjLocation = undefined;

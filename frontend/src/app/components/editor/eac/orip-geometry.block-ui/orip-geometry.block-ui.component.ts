@@ -42,10 +42,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
 
   customControls: ObjViewerCustomControl[] = [];
 
-  constructor(
-    private readonly mainService: MainService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  constructor(private readonly mainService: MainService, private readonly cdr: ChangeDetectorRef) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
@@ -127,11 +124,7 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.mainService.api.serializeResource(
-        blockId,
-        null,
-        this.serializerSettings,
-      );
+      const paths = await this.mainService.api.serializeResource(blockId, null, this.serializerSettings);
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;

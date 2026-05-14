@@ -8,15 +8,14 @@ import { ConfirmDialogComponent } from '../components/confirm.dialog/confirm.dia
 import { RunCustomActionDialogComponent } from '../components/run-custom-action.dialog/run-custom-action.dialog.component';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CustomActionService {
-
   constructor(
     private readonly mainService: MainService,
     private readonly dialog: MatDialog,
     private readonly snackBar: MatSnackBar,
-  ) { }
+  ) {}
 
   async runCustomAction(resource: Resource, action: CustomAction): Promise<boolean> {
     if (this.mainService.hasUnsavedChanges) {
@@ -41,7 +40,7 @@ export class CustomActionService {
     const dialogRef = this.dialog.open(RunCustomActionDialogComponent, {
       data: {
         action: action,
-        resourceName: resource.name || ''
+        resourceName: resource.name || '',
       },
     });
 

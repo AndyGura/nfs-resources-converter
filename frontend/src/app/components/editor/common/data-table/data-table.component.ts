@@ -26,7 +26,6 @@ export interface ArrayTableColumn {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DataTableComponent implements DoCheck {
-
   private _columns: ArrayTableColumn[] | null = null;
   get columns(): ArrayTableColumn[] | null {
     return this._columns;
@@ -78,16 +77,18 @@ export class DataTableComponent implements DoCheck {
   @Output() removeItem = new EventEmitter<number>();
   @Output() moveItemUp = new EventEmitter<number>();
   @Output() moveItemDown = new EventEmitter<number>();
-  @Output() dataChanged = new EventEmitter<{ index: number; field: string | null; subField: string | null; value: any }>();
+  @Output() dataChanged = new EventEmitter<{
+    index: number;
+    field: string | null;
+    subField: string | null;
+    value: any;
+  }>();
   @Output() focusedElement = new EventEmitter<[string[], number]>();
 
   public hasSubFields: boolean = false;
   public isPrimitive: boolean = false;
 
-  constructor(
-    private cdr: ChangeDetectorRef,
-    private differs: IterableDiffers,
-  ) {}
+  constructor(private cdr: ChangeDetectorRef, private differs: IterableDiffers) {}
 
   ngDoCheck(): void {
     const changes = this.iterableDiffer?.diff(this.data);
@@ -98,11 +99,11 @@ export class DataTableComponent implements DoCheck {
   }
 
   isNumeric(mro: string): boolean {
-    return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some((w) => mro.startsWith(w + '__'));
+    return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some(w => mro.startsWith(w + '__'));
   }
 
   isString(mro: string): boolean {
-    return ['UTF8Block', 'NullTerminatedUTF8Block'].some((w) => mro.startsWith(w + '__'));
+    return ['UTF8Block', 'NullTerminatedUTF8Block'].some(w => mro.startsWith(w + '__'));
   }
 
   isEnum(mro: string): boolean {

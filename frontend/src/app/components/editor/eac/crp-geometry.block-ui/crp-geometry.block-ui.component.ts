@@ -39,10 +39,7 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(
-    private readonly mainService: MainService,
-  ) {
-  }
+  constructor(private readonly mainService: MainService) {}
 
   async ngAfterViewInit() {
     this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
@@ -69,11 +66,7 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
 
   private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
     if (blockId) {
-      const paths = await this.mainService.api.serializeResource(
-        blockId,
-        null,
-        this.serializerSettings,
-      );
+      const paths = await this.mainService.api.serializeResource(blockId, null, this.serializerSettings);
       return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
     }
     return null;
@@ -90,9 +83,19 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
   public readonly previewViewFilters: ViewFilterOpts[] = [
     {
       name: 'LOD',
-      filterGroups: ['Uncategorized', 'Lod level 0', 'LOD level 1', 'LOD level 2', 'LOD level 3', 'LOD level 4', 'LOD level 5', 'LOD level 6', 'LOD level 7'],
+      filterGroups: [
+        'Uncategorized',
+        'Lod level 0',
+        'LOD level 1',
+        'LOD level 2',
+        'LOD level 3',
+        'LOD level 4',
+        'LOD level 5',
+        'LOD level 6',
+        'LOD level 7',
+      ],
       checkedIndex: 0,
-      pickFunction: (object) => {
+      pickFunction: object => {
         try {
           let lodIndex = /_LOD(\d+)_/gi.exec(object.name)![1];
           if (+lodIndex <= 7) {
@@ -106,7 +109,7 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
       name: 'Damage',
       filterGroups: ['Not damaged', 'Damaged'],
       checkedIndex: 0,
-      pickFunction: (object) => {
+      pickFunction: object => {
         return object.name.endsWith('_damaged') ? 1 : 0;
       },
     },

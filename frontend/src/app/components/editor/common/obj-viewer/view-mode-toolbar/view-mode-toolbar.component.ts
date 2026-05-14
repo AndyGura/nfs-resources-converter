@@ -4,7 +4,7 @@ import { ViewMode, ViewModeController } from './view-mode.controller';
 @Component({
   selector: 'app-view-mode-toolbar',
   templateUrl: './view-mode-toolbar.component.html',
-  styleUrls: ['./view-mode-toolbar.component.scss']
+  styleUrls: ['./view-mode-toolbar.component.scss'],
 })
 export class ViewModeToolbarComponent {
   @Input() viewModeController?: ViewModeController;

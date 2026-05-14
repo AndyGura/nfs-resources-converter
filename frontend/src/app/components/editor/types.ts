@@ -16,15 +16,15 @@ export type ResourceError = {
 export type BlockSchema = {
   block_class_mro: string;
   serialization?: {
-    file_type: string | null,
-    is_directory: boolean | null,
-    output_file_name_suffix: string | null,
-    reversible: boolean,
-    reversible_settings_patch: any
+    file_type: string | null;
+    is_directory: boolean | null;
+    output_file_name_suffix: string | null;
+    reversible: boolean;
+    reversible_settings_patch: any;
   } | null;
   hide_navigation_bar?: boolean;
-  value_validator?: { type: 'eq', expected_value: any } | { type: 'or', possible_values: any[] };
-  custom_actions?: CustomAction[]
+  value_validator?: { type: 'eq'; expected_value: any } | { type: 'or'; possible_values: any[] };
+  custom_actions?: CustomAction[];
 } & any;
 export type BlockData = any;
 export type ReadError = {
@@ -41,9 +41,9 @@ export type CustomAction = {
 };
 
 export type CustomActionArgument = { id: string; title: string } & (
-  | { type: 'file_output', file_name_suffix: string }
+  | { type: 'file_output'; file_name_suffix: string }
   | { type: 'number' }
   | { type: 'string' }
   | { type: 'bool' }
-  | { type: 'enum_string', choices: string[] }
-  );
+  | { type: 'enum_string'; choices: string[] }
+);
