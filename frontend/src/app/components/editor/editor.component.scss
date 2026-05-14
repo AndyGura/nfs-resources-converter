@@ -15,4 +15,30 @@
     align-items: center;
     justify-content: space-around;
   }
+
+  #error-message {
+    width: 100%;
+
+    .fallback-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ff9800;
+      font-size: 0.9em;
+      padding-bottom: 0.5em; /* Ensure it doesn't overlap with the underline */
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      .message {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+  }
 }

@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, ComponentRef, Input, OnDestroy, Type, ViewChild } from '@angular/core';
 import { DataBlockUIDirective } from './data-block-ui.directive';
-import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { GuiComponentInterfaceNew } from './gui-component.interface';
 import { MainService } from '../../services/main.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
@@ -16,9 +15,6 @@ import { Resource, ResourceError } from './types';
 })
 export class EditorComponent implements OnDestroy {
   static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterfaceNew> } = {
-    // General
-    DataBlock: FallbackBlockUiComponent,
-
     // ArrayBlock: ArrayBlockUiComponent,
     // SubByteArrayBlock: ArrayBlockUiComponent,
     //
@@ -128,11 +124,11 @@ export class EditorComponent implements OnDestroy {
       !!this._component &&
       value &&
       this._resource &&
-      value.schema.block_class_mro === this._resource.schema.block_class_mro;
+      value.schema?.block_class_mro === this._resource.schema.block_class_mro;
     if (!value) {
       this._resource = null;
       this._resourceError = null;
-    } else if (value.data?.error_class) {
+    } else if (value.data?.error_class !== undefined) {
       this._resourceError = value;
       this._resource = null;
     } else {
@@ -153,7 +149,17 @@ export class EditorComponent implements OnDestroy {
             }
           }
           if (!component) {
-            throw new Error('Cannot find GUI component for block MRO ' + this._resource.schema.block_class_mro);
+            this.resource = {
+              id: this._resource.id,
+              name: this._resource.name,
+              schema: null,
+              data: {
+                error_class: '',
+                error_text:
+                  'UI not implemented for ' + this._resource.schema.block_class_mro.replace(/__/g, ' &rarr; '),
+              },
+            };
+            return;
           }
           if (this._component && this._componentChangedSub) {
             this._componentChangedSub.unsubscribe();

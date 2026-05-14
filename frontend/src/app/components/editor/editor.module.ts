@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EditorComponent } from './editor.component';
 import { DataBlockUIDirective } from './data-block-ui.directive';
-import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
 import { NumberBlockUiComponent } from './library/number.block-ui/number.block-ui.component';
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
@@ -57,7 +56,6 @@ import { MatSliderModule } from '@angular/material/slider';
   declarations: [
     EditorComponent,
     DataBlockUIDirective,
-    FallbackBlockUiComponent,
     CompoundBlockUiComponent,
     NumberBlockUiComponent,
     StringBlockUiComponent,

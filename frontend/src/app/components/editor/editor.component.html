@@ -1,7 +1,12 @@
 <div *ngIf="!resource || resourceError" id="error-spinner-wrapper">
-  <mat-error *ngIf="resourceError">
-    {{ resourceError.data.error_class }}: {{ resourceError.data.error_text }}
-  </mat-error>
+  <mat-form-field *ngIf="resourceError" appearance="fill" id="error-message">
+    <div class="fallback-container">
+      <mat-icon color="warn">warning</mat-icon>
+      <span class="message" [innerHTML]="(resourceError.data.error_class ? resourceError.data.error_class + ': ' : '') + resourceError.data.error_text">
+    </span>
+    </div>
+    <input matInput style="display: none" [disabled]="true">
+  </mat-form-field>
   <mat-spinner *ngIf="!resourceError" mode="indeterminate"></mat-spinner>
 </div>
 
