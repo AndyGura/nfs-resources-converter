@@ -37,11 +37,12 @@ export class ApiDelegateImplService {
   public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
   public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
+  private callQueue: Promise<any> = Promise.resolve();
 
   constructor(private readonly ngZone: NgZone) {
     eel.expose(this.wrapHandler(this.openFile), 'open_file');
     eel.expose(this.wrapHandler(this.updateConversionProgress), 'update_conversion_progress');
-    eel['on_angular_ready']();
+    this.enqueue(() => eel['on_angular_ready']()()).then();
     this.syncRecentFiles().then();
     this.syncVersion().then();
     // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
@@ -56,6 +57,20 @@ export class ApiDelegateImplService {
     }, 0);
   }
 
+  private async enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const previous = this.callQueue;
+    const current = (async () => {
+      try {
+        await previous;
+      } catch (e) {
+        // ignore
+      }
+      return await task();
+    })();
+    this.callQueue = current;
+    return current;
+  }
+
   private wrapHandler(handler: (...args: any[]) => unknown) {
     return (...args: any[]) => {
       try {
@@ -68,23 +83,31 @@ export class ApiDelegateImplService {
   }
 
   public async openFile(path: string, forceReload: boolean = false) {
-    if (!path) {
-      return;
-    }
-    this.openedResource$.next(null);
-    this.openedResourcePath$.next(path);
-    const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
-    this.openedResource$.next({ ...res, id: res['name'] });
-    await this.syncRecentFiles();
+    return this.enqueue(async () => {
+      if (!path) {
+        return;
+      }
+      this.openedResource$.next(null);
+      this.openedResourcePath$.next(path);
+      const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
+      this.openedResource$.next({ ...res, id: res['name'] });
+      await this._syncRecentFiles();
+    });
   }
 
   public async syncVersion() {
-    const version = await eel['get_version']()();
-    this.version$.next(version);
+    return this.enqueue(async () => {
+      const version = await eel['get_version']()();
+      this.version$.next(version);
+    });
   }
 
   public async syncRecentFiles() {
-    const cfg = await this.getGeneralConfig();
+    return this.enqueue(() => this._syncRecentFiles());
+  }
+
+  private async _syncRecentFiles() {
+    const cfg = await this._getGeneralConfig();
     return this.recentFiles$.next(cfg.recent_files || []);
   }
 
@@ -93,71 +116,77 @@ export class ApiDelegateImplService {
   }
 
   public async openFileDialog(multiple: boolean = false): Promise<string[]> {
-    return await eel['open_file_dialog'](multiple)();
+    return await this.enqueue(() => eel['open_file_dialog'](multiple)());
   }
 
   public async saveFileDialog(fileName?: string): Promise<string | null> {
-    return await eel['save_file_dialog'](fileName || null)();
+    return await this.enqueue(() => eel['save_file_dialog'](fileName || null)());
   }
 
   public async openFileWithSystemApp(path: string) {
-    await eel['open_file_with_system_app'](path)();
+    await this.enqueue(() => eel['open_file_with_system_app'](path)());
   }
 
   public async retrieveValue<T = any>(id: string): Promise<T> {
-    return await eel['retrieve_value'](id)();
+    return await this.enqueue(() => eel['retrieve_value'](id)());
   }
 
   public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
-    return eel['run_custom_action'](name, action, args)();
+    return this.enqueue(() => eel['run_custom_action'](name, action, args)());
   }
 
   public async getNewItemData(id: string): Promise<any> {
-    return eel['get_new_item_data'](id)();
+    return this.enqueue(() => eel['get_new_item_data'](id)());
   }
 
   public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
-    const current = this.openedResource$.getValue();
-    if (!current) return;
-    const updatedData = await eel['save_file'](this.openedResourcePath$.getValue(), changes)();
-    this.openedResource$.next({
-      id: current.id,
-      name: current.name,
-      schema: current.schema,
-      data: updatedData,
+    return this.enqueue(async () => {
+      const current = this.openedResource$.getValue();
+      if (!current) return;
+      const updatedData = await eel['save_file'](this.openedResourcePath$.getValue(), changes)();
+      this.openedResource$.next({
+        id: current.id,
+        name: current.name,
+        schema: current.schema,
+        data: updatedData,
+      });
     });
   }
 
   public async serializeResource(id: string, path: string | null = null, changes = [], settingsPatch: any = {}): Promise<string[]> {
-    return eel['serialize_resource'](id, path, changes, settingsPatch)();
+    return this.enqueue(() => eel['serialize_resource'](id, path, changes, settingsPatch)());
   }
 
   public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<BlockData | ReadError> {
-    return eel['deserialize_resource'](id, filePaths, extraOpts)();
+    return this.enqueue(() => eel['deserialize_resource'](id, filePaths, extraOpts)());
   }
 
   public async selectDirectoryDialog(): Promise<string | null> {
-    return await eel['select_directory_dialog']()();
+    return await this.enqueue(() => eel['select_directory_dialog']()());
   }
 
   public async getGeneralConfig(): Promise<GeneralConfig> {
+    return await this.enqueue(() => this._getGeneralConfig());
+  }
+
+  private async _getGeneralConfig(): Promise<GeneralConfig> {
     return await eel['get_general_config']()();
   }
 
   public async getConversionConfig(): Promise<ConversionConfig> {
-    return await eel['get_conversion_config']()();
+    return await this.enqueue(() => eel['get_conversion_config']()());
   }
 
   public async patchGeneralConfig(data: Partial<GeneralConfig>): Promise<GeneralConfig> {
-    return await eel['patch_general_config'](data)();
+    return await this.enqueue(() => eel['patch_general_config'](data)());
   }
 
   public async patchConversionConfig(data: Partial<ConversionConfig>): Promise<ConversionConfig> {
-    return await eel['patch_conversion_config'](data)();
+    return await this.enqueue(() => eel['patch_conversion_config'](data)());
   }
 
   public async testExecutable(executablePath: string): Promise<any> {
-    return await eel['test_executable'](executablePath)();
+    return await this.enqueue(() => eel['test_executable'](executablePath)());
   }
 
   public async convertFiles(
@@ -165,19 +194,21 @@ export class ApiDelegateImplService {
     outputPath: string,
     settings?: any,
   ): Promise<{ success: boolean; error?: string; output_path?: string }> {
-    return await eel['convert_files'](inputPath, outputPath, settings)();
+    return await this.enqueue(() => eel['convert_files'](inputPath, outputPath, settings)());
   }
 
   public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
-    return await eel['start_file'](path)();
+    return await this.enqueue(() => eel['start_file'](path)());
   }
 
   public async closeFile(): Promise<{ success: boolean; message: string }> {
-    const result = await eel['close_file']()();
-    if (result.success) {
-      this.openedResource$.next(null);
-      this.openedResourcePath$.next(null);
-    }
-    return result;
+    return this.enqueue(async () => {
+      const result = await eel['close_file']()();
+      if (result.success) {
+        this.openedResource$.next(null);
+        this.openedResourcePath$.next(null);
+      }
+      return result;
+    });
   }
 }
