@@ -147,7 +147,7 @@ export class ConverterComponent implements OnInit {
 
   async openOutputDirectory(): Promise<void> {
     if (this.outputPath) {
-      const result = await this.api.startFile(this.outputPath);
+      const result = await this.api.openFileWithSystemApp(this.outputPath);
       if (!result.success) {
         this.snackBar.open(`Failed to open directory: ${result.error}`, 'OK', { duration: 5000 });
       }

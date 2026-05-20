@@ -191,13 +191,6 @@ class FileAPI:
             'data': self.render_data(self.current_file_data)
         }
 
-    def start_file(self, path: str) -> Dict[str, Any]:
-        try:
-            start_file(path)
-            return {"success": True}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-
     def open_file_with_system_app(self, path: str):
         if os.path.isabs(path):
             start_file(path)

@@ -206,10 +206,6 @@ export class ApiDelegateImplService {
     return await this.enqueue(() => eel['convert_files'](inputPath, outputPath, settings)());
   }
 
-  public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
-    return await this.enqueue(() => eel['start_file'](path)());
-  }
-
   public async closeFile(): Promise<{ success: boolean; message: string }> {
     return this.enqueue(async () => {
       const result = await eel['close_file']()();

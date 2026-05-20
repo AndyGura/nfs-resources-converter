@@ -192,10 +192,6 @@ export abstract class BaseApiDelegateService {
     return this.runSafe(async () => (await this.getImpl()).convertFiles(inputPath, outputPath, settings));
   }
 
-  public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
-    return this.runSafe(async () => (await this.getImpl()).startFile(path));
-  }
-
   public async closeFile(): Promise<{ success: boolean; message: string }> {
     return this.runSafe(async () => (await this.getImpl()).closeFile());
   }
