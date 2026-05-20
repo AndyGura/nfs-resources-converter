@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, ReadError } from '../../types';
+import { joinId } from '../../../../utils/join-id';
 
 @Component({
   selector: 'app-sidenav-res-list',
@@ -16,9 +17,8 @@ export class SidenavResListComponent {
   }
 
   @Input() set resources(value: { [key: string]: BlockData | ReadError }) {
-    const listUpdated = !this._resources || !this.deep.deepEquals(Object.keys(this._resources), Object.keys(value));
     this._resources = value;
-    if (listUpdated) {
+    if (!this.selectedValue || !Object.keys(value).includes(this.selectedValue)) {
       this.selectedValue = Object.keys(value).length > 0 ? Object.keys(value)[0] : null;
     }
   }
@@ -41,4 +41,6 @@ export class SidenavResListComponent {
   onDoubleClick(key: string) {
     this.navigation.navigateToId(this.resources[key]!.id);
   }
+
+  protected readonly joinId = joinId;
 }

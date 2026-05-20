@@ -1,16 +1,16 @@
-<ng-container *ngIf="resource">
-  <mat-label *ngIf="resource.name"
-             [matTooltip]="resourceDescription" matTooltipPosition="above">
-    {{ resource.name }}
+<ng-container *ngIf="resourceId && resourceSchema && resourceData">
+  <mat-label *ngIf="resourceName && !hideName"
+             [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+    {{ resourceName }}
   </mat-label>
   <div class="sub-byte-fields">
-    <ng-container *ngFor="let field of resource.schema.sub_byte_schema">
+    <ng-container *ngFor="let field of resourceSchema.sub_byte_schema">
       <div *ngIf="field.type === 'boolean'" class="sub-byte-field">
-        <mat-checkbox [(ngModel)]="resource.data[field.alias]"
+        <mat-checkbox [(ngModel)]="resourceData[field.alias]"
                       (change)="changed.emit()"
                       (focus)="onFocus(field.alias)"
                       (blur)="onBlur(field.alias)"
-                      [disabled]="disabled"
+                      [disabled]="!!disabled"
                       [matTooltip]="field.description" matTooltipPosition="above">
           {{ field.alias }}
         </mat-checkbox>
@@ -19,21 +19,21 @@
         <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
           <mat-label>{{ field.alias }}</mat-label>
           <input matInput type="number"
-                 [(ngModel)]="resource.data[field.alias]"
+                 [(ngModel)]="resourceData[field.alias]"
                  (change)="changed.emit()"
                  (focus)="onFocus(field.alias)"
                  (blur)="onBlur(field.alias)"
-                 [disabled]="disabled">
+                 [disabled]="!!disabled">
         </mat-form-field>
       </div>
       <div *ngIf="field.type === 'enum'" class="sub-byte-field">
         <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
           <mat-label>{{ field.alias }}</mat-label>
-          <mat-select [(ngModel)]="resource.data[field.alias]"
+          <mat-select [(ngModel)]="resourceData[field.alias]"
                       (selectionChange)="changed.emit()"
                       (focus)="onFocus(field.alias)"
                       (blur)="onBlur(field.alias)"
-                      [disabled]="disabled">
+                      [disabled]="!!disabled">
             <mat-option *ngFor="let option of field.details" [value]="option">
               {{ option }}
             </mat-option>

@@ -11,7 +11,7 @@ import { GuiComponentInterface } from '../../gui-component.interface';
 import { NgxMatColorPickerComponent } from '@angular-material-components/color-picker/lib/components/color-picker/color-picker.component';
 import { Color } from '@angular-material-components/color-picker';
 import { GlobalPositionStrategy } from '@angular/cdk/overlay';
-import { BlockData, Resource } from '../../types';
+import { BlockData, BlockSchema } from '../../types';
 import { MainService } from '../../../../services/main.service';
 import { joinId } from '../../../../utils/join-id';
 
@@ -22,25 +22,15 @@ import { joinId } from '../../../../utils/join-id';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaletteBlockUiComponent implements GuiComponentInterface {
-  private _resource: Resource | null = null;
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
+  @Input() resourceData?: BlockData;
+  @Input() resourceDescription?: string;
 
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource = value;
-    this.cdr.markForCheck();
-  }
-
-  get resource(): Resource | null {
-    return this._resource;
-  }
-
-  get resourceData(): BlockData | null {
-    return this.resource?.data;
-  }
-
-  @Input() hideName: boolean = false;
-
-  @Input() hideBlockActions: boolean = false;
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -74,29 +64,29 @@ export class PaletteBlockUiComponent implements GuiComponentInterface {
   }
 
   onColorChange(color: Color | null) {
-    if (!this.resource || !this.resourceData) {
+    if (!this.resourceId || !this.resourceData) {
       this.selectedIndex = null;
       return;
     }
     if (this.selectedIndex !== null) {
       const value = color ? parseInt(color.toHex8String().substring(1), 16) : 0;
       this.resourceData.colors.data[this.selectedIndex] = value;
-      this.mainService.dataBlockChange$.next([joinId(this.resource.id, 'colors/data', this.selectedIndex), value]);
+      this.mainService.dataBlockChange$.next([joinId(this.resourceId, 'colors/data', this.selectedIndex), value]);
       this.cdr.markForCheck();
     }
   }
 
   async addColor() {
-    if (!this.resource || !this.resourceData) return;
+    if (!this.resourceId || !this.resourceData) return;
     this.resourceData.colors.data.push(0xff);
-    this.mainService.dataBlockChange$.next([joinId(this.resource.id, 'colors/data'), this.resourceData.colors.data]);
+    this.mainService.dataBlockChange$.next([joinId(this.resourceId, 'colors/data'), this.resourceData.colors.data]);
     this.cdr.markForCheck();
   }
 
   removeLastColor() {
-    if (!this.resource || !this.resourceData || this.resourceData.colors.data.length === 0) return;
+    if (!this.resourceId || !this.resourceData || this.resourceData.colors.data.length === 0) return;
     this.resourceData.colors.data.pop();
-    this.mainService.dataBlockChange$.next([joinId(this.resource.id, 'colors/data'), this.resourceData.colors.data]);
+    this.mainService.dataBlockChange$.next([joinId(this.resourceId, 'colors/data'), this.resourceData.colors.data]);
     this.cdr.markForCheck();
   }
 }

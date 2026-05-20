@@ -1,30 +1,31 @@
-<ng-container *ngIf="resource">
-    <mat-form-field *ngIf="isKnownEnumValue(resource.data); else unknownEnum" appearance="fill"
-                    [matTooltip]="resourceDescription" matTooltipPosition="above">
-        <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
-        <mat-select [(value)]="resource.data"
-                    (selectionChange)="changed.emit()"
-                    [disabled]="disabled"
+<ng-container *ngIf="resourceSchema && resourceData">
+    <mat-form-field *ngIf="isKnownEnumValue(resourceData); else unknownEnum" appearance="fill"
+                    [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+        <mat-label *ngIf="resourceName">{{ resourceName }}</mat-label>
+        <mat-select [(value)]="resourceData"
+                    (selectionChange)="changed.emit($event.value)"
+                    [disabled]="!!disabled"
                     (focus)="onFocus()"
                     (blur)="onBlur()">
-            <mat-option *ngFor="let enumValue of resource.schema.enum_names"
+            <mat-option *ngFor="let enumValue of resourceSchema.enum_names"
                         [value]="enumValue[1]"
-                        [disabled]="disabled">
+                        [disabled]="!!disabled">
                 {{enumValue[1]}}
             </mat-option>
         </mat-select>
     </mat-form-field>
     <ng-template #unknownEnum>
         <mat-form-field appearance="fill"
-                        [matTooltip]="resourceDescription" matTooltipPosition="above">
-          <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
+                        [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+          <mat-label *ngIf="resourceName">{{resourceName }}</mat-label>
             <input matInput type="number"
                    [min]="0"
-                   [max]="(resource.schema.length || 1) * 256 - 1"
-                   [(ngModel)]="resource.data"
-                   (change)="changed.emit()"
+                   [max]="(resourceSchema.length || 1) * 256 - 1"
+                   [(ngModel)]="resourceData"
+                   (ngModelChange)="changed.emit(resourceData)"
                    (focus)="onFocus()"
-                   (blur)="onBlur()">
+                   (blur)="onBlur()"
+                   [disabled]="!!disabled">
         </mat-form-field>
     </ng-template>
 </ng-container>

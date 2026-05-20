@@ -3,5 +3,11 @@
                 [visibilityGroupFunction]="previewObjectGroupFunc"
                 [customControls]="customControls"
                 (onObjectLoaded)="onObjectLoaded($event)"></app-obj-viewer>
-<app-compound-block-ui *ngIf="!(main.hideHiddenFields$ | async)"
-                       [resource]="_resource$ | async"></app-compound-block-ui>
+<app-compound-block-ui [resourceId]="resourceId"
+                       [resourceName]="resourceName"
+                       [resourceSchema]="resourceSchema"
+                       [resourceData]="resourceData"
+                       [resourceDescription]="resourceDescription"
+                       [hideName]="hideName"
+                       [hideBlockActions]="hideBlockActions"
+                       [disabled]="disabled"></app-compound-block-ui>

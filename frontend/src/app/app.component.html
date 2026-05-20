@@ -30,7 +30,7 @@
       *ngIf="!(navigation.resourceToRender$ | async)?.schema?.hide_navigation_bar"></app-navigation-bar>
     <div id="content-wrapper">
       <div class="scroll-bounds-snapper"></div>
-      <app-editor [resource]="(mainService.customActionRunning$ | async)
+      <app-editor [resourceOrError]="(mainService.customActionRunning$ | async)
       ? null
       : ((navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async))"
                   [hideName]="true"

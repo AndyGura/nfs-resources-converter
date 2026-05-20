@@ -1,34 +1,39 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { Resource } from '../../types';
+import { BlockSchema } from '../../types';
 import { MainService } from '../../../../services/main.service';
+import { isNaN } from 'lodash';
 
 @Component({
   selector: 'app-string-block-ui',
   templateUrl: './string.block-ui.component.html',
-  styleUrls: ['./string.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StringBlockUiComponent implements GuiComponentInterface {
-  get resource(): Resource | null {
-    return this._resource;
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+
+  private _resourceSchema?: BlockSchema;
+  get resourceSchema(): BlockSchema {
+    return this._resourceSchema;
   }
 
-  @Input() set resource(value: Resource | null) {
-    this._resource = value;
-    if (!isNaN(+this._resource?.schema.length)) {
-      this.minLength = this.maxLength = +this._resource?.schema.length;
+  @Input()
+  set resourceSchema(value: BlockSchema) {
+    this._resourceSchema = value;
+    if (!isNaN(+this._resourceSchema?.length)) {
+      this.minLength = this.maxLength = +this._resourceSchema?.length;
     }
   }
-  private _resource: Resource | null = null;
 
-  @Input()
-  resourceDescription: string = '';
+  @Input() resourceData?: string;
+  @Input() resourceDescription?: string;
 
-  @Input()
-  disabled: boolean = false;
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+  @Output('changed') changed: EventEmitter<string> = new EventEmitter<string>();
 
   minLength: number | null = null;
   maxLength: number | null = null;
@@ -36,13 +41,13 @@ export class StringBlockUiComponent implements GuiComponentInterface {
   constructor(private mainService: MainService) {}
 
   onFocus() {
-    if (this.resource) {
-      this.mainService.focusedResourceId$.next(this.resource.id);
+    if (this.resourceId) {
+      this.mainService.focusedResourceId$.next(this.resourceId);
     }
   }
 
   onBlur() {
-    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
+    if (this.mainService.focusedResourceId$.getValue() === this.resourceId) {
       this.mainService.focusedResourceId$.next(null);
     }
   }

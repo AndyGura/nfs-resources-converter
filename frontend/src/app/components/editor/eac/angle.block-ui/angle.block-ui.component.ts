@@ -10,7 +10,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { Resource } from '../../types';
+import { BlockSchema } from '../../types';
 import { MainService } from '../../../../services/main.service';
 
 @Component({
@@ -20,12 +20,17 @@ import { MainService } from '../../../../services/main.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AngleBlockUiComponent implements GuiComponentInterface {
-  @Input() resource: Resource | null = null;
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
+  @Input() resourceData?: number;
+  @Input() resourceDescription?: string;
 
-  @Input()
-  resourceDescription: string = '';
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+  @Output('changed') changed: EventEmitter<number> = new EventEmitter<number>();
 
   pi = Math.PI;
 
@@ -35,6 +40,7 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
 
   @HostListener('mousedown', ['$event'])
   mousedown(event: MouseEvent) {
+    if (this.disabled) return;
     this.dragging = true;
     this.updateRotation(event);
     this.onFocus();
@@ -43,7 +49,12 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
   @HostListener('mousemove', ['$event'])
   mousemove(event: MouseEvent) {
     if (this.dragging) {
-      this.updateRotation(event);
+      if (this.disabled) {
+        this.dragging = false;
+        this.onBlur();
+      } else {
+        this.updateRotation(event);
+      }
     }
   }
 
@@ -70,19 +81,19 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     if (mouseEvent.shiftKey) {
       newAngle = (Math.round((newAngle * 180) / Math.PI / 15) * 15 * Math.PI) / 180;
     }
-    this.resource!.data = newAngle;
-    this.changed.emit();
+    this.resourceData = newAngle;
+    this.changed.emit(newAngle);
     this.cdr.markForCheck();
   }
 
   onFocus() {
-    if (this.resource) {
-      this.mainService.focusedResourceId$.next(this.resource.id);
+    if (this.resourceId) {
+      this.mainService.focusedResourceId$.next(this.resourceId);
     }
   }
 
   onBlur() {
-    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
+    if (this.mainService.focusedResourceId$.getValue() === this.resourceId) {
       this.mainService.focusedResourceId$.next(null);
     }
   }

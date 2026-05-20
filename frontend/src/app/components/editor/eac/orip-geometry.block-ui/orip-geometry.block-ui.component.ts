@@ -5,8 +5,10 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   OnDestroy,
   Output,
+  SimpleChanges,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
@@ -14,25 +16,23 @@ import { MainService } from '../../../../services/main.service';
 import { Object3D } from 'three';
 import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
 import { TnfsCarMeshController } from './tnfs-car-mesh-controller';
-import { Resource } from '../../types';
+import { BlockData, BlockSchema } from '../../types';
 
 @Component({
   selector: 'app-orip-geometry-block-ui',
   templateUrl: './orip-geometry.block-ui.component.html',
-  styleUrls: ['./orip-geometry.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class OripGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  get resource(): Resource | null {
-    return this._resource$.getValue();
-  }
+export class OripGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy, OnChanges {
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
+  @Input() resourceData?: BlockData;
+  @Input() resourceDescription?: string;
 
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource$.next(value);
-  }
-
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -44,26 +44,28 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
 
   constructor(private readonly mainService: MainService, private readonly cdr: ChangeDetectorRef) {}
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
+      this.loadPreview().then();
+    }
+  }
+
   async ngAfterViewInit() {
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
-      this.previewPaths$.next(await this.loadPreviewFilePaths(res?.id));
-    });
     this.mainService.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
-        debounceTime(1500),
+        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
+        debounceTime(1000),
       )
       .subscribe(async () => {
-        this.previewPaths$.next(null);
-        this.previewPaths$.next(await this.postTmpUpdates(this.resource?.id));
+        await this.loadPreview();
       });
   }
 
   async onObjectLoaded(obj: Object3D) {
-    if ((this._resource$.value?.id || '').includes('.CFM__')) {
+    if (this.resourceId && this.resourceId.includes('.CFM__')) {
       try {
-        const idParts = this.resource?.id.split('/')!;
+        const idParts = this.resourceId.split('/')!;
         idParts.pop();
         idParts[idParts.length - 1] = '' + (+idParts[idParts.length - 1] + 1);
         const shpiData = await this.mainService.api.retrieveValue(idParts.join('/') + '/data');
@@ -122,20 +124,12 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     geometry__export_to_gg_web_engine: false,
   };
 
-  private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.mainService.api.serializeResource(blockId, null, this.serializerSettings);
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
+  private async loadPreview() {
+    this.previewPaths$.next(null);
+    if (this.resourceId) {
+      const paths = await this.mainService.api.serializeResource(this.resourceId, null, this.serializerSettings);
+      this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
-    return null;
-  }
-
-  private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.mainService.api.serializeResource(blockId, null, this.serializerSettings);
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
-    }
-    return null;
   }
 
   ngOnDestroy(): void {

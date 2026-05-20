@@ -1,14 +1,24 @@
-<h2 *ngIf='!hideName'
+<h2 *ngIf='resourceId && resourceName && !hideName'
     id='title'
-    [matTooltip]='resourceDescription' matTooltipPosition='above'
-    (click)='navigation.navigateToId(resource!.id)'>{{ name }}</h2>
-<app-block-actions *ngIf='!hideBlockActions' [resource]='this.resource'></app-block-actions>
+    [matTooltip]='resourceDescription || ""' matTooltipPosition='above'
+    (click)='navigation.navigateToId(resourceId)'>{{ resourceName }}</h2>
+<app-block-actions *ngIf='!hideBlockActions' [resource]='{
+  id: resourceId!,
+  name: resourceName!,
+  data: resourceData,
+  schema: resourceSchema,
+}'></app-block-actions>
 <div class='container' [class.horizontal]='preferHorizontalLayout'>
-  <ng-container *ngFor='let f of fieldKeys; trackBy: fieldTrackBy'>
+  <ng-container *ngFor='let f of (fieldKeys$ | async); trackBy: fieldTrackBy'>
     <app-editor
-      *ngIf='!(main.hideHiddenFields$ | async) || (!schema?.fields[f.index].is_unknown && (schema?.fields[f.index].schema.value_validator === undefined || schema?.fields[f.index].schema.value_validator?.type === "or") && !schema?.fields[f.index].schema.is_programmatic)'
-      [resource]='{ id: joinId(resource!.id, f.key), name: f.key, data: data?.[f.key], schema: schema?.fields[f.index].schema }'
-      [resourceDescription]="schema?.fields[f.index].description || ''"
-      [disabled]='disabled || !!schema?.fields[f.index].schema.is_programmatic'></app-editor>
+      *ngIf='!(main.hideHiddenFields$ | async) || (!resourceSchema?.fields[f.index].is_unknown && (resourceSchema?.fields[f.index].schema.value_validator === undefined || resourceSchema?.fields[f.index].schema.value_validator?.type === "or") && !resourceSchema?.fields[f.index].schema.is_programmatic)'
+      [resourceOrError]="{
+                          id: joinId(resourceId!, f.key),
+                          name: f.key,
+                          schema: resourceSchema?.fields[f.index].schema,
+                          data: resourceData?.[f.key]
+                        }"
+      [resourceDescription]="resourceSchema?.fields[f.index].description"
+      [disabled]='disabled || !!resourceSchema?.fields[f.index].schema.is_programmatic'></app-editor>
   </ng-container>
 </div>

@@ -1,24 +1,24 @@
-<mat-form-field appearance="fill" *ngIf="resource"
-                [matTooltip]="resourceDescription" matTooltipPosition="above">
-    <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
+<mat-form-field appearance="fill" *ngIf="resourceId"
+                [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+    <mat-label *ngIf="resourceName && !hideName">{{ resourceName }}</mat-label>
 
-    <ng-container *ngIf="resource.schema.value_validator?.type === 'or'; else textInput">
+    <ng-container *ngIf="resourceSchema?.value_validator?.type === 'or'; else textInput">
       <mat-select
-        [disabled]="disabled"
-        [(ngModel)]="resource.data"
-        (selectionChange)="changed.emit()"
+        [disabled]="!!disabled"
+        [ngModel]="resourceData"
+        (selectionChange)="changed.emit($event.value)"
         (focus)="onFocus()"
         (blur)="onBlur()">
-        <mat-option *ngFor="let v of resource.schema.value_validator.possible_values" [value]="v">{{ v }}</mat-option>
+        <mat-option *ngFor="let v of resourceSchema.value_validator.possible_values" [value]="v">{{ v }}</mat-option>
       </mat-select>
     </ng-container>
 
     <ng-template #textInput>
       <input matInput type="text"
-             [disabled]="disabled || resource.schema.value_validator?.type === 'eq'"
+             [disabled]="disabled || resourceSchema.value_validator?.type === 'eq'"
              [maxlength]="maxLength" [minlength]="minLength"
-             [(ngModel)]="resource.data"
-             (change)="changed.emit()"
+             [(ngModel)]="resourceData"
+             (ngModelChange)="changed.emit(resourceData)"
              (focus)="onFocus()"
              (blur)="onBlur()">
     </ng-template>

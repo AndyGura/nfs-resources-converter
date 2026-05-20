@@ -1,13 +1,14 @@
-<h2 [matTooltip]='resourceDescription'
+<h2 *ngIf="resourceId && !hideName"
+    [matTooltip]='resourceDescription || ""'
     id='title'
-    (click)='navigation.navigateToId(resource!.id)'
-    matTooltipPosition='above'>{{ name }}</h2>
+    (click)='navigation.navigateToId(resourceId)'
+    matTooltipPosition='above'>{{ resourceName }}</h2>
 
 <ng-container *ngIf="isTable; else standardViewExpansion">
   <data-table
-    [data]="resourceData"
+    [data]="resourceData!"
     [columns]="arrayTableColumns"
-    [disabled]="disabled"
+    [disabled]="!!disabled"
     [enableArrayEditing]="enableArrayEditing"
     [pageIndex]="pageIndex"
     [pageSize]="pageSize"
@@ -26,9 +27,9 @@
   <mat-expansion-panel
     (opened)='onContentsTrigger(true)'
     (closed)='onContentsTrigger(false)'>
-    <mat-expansion-panel-header [matTooltip]='resourceDescription' matTooltipPosition='above'>
+    <mat-expansion-panel-header [matTooltip]='resourceDescription || ""' matTooltipPosition='above'>
       <mat-panel-title>
-        {{ name }}
+        {{ resourceName }}
       </mat-panel-title>
       <mat-panel-description *ngIf="(resourceData || []).length > 0">
         Click to view items (<b>{{ (resourceData || []).length }}</b>)
@@ -54,7 +55,7 @@
               </button>
               <button mat-icon-button
                       color="primary"
-                      [disabled]="pageIndex * pageSize + i === resourceData.length - 1"
+                      [disabled]="pageIndex * pageSize + i === resourceData!.length - 1"
                       (click)="moveItemDown(pageIndex * pageSize + i)"
                       matTooltip="Move down">
                 <mat-icon>arrow_downward</mat-icon>
@@ -71,8 +72,14 @@
           <div class="item-header" *ngIf="disabled">
             <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
           </div>
-          <app-editor [resource]='children[pageIndex * pageSize + i]'
-                      [disabled]='disabled'></app-editor>
+          <app-editor [resourceOrError]="{
+                        id: joinId(resourceId!, pageIndex * pageSize + i),
+                        name: (pageIndex * pageSize + i).toString(),
+                        schema: resourceSchema!.child_schema,
+                        data: resourceData![pageIndex * pageSize + i]
+                      }"
+                      [hideName]="true"
+                      [disabled]="disabled"></app-editor>
         </div>
       </ng-container>
 

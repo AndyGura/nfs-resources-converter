@@ -6,8 +6,10 @@ import {
   ElementRef,
   EventEmitter,
   Input,
+  OnChanges,
   OnDestroy,
   Output,
+  SimpleChanges,
   ViewChild,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
@@ -54,7 +56,7 @@ import { joinId } from '../../../../utils/join-id';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
-import { BlockSchema, Resource } from '../../types';
+import { BlockData, BlockSchema, Resource } from '../../types';
 import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
 
 export enum MapPropType {
@@ -345,20 +347,19 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
   styleUrls: ['./tri-map.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
+export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
-  get resource(): Resource | null {
-    return this._resource$.getValue();
-  }
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
+  @Input() resourceData?: BlockData;
+  @Input() resourceDescription?: string;
 
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource$.next(value);
-  }
-
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -396,7 +397,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   constructor(private readonly cdr: ChangeDetectorRef, private readonly mainService: MainService) {}
 
   get previewFamPossibleLocations(): string[] {
-    const blockId = this.resource?.id;
+    const blockId = this.resourceId;
     if (blockId) {
       return [
         blockId.substring(0, blockId.indexOf('MISC')) +
@@ -426,11 +427,10 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   get roadSpline(): Point3[] {
-    return (
-      (this.resource?.data.road_spline || [])
-        .filter((_: any, i: number) => i < (this.resource?.data.num_chunks * 4 || 0))
-        .map((d: any) => ({ x: d.position.x, y: d.position.z, z: d.position.y })) || []
-    );
+    if (!this.resourceData) return [];
+    return this.resourceData.road_spline
+      .filter((_: any, i: number) => i < (this.resourceData.num_chunks * 4 || 0))
+      .map((d: any) => ({ x: d.position.x, y: d.position.z, z: d.position.y }));
   }
 
   async ngAfterViewInit() {
@@ -505,33 +505,22 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     new ResizeObserver(updateSize).observe(this.previewCanvasContainer.nativeElement);
     updateSize();
     this.world.start();
-
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
-      this.previewLoading$.next(true);
-      await this.loadTerrainChunks(res?.id);
-      await this.loadPreview();
-      if (this.previewFamPossibleLocations[0]) {
-        this.previewFamLocation$.next(this.previewFamPossibleLocations[0]);
-        await this.onFamSelected(this.previewFamPossibleLocations[0]);
-      }
-      this.previewLoading$.next(false);
-    });
     this.mainService.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
+        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
         debounceTime(3000),
       )
       .subscribe(async () => {
         this.previewLoading$.next(true);
-        await this.postTmpUpdates(this.resource?.id);
+        await this.loadTerrainChunks(this.resourceId);
         await this.loadPreview();
         this.previewLoading$.next(false);
       });
 
     this.selectedSplineIndex$.pipe(takeUntil(this.destroyed$), debounceTime(250)).subscribe(i => {
-      if (this.resource) {
-        const item = this.resource.data.road_spline[i];
+      if (this.resourceId && this.resourceSchema && this.resourceData) {
+        const item = this.resourceData.road_spline[i];
         if (!item) {
           return;
         }
@@ -541,7 +530,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
           z: item.position.y,
         };
         this.selectionSphere.position = point;
-        const orientation = this.resource!.data.road_spline[i].orientation;
+        const orientation = this.resourceData.road_spline[i].orientation;
         if (this.renderer) {
           this.renderer.position = Pnt3.add(
             point,
@@ -552,30 +541,44 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         }
       }
       this.selectedSplineItem$.next({
-        id: joinId(this.resource!.id, `road_spline/${i}`),
-        data: this.resource!.data.road_spline[i],
-        schema: (this.resource!.schema.fields || []).find(
+        id: joinId(this.resourceId!, `road_spline/${i}`),
+        data: this.resourceData.road_spline[i],
+        schema: (this.resourceSchema.fields || []).find(
           (x: { name: string; schema: BlockSchema }) => x.name === 'road_spline',
         )?.schema.child_schema,
         name: '',
       });
       this.selectedAiInfoItem$.next({
-        id: joinId(this.resource!.id, `ai_info/${Math.floor(i / 4)}`),
-        data: this.resource!.data.ai_info[Math.floor(i / 4)],
-        schema: (this.resource!.schema.fields || []).find(
+        id: joinId(this.resourceId!, `ai_info/${Math.floor(i / 4)}`),
+        data: this.resourceData.ai_info[Math.floor(i / 4)],
+        schema: (this.resourceSchema.fields || []).find(
           (x: { name: string; schema: BlockSchema }) => x.name === 'ai_info',
         )?.schema.child_schema,
         name: '',
       });
       this.selectedTerrainItem$.next({
-        id: joinId(this.resource!.id, `terrain/${Math.floor(i / 4)}`),
-        data: this.resource!.data.terrain[Math.floor(i / 4)],
-        schema: (this.resource!.schema.fields || []).find(
+        id: joinId(this.resourceId!, `terrain/${Math.floor(i / 4)}`),
+        data: this.resourceData.terrain[Math.floor(i / 4)],
+        schema: (this.resourceSchema.fields || []).find(
           (x: { name: string; schema: BlockSchema }) => x.name === 'terrain',
         )?.schema.child_schema,
         name: '',
       });
     });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
+      this.previewLoading$.next(true);
+      this.loadTerrainChunks(this.resourceId).then(async () => {
+        await this.loadPreview();
+        if (this.previewFamPossibleLocations[0]) {
+          this.previewFamLocation$.next(this.previewFamPossibleLocations[0]);
+          await this.onFamSelected(this.previewFamPossibleLocations[0]);
+        }
+        this.previewLoading$.next(false);
+      });
+    }
   }
 
   async onFamSelected(path: string) {
@@ -638,16 +641,17 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   private async loadPreview() {
+    if (!this.resourceData) return;
     this.roadPath =
-      this.resource?.data.road_spline
+      this.resourceData.road_spline
         .map((p: any) => ({
           x: p.position.x,
           y: p.position.z,
           z: p.position.y,
         }))
         .filter((_: any, i: number) => i % 4 === 0)
-        .slice(0, this.resource!.data.num_chunks) || null;
-    this.isOpenedTrack = this.resource?.data.loop_chunk === 0;
+        .slice(0, this.resourceData.num_chunks) || null;
+    this.isOpenedTrack = this.resourceData.loop_chunk === 0;
     if (!this.terrainChunksObjLocation || !this.roadPath) {
       return;
     }
@@ -665,7 +669,12 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.famPath && 'resources/' + this.famPath,
       this.mainService.hideHiddenFields$,
     );
-    this.map.resource = this.resource;
+    this.map.resource = {
+      id: this.resourceId!,
+      name: this.resourceName!,
+      schema: this.resourceSchema,
+      data: this.resourceData,
+    };
     this.map.isOpenedTrack = this.isOpenedTrack;
 
     createInlineTickController(this.world)
@@ -685,24 +694,6 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.map.dispose();
       this.map = null;
       this.cdr.markForCheck();
-    }
-  }
-
-  private async postTmpUpdates(blockId: string | undefined) {
-    if (blockId) {
-      const paths = await this.mainService.api.serializeResource(blockId, null, {
-        geometry__save_obj: true,
-        geometry__save_blend: false,
-        geometry__export_to_gg_web_engine: false,
-        maps__save_as_chunked: true,
-        maps__save_invisible_wall_collisions: false,
-        maps__save_terrain_collisions: false,
-        maps__save_spherical_skybox_texture: true,
-        maps__add_props_to_obj: false,
-      });
-      this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
-    } else {
-      this.terrainChunksObjLocation = undefined;
     }
   }
 

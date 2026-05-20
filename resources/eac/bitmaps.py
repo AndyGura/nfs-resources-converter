@@ -305,9 +305,6 @@ class EacImage(DeclarativeCompoundBlock):
                     new_bitmap[j].append(0xffffff00 | ((pxl & mask) >> offs))
             read_data['bitmap'] = new_bitmap
         read_data['resource_id'] = target_color_format
-        read_data['bitmap']['choice_index'] = [
-            name for (_, name) in self.field_blocks_map['resource_id'].enum_names
-        ].index(read_data['resource_id'])
         return
 
     def action_convert_to_8bit(self, read_data, channel, **kwargs):
@@ -327,9 +324,6 @@ class EacImage(DeclarativeCompoundBlock):
             (mask, offs) = self._get_channel_mask_offset(channel)
             read_data['bitmap'] = [(pxl & mask) >> offs for pxl in read_data['bitmap']]
         read_data['resource_id'] = target_color_format
-        read_data['bitmap']['choice_index'] = [
-            name for (_, name) in self.field_blocks_map['resource_id'].enum_names
-        ].index(read_data['resource_id'])
         return
 
     def action_convert_to_rgba(self, read_data, color_mode, output_colors, **kwargs):
@@ -349,9 +343,6 @@ class EacImage(DeclarativeCompoundBlock):
             elif output_colors == 'black-white':
                 read_data['bitmap'] = [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap]
         read_data['resource_id'] = target_color_format
-        read_data['bitmap']['choice_index'] = [
-            name for (_, name) in self.field_blocks_map['resource_id'].enum_names
-        ].index(read_data['resource_id'])
         return
 
 

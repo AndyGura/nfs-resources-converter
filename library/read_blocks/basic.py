@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from io import SEEK_CUR
-from typing import Dict, Any, Tuple, Literal
+from typing import Dict, Any, Tuple
 
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
@@ -174,37 +174,6 @@ class BytesBlock(DataBlock):
         if isinstance(data, list):
             data = bytes(data)
         return data
-
-
-class SkipBlock(DataBlock):
-    ### non-existing block. Can be used for optional fields
-
-    def __init__(self, error_strategy: Literal["return_exception", "skip_silently"] = "skip_silently", **kwargs):
-        super().__init__(**kwargs)
-        self.error_strategy = error_strategy
-        self.exception = None
-
-    @property
-    def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Nothing, block skipped'}
-
-    # For auto-generated documentation only
-    @property
-    def size_doc_str(self):
-        return '0'
-
-    def new_data(self):
-        return None
-
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        return self.exception if self.error_strategy == "return_exception" else None
-
-    def estimate_packed_size(self, data, ctx: WriteContext = None):
-        return 0
-
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        return bytes()
 
 
 class Padding(BytesBlock):

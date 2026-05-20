@@ -30,7 +30,7 @@
     <mat-form-field appearance='fill'>
       <mat-label>Spline item</mat-label>
       <input matInput type='number'
-             [min]='0' [max]='(_resource$ | async)?.data.num_chunks * 4 - 1'
+             [min]='0' [max]='resourceData?.num_chunks * 4 - 1'
              [ngModel]='selectedSplineIndex$ | async'
              (ngModelChange)='selectedSplineIndex$.next($event)'>
     </mat-form-field>
@@ -42,16 +42,28 @@
   </div>
 </div>
 <h4>Road spline item</h4>
-<app-compound-block-ui [resource]='selectedSplineItem$ | async'
+<app-compound-block-ui [resourceId]="(selectedSplineItem$ | async)?.id"
+                       [resourceName]="(selectedSplineItem$ | async)?.name"
+                       [resourceSchema]="(selectedSplineItem$ | async)?.schema"
+                       [resourceData]="(selectedSplineItem$ | async)?.data"
                        [hideBlockActions]='true'></app-compound-block-ui>
 <h4>AI info (block for 4 spline items)</h4>
-<app-compound-block-ui [resource]='selectedAiInfoItem$ | async'
+<app-compound-block-ui [resourceId]="(selectedAiInfoItem$ | async)?.id"
+                       [resourceName]="(selectedAiInfoItem$ | async)?.name"
+                       [resourceSchema]="(selectedAiInfoItem$ | async)?.schema"
+                       [resourceData]="(selectedAiInfoItem$ | async)?.data"
                        [hideBlockActions]='true'></app-compound-block-ui>
 <h4>Terrain (block for 4 spline items)</h4>
-<app-compound-block-ui [resource]='selectedTerrainItem$ | async'
+<app-compound-block-ui [resourceId]="(selectedTerrainItem$ | async)?.id"
+                       [resourceName]="(selectedTerrainItem$ | async)?.name"
+                       [resourceSchema]="(selectedTerrainItem$ | async)?.schema"
+                       [resourceData]="(selectedTerrainItem$ | async)?.data"
                        [hideBlockActions]='true'></app-compound-block-ui>
 <h4>Common</h4>
-<app-compound-block-ui [resource]='_resource$ | async'
+<app-compound-block-ui [resourceId]="resourceId"
+                       [resourceName]="resourceName"
+                       [resourceSchema]="resourceSchema"
+                       [resourceData]="resourceData"
                        [hideBlockActions]='true'
                        [fieldWhitelist]="[
                        'loop_chunk',

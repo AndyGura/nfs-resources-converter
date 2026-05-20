@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { joinId } from '../../../../utils/join-id';
 import { BlockData, BlockSchema, Resource } from '../../types';
@@ -10,40 +10,59 @@ import { BlockData, BlockSchema, Resource } from '../../types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BaseArchiveBlockUiComponent implements GuiComponentInterface {
-  private _resource: Resource | null = null;
-  get resource(): Resource | null {
-    return this._resource;
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  private _resourceSchema?: BlockSchema;
+  get resourceSchema(): BlockSchema {
+    return this._resourceSchema;
   }
 
   @Input()
-  set resource(value: Resource | null) {
-    this._resource = value;
+  set resourceSchema(value: BlockSchema) {
+    this._resourceSchema = value;
+    this.buildResourceMap();
+  }
+
+  private _resourceData?: BlockData;
+  get resourceData(): BlockData {
+    return this._resourceData;
+  }
+
+  @Input()
+  set resourceData(value: BlockData) {
+    this._resourceData = value;
+    this.buildResourceMap();
+  }
+
+  @Input() resourceDescription?: string;
+
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
+
+  resourceMap: { [key: string]: Resource } = {};
+
+  buildResourceMap() {
     this.resourceMap = {};
-    const childSchema = (this._resource?.schema.fields || []).find(
+    if (!this._resourceSchema || !this._resourceData) return;
+    const childSchema = this._resourceSchema.fields.find(
       (x: { name: string; schema: BlockSchema }) => x.name === 'children',
     )?.schema.child_schema;
     if (!childSchema) return;
     let unaliasedCounter = 0;
-    for (const [i, alias] of this.resourceData!.children_aliases.entries()) {
+    for (const [i, alias] of this._resourceData.children_aliases.entries()) {
       let childName = alias || '__' + unaliasedCounter++;
       this.resourceMap[childName] = {
-        id: joinId(this._resource?.id || '', `children/${i}`),
-        data: this.resourceData?.children[i],
+        id: joinId(this.resourceId || '', `children/${i}`),
+        data: this._resourceData.children[i],
         schema: childSchema,
         name: '',
       };
     }
+    this.cdr.markForCheck();
   }
-
-  get resourceData(): BlockData | null {
-    return this._resource?.data;
-  }
-
-  @Input() hideName: boolean = false;
-
-  @Input() hideBlockActions: boolean = false;
-
-  resourceMap: { [key: string]: Resource } = {};
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
+
+  constructor(readonly cdr: ChangeDetectorRef) {}
 }

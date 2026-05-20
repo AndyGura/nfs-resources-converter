@@ -1,26 +1,26 @@
-<mat-form-field appearance="fill" *ngIf="resource"
-                [matTooltip]="resourceDescription" matTooltipPosition="above">
-    <mat-label *ngIf="resource.name">{{ resource.name }}</mat-label>
+<mat-form-field appearance="fill" *ngIf="resourceId"
+                [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+    <mat-label *ngIf="!hideName && resourceName">{{ resourceName }}</mat-label>
 
-    <ng-container *ngIf="resource.schema.value_validator?.type === 'or'; else numberInput">
+    <ng-container *ngIf="resourceSchema.value_validator?.type === 'or'; else numberInput">
       <mat-select
-        [disabled]="disabled"
-        [(ngModel)]="resource.data"
-        (selectionChange)="changed.emit()"
+        [disabled]="!!disabled"
+        [(ngModel)]="resourceData"
+        (selectionChange)="changed.emit(resourceData)"
         (focus)="onFocus()"
         (blur)="onBlur()">
-        <mat-option *ngFor="let v of resource.schema.value_validator.possible_values" [value]="v">{{ v }}</mat-option>
+        <mat-option *ngFor="let v of resourceSchema.value_validator.possible_values" [value]="v">{{ v }}</mat-option>
       </mat-select>
     </ng-container>
 
     <ng-template #numberInput>
       <input matInput type="number"
-             [max]="resource.schema.max_value"
-             [min]="resource.schema.min_value"
-             [step]="resource.schema.value_interval"
-             [disabled]="disabled || resource.schema.value_validator?.type === 'eq'"
-             [(ngModel)]="resource.data"
-             (change)="changed.emit()"
+             [max]="resourceSchema.max_value"
+             [min]="resourceSchema.min_value"
+             [step]="resourceSchema.value_interval"
+             [disabled]="disabled || resourceSchema.value_validator?.type === 'eq'"
+             [(ngModel)]="resourceData"
+             (ngModelChange)="changed.emit(resourceData)"
              (focus)="onFocus()"
              (blur)="onBlur()">
     </ng-template>

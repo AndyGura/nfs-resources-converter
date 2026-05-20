@@ -1,10 +1,10 @@
 <mat-selection-list [multiple]="false"
                     (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
   <mat-list-option *ngFor="let key of keys" [value]="key" [selected]="selectedValue == key"
-                    (dblclick)='onDoubleClick(key)'>
+                   (dblclick)='onDoubleClick(key)'>
     {{ key }}
   </mat-list-option>
 </mat-selection-list>
 <mat-card *ngIf="selectedValue">
-  <app-editor [resource]="resources[selectedValue]"></app-editor>
+  <app-editor [resourceOrError]="resources[selectedValue]"></app-editor>
 </mat-card>

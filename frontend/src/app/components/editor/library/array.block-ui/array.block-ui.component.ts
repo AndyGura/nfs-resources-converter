@@ -24,11 +24,17 @@ import { ArrayTableColumn } from '../../common/data-table/data-table.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  private _resource: Resource | null = null;
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+
+  private _resourceSchema?: BlockSchema;
+  get resourceSchema(): BlockSchema {
+    return this._resourceSchema;
+  }
 
   @Input()
-  set resource(value: Resource | null) {
-    this._resource = value;
+  set resourceSchema(value: BlockSchema) {
+    this._resourceSchema = value;
     this.checkIfTable();
     if (this.isTable) {
       this.renderContents = true;
@@ -39,49 +45,52 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.updatePagedData();
   }
 
-  get resource(): Resource | null {
-    return this._resource;
+  private _resourceData?: BlockData[];
+  get resourceData(): BlockData[] | undefined {
+    return this._resourceData;
   }
 
   @Input()
-  resourceDescription: string = '';
-
-  get resourceData(): BlockData | null {
-    return this._resource?.data;
+  set resourceData(value: BlockData[] | undefined) {
+    this._resourceData = value;
+    this.checkIfTable();
+    if (this.isTable) {
+      this.renderContents = true;
+    }
+    this.buildChildren();
+    this.renderPage(0, this.minPageSize);
+    this.updatePageIndexes();
+    this.updatePagedData();
   }
+
+  @Input() resourceDescription?: string;
+
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
   protected buildChildren(): void {
-    this.children = (this.resourceData || []).map((d: BlockData, i: number) => ({
-      id: joinId(this._resource!.id, i),
+    this.children = (this._resourceData || []).map((d: BlockData, i: number) => ({
+      id: joinId(this.resourceId!, i),
       name: '' + i,
       data: d,
-      schema: this._resource!.schema.child_schema,
+      schema: this.resourceSchema!.child_schema,
     }));
   }
-
-  @Input() disabled: boolean = false;
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   onFocusedElement(event: [string[], number]) {
     const [path, index] = event;
-    if (this.resource) {
-      this.main.focusedResourceId$.next(joinId(this.resource.id, index.toString(), ...path));
+    if (this.resourceId) {
+      this.main.focusedResourceId$.next(joinId(this.resourceId, index.toString(), ...path));
     }
   }
 
   onBlur() {
-    if (this.main.focusedResourceId$.getValue()?.startsWith(this.resource?.id || '')) {
+    if (this.main.focusedResourceId$.getValue()?.startsWith(this.resourceId || '')) {
       this.main.focusedResourceId$.next(null);
     }
-  }
-
-  get schema(): BlockSchema | null {
-    return this._resource?.schema;
-  }
-
-  get name(): string | null {
-    return this._resource?.name || null;
   }
 
   renderContents: boolean = false;
@@ -102,7 +111,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   get enableArrayEditing(): boolean {
     return (
-      !this.schema?.block_class_mro?.includes('SubByteArrayBlock') && !this.schema?.length && this.schema?.length !== 0
+      !this.resourceSchema?.block_class_mro?.includes('SubByteArrayBlock') &&
+      !this.resourceSchema?.length &&
+      this.resourceSchema?.length !== 0
     );
   }
 
@@ -113,8 +124,8 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   ) {}
 
   async addItem() {
-    if (!this.resource || !this.enableArrayEditing) return;
-    const newItem = await this.main.getNewItemData(this.resource.id);
+    if (!this.resourceId || this.resourceData === undefined || !this.enableArrayEditing) return;
+    const newItem = await this.main.getNewItemData(this.resourceId);
     if (newItem === null) return;
     this.resourceData.push(newItem);
     this.buildChildren();
@@ -122,12 +133,12 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.pageIndex = Math.max(0, this.pageIndexes.length - 1);
     this.renderPage(this.pageIndex, this.pageSize);
     this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
     this.cdr.markForCheck();
   }
 
   removeItem(index: number) {
-    if (!this.resource || !this.enableArrayEditing) return;
+    if (!this.resourceId || this.resourceData === undefined || !this.enableArrayEditing) return;
     this.resourceData.splice(index, 1);
     this.buildChildren();
     this.updatePageIndexes();
@@ -136,31 +147,31 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }
     this.renderPage(this.pageIndex, this.pageSize);
     this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
     this.cdr.markForCheck();
   }
 
   moveItemUp(index: number) {
-    if (index <= 0 || !this.resource) return;
+    if (index <= 0 || !this.resourceId || this.resourceData === undefined) return;
     const temp = this.resourceData[index];
     this.resourceData[index] = this.resourceData[index - 1];
     this.resourceData[index - 1] = temp;
     this.buildChildren();
     this.renderPage(this.pageIndex, this.pageSize);
     this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
     this.cdr.markForCheck();
   }
 
   moveItemDown(index: number) {
-    if (index >= this.resourceData.length - 1 || !this.resource) return;
+    if (this.resourceData === undefined || !this.resourceId || index >= this.resourceData.length - 1) return;
     const temp = this.resourceData[index];
     this.resourceData[index] = this.resourceData[index + 1];
     this.resourceData[index + 1] = temp;
     this.buildChildren();
     this.renderPage(this.pageIndex, this.pageSize);
     this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resource.id, this.resourceData]);
+    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
     this.cdr.markForCheck();
   }
 
@@ -180,7 +191,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   arrayTableColumns: ArrayTableColumn[] | null = null;
 
   private checkIfTable(): void {
-    const childSchema = this.schema?.child_schema;
+    const childSchema = this.resourceSchema?.child_schema;
     if (!childSchema) {
       return;
     }
@@ -263,18 +274,20 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
         // this makes effect only locally in frontend
         filter(
           ([blockId, value]) =>
-            !!this.resource &&
-            blockId.startsWith(this.resource!.id) &&
-            !blockId.substring(this.resource!.id.length + 1).includes('/'),
+            !!this.resourceId &&
+            blockId.startsWith(this.resourceId) &&
+            !blockId.substring(this.resourceId.length + 1).includes('/'),
         ),
       )
       .subscribe(async ([blockId, value]) => {
-        if (blockId === this.resource!.id) {
-          this.resource!.data = value;
-          return;
+        if (this.resourceId) {
+          if (blockId === this.resourceId) {
+            this.resourceData = value;
+            return;
+          }
+          this.resourceData![+idSuffix(this.resourceId, blockId)] = value;
+          this.updatePagedData();
         }
-        this.resourceData[+idSuffix(this.resource!.id, blockId)] = value;
-        this.updatePagedData();
       });
   }
 
@@ -284,10 +297,10 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   }
 
   onTableDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }): void {
-    if (!this.resource) return;
+    if (!this.resourceId || this.resourceData === undefined) return;
     const { index, field, subField, value } = event;
     const item = this.resourceData[index];
-    let targetId = joinId(this.resource.id, index);
+    let targetId = joinId(this.resourceId, index);
 
     if (field) {
       targetId = joinId(targetId, field);
@@ -338,7 +351,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.goToIndex = this.pageIndex;
     this.pageIndexes = [];
     if (this.pageSize > 0) {
-      for (let i = 0; i < Math.ceil((this.resourceData || []).length / this.pageSize); i++) {
+      for (let i = 0; i < Math.ceil((this._resourceData || []).length / this.pageSize); i++) {
         this.pageIndexes.push(i);
       }
     }
@@ -346,12 +359,12 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   private updatePagedData(): void {
     if (this.pageSize > 0) {
-      this.pagedData = (this.resourceData || []).slice(
+      this.pagedData = (this._resourceData || []).slice(
         this.pageIndex * this.pageSize,
         (this.pageIndex + 1) * this.pageSize,
       );
     } else {
-      this.pagedData = this.resourceData || [];
+      this.pagedData = this._resourceData || [];
     }
   }
 

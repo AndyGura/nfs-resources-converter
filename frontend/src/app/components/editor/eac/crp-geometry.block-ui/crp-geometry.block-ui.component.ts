@@ -4,32 +4,32 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   OnDestroy,
   Output,
+  SimpleChanges,
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { MainService } from '../../../../services/main.service';
-import { Resource } from '../../types';
+import { BlockData, BlockSchema } from '../../types';
 import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 
 @Component({
   selector: 'app-crp-geometry-block-ui',
   templateUrl: './crp-geometry.block-ui.component.html',
-  styleUrls: ['./crp-geometry.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CrpGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  get resource(): Resource | null {
-    return this._resource$.getValue();
-  }
+export class CrpGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy, OnChanges {
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
+  @Input() resourceData?: BlockData;
+  @Input() resourceDescription?: string;
 
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource$.next(value);
-  }
-
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
@@ -41,20 +41,22 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
 
   constructor(private readonly mainService: MainService) {}
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
+      this.isTrack$.next(this.resourceData?.resource_id === 'karT');
+      this.loadPreview().then();
+    }
+  }
+
   async ngAfterViewInit() {
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
-      this.isTrack$.next(res?.data?.resource_id === 'karT');
-      this.previewPaths$.next(await this.loadPreviewFilePaths(res?.id));
-    });
     this.mainService.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
-        debounceTime(1500),
+        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
+        debounceTime(1000),
       )
       .subscribe(async () => {
-        this.previewPaths$.next(null);
-        this.previewPaths$.next(await this.postTmpUpdates(this.resource?.id));
+        await this.loadPreview();
       });
   }
 
@@ -64,20 +66,12 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
     geometry__export_to_gg_web_engine: false,
   };
 
-  private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.mainService.api.serializeResource(blockId, null, this.serializerSettings);
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
+  private async loadPreview() {
+    this.previewPaths$.next(null);
+    if (this.resourceId) {
+      const paths = await this.mainService.api.serializeResource(this.resourceId, null, this.serializerSettings);
+      this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
-    return null;
-  }
-
-  private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.mainService.api.serializeResource(blockId, null, this.serializerSettings);
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
-    }
-    return null;
   }
 
   public readonly previewViewFilters: ViewFilterOpts[] = [

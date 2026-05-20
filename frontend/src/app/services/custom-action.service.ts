@@ -17,7 +17,7 @@ export class CustomActionService {
     private readonly snackBar: MatSnackBar,
   ) {}
 
-  async runCustomAction(resource: Resource, action: CustomAction): Promise<boolean> {
+  async runCustomAction(resourceId: string, resourceName: string, action: CustomAction): Promise<boolean> {
     if (this.mainService.hasUnsavedChanges) {
       const dialogRef = this.dialog.open(ConfirmDialogComponent, {
         data: { text: 'Cannot run custom action on a file with not saved changes. Do you want to save them first?' },
@@ -40,7 +40,7 @@ export class CustomActionService {
     const dialogRef = this.dialog.open(RunCustomActionDialogComponent, {
       data: {
         action: action,
-        resourceName: resource.name || '',
+        resourceName,
       },
     });
 
@@ -50,7 +50,7 @@ export class CustomActionService {
     }
 
     try {
-      await this.mainService.runCustomAction(resource.id, action, args);
+      await this.mainService.runCustomAction(resourceId, action, args);
       this.snackBar.open('Action performed!', 'OK', { duration: 1500 });
       return true;
     } catch (err: any) {

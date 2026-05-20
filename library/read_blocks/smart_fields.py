@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple, Any
 import config
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException
-from library.read_blocks.basic import DataBlock, SkipBlock, BytesBlock
+from library.read_blocks.basic import DataBlock, BytesBlock
 from library.utils.id import join_id
 
 
@@ -122,24 +122,17 @@ class AutoDetectBlock(DelegateBlock):
 
     def detect(self, ctx, name=None):
         from library import probe_block_class
-        exc = None
-        block_class = None
+        file_path = ctx.ctx_path
+        if name and not file_path.endswith(name):
+            file_path = join_id(file_path, name)
         try:
-            file_path = ctx.ctx_path
-            if name and not file_path.endswith(name):
-                file_path = join_id(file_path, name)
             block_class = probe_block_class(ctx.buffer,
                                             file_path=file_path,
                                             resources_to_pick=[x.__class__ for x in self.possible_blocks])
-        except NotImplementedError as ex:
-            exc = ex
+        except NotImplementedError:
+            block_class = None
         for (i, block) in enumerate(self.possible_blocks):
-            match = (isinstance(block, block_class)
-                     if block_class
-                     else (isinstance(block, SkipBlock) or isinstance(block, BytesBlock)))
-            if match:
-                if isinstance(block, SkipBlock) and block.error_strategy == "return_exception":
-                    block.exception = exc  # TODO do not write to block!
+            if isinstance(block, block_class) if block_class else isinstance(block, BytesBlock):
                 return i
         raise DataIntegrityException(ctx=ctx,
                                      message='Expectation failed for auto-detect block while reading: class not found')

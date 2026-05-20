@@ -11,11 +11,9 @@ import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-u
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
-import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
 import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
-import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
@@ -65,11 +63,9 @@ import { MatSliderModule } from '@angular/material/slider';
     EnumBlockUiComponent,
     SubByteCompoundBlockUiComponent,
     DelegateBlockUiComponent,
-    SkipBlockUiComponent,
     ImageBlockUiComponent,
     PaletteBlockUiComponent,
     AngleBlockUiComponent,
-    WwwwBlockUiComponent,
     TriMapBlockUiComponent,
     OripGeometryBlockUiComponent,
     CrpGeometryBlockUiComponent,

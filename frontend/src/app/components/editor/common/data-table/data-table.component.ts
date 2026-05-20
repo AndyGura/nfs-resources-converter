@@ -8,7 +8,6 @@ import {
   DoCheck,
   Output,
 } from '@angular/core';
-import { isNaN } from 'lodash';
 
 export interface ArrayTableColumn {
   key: string;
@@ -67,7 +66,7 @@ export class DataTableComponent implements DoCheck {
     return this._data;
   }
   private _data: any[] = [];
-  @Input() disabled: boolean = false;
+  @Input() disabled?: boolean = false;
   @Input() enableArrayEditing: boolean = false;
 
   public pagedData: any[] = [];

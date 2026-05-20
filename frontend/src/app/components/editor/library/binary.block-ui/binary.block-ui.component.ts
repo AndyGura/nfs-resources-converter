@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject } from 'rxjs';
-import { Resource } from '../../types';
+import { BlockSchema } from '../../types';
 import { MainService } from '../../../../services/main.service';
 
 @Component({
@@ -13,43 +13,49 @@ import { MainService } from '../../../../services/main.service';
 export class BinaryBlockUiComponent implements GuiComponentInterface {
   @ViewChild('editor') editorDiv?: ElementRef<HTMLDivElement>;
 
-  private _resource: Resource | null = null;
-  get resource(): Resource | null {
-    return this._resource;
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
+  private _resourceData?: number[];
+  get resourceData(): number[] | undefined {
+    return this._resourceData;
+  }
+  @Input()
+  set resourceData(value: number[] | undefined) {
+    this._resourceData = value;
+    if (value) {
+      this.data$.next(new Uint8Array(value));
+    } else {
+      this.data$.next(this.empty);
+    }
   }
 
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource = value;
-    this.data$.next(new Uint8Array(value ? value.data : 0));
-  }
+  @Input() resourceDescription?: string;
+
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
+
+  @Output('changed') changed: EventEmitter<number[]> = new EventEmitter<number[]>();
 
   empty: Uint8Array = new Uint8Array();
 
   data$: BehaviorSubject<Uint8Array> = new BehaviorSubject(new Uint8Array());
 
-  @Input()
-  resourceDescription: string = '';
-
-  @Input() disabled: boolean = false;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
   constructor(private mainService: MainService) {}
 
   onDataChange(arr: Uint8Array) {
-    this._resource!.data = Array.from(arr);
-    this.changed.emit();
+    this.changed.emit(Array.from(arr));
   }
 
   onFocus() {
-    if (this.resource) {
-      this.mainService.focusedResourceId$.next(this.resource.id);
+    if (this.resourceId) {
+      this.mainService.focusedResourceId$.next(this.resourceId);
     }
   }
 
   onBlur() {
-    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
+    if (this.mainService.focusedResourceId$.getValue() === this.resourceId) {
       this.mainService.focusedResourceId$.next(null);
     }
   }

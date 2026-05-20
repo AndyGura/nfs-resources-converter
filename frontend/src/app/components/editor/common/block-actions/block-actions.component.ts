@@ -49,7 +49,6 @@ export class BlockActionsComponent {
       path,
       this.resource.schema.serialization.reversible_settings_patch,
     );
-    debugger;
     if (files && files.length > 0) {
       const commonPathPart = files.reduce((commonBeginning, currentString) => {
         let j = 0;
@@ -88,7 +87,7 @@ export class BlockActionsComponent {
     if (!this.resource) {
       return;
     }
-    await this.customActionService.runCustomAction(this.resource, action);
+    await this.customActionService.runCustomAction(this.resource.id, this.resource.name, action);
     this.cdr.markForCheck();
   }
 }

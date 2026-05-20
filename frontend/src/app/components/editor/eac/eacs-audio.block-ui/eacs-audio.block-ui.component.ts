@@ -1,51 +1,40 @@
-import { AfterViewInit, Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
-import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { MainService } from '../../../../services/main.service';
 import { NavigationService } from '../../../../services/navigation.service';
-import { Resource } from '../../types';
+import { BlockData, BlockSchema } from '../../types';
 
 @Component({
   selector: 'app-eacs-audio-block-ui',
   templateUrl: './eacs-audio.block-ui.component.html',
   styleUrls: ['./eacs-audio.block-ui.component.scss'],
 })
-export class EacsAudioBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
+export class EacsAudioBlockUiComponent implements GuiComponentInterface, OnChanges {
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
+  @Input() resourceData?: BlockData;
+  @Input() resourceDescription?: string;
+
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
+
   audioUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
-
-  @Input() set resource(value: Resource | null) {
-    this._resource$.next(value);
-  }
-
-  get resource(): Resource | null {
-    return this._resource$.getValue();
-  }
-
-  @Input() resourceDescription: string = '';
-
-  @Input() hideName: boolean = false;
-
-  @Input() hideBlockActions: boolean = false;
-
-  private readonly destroyed$: Subject<void> = new Subject<void>();
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   constructor(public readonly main: MainService, public readonly navigation: NavigationService) {}
 
-  async ngAfterViewInit() {
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
       this.audioUrl$.next(null);
-      if (res) {
-        const paths = await this.main.api.serializeResource(res.id);
-        this.audioUrl$.next(paths.find(x => x.endsWith('.wav')) || null);
+      if (this.resourceId) {
+        this.main.api.serializeResource(this.resourceId).then(paths => {
+          this.audioUrl$.next(paths.find(x => x.endsWith('.wav')) || null);
+        });
       }
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.destroyed$.next();
-    this.destroyed$.complete();
+    }
   }
 }

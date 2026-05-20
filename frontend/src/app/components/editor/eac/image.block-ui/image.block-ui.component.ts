@@ -13,7 +13,7 @@ import {
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { MainService } from '../../../../services/main.service';
-import { CustomAction, Resource } from '../../types';
+import { BlockData, BlockSchema, CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
 
 @Component({
@@ -23,25 +23,57 @@ import { CustomActionService } from '../../../../services/custom-action.service'
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  @Input() set resource(value: Resource | null) {
-    this._resource$.next(value);
+  private _resourceId?: string;
+  get resourceId(): string | undefined {
+    return this._resourceId;
   }
 
-  get resource(): Resource | null {
-    return this._resource$.getValue();
+  @Input()
+  set resourceId(value: string | undefined) {
+    if (value === this._resourceId) return;
+    this._resourceId = value;
+    this.reloadImage();
   }
 
-  @Input() resourceDescription: string = '';
+  @Input() resourceName?: string;
+  @Input() resourceSchema?: BlockSchema;
 
-  @Input() hideName: boolean = false;
+  private _resourceData?: BlockData;
+  get resourceData(): BlockData {
+    return this._resourceData;
+  }
+  @Input()
+  set resourceData(value: BlockData) {
+    if (value === this._resourceData) return;
+    this._resourceData = value;
+    this.reloadImage();
+  }
 
-  @Input() hideBlockActions: boolean = false;
+  @Input() resourceDescription?: string;
+
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
 
   @ViewChild('imageContainer') imageContainer?: ElementRef<HTMLDivElement>;
   @ViewChild('formatSelect') formatSelect?: any;
+
+  private reloadImage() {
+    this.imageUrl$.next(null);
+    if (this.resourceId) {
+      setTimeout(() => this.fitZoom(), 0);
+      this.main.api.serializeResource(this.resourceId).then(paths => {
+        let url = paths.find(x => x.endsWith('.png'));
+        if (!url) {
+          this.imageUrl$.next(null);
+        } else {
+          this.imageUrl$.next(url + '?ts=' + Date.now());
+        }
+      });
+    }
+  }
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
   zoom = 100;
@@ -82,22 +114,6 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
   ) {}
 
   async ngAfterViewInit() {
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
-      if (res) {
-        this.imageUrl$.next(null);
-        setTimeout(() => this.fitZoom(), 0);
-        const paths = await this.main.api.serializeResource(res.id);
-        let url = paths.find(x => x.endsWith('.png'));
-        if (!url) {
-          this.imageUrl$.next(null);
-        } else {
-          this.imageUrl$.next(url + '?ts=' + Date.now());
-        }
-      } else {
-        this.imageUrl$.next(null);
-      }
-    });
-
     this.imageUrl$.pipe(takeUntil(this.destroyed$)).subscribe(url => {
       this.cdr.markForCheck();
     });
@@ -161,7 +177,7 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
   }
 
   private applyZoomAtAnchorDirect(zoomRatio: number, anchorX: number, anchorY: number) {
-    if (!this.imageContainer || !this.resource?.data) return;
+    if (!this.imageContainer || !this._resourceData) return;
 
     const container = this.imageContainer.nativeElement;
     const imgElement = container.querySelector('img, .image-placeholder');
@@ -230,12 +246,12 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
   }
 
   fitZoom() {
-    if (this.resource?.data?.width && this.imageContainer) {
+    if (this._resourceData?.width && this.imageContainer) {
       const container = this.imageContainer.nativeElement;
       const availableWidth = container.clientWidth - 32;
       const availableHeight = container.clientHeight - 32;
-      const zoomX = availableWidth / this.resource.data.width;
-      const zoomY = availableHeight / this.resource.data.height;
+      const zoomX = availableWidth / this._resourceData.width;
+      const zoomY = availableHeight / this._resourceData.height;
       const idealZoom = Math.min(zoomX, zoomY);
 
       this.zoom = Math.floor(idealZoom * 100);
@@ -258,27 +274,27 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
   }
 
   async onFormatChange(newFormat: string) {
-    if (!this.resource) return;
-    const currentFormatSmpl = this.customActionSimplifiedFormat(this.resource.data.resource_id);
+    if (!this._resourceData) return;
+    const currentFormatSmpl = this.customActionSimplifiedFormat(this._resourceData.resource_id);
     const newFormatSmpl = this.customActionSimplifiedFormat(newFormat);
     if (newFormatSmpl === currentFormatSmpl) {
-      this.resource.data.resource_id = newFormat;
+      this._resourceData.resource_id = newFormat;
       this.changed.next();
       return;
     }
-    const action = this.resource.schema.custom_actions.find(
+    const action = this.resourceSchema.custom_actions.find(
       (a: CustomAction) => a.method === 'convert_to_' + newFormatSmpl,
     );
     if (action) {
-      const success = await this.customActionService.runCustomAction(this.resource, action);
+      const success = await this.customActionService.runCustomAction(this.resourceId!, this.resourceName!, action);
       if (!success && this.formatSelect) {
         // restore value in dropdown
-        this.formatSelect.control.setValue(this.resource.data.resource_id, { emitEvent: false });
+        this.formatSelect.control.setValue(this._resourceData.resource_id, { emitEvent: false });
         this.cdr.markForCheck();
       }
     } else {
       if (this.formatSelect) {
-        this.formatSelect.control.setValue(this.resource.data.resource_id, { emitEvent: false });
+        this.formatSelect.control.setValue(this._resourceData.resource_id, { emitEvent: false });
       }
       this.cdr.markForCheck();
     }

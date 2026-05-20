@@ -10,10 +10,10 @@ import {
 } from '@angular/core';
 import { GuiComponentInterface } from '../../gui-component.interface';
 import { MainService } from '../../../../services/main.service';
-import { filter, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject, filter, Subject, takeUntil } from 'rxjs';
 import { NavigationService } from '../../../../services/navigation.service';
 import { idSuffix, joinId } from '../../../../utils/join-id';
-import { BlockData, BlockSchema, Resource } from '../../types';
+import { BlockData, BlockSchema } from '../../types';
 
 @Component({
   selector: 'app-compound-block-ui',
@@ -22,47 +22,75 @@ import { BlockData, BlockSchema, Resource } from '../../types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompoundBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  @Input() resource: Resource | null = null;
+  @Input() resourceId?: string;
+  @Input() resourceName?: string;
 
-  @Input() resourceDescription: string = '';
+  private _resourceSchema?: BlockSchema;
+  get resourceSchema(): BlockSchema | undefined {
+    return this._resourceSchema;
+  }
 
-  @Input() hideName: boolean = false;
+  @Input()
+  set resourceSchema(value: BlockSchema | undefined) {
+    this._resourceSchema = value;
+    this.updateFields();
+  }
 
-  @Input() hideBlockActions: boolean = false;
+  @Input()
+  resourceData?: BlockData;
 
-  @Input() disabled: boolean = false;
+  @Input() resourceDescription?: string;
+
+  @Input() hideName?: boolean;
+  @Input() hideBlockActions?: boolean;
+  @Input() disabled?: boolean;
+
   @Input() preferHorizontalLayout: boolean = false;
-
-  get name(): string | null {
-    return this.resource && this.resource.name;
+  private _fieldWhitelist: string[] | null = null;
+  get fieldWhitelist(): string[] | null {
+    return this._fieldWhitelist;
   }
 
-  get data(): BlockData | null {
-    return this.resource && this.resource.data;
+  @Input()
+  set fieldWhitelist(value: string[] | null) {
+    this._fieldWhitelist = value;
+    this.updateFields();
   }
 
-  get schema(): BlockSchema | null {
-    return this.resource && this.resource.schema;
+  private _fieldBlacklist: string[] | null = null;
+
+  get fieldBlacklist(): string[] | null {
+    return this._fieldBlacklist;
   }
 
-  @Input() fieldWhitelist: string[] | null = null;
-
-  @Input() fieldBlacklist: string[] | null = null;
+  @Input()
+  set fieldBlacklist(value: string[] | null) {
+    this._fieldBlacklist = value;
+    this.updateFields();
+  }
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  get fieldKeys(): { index: number; key: string }[] {
-    let fields: { index: number; key: string }[] =
-      this.schema?.fields
-        .map((f: { name: string; usage?: string }, i: number) => ({ index: i, name: f.name, usage: f.usage }))
-        .filter((f: { usage?: string }) => !f.usage || f.usage == 'everywhere' || f.usage.includes('ui'))
-        .map((f: { index: number; name: string }) => ({ index: f.index, key: f.name })) || [];
-    if (this.fieldWhitelist) {
-      fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));
-    } else if (this.fieldBlacklist) {
-      fields = fields.filter(({ key }) => !this.fieldBlacklist?.includes(key));
+  fieldKeys$: BehaviorSubject<{ index: number; key: string }[]> = new BehaviorSubject<{ index: number; key: string }[]>(
+    [],
+  );
+
+  updateFields() {
+    if (this.resourceSchema) {
+      let fields: { index: number; key: string }[] =
+        this.resourceSchema.fields
+          .map((f: { name: string; usage?: string }, i: number) => ({ index: i, name: f.name, usage: f.usage }))
+          .filter((f: { usage?: string }) => !f.usage || f.usage == 'everywhere' || f.usage.includes('ui'))
+          .map((f: { index: number; name: string }) => ({ index: f.index, key: f.name })) || [];
+      if (this.fieldWhitelist) {
+        fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));
+      } else if (this.fieldBlacklist) {
+        fields = fields.filter(({ key }) => !this.fieldBlacklist?.includes(key));
+      }
+      this.fieldKeys$.next(fields);
+    } else {
+      this.fieldKeys$.next([]);
     }
-    return fields;
   }
 
   fieldTrackBy(index: number, item: { index: number; key: string }) {
@@ -79,24 +107,26 @@ export class CompoundBlockUiComponent implements GuiComponentInterface, AfterVie
 
   ngAfterViewInit(): void {
     // TODO make this work in all components I guess?
+    // FIXME do we actually need that with new model?
     this.main.dataBlockChange$
       .pipe(
         takeUntil(this.destroyed$),
         // handle inner primitive fields (1 level deep) and update object with new values.
         // this makes effect only locally in frontend
         filter(
-          ([blockId, value]) =>
-            !!this.resource &&
-            blockId.startsWith(this.resource!.id) &&
-            !blockId.substring(this.resource!.id.length + 1).includes('/'),
+          ([blockId]) =>
+            !!this.resourceId &&
+            !!this.resourceData &&
+            blockId.startsWith(this.resourceId) &&
+            !blockId.substring(this.resourceId.length + 1).includes('/'),
         ),
       )
       .subscribe(async ([blockId, value]) => {
-        if (blockId === this.resource!.id) {
-          this.resource!.data = value;
+        if (blockId === this.resourceId) {
+          this.resourceData = value;
           return;
         }
-        this.data[idSuffix(this.resource!.id, blockId)] = value;
+        this.resourceData![idSuffix(this.resourceId!, blockId)] = value;
         this.cdr.markForCheck();
       });
   }
