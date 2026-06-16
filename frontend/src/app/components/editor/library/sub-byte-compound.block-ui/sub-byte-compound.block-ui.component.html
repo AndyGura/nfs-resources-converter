@@ -1,54 +1,59 @@
-@if (resourceId && resourceSchema && resourceData) { @if (resourceName && !hideName) {
-<mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-  {{ resourceName }}
-</mat-label>
-}
-<div class="sub-byte-fields">
-  @for (field of resourceSchema.sub_byte_schema; track field) { @if (field.type === 'boolean') {
-  <div class="sub-byte-field">
-    <mat-checkbox
-      [checked]="resourceData[field.alias]"
-      (change)="onValueSet($event.checked, field.alias)"
-      (focus)="onFocus(field.alias)"
-      (blur)="onBlur(field.alias)"
-      [disabled]="!!disabled"
-      [matTooltip]="field.description"
-      matTooltipPosition="above">
-      {{ field.alias }}
-    </mat-checkbox>
+@if (resourceId && resourceSchema && resourceData) {
+  @if (resourceName && !hideName) {
+    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+      {{ resourceName }}
+    </mat-label>
+  }
+  <div class="sub-byte-fields">
+    @for (field of resourceSchema.sub_byte_schema; track field) {
+      @if (field.type === 'boolean') {
+        <div class="sub-byte-field">
+          <mat-checkbox
+            [checked]="resourceData[field.alias]"
+            (change)="onValueSet($event.checked, field.alias)"
+            (focus)="onFocus(field.alias)"
+            (blur)="onBlur(field.alias)"
+            [disabled]="!!disabled"
+            [matTooltip]="field.description"
+            matTooltipPosition="above">
+            {{ field.alias }}
+          </mat-checkbox>
+        </div>
+      }
+      @if (field.type === 'number') {
+        <div class="sub-byte-field">
+          <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
+            <mat-label>{{ field.alias }}</mat-label>
+            <input
+              matInput
+              type="number"
+              [value]="resourceData[field.alias]"
+              (change)="onValueSet($any($event.target).value, field.alias)"
+              (focus)="onFocus(field.alias)"
+              (blur)="onBlur(field.alias)"
+              [disabled]="!!disabled" />
+          </mat-form-field>
+        </div>
+      }
+      @if (field.type === 'enum') {
+        <div class="sub-byte-field">
+          <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
+            <mat-label>{{ field.alias }}</mat-label>
+            <mat-select
+              [value]="resourceData[field.alias]"
+              (selectionChange)="onValueSet($event.value, field.alias)"
+              (focus)="onFocus(field.alias)"
+              (blur)="onBlur(field.alias)"
+              [disabled]="!!disabled">
+              @for (option of field.details; track option) {
+                <mat-option [value]="option">
+                  {{ option }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
+    }
   </div>
-  } @if (field.type === 'number') {
-  <div class="sub-byte-field">
-    <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
-      <mat-label>{{ field.alias }}</mat-label>
-      <input
-        matInput
-        type="number"
-        [value]="resourceData[field.alias]"
-        (change)="onValueSet($any($event.target).value, field.alias)"
-        (focus)="onFocus(field.alias)"
-        (blur)="onBlur(field.alias)"
-        [disabled]="!!disabled" />
-    </mat-form-field>
-  </div>
-  } @if (field.type === 'enum') {
-  <div class="sub-byte-field">
-    <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
-      <mat-label>{{ field.alias }}</mat-label>
-      <mat-select
-        [value]="resourceData[field.alias]"
-        (selectionChange)="onValueSet($event.value, field.alias)"
-        (focus)="onFocus(field.alias)"
-        (blur)="onBlur(field.alias)"
-        [disabled]="!!disabled">
-        @for (option of field.details; track option) {
-        <mat-option [value]="option">
-          {{ option }}
-        </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-  </div>
-  } }
-</div>
 }

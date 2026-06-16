@@ -2,13 +2,13 @@
   [multiple]="false"
   (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
   @for (key of keys; track key) {
-  <mat-list-option [value]="key" [selected]="selectedValue == key" (dblclick)="onDoubleClick(key)">
-    {{ key }}
-  </mat-list-option>
+    <mat-list-option [value]="key" [selected]="selectedValue == key" (dblclick)="onDoubleClick(key)">
+      {{ key }}
+    </mat-list-option>
   }
 </mat-selection-list>
 @if (selectedValue) {
-<mat-card>
-  <app-editor [resourceOrError]="resources[selectedValue]"></app-editor>
-</mat-card>
+  <mat-card>
+    <app-editor [resourceOrError]="resources[selectedValue]"></app-editor>
+  </mat-card>
 }

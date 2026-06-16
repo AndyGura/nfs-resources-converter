@@ -6,106 +6,120 @@
     (viewModeChanged)="setViewMode($event)"></app-view-mode-toolbar>
   <div id="controls">
     @for (customControl of customControls; track customControl; let i = $index) {
-    <h4>{{ customControl.title }}</h4>
-    @for (c of customControl.controls; track c; let j = $index) {
-    <div class="controls-list">
-      @if (c.type === 'checkbox') {
-      <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
-      <input
-        [id]="'custom_control_' + i + '_' + j"
-        [type]="c.type"
-        [checked]="c.value"
-        (change)="c.value = $any($event.currentTarget).checked; c.change(c.value)" />
-      } @if (c.type === 'radio') {
-      <div style="width: 100%">
-        <label>{{ c.label }}</label>
-        @for (option of c.options; track option) {
+      <h4>{{ customControl.title }}</h4>
+      @for (c of customControl.controls; track c; let j = $index) {
         <div class="controls-list">
-          <label [for]="'custom_control_' + i + '_' + j + '_' + option">{{ option }}</label>
-          <input
-            [id]="'custom_control_' + i + '_' + j + '_' + option"
-            type="radio"
-            [checked]="c.value === option"
-            (change)="c.value = option; c.change(c.value)" />
+          @if (c.type === 'checkbox') {
+            <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+            <input
+              [id]="'custom_control_' + i + '_' + j"
+              [type]="c.type"
+              [checked]="c.value"
+              (change)="c.value = $any($event.currentTarget).checked; c.change(c.value)" />
+          }
+          @if (c.type === 'radio') {
+            <div style="width: 100%">
+              <label>{{ c.label }}</label>
+              @for (option of c.options; track option) {
+                <div class="controls-list">
+                  <label [for]="'custom_control_' + i + '_' + j + '_' + option">{{ option }}</label>
+                  <input
+                    [id]="'custom_control_' + i + '_' + j + '_' + option"
+                    type="radio"
+                    [checked]="c.value === option"
+                    (change)="c.value = option; c.change(c.value)" />
+                </div>
+              }
+            </div>
+          }
+          @if (c.type === 'color') {
+            <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+            <input
+              [id]="'custom_control_' + i + '_' + j"
+              type="color"
+              [value]="toHex(c.value)"
+              (change)="c.value = fromHex($any($event.currentTarget).value); c.change(c.value)" />
+          }
+          @if (c.type === 'slider') {
+            <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+            <input
+              [id]="'custom_control_' + i + '_' + j"
+              type="range"
+              [min]="c.minValue"
+              [max]="c.maxValue"
+              [step]="c.valueStep"
+              [value]="c.value"
+              (change)="c.value = $any($event.currentTarget).value; c.change(c.value)" />
+          }
         </div>
+      }
+    }
+    @for (fg of _viewFilters; track fg) {
+      <h4>{{ fg.opts.name }}</h4>
+      <div class="controls-list-vertical">
+        @for (filterName of fg.opts.filterGroups; track filterName; let i = $index) {
+          @if (!fg.isGroupEmpty(filterName)) {
+            <div class="control-item">
+              <input
+                [id]="'filter_' + fg.opts.name + '_' + filterName"
+                type="radio"
+                [name]="'filter_group_' + fg.opts.name + '_' + filterName"
+                [checked]="fg.opts.checkedIndex === i"
+                (change)="fg.opts.checkedIndex = i; applyViewFilters()" />
+              <label [for]="'filter_' + fg.opts.name + '_' + filterName">{{ filterName }}</label>
+            </div>
+          }
         }
       </div>
-      } @if (c.type === 'color') {
-      <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
-      <input
-        [id]="'custom_control_' + i + '_' + j"
-        type="color"
-        [value]="toHex(c.value)"
-        (change)="c.value = fromHex($any($event.currentTarget).value); c.change(c.value)" />
-      } @if (c.type === 'slider') {
-      <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
-      <input
-        [id]="'custom_control_' + i + '_' + j"
-        type="range"
-        [min]="c.minValue"
-        [max]="c.maxValue"
-        [step]="c.valueStep"
-        [value]="c.value"
-        (change)="c.value = $any($event.currentTarget).value; c.change(c.value)" />
+    }
+    @if (visibilityControls) {
+      <div class="section-header">
+        <h4>Objects visibility</h4>
+        <button class="icon-button" (click)="toggleAllVisibility()" title="Toggle all visibility">
+          <img src="assets/editor/icons/hide_off.svg" alt="Toggle all" />
+        </button>
+      </div>
+      @if (uiGroups === null) {
+        @for (mesh of displayMeshes; track mesh) {
+          <div class="controls-list">
+            <label [for]="'visibility_' + mesh.name">{{ mesh.name }}</label>
+            <div class="checkbox-wrapper">
+              <input
+                [id]="'visibility_' + mesh.name"
+                type="checkbox"
+                [checked]="mesh.visible"
+                (change)="toggleMesh(mesh)"
+                (dblclick)="toggleMeshOnly(mesh)" />
+              <img
+                [src]="'assets/editor/icons/hide_' + (mesh.visible ? 'off' : 'on') + '.svg'"
+                (click)="toggleMesh(mesh)"
+                (dblclick)="toggleMeshOnly(mesh)" />
+            </div>
+          </div>
+        }
       }
-    </div>
-    } } @for (fg of _viewFilters; track fg) {
-    <h4>{{ fg.opts.name }}</h4>
-    <div class="controls-list-vertical">
-      @for (filterName of fg.opts.filterGroups; track filterName; let i = $index) { @if (!fg.isGroupEmpty(filterName)) {
-      <div class="control-item">
-        <input
-          [id]="'filter_' + fg.opts.name + '_' + filterName"
-          type="radio"
-          [name]="'filter_group_' + fg.opts.name + '_' + filterName"
-          [checked]="fg.opts.checkedIndex === i"
-          (change)="fg.opts.checkedIndex = i; applyViewFilters()" />
-        <label [for]="'filter_' + fg.opts.name + '_' + filterName">{{ filterName }}</label>
-      </div>
-      } }
-    </div>
-    } @if (visibilityControls) {
-    <div class="section-header">
-      <h4>Objects visibility</h4>
-      <button class="icon-button" (click)="toggleAllVisibility()" title="Toggle all visibility">
-        <img src="assets/editor/icons/hide_off.svg" alt="Toggle all" />
-      </button>
-    </div>
-    @if (uiGroups === null) { @for (mesh of displayMeshes; track mesh) {
-    <div class="controls-list">
-      <label [for]="'visibility_' + mesh.name">{{ mesh.name }}</label>
-      <div class="checkbox-wrapper">
-        <input
-          [id]="'visibility_' + mesh.name"
-          type="checkbox"
-          [checked]="mesh.visible"
-          (change)="toggleMesh(mesh)"
-          (dblclick)="toggleMeshOnly(mesh)" />
-        <img
-          [src]="'assets/editor/icons/hide_' + (mesh.visible ? 'off' : 'on') + '.svg'"
-          (click)="toggleMesh(mesh)"
-          (dblclick)="toggleMeshOnly(mesh)" />
-      </div>
-    </div>
-    } } @if (uiGroups !== null) { @for (group of uiGroups | keyvalue; track group) {
-    <div class="controls-list">
-      <label [for]="'visibility_' + group.key">{{ group.key }}</label>
-      <div class="checkbox-wrapper">
-        <input
-          [id]="'visibility_' + group.key"
-          type="checkbox"
-          [checked]="group.value.visible"
-          (change)="toggleUiGroup(group.key)"
-          (dblclick)="toggleUiGroupOnly(group.key)" />
-        <img
-          [src]="'assets/editor/icons/hide_' + (group.value.visible ? 'off' : 'on') + '.svg'"
-          (click)="toggleUiGroup(group.key)"
-          (dblclick)="toggleUiGroupOnly(group.key)" />
-      </div>
-    </div>
-    } } }
+      @if (uiGroups !== null) {
+        @for (group of uiGroups | keyvalue; track group) {
+          <div class="controls-list">
+            <label [for]="'visibility_' + group.key">{{ group.key }}</label>
+            <div class="checkbox-wrapper">
+              <input
+                [id]="'visibility_' + group.key"
+                type="checkbox"
+                [checked]="group.value.visible"
+                (change)="toggleUiGroup(group.key)"
+                (dblclick)="toggleUiGroupOnly(group.key)" />
+              <img
+                [src]="'assets/editor/icons/hide_' + (group.value.visible ? 'off' : 'on') + '.svg'"
+                (click)="toggleUiGroup(group.key)"
+                (dblclick)="toggleUiGroupOnly(group.key)" />
+            </div>
+          </div>
+        }
+      }
+    }
   </div>
   @if (!entity) {
-  <mat-spinner mode="indeterminate"></mat-spinner>
+    <mat-spinner mode="indeterminate"></mat-spinner>
   }
 </div>

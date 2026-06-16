@@ -76,7 +76,10 @@ export class CompoundBlockUiComponent extends SubscribableGuiComponent<{ [key: s
     return item.index;
   }
 
-  constructor(public readonly main: MainService, public readonly navigation: NavigationService) {
+  constructor(
+    public readonly main: MainService,
+    public readonly navigation: NavigationService,
+  ) {
     super();
   }
 

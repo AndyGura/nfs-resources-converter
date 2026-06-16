@@ -18,7 +18,10 @@ export class MainService {
   public hideHiddenFields$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  constructor(public readonly api: ApiDelegateService, public readonly changes: ChangesService) {
+  constructor(
+    public readonly api: ApiDelegateService,
+    public readonly changes: ChangesService,
+  ) {
     this.api.getGeneralConfig().then(config => {
       this.hideHiddenFields$.next(!config.show_hidden_fields);
       this.hideHiddenFields$.subscribe(async hide => {

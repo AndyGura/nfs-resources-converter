@@ -4,17 +4,23 @@
   </button>
   <div class="separator"></div>
   @for (option of viewModeController?.listViewModes; track option) {
-  <button
-    [class.selected]="currentViewMode === option"
-    (click)="setViewMode($any(option))"
-    [title]="'Shading: ' + option">
-    <img
-      [src]="
-        'assets/editor/icons/shading_' +
-        (option === 'material' ? 'rendered' : option === 'unlit' ? 'solid' : option === 'wireframe' ? 'wire' : option) +
-        '.svg'
-      "
-      [alt]="'Shading: ' + option" />
-  </button>
+    <button
+      [class.selected]="currentViewMode === option"
+      (click)="setViewMode($any(option))"
+      [title]="'Shading: ' + option">
+      <img
+        [src]="
+          'assets/editor/icons/shading_' +
+          (option === 'material'
+            ? 'rendered'
+            : option === 'unlit'
+              ? 'solid'
+              : option === 'wireframe'
+                ? 'wire'
+                : option) +
+          '.svg'
+        "
+        [alt]="'Shading: ' + option" />
+    </button>
   }
 </div>

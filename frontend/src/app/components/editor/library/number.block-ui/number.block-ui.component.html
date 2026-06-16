@@ -1,30 +1,31 @@
 @if (resourceId) {
-<mat-form-field appearance="fill" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-  @if (!hideName && resourceName) {
-  <mat-label>{{ resourceName }}</mat-label>
-  } @if (resourceSchema.value_validator?.type === 'or') {
-  <mat-select
-    [disabled]="!!disabled"
-    [value]="resourceData"
-    (selectionChange)="onValueSet($event.value)"
-    (focus)="onFocus()"
-    (blur)="onBlur()">
-    @for (v of resourceSchema.value_validator.possible_values; track v) {
-    <mat-option [value]="v">{{ v }}</mat-option>
+  <mat-form-field appearance="fill" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+    @if (!hideName && resourceName) {
+      <mat-label>{{ resourceName }}</mat-label>
     }
-  </mat-select>
-  } @else {
-  <input
-    matInput
-    type="number"
-    [max]="resourceSchema.max_value"
-    [min]="resourceSchema.min_value"
-    [step]="resourceSchema.value_interval"
-    [disabled]="disabled || resourceSchema.value_validator?.type === 'eq'"
-    [value]="resourceData"
-    (change)="onValueSet(+$any($event.target).value)"
-    (focus)="onFocus()"
-    (blur)="onBlur()" />
-  }
-</mat-form-field>
+    @if (resourceSchema.value_validator?.type === 'or') {
+      <mat-select
+        [disabled]="!!disabled"
+        [value]="resourceData"
+        (selectionChange)="onValueSet($event.value)"
+        (focus)="onFocus()"
+        (blur)="onBlur()">
+        @for (v of resourceSchema.value_validator.possible_values; track v) {
+          <mat-option [value]="v">{{ v }}</mat-option>
+        }
+      </mat-select>
+    } @else {
+      <input
+        matInput
+        type="number"
+        [max]="resourceSchema.max_value"
+        [min]="resourceSchema.min_value"
+        [step]="resourceSchema.value_interval"
+        [disabled]="disabled || resourceSchema.value_validator?.type === 'eq'"
+        [value]="resourceData"
+        (change)="onValueSet(+$any($event.target).value)"
+        (focus)="onFocus()"
+        (blur)="onBlur()" />
+    }
+  </mat-form-field>
 }

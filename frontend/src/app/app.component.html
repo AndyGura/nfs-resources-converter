@@ -1,73 +1,74 @@
 @if (mainService.api.openedResourcePath$ | async) {
-<mat-toolbar color="primary">
-  <ng-container *ngTemplateOutlet="appMenu"></ng-container>
-  <span class="flex-spacer"></span>
-  <app-block-actions [resource]="this.mainService.resource$ | async"></app-block-actions>
-  <mat-divider vertical></mat-divider>
-  @if (!isProduction || true) {
-  <button mat-button [matMenuTriggerFor]="stagedChangesMenu">
-    Changes ({{
-      changes.localRevision > changes.fileRevision
-        ? changes.localRevision - changes.fileRevision
-        : changes.fileRevision - changes.localRevision
-    }})
-  </button>
-  <mat-menu #stagedChangesMenu="matMenu">
-    @for (change of changes.changes; track change; let i = $index) {
-    <button mat-menu-item [disabled]="true" style="opacity: 1; cursor: default">
-      <span [style]="{ opacity: i > changes.localRevision ? 0.5 : 1 }">
-        {{ formatChange(change) }}
-      </span>
-    </button>
-    }
-  </mat-menu>
-  }
-  <button mat-icon-button (click)="undo()" [disabled]="!(changes.isUndoAvailable$ | async)" matTooltip="Undo">
-    <mat-icon fontIcon="undo"></mat-icon>
-  </button>
-  <button mat-icon-button (click)="redo()" [disabled]="!(changes.isRedoAvailable$ | async)" matTooltip="Redo">
-    <mat-icon fontIcon="redo"></mat-icon>
-  </button>
-  <button
-    mat-icon-button
-    (click)="saveResource()"
-    [disabled]="
-      !(mainService.resource$ | async) || !(changes.hasUnsavedChanges$ | async) || (mainService.isSaving$ | async)
-    "
-    matTooltip="Save changes to file">
-    @if (!(mainService.isSaving$ | async)) {
-    <mat-icon fontIcon="save"></mat-icon>
-    } @if (mainService.isSaving$ | async) {
-    <mat-spinner mode="indeterminate" [diameter]="24" color="accent"></mat-spinner>
-    }
-  </button>
-</mat-toolbar>
-<div id="viewport">
-  @if (!(navigation.resourceToRender$ | async)?.schema?.hide_navigation_bar) {
-  <app-navigation-bar></app-navigation-bar>
-  }
-  <div id="content-wrapper">
-    <div class="scroll-bounds-snapper"></div>
-    <app-editor
-      [resourceOrError]="
-        (mainService.customActionRunning$ | async)
-          ? null
-          : (navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async)
-      "
-      [hideName]="true"
-      [hideBlockActions]="$safeNavigationMigration((navigation.navigationPath$ | async)?.length) == 0"></app-editor>
-    <div class="scroll-bounds-snapper"></div>
-  </div>
-</div>
-} @else {
-<div class="top-bar-container">
   <mat-toolbar color="primary">
     <ng-container *ngTemplateOutlet="appMenu"></ng-container>
     <span class="flex-spacer"></span>
-    <span>NFS Resources Converter</span>
+    <app-block-actions [resource]="this.mainService.resource$ | async"></app-block-actions>
+    <mat-divider vertical></mat-divider>
+    @if (!isProduction || true) {
+      <button mat-button [matMenuTriggerFor]="stagedChangesMenu">
+        Changes ({{
+          changes.localRevision > changes.fileRevision
+            ? changes.localRevision - changes.fileRevision
+            : changes.fileRevision - changes.localRevision
+        }})
+      </button>
+      <mat-menu #stagedChangesMenu="matMenu">
+        @for (change of changes.changes; track change; let i = $index) {
+          <button mat-menu-item [disabled]="true" style="opacity: 1; cursor: default">
+            <span [style]="{ opacity: i > changes.localRevision ? 0.5 : 1 }">
+              {{ formatChange(change) }}
+            </span>
+          </button>
+        }
+      </mat-menu>
+    }
+    <button mat-icon-button (click)="undo()" [disabled]="!(changes.isUndoAvailable$ | async)" matTooltip="Undo">
+      <mat-icon fontIcon="undo"></mat-icon>
+    </button>
+    <button mat-icon-button (click)="redo()" [disabled]="!(changes.isRedoAvailable$ | async)" matTooltip="Redo">
+      <mat-icon fontIcon="redo"></mat-icon>
+    </button>
+    <button
+      mat-icon-button
+      (click)="saveResource()"
+      [disabled]="
+        !(mainService.resource$ | async) || !(changes.hasUnsavedChanges$ | async) || (mainService.isSaving$ | async)
+      "
+      matTooltip="Save changes to file">
+      @if (!(mainService.isSaving$ | async)) {
+        <mat-icon fontIcon="save"></mat-icon>
+      }
+      @if (mainService.isSaving$ | async) {
+        <mat-spinner mode="indeterminate" [diameter]="24" color="accent"></mat-spinner>
+      }
+    </button>
   </mat-toolbar>
-</div>
-<app-landing-page></app-landing-page>
+  <div id="viewport">
+    @if (!(navigation.resourceToRender$ | async)?.schema?.hide_navigation_bar) {
+      <app-navigation-bar></app-navigation-bar>
+    }
+    <div id="content-wrapper">
+      <div class="scroll-bounds-snapper"></div>
+      <app-editor
+        [resourceOrError]="
+          (mainService.customActionRunning$ | async)
+            ? null
+            : (navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async)
+        "
+        [hideName]="true"
+        [hideBlockActions]="$safeNavigationMigration((navigation.navigationPath$ | async)?.length) == 0"></app-editor>
+      <div class="scroll-bounds-snapper"></div>
+    </div>
+  </div>
+} @else {
+  <div class="top-bar-container">
+    <mat-toolbar color="primary">
+      <ng-container *ngTemplateOutlet="appMenu"></ng-container>
+      <span class="flex-spacer"></span>
+      <span>NFS Resources Converter</span>
+    </mat-toolbar>
+  </div>
+  <app-landing-page></app-landing-page>
 }
 
 <ng-template #appMenu>
@@ -85,10 +86,10 @@
       <span>Recent Files</span>
     </button>
     <mat-menu #recentFilesMenu="matMenu">
-      @for (file of (mainService.api.recentFiles$ | async); track file) {
-      <button mat-menu-item (click)="openRecentFile(file)">
-        <span>{{ getFileName(file) }}</span>
-      </button>
+      @for (file of mainService.api.recentFiles$ | async; track file) {
+        <button mat-menu-item (click)="openRecentFile(file)">
+          <span>{{ getFileName(file) }}</span>
+        </button>
       }
     </mat-menu>
     <button mat-menu-item (click)="closeFile()" [disabled]="!(mainService.api.openedResourcePath$ | async)">
@@ -103,12 +104,13 @@
         !(mainService.resource$ | async) || !(changes.hasUnsavedChanges$ | async) || (mainService.isSaving$ | async)
       ">
       @if (!(mainService.isSaving$ | async)) {
-      <mat-icon>save</mat-icon>
-      } @if (mainService.isSaving$ | async) {
-      <mat-progress-spinner
-        [diameter]="24"
-        mode="indeterminate"
-        style="margin-right: 16px; display: inline-block; vertical-align: middle"></mat-progress-spinner>
+        <mat-icon>save</mat-icon>
+      }
+      @if (mainService.isSaving$ | async) {
+        <mat-progress-spinner
+          [diameter]="24"
+          mode="indeterminate"
+          style="margin-right: 16px; display: inline-block; vertical-align: middle"></mat-progress-spinner>
       }
       <span>Save</span>
     </button>
@@ -132,9 +134,10 @@
   <mat-menu #viewMenu="matMenu">
     <button mat-menu-item (click)="toggleUnknownsVisibility()">
       @if (mainService.hideHiddenFields$ | async) {
-      <mat-icon>visibility_off</mat-icon>
-      } @if (!(mainService.hideHiddenFields$ | async)) {
-      <mat-icon>visibility</mat-icon>
+        <mat-icon>visibility_off</mat-icon>
+      }
+      @if (!(mainService.hideHiddenFields$ | async)) {
+        <mat-icon>visibility</mat-icon>
       }
       <span>Toggle Hidden Fields</span>
     </button>
@@ -165,7 +168,7 @@
       <span>Support me</span>
     </button>
     @if (mainService.api.version$ | async; as version) {
-    <span class="app-version">v{{ version }}</span>
+      <span class="app-version">v{{ version }}</span>
     }
   </mat-menu>
 </ng-template>

@@ -22,7 +22,6 @@ import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.comp
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
-import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { ChangesService } from '../../services/changes.service';
 import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
 import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
@@ -140,10 +139,7 @@ export class EditorComponent implements OnDestroy {
         } else {
           console.log('Editor: reusing component for ' + this._resourceId);
         }
-        if (
-          !reuseComponent ||
-          !schemaEquals(this._component!.instance.resourceSchema, this._resourceSchema, this.deep)
-        ) {
+        if (!reuseComponent || !schemaEquals(this._component!.instance.resourceSchema, this._resourceSchema)) {
           this._component!.setInput('resourceSchema', this._resourceSchema);
         }
       }
@@ -208,7 +204,6 @@ export class EditorComponent implements OnDestroy {
 
   constructor(
     readonly mainService: MainService,
-    readonly deep: NgxDeepEqualsPureService,
     readonly changes: ChangesService,
     readonly cdr: ChangeDetectorRef,
   ) {}

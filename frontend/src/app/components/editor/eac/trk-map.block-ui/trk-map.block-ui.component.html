@@ -6,14 +6,14 @@
   </mat-form-field>
   <button mat-button (click)="onQfsSelected(customQfsInput.value)">LOAD</button>
   @if (previewQfsLoading$ | async) {
-  <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
+    <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
   }
 </div>
 <div class="preview">
   <div class="previewCanvasContainer" #previewCanvasContainer>
     <canvas #previewCanvas width="640" height="480"></canvas>
     @if (previewLoading$ | async) {
-    <mat-spinner mode="indeterminate"></mat-spinner>
+      <mat-spinner mode="indeterminate"></mat-spinner>
     }
     <app-view-mode-toolbar
       [viewModeController]="viewModeController"

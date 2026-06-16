@@ -9,28 +9,29 @@
         previewFamPossibleLocations.includes((previewFamLocation$ | async)!) ? (previewFamLocation$ | async) : 'custom'
       ">
       @for (fam of previewFamPossibleLocations; track fam) {
-      <mat-option [value]="fam">
-        {{ fam }}
-      </mat-option>
+        <mat-option [value]="fam">
+          {{ fam }}
+        </mat-option>
       }
       <mat-option value="custom">custom</mat-option>
     </mat-select>
   </mat-form-field>
   @if (famSelect.value == 'custom') {
-  <mat-form-field appearance="fill">
-    <mat-label>Custom FAM path</mat-label>
-    <input #customFamInput matInput type="text" [value]="(previewFamLocation$ | async)!" />
-  </mat-form-field>
-  <button mat-button (click)="onFamSelected(customFamInput.value)">LOAD</button>
-  } @if (previewFamLoading$ | async) {
-  <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
+    <mat-form-field appearance="fill">
+      <mat-label>Custom FAM path</mat-label>
+      <input #customFamInput matInput type="text" [value]="(previewFamLocation$ | async)!" />
+    </mat-form-field>
+    <button mat-button (click)="onFamSelected(customFamInput.value)">LOAD</button>
+  }
+  @if (previewFamLoading$ | async) {
+    <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
   }
 </div>
 <div class="preview">
   <div class="previewCanvasContainer" #previewCanvasContainer>
     <canvas #previewCanvas width="640" height="480"></canvas>
     @if (previewLoading$ | async) {
-    <mat-spinner mode="indeterminate"></mat-spinner>
+      <mat-spinner mode="indeterminate"></mat-spinner>
     }
     <app-view-mode-toolbar
       [viewModeController]="viewModeController"
@@ -98,5 +99,5 @@
     'unk2',
     'unk3',
     'prop_descr',
-    'props'
+    'props',
   ]"></app-compound-block-ui>

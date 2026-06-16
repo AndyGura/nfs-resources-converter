@@ -14,7 +14,6 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
@@ -65,7 +64,7 @@ import { ConfigComponent } from './components/config/config.component';
     ConverterComponent,
     ConfigComponent,
   ],
-  providers: [ApiDelegateService, NgxDeepEqualsPureService],
+  providers: [ApiDelegateService],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

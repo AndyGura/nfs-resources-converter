@@ -143,7 +143,10 @@ export class ChangesService {
     return this._fileRevision;
   }
 
-  constructor(private readonly api: ApiDelegateService, private readonly ngZone: NgZone) {
+  constructor(
+    private readonly api: ApiDelegateService,
+    private readonly ngZone: NgZone,
+  ) {
     this.api.onAppendChanges$.subscribe((changes: ChangeEntry[]) => {
       if (this._localRevision < this._changes.length) {
         this._changes.splice(this._localRevision);

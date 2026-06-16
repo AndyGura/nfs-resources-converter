@@ -1,29 +1,31 @@
 @if (resourceId) {
-<div class="header">
-  @if (resourceData) {
-  <div class="stats">
-    @if (!hideName && resourceName) {
-    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+  <div class="header">
+    @if (resourceData) {
+      <div class="stats">
+        @if (!hideName && resourceName) {
+          <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+        }
+        <span class="stat-item"> <i class="stat-label">Color model:</i> {{ resourceData.resource_id }} </span>
+        <span class="stat-item">
+          <i class="stat-label">Size:</i> {{ resourceData.width }}x{{ resourceData.height }}
+        </span>
+      </div>
     }
-    <span class="stat-item"> <i class="stat-label">Color model:</i> {{ resourceData.resource_id }} </span>
-    <span class="stat-item"> <i class="stat-label">Size:</i> {{ resourceData.width }}x{{ resourceData.height }} </span>
+    <div class="actions">
+      <button mat-icon-button (click)="zoomOut()" title="Zoom Out">
+        <mat-icon>zoom_out</mat-icon>
+      </button>
+      <mat-slider [min]="minZoomLog" [max]="maxZoomLog" step="0.01" [discrete]="false" title="Zoom">
+        <input matSliderThumb [(ngModel)]="sliderValue" />
+      </mat-slider>
+      <button mat-icon-button (click)="zoomIn()" title="Zoom In">
+        <mat-icon>zoom_in</mat-icon>
+      </button>
+      <button mat-stroked-button (click)="resetZoom()" title="Reset to 100%">100%</button>
+      <button mat-stroked-button (click)="fitZoom()" title="Fit to view">Fit</button>
+      <span class="zoom-level">{{ zoom }}%</span>
+    </div>
   </div>
-  }
-  <div class="actions">
-    <button mat-icon-button (click)="zoomOut()" title="Zoom Out">
-      <mat-icon>zoom_out</mat-icon>
-    </button>
-    <mat-slider [min]="minZoomLog" [max]="maxZoomLog" step="0.01" [discrete]="false" title="Zoom">
-      <input matSliderThumb [(ngModel)]="sliderValue" />
-    </mat-slider>
-    <button mat-icon-button (click)="zoomIn()" title="Zoom In">
-      <mat-icon>zoom_in</mat-icon>
-    </button>
-    <button mat-stroked-button (click)="resetZoom()" title="Reset to 100%">100%</button>
-    <button mat-stroked-button (click)="fitZoom()" title="Fit to view">Fit</button>
-    <span class="zoom-level">{{ zoom }}%</span>
-  </div>
-</div>
 }
 
 <div class="preview-wrapper">
@@ -37,42 +39,43 @@
     (mouseleave)="onMouseLeave()"
     [class.panning]="isPanning">
     @if (imageUrl$ | async; as imageUrl) {
-    <img
-      [src]="imageUrl"
-      [style.width.px]="((resourceData?.width || 0) * zoom) / 100"
-      [style.height.px]="((resourceData?.height || 0) * zoom) / 100"
-      draggable="false"
-      (dragstart)="(false)" />
-    } @if (!(imageUrl$ | async)) {
-    <div
-      class="image-placeholder"
-      [style.width.px]="((resourceData?.width || 0) * zoom) / 100"
-      [style.height.px]="((resourceData?.height || 0) * zoom) / 100"></div>
+      <img
+        [src]="imageUrl"
+        [style.width.px]="((resourceData?.width || 0) * zoom) / 100"
+        [style.height.px]="((resourceData?.height || 0) * zoom) / 100"
+        draggable="false"
+        (dragstart)="(false)" />
+    }
+    @if (!(imageUrl$ | async)) {
+      <div
+        class="image-placeholder"
+        [style.width.px]="((resourceData?.width || 0) * zoom) / 100"
+        [style.height.px]="((resourceData?.height || 0) * zoom) / 100"></div>
     }
   </div>
   @if (!hideBlockActions) {
-  <app-block-actions
-    [resource]="{
-                      id: resourceId!,
-                      name: resourceName!,
-                      data: resourceData,
-                      schema: resourceSchema,
-                     }"
-    [hideCustomActions]="true"></app-block-actions>
+    <app-block-actions
+      [resource]="{
+        id: resourceId!,
+        name: resourceName!,
+        data: resourceData,
+        schema: resourceSchema,
+      }"
+      [hideCustomActions]="true"></app-block-actions>
   }
 </div>
 
 @if (resourceData && resourceSchema) {
-<mat-form-field subscriptSizing="dynamic">
-  <mat-label>Color Model</mat-label>
-  <mat-select [ngModel]="resourceData.resource_id" (ngModelChange)="onFormatChange($event)" #formatSelect="ngModel">
-    @for (enumValue of resourceSchema.fields[0].schema.enum_names; track enumValue) {
-    <mat-option [value]="enumValue[1]">
-      {{ enumValue[1] }}
-    </mat-option>
-    }
-  </mat-select>
-</mat-form-field>
+  <mat-form-field subscriptSizing="dynamic">
+    <mat-label>Color Model</mat-label>
+    <mat-select [ngModel]="resourceData.resource_id" (ngModelChange)="onFormatChange($event)" #formatSelect="ngModel">
+      @for (enumValue of resourceSchema.fields[0].schema.enum_names; track enumValue) {
+        <mat-option [value]="enumValue[1]">
+          {{ enumValue[1] }}
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
 }
 
 <app-compound-block-ui

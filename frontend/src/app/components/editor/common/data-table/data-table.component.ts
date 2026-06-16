@@ -88,7 +88,10 @@ export class DataTableComponent implements DoCheck {
   public hasSubFields: boolean = false;
   public isPrimitive: boolean = false;
 
-  constructor(private cdr: ChangeDetectorRef, private differs: IterableDiffers) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private differs: IterableDiffers,
+  ) {}
 
   ngDoCheck(): void {
     const changes = this.iterableDiffer?.diff(this.data);

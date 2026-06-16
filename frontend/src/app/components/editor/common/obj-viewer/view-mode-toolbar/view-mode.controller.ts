@@ -25,7 +25,10 @@ export class ViewModeController {
   private onChildAddedBound: (event: any) => void;
   private onChildRemovedBound: (event: any) => void;
 
-  constructor(private rootObject: Object3D, private ambientLight: AmbientLight) {
+  constructor(
+    private rootObject: Object3D,
+    private ambientLight: AmbientLight,
+  ) {
     this.captureOriginalMaterials();
     this.onChildAddedBound = this.onChildAdded.bind(this);
     this.onChildRemovedBound = this.onChildRemoved.bind(this);

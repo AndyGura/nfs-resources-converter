@@ -1,29 +1,30 @@
 @if (resourceId) {
-<mat-form-field appearance="fill" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-  @if (resourceName && !hideName) {
-  <mat-label>{{ resourceName }}</mat-label>
-  } @if (resourceSchema?.value_validator?.type === 'or') {
-  <mat-select
-    [disabled]="!!disabled"
-    [value]="resourceData"
-    (selectionChange)="onValueSet($event.value)"
-    (focus)="onFocus()"
-    (blur)="onBlur()">
-    @for (v of resourceSchema.value_validator.possible_values; track v) {
-    <mat-option [value]="v">{{ v }}</mat-option>
+  <mat-form-field appearance="fill" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+    @if (resourceName && !hideName) {
+      <mat-label>{{ resourceName }}</mat-label>
     }
-  </mat-select>
-  } @else {
-  <input
-    matInput
-    type="text"
-    [disabled]="disabled || resourceSchema.value_validator?.type === 'eq'"
-    [attr.maxlength]="maxLength"
-    [attr.minlength]="minLength"
-    [value]="resourceData"
-    (change)="onValueSet($any($event.target).value)"
-    (focus)="onFocus()"
-    (blur)="onBlur()" />
-  }
-</mat-form-field>
+    @if (resourceSchema?.value_validator?.type === 'or') {
+      <mat-select
+        [disabled]="!!disabled"
+        [value]="resourceData"
+        (selectionChange)="onValueSet($event.value)"
+        (focus)="onFocus()"
+        (blur)="onBlur()">
+        @for (v of resourceSchema.value_validator.possible_values; track v) {
+          <mat-option [value]="v">{{ v }}</mat-option>
+        }
+      </mat-select>
+    } @else {
+      <input
+        matInput
+        type="text"
+        [disabled]="disabled || resourceSchema.value_validator?.type === 'eq'"
+        [attr.maxlength]="maxLength"
+        [attr.minlength]="minLength"
+        [value]="resourceData"
+        (change)="onValueSet($any($event.target).value)"
+        (focus)="onFocus()"
+        (blur)="onBlur()" />
+    }
+  </mat-form-field>
 }

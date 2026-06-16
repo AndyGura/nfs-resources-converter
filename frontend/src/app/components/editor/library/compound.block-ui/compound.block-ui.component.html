@@ -1,33 +1,39 @@
 @if (resourceId && resourceName && !hideName) {
-<h2
-  id="title"
-  [matTooltip]="resourceDescription || ''"
-  matTooltipPosition="above"
-  (click)="navigation.navigateToId(resourceId)">
-  {{ resourceName }}
-</h2>
-} @if (!hideBlockActions) {
-<app-block-actions
-  [resource]="{
-  id: resourceId!,
-  name: resourceName!,
-  data: resourceData,
-  schema: resourceSchema,
-}"></app-block-actions>
+  <h2
+    id="title"
+    [matTooltip]="resourceDescription || ''"
+    matTooltipPosition="above"
+    (click)="navigation.navigateToId(resourceId)">
+    {{ resourceName }}
+  </h2>
+}
+@if (!hideBlockActions) {
+  <app-block-actions
+    [resource]="{
+      id: resourceId!,
+      name: resourceName!,
+      data: resourceData,
+      schema: resourceSchema,
+    }"></app-block-actions>
 }
 <div class="container" [class.horizontal]="preferHorizontalLayout">
-  @for (f of (fieldKeys$ | async); track fieldTrackBy($index, f)) { @if (!(main.hideHiddenFields$ | async) ||
-  (!resourceSchema?.fields[f.index].is_unknown && (resourceSchema?.fields[f.index].schema.value_validator === undefined
-  || resourceSchema?.fields[f.index].schema.value_validator?.type === "or") &&
-  !resourceSchema?.fields[f.index].schema.is_programmatic)) {
-  <app-editor
-    [resourceOrError]="{
-                          id: joinId(resourceId!, f.key),
-                          name: f.key,
-                          schema: resourceSchema?.fields[f.index].schema,
-                          data: resourceData?.[f.key]
-                        }"
-    [resourceDescription]="resourceSchema?.fields[f.index].description"
-    [disabled]="disabled || !!resourceSchema?.fields[f.index].schema.is_programmatic"></app-editor>
-  } }
+  @for (f of fieldKeys$ | async; track fieldTrackBy($index, f)) {
+    @if (
+      !(main.hideHiddenFields$ | async) ||
+      (!resourceSchema?.fields[f.index].is_unknown &&
+        (resourceSchema?.fields[f.index].schema.value_validator === undefined ||
+          resourceSchema?.fields[f.index].schema.value_validator?.type === 'or') &&
+        !resourceSchema?.fields[f.index].schema.is_programmatic)
+    ) {
+      <app-editor
+        [resourceOrError]="{
+          id: joinId(resourceId!, f.key),
+          name: f.key,
+          schema: resourceSchema?.fields[f.index].schema,
+          data: resourceData?.[f.key],
+        }"
+        [resourceDescription]="resourceSchema?.fields[f.index].description"
+        [disabled]="disabled || !!resourceSchema?.fields[f.index].schema.is_programmatic"></app-editor>
+    }
+  }
 </div>

@@ -1,27 +1,29 @@
-@if (resource?.schema?.serialization) { @if (resource?.schema?.serialization?.reversible) {
-<button
-  mat-icon-button
-  [matTooltip]="'Deserialize from ' + (resource?.schema?.serialization?.file_type || 'common format')"
-  (click)="deserialize()">
-  <mat-icon fontIcon="upload"></mat-icon>
-</button>
+@if (resource?.schema?.serialization) {
+  @if (resource?.schema?.serialization?.reversible) {
+    <button
+      mat-icon-button
+      [matTooltip]="'Deserialize from ' + (resource?.schema?.serialization?.file_type || 'common format')"
+      (click)="deserialize()">
+      <mat-icon fontIcon="upload"></mat-icon>
+    </button>
+  }
+  <button
+    mat-icon-button
+    [matTooltip]="'Serialize to ' + (resource?.schema?.serialization?.file_type || 'common format')"
+    (click)="serialize()">
+    <mat-icon fontIcon="download"></mat-icon>
+  </button>
 }
-<button
-  mat-icon-button
-  [matTooltip]="'Serialize to ' + (resource?.schema?.serialization?.file_type || 'common format')"
-  (click)="serialize()">
-  <mat-icon fontIcon="download"></mat-icon>
-</button>
-} @if (!hideCustomActions && resource?.schema?.custom_actions?.length > 0) {
-<button mat-icon-button [matMenuTriggerFor]="customActionsMenu" matTooltip="Run custom action">
-  <mat-icon fontIcon="bolt"></mat-icon>
-</button>
+@if (!hideCustomActions && resource?.schema?.custom_actions?.length > 0) {
+  <button mat-icon-button [matMenuTriggerFor]="customActionsMenu" matTooltip="Run custom action">
+    <mat-icon fontIcon="bolt"></mat-icon>
+  </button>
 }
 
 <mat-menu #customActionsMenu="matMenu">
-  @for (action of (resource?.schema?.custom_actions || []); track action) {
-  <button mat-menu-item (click)="runCustomAction(action)">
-    <span>{{ action.title }}</span>
-  </button>
+  @for (action of resource?.schema?.custom_actions || []; track action) {
+    <button mat-menu-item (click)="runCustomAction(action)">
+      <span>{{ action.title }}</span>
+    </button>
   }
 </mat-menu>

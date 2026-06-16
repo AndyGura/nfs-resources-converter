@@ -10,18 +10,20 @@
       </mat-form-field>
       <button mat-raised-button color="primary" (click)="testBlenderPath()" [disabled]="testingBlender">
         @if (!testingBlender) {
-        <mat-icon>check_circle</mat-icon>
-        } @if (testingBlender) {
-        <mat-spinner diameter="20"></mat-spinner>
-        } Test
+          <mat-icon>check_circle</mat-icon>
+        }
+        @if (testingBlender) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        Test
       </button>
     </div>
 
     @if (blenderTestResult) {
-    <div class="test-result" [ngClass]="{ success: blenderTestResult.success, error: !blenderTestResult.success }">
-      <mat-icon>{{ blenderTestResult.success ? 'check_circle' : 'error' }}</mat-icon>
-      <span>{{ blenderTestResult.message }}</span>
-    </div>
+      <div class="test-result" [ngClass]="{ success: blenderTestResult.success, error: !blenderTestResult.success }">
+        <mat-icon>{{ blenderTestResult.success ? 'check_circle' : 'error' }}</mat-icon>
+        <span>{{ blenderTestResult.message }}</span>
+      </div>
     }
 
     <div class="form-row">
@@ -32,18 +34,20 @@
       </mat-form-field>
       <button mat-raised-button color="primary" (click)="testFFmpegPath()" [disabled]="testingFFmpeg">
         @if (!testingFFmpeg) {
-        <mat-icon>check_circle</mat-icon>
-        } @if (testingFFmpeg) {
-        <mat-spinner diameter="20"></mat-spinner>
-        } Test
+          <mat-icon>check_circle</mat-icon>
+        }
+        @if (testingFFmpeg) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        Test
       </button>
     </div>
 
     @if (ffmpegTestResult) {
-    <div class="test-result" [ngClass]="{ success: ffmpegTestResult.success, error: !ffmpegTestResult.success }">
-      <mat-icon>{{ ffmpegTestResult.success ? 'check_circle' : 'error' }}</mat-icon>
-      <span>{{ ffmpegTestResult.message }}</span>
-    </div>
+      <div class="test-result" [ngClass]="{ success: ffmpegTestResult.success, error: !ffmpegTestResult.success }">
+        <mat-icon>{{ ffmpegTestResult.success ? 'check_circle' : 'error' }}</mat-icon>
+        <span>{{ ffmpegTestResult.message }}</span>
+      </div>
     }
 
     <div class="form-row checkbox-row">

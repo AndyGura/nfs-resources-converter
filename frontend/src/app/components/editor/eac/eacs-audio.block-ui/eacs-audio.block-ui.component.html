@@ -1,23 +1,25 @@
 <div id="header">
   @if (!hideName && resourceName) {
-  <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
-  } @if (audioUrl$ | async) {
-  <audio controls>
-    <source [src]="audioUrl$ | async" />
-    Your browser does not support the audio element.
-  </audio>
-  } @if (resourceId && !(audioUrl$ | async)) {
-  <mat-spinner mode="indeterminate"></mat-spinner>
+    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+  }
+  @if (audioUrl$ | async) {
+    <audio controls>
+      <source [src]="audioUrl$ | async" />
+      Your browser does not support the audio element.
+    </audio>
+  }
+  @if (resourceId && !(audioUrl$ | async)) {
+    <mat-spinner mode="indeterminate"></mat-spinner>
   }
   <div class="flex-spacer"></div>
   @if (!hideBlockActions) {
-  <app-block-actions
-    [resource]="{
-                      id: resourceId!,
-                      name: resourceName!,
-                      data: resourceData,
-                      schema: resourceSchema,
-                     }"></app-block-actions>
+    <app-block-actions
+      [resource]="{
+        id: resourceId!,
+        name: resourceName!,
+        data: resourceData,
+        schema: resourceSchema,
+      }"></app-block-actions>
   }
 </div>
 <app-compound-block-ui

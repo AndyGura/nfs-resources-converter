@@ -1,18 +1,19 @@
 @if (resourceError) {
-<div id="error-spinner-wrapper">
-  <mat-form-field appearance="fill" id="error-message">
-    <div class="fallback-container">
-      <mat-icon color="warn">warning</mat-icon>
-      <span
-        class="message"
-        [innerHTML]="(resourceError.class ? resourceError.class + ': ' : '') + resourceError.message"></span>
-    </div>
-  </mat-form-field>
-</div>
-} @if (_resourceData === undefined && !resourceError) {
-<div id="error-spinner-wrapper">
-  <mat-spinner mode="indeterminate"></mat-spinner>
-</div>
+  <div id="error-spinner-wrapper">
+    <mat-form-field appearance="fill" id="error-message">
+      <div class="fallback-container">
+        <mat-icon color="warn">warning</mat-icon>
+        <span
+          class="message"
+          [innerHTML]="(resourceError.class ? resourceError.class + ': ' : '') + resourceError.message"></span>
+      </div>
+    </mat-form-field>
+  </div>
+}
+@if (_resourceData === undefined && !resourceError) {
+  <div id="error-spinner-wrapper">
+    <mat-spinner mode="indeterminate"></mat-spinner>
+  </div>
 }
 
 <ng-template dataBlockUI></ng-template>

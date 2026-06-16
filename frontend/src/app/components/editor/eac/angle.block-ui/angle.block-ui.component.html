@@ -7,11 +7,13 @@
   </div>
   <div id="labels">
     @if (resourceName && !hideName) {
-    <mat-label id="name-span">{{ resourceName }}</mat-label>
-    } @if (resourceData !== undefined) {
-    <mat-label>{{ (resourceData * 180) / pi || 0 | number : '1.2-2' }} deg</mat-label>
-    } @if (resourceData !== undefined) {
-    <mat-label>{{ resourceData || 0 | number : '1.2-2' }} rad</mat-label>
+      <mat-label id="name-span">{{ resourceName }}</mat-label>
+    }
+    @if (resourceData !== undefined) {
+      <mat-label>{{ (resourceData * 180) / pi || 0 | number: '1.2-2' }} deg</mat-label>
+    }
+    @if (resourceData !== undefined) {
+      <mat-label>{{ resourceData || 0 | number: '1.2-2' }} rad</mat-label>
     }
   </div>
 </div>

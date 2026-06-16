@@ -8,11 +8,11 @@
   [fieldBlacklist]="['colors']"></app-compound-block-ui>
 <div id="colors-container">
   @for (color of resourceData?.colors.data; track color; let i = $index) {
-  <div
-    class="color-box"
-    [ngStyle]="{ 'background-color': '#' + lpad(color.toString(16), '0', 8) }"
-    [matTooltip]="i + ': #' + color.toString(16)"
-    (click)="onColorClicked($any($event.currentTarget!), i)"></div>
+    <div
+      class="color-box"
+      [ngStyle]="{ 'background-color': '#' + lpad(color.toString(16), '0', 8) }"
+      [matTooltip]="i + ': #' + color.toString(16)"
+      (click)="onColorClicked($any($event.currentTarget!), i)"></div>
   }
   <div class="color-box extra-btn" (click)="addColor()" matTooltip="Add color">
     <mat-icon>add</mat-icon>

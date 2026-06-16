@@ -7,7 +7,7 @@
         <mat-label>Input Directory/File</mat-label>
         <input matInput formControlName="input_path" placeholder="Select input directory or file" />
         @if (converterForm.get('input_path')?.hasError('required')) {
-        <mat-error> Input path is required </mat-error>
+          <mat-error> Input path is required </mat-error>
         }
       </mat-form-field>
       <button
@@ -25,7 +25,7 @@
         <mat-label>Output Directory</mat-label>
         <input matInput formControlName="output_path" placeholder="Select output directory" />
         @if (converterForm.get('output_path')?.hasError('required')) {
-        <mat-error> Output path is required </mat-error>
+          <mat-error> Output path is required </mat-error>
         }
       </mat-form-field>
       <button
@@ -46,95 +46,102 @@
       </mat-expansion-panel-header>
 
       @if (configLoaded) {
-      <div>
-        <!-- General Settings -->
-        <h3>General Settings</h3>
-        <div class="settings-group">
-          <mat-form-field appearance="outline">
-            <mat-label>Multiprocess Count</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="multiprocess_processes_count"
-              matTooltip="Number of processes to use (0 = use all CPU cores)" />
-          </mat-form-field>
+        <div>
+          <!-- General Settings -->
+          <h3>General Settings</h3>
+          <div class="settings-group">
+            <mat-form-field appearance="outline">
+              <mat-label>Multiprocess Count</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="multiprocess_processes_count"
+                matTooltip="Number of processes to use (0 = use all CPU cores)" />
+            </mat-form-field>
+          </div>
+          <mat-divider></mat-divider>
+          <!-- Images Settings -->
+          <h3>Images Settings</h3>
+          <div class="settings-group">
+            <mat-checkbox
+              formControlName="images__save_images_only"
+              matTooltip="Skip saving palette and image positions">
+              Save Images Only
+            </mat-checkbox>
+          </div>
+          <mat-divider></mat-divider>
+          <!-- Maps Settings -->
+          <h3>Maps Settings</h3>
+          <div class="settings-group">
+            <mat-checkbox
+              formControlName="maps__save_as_chunked"
+              matTooltip="Save each terrain mesh chunk as separate file">
+              Save As Chunked
+            </mat-checkbox>
+            <mat-checkbox
+              formControlName="maps__save_invisible_wall_collisions"
+              matTooltip="Place boxes with collision where invisible wall is located">
+              Save Invisible Wall Collisions
+            </mat-checkbox>
+            <mat-checkbox formControlName="maps__save_terrain_collisions" matTooltip="Save terrain collisions">
+              Save Terrain Collisions
+            </mat-checkbox>
+            <mat-checkbox
+              formControlName="maps__save_spherical_skybox_texture"
+              matTooltip="Save spherical skybox texture">
+              Save Spherical Skybox Texture
+            </mat-checkbox>
+            <mat-checkbox formControlName="maps__add_props_to_obj" matTooltip="Bake map props to the scene">
+              Add Props To Obj
+            </mat-checkbox>
+          </div>
+          <mat-divider></mat-divider>
+          <!-- Geometry Settings -->
+          <h3>Geometry Settings</h3>
+          <!-- Warning message when Blender is not working -->
+          @if (!isBlenderWorking && !isTestingBlender) {
+            <div class="blender-warning">
+              <mat-icon color="warn">warning</mat-icon>
+              <span>Blender executable path is not working. Some features are disabled.</span>
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                [disabled]="isConverting"
+                (click)="openConfigDialog()">
+                Fix
+              </button>
+            </div>
+          }
+          <div class="settings-group">
+            <mat-checkbox formControlName="geometry__save_obj" matTooltip="Save OBJ file for each 3D scene">
+              Save OBJ
+            </mat-checkbox>
+            <mat-checkbox
+              formControlName="geometry__save_blend"
+              [matTooltip]="
+                isBlenderWorking ? 'Save Blender scene for each 3D scene' : 'Requires working Blender executable'
+              ">
+              Save Blend
+              @if (!isBlenderWorking) {
+                <mat-icon color="warn" class="inline-icon">warning</mat-icon>
+              }
+            </mat-checkbox>
+            <mat-checkbox
+              formControlName="geometry__export_to_gg_web_engine"
+              [matTooltip]="
+                isBlenderWorking ? 'Export to gg-web-engine format' : 'Requires working Blender executable'
+              ">
+              Export To GG Web Engine
+              @if (!isBlenderWorking) {
+                <mat-icon color="warn" class="inline-icon">warning</mat-icon>
+              }
+            </mat-checkbox>
+          </div>
         </div>
-        <mat-divider></mat-divider>
-        <!-- Images Settings -->
-        <h3>Images Settings</h3>
-        <div class="settings-group">
-          <mat-checkbox formControlName="images__save_images_only" matTooltip="Skip saving palette and image positions">
-            Save Images Only
-          </mat-checkbox>
-        </div>
-        <mat-divider></mat-divider>
-        <!-- Maps Settings -->
-        <h3>Maps Settings</h3>
-        <div class="settings-group">
-          <mat-checkbox
-            formControlName="maps__save_as_chunked"
-            matTooltip="Save each terrain mesh chunk as separate file">
-            Save As Chunked
-          </mat-checkbox>
-          <mat-checkbox
-            formControlName="maps__save_invisible_wall_collisions"
-            matTooltip="Place boxes with collision where invisible wall is located">
-            Save Invisible Wall Collisions
-          </mat-checkbox>
-          <mat-checkbox formControlName="maps__save_terrain_collisions" matTooltip="Save terrain collisions">
-            Save Terrain Collisions
-          </mat-checkbox>
-          <mat-checkbox
-            formControlName="maps__save_spherical_skybox_texture"
-            matTooltip="Save spherical skybox texture">
-            Save Spherical Skybox Texture
-          </mat-checkbox>
-          <mat-checkbox formControlName="maps__add_props_to_obj" matTooltip="Bake map props to the scene">
-            Add Props To Obj
-          </mat-checkbox>
-        </div>
-        <mat-divider></mat-divider>
-        <!-- Geometry Settings -->
-        <h3>Geometry Settings</h3>
-        <!-- Warning message when Blender is not working -->
-        @if (!isBlenderWorking && !isTestingBlender) {
-        <div class="blender-warning">
-          <mat-icon color="warn">warning</mat-icon>
-          <span>Blender executable path is not working. Some features are disabled.</span>
-          <button
-            mat-raised-button
-            color="primary"
-            type="button"
-            [disabled]="isConverting"
-            (click)="openConfigDialog()">
-            Fix
-          </button>
-        </div>
-        }
-        <div class="settings-group">
-          <mat-checkbox formControlName="geometry__save_obj" matTooltip="Save OBJ file for each 3D scene">
-            Save OBJ
-          </mat-checkbox>
-          <mat-checkbox
-            formControlName="geometry__save_blend"
-            [matTooltip]="
-              isBlenderWorking ? 'Save Blender scene for each 3D scene' : 'Requires working Blender executable'
-            ">
-            Save Blend @if (!isBlenderWorking) {
-            <mat-icon color="warn" class="inline-icon">warning</mat-icon>
-            }
-          </mat-checkbox>
-          <mat-checkbox
-            formControlName="geometry__export_to_gg_web_engine"
-            [matTooltip]="isBlenderWorking ? 'Export to gg-web-engine format' : 'Requires working Blender executable'">
-            Export To GG Web Engine @if (!isBlenderWorking) {
-            <mat-icon color="warn" class="inline-icon">warning</mat-icon>
-            }
-          </mat-checkbox>
-        </div>
-      </div>
-      } @if (!configLoaded) {
-      <div class="loading-config">Loading configuration settings...</div>
+      }
+      @if (!configLoaded) {
+        <div class="loading-config">Loading configuration settings...</div>
       }
     </mat-expansion-panel>
 
@@ -146,19 +153,19 @@
     </div>
 
     @if (isConverting) {
-    <div class="progress-container">
-      <mat-progress-bar
-        mode="determinate"
-        [value]="
-          (api.conversionProgress$ | async)![1] > 0
-            ? ((api.conversionProgress$ | async)![0] / (api.conversionProgress$ | async)![1]) * 100
-            : 0
-        "
-        class="progress-bar"></mat-progress-bar>
-      <div class="progress-text">
-        {{ (api.conversionProgress$ | async)![0] }} / {{ (api.conversionProgress$ | async)![1] }} files processed
+      <div class="progress-container">
+        <mat-progress-bar
+          mode="determinate"
+          [value]="
+            (api.conversionProgress$ | async)![1] > 0
+              ? ((api.conversionProgress$ | async)![0] / (api.conversionProgress$ | async)![1]) * 100
+              : 0
+          "
+          class="progress-bar"></mat-progress-bar>
+        <div class="progress-text">
+          {{ (api.conversionProgress$ | async)![0] }} / {{ (api.conversionProgress$ | async)![1] }} files processed
+        </div>
       </div>
-    </div>
     }
   </form>
 

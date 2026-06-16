@@ -9,7 +9,10 @@ export class ApiDelegateService extends BaseApiDelegateService {
     return new ApiDelegateImplService(this.ngZone);
   }
 
-  constructor(private readonly ngZone: NgZone, dialog: MatDialog) {
+  constructor(
+    private readonly ngZone: NgZone,
+    dialog: MatDialog,
+  ) {
     super(dialog);
   }
 }

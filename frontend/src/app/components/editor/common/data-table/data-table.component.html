@@ -2,125 +2,143 @@
   <table>
     <thead>
       @if (hasSubFields) {
-      <tr>
-        <th rowspan="2">#</th>
-        @for (f of columns; track f) { @if (!f.subFields) {
-        <th rowspan="2" [matTooltip]="f.description || ''">{{ f.key }}</th>
-        } @if (f.subFields) {
-        <th [attr.colspan]="f.subFields.length" [matTooltip]="f.description || ''">{{ f.key }}</th>
-        } }
-      </tr>
-      } @if (hasSubFields) {
-      <tr>
-        @for (f of columns; track f) { @if (f.subFields) { @for (sf of f.subFields; track sf) {
-        <th [matTooltip]="sf.description || ''">{{ sf.key }}</th>
-        } } }
-      </tr>
-      } @if (!hasSubFields) {
-      <tr>
-        <th>#</th>
-        @if (columns) { @for (f of columns; track f) {
-        <th [matTooltip]="f.description || ''">{{ f.key }}</th>
-        } } @else {
-        <th>Data</th>
-        }
-      </tr>
+        <tr>
+          <th rowspan="2">#</th>
+          @for (f of columns; track f) {
+            @if (!f.subFields) {
+              <th rowspan="2" [matTooltip]="f.description || ''">{{ f.key }}</th>
+            }
+            @if (f.subFields) {
+              <th [attr.colspan]="f.subFields.length" [matTooltip]="f.description || ''">{{ f.key }}</th>
+            }
+          }
+        </tr>
+      }
+      @if (hasSubFields) {
+        <tr>
+          @for (f of columns; track f) {
+            @if (f.subFields) {
+              @for (sf of f.subFields; track sf) {
+                <th [matTooltip]="sf.description || ''">{{ sf.key }}</th>
+              }
+            }
+          }
+        </tr>
+      }
+      @if (!hasSubFields) {
+        <tr>
+          <th>#</th>
+          @if (columns) {
+            @for (f of columns; track f) {
+              <th [matTooltip]="f.description || ''">{{ f.key }}</th>
+            }
+          } @else {
+            <th>Data</th>
+          }
+        </tr>
       }
     </thead>
     <tbody>
       @for (item of pagedData; track trackByFn(i, item); let i = $index) {
-      <tr>
-        <td class="index-cell" [class.editable]="!disabled">
-          <span class="index-number">{{ getGlobalIndex(i) }}</span>
-          @if (!disabled) {
-          <div class="item-actions">
-            <button
-              mat-icon-button
-              color="primary"
-              class="move-item-button"
-              [disabled]="getGlobalIndex(i) === 0"
-              (click)="moveItemUp.emit(getGlobalIndex(i))"
-              matTooltip="Move up">
-              <mat-icon>arrow_upward</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="primary"
-              class="move-item-button"
-              [disabled]="getGlobalIndex(i) === (data?.length || 0) - 1"
-              (click)="moveItemDown.emit(getGlobalIndex(i))"
-              matTooltip="Move down">
-              <mat-icon>arrow_downward</mat-icon>
-            </button>
-            @if (enableArrayEditing) {
-            <button
-              mat-icon-button
-              color="warn"
-              class="remove-item-button"
-              (click)="removeItem.emit(getGlobalIndex(i))"
-              matTooltip="Remove item">
-              <mat-icon>delete</mat-icon>
-            </button>
+        <tr>
+          <td class="index-cell" [class.editable]="!disabled">
+            <span class="index-number">{{ getGlobalIndex(i) }}</span>
+            @if (!disabled) {
+              <div class="item-actions">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  class="move-item-button"
+                  [disabled]="getGlobalIndex(i) === 0"
+                  (click)="moveItemUp.emit(getGlobalIndex(i))"
+                  matTooltip="Move up">
+                  <mat-icon>arrow_upward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="primary"
+                  class="move-item-button"
+                  [disabled]="getGlobalIndex(i) === (data?.length || 0) - 1"
+                  (click)="moveItemDown.emit(getGlobalIndex(i))"
+                  matTooltip="Move down">
+                  <mat-icon>arrow_downward</mat-icon>
+                </button>
+                @if (enableArrayEditing) {
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    class="remove-item-button"
+                    (click)="removeItem.emit(getGlobalIndex(i))"
+                    matTooltip="Remove item">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
             }
-          </div>
+          </td>
+          @if (columns) {
+            @for (f of columns; track f) {
+              @if (!f.subFields) {
+                <td>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      inputField;
+                      context: {
+                        schema: f.schema,
+                        value: isPrimitive ? item : item[f.key],
+                        index: getGlobalIndex(i),
+                        field: isPrimitive ? null : f.key,
+                        subField: null,
+                        readonly: f.readonly,
+                      }
+                    "></ng-container>
+                </td>
+              }
+              @if (f.subFields) {
+                @for (sf of f.subFields; track sf) {
+                  <td>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        inputField;
+                        context: {
+                          schema: sf.schema,
+                          value: item[f.key][sf.key],
+                          index: getGlobalIndex(i),
+                          field: f.key,
+                          subField: sf.key,
+                          readonly: sf.readonly,
+                        }
+                      "></ng-container>
+                  </td>
+                }
+              }
+            }
+          } @else {
+            <td>
+              <ng-container
+                *ngTemplateOutlet="
+                  inputField;
+                  context: {
+                    schema: null,
+                    value: item,
+                    index: getGlobalIndex(i),
+                    field: null,
+                    subField: null,
+                    readonly: false,
+                  }
+                "></ng-container>
+            </td>
           }
-        </td>
-        @if (columns) { @for (f of columns; track f) { @if (!f.subFields) {
-        <td>
-          <ng-container
-            *ngTemplateOutlet="
-              inputField;
-              context: {
-                schema: f.schema,
-                value: isPrimitive ? item : item[f.key],
-                index: getGlobalIndex(i),
-                field: isPrimitive ? null : f.key,
-                subField: null,
-                readonly: f.readonly
-              }
-            "></ng-container>
-        </td>
-        } @if (f.subFields) { @for (sf of f.subFields; track sf) {
-        <td>
-          <ng-container
-            *ngTemplateOutlet="
-              inputField;
-              context: {
-                schema: sf.schema,
-                value: item[f.key][sf.key],
-                index: getGlobalIndex(i),
-                field: f.key,
-                subField: sf.key,
-                readonly: sf.readonly
-              }
-            "></ng-container>
-        </td>
-        } } } } @else {
-        <td>
-          <ng-container
-            *ngTemplateOutlet="
-              inputField;
-              context: {
-                schema: null,
-                value: item,
-                index: getGlobalIndex(i),
-                field: null,
-                subField: null,
-                readonly: false
-              }
-            "></ng-container>
-        </td>
-        }
-      </tr>
+        </tr>
       }
     </tbody>
   </table>
 </div>
 @if (!disabled && enableArrayEditing) {
-<button mat-button color="primary" (click)="addItem.emit()" class="add-item-button">
-  <mat-icon>add</mat-icon>
-  Add Item
-</button>
+  <button mat-button color="primary" (click)="addItem.emit()" class="add-item-button">
+    <mat-icon>add</mat-icon>
+    Add Item
+  </button>
 }
 
 <ng-template
@@ -132,58 +150,64 @@
   let-subField="subField"
   let-readonly="readonly">
   @if (schema) {
-  <div class="compact-input">
-    @if (schema.value_validator?.type === 'or') {
-    <select
-      [disabled]="disabled || readonly"
-      [ngModel]="value"
-      (focus)="onFocus(index, field, subField)"
-      (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
-      @for (v of schema.value_validator.possible_values; track v) {
-      <option [value]="v">{{ v }}</option>
+    <div class="compact-input">
+      @if (schema.value_validator?.type === 'or') {
+        <select
+          [disabled]="disabled || readonly"
+          [ngModel]="value"
+          (focus)="onFocus(index, field, subField)"
+          (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
+          @for (v of schema.value_validator.possible_values; track v) {
+            <option [value]="v">{{ v }}</option>
+          }
+        </select>
+      } @else {
+        @if (isNumeric(schema.block_class_mro)) {
+          <input
+            type="number"
+            [max]="schema.max_value"
+            [min]="schema.min_value"
+            [step]="schema.value_interval"
+            [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
+            [ngModel]="value"
+            (focus)="onFocus(index, field, subField)"
+            (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
+        }
+        @if (isString(schema.block_class_mro)) {
+          <input
+            type="text"
+            [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
+            [maxlength]="getMaxLength(schema)"
+            [minlength]="getMinLength(schema)"
+            [ngModel]="value"
+            (focus)="onFocus(index, field, subField)"
+            (change)="onTableFieldChange(index, field, subField, $any($event.target).value)" />
+        }
+        @if (isEnum(schema.block_class_mro)) {
+          @if (isKnownEnumValue(schema, value)) {
+            <select
+              [disabled]="disabled || readonly"
+              [ngModel]="value"
+              (focus)="onFocus(index, field, subField)"
+              (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
+              @for (enumValue of schema.enum_names; track enumValue) {
+                <option [value]="enumValue[1]">
+                  {{ enumValue[1] }}
+                </option>
+              }
+            </select>
+          } @else {
+            <input
+              type="number"
+              [min]="0"
+              [max]="(schema.length || 1) * 256 - 1"
+              [disabled]="disabled || readonly"
+              [ngModel]="value"
+              (focus)="onFocus(index, field, subField)"
+              (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
+          }
+        }
       }
-    </select>
-    } @else { @if (isNumeric(schema.block_class_mro)) {
-    <input
-      type="number"
-      [max]="schema.max_value"
-      [min]="schema.min_value"
-      [step]="schema.value_interval"
-      [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
-      [ngModel]="value"
-      (focus)="onFocus(index, field, subField)"
-      (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
-    } @if (isString(schema.block_class_mro)) {
-    <input
-      type="text"
-      [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
-      [maxlength]="getMaxLength(schema)"
-      [minlength]="getMinLength(schema)"
-      [ngModel]="value"
-      (focus)="onFocus(index, field, subField)"
-      (change)="onTableFieldChange(index, field, subField, $any($event.target).value)" />
-    } @if (isEnum(schema.block_class_mro)) { @if (isKnownEnumValue(schema, value)) {
-    <select
-      [disabled]="disabled || readonly"
-      [ngModel]="value"
-      (focus)="onFocus(index, field, subField)"
-      (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
-      @for (enumValue of schema.enum_names; track enumValue) {
-      <option [value]="enumValue[1]">
-        {{ enumValue[1] }}
-      </option>
-      }
-    </select>
-    } @else {
-    <input
-      type="number"
-      [min]="0"
-      [max]="(schema.length || 1) * 256 - 1"
-      [disabled]="disabled || readonly"
-      [ngModel]="value"
-      (focus)="onFocus(index, field, subField)"
-      (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
-    } } }
-  </div>
+    </div>
   }
 </ng-template>

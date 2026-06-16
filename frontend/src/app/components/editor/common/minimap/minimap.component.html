@@ -12,15 +12,15 @@
       style="fill: none; stroke: #333333"></polyline>
     <!-- camera indicator -->
     @if (mapPointer$ | async) {
-    <circle
-      [attr.cx]="(mapPointer$ | async)?.x || 0"
-      [attr.cy]="(mapPointer$ | async)?.y || 0"
-      [attr.r]="10"
-      fill="#e30"
-      stroke="black"
-      stroke-width="3"
-      (mousedown)="startDrag($event)"
-      style="cursor: pointer"></circle>
+      <circle
+        [attr.cx]="(mapPointer$ | async)?.x || 0"
+        [attr.cy]="(mapPointer$ | async)?.y || 0"
+        [attr.r]="10"
+        fill="#e30"
+        stroke="black"
+        stroke-width="3"
+        (mousedown)="startDrag($event)"
+        style="cursor: pointer"></circle>
     }
   </svg>
   <div class="info_div">

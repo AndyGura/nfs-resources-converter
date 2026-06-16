@@ -14,14 +14,15 @@ import { MainService } from '../../services/main.service';
         {{ rootName$ | async }}
       </button>
 
-      @for (item of (navigation.navigationPath$ | async) || []; track item; let i = $index) { @if (!['data',
-      'children'].includes(item)) {
-      <mat-divider vertical></mat-divider>
-      <span>/</span>
-      <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
-        {{ item }}
-      </button>
-      } }
+      @for (item of (navigation.navigationPath$ | async) || []; track item; let i = $index) {
+        @if (!['data', 'children'].includes(item)) {
+          <mat-divider vertical></mat-divider>
+          <span>/</span>
+          <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
+            {{ item }}
+          </button>
+        }
+      }
     </nav>
   `,
   styles: [
@@ -49,7 +50,10 @@ import { MainService } from '../../services/main.service';
 export class NavigationBarComponent implements AfterViewInit {
   public readonly rootName$: BehaviorSubject<string> = new BehaviorSubject<string>('/');
 
-  constructor(public readonly navigation: NavigationService, public readonly main: MainService) {}
+  constructor(
+    public readonly navigation: NavigationService,
+    public readonly main: MainService,
+  ) {}
 
   ngAfterViewInit(): void {
     this.main.resource$.subscribe(r => {

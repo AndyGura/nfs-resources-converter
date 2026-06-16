@@ -1,4 +1,4 @@
-import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
+import { deepEqual } from '../../utils/deep-equals';
 
 export type Resource<BD = BlockData> = {
   id: string;
@@ -29,12 +29,12 @@ export type BlockSchema = {
   custom_actions?: CustomAction[];
 } & any;
 
-export const schemaEquals = (schemaA: BlockSchema, schemaB: BlockSchema, deep: NgxDeepEqualsPureService): boolean => {
+export const schemaEquals = (schemaA: BlockSchema, schemaB: BlockSchema): boolean => {
   if (schemaA === schemaB) return true;
   if (!schemaA || !schemaB) return !schemaA && !schemaB;
   if (schemaA.block_class_mro !== schemaB.block_class_mro) return false;
 
-  return deep.deepEquals(schemaA, schemaB);
+  return deepEqual(schemaA, schemaB);
 };
 
 export type BlockData = any;
