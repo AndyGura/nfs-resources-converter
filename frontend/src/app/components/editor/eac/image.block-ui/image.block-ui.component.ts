@@ -1,19 +1,7 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
-  ViewChild,
-} from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
-import { MainService } from '../../../../services/main.service';
-import { BlockData, BlockSchema, CustomAction } from '../../types';
+import { BlockData, CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
 
 @Component({
@@ -21,41 +9,31 @@ import { CustomActionService } from '../../../../services/custom-action.service'
   templateUrl: './image.block-ui.component.html',
   styleUrls: ['./image.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
+export class ImageBlockUiComponent extends SubscribableGuiComponent {
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  private _resourceId?: string;
-  get resourceId(): string | undefined {
-    return this._resourceId;
+  override get resourceId(): string | undefined {
+    return super.resourceId;
   }
 
   @Input()
-  set resourceId(value: string | undefined) {
-    if (value === this._resourceId) return;
-    this._resourceId = value;
+  override set resourceId(value: string | undefined) {
+    super.resourceId = value;
     this.reloadImage();
   }
 
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-
-  private _resourceData?: BlockData;
-  get resourceData(): BlockData {
-    return this._resourceData;
+  override get resourceData(): BlockData {
+    return super.resourceData;
   }
+
   @Input()
-  set resourceData(value: BlockData) {
-    if (value === this._resourceData) return;
-    this._resourceData = value;
+  override set resourceData(value: BlockData) {
+    if (value === super.resourceData) return;
+    super.resourceData = value;
     this.reloadImage();
   }
-
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
 
   @ViewChild('imageContainer') imageContainer?: ElementRef<HTMLDivElement>;
   @ViewChild('formatSelect') formatSelect?: any;
@@ -64,7 +42,7 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.imageUrl$.next(null);
     if (this.resourceId) {
       setTimeout(() => this.fitZoom(), 0);
-      this.main.api.serializeResource(this.resourceId).then(paths => {
+      this.mainService.api.serializeResource(this.resourceId).then(paths => {
         let url = paths.find(x => x.endsWith('.png'));
         if (!url) {
           this.imageUrl$.next(null);
@@ -107,11 +85,9 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  constructor(
-    public readonly main: MainService,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly customActionService: CustomActionService,
-  ) {}
+  constructor(private readonly customActionService: CustomActionService) {
+    super();
+  }
 
   async ngAfterViewInit() {
     this.imageUrl$.pipe(takeUntil(this.destroyed$)).subscribe(url => {
@@ -119,7 +95,8 @@ export class ImageBlockUiComponent implements GuiComponentInterface, AfterViewIn
     });
   }
 
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
     this.destroyed$.next();
     this.destroyed$.complete();
   }

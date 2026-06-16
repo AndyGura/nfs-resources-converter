@@ -23,6 +23,7 @@ export interface ArrayTableColumn {
   templateUrl: './data-table.component.html',
   styleUrls: ['./data-table.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class DataTableComponent implements DoCheck {
   private _columns: ArrayTableColumn[] | null = null;

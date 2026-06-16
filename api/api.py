@@ -8,6 +8,7 @@ from .endpoints.conversion_api import ConversionAPI
 from .endpoints.file_api import FileAPI
 from .endpoints.resource_api import ResourceAPI
 from .endpoints.serialization_api import SerializationAPI
+from .endpoints.changes_api import ChangesAPI
 from version import __version__
 
 
@@ -33,6 +34,7 @@ class API:
         self.resource_api = ResourceAPI(self)
         self.serialization_api = SerializationAPI(self)
         self.conversion_api = ConversionAPI(self)
+        self.changes_api = ChangesAPI(self)
 
         # Register all API endpoints with Eel
         self._register_endpoints()
@@ -65,6 +67,11 @@ class API:
         eel.expose(self.conversion_api.patch_general_config)
         eel.expose(self.conversion_api.patch_conversion_config)
         eel.expose(self.conversion_api.test_executable)
+
+        # Changes API
+        eel.expose(self.changes_api.get_revisions)
+        eel.expose(self.changes_api.get_changes)
+        eel.expose(self.changes_api.on_fe_update)
 
         # Version API
         eel.expose(self.get_version)

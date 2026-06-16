@@ -1,10 +1,14 @@
-<mat-selection-list [multiple]="false"
-                    (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
-  <mat-list-option *ngFor="let key of keys" [value]="key" [selected]="selectedValue == key"
-                   (dblclick)='onDoubleClick(key)'>
+<mat-selection-list
+  [multiple]="false"
+  (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
+  @for (key of keys; track key) {
+  <mat-list-option [value]="key" [selected]="selectedValue == key" (dblclick)="onDoubleClick(key)">
     {{ key }}
   </mat-list-option>
+  }
 </mat-selection-list>
-<mat-card *ngIf="selectedValue">
+@if (selectedValue) {
+<mat-card>
   <app-editor [resourceOrError]="resources[selectedValue]"></app-editor>
 </mat-card>
+}

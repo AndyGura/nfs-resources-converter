@@ -1,16 +1,19 @@
-<app-compound-block-ui [resourceId]="resourceId"
-                       [resourceName]="resourceName"
-                       [resourceSchema]="resourceSchema"
-                       [resourceData]="resourceData"
-                       [hideBlockActions]='hideBlockActions'
-                       [hideName]='hideName'
-                       [fieldBlacklist]="['colors']"></app-compound-block-ui>
+<app-compound-block-ui
+  [resourceId]="resourceId"
+  [resourceName]="resourceName"
+  [resourceSchema]="resourceSchema"
+  [resourceData]="resourceData"
+  [hideBlockActions]="hideBlockActions"
+  [hideName]="hideName"
+  [fieldBlacklist]="['colors']"></app-compound-block-ui>
 <div id="colors-container">
-    <div *ngFor="let color of resourceData?.colors.data; let i = index" class="color-box"
-         [ngStyle]="{'background-color': '#' + lpad(color.toString(16), '0', 8) }"
-         [matTooltip]="i + ': #' + color.toString(16)"
-         (click)="onColorClicked($any($event.currentTarget!), i)">
-    </div>
+  @for (color of resourceData?.colors.data; track color; let i = $index) {
+  <div
+    class="color-box"
+    [ngStyle]="{ 'background-color': '#' + lpad(color.toString(16), '0', 8) }"
+    [matTooltip]="i + ': #' + color.toString(16)"
+    (click)="onColorClicked($any($event.currentTarget!), i)"></div>
+  }
   <div class="color-box extra-btn" (click)="addColor()" matTooltip="Add color">
     <mat-icon>add</mat-icon>
   </div>
@@ -18,5 +21,4 @@
     <mat-icon>delete</mat-icon>
   </div>
 </div>
-<input class="hidden" matInput [ngxMatColorPicker]="picker" (colorChange)="onColorChange($event.value)">
-<ngx-mat-color-picker #picker></ngx-mat-color-picker>
+<input #colorInput type="color" alpha class="hidden" (change)="onColorChange($any($event.currentTarget).value)" />

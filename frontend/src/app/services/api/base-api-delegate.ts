@@ -1,7 +1,8 @@
 import { MatDialog } from '@angular/material/dialog';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
 import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
+import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 
 // These types are used by consumers of this service
 export type GeneralConfig = {
@@ -41,8 +42,8 @@ export abstract class BaseApiDelegateService {
     0, 0,
   ]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
-
-  public changedDataBlocks: { [key: string]: any } = {};
+  public readonly onAppendChanges$: Subject<ChangeEntry[]> = new Subject<ChangeEntry[]>();
+  public readonly onFileOpened$: Subject<void> = new Subject<void>();
 
   protected constructor(protected readonly dialog: MatDialog) {}
 
@@ -69,6 +70,12 @@ export abstract class BaseApiDelegateService {
         });
         this._impl.version$.subscribe((v: any) => {
           if (this.version$.getValue() !== v) this.version$.next(v);
+        });
+        this._impl.onAppendChanges$.subscribe((v: any) => {
+          this.onAppendChanges$.next(v);
+        });
+        this._impl.onFileOpened$.subscribe(() => {
+          this.onFileOpened$.next();
         });
       });
     }
@@ -135,8 +142,8 @@ export abstract class BaseApiDelegateService {
     return this.runSafe(async () => (await this.getImpl()).getNewItemData(id));
   }
 
-  public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
-    return this.runSafe(async () => (await this.getImpl()).saveFile(changes));
+  public async saveFile(): Promise<void> {
+    return this.runSafe(async () => (await this.getImpl()).saveFile());
   }
 
   public async serializeResource(
@@ -144,12 +151,7 @@ export abstract class BaseApiDelegateService {
     path: string | null = null,
     settingsPatch: any = {},
   ): Promise<string[]> {
-    let changes = Object.entries(this.changedDataBlocks)
-      .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
-      .map(([id, value]) => {
-        return { id, value };
-      });
-    return this.runSafe(async () => (await this.getImpl()).serializeResource(blockId, path, changes, settingsPatch));
+    return this.runSafe(async () => (await this.getImpl()).serializeResource(blockId, path, settingsPatch));
   }
 
   public async deserializeResource(
@@ -194,5 +196,17 @@ export abstract class BaseApiDelegateService {
 
   public async closeFile(): Promise<{ success: boolean; message: string }> {
     return this.runSafe(async () => (await this.getImpl()).closeFile());
+  }
+
+  public async getRevisions(): Promise<[number, number]> {
+    return this.runSafe(async () => (await this.getImpl()).getRevisions());
+  }
+
+  public async getChanges(): Promise<ChangeEntry[]> {
+    return this.runSafe(async () => (await this.getImpl()).getChanges());
+  }
+
+  public async onFeUpdate(updateDict: ChangesFeUpdate): Promise<void> {
+    return this.runSafe(async () => (await this.getImpl()).onFeUpdate(updateDict));
   }
 }

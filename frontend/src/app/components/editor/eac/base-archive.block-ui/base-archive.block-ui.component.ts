@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
@@ -8,37 +8,28 @@ import { BlockData, BlockSchema, Resource } from '../../types';
   templateUrl: './base-archive.block-ui.component.html',
   styleUrls: ['./base-archive.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class BaseArchiveBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  private _resourceSchema?: BlockSchema;
-  get resourceSchema(): BlockSchema {
-    return this._resourceSchema;
+export class BaseArchiveBlockUiComponent extends SubscribableGuiComponent {
+  override get resourceSchema(): BlockSchema {
+    return super.resourceSchema;
   }
 
   @Input()
-  set resourceSchema(value: BlockSchema) {
-    this._resourceSchema = value;
+  override set resourceSchema(value: BlockSchema) {
+    super.resourceSchema = value;
     this.buildResourceMap();
   }
 
-  private _resourceData?: BlockData;
-  get resourceData(): BlockData {
-    return this._resourceData;
+  override get resourceData(): BlockData {
+    return super.resourceData;
   }
 
   @Input()
-  set resourceData(value: BlockData) {
-    this._resourceData = value;
+  override set resourceData(value: BlockData) {
+    super.resourceData = value;
     this.buildResourceMap();
   }
-
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
 
   resourceMap: { [key: string]: Resource } = {};
 
@@ -61,8 +52,4 @@ export class BaseArchiveBlockUiComponent implements GuiComponentInterface {
     }
     this.cdr.markForCheck();
   }
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
-  constructor(readonly cdr: ChangeDetectorRef) {}
 }

@@ -14,7 +14,7 @@
     flex-shrink: 0;
     padding: 0;
 
-    mat-list-option[aria-selected="true"] {
+    mat-list-option[aria-selected='true'] {
       background-color: #e0e0e0;
       &:focus {
         background-color: unset;

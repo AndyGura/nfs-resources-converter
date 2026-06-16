@@ -1,45 +1,54 @@
-<ng-container *ngIf="resourceId && resourceSchema && resourceData">
-  <mat-label *ngIf="resourceName && !hideName"
-             [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-    {{ resourceName }}
-  </mat-label>
-  <div class="sub-byte-fields">
-    <ng-container *ngFor="let field of resourceSchema.sub_byte_schema">
-      <div *ngIf="field.type === 'boolean'" class="sub-byte-field">
-        <mat-checkbox [(ngModel)]="resourceData[field.alias]"
-                      (change)="changed.emit()"
-                      (focus)="onFocus(field.alias)"
-                      (blur)="onBlur(field.alias)"
-                      [disabled]="!!disabled"
-                      [matTooltip]="field.description" matTooltipPosition="above">
-          {{ field.alias }}
-        </mat-checkbox>
-      </div>
-      <div *ngIf="field.type === 'number'" class="sub-byte-field">
-        <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
-          <mat-label>{{ field.alias }}</mat-label>
-          <input matInput type="number"
-                 [(ngModel)]="resourceData[field.alias]"
-                 (change)="changed.emit()"
-                 (focus)="onFocus(field.alias)"
-                 (blur)="onBlur(field.alias)"
-                 [disabled]="!!disabled">
-        </mat-form-field>
-      </div>
-      <div *ngIf="field.type === 'enum'" class="sub-byte-field">
-        <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
-          <mat-label>{{ field.alias }}</mat-label>
-          <mat-select [(ngModel)]="resourceData[field.alias]"
-                      (selectionChange)="changed.emit()"
-                      (focus)="onFocus(field.alias)"
-                      (blur)="onBlur(field.alias)"
-                      [disabled]="!!disabled">
-            <mat-option *ngFor="let option of field.details" [value]="option">
-              {{ option }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-    </ng-container>
+@if (resourceId && resourceSchema && resourceData) { @if (resourceName && !hideName) {
+<mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+  {{ resourceName }}
+</mat-label>
+}
+<div class="sub-byte-fields">
+  @for (field of resourceSchema.sub_byte_schema; track field) { @if (field.type === 'boolean') {
+  <div class="sub-byte-field">
+    <mat-checkbox
+      [checked]="resourceData[field.alias]"
+      (change)="onValueSet($event.checked, field.alias)"
+      (focus)="onFocus(field.alias)"
+      (blur)="onBlur(field.alias)"
+      [disabled]="!!disabled"
+      [matTooltip]="field.description"
+      matTooltipPosition="above">
+      {{ field.alias }}
+    </mat-checkbox>
   </div>
-</ng-container>
+  } @if (field.type === 'number') {
+  <div class="sub-byte-field">
+    <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
+      <mat-label>{{ field.alias }}</mat-label>
+      <input
+        matInput
+        type="number"
+        [value]="resourceData[field.alias]"
+        (change)="onValueSet($any($event.target).value, field.alias)"
+        (focus)="onFocus(field.alias)"
+        (blur)="onBlur(field.alias)"
+        [disabled]="!!disabled" />
+    </mat-form-field>
+  </div>
+  } @if (field.type === 'enum') {
+  <div class="sub-byte-field">
+    <mat-form-field appearance="fill" [matTooltip]="field.description" matTooltipPosition="above">
+      <mat-label>{{ field.alias }}</mat-label>
+      <mat-select
+        [value]="resourceData[field.alias]"
+        (selectionChange)="onValueSet($event.value, field.alias)"
+        (focus)="onFocus(field.alias)"
+        (blur)="onBlur(field.alias)"
+        [disabled]="!!disabled">
+        @for (option of field.details; track option) {
+        <mat-option [value]="option">
+          {{ option }}
+        </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+  } }
+</div>
+}

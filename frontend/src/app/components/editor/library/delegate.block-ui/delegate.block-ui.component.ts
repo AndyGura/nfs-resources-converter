@@ -1,10 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
-import { MainService } from '../../../../services/main.service';
-import { blockClassStr } from '../../../../utils/block_class_str';
-import { NavigationService } from '../../../../services/navigation.service';
-import { BlockData, BlockSchema } from '../../types';
+import { BlockData } from '../../types';
 
 type DelegateBlockData = { choice_index: number; data: BlockData };
 
@@ -13,21 +10,10 @@ type DelegateBlockData = { choice_index: number; data: BlockData };
   templateUrl: './delegate.block-ui.component.html',
   styleUrls: ['./delegate.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class DelegateBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: { choice_index: number; data: BlockData };
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
+export class DelegateBlockUiComponent extends SubscribableGuiComponent<DelegateBlockData> {
   // choiceDataCaches: BlockData[] = [];
-
-  constructor(readonly main: MainService, readonly navigation: NavigationService, readonly cdr: ChangeDetectorRef) {}
 
   // setChoiceIndex(newIndex: number): void {
   // if (this._resource) {
@@ -39,7 +25,6 @@ export class DelegateBlockUiComponent implements GuiComponentInterface {
   // }
   // }
 
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-  protected readonly blockClassStr = blockClassStr;
+  // protected readonly blockClassStr = blockClassStr;
   protected readonly joinId = joinId;
 }

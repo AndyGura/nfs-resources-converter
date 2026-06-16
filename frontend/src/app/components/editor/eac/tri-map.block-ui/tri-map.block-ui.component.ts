@@ -5,6 +5,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
@@ -12,7 +13,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { GuiComponent } from '../../gui.component';
 import {
   createInlineTickController,
   Entity3d,
@@ -29,7 +30,16 @@ import {
   Qtrn,
   Renderer3dEntity,
 } from '@gg-web-engine/core';
-import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, takeUntil, throttleTime } from 'rxjs';
+import {
+  BehaviorSubject,
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  Subject,
+  takeUntil,
+  throttleTime,
+} from 'rxjs';
 import {
   AmbientLight,
   ClampToEdgeWrapping,
@@ -53,8 +63,8 @@ import {
   ThreeVisualTypeDocRepo,
 } from '@gg-web-engine/three';
 import { joinId } from '../../../../utils/join-id';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { BlockData, BlockSchema, Resource } from '../../types';
 import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
@@ -128,7 +138,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
   ): Promise<[Entity3d<TypeDocOf<ThreeGgWorld>>[], LoadResultWithProps<TypeDocOf<ThreeGgWorld>>]> {
     const object = await this.objLoader.loadAsync(node.path + '.obj');
     object.position.set(node.position.x, node.position.y, node.position.z);
-    object.traverse(node => {
+    object.traverse((node: any) => {
       if (node instanceof Mesh) {
         node.material = this.getTerrainMaterial(
           (node.userData['name'] || node.name)
@@ -346,22 +356,20 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
   templateUrl: './tri-map.block-ui.component.html',
   styleUrls: ['./tri-map.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnChanges, OnDestroy {
+export class TriMapBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
+  override get resourceData(): BlockData | undefined {
+    return this.resourceData$.getValue();
+  }
+  @Input()
+  override set resourceData(value: BlockData | undefined) {
+    this.resourceData$.next(value);
+  }
+  resourceData$: BehaviorSubject<BlockData | undefined> = new BehaviorSubject(undefined);
+
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
-
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: BlockData;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   previewFamLocation$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
@@ -394,7 +402,7 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef, private readonly mainService: MainService) {}
+  readonly cdr = inject(ChangeDetectorRef);
 
   get previewFamPossibleLocations(): string[] {
     const blockId = this.resourceId;
@@ -505,10 +513,11 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     new ResizeObserver(updateSize).observe(this.previewCanvasContainer.nativeElement);
     updateSize();
     this.world.start();
-    this.mainService.dataBlockChange$
+
+    this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
         debounceTime(3000),
       )
       .subscribe(async () => {
@@ -518,53 +527,55 @@ export class TriMapBlockUiComponent implements GuiComponentInterface, AfterViewI
         this.previewLoading$.next(false);
       });
 
-    this.selectedSplineIndex$.pipe(takeUntil(this.destroyed$), debounceTime(250)).subscribe(i => {
-      if (this.resourceId && this.resourceSchema && this.resourceData) {
-        const item = this.resourceData.road_spline[i];
-        if (!item) {
-          return;
+    combineLatest([this.resourceData$, this.selectedSplineIndex$])
+      .pipe(takeUntil(this.destroyed$), debounceTime(250))
+      .subscribe(([_, i]) => {
+        if (this.resourceId && this.resourceSchema && this.resourceData) {
+          const item = this.resourceData.road_spline[i];
+          if (!item) {
+            return;
+          }
+          const point = {
+            x: item.position.x,
+            y: item.position.z,
+            z: item.position.y,
+          };
+          this.selectionSphere.position = point;
+          const orientation = this.resourceData.road_spline[i].orientation;
+          if (this.renderer) {
+            this.renderer.position = Pnt3.add(
+              point,
+              Pnt3.rotAround({ x: 10, y: -12, z: 5 }, { x: 0, y: 0, z: 1 }, -orientation),
+            );
+            this.renderer.rotation = Qtrn.lookAt(this.renderer.position, point, { x: 0, y: 0, z: 1 });
+            this.controller.reset();
+          }
         }
-        const point = {
-          x: item.position.x,
-          y: item.position.z,
-          z: item.position.y,
-        };
-        this.selectionSphere.position = point;
-        const orientation = this.resourceData.road_spline[i].orientation;
-        if (this.renderer) {
-          this.renderer.position = Pnt3.add(
-            point,
-            Pnt3.rotAround({ x: 10, y: -12, z: 5 }, { x: 0, y: 0, z: 1 }, -orientation),
-          );
-          this.renderer.rotation = Qtrn.lookAt(this.renderer.position, point, { x: 0, y: 0, z: 1 });
-          this.controller.reset();
-        }
-      }
-      this.selectedSplineItem$.next({
-        id: joinId(this.resourceId!, `road_spline/${i}`),
-        data: this.resourceData.road_spline[i],
-        schema: (this.resourceSchema.fields || []).find(
-          (x: { name: string; schema: BlockSchema }) => x.name === 'road_spline',
-        )?.schema.child_schema,
-        name: '',
+        this.selectedSplineItem$.next({
+          id: joinId(this.resourceId!, `road_spline/${i}`),
+          data: this.resourceData.road_spline[i],
+          schema: (this.resourceSchema.fields || []).find(
+            (x: { name: string; schema: BlockSchema }) => x.name === 'road_spline',
+          )?.schema.child_schema,
+          name: '',
+        });
+        this.selectedAiInfoItem$.next({
+          id: joinId(this.resourceId!, `ai_info/${Math.floor(i / 4)}`),
+          data: this.resourceData.ai_info[Math.floor(i / 4)],
+          schema: (this.resourceSchema.fields || []).find(
+            (x: { name: string; schema: BlockSchema }) => x.name === 'ai_info',
+          )?.schema.child_schema,
+          name: '',
+        });
+        this.selectedTerrainItem$.next({
+          id: joinId(this.resourceId!, `terrain/${Math.floor(i / 4)}`),
+          data: this.resourceData.terrain[Math.floor(i / 4)],
+          schema: (this.resourceSchema.fields || []).find(
+            (x: { name: string; schema: BlockSchema }) => x.name === 'terrain',
+          )?.schema.child_schema,
+          name: '',
+        });
       });
-      this.selectedAiInfoItem$.next({
-        id: joinId(this.resourceId!, `ai_info/${Math.floor(i / 4)}`),
-        data: this.resourceData.ai_info[Math.floor(i / 4)],
-        schema: (this.resourceSchema.fields || []).find(
-          (x: { name: string; schema: BlockSchema }) => x.name === 'ai_info',
-        )?.schema.child_schema,
-        name: '',
-      });
-      this.selectedTerrainItem$.next({
-        id: joinId(this.resourceId!, `terrain/${Math.floor(i / 4)}`),
-        data: this.resourceData.terrain[Math.floor(i / 4)],
-        schema: (this.resourceSchema.fields || []).find(
-          (x: { name: string; schema: BlockSchema }) => x.name === 'terrain',
-        )?.schema.child_schema,
-        name: '',
-      });
-    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {

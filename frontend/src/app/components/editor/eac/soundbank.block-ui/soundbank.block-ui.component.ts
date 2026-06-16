@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
@@ -7,7 +8,7 @@ import {
   Output,
   SimpleChanges,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { GuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
@@ -15,20 +16,9 @@ import { BlockData, BlockSchema, Resource } from '../../types';
   selector: 'app-soundbank-block-ui',
   templateUrl: './soundbank.block-ui.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class SoundbankBlockUiComponent implements GuiComponentInterface, OnChanges {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: BlockData;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
+export class SoundbankBlockUiComponent extends GuiComponent implements OnChanges {
   resourceMap: { [key: string]: Resource } = {};
 
   ngOnChanges(changes: SimpleChanges): void {

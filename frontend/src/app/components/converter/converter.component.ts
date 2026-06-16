@@ -23,7 +23,6 @@ declare const eel: any;
   templateUrl: './converter.component.html',
   styleUrls: ['./converter.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,

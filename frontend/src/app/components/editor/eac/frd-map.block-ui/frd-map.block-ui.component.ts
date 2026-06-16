@@ -4,15 +4,13 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  EventEmitter,
-  Input,
+  inject,
   OnChanges,
   OnDestroy,
-  Output,
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { GuiComponent } from '../../gui.component';
 import {
   createInlineTickController,
   Entity3d,
@@ -41,16 +39,15 @@ import {
   Texture,
   TextureLoader,
 } from 'three';
-import { MainService } from '../../../../services/main.service';
 import {
   ThreeDisplayObjectComponent,
   ThreeGgWorld,
   ThreeSceneComponent,
   ThreeVisualTypeDocRepo,
 } from '@gg-web-engine/three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
-import { BlockData, BlockSchema, Resource } from '../../types';
+import { Resource } from '../../types';
 import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
 
 // TODO use this from gg-web-engine after next release
@@ -115,7 +112,7 @@ export class Nfs3MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
   ): Promise<[Entity3d<TypeDocOf<ThreeGgWorld>>[], LoadResultWithProps<TypeDocOf<ThreeGgWorld>>]> {
     const object = await this.objLoader.loadAsync(node.path + '.obj');
     object.position.set(node.position.x, node.position.y, node.position.z);
-    object.traverse(node => {
+    object.traverse((node: any) => {
       if (node instanceof Mesh) {
         node.material = this.getTerrainMaterial(
           (node.userData['name'] || node.name)
@@ -178,22 +175,11 @@ export class Nfs3MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
   templateUrl: './frd-map.block-ui.component.html',
   styleUrls: ['./frd-map.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnChanges, OnDestroy {
+export class FrdMapBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
-
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: BlockData;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   previewQfsLocation$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
@@ -221,7 +207,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef, private readonly mainService: MainService) {}
+  readonly cdr = inject(ChangeDetectorRef);
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
@@ -295,10 +281,10 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     new ResizeObserver(updateSize).observe(this.previewCanvasContainer.nativeElement);
     updateSize();
     this.world.start();
-    this.mainService.dataBlockChange$
+    this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
         debounceTime(3000),
       )
       .subscribe(async () => {

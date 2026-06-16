@@ -1,24 +1,20 @@
-<div class="header" *ngIf="resourceId">
-
-  <div class="stats" *ngIf="resourceData">
-    <mat-label
-      *ngIf='!hideName && resourceName'
-      [matTooltip]='resourceDescription || ""' matTooltipPosition='above'>{{ resourceName }}
-    </mat-label>
-    <span class="stat-item">
-      <i class="stat-label">Color model:</i> {{ resourceData.resource_id }}
-    </span>
-    <span class="stat-item">
-      <i class="stat-label">Size:</i> {{ resourceData.width }}x{{ resourceData.height }}
-    </span>
+@if (resourceId) {
+<div class="header">
+  @if (resourceData) {
+  <div class="stats">
+    @if (!hideName && resourceName) {
+    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+    }
+    <span class="stat-item"> <i class="stat-label">Color model:</i> {{ resourceData.resource_id }} </span>
+    <span class="stat-item"> <i class="stat-label">Size:</i> {{ resourceData.width }}x{{ resourceData.height }} </span>
   </div>
-
+  }
   <div class="actions">
     <button mat-icon-button (click)="zoomOut()" title="Zoom Out">
       <mat-icon>zoom_out</mat-icon>
     </button>
     <mat-slider [min]="minZoomLog" [max]="maxZoomLog" step="0.01" [discrete]="false" title="Zoom">
-      <input matSliderThumb [(ngModel)]="sliderValue">
+      <input matSliderThumb [(ngModel)]="sliderValue" />
     </mat-slider>
     <button mat-icon-button (click)="zoomIn()" title="Zoom In">
       <mat-icon>zoom_in</mat-icon>
@@ -28,51 +24,63 @@
     <span class="zoom-level">{{ zoom }}%</span>
   </div>
 </div>
+}
 
 <div class="preview-wrapper">
-  <div class="image-container"
-       #imageContainer
-       (wheel)="onWheel($event)"
-       (mousedown)="onMouseDown($event)"
-       (mousemove)="onMouseMove($event)"
-       (mouseup)="onMouseUp()"
-       (mouseleave)="onMouseLeave()"
-       [class.panning]="isPanning">
-    <img *ngIf="imageUrl$ | async as imageUrl"
-         [src]="imageUrl"
-         [style.width.px]="(resourceData?.width || 0) * zoom / 100"
-         [style.height.px]="(resourceData?.height || 0) * zoom / 100"
-         draggable="false"
-         (dragstart)="false">
-    <div *ngIf="!(imageUrl$ | async)"
-         class="image-placeholder"
-         [style.width.px]="(resourceData?.width || 0) * zoom / 100"
-         [style.height.px]="(resourceData?.height || 0) * zoom / 100">
-    </div>
+  <div
+    class="image-container"
+    #imageContainer
+    (wheel)="onWheel($event)"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp()"
+    (mouseleave)="onMouseLeave()"
+    [class.panning]="isPanning">
+    @if (imageUrl$ | async; as imageUrl) {
+    <img
+      [src]="imageUrl"
+      [style.width.px]="((resourceData?.width || 0) * zoom) / 100"
+      [style.height.px]="((resourceData?.height || 0) * zoom) / 100"
+      draggable="false"
+      (dragstart)="(false)" />
+    } @if (!(imageUrl$ | async)) {
+    <div
+      class="image-placeholder"
+      [style.width.px]="((resourceData?.width || 0) * zoom) / 100"
+      [style.height.px]="((resourceData?.height || 0) * zoom) / 100"></div>
+    }
   </div>
-  <app-block-actions *ngIf='!hideBlockActions' [resource]='{
+  @if (!hideBlockActions) {
+  <app-block-actions
+    [resource]="{
                       id: resourceId!,
                       name: resourceName!,
                       data: resourceData,
                       schema: resourceSchema,
-                     }'
-                     [hideCustomActions]="true"></app-block-actions>
+                     }"
+    [hideCustomActions]="true"></app-block-actions>
+  }
 </div>
 
-<mat-form-field *ngIf="resourceData && resourceSchema" subscriptSizing="dynamic">
+@if (resourceData && resourceSchema) {
+<mat-form-field subscriptSizing="dynamic">
   <mat-label>Color Model</mat-label>
   <mat-select [ngModel]="resourceData.resource_id" (ngModelChange)="onFormatChange($event)" #formatSelect="ngModel">
-    <mat-option *ngFor="let enumValue of resourceSchema.fields[0].schema.enum_names" [value]="enumValue[1]">
+    @for (enumValue of resourceSchema.fields[0].schema.enum_names; track enumValue) {
+    <mat-option [value]="enumValue[1]">
       {{ enumValue[1] }}
     </mat-option>
+    }
   </mat-select>
 </mat-form-field>
+}
 
-<app-compound-block-ui [resourceId]="resourceId"
-                       [resourceName]="resourceName"
-                       [resourceSchema]="resourceSchema"
-                       [resourceData]="resourceData"
-                       [hideName]="true"
-                       [hideBlockActions]="true"
-                       [preferHorizontalLayout]="true"
-                       [fieldBlacklist]="['resource_id']"></app-compound-block-ui>
+<app-compound-block-ui
+  [resourceId]="resourceId"
+  [resourceName]="resourceName"
+  [resourceSchema]="resourceSchema"
+  [resourceData]="resourceData"
+  [hideName]="true"
+  [hideBlockActions]="true"
+  [preferHorizontalLayout]="true"
+  [fieldBlacklist]="['resource_id']"></app-compound-block-ui>

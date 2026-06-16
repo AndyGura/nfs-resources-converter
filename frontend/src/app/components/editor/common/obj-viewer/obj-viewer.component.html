@@ -1,90 +1,111 @@
 <div class="previewCanvasContainer" #previewCanvasContainer>
   <canvas #previewCanvas width="640" height="480"></canvas>
-  <app-view-mode-toolbar [viewModeController]="viewModeController" [currentViewMode]="viewMode" (viewModeChanged)="setViewMode($event)"></app-view-mode-toolbar>
+  <app-view-mode-toolbar
+    [viewModeController]="viewModeController"
+    [currentViewMode]="viewMode"
+    (viewModeChanged)="setViewMode($event)"></app-view-mode-toolbar>
   <div id="controls">
-
-    <ng-container *ngFor="let customControl of customControls; let i = index">
-      <h4>{{ customControl.title }}</h4>
-      <div class="controls-list" *ngFor="let c of customControl.controls; let j = index">
-        <ng-container *ngIf="c.type === 'checkbox'">
-          <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
-          <input [id]="'custom_control_' + i + '_' + j" [type]="c.type" [checked]="c.value"
-                 (change)="c.value = $any($event.currentTarget).checked; c.change(c.value);">
-        </ng-container>
-        <div style="width: 100%" *ngIf="c.type === 'radio'">
-          <label>{{ c.label }}</label>
-          <div class="controls-list" *ngFor="let option of c.options">
-            <label [for]="'custom_control_' + i + '_' + j + '_' + option">{{ option }}</label>
-            <input [id]="'custom_control_' + i + '_' + j + '_' + option"
-                   type="radio"
-                   [checked]="c.value === option"
-                   (change)="c.value = option; c.change(c.value);">
-          </div>
+    @for (customControl of customControls; track customControl; let i = $index) {
+    <h4>{{ customControl.title }}</h4>
+    @for (c of customControl.controls; track c; let j = $index) {
+    <div class="controls-list">
+      @if (c.type === 'checkbox') {
+      <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+      <input
+        [id]="'custom_control_' + i + '_' + j"
+        [type]="c.type"
+        [checked]="c.value"
+        (change)="c.value = $any($event.currentTarget).checked; c.change(c.value)" />
+      } @if (c.type === 'radio') {
+      <div style="width: 100%">
+        <label>{{ c.label }}</label>
+        @for (option of c.options; track option) {
+        <div class="controls-list">
+          <label [for]="'custom_control_' + i + '_' + j + '_' + option">{{ option }}</label>
+          <input
+            [id]="'custom_control_' + i + '_' + j + '_' + option"
+            type="radio"
+            [checked]="c.value === option"
+            (change)="c.value = option; c.change(c.value)" />
         </div>
-        <ng-container *ngIf="c.type === 'color'">
-          <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
-          <input class="hidden" matInput [ngxMatColorPicker]="picker"
-                 (colorChange)="c.value = toRGB($event.value); c.change(c.value);">
-          <ngx-mat-color-toggle matSuffix [for]="picker"></ngx-mat-color-toggle>
-          <ngx-mat-color-picker #picker></ngx-mat-color-picker>
-        </ng-container>
-        <ng-container *ngIf="c.type === 'slider'">
-          <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
-          <input [id]="'custom_control_' + i + '_' + j" type="range"
-                 [min]="c.minValue" [max]="c.maxValue" [step]="c.valueStep"
-                 [value]="c.value" (change)="c.value = $any($event.currentTarget).value; c.change(c.value);">
-        </ng-container>
+        }
       </div>
-    </ng-container>
-    <ng-container *ngFor="let fg of _viewFilters">
-      <h4>{{ fg.opts.name }}</h4>
-      <div class="controls-list-vertical">
-        <ng-container *ngFor="let filterName of fg.opts.filterGroups; let i = index">
-          <div *ngIf="!fg.isGroupEmpty(filterName)" class="control-item">
-            <input [id]="'filter_' + fg.opts.name + '_' + filterName"
-                   type="radio"
-                   [name]="'filter_group_' + fg.opts.name + '_' + filterName"
-                   [checked]="fg.opts.checkedIndex === i"
-                   (change)="fg.opts.checkedIndex = i; applyViewFilters();">
-            <label [for]="'filter_' + fg.opts.name + '_' + filterName">{{ filterName }}</label>
-          </div>
-        </ng-container>
+      } @if (c.type === 'color') {
+      <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+      <input
+        [id]="'custom_control_' + i + '_' + j"
+        type="color"
+        [value]="toHex(c.value)"
+        (change)="c.value = fromHex($any($event.currentTarget).value); c.change(c.value)" />
+      } @if (c.type === 'slider') {
+      <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+      <input
+        [id]="'custom_control_' + i + '_' + j"
+        type="range"
+        [min]="c.minValue"
+        [max]="c.maxValue"
+        [step]="c.valueStep"
+        [value]="c.value"
+        (change)="c.value = $any($event.currentTarget).value; c.change(c.value)" />
+      }
+    </div>
+    } } @for (fg of _viewFilters; track fg) {
+    <h4>{{ fg.opts.name }}</h4>
+    <div class="controls-list-vertical">
+      @for (filterName of fg.opts.filterGroups; track filterName; let i = $index) { @if (!fg.isGroupEmpty(filterName)) {
+      <div class="control-item">
+        <input
+          [id]="'filter_' + fg.opts.name + '_' + filterName"
+          type="radio"
+          [name]="'filter_group_' + fg.opts.name + '_' + filterName"
+          [checked]="fg.opts.checkedIndex === i"
+          (change)="fg.opts.checkedIndex = i; applyViewFilters()" />
+        <label [for]="'filter_' + fg.opts.name + '_' + filterName">{{ filterName }}</label>
       </div>
-    </ng-container>
-    <ng-container *ngIf="visibilityControls">
-      <div class="section-header">
-        <h4>Objects visibility</h4>
-        <button class="icon-button" (click)="toggleAllVisibility()" title="Toggle all visibility">
-          <img src="assets/editor/icons/hide_off.svg" alt="Toggle all">
-        </button>
+      } }
+    </div>
+    } @if (visibilityControls) {
+    <div class="section-header">
+      <h4>Objects visibility</h4>
+      <button class="icon-button" (click)="toggleAllVisibility()" title="Toggle all visibility">
+        <img src="assets/editor/icons/hide_off.svg" alt="Toggle all" />
+      </button>
+    </div>
+    @if (uiGroups === null) { @for (mesh of displayMeshes; track mesh) {
+    <div class="controls-list">
+      <label [for]="'visibility_' + mesh.name">{{ mesh.name }}</label>
+      <div class="checkbox-wrapper">
+        <input
+          [id]="'visibility_' + mesh.name"
+          type="checkbox"
+          [checked]="mesh.visible"
+          (change)="toggleMesh(mesh)"
+          (dblclick)="toggleMeshOnly(mesh)" />
+        <img
+          [src]="'assets/editor/icons/hide_' + (mesh.visible ? 'off' : 'on') + '.svg'"
+          (click)="toggleMesh(mesh)"
+          (dblclick)="toggleMeshOnly(mesh)" />
       </div>
-      <ng-container *ngIf="uiGroups === null">
-        <div class="controls-list" *ngFor="let mesh of displayMeshes">
-          <label [for]="'visibility_' + mesh.name">{{ mesh.name }}</label>
-          <div class="checkbox-wrapper">
-            <input [id]="'visibility_' + mesh.name" type='checkbox' [checked]="mesh.visible"
-                   (change)="toggleMesh(mesh)"
-                   (dblclick)="toggleMeshOnly(mesh)">
-            <img [src]="'assets/editor/icons/hide_' + (mesh.visible ? 'off' : 'on') + '.svg'"
-                 (click)="toggleMesh(mesh)"
-                 (dblclick)="toggleMeshOnly(mesh)">
-          </div>
-        </div>
-      </ng-container>
-      <ng-container *ngIf="uiGroups !== null">
-        <div class="controls-list" *ngFor="let group of uiGroups | keyvalue">
-          <label [for]="'visibility_' + group.key">{{ group.key }}</label>
-          <div class="checkbox-wrapper">
-            <input [id]="'visibility_' + group.key" type='checkbox' [checked]="group.value.visible"
-                   (change)="toggleUiGroup(group.key)"
-                   (dblclick)="toggleUiGroupOnly(group.key)">
-            <img [src]="'assets/editor/icons/hide_' + (group.value.visible ? 'off' : 'on') + '.svg'"
-                 (click)="toggleUiGroup(group.key)"
-                 (dblclick)="toggleUiGroupOnly(group.key)">
-          </div>
-        </div>
-      </ng-container>
-    </ng-container>
+    </div>
+    } } @if (uiGroups !== null) { @for (group of uiGroups | keyvalue; track group) {
+    <div class="controls-list">
+      <label [for]="'visibility_' + group.key">{{ group.key }}</label>
+      <div class="checkbox-wrapper">
+        <input
+          [id]="'visibility_' + group.key"
+          type="checkbox"
+          [checked]="group.value.visible"
+          (change)="toggleUiGroup(group.key)"
+          (dblclick)="toggleUiGroupOnly(group.key)" />
+        <img
+          [src]="'assets/editor/icons/hide_' + (group.value.visible ? 'off' : 'on') + '.svg'"
+          (click)="toggleUiGroup(group.key)"
+          (dblclick)="toggleUiGroupOnly(group.key)" />
+      </div>
+    </div>
+    } } }
   </div>
-  <mat-spinner *ngIf="!entity" mode="indeterminate"></mat-spinner>
+  @if (!entity) {
+  <mat-spinner mode="indeterminate"></mat-spinner>
+  }
 </div>

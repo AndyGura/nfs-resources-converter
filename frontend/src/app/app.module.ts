@@ -19,7 +19,6 @@ import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dial
 import { MatDialogModule } from '@angular/material/dialog';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 import { ErrorDialogComponent } from './components/error.dialog/error.dialog.component';
-import { MAT_COLOR_FORMATS, NGX_MAT_COLOR_FORMATS } from '@angular-material-components/color-picker';
 import { NavigationBarComponent } from './components/navigation-bar/navigation-bar.component';
 import { EditorModule } from './components/editor/editor.module';
 import { NavigationBarModule } from './components/navigation-bar/navigation-bar.module';
@@ -66,11 +65,7 @@ import { ConfigComponent } from './components/config/config.component';
     ConverterComponent,
     ConfigComponent,
   ],
-  providers: [
-    ApiDelegateService,
-    NgxDeepEqualsPureService,
-    { provide: MAT_COLOR_FORMATS, useValue: NGX_MAT_COLOR_FORMATS },
-  ],
+  providers: [ApiDelegateService, NgxDeepEqualsPureService],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

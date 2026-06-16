@@ -1,63 +1,38 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  OnChanges,
-  OnDestroy,
-  Output,
-  SimpleChanges,
-} from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { MainService } from '../../../../services/main.service';
-import { BlockData, BlockSchema } from '../../types';
 import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 
 @Component({
   selector: 'app-crp-geometry-block-ui',
   templateUrl: './crp-geometry.block-ui.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class CrpGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy, OnChanges {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: BlockData;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
+export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   isTrack$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(private readonly mainService: MainService) {}
+  async ngAfterViewInit() {
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
+        debounceTime(150),
+      )
+      .subscribe(async () => {
+        await this.loadPreview();
+      });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
       this.isTrack$.next(this.resourceData?.resource_id === 'karT');
       this.loadPreview().then();
     }
-  }
-
-  async ngAfterViewInit() {
-    this.mainService.dataBlockChange$
-      .pipe(
-        takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
-        debounceTime(1000),
-      )
-      .subscribe(async () => {
-        await this.loadPreview();
-      });
   }
 
   private serializerSettings = {

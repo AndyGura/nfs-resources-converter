@@ -3,12 +3,8 @@ Serialization API endpoint for the NFS Resources Converter.
 This module handles all serialization-related operations.
 """
 
-from copy import deepcopy
-from itertools import chain
-from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import List, Any
 
-from api.utils import apply_delta_to_resource
 from library import require_resource
 from library.utils import path_join
 from library.utils.file_utils import remove_file_or_directory
@@ -42,7 +38,7 @@ class SerializationAPI:
         """
         return convert_bytes(serialize_exceptions(data))
 
-    def serialize_resource(self, id: str, path=None, changes=None, settings_patch=None) -> List[str]:
+    def serialize_resource(self, id: str, path=None, settings_patch=None) -> List[str]:
         """
         Serialize a resource.
         
@@ -58,9 +54,6 @@ class SerializationAPI:
         if settings_patch is None:
             settings_patch = {}
         (_, res_block, res), (_, top_level_block, top_level_res) = require_resource(id)
-        if changes:
-            res = deepcopy(res)
-            apply_delta_to_resource(id, res, changes)
         serializer = get_serializer(res_block, res)
         static_tmp_dir = False
         if path is None:

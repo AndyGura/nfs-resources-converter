@@ -1,18 +1,5 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  ViewChild,
-} from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
-import { NgxMatColorPickerComponent } from '@angular-material-components/color-picker/lib/components/color-picker/color-picker.component';
-import { Color } from '@angular-material-components/color-picker';
-import { GlobalPositionStrategy } from '@angular/cdk/overlay';
-import { BlockData, BlockSchema } from '../../types';
-import { MainService } from '../../../../services/main.service';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
 
 @Component({
@@ -20,23 +7,10 @@ import { joinId } from '../../../../utils/join-id';
   templateUrl: './palette.block-ui.component.html',
   styleUrls: ['./palette.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class PaletteBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: BlockData;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
-  @ViewChild('picker') picker!: NgxMatColorPickerComponent;
-
-  constructor(private readonly mainService: MainService, private readonly cdr: ChangeDetectorRef) {}
+export class PaletteBlockUiComponent extends SubscribableGuiComponent {
+  @ViewChild('colorInput') colorInput!: ElementRef<HTMLInputElement>;
 
   lpad(str: string, padString: string, length: number) {
     while (str.length < length) str = padString + str;
@@ -51,42 +25,39 @@ export class PaletteBlockUiComponent implements GuiComponentInterface {
       return;
     }
     this.selectedIndex = index;
-    const color = this.resourceData.colors.data[index] || 0;
-    this.picker.select(
-      new Color((color & 0xff000000) >>> 24, (color & 0xff0000) >>> 16, (color & 0xff00) >>> 8, color & 0xff),
-    );
-    this.picker.open();
-    const ps = new GlobalPositionStrategy();
-    ps.top(Math.min(em.offsetTop, window.innerHeight - 450) + 'px');
-    ps.left(Math.min(em.offsetLeft, window.innerWidth - 380) + 'px');
-    this.picker._popupRef.updatePositionStrategy(ps);
-    ps.apply();
+    this.colorInput.nativeElement.value =
+      '#' + this.lpad(this.resourceData.colors.data[this.selectedIndex].toString(16), '0', 8);
+    this.colorInput.nativeElement.click();
   }
 
-  onColorChange(color: Color | null) {
-    if (!this.resourceId || !this.resourceData) {
+  onColorChange(hex: string | null) {
+    if (!this.resourceId || !this.resourceData || this.selectedIndex === null) {
       this.selectedIndex = null;
       return;
     }
-    if (this.selectedIndex !== null) {
-      const value = color ? parseInt(color.toHex8String().substring(1), 16) : 0;
-      this.resourceData.colors.data[this.selectedIndex] = value;
-      this.mainService.dataBlockChange$.next([joinId(this.resourceId, 'colors/data', this.selectedIndex), value]);
-      this.cdr.markForCheck();
-    }
+    const color = this.resourceData.colors.data[this.selectedIndex];
+    const alpha = color & 0xff;
+    const value = hex ? parseInt(hex.substring(1), 16) : 0;
+    this.onValueSet((alpha | (value << 8)) >>> 0, 'colors', 'data', this.selectedIndex);
   }
 
   async addColor() {
     if (!this.resourceId || !this.resourceData) return;
-    this.resourceData.colors.data.push(0xff);
-    this.mainService.dataBlockChange$.next([joinId(this.resourceId, 'colors/data'), this.resourceData.colors.data]);
-    this.cdr.markForCheck();
+    this.emitNewChange({
+      id: joinId(this.resourceId!, 'colors', 'data'),
+      op: 'array_insert',
+      index: this.resourceData.colors.data.length,
+      value: 0xff,
+    });
   }
 
   removeLastColor() {
     if (!this.resourceId || !this.resourceData || this.resourceData.colors.data.length === 0) return;
-    this.resourceData.colors.data.pop();
-    this.mainService.dataBlockChange$.next([joinId(this.resourceId, 'colors/data'), this.resourceData.colors.data]);
-    this.cdr.markForCheck();
+    this.emitNewChange({
+      id: joinId(this.resourceId!, 'colors', 'data'),
+      op: 'array_remove',
+      index: this.resourceData.colors.data.length - 1,
+      oldValue: this.resourceData.colors.data[this.resourceData.colors.data.length - 1],
+    });
   }
 }

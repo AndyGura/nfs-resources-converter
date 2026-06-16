@@ -9,6 +9,7 @@ import { joinId } from '../../../../utils/join-id';
   templateUrl: './sidenav-res-list.component.html',
   styleUrls: ['./sidenav-res-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class SidenavResListComponent {
   _resources: { [key: string]: BlockData | ReadError } = {};

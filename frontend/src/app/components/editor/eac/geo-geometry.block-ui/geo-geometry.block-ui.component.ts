@@ -3,46 +3,31 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  EventEmitter,
-  Input,
+  inject,
   OnChanges,
   OnDestroy,
-  Output,
   SimpleChanges,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { MainService } from '../../../../services/main.service';
 import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
 import { Nfs2CarMeshController } from './nfs2-car-mesh-controller';
-import { BlockData, BlockSchema } from '../../types';
 
 @Component({
   selector: 'app-geo-geometry.block-ui',
   templateUrl: './geo-geometry.block-ui.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class GeoGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy, OnChanges {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: BlockData;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
+export class GeoGeometryBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   customControls: ObjViewerCustomControl[] = [];
 
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
-  private readonly destroyed$: Subject<void> = new Subject<void>();
+  readonly cdr = inject(ChangeDetectorRef);
 
-  constructor(public readonly main: MainService, private readonly cdr: ChangeDetectorRef) {}
+  private readonly destroyed$: Subject<void> = new Subject<void>();
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
@@ -51,11 +36,11 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
   }
 
   async ngAfterViewInit() {
-    this.main.dataBlockChange$
+    this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
-        debounceTime(1000),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
+        debounceTime(150),
       )
       .subscribe(async () => {
         await this.loadPreview();
@@ -127,7 +112,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
   private async loadPreview() {
     this.previewPaths$.next(null);
     if (this.resourceId) {
-      const paths = await this.main.api.serializeResource(this.resourceId, null, this.serializerSettings);
+      const paths = await this.mainService.api.serializeResource(this.resourceId, null, this.serializerSettings);
       this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
   }

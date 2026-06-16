@@ -3,46 +3,42 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  EventEmitter,
-  Input,
+  inject,
   OnChanges,
   OnDestroy,
-  Output,
   SimpleChanges,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { MainService } from '../../../../services/main.service';
 import { Object3D } from 'three';
 import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
 import { TnfsCarMeshController } from './tnfs-car-mesh-controller';
-import { BlockData, BlockSchema } from '../../types';
 
 @Component({
   selector: 'app-orip-geometry-block-ui',
   templateUrl: './orip-geometry.block-ui.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class OripGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy, OnChanges {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: BlockData;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
+export class OripGeometryBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
-
-  private readonly destroyed$: Subject<void> = new Subject<void>();
 
   customControls: ObjViewerCustomControl[] = [];
 
-  constructor(private readonly mainService: MainService, private readonly cdr: ChangeDetectorRef) {}
+  readonly cdr = inject(ChangeDetectorRef);
+  destroyed$: Subject<void> = new Subject<void>();
+
+  ngAfterViewInit(): void {
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
+        debounceTime(150),
+      )
+      .subscribe(async () => {
+        await this.loadPreview();
+      });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
@@ -50,16 +46,9 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
     }
   }
 
-  async ngAfterViewInit() {
-    this.mainService.dataBlockChange$
-      .pipe(
-        takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resourceId && blockId.startsWith(this.resourceId)),
-        debounceTime(1000),
-      )
-      .subscribe(async () => {
-        await this.loadPreview();
-      });
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 
   async onObjectLoaded(obj: Object3D) {
@@ -130,10 +119,5 @@ export class OripGeometryBlockUiComponent implements GuiComponentInterface, Afte
       const paths = await this.mainService.api.serializeResource(this.resourceId, null, this.serializerSettings);
       this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
-  }
-
-  ngOnDestroy(): void {
-    this.destroyed$.next();
-    this.destroyed$.complete();
   }
 }

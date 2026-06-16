@@ -1,6 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
 
@@ -37,11 +38,15 @@ export class ApiDelegateImplService {
   public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
   public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject([0, 0]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
+  public readonly onAppendChanges$: Subject<ChangeEntry[]> = new Subject<ChangeEntry[]>();
+  public readonly onFileOpened$: Subject<void> = new Subject<void>();
+
   private callQueue: Promise<any> = Promise.resolve();
 
   constructor(private readonly ngZone: NgZone) {
-    eel.expose(this.wrapHandler(this.openFile), 'open_file');
+    eel.expose(this.wrapHandler(this.openFile), 'open_arg_file');
     eel.expose(this.wrapHandler(this.updateConversionProgress), 'update_conversion_progress');
+    eel.expose(this.wrapHandler(this.onAppendChanges), 'on_append_changes');
     this.enqueue(() => eel['on_angular_ready']()()).then();
     this.syncRecentFiles().then();
     this.syncVersion().then();
@@ -91,6 +96,7 @@ export class ApiDelegateImplService {
       this.openedResourcePath$.next(path);
       const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, forceReload)();
       this.openedResource$.next({ ...res, id: res['name'] });
+      this.onFileOpened$.next();
       await this._syncRecentFiles();
     });
   }
@@ -113,6 +119,10 @@ export class ApiDelegateImplService {
 
   updateConversionProgress(current: number, total: number): void {
     this.conversionProgress$.next([current, total]);
+  }
+
+  onAppendChanges(changes: ChangeEntry[]): void {
+    this.onAppendChanges$.next(changes);
   }
 
   public async openFileDialog(multiple: boolean = false): Promise<string[]> {
@@ -139,11 +149,11 @@ export class ApiDelegateImplService {
     return this.enqueue(() => eel['get_new_item_data'](id)());
   }
 
-  public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
+  public async saveFile(): Promise<void> {
     return this.enqueue(async () => {
       const current = this.openedResource$.getValue();
       if (!current) return;
-      const updatedData = await eel['save_file'](this.openedResourcePath$.getValue(), changes)();
+      const updatedData = await eel['save_file'](this.openedResourcePath$.getValue())();
       this.openedResource$.next({
         id: current.id,
         name: current.name,
@@ -153,13 +163,8 @@ export class ApiDelegateImplService {
     });
   }
 
-  public async serializeResource(
-    id: string,
-    path: string | null = null,
-    changes = [],
-    settingsPatch: any = {},
-  ): Promise<string[]> {
-    return this.enqueue(() => eel['serialize_resource'](id, path, changes, settingsPatch)());
+  public async serializeResource(id: string, path: string | null = null, settingsPatch: any = {}): Promise<string[]> {
+    return this.enqueue(() => eel['serialize_resource'](id, path, settingsPatch)());
   }
 
   public async deserializeResource(
@@ -214,6 +219,24 @@ export class ApiDelegateImplService {
         this.openedResourcePath$.next(null);
       }
       return result;
+    });
+  }
+
+  public async getRevisions(): Promise<[number, number]> {
+    return this.enqueue(async () => {
+      return await eel['get_revisions']()();
+    });
+  }
+
+  public async getChanges(): Promise<ChangeEntry[]> {
+    return this.enqueue(async () => {
+      return await eel['get_changes']()();
+    });
+  }
+
+  public async onFeUpdate(updateDict: ChangesFeUpdate): Promise<void> {
+    return this.enqueue(async () => {
+      await eel['on_fe_update'](updateDict)();
     });
   }
 }

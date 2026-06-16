@@ -1,9 +1,12 @@
-<h2 *ngIf="resourceName && !hideName" [matTooltip]='resourceDescription || ""' matTooltipPosition='above'>{{ resourceName }}</h2>
-<hex-editor [data]='(data$ | async) || empty'
-            (dataChange)='onDataChange($event)'
-            [maxRows]='8'
-            [showOffsets]='((data$ | async) || empty).length > 16'
-            [readOnly]='!!disabled'
-            (focus)='onFocus()'
-            (blur)='onBlur()'>
+@if (resourceName && !hideName) {
+<h2 [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }}</h2>
+}
+<hex-editor
+  [data]="(data$ | async) || empty"
+  (dataChange)="onDataChange($event)"
+  [maxRows]="8"
+  [showOffsets]="((data$ | async) || empty).length > 16"
+  [readOnly]="!!disabled"
+  (focus)="onFocus()"
+  (blur)="onBlur()">
 </hex-editor>

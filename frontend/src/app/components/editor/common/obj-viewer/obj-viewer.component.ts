@@ -38,9 +38,8 @@ import {
   Object3D,
   Texture,
 } from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
-import { Color } from '@angular-material-components/color-picker';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { ViewMode, ViewModeController } from './view-mode-toolbar/view-mode.controller';
 
 export type ViewFilterOpts = {
@@ -144,6 +143,7 @@ export const setupNfs1Texture = (texture: Texture) => {
   templateUrl: './obj-viewer.component.html',
   styleUrls: ['./obj-viewer.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   private _cameraControl: 'orbit' | 'free' = 'orbit';
@@ -309,7 +309,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
           f.meshes = this.meshes;
         }
         this.applyViewFilters();
-        object.traverse(x => {
+        object.traverse((x: any) => {
           if (x instanceof Mesh) {
             const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
             for (const m of materials) {
@@ -432,15 +432,15 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   }
 
   // TODO use set.intersection after upgrading typescript
-  intersection = function <T>(s1: Set<T>, s2: Set<T>): Set<T> {
+  intersection<T>(s1: Set<T>, s2: Set<T>): Set<T> {
     const result = new Set<T>();
-    for (const element of s2) {
+    for (const element of Array.from(s2)) {
       if (s1.has(element)) {
         result.add(element);
       }
     }
     return result;
-  };
+  }
 
   public applyViewFilters() {
     let displayMeshesSet = new Set<Object3D>(this.meshes);
@@ -474,8 +474,12 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  public toRGB(color: Color | null): number {
-    return ((color?.r || 0) << 16) | ((color?.g || 0) << 8) | (color?.b || 0);
+  public toHex(value: number): string {
+    return '#' + (value & 0xffffff).toString(16).padStart(6, '0');
+  }
+
+  public fromHex(hex: string): number {
+    return parseInt(hex.substring(1), 16);
   }
 
   ngOnDestroy(): void {

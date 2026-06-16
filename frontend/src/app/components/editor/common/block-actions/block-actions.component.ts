@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { MainService } from '../../../../services/main.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Resource, CustomAction } from '../../types';
@@ -9,6 +9,8 @@ import { CustomActionService } from '../../../../services/custom-action.service'
   selector: 'app-block-actions',
   templateUrl: './block-actions.component.html',
   styleUrls: ['./block-actions.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class BlockActionsComponent {
   @Input()

@@ -1,29 +1,28 @@
-<ng-container *ngIf='resourceId && resourceData'>
-  <mat-label
-    *ngIf='!hideName &&resourceName'
-    [matTooltip]='resourceDescription || ""' matTooltipPosition='above'>{{ resourceName }}
-  </mat-label>
-  <!-- TODO usually this does not work. Is it needed anywhere at all? -->
-  <!--  <div id='resource-type-container'>-->
-  <!--    <mat-label>Resource type:</mat-label>-->
-  <!--    <mat-select [value]='resourceData.choice_index'-->
-  <!--                (selectionChange)='setChoiceIndex($event.value)'-->
-  <!--                [disabled]='disabled'>-->
-  <!--      <mat-option *ngFor='let schema of resource!.schema.possible_resource_schemas; let i = index'-->
-  <!--                  [value]='i'-->
-  <!--                  [disabled]='disabled'>-->
-  <!--        {{ blockClassStr(schema) }}-->
-  <!--      </mat-option>-->
-  <!--    </mat-select>-->
-  <!--    <app-block-actions [resource]='this.childResource'></app-block-actions>-->
-  <!--  </div>-->
-  <app-editor [resourceOrError]="{
-                id: joinId(resourceId, 'data'),
-                name: resourceName || '',
-                schema: resourceSchema.possible_resource_schemas[resourceData.choice_index],
-                data: resourceData.data
-              }"
-              [hideName]="true"
-              [disabled]="disabled"></app-editor>
-  <!--  [hideBlockActions]="true"-->
-</ng-container>
+@if (resourceId && resourceData) { @if (!hideName &&resourceName) {
+<mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+}
+<!-- TODO usually this does not work. Is it needed anywhere at all? -->
+<!--  <div id='resource-type-container'>-->
+<!--    <mat-label>Resource type:</mat-label>-->
+<!--    <mat-select [value]='resourceData.choice_index'-->
+<!--                (selectionChange)='setChoiceIndex($event.value)'-->
+<!--                [disabled]='disabled'>-->
+<!--      <mat-option *ngFor='let schema of resource!.schema.possible_resource_schemas; let i = index'-->
+<!--                  [value]='i'-->
+<!--                  [disabled]='disabled'>-->
+<!--        {{ blockClassStr(schema) }}-->
+<!--      </mat-option>-->
+<!--    </mat-select>-->
+<!--    <app-block-actions [resource]='this.childResource'></app-block-actions>-->
+<!--  </div>-->
+<app-editor
+  [resourceOrError]="{
+    id: joinId(resourceId, 'data'),
+    name: resourceName || '',
+    schema: resourceSchema.possible_resource_schemas[resourceData.choice_index],
+    data: resourceData.data
+  }"
+  [hideName]="true"
+  [disabled]="disabled"></app-editor>
+<!--  [hideBlockActions]="true"-->
+}

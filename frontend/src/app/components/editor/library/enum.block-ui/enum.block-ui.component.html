@@ -1,31 +1,35 @@
-<ng-container *ngIf="resourceSchema && resourceData">
-    <mat-form-field *ngIf="isKnownEnumValue(resourceData); else unknownEnum" appearance="fill"
-                    [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-        <mat-label *ngIf="resourceName">{{ resourceName }}</mat-label>
-        <mat-select [(value)]="resourceData"
-                    (selectionChange)="changed.emit($event.value)"
-                    [disabled]="!!disabled"
-                    (focus)="onFocus()"
-                    (blur)="onBlur()">
-            <mat-option *ngFor="let enumValue of resourceSchema.enum_names"
-                        [value]="enumValue[1]"
-                        [disabled]="!!disabled">
-                {{enumValue[1]}}
-            </mat-option>
-        </mat-select>
-    </mat-form-field>
-    <ng-template #unknownEnum>
-        <mat-form-field appearance="fill"
-                        [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-          <mat-label *ngIf="resourceName">{{resourceName }}</mat-label>
-            <input matInput type="number"
-                   [min]="0"
-                   [max]="(resourceSchema.length || 1) * 256 - 1"
-                   [(ngModel)]="resourceData"
-                   (ngModelChange)="changed.emit(resourceData)"
-                   (focus)="onFocus()"
-                   (blur)="onBlur()"
-                   [disabled]="!!disabled">
-        </mat-form-field>
-    </ng-template>
-</ng-container>
+@if (resourceSchema && resourceData) { @if (isKnownEnumValue(resourceData)) {
+<mat-form-field appearance="fill" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+  @if (resourceName) {
+  <mat-label>{{ resourceName }}</mat-label>
+  }
+  <mat-select
+    [value]="resourceData"
+    (selectionChange)="onValueSet($event.value)"
+    [disabled]="!!disabled"
+    (focus)="onFocus()"
+    (blur)="onBlur()">
+    @for (enumValue of resourceSchema.enum_names; track enumValue) {
+    <mat-option [value]="enumValue[1]" [disabled]="!!disabled">
+      {{ enumValue[1] }}
+    </mat-option>
+    }
+  </mat-select>
+</mat-form-field>
+} @else {
+<mat-form-field appearance="fill" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+  @if (resourceName) {
+  <mat-label>{{ resourceName }}</mat-label>
+  }
+  <input
+    matInput
+    type="number"
+    [min]="0"
+    [max]="(resourceSchema.length || 1) * 256 - 1"
+    [value]="resourceData"
+    (change)="onValueSet(+$any($event.target).value)"
+    (focus)="onFocus()"
+    (blur)="onBlur()"
+    [disabled]="!!disabled" />
+</mat-form-field>
+} }

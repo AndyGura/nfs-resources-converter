@@ -19,6 +19,7 @@ type Projection = 'x' | 'nx' | 'y' | 'ny' | 'z' | 'nz';
   templateUrl: './minimap.component.html',
   styleUrls: ['./minimap.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class MinimapComponent implements AfterViewInit, OnDestroy {
   _roadSpline$: BehaviorSubject<Point3[]> = new BehaviorSubject<Point3[]>([]);

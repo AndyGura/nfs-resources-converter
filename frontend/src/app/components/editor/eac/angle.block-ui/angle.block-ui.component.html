@@ -1,14 +1,17 @@
 <div id="wrapper" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
   <div #picker class="circle-container">
-    <div class="ui-anglepicker-pointer" [ngStyle]="{ 'transform': 'rotate(' + (resourceData || 0) + 'rad)'}">
+    <div class="ui-anglepicker-pointer" [ngStyle]="{ transform: 'rotate(' + (resourceData || 0) + 'rad)' }">
       <div class="ui-anglepicker-dot"></div>
       <div class="ui-anglepicker-line"></div>
     </div>
   </div>
   <div id="labels">
-    <mat-label *ngIf="resourceName && !hideName" id="name-span">{{ resourceName }}</mat-label>
-    <mat-label *ngIf="resourceData !== undefined">{{ (resourceData * 180 / pi || 0) | number: '1.2-2'}} deg</mat-label>
-    <mat-label *ngIf="resourceData !== undefined">{{ (resourceData || 0) | number: '1.2-2' }} rad</mat-label>
+    @if (resourceName && !hideName) {
+    <mat-label id="name-span">{{ resourceName }}</mat-label>
+    } @if (resourceData !== undefined) {
+    <mat-label>{{ (resourceData * 180) / pi || 0 | number : '1.2-2' }} deg</mat-label>
+    } @if (resourceData !== undefined) {
+    <mat-label>{{ resourceData || 0 | number : '1.2-2' }} rad</mat-label>
+    }
   </div>
 </div>
-

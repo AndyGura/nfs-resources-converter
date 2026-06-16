@@ -8,18 +8,23 @@ import { NavigationService } from './services/navigation.service';
 import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
 import { environment } from '../environments/environment';
+import { ChangeEntry, ChangesService } from './services/changes.service';
+import { ApiDelegateService } from './services/api/api-delegate.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class AppComponent {
   readonly isProduction = environment.production;
 
   constructor(
     readonly mainService: MainService,
+    readonly api: ApiDelegateService,
+    readonly changes: ChangesService,
     readonly dialog: MatDialog,
     readonly navigation: NavigationService,
     private readonly snackBar: MatSnackBar,
@@ -49,6 +54,7 @@ export class AppComponent {
 
   closeFile() {
     this.mainService.api.closeFile().then();
+    this.changes.clear();
   }
 
   async saveResource() {
@@ -60,12 +66,20 @@ export class AppComponent {
     }
   }
 
+  undo() {
+    this.changes.undo().then();
+  }
+
+  redo() {
+    this.changes.redo().then();
+  }
+
   toggleUnknownsVisibility() {
     this.mainService.hideHiddenFields$.next(!this.mainService.hideHiddenFields$.getValue());
   }
 
   async reloadResource() {
-    if (this.mainService.hasUnsavedChanges) {
+    if (this.changes.hasUnsavedChanges$.value) {
       let dialogRef = this.dialog.open(ConfirmDialogComponent, {
         data: { text: 'There are unsaved changes, which will be lost. Are you sure you want to reload file?' },
       });
@@ -89,12 +103,23 @@ export class AppComponent {
     window.open('https://www.buymeacoffee.com/andygura', '_blank');
   }
 
-  formatChangeId(id: string): string {
-    const doubleUnderscoreIndex = id.lastIndexOf('__');
-    if (doubleUnderscoreIndex === -1) {
-      return id;
+  formatChange(change: ChangeEntry): string {
+    let renderId = change.id;
+    const doubleUnderscoreIndex = renderId.lastIndexOf('__');
+    if (doubleUnderscoreIndex !== -1) {
+      renderId = renderId.substring(doubleUnderscoreIndex + 2);
     }
-    return id.substring(doubleUnderscoreIndex + 2);
+    if (change.op === 'set') {
+      return `${renderId} = ${change.newValue}`;
+    } else if (change.op === 'array_insert') {
+      return `${renderId}[${change.index}] = ${change.value}`;
+    } else if (change.op === 'array_remove') {
+      return `delete ${renderId}[${change.index}]`;
+    } else if (change.op === 'array_swap') {
+      return `swap elements ${change.indexA} and ${change.indexB} at ${renderId}`;
+    } else {
+      return `${renderId} (unknown operation)`;
+    }
   }
 
   getStagedChangesCount(changes: { [key: string]: any } | null): number {

@@ -1,9 +1,17 @@
-import { ChangeDetectionStrategy, Component, ComponentRef, Input, OnDestroy, Type, ViewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ComponentRef,
+  Input,
+  OnDestroy,
+  Type,
+  ViewChild,
+} from '@angular/core';
 import { DataBlockUIDirective } from './data-block-ui.directive';
-import { GuiComponentInterface } from './gui-component.interface';
+import { GuiComponent } from './gui.component';
 import { MainService } from '../../services/main.service';
-import { Subject, Subscription, takeUntil } from 'rxjs';
-import { joinId } from '../../utils/join-id';
+import { Subject, Subscription } from 'rxjs';
 import { BlockData, BlockSchema, Resource, ResourceError, schemaEquals } from './types';
 import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
 import { NumberBlockUiComponent } from './library/number.block-ui/number.block-ui.component';
@@ -13,29 +21,30 @@ import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.b
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
-import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
-import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
 import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
+import { ChangesService } from '../../services/changes.service';
+import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
+import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
-import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
-import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
+import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
+import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
-import { isObject } from 'lodash';
+import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 
 @Component({
   selector: 'app-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class EditorComponent implements OnDestroy {
-  static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponentInterface> } = {
+  static readonly DATA_BLOCK_COMPONENTS_MAP: { [key: string]: Type<GuiComponent> } = {
     // basic primitives
     IntegerBlock: NumberBlockUiComponent,
     DecimalBlock: NumberBlockUiComponent,
@@ -107,7 +116,7 @@ export class EditorComponent implements OnDestroy {
       }
       if (this._resourceSchema?.block_class_mro) {
         if (!reuseComponent) {
-          let component: Type<GuiComponentInterface> | undefined;
+          let component: Type<GuiComponent> | undefined;
           for (const className of this._resourceSchema.block_class_mro.split('__')) {
             component = EditorComponent.DATA_BLOCK_COMPONENTS_MAP[className];
             if (component) {
@@ -122,36 +131,14 @@ export class EditorComponent implements OnDestroy {
             this._resourceData = undefined;
             return;
           }
-          if (this._component && this._componentChangedSub) {
-            this._componentChangedSub.unsubscribe();
+          if (this._componentChangedSub) {
+            this.componentSet$.next();
           }
+          // console.log('Editor: creating component for ' + this._resourceId);
           this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
           this.componentSet$.next();
-          this._componentChangedSub = this._component.instance.changed
-            .pipe(takeUntil(this.destroyed$), takeUntil(this.componentSet$))
-            .subscribe(newValue => {
-              if (newValue !== undefined && newValue !== null) {
-                this._resourceData = newValue;
-              }
-              const id = this._resourceId!;
-              const data = this._resourceData!;
-              if (data instanceof Array) {
-                if (this._resourceSchema?.block_class_mro.includes('BytesBlock')) {
-                  // for bytes block we save whole array
-                  this.mainService.dataBlockChange$.next([id, data]);
-                } else {
-                  for (let i = 0; i < data.length; i++) {
-                    this.mainService.dataBlockChange$.next([joinId(id, i), data[i]]);
-                  }
-                }
-              } else if (isObject(data)) {
-                for (const key in data) {
-                  this.mainService.dataBlockChange$.next([joinId(id, key), (data as any)[key]]);
-                }
-              } else {
-                this.mainService.dataBlockChange$.next([id, data]);
-              }
-            });
+        } else {
+          console.log('Editor: reusing component for ' + this._resourceId);
         }
         if (
           !reuseComponent ||
@@ -169,6 +156,7 @@ export class EditorComponent implements OnDestroy {
       this._component.setInput('hideName', this._hideName);
       this._component.setInput('hideBlockActions', this._hideBlockActions);
       this._component.setInput('disabled', this._disabled);
+      this.cdr.markForCheck();
     }
   }
 
@@ -210,7 +198,7 @@ export class EditorComponent implements OnDestroy {
 
   @ViewChild(DataBlockUIDirective, { static: true }) dataBlockUiHost!: DataBlockUIDirective;
 
-  _component: ComponentRef<GuiComponentInterface> | null = null;
+  _component: ComponentRef<GuiComponent> | null = null;
   _componentChangedSub: Subscription | null = null;
 
   private destroyed$: Subject<void> = new Subject<void>();
@@ -218,7 +206,12 @@ export class EditorComponent implements OnDestroy {
 
   resourceError: { class?: string; message: string } | null = null;
 
-  constructor(readonly mainService: MainService, readonly deep: NgxDeepEqualsPureService) {}
+  constructor(
+    readonly mainService: MainService,
+    readonly deep: NgxDeepEqualsPureService,
+    readonly changes: ChangesService,
+    readonly cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnDestroy(): void {
     this.destroyed$.next();

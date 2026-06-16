@@ -1,17 +1,6 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
-} from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
-import { idSuffix, joinId } from '../../../../utils/join-id';
-import { MainService } from '../../../../services/main.service';
-import { filter, Subject, takeUntil } from 'rxjs';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
+import { joinId } from '../../../../utils/join-id';
 import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
@@ -22,19 +11,16 @@ import { ArrayTableColumn } from '../../common/data-table/data-table.component';
   templateUrl: './array.block-ui.component.html',
   styleUrls: ['./array.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-
-  private _resourceSchema?: BlockSchema;
-  get resourceSchema(): BlockSchema {
-    return this._resourceSchema;
+export class ArrayBlockUiComponent extends SubscribableGuiComponent {
+  override get resourceSchema(): BlockSchema {
+    return super.resourceSchema;
   }
 
   @Input()
-  set resourceSchema(value: BlockSchema) {
-    this._resourceSchema = value;
+  override set resourceSchema(value: BlockSchema) {
+    super.resourceSchema = value;
     this.checkIfTable();
     if (this.isTable) {
       this.renderContents = true;
@@ -45,14 +31,13 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.updatePagedData();
   }
 
-  private _resourceData?: BlockData[];
-  get resourceData(): BlockData[] | undefined {
-    return this._resourceData;
+  override get resourceData(): BlockData[] | undefined {
+    return super.resourceData;
   }
 
   @Input()
-  set resourceData(value: BlockData[] | undefined) {
-    this._resourceData = value;
+  override set resourceData(value: BlockData[] | undefined) {
+    super.resourceData = value;
     this.checkIfTable();
     if (this.isTable) {
       this.renderContents = true;
@@ -62,15 +47,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.updatePageIndexes();
     this.updatePagedData();
   }
-
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
 
   protected buildChildren(): void {
-    this.children = (this._resourceData || []).map((d: BlockData, i: number) => ({
+    this.children = (super.resourceData || []).map((d: BlockData, i: number) => ({
       id: joinId(this.resourceId!, i),
       name: '' + i,
       data: d,
@@ -78,19 +57,9 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }));
   }
 
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
   onFocusedElement(event: [string[], number]) {
     const [path, index] = event;
-    if (this.resourceId) {
-      this.main.focusedResourceId$.next(joinId(this.resourceId, index.toString(), ...path));
-    }
-  }
-
-  onBlur() {
-    if (this.main.focusedResourceId$.getValue()?.startsWith(this.resourceId || '')) {
-      this.main.focusedResourceId$.next(null);
-    }
+    this.onFocus(index.toString(), ...path);
   }
 
   renderContents: boolean = false;
@@ -105,8 +74,6 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
   pageIndexes: number[] = [];
   public pagedData: any[] = [];
 
-  private readonly destroyed$: Subject<void> = new Subject<void>();
-
   protected readonly joinId = joinId;
 
   get enableArrayEditing(): boolean {
@@ -117,29 +84,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     );
   }
 
-  constructor(
-    public main: MainService,
-    private readonly cdr: ChangeDetectorRef,
-    public readonly navigation: NavigationService,
-  ) {}
-
-  async addItem() {
-    if (!this.resourceId || this.resourceData === undefined || !this.enableArrayEditing) return;
-    const newItem = await this.main.getNewItemData(this.resourceId);
-    if (newItem === null) return;
-    this.resourceData.push(newItem);
-    this.buildChildren();
-    this.updatePageIndexes();
-    this.pageIndex = Math.max(0, this.pageIndexes.length - 1);
-    this.renderPage(this.pageIndex, this.pageSize);
-    this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
-    this.cdr.markForCheck();
-  }
-
-  removeItem(index: number) {
-    if (!this.resourceId || this.resourceData === undefined || !this.enableArrayEditing) return;
-    this.resourceData.splice(index, 1);
+  override onExternalChanges() {
     this.buildChildren();
     this.updatePageIndexes();
     if (this.pageIndex >= this.pageIndexes.length && this.pageIndex > 0) {
@@ -147,32 +92,49 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }
     this.renderPage(this.pageIndex, this.pageSize);
     this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
-    this.cdr.markForCheck();
+    super.onExternalChanges();
+  }
+
+  constructor(public readonly navigation: NavigationService) {
+    super();
+  }
+
+  async addItem() {
+    if (!this.resourceId || this.resourceData === undefined || !this.enableArrayEditing) return;
+    const newItem = await this.mainService.getNewItemData(this.resourceId);
+    if (newItem === null) return;
+    this.emitNewChange({
+      op: 'array_insert',
+      index: this.resourceData.length,
+      value: newItem,
+    });
+  }
+
+  removeItem(index: number) {
+    if (!this.resourceId || this.resourceData === undefined || !this.enableArrayEditing) return;
+    this.emitNewChange({
+      op: 'array_remove',
+      index: index,
+      oldValue: this.resourceData[index],
+    });
   }
 
   moveItemUp(index: number) {
     if (index <= 0 || !this.resourceId || this.resourceData === undefined) return;
-    const temp = this.resourceData[index];
-    this.resourceData[index] = this.resourceData[index - 1];
-    this.resourceData[index - 1] = temp;
-    this.buildChildren();
-    this.renderPage(this.pageIndex, this.pageSize);
-    this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
-    this.cdr.markForCheck();
+    this.emitNewChange({
+      op: 'array_swap',
+      indexA: index,
+      indexB: index - 1,
+    });
   }
 
   moveItemDown(index: number) {
     if (this.resourceData === undefined || !this.resourceId || index >= this.resourceData.length - 1) return;
-    const temp = this.resourceData[index];
-    this.resourceData[index] = this.resourceData[index + 1];
-    this.resourceData[index + 1] = temp;
-    this.buildChildren();
-    this.renderPage(this.pageIndex, this.pageSize);
-    this.updatePagedData();
-    this.main.dataBlockChange$.next([this.resourceId, this.resourceData]);
-    this.cdr.markForCheck();
+    this.emitNewChange({
+      op: 'array_swap',
+      indexA: index,
+      indexB: index + 1,
+    });
   }
 
   get isTable(): boolean {
@@ -266,57 +228,20 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     }
   }
 
-  ngAfterViewInit(): void {
-    this.main.dataBlockChange$
-      .pipe(
-        takeUntil(this.destroyed$),
-        // handle inner primitive fields (1 level deep) and update object with new values.
-        // this makes effect only locally in frontend
-        filter(
-          ([blockId, value]) =>
-            !!this.resourceId &&
-            blockId.startsWith(this.resourceId) &&
-            !blockId.substring(this.resourceId.length + 1).includes('/'),
-        ),
-      )
-      .subscribe(async ([blockId, value]) => {
-        if (this.resourceId) {
-          if (blockId === this.resourceId) {
-            this.resourceData = value;
-            return;
-          }
-          this.resourceData![+idSuffix(this.resourceId, blockId)] = value;
-          this.updatePagedData();
-        }
-      });
-  }
-
-  ngOnDestroy(): void {
-    this.destroyed$.next();
-    this.destroyed$.complete();
-  }
-
   onTableDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }): void {
     if (!this.resourceId || this.resourceData === undefined) return;
     const { index, field, subField, value } = event;
-    const item = this.resourceData[index];
-    let targetId = joinId(this.resourceId, index);
-
     if (field) {
-      targetId = joinId(targetId, field);
       if (subField) {
-        targetId = joinId(targetId, subField);
-        item[field][subField] = value;
-      } else if (typeof item === 'object' && item !== null) {
-        item[field] = value;
+        this.onValueSet(value, index, field, subField);
+      } else if (typeof this.resourceData[index] === 'object' && this.resourceData[index] !== null) {
+        this.onValueSet(value, index, field);
       } else {
-        this.resourceData[index] = value;
+        this.onValueSet(value, index);
       }
     } else {
-      this.resourceData[index] = value;
+      this.onValueSet(value, index);
     }
-
-    this.main.dataBlockChange$.next([targetId, value]);
     this.updatePagedData();
     this.cdr.markForCheck();
   }
@@ -351,7 +276,7 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
     this.goToIndex = this.pageIndex;
     this.pageIndexes = [];
     if (this.pageSize > 0) {
-      for (let i = 0; i < Math.ceil((this._resourceData || []).length / this.pageSize); i++) {
+      for (let i = 0; i < Math.ceil((super.resourceData || []).length / this.pageSize); i++) {
         this.pageIndexes.push(i);
       }
     }
@@ -359,12 +284,12 @@ export class ArrayBlockUiComponent implements GuiComponentInterface, AfterViewIn
 
   private updatePagedData(): void {
     if (this.pageSize > 0) {
-      this.pagedData = (this._resourceData || []).slice(
+      this.pagedData = (super.resourceData || []).slice(
         this.pageIndex * this.pageSize,
         (this.pageIndex + 1) * this.pageSize,
       );
     } else {
-      this.pagedData = this._resourceData || [];
+      this.pagedData = super.resourceData || [];
     }
   }
 

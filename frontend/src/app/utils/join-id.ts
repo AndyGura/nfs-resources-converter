@@ -18,3 +18,12 @@ export const lastIdPart = (id: string) => {
   const parts = id.split(/\/|__/).filter(part => part !== '');
   return parts[parts.length - 1];
 };
+
+export const splitLastIdPart = (id: string): [string, string] => {
+  const parts = id.split('/');
+  if (parts[parts.length - 1].includes('__')) {
+    let suffixParts = parts[parts.length - 1].split('__');
+    return [parts.slice(0, -1).join('/'), suffixParts[suffixParts.length - 1]];
+  }
+  return [parts.slice(0, -1).join('/'), parts[parts.length - 1]];
+};

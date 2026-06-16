@@ -3,35 +3,20 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  EventEmitter,
   HostListener,
-  Input,
-  Output,
   ViewChild,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
-import { BlockSchema } from '../../types';
-import { MainService } from '../../../../services/main.service';
+import { PrimitiveGuiComponent } from '../../gui.component';
 
 @Component({
   selector: 'app-angle-block-ui',
   templateUrl: './angle.block-ui.component.html',
   styleUrls: ['./angle.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class AngleBlockUiComponent implements GuiComponentInterface {
-  @Input() resourceId?: string;
-  @Input() resourceName?: string;
-  @Input() resourceSchema?: BlockSchema;
-  @Input() resourceData?: number;
-  @Input() resourceDescription?: string;
-
-  @Input() hideName?: boolean;
-  @Input() hideBlockActions?: boolean;
-  @Input() disabled?: boolean;
-
-  @Output('changed') changed: EventEmitter<number> = new EventEmitter<number>();
-
+// FIXME outputs change on each mouse move, should emit on mouseup
+export class AngleBlockUiComponent extends PrimitiveGuiComponent<number> {
   pi = Math.PI;
 
   dragging = false;
@@ -70,7 +55,9 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     this.onBlur();
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef, private mainService: MainService) {}
+  constructor(readonly cdr: ChangeDetectorRef) {
+    super();
+  }
 
   private updateRotation(mouseEvent: MouseEvent) {
     const rect = this.picker!.nativeElement.getBoundingClientRect();
@@ -81,20 +68,7 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     if (mouseEvent.shiftKey) {
       newAngle = (Math.round((newAngle * 180) / Math.PI / 15) * 15 * Math.PI) / 180;
     }
-    this.resourceData = newAngle;
-    this.changed.emit(newAngle);
+    this.onValueSet(newAngle);
     this.cdr.markForCheck();
-  }
-
-  onFocus() {
-    if (this.resourceId) {
-      this.mainService.focusedResourceId$.next(this.resourceId);
-    }
-  }
-
-  onBlur() {
-    if (this.mainService.focusedResourceId$.getValue() === this.resourceId) {
-      this.mainService.focusedResourceId$.next(null);
-    }
   }
 }
