@@ -3,9 +3,12 @@ Serialization API endpoint for the NFS Resources Converter.
 This module handles all serialization-related operations.
 """
 
+import copy
+import time
 from typing import List, Any
 
 from library import require_resource
+from library.changes_service import ChangesService
 from library.utils import path_join
 from library.utils.file_utils import remove_file_or_directory
 from serializers import get_serializer
@@ -83,7 +86,20 @@ class SerializationAPI:
         (id, res_block, resource), _ = require_resource(id)
         serializer = get_serializer(res_block, resource)
         updated_data = serializer.deserialize(file_paths, id, res_block, **(extra_opts or {}))
+        # Snapshot the data before applying the deserialized result, so we can diff it
+        # afterwards and record the mutations as changes in the changes model and notify
+        # the frontend (same approach as run_custom_action).
+        before = copy.deepcopy(resource)
         resource.clear()
         resource.update(updated_data)
+        changes = self.api.resource_api._diff_to_changes(id, before, resource)
+        if changes:
+            # the mutations have already been applied to resource in place
+            ChangesService.append_changes([{
+                'id': '',
+                'timestamp': int(time.time() * 1000),
+                'op': 'bundle',
+                'changes': changes,
+            }])
         remove_file_or_directory(path_join(self.api.static_path, 'resources', *id.split('/')))
         return self.render_data(resource)

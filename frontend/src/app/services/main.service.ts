@@ -70,8 +70,7 @@ export class MainService {
   }
 
   public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
-    // TODO
-    // return this.processExternalChanges(id, () => this.api.deserializeResource(id, filePaths, extraOpts));
+    await this.api.deserializeResource(id, filePaths, extraOpts);
   }
 
   public async reloadResource() {
