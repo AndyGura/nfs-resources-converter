@@ -60,47 +60,18 @@ export class MainService {
     });
   }
 
-  private async processExternalChanges(id: string, call: () => Promise<BlockData | ReadError>): Promise<void> {
+  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
     this.customActionRunning$.next(true);
     try {
-      const res: BlockData | ReadError = await call();
-      if (!!(res as ReadError).error_class) {
-        this.customActionRunning$.next(false);
-        throw res;
-      }
-      if (this.resource$.getValue()!.id === id) {
-        this.resource$.getValue()!.data = res;
-      } else {
-        let dataPath = id
-          .substring(this.resource$.getValue()!.id.length)
-          .replace('__', '/')
-          .split('/')
-          .filter(x => x);
-        let data: any = this.resource$.getValue()!.data;
-        for (const key of dataPath.slice(0, dataPath.length - 1)) {
-          data = data[key] || data[+key];
-        }
-        let lastKey: any = dataPath[dataPath.length - 1];
-        if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
-          lastKey = +lastKey;
-        }
-        data[lastKey] = res;
-      }
+      await this.api.runCustomAction(id, action, args);
     } finally {
       this.customActionRunning$.next(false);
     }
   }
 
-  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
-    if (action.is_pure) {
-      await this.api.runCustomAction(id, action, args);
-    } else {
-      return this.processExternalChanges(id, () => this.api.runCustomAction(id, action, args));
-    }
-  }
-
   public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
-    return this.processExternalChanges(id, () => this.api.deserializeResource(id, filePaths, extraOpts));
+    // TODO
+    // return this.processExternalChanges(id, () => this.api.deserializeResource(id, filePaths, extraOpts));
   }
 
   public async reloadResource() {
@@ -114,7 +85,6 @@ export class MainService {
   public async saveResource() {
     this.isSaving$.next(true);
     try {
-      console.log('Saving resource...');
       await this.api.saveFile();
       await this.changes.syncState();
     } finally {

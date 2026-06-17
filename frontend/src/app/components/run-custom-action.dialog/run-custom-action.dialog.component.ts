@@ -6,6 +6,7 @@ import { CustomAction } from '../editor/types';
 export interface RunCustomActionDialogData {
   action: CustomAction;
   resourceName: string;
+  formPatch?: any;
 }
 
 @Component({
@@ -25,6 +26,10 @@ export class RunCustomActionDialogComponent {
   ) {
     const formData: any = {};
     for (const arg of data.action.args) {
+      if (data.formPatch?.[arg.id]) {
+        formData[arg.id] = [data.formPatch[arg.id]];
+        continue;
+      }
       const validators = [Validators.required];
       if (arg.type === 'number') {
         validators.push(Validators.pattern(/^\d+(\.\d+)?$/)); // Allow integers and decimals
@@ -43,7 +48,7 @@ export class RunCustomActionDialogComponent {
   }
 
   submit() {
-    const result = this.argsForm.value;
+    const result = { ...(this.data.formPatch || {}), ...this.argsForm.value };
     for (const arg of this.data.action.args) {
       if (arg.type === 'number') {
         result[arg.id] = +result[arg.id];

@@ -4,44 +4,46 @@
 </div>
 <form [formGroup]="argsForm">
   @for (arg of data.action.args; track arg) {
-    @if (arg.type === 'bool') {
-      <mat-checkbox [formControlName]="arg.id" class="action-arg-checkbox">
-        {{ arg.title }}
-      </mat-checkbox>
-    }
-    @if (arg.type !== 'bool') {
-      <mat-form-field appearance="fill">
-        <mat-label>{{ arg.title }}</mat-label>
-        @if (arg.type === 'enum_string') {
-          <mat-select [formControlName]="arg.id">
-            @for (choice of arg.choices; track choice) {
-              <mat-option [value]="choice">
-                {{ choice }}
-              </mat-option>
-            }
-          </mat-select>
-        }
-        @if (arg.type !== 'enum_string') {
-          <input
-            matInput
-            [id]="arg.id"
-            [type]="getInputType(arg.type)"
-            [formControlName]="arg.id"
-            [placeholder]="
-              arg.type === 'file_output'
-                ? 'Enter output filename with ' + arg.file_name_suffix + ' suffix'
-                : arg.type === 'number'
-                  ? 'Enter a number'
-                  : 'Enter text'
-            " />
-        }
-        @if (argsForm.get(arg.id)?.hasError('required')) {
-          <mat-error> {{ arg.title }} is required </mat-error>
-        }
-        @if (argsForm.get(arg.id)?.hasError('pattern') && arg.type === 'number') {
-          <mat-error> Please enter a valid number </mat-error>
-        }
-      </mat-form-field>
+    @if (data.formPatch?.[arg.id] === undefined) {
+      @if (arg.type === 'bool') {
+        <mat-checkbox [formControlName]="arg.id" class="action-arg-checkbox">
+          {{ arg.title }}
+        </mat-checkbox>
+      }
+      @if (arg.type !== 'bool') {
+        <mat-form-field appearance="fill">
+          <mat-label>{{ arg.title }}</mat-label>
+          @if (arg.type === 'enum_string') {
+            <mat-select [formControlName]="arg.id">
+              @for (choice of arg.choices; track choice) {
+                <mat-option [value]="choice">
+                  {{ choice }}
+                </mat-option>
+              }
+            </mat-select>
+          }
+          @if (arg.type !== 'enum_string') {
+            <input
+              matInput
+              [id]="arg.id"
+              [type]="getInputType(arg.type)"
+              [formControlName]="arg.id"
+              [placeholder]="
+                arg.type === 'file_output'
+                  ? 'Enter output filename with ' + arg.file_name_suffix + ' suffix'
+                  : arg.type === 'number'
+                    ? 'Enter a number'
+                    : 'Enter text'
+              " />
+          }
+          @if (argsForm.get(arg.id)?.hasError('required')) {
+            <mat-error> {{ arg.title }} is required</mat-error>
+          }
+          @if (argsForm.get(arg.id)?.hasError('pattern') && arg.type === 'number') {
+            <mat-error> Please enter a valid number</mat-error>
+          }
+        </mat-form-field>
+      }
     }
   }
 </form>

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, inject, Input, ViewChild } from '@angular/core';
 import { SubscribableGuiComponent } from '../../gui.component';
-import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { BlockData, CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
+import { MatSelectChange } from '@angular/material/select';
 
 @Component({
   selector: 'image-block-ui',
@@ -11,8 +12,9 @@ import { CustomActionService } from '../../../../services/custom-action.service'
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class ImageBlockUiComponent extends SubscribableGuiComponent {
+export class ImageBlockUiComponent extends SubscribableGuiComponent implements AfterViewInit {
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+  loading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   override get resourceId(): string | undefined {
     return super.resourceId;
@@ -20,6 +22,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent {
 
   @Input()
   override set resourceId(value: string | undefined) {
+    if (super.resourceId === value) return;
     super.resourceId = value;
     this.reloadImage();
   }
@@ -36,20 +39,23 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent {
   }
 
   @ViewChild('imageContainer') imageContainer?: ElementRef<HTMLDivElement>;
-  @ViewChild('formatSelect') formatSelect?: any;
 
   private reloadImage() {
     this.imageUrl$.next(null);
     if (this.resourceId) {
       setTimeout(() => this.fitZoom(), 0);
-      this.mainService.api.serializeResource(this.resourceId).then(paths => {
-        let url = paths.find(x => x.endsWith('.png'));
-        if (!url) {
-          this.imageUrl$.next(null);
-        } else {
-          this.imageUrl$.next(url + '?ts=' + Date.now());
-        }
-      });
+      this.loading$.next(true);
+      this.mainService.api
+        .serializeResource(this.resourceId)
+        .then(paths => {
+          let url = paths.find(x => x.endsWith('.png'));
+          if (!url) {
+            this.imageUrl$.next(null);
+          } else {
+            this.imageUrl$.next(url + '?ts=' + Date.now());
+          }
+        })
+        .finally(() => this.loading$.next(false));
     }
   }
 
@@ -83,16 +89,18 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent {
   minZoom = 10;
   maxZoom = 1500;
 
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
-  constructor(private readonly customActionService: CustomActionService) {
-    super();
-  }
+  readonly customActionService = inject(CustomActionService);
 
   async ngAfterViewInit() {
-    this.imageUrl$.pipe(takeUntil(this.destroyed$)).subscribe(url => {
-      this.cdr.markForCheck();
-    });
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(x => !!((this.resourceId && x.startsWith(this.resourceId)) || x.includes('!pal') || x.includes('!PAL'))),
+        debounceTime(50),
+      )
+      .subscribe(() => {
+        this.reloadImage();
+      });
   }
 
   override ngOnDestroy(): void {
@@ -240,40 +248,51 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent {
     }
   }
 
-  customActionSimplifiedFormat(resourceId: string): 'rgba' | '4bit' | '8bit' {
-    if (resourceId.startsWith('4Bit')) {
-      return '4bit';
-    } else if (resourceId === '8Bit') {
-      return '8bit';
-    } else {
-      return 'rgba';
-    }
-  }
+  async onFormatChange(event: MatSelectChange) {
+    const newFormat = event.value;
+    if (!this._resourceData || this._resourceData.resource_id === newFormat) return;
 
-  async onFormatChange(newFormat: string) {
-    if (!this._resourceData) return;
-    const currentFormatSmpl = this.customActionSimplifiedFormat(this._resourceData.resource_id);
-    const newFormatSmpl = this.customActionSimplifiedFormat(newFormat);
-    if (newFormatSmpl === currentFormatSmpl) {
-      this._resourceData.resource_id = newFormat;
-      this.changed.next();
-      return;
-    }
+    const customActionSimplifiedFormat = (resourceId: string): 'rgba' | '4bit' | '8bit' => {
+      if (resourceId.startsWith('4Bit')) {
+        return '4bit';
+      } else if (resourceId === '8Bit') {
+        return '8bit';
+      } else {
+        return 'rgba';
+      }
+    };
+    const currentFormatSmpl = customActionSimplifiedFormat(this._resourceData.resource_id);
+    const newFormatSmpl = customActionSimplifiedFormat(newFormat);
+
     const action = this.resourceSchema.custom_actions.find(
       (a: CustomAction) => a.method === 'convert_to_' + newFormatSmpl,
+    )!;
+    const formPatch: any = {};
+    if (newFormatSmpl === 'rgba') {
+      if (currentFormatSmpl === 'rgba') {
+        formPatch['output_colors'] = 'transparent-white'; // this variable is unused when converting rgba -> rgba
+      }
+      formPatch['color_mode'] = newFormat;
+    }
+    if (newFormatSmpl === '8bit' && currentFormatSmpl === '4bit') {
+      formPatch['channel'] = ''; // this variable is unused when converting 4bit -> 8bit
+    }
+    if (newFormatSmpl === '4bit') {
+      formPatch['swapped'] = newFormat.indexOf('swapped') >= 0;
+      if (currentFormatSmpl === '8bit' || currentFormatSmpl === '4bit') {
+        formPatch['channel'] = ''; // this variable is unused when converting 8bit -> 4bit
+      }
+    }
+    const done = await this.customActionService.runCustomAction(
+      this.resourceId!,
+      this.resourceName!,
+      action,
+      formPatch,
+      true,
     );
-    if (action) {
-      const success = await this.customActionService.runCustomAction(this.resourceId!, this.resourceName!, action);
-      if (!success && this.formatSelect) {
-        // restore value in dropdown
-        this.formatSelect.control.setValue(this._resourceData.resource_id, { emitEvent: false });
-        this.cdr.markForCheck();
-      }
-    } else {
-      if (this.formatSelect) {
-        this.formatSelect.control.setValue(this._resourceData.resource_id, { emitEvent: false });
-      }
-      this.cdr.markForCheck();
+    if (!done) {
+      // restore value in the input
+      event.source.value = this.resourceData.resource_id;
     }
   }
 }

@@ -36,6 +36,10 @@ export type ChangeEntryPayload =
       op: 'array_swap';
       indexA: number;
       indexB: number;
+    }
+  | {
+      op: 'bundle';
+      changes: ChangeEntry[];
     };
 
 class ChangeExecutor {
@@ -67,7 +71,6 @@ class ChangeExecutor {
   }
 
   public static applyChange(api: ApiDelegateService, change: ChangeEntry): string[] {
-    console.log(`Applying change: ${JSON.stringify(change)}`);
     let res = api.openedResource$.getValue() as Resource;
     if (change.op === 'set') {
       ChangeExecutor.setResourceValue(res, change.id, change.newValue);
@@ -86,13 +89,20 @@ class ChangeExecutor {
       array[change.indexA] = array[change.indexB];
       array[change.indexB] = tmp;
       return [change.id];
+    } else if (change.op == 'bundle') {
+      let ids = new Set<string>();
+      for (const c of change.changes) {
+        for (const id of ChangeExecutor.applyChange(api, c)) {
+          ids.add(id);
+        }
+      }
+      return Array.from(ids);
     } else {
       throw new Error('Unknown change operation: ' + (change as any).op);
     }
   }
 
   public static revertChange(api: ApiDelegateService, change: ChangeEntry): string[] {
-    console.log(`Reverting change: ${JSON.stringify(change)}`);
     let res = api.openedResource$.getValue() as Resource;
     if (change.op === 'set') {
       ChangeExecutor.setResourceValue(res, change.id, change.oldValue);
@@ -111,6 +121,15 @@ class ChangeExecutor {
       array[change.indexA] = array[change.indexB];
       array[change.indexB] = tmp;
       return [change.id];
+    } else if (change.op == 'bundle') {
+      let ids = new Set<string>();
+      for (let i = change.changes.length - 1; i >= 0; i--) {
+        const c = change.changes[i];
+        for (const id of ChangeExecutor.revertChange(api, c)) {
+          ids.add(id);
+        }
+      }
+      return Array.from(ids);
     } else {
       throw new Error('Unknown change operation: ' + (change as any).op);
     }
@@ -152,6 +171,14 @@ export class ChangesService {
         this._changes.splice(this._localRevision);
       }
       this._changes.push(...changes);
+      this._localRevision = this._changes.length;
+      const affectedIds: Set<string> = new Set();
+      for (const change of changes) {
+        for (const id of ChangeExecutor.applyChange(this.api, change)) {
+          affectedIds.add(id);
+        }
+      }
+      this.notifyUi(Array.from(affectedIds));
       this.refreshRevisions().then();
     });
     this.api.onFileOpened$.subscribe(() => {
@@ -259,11 +286,9 @@ export class ChangesService {
 
   public subscribeComponent(resourceId: string, component: SubscribableGuiComponent) {
     this._cdrSubscribers[resourceId] = component;
-    console.log('CDR new subscriber for ' + resourceId + ': ', Object.keys(this._cdrSubscribers).length);
   }
 
   public unsubscribeComponent(resourceId: string) {
     delete this._cdrSubscribers[resourceId];
-    console.log('CDR unsubscribed ' + resourceId);
   }
 }

@@ -52,6 +52,11 @@
         [style.width.px]="((resourceData?.width || 0) * zoom) / 100"
         [style.height.px]="((resourceData?.height || 0) * zoom) / 100"></div>
     }
+    @if (loading$ | async) {
+      <div class="loading-spinner">
+        <mat-spinner mode="indeterminate" [diameter]="32" color="accent"></mat-spinner>
+      </div>
+    }
   </div>
   @if (!hideBlockActions) {
     <app-block-actions
@@ -68,7 +73,7 @@
 @if (resourceData && resourceSchema) {
   <mat-form-field subscriptSizing="dynamic">
     <mat-label>Color Model</mat-label>
-    <mat-select [ngModel]="resourceData.resource_id" (ngModelChange)="onFormatChange($event)" #formatSelect="ngModel">
+    <mat-select [value]="resourceData.resource_id" (selectionChange)="onFormatChange($event)" #formatSelect>
       @for (enumValue of resourceSchema.fields[0].schema.enum_names; track enumValue) {
         <mat-option [value]="enumValue[1]">
           {{ enumValue[1] }}

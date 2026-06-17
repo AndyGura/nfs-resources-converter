@@ -3,9 +3,13 @@ Resource API endpoint for the NFS Resources Converter.
 This module handles all resource-related operations.
 """
 
-from typing import Dict, Any
+import copy
+import time
+from typing import Dict, Any, List
 
 from library import require_resource
+from library.changes_service import ChangesService
+from library.utils.id import join_id
 from serializers.misc.json_utils import convert_bytes, serialize_exceptions
 
 
@@ -13,7 +17,7 @@ class ResourceAPI:
     """
     API endpoint for resource-related operations.
     """
-    
+
     def __init__(self, api):
         """
         Initialize the ResourceAPI endpoint.
@@ -22,7 +26,7 @@ class ResourceAPI:
             api: The main API instance
         """
         self.api = api
-    
+
     def render_data(self, data):
         """
         Render data for frontend consumption.
@@ -34,7 +38,7 @@ class ResourceAPI:
             Rendered data
         """
         return convert_bytes(serialize_exceptions(data))
-    
+
     def retrieve_value(self, resource_id: str) -> Any:
         """
         Retrieve a value from a resource.
@@ -47,8 +51,8 @@ class ResourceAPI:
         """
         (_, _, resource), _ = require_resource(resource_id)
         return self.render_data(resource)
-    
-    def run_custom_action(self, resource_id: str, action: Dict, args: Dict) -> Any:
+
+    def run_custom_action(self, resource_id: str, action: Dict, args: Dict):
         """
         Run a custom action on a resource.
         
@@ -62,9 +66,52 @@ class ResourceAPI:
         """
         (name, res_block, read_data), _ = require_resource(resource_id)
         action_func = getattr(res_block, f'action_{action["method"]}')
+
+        if action.get('is_pure', False):
+            action_func(name=name, read_data=read_data, **args)
+            return
+
+        # Snapshot the data before the action runs, so we can diff it afterwards and record
+        # the mutations as changes in the changes model and notify the frontend.
+        before = copy.deepcopy(read_data)
         action_func(name=name, read_data=read_data, **args)
-        return None if action.get('is_pure', False) else self.render_data(read_data)
-    
+        changes = self._diff_to_changes(resource_id, before, read_data)
+        if changes:
+            # the action already applied the mutations to read_data in place
+            ChangesService.append_changes([{
+                'id': '',
+                'timestamp': int(time.time() * 1000),
+                'op': 'bundle',
+                'changes': changes,
+            }])
+
+    def _diff_to_changes(self, base_id: str, old: Any, new: Any) -> List[Dict[str, Any]]:
+        """
+        Recursively diff two data trees and produce a list of 'set' change entries.
+        Ids are built with join_id so they match the ones the frontend generates.
+        """
+        timestamp = int(time.time() * 1000)
+        changes: List[Dict[str, Any]] = []
+
+        def walk(cur_id: str, o: Any, n: Any):
+            if isinstance(o, dict) and isinstance(n, dict):
+                for key in n:
+                    walk(join_id(cur_id, str(key)), o.get(key), n[key])
+            elif isinstance(o, list) and isinstance(n, list) and len(o) == len(n):
+                for i, (oi, ni) in enumerate(zip(o, n)):
+                    walk(join_id(cur_id, str(i)), oi, ni)
+            elif o != n:
+                changes.append({
+                    'id': cur_id,
+                    'timestamp': timestamp,
+                    'op': 'set',
+                    'oldValue': o,
+                    'newValue': n,
+                })
+
+        walk(base_id, old, new)
+        return changes
+
     def get_new_item_data(self, resource_id: str) -> Any:
         """
         Get new item data for a resource.

@@ -16,19 +16,35 @@ export class CustomActionService {
     private readonly snackBar: MatSnackBar,
   ) {}
 
-  async runCustomAction(resourceId: string, resourceName: string, action: CustomAction): Promise<boolean> {
-    const dialogRef = this.dialog.open(RunCustomActionDialogComponent, {
-      data: {
-        action: action,
-        resourceName,
-      },
-    });
-
-    const args: any[] | undefined = await firstValueFrom(dialogRef.afterClosed());
-    if (!args) {
-      return false;
+  async runCustomAction(
+    resourceId: string,
+    resourceName: string,
+    action: CustomAction,
+    formPatch: any = {},
+    runImmediately: boolean = false,
+  ): Promise<boolean> {
+    if (runImmediately) {
+      for (const { id } of action.args) {
+        if (formPatch[id] === undefined) {
+          runImmediately = false;
+          break;
+        }
+      }
     }
 
+    let args: any[] = [];
+    if (!runImmediately) {
+      const dialogRef = this.dialog.open(RunCustomActionDialogComponent, {
+        data: { action, resourceName, formPatch },
+      });
+      const dialogArgs: any[] | undefined = await firstValueFrom(dialogRef.afterClosed());
+      if (!dialogArgs) {
+        return false;
+      }
+      args = dialogArgs;
+    } else {
+      args = formPatch;
+    }
     try {
       await this.mainService.runCustomAction(resourceId, action, args);
       this.snackBar.open('Action performed!', 'OK', { duration: 1500 });

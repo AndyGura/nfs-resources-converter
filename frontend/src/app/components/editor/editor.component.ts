@@ -133,11 +133,8 @@ export class EditorComponent implements OnDestroy {
           if (this._componentChangedSub) {
             this.componentSet$.next();
           }
-          // console.log('Editor: creating component for ' + this._resourceId);
           this._component = this.dataBlockUiHost.viewContainerRef.createComponent(component);
           this.componentSet$.next();
-        } else {
-          console.log('Editor: reusing component for ' + this._resourceId);
         }
         if (!reuseComponent || !schemaEquals(this._component!.instance.resourceSchema, this._resourceSchema)) {
           this._component!.setInput('resourceSchema', this._resourceSchema);

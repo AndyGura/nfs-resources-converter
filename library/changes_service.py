@@ -8,6 +8,11 @@ class ChangeExecutor:
 
     @classmethod
     def apply_change(cls, change):
+        if change['op'] == 'bundle':
+            print(f'✏️ bundle....')
+            for c in change['changes']:
+                cls.apply_change(c)
+            return
         (parent_id, id) = split_last_id_part(change['id'])
         (_, _, parent_resource), _ = require_resource(parent_id)
         if isinstance(parent_resource, list):
@@ -35,6 +40,11 @@ class ChangeExecutor:
 
     @classmethod
     def revert_change(cls, change):
+        if change['op'] == 'bundle':
+            print(f'✏️ bundle....')
+            for c in change['changes'][::-1]:
+                cls.revert_change(c)
+            return
         (parent_id, id) = split_last_id_part(change['id'])
         (_, _, parent_resource), _ = require_resource(parent_id)
         if isinstance(parent_resource, list):
@@ -96,10 +106,8 @@ class ChangesService:
         # here we expect appended changes to be already applied to the data
         if cls.local_revision < len(cls.changes):
             cls.changes = cls.changes[:cls.local_revision]
-        print(f'Appending {len(changes)} changes')
         cls.changes.extend(changes)
         cls.local_revision = len(cls.changes)
-        print('new changes state:', cls.changes)
         cls.ws_instance.on_append_changes(changes)
 
     @classmethod
