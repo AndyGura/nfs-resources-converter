@@ -29,7 +29,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatOptionModule } from '@angular/material/core';
-import { HexEditorModule } from 'ngx-hex-editor';
+import { HexEditorComponent } from 'ngx-hex-editor';
 import { SidenavResListComponent } from './common/sidenav-res-list/sidenav-res-list.component';
 import { MinimapComponent } from './common/minimap/minimap.component';
 import { BlockActionsComponent } from './common/block-actions/block-actions.component';
@@ -107,7 +107,7 @@ import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geo
     MatOptionModule,
     MatCheckboxModule,
     MatSliderModule,
-    HexEditorModule,
+    HexEditorComponent,
   ],
   exports: [EditorComponent, SidenavResListComponent, BlockActionsComponent],
 })
