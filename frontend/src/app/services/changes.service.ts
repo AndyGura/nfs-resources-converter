@@ -38,6 +38,12 @@ export type ChangeEntryPayload =
       indexB: number;
     }
   | {
+      op: 'binary_delta';
+      index: number;
+      oldPart: number[];
+      newPart: number[];
+    }
+  | {
       op: 'bundle';
       changes: ChangeEntry[];
     };
@@ -89,6 +95,10 @@ class ChangeExecutor {
       array[change.indexA] = array[change.indexB];
       array[change.indexB] = tmp;
       return [change.id];
+    } else if (change.op == 'binary_delta') {
+      let array = ChangeExecutor.locateId(res, change.id);
+      array.splice(change.index, change.oldPart.length, ...change.newPart);
+      return [change.id];
     } else if (change.op == 'bundle') {
       let ids = new Set<string>();
       for (const c of change.changes) {
@@ -120,6 +130,10 @@ class ChangeExecutor {
       let tmp = array[change.indexA];
       array[change.indexA] = array[change.indexB];
       array[change.indexB] = tmp;
+      return [change.id];
+    } else if (change.op == 'binary_delta') {
+      let array = ChangeExecutor.locateId(res, change.id);
+      array.splice(change.index, change.newPart.length, ...change.oldPart);
       return [change.id];
     } else if (change.op == 'bundle') {
       let ids = new Set<string>();

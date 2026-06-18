@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { PrimitiveGuiComponent } from '../../gui.component';
+import { ChangeDetectionStrategy, Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
 import { BehaviorSubject } from 'rxjs';
+import { HexEditorDeltaChange } from 'ngx-hex-editor';
 
 @Component({
   selector: 'app-binary-block-ui',
@@ -9,8 +10,7 @@ import { BehaviorSubject } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-// TODO optimize data changes, maybe it should not be a primitive gui component afterall
-export class BinaryBlockUiComponent extends PrimitiveGuiComponent<number[]> {
+export class BinaryBlockUiComponent extends SubscribableGuiComponent<number[]> {
   @ViewChild('editor') editorDiv?: ElementRef<HTMLDivElement>;
 
   override get resourceData(): number[] | undefined {
@@ -31,7 +31,41 @@ export class BinaryBlockUiComponent extends PrimitiveGuiComponent<number[]> {
 
   data$: BehaviorSubject<any> = new BehaviorSubject(new Uint8Array());
 
-  onDataChange(arr: Uint8Array) {
-    this.onValueSet(Array.from(arr));
+  override onExternalChanges() {
+    this.data$.next(new Uint8Array(super.resourceData!));
+  }
+
+  onDataChange(event: HexEditorDeltaChange) {
+    let oldPart: number[] = [];
+    let newPart: number[] = [];
+    let index = event.index;
+    switch (event.type) {
+      case 'update':
+        oldPart = [this.resourceData![event.index]];
+        newPart = [event.data![0]];
+        break;
+      case 'insert':
+        oldPart = [];
+        if (index > this.resourceData!.length) {
+          newPart = new Array(index - this.resourceData!.length).fill(0);
+          newPart.push(event.data![0]);
+          index = this.resourceData!.length;
+        } else {
+          newPart = [event.data![0]];
+        }
+        break;
+      case 'delete':
+        oldPart = Array.from(this.resourceData!.slice(event.index, event.index + event.count!));
+        newPart = [];
+        break;
+      default:
+        throw new Error('Unsupported hex editor event type ' + event.type);
+    }
+    this.emitNewChange({
+      op: 'binary_delta',
+      index,
+      oldPart,
+      newPart,
+    });
   }
 }

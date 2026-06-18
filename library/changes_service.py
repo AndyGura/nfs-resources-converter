@@ -27,14 +27,22 @@ class ChangeExecutor:
             else:
                 parent_resource[id] = change['newValue']
         elif change['op'] == 'array_insert':
-            print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {change["value"]}')
+            print(
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {change["value"]}')
             resource.insert(change['index'], change['value'])
         elif change['op'] == 'array_remove':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} remove item at index {change["index"]}')
             del resource[change['index']]
         elif change['op'] == 'array_swap':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} swap indexes {change["indexA"]} and {change["indexB"]}')
-            (resource[change['indexA']], resource[change['indexB']]) = (resource[change['indexB']], resource[change['indexA']])
+            (resource[change['indexA']], resource[change['indexB']]) = (resource[change['indexB']],
+                                                                        resource[change['indexA']])
+        elif change['op'] == 'binary_delta':
+            print(
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} binary delta at {change["index"]}: {change["oldPart"]} -> {change["newPart"]}')
+            parent_resource[id] = (parent_resource[id][:change['index']]
+                                   + bytes(change['newPart'])
+                                   + parent_resource[id][change['index'] + len(change['oldPart']):])
         else:
             raise Exception(f'Unsupported operation: {change["op"]}')
 
@@ -62,11 +70,19 @@ class ChangeExecutor:
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} remove item at index {change["index"]}')
             del resource[change['index']]
         elif change['op'] == 'array_remove':
-            print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {change["oldValue"]}')
+            print(
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {change["oldValue"]}')
             resource.insert(change['index'], change['oldValue'])
         elif change['op'] == 'array_swap':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} swap indexes {change["indexA"]} and {change["indexB"]}')
-            (resource[change['indexA']], resource[change['indexB']]) = (resource[change['indexB']], resource[change['indexA']])
+            (resource[change['indexA']], resource[change['indexB']]) = (resource[change['indexB']],
+                                                                        resource[change['indexA']])
+        elif change['op'] == 'binary_delta':
+            print(
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} binary delta at {change["index"]}: {change["newPart"]} -> {change["oldPart"]}')
+            parent_resource[id] = (parent_resource[id][:change['index']]
+                                   + bytes(change['oldPart'])
+                                   + parent_resource[id][change['index'] + len(change['newPart']):])
         else:
             raise Exception(f'Unsupported operation: {change["op"]}')
 
