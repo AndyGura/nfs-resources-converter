@@ -109,7 +109,7 @@ class EacImage(DeclarativeCompoundBlock):
                             'id': 'channel',
                             'title': 'Channel',
                             'type': 'enum_string',
-                            'choices': ['alpha', 'red', 'green', 'blue']
+                            'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
                         },
                         {
                             'id': 'swapped',
@@ -128,7 +128,7 @@ class EacImage(DeclarativeCompoundBlock):
                             'id': 'channel',
                             'title': 'Channel',
                             'type': 'enum_string',
-                            'choices': ['alpha', 'red', 'green', 'blue']
+                            'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
                         }
                     ],
                 },
@@ -301,14 +301,22 @@ class EacImage(DeclarativeCompoundBlock):
         elif current_color_format.startswith('4Bit'):
             pass
         else:
-            # RGBA
-            (mask, offs) = self._get_channel_mask_offset(channel)
+            if channel == 'RGB':
+                def transform(color):
+                    r = (color >> 24) & 0xFF
+                    g = (color >> 16) & 0xFF
+                    b = (color >> 8)  & 0xFF
+                    return 0xffffff00 | ((r * 77 + g * 150 + b * 29) >> 8)
+            else:
+                (mask, offs) = self._get_channel_mask_offset(channel)
+                def transform(color):
+                    return 0xffffff00 | ((color & mask) >> offs)
             new_bitmap = []
             for j in range(read_data['height']):
                 new_bitmap.append([])
                 for i in range(read_data['width']):
                     pxl = read_data['bitmap'][j * read_data['width'] + i]
-                    new_bitmap[j].append(0xffffff00 | ((pxl & mask) >> offs))
+                    new_bitmap[j].append(transform(pxl))
             read_data['bitmap'] = new_bitmap
         read_data['resource_id'] = target_color_format
         return
@@ -323,12 +331,20 @@ class EacImage(DeclarativeCompoundBlock):
             for j in range(read_data['height']):
                 for i in range(read_data['width']):
                     pxl = read_data['bitmap'][j][i]
-                    new_bitmap.append(transform_bitness(pxl & 0xff, 4))
+                    new_bitmap.append(pxl & 0xff)
             read_data['bitmap'] = new_bitmap
         else:
-            # RGBA
-            (mask, offs) = self._get_channel_mask_offset(channel)
-            read_data['bitmap'] = [(pxl & mask) >> offs for pxl in read_data['bitmap']]
+            if channel == 'RGB':
+                def transform(color):
+                    r = (color >> 24) & 0xFF
+                    g = (color >> 16) & 0xFF
+                    b = (color >> 8)  & 0xFF
+                    return (r * 77 + g * 150 + b * 29) >> 8
+            else:
+                (mask, offs) = self._get_channel_mask_offset(channel)
+                def transform(color):
+                    return (color & mask) >> offs
+            read_data['bitmap'] = [transform(pxl) for pxl in read_data['bitmap']]
         read_data['resource_id'] = target_color_format
         return
 
