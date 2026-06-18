@@ -11,6 +11,7 @@
   },
   "private": true,
   "dependencies": {
+    "@angular/animations": "^22.0.2",
     "@angular/cdk": "^22.0.2",
     "@angular/common": "^22.0.2",
     "@angular/compiler": "^22.0.2",
@@ -23,7 +24,7 @@
     "@gg-web-engine/core": "^0.0.58",
     "@gg-web-engine/three": "^0.0.58",
     "lodash": "^4.17.21",
-    "ngx-hex-editor": "^0.0.6",
+    "ngx-hex-editor": "^0.0.8",
     "rxjs": "7.8.1",
     "three": "0.167.1",
     "tslib": "^2.3.0",
