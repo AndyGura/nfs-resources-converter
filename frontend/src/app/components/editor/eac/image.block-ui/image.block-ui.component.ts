@@ -95,7 +95,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
     this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(x => !!((this.resourceId && x.startsWith(this.resourceId)) || x.includes('!pal') || x.includes('!PAL'))),
+        filter(x => !!((this.resourceId && x.startsWith(this.resourceId)) || x.includes('colors/data'))),
         debounceTime(50),
       )
       .subscribe(() => {

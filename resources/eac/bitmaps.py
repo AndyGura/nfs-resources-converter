@@ -416,6 +416,15 @@ class EacPalette(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
+            'custom_actions': [
+                {
+                    'method': 'invert_colors',
+                    'title': 'Invert colors',
+                    'description': 'Inverts all colors',
+                    'is_pure': False,
+                    'args': [],
+                }
+            ],
             'block_description': 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, '
                                  'meaning the index of color in LUT of assigned palette. Has special colors: '
                                  '255th in most cases means transparent color, 254th in car textures is replaced by '
@@ -482,3 +491,10 @@ class EacPalette(DeclarativeCompoundBlock):
         else:
             raise NotImplementedError(f"Palette resource ID {copied['resource_id']} is not supported")
         return super().write(copied, ctx, name)
+
+    def action_invert_colors(self, read_data, **kwargs):
+        for (i, color) in enumerate(read_data['colors']['data']):
+            rgb = (color >> 8) & 0xFFFFFF
+            alpha = color & 0xFF
+            inverted_rgb = rgb ^ 0xFFFFFF
+            read_data['colors']['data'][i] = (inverted_rgb << 8) | alpha
