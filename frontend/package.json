@@ -23,7 +23,6 @@
     "@angular/router": "^22.0.2",
     "@gg-web-engine/core": "^0.0.58",
     "@gg-web-engine/three": "^0.0.58",
-    "lodash": "^4.17.21",
     "ngx-hex-editor": "^0.0.10",
     "rxjs": "7.8.1",
     "three": "0.167.1",
