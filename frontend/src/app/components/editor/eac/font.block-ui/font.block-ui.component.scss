@@ -2,7 +2,7 @@
 
 :host {
   // fullscreen
-  margin: -variables.$viewport-padding;
+  margin: calc(0 - variables.$viewport-padding);
   max-width: unset;
   height: variables.$viewport-height;
 }

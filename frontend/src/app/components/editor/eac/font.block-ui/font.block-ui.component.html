@@ -6,11 +6,13 @@
           <div class="preview-title">Font header</div>
           <div class="tab-content">
             <app-compound-block-ui
-              [resource]="resource"
+              [resourceId]="resourceId"
+              [resourceName]="resourceName"
+              [resourceSchema]="resourceSchema"
+              [resourceData]="resourceData"
               [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
               [hideName]="true"
-              [hideBlockActions]="true"
-              (changed)="changed.emit()"></app-compound-block-ui>
+              [hideBlockActions]="true"></app-compound-block-ui>
           </div>
         </div>
 
@@ -69,10 +71,12 @@
   <mat-tab label="Bitmap">
     <div class="tab-content">
       <image-block-ui
-        [resource]="getChildResource(resource, 'bitmap')"
+        [resourceId]="joinId(resourceId!, 'bitmap')"
+        [resourceName]="'bitmap'"
+        [resourceSchema]="bitmapSchema()"
+        [resourceData]="resourceData.bitmap"
         [hideName]="true"
-        [hideBlockActions]="true"
-        (changed)="changed.emit()"></image-block-ui>
+        [hideBlockActions]="true"></image-block-ui>
     </div>
   </mat-tab>
 </mat-tab-group>

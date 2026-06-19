@@ -4,31 +4,28 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  EventEmitter,
+  inject,
   Input,
   NgZone,
   OnDestroy,
-  Output,
   ViewChild,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
-import { auditTime, BehaviorSubject, combineLatest, debounceTime, startWith, Subject, takeUntil } from 'rxjs';
-import { Resource } from '../../types';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
+import { auditTime, BehaviorSubject, combineLatest, filter, startWith, Subject, takeUntil } from 'rxjs';
+import { BlockSchema, Resource } from '../../types';
 import { NavigationService } from '../../../../services/navigation.service';
-import { MainService } from '../../../../services/main.service';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
 import { getChildResource } from '../../../../utils/get-child-resource';
+import { GuiComponent } from '../../gui.component';
 
 @Component({
   selector: 'app-font-block-ui',
   templateUrl: './font.block-ui.component.html',
   styleUrls: ['./font.block-ui.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class FontBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
+export class FontBlockUiComponent extends GuiComponent implements AfterViewInit, OnDestroy {
   @ViewChild('fullBitmapCanvas') fullBitmapCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('textPreviewCanvas') textPreviewCanvas!: ElementRef<HTMLCanvasElement>;
 
@@ -51,28 +48,31 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     return this._resource$.getValue();
   }
 
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
   private readonly destroyed$: Subject<void> = new Subject<void>();
   private _image: HTMLImageElement | null = null;
   private _imageRefreshed$: Subject<void> = new Subject<void>();
   private _resizeObserver: ResizeObserver | null = null;
   private _resized$: Subject<void> = new Subject<void>();
 
-  constructor(
-    private readonly eelDelegate: EelDelegateService,
-    public readonly navigation: NavigationService,
-    public readonly main: MainService,
-    private readonly ngZone: NgZone,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  get bitmapSchema() {
+    return (this.resourceSchema.fields || []).find((x: { name: string; schema: BlockSchema }) => x.name === 'bitmap')
+      ?.schema;
+  }
+
+  readonly navigation = inject(NavigationService);
+  readonly ngZone = inject(NgZone);
+  readonly cdr = inject(ChangeDetectorRef);
 
   async ngAfterViewInit(): Promise<void> {
     combineLatest([
       this._text$,
       this._imageRefreshed$,
       this._resized$,
-      this.main.dataBlockChange$.pipe(startWith(null)),
+      this.changes.change$.pipe(
+        takeUntil(this.destroyed$),
+        filter(x => !!this.resourceId && x.startsWith(this.resourceId)),
+        startWith(null),
+      ),
     ])
       .pipe(takeUntil(this.destroyed$), auditTime(50))
       .subscribe(([text]) => {
@@ -85,7 +85,11 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
       this._selectedGlyphIndex$,
       this._imageRefreshed$,
       this._resized$,
-      this.main.dataBlockChange$.pipe(startWith(null)),
+      this.changes.change$.pipe(
+        takeUntil(this.destroyed$),
+        filter(x => !!this.resourceId && x.startsWith(this.resourceId)),
+        startWith(null),
+      ),
     ])
       .pipe(takeUntil(this.destroyed$), auditTime(50))
       .subscribe(([index]) => {
@@ -103,7 +107,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
 
   private async refreshImage() {
     if (!this.resource) return;
-    const paths = await this.eelDelegate.serializeResource(this.resource.id);
+    const paths = await this.mainService.api.serializeResource(this.resource.id);
     const imagePath = paths.find(x => x.endsWith('.png'));
     if (!imagePath) {
       this._image = null;
@@ -362,88 +366,109 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   }
 
   async addGlyph() {
-    const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'definitions'));
-    this.glyphs.push(newItem);
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
-    this.cdr.markForCheck();
+    const rid = joinId(this.resource!.id, 'definitions');
+    const newItem = await this.mainService.getNewItemData(rid);
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: rid,
+        op: 'array_insert',
+        index: this.glyphs.length,
+        value: newItem,
+      })
+      .then();
   }
 
   removeGlyph(index: number) {
-    this.glyphs.splice(index, 1);
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
-    this.cdr.markForCheck();
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: joinId(this.resource!.id, 'definitions'),
+        op: 'array_remove',
+        index,
+        oldValue: this.glyphs[index],
+      })
+      .then();
   }
 
   moveGlyphUp(index: number) {
-    const temp = this.glyphs[index];
-    this.glyphs[index] = this.glyphs[index - 1];
-    this.glyphs[index - 1] = temp;
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
-    this.cdr.markForCheck();
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: joinId(this.resource!.id, 'definitions'),
+        op: 'array_swap',
+        indexA: index,
+        indexB: index - 1,
+      })
+      .then();
   }
 
   moveGlyphDown(index: number) {
-    const temp = this.glyphs[index];
-    this.glyphs[index] = this.glyphs[index + 1];
-    this.glyphs[index + 1] = temp;
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'definitions'), this.glyphs]);
-    this.cdr.markForCheck();
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: joinId(this.resource!.id, 'definitions'),
+        op: 'array_swap',
+        indexA: index,
+        indexB: index + 1,
+      })
+      .then();
   }
 
   onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
-    const glyph = this.glyphs[event.index];
-    if (glyph && event.field && event.field !== 'symbol') {
-      glyph[event.field] = event.value;
-      this.changed.emit();
-      this._resource$.next({ ...this.resource! });
-      this.cdr.markForCheck();
-    }
+    // const glyph = this.glyphs[event.index];
+    // if (glyph && event.field && event.field !== 'symbol') {
+    //   glyph[event.field] = event.value;
+    //   this.changed.emit();
+    //   this._resource$.next({ ...this.resource! });
+    //   this.cdr.markForCheck();
+    // }
   }
 
   async addKerning() {
-    const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'kernings'));
-    this.kernings.push(newItem);
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    this.cdr.markForCheck();
+    // const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'kernings'));
+    // this.kernings.push(newItem);
+    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    // this.cdr.markForCheck();
   }
 
   removeKerning(index: number) {
-    this.kernings.splice(index, 1);
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    this.cdr.markForCheck();
+    // this.kernings.splice(index, 1);
+    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    // this.cdr.markForCheck();
   }
 
   moveKerningUp(index: number) {
-    const temp = this.kernings[index];
-    this.kernings[index] = this.kernings[index - 1];
-    this.kernings[index - 1] = temp;
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    this.cdr.markForCheck();
+    // const temp = this.kernings[index];
+    // this.kernings[index] = this.kernings[index - 1];
+    // this.kernings[index - 1] = temp;
+    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    // this.cdr.markForCheck();
   }
 
   moveKerningDown(index: number) {
-    const temp = this.kernings[index];
-    this.kernings[index] = this.kernings[index + 1];
-    this.kernings[index + 1] = temp;
-    this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    this.cdr.markForCheck();
+    // const temp = this.kernings[index];
+    // this.kernings[index] = this.kernings[index + 1];
+    // this.kernings[index + 1] = temp;
+    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
+    // this.cdr.markForCheck();
   }
 
   onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
-    const kerning = this.kernings[event.index];
-    if (kerning && event.field && event.field !== 'Left Symbol' && event.field !== 'Right Symbol') {
-      // Mapping back from DataTable display keys to data keys if necessary
-      let dataField = event.field;
-      if (dataField === 'Left Symbol Code') dataField = 'left';
-      else if (dataField === 'Right Symbol Code') dataField = 'right';
-      else if (dataField === 'Kerning') dataField = 'kerning';
-      else if (dataField === 'Unk') dataField = 'unk';
-
-      kerning[dataField] = event.value;
-      this.changed.emit();
-      this._resource$.next({ ...this.resource! });
-      this.cdr.markForCheck();
-    }
+    // const kerning = this.kernings[event.index];
+    // if (kerning && event.field && event.field !== 'Left Symbol' && event.field !== 'Right Symbol') {
+    //   // Mapping back from DataTable display keys to data keys if necessary
+    //   let dataField = event.field;
+    //   if (dataField === 'Left Symbol Code') dataField = 'left';
+    //   else if (dataField === 'Right Symbol Code') dataField = 'right';
+    //   else if (dataField === 'Kerning') dataField = 'kerning';
+    //   else if (dataField === 'Unk') dataField = 'unk';
+    //
+    //   kerning[dataField] = event.value;
+    //   this.changed.emit();
+    //   this._resource$.next({ ...this.resource! });
+    //   this.cdr.markForCheck();
+    // }
   }
 
   onGlyphFocused(event: [string[], number]) {
@@ -502,4 +527,5 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
   }
 
   protected readonly getChildResource = getChildResource;
+  protected readonly joinId = joinId;
 }
