@@ -203,7 +203,7 @@ class EacImage(DeclarativeCompoundBlock):
             b4 = bytes(bd)
             b = []
             for i in range(0, len(b4), 3):
-                b.extend(b4[i:i+3])
+                b.extend(b4[i:i + 3])
                 b.append(0)
             bitmap = np.frombuffer(bytes(b), dtype='<u4')
             return [int((x << 8) | 0xFF) for x in bitmap]
@@ -310,10 +310,11 @@ class EacImage(DeclarativeCompoundBlock):
                 def transform(color):
                     r = (color >> 24) & 0xFF
                     g = (color >> 16) & 0xFF
-                    b = (color >> 8)  & 0xFF
+                    b = (color >> 8) & 0xFF
                     return 0xffffff00 | ((r * 77 + g * 150 + b * 29) >> 8)
             else:
                 (mask, offs) = self._get_channel_mask_offset(channel)
+
                 def transform(color):
                     return 0xffffff00 | ((color & mask) >> offs)
             new_bitmap = []
@@ -343,10 +344,11 @@ class EacImage(DeclarativeCompoundBlock):
                 def transform(color):
                     r = (color >> 24) & 0xFF
                     g = (color >> 16) & 0xFF
-                    b = (color >> 8)  & 0xFF
+                    b = (color >> 8) & 0xFF
                     return (r * 77 + g * 150 + b * 29) >> 8
             else:
                 (mask, offs) = self._get_channel_mask_offset(channel)
+
                 def transform(color):
                     return (color & mask) >> offs
             read_data['bitmap'] = [transform(pxl) for pxl in read_data['bitmap']]
@@ -365,8 +367,10 @@ class EacImage(DeclarativeCompoundBlock):
         elif current_color_format == '8Bit':
             new_bitmap8 = read_data['bitmap']
         else:
-            native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'], read_data['bitmap'])
-            read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'], read_data['height'], native)
+            native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
+                                              read_data['bitmap'])
+            read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'], read_data['height'],
+                                                           native)
         if new_bitmap8:
             if output_colors == 'transparent-white':
                 read_data['bitmap'] = [x | 0xffffff00 for x in new_bitmap8]
