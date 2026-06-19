@@ -1,15 +1,31 @@
-<div id='header'>
-  <mat-label *ngIf='!hideName'
-             [matTooltip]='resourceDescription' matTooltipPosition='above'>{{ resource?.name }}
-  </mat-label>
-  <audio controls *ngIf='audioUrl$ | async'>
-    <source [src]='audioUrl$ | async'>
-    Your browser does not support the audio element.
-  </audio>
-  <mat-spinner *ngIf='resource && !(audioUrl$ | async)' mode='indeterminate'></mat-spinner>
-  <div class='flex-spacer'></div>
-  <app-block-actions *ngIf='!hideBlockActions' [resource]='this.resource'></app-block-actions>
+<div id="header">
+  @if (!hideName && resourceName) {
+    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+  }
+  @if (audioUrl$ | async) {
+    <audio controls>
+      <source [src]="audioUrl$ | async" />
+      Your browser does not support the audio element.
+    </audio>
+  }
+  @if (resourceId && !(audioUrl$ | async)) {
+    <mat-spinner mode="indeterminate"></mat-spinner>
+  }
+  <div class="flex-spacer"></div>
+  @if (!hideBlockActions) {
+    <app-block-actions
+      [resource]="{
+        id: resourceId!,
+        name: resourceName!,
+        data: resourceData,
+        schema: resourceSchema,
+      }"></app-block-actions>
+  }
 </div>
-<app-compound-block-ui [resource]='_resource$ | async'
-                       [hideName]='true'
-                       [hideBlockActions]='true'></app-compound-block-ui>
+<app-compound-block-ui
+  [resourceId]="resourceId"
+  [resourceName]="resourceName"
+  [resourceSchema]="resourceSchema"
+  [resourceData]="resourceData"
+  [hideName]="true"
+  [hideBlockActions]="true"></app-compound-block-ui>

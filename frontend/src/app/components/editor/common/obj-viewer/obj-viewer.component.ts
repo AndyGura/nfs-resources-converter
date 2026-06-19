@@ -38,9 +38,8 @@ import {
   Object3D,
   Texture,
 } from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
-import { Color } from '@angular-material-components/color-picker';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { ViewMode, ViewModeController } from './view-mode-toolbar/view-mode.controller';
 
 export type ViewFilterOpts = {
@@ -48,10 +47,9 @@ export type ViewFilterOpts = {
   filterGroups: string[];
   checkedIndex: number;
   pickFunction: (object: Object3D) => number;
-}
+};
 
 class ViewFilter {
-
   private _meshes: Object3D[] = [];
 
   get opts(): ViewFilterOpts {
@@ -67,8 +65,7 @@ class ViewFilter {
     this.selectFirstNonEmptyGroup();
   }
 
-  constructor(private _opts: ViewFilterOpts) {
-  }
+  constructor(private _opts: ViewFilterOpts) {}
 
   isGroupEmpty(group: string): boolean {
     const groupIndex = this._opts.filterGroups.indexOf(group);
@@ -93,38 +90,37 @@ class ViewFilter {
     }
     this._opts.checkedIndex = 0;
   }
-
 }
 
 type Control =
   | {
-  label: string;
-  type: 'checkbox';
-  value: boolean;
-  change: (value: boolean) => void;
-}
+      label: string;
+      type: 'checkbox';
+      value: boolean;
+      change: (value: boolean) => void;
+    }
   | {
-  label: string;
-  type: 'radio';
-  options: string[];
-  value: string;
-  change: (value: string) => void;
-}
+      label: string;
+      type: 'radio';
+      options: string[];
+      value: string;
+      change: (value: string) => void;
+    }
   | {
-  label: string;
-  type: 'color';
-  value: number;
-  change: (value: number) => void;
-}
+      label: string;
+      type: 'color';
+      value: number;
+      change: (value: number) => void;
+    }
   | {
-  label: string;
-  type: 'slider';
-  value: number;
-  minValue: number;
-  maxValue: number;
-  valueStep: number;
-  change: (value: number) => void;
-};
+      label: string;
+      type: 'slider';
+      value: number;
+      minValue: number;
+      maxValue: number;
+      valueStep: number;
+      change: (value: number) => void;
+    };
 
 export type ObjViewerCustomControl = {
   title: string;
@@ -147,9 +143,9 @@ export const setupNfs1Texture = (texture: Texture) => {
   templateUrl: './obj-viewer.component.html',
   styleUrls: ['./obj-viewer.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class ObjViewerComponent implements AfterViewInit, OnDestroy {
-
   private _cameraControl: 'orbit' | 'free' = 'orbit';
   get cameraControl(): 'orbit' | 'free' {
     return this._cameraControl;
@@ -214,7 +210,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   meshes: Object3D[] = [];
   displayMeshes: Object3D[] = [];
-  uiGroups: { [prefix: string]: { visible: boolean, meshes: Object3D[] } } | null = null;
+  uiGroups: { [prefix: string]: { visible: boolean; meshes: Object3D[] } } | null = null;
 
   ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
   viewModeController?: ViewModeController;
@@ -224,8 +220,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef) {
-  }
+  constructor(private readonly cdr: ChangeDetectorRef) {}
 
   private setupCameraController() {
     if (this.controller) {
@@ -314,7 +309,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
           f.meshes = this.meshes;
         }
         this.applyViewFilters();
-        object.traverse(x => {
+        object.traverse((x: any) => {
           if (x instanceof Mesh) {
             const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
             for (const m of materials) {
@@ -437,15 +432,15 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   }
 
   // TODO use set.intersection after upgrading typescript
-  intersection = function <T>(s1: Set<T>, s2: Set<T>): Set<T> {
+  intersection<T>(s1: Set<T>, s2: Set<T>): Set<T> {
     const result = new Set<T>();
-    for (const element of s2) {
+    for (const element of Array.from(s2)) {
       if (s1.has(element)) {
         result.add(element);
       }
     }
     return result;
-  };
+  }
 
   public applyViewFilters() {
     let displayMeshesSet = new Set<Object3D>(this.meshes);
@@ -479,8 +474,12 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  public toRGB(color: Color | null): number {
-    return ((color?.r || 0) << 16) | ((color?.g || 0) << 8) | (color?.b || 0);
+  public toHex(value: number): string {
+    return '#' + (value & 0xffffff).toString(16).padStart(6, '0');
+  }
+
+  public fromHex(hex: string): number {
+    return parseInt(hex.substring(1), 16);
   }
 
   ngOnDestroy(): void {

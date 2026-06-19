@@ -24,7 +24,6 @@
   cursor: pointer;
 }
 
-
 .item-wrapper {
   display: flex;
   flex-direction: column;
@@ -95,8 +94,8 @@
     .go-to-label {
       margin: 0 4px;
       font-size: 12px;
-      color: rgba(0,0,0,.54);
-      font-family: Roboto, "Helvetica Neue", sans-serif;
+      color: rgba(0, 0, 0, 0.54);
+      font-family: Roboto, 'Helvetica Neue', sans-serif;
     }
   }
 }

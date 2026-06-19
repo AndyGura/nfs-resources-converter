@@ -5,7 +5,6 @@ from library.read_blocks import (CompoundBlock,
                                  ArrayBlock,
                                  DataBlock,
                                  DelegateBlock,
-                                 SkipBlock,
                                  Padding,
                                  EnumLookupDelegateBlock,
                                  LengthPrefixedArrayBlock,
@@ -29,13 +28,10 @@ def render_value_doc_str(value: str) -> str:
 def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
     schema = instance.schema
     if isinstance(instance, DelegateBlock):
-        # cleanup: remove SkipBlock and blocks which should be referenced by link but do not exist in documentation
-        # for this game. For instance SHPI archive in NFS2 has greater variety of possible image resources than TNFS
         possible_blocks = [x for x in instance.possible_blocks
-                           if not isinstance(x, SkipBlock) and (
-                                   not possible_blocks_filter
-                                   or x.__class__ in possible_blocks_filter
-                                   or (not isinstance(x, CompoundBlock) or x.schema["inline_description"]))]
+                           if (not possible_blocks_filter
+                               or x.__class__ in possible_blocks_filter
+                               or (not isinstance(x, CompoundBlock) or x.schema["inline_description"]))]
         if isinstance(instance, EnumLookupDelegateBlock):
             description = f'Type according to enum `{instance.enum_field}`:<br/>'
         else:

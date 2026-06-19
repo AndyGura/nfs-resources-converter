@@ -1,8 +1,8 @@
-import { Injectable, NgZone } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { BehaviorSubject } from 'rxjs';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
-import { ErrorDialogComponent } from '../components/error.dialog/error.dialog.component';
+import { BehaviorSubject, Subject } from 'rxjs';
+import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
+import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 
 // These types are used by consumers of this service
 export type GeneralConfig = {
@@ -29,58 +29,57 @@ export type ConversionConfig = {
   geometry__export_to_gg_web_engine: boolean;
 };
 
-@Injectable({
-  providedIn: 'root',
-})
-export class EelDelegateService {
+export abstract class BaseApiDelegateService {
   private _implPromise: Promise<any> | null = null;
-  private _impl: any = null;
+  protected _impl: any = null;
 
   public readonly openedResource$: BehaviorSubject<Resource | ResourceError | null> = new BehaviorSubject<
     Resource | ResourceError | null
   >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-  public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject<[number, number]>([0, 0]);
+  public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject<[number, number]>([
+    0, 0,
+  ]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
+  public readonly onAppendChanges$: Subject<ChangeEntry[]> = new Subject<ChangeEntry[]>();
+  public readonly onFileOpened$: Subject<void> = new Subject<void>();
 
-  public changedDataBlocks: { [key: string]: any } = {};
+  protected constructor(protected readonly dialog: MatDialog) {}
 
-  constructor(private readonly ngZone: NgZone, private readonly dialog: MatDialog) {
-    this.initImpl().then();
-  }
-
-  private async initImpl() {
-    if (!this._implPromise) {
-      this._implPromise = import(/* webpackChunkName: "eel" */ './eel-delegate-impl/eel-delegate-impl.service').then(
-        m => {
-          this._impl = new m.EelDelegateImplService(this.ngZone);
-          // Sync subjects from impl to this wrapper
-          this._impl.openedResource$.subscribe((v: any) => {
-            if (this.openedResource$.getValue() !== v) this.openedResource$.next(v);
-          });
-          this._impl.openedResourcePath$.subscribe((v: any) => {
-            if (this.openedResourcePath$.getValue() !== v) this.openedResourcePath$.next(v);
-          });
-          this._impl.recentFiles$.subscribe((v: any) => {
-            if (this.recentFiles$.getValue() !== v) this.recentFiles$.next(v);
-          });
-          this._impl.conversionProgress$.subscribe((v: any) => {
-            if (this.conversionProgress$.getValue() !== v) this.conversionProgress$.next(v);
-          });
-          this._impl.version$.subscribe((v: any) => {
-            if (this.version$.getValue() !== v) this.version$.next(v);
-          });
-          return this._impl;
-        },
-      );
-    }
-    return this._implPromise;
-  }
+  protected abstract initImpl(): Promise<any>;
 
   private async getImpl() {
     if (this._impl) return this._impl;
-    return await this.initImpl();
+    if (!this._implPromise) {
+      this._implPromise = this.initImpl();
+      this._implPromise.then(impl => {
+        this._impl = impl;
+        this._implPromise = null;
+        this._impl.openedResource$.subscribe((v: any) => {
+          if (this.openedResource$.getValue() !== v) this.openedResource$.next(v);
+        });
+        this._impl.openedResourcePath$.subscribe((v: any) => {
+          if (this.openedResourcePath$.getValue() !== v) this.openedResourcePath$.next(v);
+        });
+        this._impl.recentFiles$.subscribe((v: any) => {
+          if (this.recentFiles$.getValue() !== v) this.recentFiles$.next(v);
+        });
+        this._impl.conversionProgress$.subscribe((v: any) => {
+          if (this.conversionProgress$.getValue() !== v) this.conversionProgress$.next(v);
+        });
+        this._impl.version$.subscribe((v: any) => {
+          if (this.version$.getValue() !== v) this.version$.next(v);
+        });
+        this._impl.onAppendChanges$.subscribe((v: any) => {
+          this.onAppendChanges$.next(v);
+        });
+        this._impl.onFileOpened$.subscribe(() => {
+          this.onFileOpened$.next();
+        });
+      });
+    }
+    return this._implPromise;
   }
 
   private async runSafe<T>(func: () => Promise<T>): Promise<T> {
@@ -143,20 +142,23 @@ export class EelDelegateService {
     return this.runSafe(async () => (await this.getImpl()).getNewItemData(id));
   }
 
-  public async saveFile(changes: { id: string; value: any }[]): Promise<void> {
-    return this.runSafe(async () => (await this.getImpl()).saveFile(changes));
+  public async saveFile(): Promise<void> {
+    return this.runSafe(async () => (await this.getImpl()).saveFile());
   }
 
-  public async serializeResource(blockId: string, path: string | null = null, settingsPatch: any = {}): Promise<string[]> {
-    let changes = Object.entries(this.changedDataBlocks)
-      .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
-      .map(([id, value]) => {
-        return { id, value };
-      });
-    return this.runSafe(async () => (await this.getImpl()).serializeResource(blockId, path, changes, settingsPatch));
+  public async serializeResource(
+    blockId: string,
+    path: string | null = null,
+    settingsPatch: any = {},
+  ): Promise<string[]> {
+    return this.runSafe(async () => (await this.getImpl()).serializeResource(blockId, path, settingsPatch));
   }
 
-  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<BlockData | ReadError> {
+  public async deserializeResource(
+    id: string,
+    filePaths: string[],
+    extraOpts: any = {},
+  ): Promise<BlockData | ReadError> {
     return this.runSafe(async () => (await this.getImpl()).deserializeResource(id, filePaths, extraOpts));
   }
 
@@ -192,11 +194,19 @@ export class EelDelegateService {
     return this.runSafe(async () => (await this.getImpl()).convertFiles(inputPath, outputPath, settings));
   }
 
-  public async startFile(path: string): Promise<{ success: boolean; error?: string }> {
-    return this.runSafe(async () => (await this.getImpl()).startFile(path));
-  }
-
   public async closeFile(): Promise<{ success: boolean; message: string }> {
     return this.runSafe(async () => (await this.getImpl()).closeFile());
+  }
+
+  public async getRevisions(): Promise<[number, number]> {
+    return this.runSafe(async () => (await this.getImpl()).getRevisions());
+  }
+
+  public async getChanges(): Promise<ChangeEntry[]> {
+    return this.runSafe(async () => (await this.getImpl()).getChanges());
+  }
+
+  public async onFeUpdate(updateDict: ChangesFeUpdate): Promise<void> {
+    return this.runSafe(async () => (await this.getImpl()).onFeUpdate(updateDict));
   }
 }

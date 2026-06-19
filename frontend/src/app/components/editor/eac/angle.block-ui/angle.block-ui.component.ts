@@ -3,30 +3,20 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  EventEmitter,
   HostListener,
-  Input,
-  Output,
   ViewChild,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
-import { Resource } from '../../types';
-import { MainService } from '../../../../services/main.service';
+import { PrimitiveGuiComponent } from '../../gui.component';
 
 @Component({
   selector: 'app-angle-block-ui',
   templateUrl: './angle.block-ui.component.html',
   styleUrls: ['./angle.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class AngleBlockUiComponent implements GuiComponentInterface {
-  @Input() resource: Resource | null = null;
-
-  @Input()
-  resourceDescription: string = '';
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
+// FIXME outputs change on each mouse move, should emit on mouseup
+export class AngleBlockUiComponent extends PrimitiveGuiComponent<number> {
   pi = Math.PI;
 
   dragging = false;
@@ -35,6 +25,7 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
 
   @HostListener('mousedown', ['$event'])
   mousedown(event: MouseEvent) {
+    if (this.disabled) return;
     this.dragging = true;
     this.updateRotation(event);
     this.onFocus();
@@ -43,7 +34,12 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
   @HostListener('mousemove', ['$event'])
   mousemove(event: MouseEvent) {
     if (this.dragging) {
-      this.updateRotation(event);
+      if (this.disabled) {
+        this.dragging = false;
+        this.onBlur();
+      } else {
+        this.updateRotation(event);
+      }
     }
   }
 
@@ -59,7 +55,9 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     this.onBlur();
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef, private mainService: MainService) {}
+  constructor(readonly cdr: ChangeDetectorRef) {
+    super();
+  }
 
   private updateRotation(mouseEvent: MouseEvent) {
     const rect = this.picker!.nativeElement.getBoundingClientRect();
@@ -70,20 +68,7 @@ export class AngleBlockUiComponent implements GuiComponentInterface {
     if (mouseEvent.shiftKey) {
       newAngle = (Math.round((newAngle * 180) / Math.PI / 15) * 15 * Math.PI) / 180;
     }
-    this.resource!.data = newAngle;
-    this.changed.emit();
+    this.onValueSet(newAngle);
     this.cdr.markForCheck();
-  }
-
-  onFocus() {
-    if (this.resource) {
-      this.mainService.focusedResourceId$.next(this.resource.id);
-    }
-  }
-
-  onBlur() {
-    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
-      this.mainService.focusedResourceId$.next(null);
-    }
   }
 }

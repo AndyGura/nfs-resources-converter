@@ -11,6 +11,7 @@ import eel
 
 from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
+from library.changes_service import ChangesService
 from library.loader import clear_file_cache
 from library.utils import path_join
 from library.utils.file_utils import start_file
@@ -52,7 +53,7 @@ class FileAPI:
         Opens the initial file if one was specified.
         """
         if self.api.initial_file_path:
-            eel.open_file(self.api.initial_file_path)
+            eel.open_arg_file(self.api.initial_file_path)
 
     def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
@@ -184,19 +185,14 @@ class FileAPI:
             }
             self.current_file_name = path
             self.current_file_block = None
+        finally:
+            ChangesService.clear()
 
         return {
             'name': self.current_file_name,
             'schema': self.current_file_block.schema if self.current_file_block else None,
             'data': self.render_data(self.current_file_data)
         }
-
-    def start_file(self, path: str) -> Dict[str, Any]:
-        try:
-            start_file(path)
-            return {"success": True}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
 
     def open_file_with_system_app(self, path: str):
         if os.path.isabs(path):
@@ -219,26 +215,24 @@ class FileAPI:
             self.current_file_name = None
             self.current_file_data = None
             self.current_file_block = None
+            ChangesService.clear()
             return {"success": True, "message": f"File {file_name} closed and removed from cache"}
         else:
             return {"success": False, "message": "No file is currently open"}
 
-    def save_file(self, path: str, changes: Dict) -> Dict:
+    def save_file(self, path: str) -> Dict:
         """
         Save changes to a file.
 
         Args:
             path: Path to the file
-            changes: Changes to apply
 
         Returns:
             Updated file data
         """
-        from api.utils import apply_delta_to_resource
-
-        apply_delta_to_resource(self.current_file_name, self.current_file_data, changes)
         bts = self.current_file_block.pack(self.current_file_data)
         with open(path, 'wb') as file:
             file.write(bts)
+        ChangesService.on_file_saved()
         clear_file_cache(path)
         return self.render_data(self.current_file_data)

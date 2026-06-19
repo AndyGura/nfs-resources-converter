@@ -76,7 +76,10 @@ export class Nfs2CarMeshController {
     return this.wheels.length > 0;
   }
 
-  constructor(private readonly mesh: Object3D, private readonly assetsPath: string) {
+  constructor(
+    private readonly mesh: Object3D,
+    private readonly assetsPath: string,
+  ) {
     let textures: Set<Texture> = new Set();
     mesh.traverse(o => {
       if (!(o instanceof Mesh)) {

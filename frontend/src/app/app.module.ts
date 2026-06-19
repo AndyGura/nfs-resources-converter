@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { EelDelegateService } from './services/eel-delegate.service';
+import { ApiDelegateService } from './services/api/api-delegate.service';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatDividerModule } from '@angular/material/divider';
@@ -14,12 +14,10 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NgxDeepEqualsPureService } from 'ngx-deep-equals-pure';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 import { ErrorDialogComponent } from './components/error.dialog/error.dialog.component';
-import { MAT_COLOR_FORMATS, NGX_MAT_COLOR_FORMATS } from '@angular-material-components/color-picker';
 import { NavigationBarComponent } from './components/navigation-bar/navigation-bar.component';
 import { EditorModule } from './components/editor/editor.module';
 import { NavigationBarModule } from './components/navigation-bar/navigation-bar.module';
@@ -33,7 +31,13 @@ import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
 
 @NgModule({
-  declarations: [AppComponent, ConfirmDialogComponent, RunCustomActionDialogComponent, ErrorDialogComponent, LandingPageComponent],
+  declarations: [
+    AppComponent,
+    ConfirmDialogComponent,
+    RunCustomActionDialogComponent,
+    ErrorDialogComponent,
+    LandingPageComponent,
+  ],
   imports: [
     CommonModule,
     BrowserModule,
@@ -60,11 +64,7 @@ import { ConfigComponent } from './components/config/config.component';
     ConverterComponent,
     ConfigComponent,
   ],
-  providers: [
-    EelDelegateService,
-    NgxDeepEqualsPureService,
-    { provide: MAT_COLOR_FORMATS, useValue: NGX_MAT_COLOR_FORMATS },
-  ],
+  providers: [ApiDelegateService],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

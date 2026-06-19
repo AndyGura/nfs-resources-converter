@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { EelDelegateService } from '../../services/eel-delegate.service';
+import { ApiDelegateService } from '../../services/api/api-delegate.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,7 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   selector: 'app-config',
   templateUrl: './config.component.html',
   styleUrls: ['./config.component.scss'],
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -38,7 +38,7 @@ export class ConfigComponent implements OnInit {
   constructor(
     private formBuilder: FormBuilder,
     private dialogRef: MatDialogRef<ConfigComponent>,
-    private eelDelegate: EelDelegateService,
+    private api: ApiDelegateService,
     private snackBar: MatSnackBar,
   ) {
     this.configForm = this.formBuilder.group({
@@ -50,7 +50,7 @@ export class ConfigComponent implements OnInit {
   }
 
   async ngOnInit() {
-    const config = await this.eelDelegate.getGeneralConfig();
+    const config = await this.api.getGeneralConfig();
     this.configForm.patchValue(config);
   }
 
@@ -58,7 +58,7 @@ export class ConfigComponent implements OnInit {
     this.testingBlender = true;
     this.blenderTestResult = null;
     try {
-      this.blenderTestResult = await this.eelDelegate.testExecutable(this.configForm.get('blender_executable')?.value);
+      this.blenderTestResult = await this.api.testExecutable(this.configForm.get('blender_executable')?.value);
     } catch (error) {
       this.blenderTestResult = { success: false, message: 'Error testing Blender path' };
     } finally {
@@ -70,7 +70,7 @@ export class ConfigComponent implements OnInit {
     this.testingFFmpeg = true;
     this.ffmpegTestResult = null;
     try {
-      this.ffmpegTestResult = await this.eelDelegate.testExecutable(this.configForm.get('ffmpeg_executable')?.value);
+      this.ffmpegTestResult = await this.api.testExecutable(this.configForm.get('ffmpeg_executable')?.value);
     } catch (error) {
       this.ffmpegTestResult = { success: false, message: 'Error testing FFmpeg path' };
     } finally {
@@ -80,7 +80,7 @@ export class ConfigComponent implements OnInit {
 
   async saveConfig() {
     try {
-      await this.eelDelegate.patchGeneralConfig(this.configForm.value);
+      await this.api.patchGeneralConfig(this.configForm.value);
       this.snackBar.open('Configuration saved successfully', 'OK', { duration: 3000 });
       this.dialogRef.close();
     } catch (error) {

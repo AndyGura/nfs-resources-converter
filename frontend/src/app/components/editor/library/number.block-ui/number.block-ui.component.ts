@@ -1,36 +1,22 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
-import { Resource } from '../../types';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  DoCheck,
+  EventEmitter,
+  inject,
+  Input,
+  Output,
+} from '@angular/core';
+import { PrimitiveGuiComponent, GuiComponent } from '../../gui.component';
+import { BlockSchema } from '../../types';
 import { MainService } from '../../../../services/main.service';
+import { ChangesService } from '../../../../services/changes.service';
 
 @Component({
   selector: 'app-number-block-ui',
   templateUrl: './number.block-ui.component.html',
-  styleUrls: ['./number.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class NumberBlockUiComponent implements GuiComponentInterface {
-  @Input() resource: Resource | null = null;
-
-  @Input()
-  resourceDescription: string = '';
-
-  @Input()
-  disabled: boolean = false;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
-  constructor(private mainService: MainService) {}
-
-  onFocus() {
-    if (this.resource) {
-      this.mainService.focusedResourceId$.next(this.resource.id);
-    }
-  }
-
-  onBlur() {
-    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
-      this.mainService.focusedResourceId$.next(null);
-    }
-  }
-}
+export class NumberBlockUiComponent extends PrimitiveGuiComponent<number> {}

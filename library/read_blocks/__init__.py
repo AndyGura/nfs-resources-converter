@@ -6,7 +6,6 @@ from .array import (
 from .basic import (
     DataBlock,
     BytesBlock,
-    SkipBlock,
     Padding,
 )
 from .compound import (

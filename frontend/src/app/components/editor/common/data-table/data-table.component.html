@@ -1,166 +1,213 @@
 <div class="table-container">
   <table>
     <thead>
-    <tr *ngIf='hasSubFields'>
-      <th rowspan="2"> # </th>
-      <ng-container *ngFor='let f of columns'>
-        <th *ngIf='!f.subFields' rowspan="2" [matTooltip]="f.description || ''"> {{ f.key }} </th>
-        <th *ngIf='f.subFields' [attr.colspan]='f.subFields.length' [matTooltip]="f.description || ''"> {{ f.key }} </th>
-      </ng-container>
-    </tr>
-    <tr *ngIf='hasSubFields'>
-      <ng-container *ngFor='let f of columns'>
-        <ng-container *ngIf='f.subFields'>
-          <th *ngFor='let sf of f.subFields' [matTooltip]="sf.description || ''"> {{ sf.key }} </th>
-        </ng-container>
-      </ng-container>
-    </tr>
-
-    <tr *ngIf='!hasSubFields'>
-      <th> # </th>
-      <ng-container *ngIf='columns; else simpleHeader'>
-        <th *ngFor='let f of columns' [matTooltip]="f.description || ''"> {{ f.key }} </th>
-      </ng-container>
-      <ng-template #simpleHeader>
-        <th> Data </th>
-      </ng-template>
-    </tr>
+      @if (hasSubFields) {
+        <tr>
+          <th rowspan="2">#</th>
+          @for (f of columns; track f) {
+            @if (!f.subFields) {
+              <th rowspan="2" [matTooltip]="f.description || ''">{{ f.key }}</th>
+            }
+            @if (f.subFields) {
+              <th [attr.colspan]="f.subFields.length" [matTooltip]="f.description || ''">{{ f.key }}</th>
+            }
+          }
+        </tr>
+      }
+      @if (hasSubFields) {
+        <tr>
+          @for (f of columns; track f) {
+            @if (f.subFields) {
+              @for (sf of f.subFields; track sf) {
+                <th [matTooltip]="sf.description || ''">{{ sf.key }}</th>
+              }
+            }
+          }
+        </tr>
+      }
+      @if (!hasSubFields) {
+        <tr>
+          <th>#</th>
+          @if (columns) {
+            @for (f of columns; track f) {
+              <th [matTooltip]="f.description || ''">{{ f.key }}</th>
+            }
+          } @else {
+            <th>Data</th>
+          }
+        </tr>
+      }
     </thead>
     <tbody>
-    <tr *ngFor='let item of pagedData; let i = index; trackBy: trackByFn'>
-      <td class="index-cell" [class.editable]="!disabled">
-        <span class="index-number">{{ getGlobalIndex(i) }}</span>
-        <div class="item-actions" *ngIf="!disabled">
-          <button mat-icon-button
+      @for (item of pagedData; track trackByFn(i, item); let i = $index) {
+        <tr>
+          <td class="index-cell" [class.editable]="!disabled">
+            <span class="index-number">{{ getGlobalIndex(i) }}</span>
+            @if (!disabled) {
+              <div class="item-actions">
+                <button
+                  mat-icon-button
                   color="primary"
                   class="move-item-button"
                   [disabled]="getGlobalIndex(i) === 0"
                   (click)="moveItemUp.emit(getGlobalIndex(i))"
                   matTooltip="Move up">
-            <mat-icon>arrow_upward</mat-icon>
-          </button>
-          <button mat-icon-button
+                  <mat-icon>arrow_upward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
                   color="primary"
                   class="move-item-button"
-                  [disabled]="getGlobalIndex(i) === data.length - 1"
+                  [disabled]="getGlobalIndex(i) === (data?.length || 0) - 1"
                   (click)="moveItemDown.emit(getGlobalIndex(i))"
                   matTooltip="Move down">
-            <mat-icon>arrow_downward</mat-icon>
-          </button>
-          <button mat-icon-button
-                  color="warn"
-                  class="remove-item-button"
-                  *ngIf="enableArrayEditing"
-                  (click)="removeItem.emit(getGlobalIndex(i))"
-                  matTooltip="Remove item">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </div>
-      </td>
-      <ng-container *ngIf='columns; else simpleDataCell'>
-        <ng-container *ngFor='let f of columns'>
-          <td *ngIf='!f.subFields'>
-            <ng-container *ngTemplateOutlet='inputField; context: {
-                schema: f.schema,
-                value: isPrimitive ? item : item[f.key],
-                index: getGlobalIndex(i),
-                field: isPrimitive ? null : f.key,
-                subField: null,
-                readonly: f.readonly
-              }'></ng-container>
+                  <mat-icon>arrow_downward</mat-icon>
+                </button>
+                @if (enableArrayEditing) {
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    class="remove-item-button"
+                    (click)="removeItem.emit(getGlobalIndex(i))"
+                    matTooltip="Remove item">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            }
           </td>
-          <ng-container *ngIf='f.subFields'>
-            <td *ngFor='let sf of f.subFields'>
-              <ng-container *ngTemplateOutlet='inputField; context: {
-                  schema: sf.schema,
-                  value: item[f.key][sf.key],
-                  index: getGlobalIndex(i),
-                  field: f.key,
-                  subField: sf.key,
-                  readonly: sf.readonly
-                }'></ng-container>
+          @if (columns) {
+            @for (f of columns; track f) {
+              @if (!f.subFields) {
+                <td>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      inputField;
+                      context: {
+                        schema: f.schema,
+                        value: isPrimitive ? item : item[f.key],
+                        index: getGlobalIndex(i),
+                        field: isPrimitive ? null : f.key,
+                        subField: null,
+                        readonly: f.readonly,
+                      }
+                    "></ng-container>
+                </td>
+              }
+              @if (f.subFields) {
+                @for (sf of f.subFields; track sf) {
+                  <td>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        inputField;
+                        context: {
+                          schema: sf.schema,
+                          value: item[f.key][sf.key],
+                          index: getGlobalIndex(i),
+                          field: f.key,
+                          subField: sf.key,
+                          readonly: sf.readonly,
+                        }
+                      "></ng-container>
+                  </td>
+                }
+              }
+            }
+          } @else {
+            <td>
+              <ng-container
+                *ngTemplateOutlet="
+                  inputField;
+                  context: {
+                    schema: null,
+                    value: item,
+                    index: getGlobalIndex(i),
+                    field: null,
+                    subField: null,
+                    readonly: false,
+                  }
+                "></ng-container>
             </td>
-          </ng-container>
-        </ng-container>
-      </ng-container>
-      <ng-template #simpleDataCell>
-        <td>
-          <ng-container *ngTemplateOutlet='inputField; context: {
-              schema: columns && columns.length > 0 ? columns[0].schema : null,
-              value: item,
-              index: getGlobalIndex(i),
-              field: null,
-              subField: null,
-              readonly: false
-            }'></ng-container>
-        </td>
-      </ng-template>
-    </tr>
+          }
+        </tr>
+      }
     </tbody>
   </table>
 </div>
-<button mat-button
-        color="primary"
-        (click)="addItem.emit()"
-        *ngIf="!disabled && enableArrayEditing"
-        class="add-item-button">
-  <mat-icon>add</mat-icon>
-  Add Item
-</button>
+@if (!disabled && enableArrayEditing) {
+  <button mat-button color="primary" (click)="addItem.emit()" class="add-item-button">
+    <mat-icon>add</mat-icon>
+    Add Item
+  </button>
+}
 
-<ng-template #inputField let-schema='schema' let-value='value' let-index='index' let-field='field' let-subField='subField' let-readonly='readonly'>
-  <div class="compact-input" *ngIf="schema">
-    <ng-container *ngIf="schema.value_validator?.type === 'or'; else regularInput">
-      <select
-        [disabled]="disabled || readonly"
-        [ngModel]="value"
-        (focus)="onFocus(index, field, subField)"
-        (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
-        <option *ngFor="let v of schema.value_validator.possible_values" [value]="v">{{ v }}</option>
-      </select>
-    </ng-container>
-
-    <ng-template #regularInput>
-      <input *ngIf="isNumeric(schema.block_class_mro)"
-             type="number"
-             [max]="schema.max_value"
-             [min]="schema.min_value"
-             [step]="schema.value_interval"
-             [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
-             [ngModel]="value"
-             (focus)="onFocus(index, field, subField)"
-             (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)">
-
-      <input *ngIf="isString(schema.block_class_mro)"
-             type="text"
-             [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
-             [maxlength]="getMaxLength(schema)"
-             [minlength]="getMinLength(schema)"
-             [ngModel]="value"
-             (focus)="onFocus(index, field, subField)"
-             (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
-
-      <ng-container *ngIf="isEnum(schema.block_class_mro)">
-        <select *ngIf="isKnownEnumValue(schema, value); else unknownEnum"
-                [disabled]="disabled || readonly"
-                [ngModel]="value"
-                (focus)="onFocus(index, field, subField)"
-                (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
-          <option *ngFor="let enumValue of schema.enum_names"
-                  [value]="enumValue[1]">
-            {{enumValue[1]}}
-          </option>
+<ng-template
+  #inputField
+  let-schema="schema"
+  let-value="value"
+  let-index="index"
+  let-field="field"
+  let-subField="subField"
+  let-readonly="readonly">
+  @if (schema) {
+    <div class="compact-input">
+      @if (schema.value_validator?.type === 'or') {
+        <select
+          [disabled]="disabled || readonly"
+          [ngModel]="value"
+          (focus)="onFocus(index, field, subField)"
+          (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
+          @for (v of schema.value_validator.possible_values; track v) {
+            <option [value]="v">{{ v }}</option>
+          }
         </select>
-        <ng-template #unknownEnum>
-          <input type="number"
-                 [min]="0"
-                 [max]="(schema.length || 1) * 256 - 1"
-                 [disabled]="disabled || readonly"
-                 [ngModel]="value"
-                 (focus)="onFocus(index, field, subField)"
-                 (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)">
-        </ng-template>
-      </ng-container>
-    </ng-template>
-  </div>
+      } @else {
+        @if (isNumeric(schema.block_class_mro)) {
+          <input
+            type="number"
+            [max]="schema.max_value"
+            [min]="schema.min_value"
+            [step]="schema.value_interval"
+            [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
+            [ngModel]="value"
+            (focus)="onFocus(index, field, subField)"
+            (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
+        }
+        @if (isString(schema.block_class_mro)) {
+          <input
+            type="text"
+            [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
+            [maxlength]="getMaxLength(schema)"
+            [minlength]="getMinLength(schema)"
+            [ngModel]="value"
+            (focus)="onFocus(index, field, subField)"
+            (change)="onTableFieldChange(index, field, subField, $any($event.target).value)" />
+        }
+        @if (isEnum(schema.block_class_mro)) {
+          @if (isKnownEnumValue(schema, value)) {
+            <select
+              [disabled]="disabled || readonly"
+              [ngModel]="value"
+              (focus)="onFocus(index, field, subField)"
+              (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
+              @for (enumValue of schema.enum_names; track enumValue) {
+                <option [value]="enumValue[1]">
+                  {{ enumValue[1] }}
+                </option>
+              }
+            </select>
+          } @else {
+            <input
+              type="number"
+              [min]="0"
+              [max]="(schema.length || 1) * 256 - 1"
+              [disabled]="disabled || readonly"
+              [ngModel]="value"
+              (focus)="onFocus(index, field, subField)"
+              (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
+          }
+        }
+      }
+    </div>
+  }
 </ng-template>

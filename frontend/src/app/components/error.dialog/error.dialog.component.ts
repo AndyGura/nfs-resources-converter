@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 @Component({
@@ -6,17 +6,21 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
   template: `
     <h1 mat-dialog-title>Error</h1>
     <div mat-dialog-content>
-        <p>{{data.message}}</p>
+      <p>{{ data.message }}</p>
     </div>
     <div mat-dialog-actions>
-        <button mat-button (click)="dialogRef.close()" cdkFocusInitial>OK</button>
+      <button mat-button (click)="dialogRef.close()" cdkFocusInitial>OK</button>
     </div>
   `,
-  styles: [`
-    div[mat-dialog-content] {
-      min-width: 300px;
-    }
-  `]
+  styles: [
+    `
+      div[mat-dialog-content] {
+        min-width: 300px;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class ErrorDialogComponent {
   constructor(

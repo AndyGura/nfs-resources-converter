@@ -1,13 +1,17 @@
-<h2 [matTooltip]='resourceDescription'
-    id='title'
-    (click)='navigation.navigateToId(resource!.id)'
-    matTooltipPosition='above'>{{ name }}</h2>
-
-<ng-container *ngIf="isTable; else standardViewExpansion">
+@if (resourceId && !hideName) {
+  <h2
+    [matTooltip]="resourceDescription || ''"
+    id="title"
+    (click)="navigation.navigateToId(resourceId)"
+    matTooltipPosition="above">
+    {{ resourceName }}
+  </h2>
+}
+@if (isTable) {
   <data-table
-    [data]="resourceData"
+    [data]="resourceData!"
     [columns]="arrayTableColumns"
-    [disabled]="disabled"
+    [disabled]="!!disabled"
     [enableArrayEditing]="enableArrayEditing"
     [pageIndex]="pageIndex"
     [pageSize]="pageSize"
@@ -17,102 +21,114 @@
     (moveItemDown)="moveItemDown($event)"
     (dataChanged)="onTableDataChanged($event)"
     (focusedElement)="onFocusedElement($event)"
-    (blur)="onBlur()"
-  ></data-table>
-  <ng-template [ngTemplateOutlet]='paginator'></ng-template>
-</ng-container>
-
-<ng-template #standardViewExpansion>
-  <mat-expansion-panel
-    (opened)='onContentsTrigger(true)'
-    (closed)='onContentsTrigger(false)'>
-    <mat-expansion-panel-header [matTooltip]='resourceDescription' matTooltipPosition='above'>
+    (blur)="onBlur()"></data-table>
+  <ng-template [ngTemplateOutlet]="paginator"></ng-template>
+} @else {
+  <mat-expansion-panel (opened)="onContentsTrigger(true)" (closed)="onContentsTrigger(false)">
+    <mat-expansion-panel-header [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
       <mat-panel-title>
-        {{ name }}
+        {{ resourceName }}
       </mat-panel-title>
-      <mat-panel-description *ngIf="(resourceData || []).length > 0">
-        Click to view items (<b>{{ (resourceData || []).length }}</b>)
-      </mat-panel-description>
-      <mat-panel-description *ngIf="(resourceData || []).length == 0">
-        Empty array
-      </mat-panel-description>
+      @if ((resourceData || []).length > 0) {
+        <mat-panel-description>
+          Click to view items (<b>{{ (resourceData || []).length }}</b
+          >)
+        </mat-panel-description>
+      }
+      @if ((resourceData || []).length == 0) {
+        <mat-panel-description> Empty array </mat-panel-description>
+      }
     </mat-expansion-panel-header>
-    <ng-container *ngIf='renderContents'>
-      <ng-template [ngTemplateOutlet]='paginator'></ng-template>
-
-      <ng-container *ngFor='let item of pagedData; let i = index; trackBy: trackByFn'>
+    @if (renderContents) {
+      <ng-template [ngTemplateOutlet]="paginator"></ng-template>
+      @for (item of pagedData; track trackByFn(i, item); let i = $index) {
         <div class="item-wrapper">
-          <div class="item-header" *ngIf="!disabled">
-            <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
-            <div class="item-actions">
-              <button mat-icon-button
-                      color="primary"
-                      [disabled]="pageIndex * pageSize + i === 0"
-                      (click)="moveItemUp(pageIndex * pageSize + i)"
-                      matTooltip="Move up">
-                <mat-icon>arrow_upward</mat-icon>
-              </button>
-              <button mat-icon-button
-                      color="primary"
-                      [disabled]="pageIndex * pageSize + i === resourceData.length - 1"
-                      (click)="moveItemDown(pageIndex * pageSize + i)"
-                      matTooltip="Move down">
-                <mat-icon>arrow_downward</mat-icon>
-              </button>
-              <button mat-icon-button
-                      color="warn"
-                      *ngIf="enableArrayEditing"
-                      (click)="removeItem(pageIndex * pageSize + i)"
-                      matTooltip="Remove item">
-                <mat-icon>delete</mat-icon>
-              </button>
+          @if (!disabled) {
+            <div class="item-header">
+              <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+              <div class="item-actions">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  [disabled]="pageIndex * pageSize + i === 0"
+                  (click)="moveItemUp(pageIndex * pageSize + i)"
+                  matTooltip="Move up">
+                  <mat-icon>arrow_upward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="primary"
+                  [disabled]="pageIndex * pageSize + i === resourceData!.length - 1"
+                  (click)="moveItemDown(pageIndex * pageSize + i)"
+                  matTooltip="Move down">
+                  <mat-icon>arrow_downward</mat-icon>
+                </button>
+                @if (enableArrayEditing) {
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="removeItem(pageIndex * pageSize + i)"
+                    matTooltip="Remove item">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
             </div>
-          </div>
-          <div class="item-header" *ngIf="disabled">
-            <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
-          </div>
-          <app-editor [resource]='children[pageIndex * pageSize + i]'
-                      [disabled]='disabled'></app-editor>
+          }
+          @if (disabled) {
+            <div class="item-header">
+              <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+            </div>
+          }
+          <app-editor
+            [resourceOrError]="{
+              id: joinId(resourceId!, pageIndex * pageSize + i),
+              name: (pageIndex * pageSize + i).toString(),
+              schema: resourceSchema!.child_schema,
+              data: resourceData![pageIndex * pageSize + i],
+            }"
+            [hideName]="true"
+            [disabled]="disabled"></app-editor>
         </div>
-      </ng-container>
-
-      <button mat-button
-              color="primary"
-              (click)="addItem()"
-              *ngIf="!disabled && enableArrayEditing"
-              class="add-item-button">
-        <mat-icon>add</mat-icon>
-        Add Item
-      </button>
-
-      <ng-template [ngTemplateOutlet]='paginator'></ng-template>
-      <p *ngIf='(resourceData || []).length == 0'>Empty array</p>
-    </ng-container>
+      }
+      @if (!disabled && enableArrayEditing) {
+        <button mat-button color="primary" (click)="addItem()" class="add-item-button">
+          <mat-icon>add</mat-icon>
+          Add Item
+        </button>
+      }
+      <ng-template [ngTemplateOutlet]="paginator"></ng-template>
+      @if ((resourceData || []).length == 0) {
+        <p>Empty array</p>
+      }
+    }
   </mat-expansion-panel>
-</ng-template>
+}
 
 <ng-template #paginator>
-  <div *ngIf='(resourceData || []).length > 0'
-       id='pagination-wrapper'
-       [ngClass]="{ 'hidden': (resourceData || []).length <= minPageSize }">
-    <mat-paginator [length]='(resourceData || []).length'
-                   [pageSize]='pageSize'
-                   [pageIndex]='pageIndex'
-                   [pageSizeOptions]='pageSizeOptions'
-                   [showFirstLastButtons]='true'
-                   (page)='renderPage($event.pageIndex, $event.pageSize)'
-                   aria-label='Select page'>
-    </mat-paginator>
-    <div class='go-to-container'>
-      <div class='go-to-label'>Go To:</div>
-      <mat-form-field>
-        <mat-select [(ngModel)]='goToIndex' (selectionChange)='renderPage(goToIndex, pageSize)'>
-          <mat-option *ngFor='let pageNumber of pageIndexes' [value]='pageNumber'>
-            {{ pageNumber * pageSize }} - {{ (pageNumber + 1) * pageSize - 1 }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
+  @if ((resourceData || []).length > 0) {
+    <div id="pagination-wrapper" [ngClass]="{ hidden: (resourceData || []).length <= minPageSize }">
+      <mat-paginator
+        [length]="(resourceData || []).length"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="pageSizeOptions"
+        [showFirstLastButtons]="true"
+        (page)="renderPage($event.pageIndex, $event.pageSize)"
+        aria-label="Select page">
+      </mat-paginator>
+      <div class="go-to-container">
+        <div class="go-to-label">Go To:</div>
+        <mat-form-field>
+          <mat-select [(ngModel)]="goToIndex" (selectionChange)="renderPage(goToIndex, pageSize)">
+            @for (pageNumber of pageIndexes; track pageNumber) {
+              <mat-option [value]="pageNumber">
+                {{ pageNumber * pageSize }} - {{ (pageNumber + 1) * pageSize - 1 }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
     </div>
-  </div>
+  }
 </ng-template>
-

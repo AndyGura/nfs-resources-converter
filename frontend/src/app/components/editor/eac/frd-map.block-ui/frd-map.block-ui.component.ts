@@ -4,13 +4,13 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  EventEmitter,
-  Input,
+  inject,
+  OnChanges,
   OnDestroy,
-  Output,
+  SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { GuiComponent } from '../../gui.component';
 import {
   createInlineTickController,
   Entity3d,
@@ -28,7 +28,6 @@ import {
   Renderer3dEntity,
 } from '@gg-web-engine/core';
 import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, takeUntil } from 'rxjs';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
 import {
   AmbientLight,
   CubeReflectionMapping,
@@ -40,14 +39,13 @@ import {
   Texture,
   TextureLoader,
 } from 'three';
-import { MainService } from '../../../../services/main.service';
 import {
   ThreeDisplayObjectComponent,
   ThreeGgWorld,
   ThreeSceneComponent,
   ThreeVisualTypeDocRepo,
 } from '@gg-web-engine/three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { Resource } from '../../types';
 import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
@@ -114,7 +112,7 @@ export class Nfs3MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
   ): Promise<[Entity3d<TypeDocOf<ThreeGgWorld>>[], LoadResultWithProps<TypeDocOf<ThreeGgWorld>>]> {
     const object = await this.objLoader.loadAsync(node.path + '.obj');
     object.position.set(node.position.x, node.position.y, node.position.z);
-    object.traverse(node => {
+    object.traverse((node: any) => {
       if (node instanceof Mesh) {
         node.material = this.getTerrainMaterial(
           (node.userData['name'] || node.name)
@@ -177,23 +175,11 @@ export class Nfs3MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
   templateUrl: './frd-map.block-ui.component.html',
   styleUrls: ['./frd-map.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
+export class FrdMapBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('previewCanvasContainer') previewCanvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
-
-  get resource(): Resource | null {
-    return this._resource$.getValue();
-  }
-
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource$.next(value);
-  }
-
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
   previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   previewQfsLocation$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
@@ -221,12 +207,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(
-    private readonly eelDelegate: EelDelegateService,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly mainService: MainService,
-  ) {
-  }
+  readonly cdr = inject(ChangeDetectorRef);
 
   async ngAfterViewInit() {
     this.world = new Gg3dWorld({ visualScene: new ThreeSceneComponent() });
@@ -300,45 +281,22 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     new ResizeObserver(updateSize).observe(this.previewCanvasContainer.nativeElement);
     updateSize();
     this.world.start();
-
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
-      this.roadPath = this.resource?.data.blocks.map((b: any) => ({
-        x: b.position.x,
-        y: b.position.z,
-        z: b.position.y,
-      }));
-      this.previewLoading$.next(true);
-      if (res) {
-        this.previewQfsLocation$.next(res.id.substring(0, res.id.indexOf('.FRD')) + '0.QFS');
-        await this.loadTerrainChunks(res.id);
-        await this.onQfsSelected(this.previewQfsLocation$.value!);
-      } else {
-        await this.loadTerrainChunks();
-        await this.loadPreview();
-      }
-      this.previewLoading$.next(false);
-    });
-    this.mainService.dataBlockChange$
+    this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
         debounceTime(3000),
       )
       .subscribe(async () => {
-        this.roadPath = this.resource?.data.data.blocks.map((b: any) => ({
-          x: b.position.x,
-          y: b.position.z,
-          z: b.position.y,
-        }));
         this.previewLoading$.next(true);
-        await this.postTmpUpdates(this.resource?.id);
+        await this.loadTerrainChunks(this.resourceId);
         await this.loadPreview();
         this.previewLoading$.next(false);
       });
 
     this.selectedSplineIndex$.pipe(takeUntil(this.destroyed$), debounceTime(250)).subscribe(i => {
-      if (this.resource) {
-        let point = this.resource.data.blocks[i].position;
+      if (this.resourceId && this.resourceData) {
+        let point = this.resourceData.blocks[i].position;
         if (!point) {
           return;
         }
@@ -363,7 +321,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
     this.previewQfsLoading$.next(true);
     try {
-      const files = await this.eelDelegate.serializeResource(path);
+      const files = await this.mainService.api.serializeResource(path);
       const loader = new TextureLoader();
       const skyPath = files.find(x => x.endsWith('spherical.png'));
       if (skyPath) {
@@ -388,7 +346,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
 
   private async loadTerrainChunks(blockId?: string) {
     if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, null, {
+      const paths = await this.mainService.api.serializeResource(blockId, null, {
         geometry__save_obj: true,
         geometry__save_blend: false,
         geometry__export_to_gg_web_engine: false,
@@ -413,6 +371,7 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
   }
 
   private async loadPreview() {
+    if (!this.resourceData) return;
     if (!this.terrainChunksObjLocation || !this.roadPath) {
       return;
     }
@@ -430,7 +389,12 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
       this.qfsPath && 'resources/' + this.qfsPath,
       this.mainService.hideHiddenFields$,
     );
-    this.map.resource = this.resource;
+    this.map.resource = {
+      id: this.resourceId!,
+      name: this.resourceName!,
+      schema: this.resourceSchema,
+      data: this.resourceData,
+    };
     this.map.isOpenedTrack = false;
 
     createInlineTickController(this.world)
@@ -453,25 +417,26 @@ export class FrdMapBlockUiComponent implements GuiComponentInterface, AfterViewI
     }
   }
 
-  private async postTmpUpdates(blockId: string | undefined) {
-    if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(
-        blockId,
-        null,
-        {
-          geometry__save_obj: true,
-          geometry__save_blend: false,
-          geometry__export_to_gg_web_engine: false,
-          maps__save_as_chunked: true,
-          maps__save_invisible_wall_collisions: false,
-          maps__save_terrain_collisions: false,
-          maps__save_spherical_skybox_texture: true,
-          maps__add_props_to_obj: false,
-        },
-      );
-      this.terrainChunksObjLocation = paths[0].substring(0, paths[0].indexOf('terrain_chunk_'));
-    } else {
-      this.terrainChunksObjLocation = undefined;
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
+      this.roadPath = this.resourceData?.blocks.map((b: any) => ({
+        x: b.position.x,
+        y: b.position.z,
+        z: b.position.y,
+      }));
+      this.previewLoading$.next(true);
+      if (this.resourceId) {
+        this.previewQfsLocation$.next(this.resourceId.substring(0, this.resourceId.indexOf('.FRD')) + '0.QFS');
+        this.loadTerrainChunks(this.resourceId).then(async () => {
+          await this.onQfsSelected(this.previewQfsLocation$.value!);
+          this.previewLoading$.next(false);
+        });
+      } else {
+        this.loadTerrainChunks().then(async () => {
+          await this.loadPreview();
+          this.previewLoading$.next(false);
+        });
+      }
     }
   }
 

@@ -6,7 +6,6 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  EnumByteBlock,
                                  DelegateBlock,
-                                 SkipBlock,
                                  LengthPrefixedArrayBlock, DecimalBlock, FixedPointBlock)
 from library.read_blocks.misc.value_validators import Eq
 from resources.eac.fields.misc import Point3D
@@ -121,7 +120,7 @@ class FrdPolygonsBlock(DeclarativeCompoundBlock):
               {'is_unknown': True})
         data = (DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
                                                                         child=FrdPolygonRecord()),
-                                               SkipBlock()],
+                                               BytesBlock(length=0)],
                               choice_index=lambda ctx, **_: (
                                   0 if ctx.data('sz') != 0
                                   else 1)),
@@ -134,7 +133,7 @@ class FrdPolyObjPolygonsBlock(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         data = (DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4),
                                                                         child=FrdPolygonRecord()),
-                                               SkipBlock()],
+                                               BytesBlock(length=0)],
                               choice_index=lambda ctx, **_: (
                                   0 if ctx.data('type') == 1
                                   else 1)),
@@ -147,7 +146,7 @@ class FrdPolyObjBlock(DeclarativeCompoundBlock):
               {'is_unknown': True})
         data = (DelegateBlock(possible_blocks=[LengthPrefixedArrayBlock(child=FrdPolyObjPolygonsBlock(),
                                                                         length_block=IntegerBlock(length=4)),
-                                               SkipBlock()],
+                                               BytesBlock(length=0)],
                               choice_index=lambda ctx, **_: (0 if ctx.data('sz') > 0 else 1)),
                 {'description': 'This data is presented only if sz > 0'})
 
