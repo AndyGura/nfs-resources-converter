@@ -1,56 +1,71 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { ChangeDetectionStrategy, Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
 import { BehaviorSubject } from 'rxjs';
-import { Resource } from '../../types';
-import { MainService } from '../../../../services/main.service';
+import { HexEditorDeltaChange } from 'ngx-hex-editor';
 
 @Component({
   selector: 'app-binary-block-ui',
   templateUrl: './binary.block-ui.component.html',
   styleUrls: ['./binary.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class BinaryBlockUiComponent implements GuiComponentInterface {
+export class BinaryBlockUiComponent extends SubscribableGuiComponent<number[]> {
   @ViewChild('editor') editorDiv?: ElementRef<HTMLDivElement>;
 
-  private _resource: Resource | null = null;
-  get resource(): Resource | null {
-    return this._resource;
+  override get resourceData(): number[] | undefined {
+    return super.resourceData;
   }
 
   @Input()
-  set resource(value: Resource | null) {
-    this._resource = value;
-    this.data$.next(new Uint8Array(value ? value.data : 0));
+  override set resourceData(value: number[] | undefined) {
+    super.resourceData = value;
+    if (value) {
+      this.data$.next(new Uint8Array(value));
+    } else {
+      this.data$.next(this.empty);
+    }
   }
 
   empty: Uint8Array = new Uint8Array();
 
-  data$: BehaviorSubject<Uint8Array> = new BehaviorSubject(new Uint8Array());
+  data$: BehaviorSubject<any> = new BehaviorSubject(new Uint8Array());
 
-  @Input()
-  resourceDescription: string = '';
-
-  @Input() disabled: boolean = false;
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
-  constructor(private mainService: MainService) {}
-
-  onDataChange(arr: Uint8Array) {
-    this._resource!.data = Array.from(arr);
-    this.changed.emit();
+  override onExternalChanges() {
+    this.data$.next(new Uint8Array(super.resourceData!));
   }
 
-  onFocus() {
-    if (this.resource) {
-      this.mainService.focusedResourceId$.next(this.resource.id);
+  onDataChange(event: HexEditorDeltaChange) {
+    let oldPart: number[] = [];
+    let newPart: number[] = [];
+    let index = event.index;
+    switch (event.type) {
+      case 'update':
+        oldPart = [this.resourceData![event.index]];
+        newPart = [event.data![0]];
+        break;
+      case 'insert':
+        oldPart = [];
+        if (index > this.resourceData!.length) {
+          newPart = new Array(index - this.resourceData!.length).fill(0);
+          newPart.push(event.data![0]);
+          index = this.resourceData!.length;
+        } else {
+          newPart = [event.data![0]];
+        }
+        break;
+      case 'delete':
+        oldPart = Array.from(this.resourceData!.slice(event.index, event.index + event.count!));
+        newPart = [];
+        break;
+      default:
+        throw new Error('Unsupported hex editor event type ' + event.type);
     }
-  }
-
-  onBlur() {
-    if (this.mainService.focusedResourceId$.getValue() === this.resource?.id) {
-      this.mainService.focusedResourceId$.next(null);
-    }
+    this.emitNewChange({
+      op: 'binary_delta',
+      index,
+      oldPart,
+      newPart,
+    });
   }
 }

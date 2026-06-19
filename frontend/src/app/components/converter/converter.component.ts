@@ -12,7 +12,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { EelDelegateService } from '../../services/eel-delegate.service';
+import { ApiDelegateService } from '../../services/api/api-delegate.service';
 import { ConfigComponent } from '../config/config.component';
 import { firstValueFrom } from 'rxjs';
 
@@ -23,7 +23,6 @@ declare const eel: any;
   templateUrl: './converter.component.html',
   styleUrls: ['./converter.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -50,7 +49,7 @@ export class ConverterComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    public eelDelegate: EelDelegateService,
+    public api: ApiDelegateService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
@@ -82,7 +81,7 @@ export class ConverterComponent implements OnInit {
     this.cdr.markForCheck();
 
     try {
-      const result = await this.eelDelegate.testExecutable(this.blenderExecutablePath);
+      const result = await this.api.testExecutable(this.blenderExecutablePath);
       this.isBlenderWorking = result.success;
 
       // If Blender is not working, disable the related options
@@ -117,8 +116,8 @@ export class ConverterComponent implements OnInit {
 
   async loadConfig(): Promise<void> {
     try {
-      const generalConfig = await this.eelDelegate.getGeneralConfig();
-      const conversionConfig = await this.eelDelegate.getConversionConfig();
+      const generalConfig = await this.api.getGeneralConfig();
+      const conversionConfig = await this.api.getConversionConfig();
       this.blenderExecutablePath = generalConfig.blender_executable;
       this.converterForm.patchValue(conversionConfig);
       this.configLoaded = true;
@@ -130,7 +129,7 @@ export class ConverterComponent implements OnInit {
   }
 
   async selectInputDirectory(): Promise<void> {
-    const directory = await this.eelDelegate.selectDirectoryDialog();
+    const directory = await this.api.selectDirectoryDialog();
     if (directory) {
       this.converterForm.get('input_path')?.setValue(directory);
       this.cdr.markForCheck();
@@ -138,7 +137,7 @@ export class ConverterComponent implements OnInit {
   }
 
   async selectOutputDirectory(): Promise<void> {
-    const directory = await this.eelDelegate.selectDirectoryDialog();
+    const directory = await this.api.selectDirectoryDialog();
     if (directory) {
       this.converterForm.get('output_path')?.setValue(directory);
       this.cdr.markForCheck();
@@ -147,7 +146,7 @@ export class ConverterComponent implements OnInit {
 
   async openOutputDirectory(): Promise<void> {
     if (this.outputPath) {
-      const result = await this.eelDelegate.startFile(this.outputPath);
+      const result = await this.api.openFileWithSystemApp(this.outputPath);
       if (!result.success) {
         this.snackBar.open(`Failed to open directory: ${result.error}`, 'OK', { duration: 5000 });
       }
@@ -158,13 +157,13 @@ export class ConverterComponent implements OnInit {
     if (this.converterForm.invalid) {
       return;
     }
-    let conversionConfig = await this.eelDelegate.patchConversionConfig(this.converterForm.value);
+    let conversionConfig = await this.api.patchConversionConfig(this.converterForm.value);
     this.isConverting = true;
     this.converterForm.disable();
-    this.eelDelegate.conversionProgress$.next([0, 0]);
+    this.api.conversionProgress$.next([0, 0]);
     this.cdr.markForCheck();
     try {
-      const result = await this.eelDelegate.convertFiles(
+      const result = await this.api.convertFiles(
         conversionConfig.input_path,
         conversionConfig.output_path,
         this.converterForm.value,

@@ -3,65 +3,47 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  EventEmitter,
-  Input,
+  inject,
+  OnChanges,
   OnDestroy,
-  Output,
+  SimpleChanges,
 } from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
-import { MainService } from '../../../../services/main.service';
 import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
 import { Nfs2CarMeshController } from './nfs2-car-mesh-controller';
-import { Resource } from '../../types';
 
 @Component({
   selector: 'app-geo-geometry.block-ui',
   templateUrl: './geo-geometry.block-ui.component.html',
-  styleUrls: ['./geo-geometry.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class GeoGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  get resource(): Resource | null {
-    return this._resource$.getValue();
-  }
-
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource$.next(value);
-  }
-
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
+export class GeoGeometryBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   customControls: ObjViewerCustomControl[] = [];
 
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
+  readonly cdr = inject(ChangeDetectorRef);
+
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(
-    private readonly eelDelegate: EelDelegateService,
-    public readonly main: MainService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
+      this.loadPreview().then();
+    }
+  }
 
   async ngAfterViewInit() {
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
-      this.previewPaths$.next(await this.loadPreviewFilePaths(res?.id));
-    });
-    this.main.dataBlockChange$
+    this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
-        debounceTime(1500),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
+        debounceTime(150),
       )
       .subscribe(async () => {
-        this.previewPaths$.next(null);
-        this.previewPaths$.next(await this.postTmpUpdates(this.resource?.id));
+        await this.loadPreview();
       });
   }
 
@@ -127,24 +109,12 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     geometry__export_to_gg_web_engine: false,
   };
 
-  private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(
-        blockId,
-        null,
-        this.serializerSettings,
-      );
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
+  private async loadPreview() {
+    this.previewPaths$.next(null);
+    if (this.resourceId) {
+      const paths = await this.mainService.api.serializeResource(this.resourceId, null, this.serializerSettings);
+      this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
-    return null;
-  }
-
-  private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, null, this.serializerSettings);
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
-    }
-    return null;
   }
 
   previewObjectGroupFunc(object: Object3D): string {
@@ -160,7 +130,7 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
     name: 'LOD',
     filterGroups: ['High-poly', 'Medium-poly', 'Low-poly', 'Reserved', 'Unknown'],
     checkedIndex: 0,
-    pickFunction: (object) => {
+    pickFunction: object => {
       if (object.name.startsWith('part_hp')) {
         return 0;
       } else if (object.name.startsWith('part_mp')) {
@@ -172,8 +142,8 @@ export class GeoGeometryBlockUiComponent implements GuiComponentInterface, After
       } else {
         return 4;
       }
-    }
-  }
+    },
+  };
 
   ngOnDestroy(): void {
     this.destroyed$.next();

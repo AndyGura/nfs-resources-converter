@@ -1,66 +1,38 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
-} from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { EelDelegateService } from '../../../../services/eel-delegate.service';
-import { MainService } from '../../../../services/main.service';
-import { Resource } from '../../types';
 import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 
 @Component({
   selector: 'app-crp-geometry-block-ui',
   templateUrl: './crp-geometry.block-ui.component.html',
-  styleUrls: ['./crp-geometry.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class CrpGeometryBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  get resource(): Resource | null {
-    return this._resource$.getValue();
-  }
-
-  @Input()
-  set resource(value: Resource | null) {
-    this._resource$.next(value);
-  }
-
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
-
-  @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
-
+export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   isTrack$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
-  constructor(
-    private readonly eelDelegate: EelDelegateService,
-    private readonly mainService: MainService,
-  ) {
-  }
-
   async ngAfterViewInit() {
-    this._resource$.pipe(takeUntil(this.destroyed$)).subscribe(async res => {
-      this.isTrack$.next(res?.data?.resource_id === 'karT');
-      this.previewPaths$.next(await this.loadPreviewFilePaths(res?.id));
-    });
-    this.mainService.dataBlockChange$
+    this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(([blockId, _]) => !!this.resource && blockId.startsWith(this.resource!.id)),
-        debounceTime(1500),
+        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
+        debounceTime(150),
       )
       .subscribe(async () => {
-        this.previewPaths$.next(null);
-        this.previewPaths$.next(await this.postTmpUpdates(this.resource?.id));
+        await this.loadPreview();
       });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
+      this.isTrack$.next(this.resourceData?.resource_id === 'karT');
+      this.loadPreview().then();
+    }
   }
 
   private serializerSettings = {
@@ -69,32 +41,30 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
     geometry__export_to_gg_web_engine: false,
   };
 
-  private async postTmpUpdates(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(
-        blockId,
-        null,
-        this.serializerSettings,
-      );
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
+  private async loadPreview() {
+    this.previewPaths$.next(null);
+    if (this.resourceId) {
+      const paths = await this.mainService.api.serializeResource(this.resourceId, null, this.serializerSettings);
+      this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
-    return null;
-  }
-
-  private async loadPreviewFilePaths(blockId: string | undefined): Promise<[string, string] | null> {
-    if (blockId) {
-      const paths = await this.eelDelegate.serializeResource(blockId, null, this.serializerSettings);
-      return [paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!];
-    }
-    return null;
   }
 
   public readonly previewViewFilters: ViewFilterOpts[] = [
     {
       name: 'LOD',
-      filterGroups: ['Uncategorized', 'Lod level 0', 'LOD level 1', 'LOD level 2', 'LOD level 3', 'LOD level 4', 'LOD level 5', 'LOD level 6', 'LOD level 7'],
+      filterGroups: [
+        'Uncategorized',
+        'Lod level 0',
+        'LOD level 1',
+        'LOD level 2',
+        'LOD level 3',
+        'LOD level 4',
+        'LOD level 5',
+        'LOD level 6',
+        'LOD level 7',
+      ],
       checkedIndex: 0,
-      pickFunction: (object) => {
+      pickFunction: object => {
         try {
           let lodIndex = /_LOD(\d+)_/gi.exec(object.name)![1];
           if (+lodIndex <= 7) {
@@ -108,7 +78,7 @@ export class CrpGeometryBlockUiComponent implements GuiComponentInterface, After
       name: 'Damage',
       filterGroups: ['Not damaged', 'Damaged'],
       checkedIndex: 0,
-      pickFunction: (object) => {
+      pickFunction: object => {
         return object.name.endsWith('_damaged') ? 1 : 0;
       },
     },

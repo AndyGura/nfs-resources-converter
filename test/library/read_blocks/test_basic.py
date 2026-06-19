@@ -1,5 +1,5 @@
 import unittest
-from library.read_blocks.basic import BytesBlock, SkipBlock
+from library.read_blocks.basic import BytesBlock
 
 class TestBasicBlocks(unittest.TestCase):
 
@@ -15,7 +15,3 @@ class TestBasicBlocks(unittest.TestCase):
         # Tuple length (doc override)
         field = BytesBlock(length=(lambda ctx: 5, "custom length"))
         self.assertEqual(field.size_doc_str, "custom length")
-
-    def test_skip_block_size_doc_str(self):
-        field = SkipBlock()
-        self.assertEqual(field.size_doc_str, "0")

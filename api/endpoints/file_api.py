@@ -5,12 +5,13 @@ This module handles all file-related operations.
 
 import os
 import traceback
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 import eel
 
 from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
+from library.changes_service import ChangesService
 from library.loader import clear_file_cache
 from library.utils import path_join
 from library.utils.file_utils import start_file
@@ -52,29 +53,20 @@ class FileAPI:
         Opens the initial file if one was specified.
         """
         if self.api.initial_file_path:
-            eel.open_file(self.api.initial_file_path)
+            eel.open_arg_file(self.api.initial_file_path)
 
-    def get_recent_files(self):
+    def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
-        Get the list of recently opened files.
+        Open a file dialog and return the selected file paths.
+
+        Args:
+            multiple: Whether to allow selecting multiple files
 
         Returns:
-            List of file paths
-        """
-        recent_files = general_config().recent_files
-        if not isinstance(recent_files, list):
-            return []
-        return recent_files
-
-    def open_file_dialog(self) -> Optional[str]:
-        """
-        Open a file dialog and return the selected file path.
-
-        Returns:
-            The selected file path or None if canceled
+            The list of selected file paths
         """
         from tkinter import Tk
-        from tkinter.filedialog import askopenfilename
+        from tkinter.filedialog import askopenfilename, askopenfilenames
         root = Tk()
         root.withdraw()
         root.update()
@@ -82,11 +74,17 @@ class FileAPI:
         root.lift()
         root.attributes('-topmost', True)
         root.after_idle(root.attributes, '-topmost', False)
-        filename = askopenfilename()
+        filenames = []
+        if multiple:
+            selection = askopenfilenames()
+            if selection:
+                filenames = list(selection)
+        else:
+            filename = askopenfilename()
+            if filename:
+                filenames = [filename]
         root.destroy()
-        if not filename:
-            return None
-        return filename
+        return filenames
 
     def save_file_dialog(self, file_name: Optional[str] = None) -> Optional[str]:
         """
@@ -187,19 +185,14 @@ class FileAPI:
             }
             self.current_file_name = path
             self.current_file_block = None
+        finally:
+            ChangesService.clear()
 
         return {
             'name': self.current_file_name,
             'schema': self.current_file_block.schema if self.current_file_block else None,
             'data': self.render_data(self.current_file_data)
         }
-
-    def start_file(self, path: str) -> Dict[str, Any]:
-        try:
-            start_file(path)
-            return {"success": True}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
 
     def open_file_with_system_app(self, path: str):
         if os.path.isabs(path):
@@ -222,26 +215,24 @@ class FileAPI:
             self.current_file_name = None
             self.current_file_data = None
             self.current_file_block = None
+            ChangesService.clear()
             return {"success": True, "message": f"File {file_name} closed and removed from cache"}
         else:
             return {"success": False, "message": "No file is currently open"}
 
-    def save_file(self, path: str, changes: Dict) -> Dict:
+    def save_file(self, path: str) -> Dict:
         """
         Save changes to a file.
 
         Args:
             path: Path to the file
-            changes: Changes to apply
 
         Returns:
             Updated file data
         """
-        from api.utils import apply_delta_to_resource
-
-        apply_delta_to_resource(self.current_file_name, self.current_file_data, changes)
         bts = self.current_file_block.pack(self.current_file_data)
         with open(path, 'wb') as file:
             file.write(bts)
+        ChangesService.on_file_saved()
         clear_file_cache(path)
         return self.render_data(self.current_file_data)

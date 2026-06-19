@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CustomAction } from '../editor/types';
@@ -6,12 +6,15 @@ import { CustomAction } from '../editor/types';
 export interface RunCustomActionDialogData {
   action: CustomAction;
   resourceName: string;
+  formPatch?: any;
 }
 
 @Component({
   selector: 'app-run-custom-action.dialog',
   templateUrl: './run-custom-action.dialog.component.html',
   styleUrls: ['./run-custom-action.dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class RunCustomActionDialogComponent {
   readonly argsForm: FormGroup;
@@ -23,6 +26,10 @@ export class RunCustomActionDialogComponent {
   ) {
     const formData: any = {};
     for (const arg of data.action.args) {
+      if (data.formPatch?.[arg.id]) {
+        formData[arg.id] = [data.formPatch[arg.id]];
+        continue;
+      }
       const validators = [Validators.required];
       if (arg.type === 'number') {
         validators.push(Validators.pattern(/^\d+(\.\d+)?$/)); // Allow integers and decimals
@@ -41,7 +48,7 @@ export class RunCustomActionDialogComponent {
   }
 
   submit() {
-    const result = this.argsForm.value;
+    const result = { ...(this.data.formPatch || {}), ...this.argsForm.value };
     for (const arg of this.data.action.args) {
       if (arg.type === 'number') {
         result[arg.id] = +result[arg.id];

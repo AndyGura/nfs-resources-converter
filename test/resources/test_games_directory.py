@@ -164,7 +164,8 @@ class TestGamesDirectory(unittest.TestCase):
                                 # Read the data again
                                 read_again_data = block.unpack(
                                     ReadContext(buffer=output_buffer, name=file_path, block=block,
-                                                read_bytes_amount=len(output)))
+                                                read_bytes_amount=len(output)),
+                                    read_bytes_amount=len(output))
 
                                 # Compare with original data (deep equal)
                                 if deep_equal(data, read_again_data):

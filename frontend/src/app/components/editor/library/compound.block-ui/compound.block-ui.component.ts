@@ -1,105 +1,86 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
-} from '@angular/core';
-import { GuiComponentInterface } from '../../gui-component.interface';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { SubscribableGuiComponent } from '../../gui.component';
 import { MainService } from '../../../../services/main.service';
-import { filter, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { NavigationService } from '../../../../services/navigation.service';
-import { idSuffix, joinId } from '../../../../utils/join-id';
-import { BlockData, BlockSchema, Resource } from '../../types';
+import { joinId } from '../../../../utils/join-id';
+import { BlockData, BlockSchema } from '../../types';
 
 @Component({
   selector: 'app-compound-block-ui',
   templateUrl: './compound.block-ui.component.html',
   styleUrls: ['./compound.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
-export class CompoundBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
-  @Input() resource: Resource | null = null;
+export class CompoundBlockUiComponent extends SubscribableGuiComponent<{ [key: string]: BlockData }> {
+  override get resourceSchema(): BlockSchema | undefined {
+    return super.resourceSchema;
+  }
 
-  @Input() resourceDescription: string = '';
+  @Input()
+  override set resourceSchema(value: BlockSchema | undefined) {
+    super.resourceSchema = value;
+    this.updateFields();
+  }
 
-  @Input() hideName: boolean = false;
-
-  @Input() hideBlockActions: boolean = false;
-
-  @Input() disabled: boolean = false;
   @Input() preferHorizontalLayout: boolean = false;
-
-  get name(): string | null {
-    return this.resource && this.resource.name;
+  private _fieldWhitelist: string[] | null = null;
+  get fieldWhitelist(): string[] | null {
+    return this._fieldWhitelist;
   }
 
-  get data(): BlockData | null {
-    return this.resource && this.resource.data;
+  @Input()
+  set fieldWhitelist(value: string[] | null) {
+    this._fieldWhitelist = value;
+    this.updateFields();
   }
 
-  get schema(): BlockSchema | null {
-    return this.resource && this.resource.schema;
+  private _fieldBlacklist: string[] | null = null;
+
+  get fieldBlacklist(): string[] | null {
+    return this._fieldBlacklist;
   }
 
-  @Input() fieldWhitelist: string[] | null = null;
-
-  @Input() fieldBlacklist: string[] | null = null;
+  @Input()
+  set fieldBlacklist(value: string[] | null) {
+    this._fieldBlacklist = value;
+    this.updateFields();
+  }
 
   @Output('changed') changed: EventEmitter<void> = new EventEmitter<void>();
 
-  get fieldKeys(): { index: number; key: string }[] {
-    let fields: { index: number; key: string }[] =
-      this.schema?.fields
-        .map((f: { name: string; usage?: string }, i: number) => ({ index: i, name: f.name, usage: f.usage }))
-        .filter((f: { usage?: string }) => !f.usage || f.usage == 'everywhere' || f.usage.includes('ui'))
-        .map((f: { index: number; name: string }) => ({ index: f.index, key: f.name })) || [];
-    if (this.fieldWhitelist) {
-      fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));
-    } else if (this.fieldBlacklist) {
-      fields = fields.filter(({ key }) => !this.fieldBlacklist?.includes(key));
+  fieldKeys$: BehaviorSubject<{ index: number; key: string }[]> = new BehaviorSubject<{ index: number; key: string }[]>(
+    [],
+  );
+
+  updateFields() {
+    if (this.resourceSchema) {
+      let fields: { index: number; key: string }[] =
+        this.resourceSchema.fields
+          .map((f: { name: string; usage?: string }, i: number) => ({ index: i, name: f.name, usage: f.usage }))
+          .filter((f: { usage?: string }) => !f.usage || f.usage == 'everywhere' || f.usage.includes('ui'))
+          .map((f: { index: number; name: string }) => ({ index: f.index, key: f.name })) || [];
+      if (this.fieldWhitelist) {
+        fields = fields.filter(({ key }) => this.fieldWhitelist?.includes(key));
+      } else if (this.fieldBlacklist) {
+        fields = fields.filter(({ key }) => !this.fieldBlacklist?.includes(key));
+      }
+      this.fieldKeys$.next(fields);
+    } else {
+      this.fieldKeys$.next([]);
     }
-    return fields;
   }
 
   fieldTrackBy(index: number, item: { index: number; key: string }) {
     return item.index;
   }
 
-  private readonly destroyed$: Subject<void> = new Subject<void>();
-
-  constructor(public readonly main: MainService, public readonly navigation: NavigationService, private readonly cdr: ChangeDetectorRef) {}
-
-  ngAfterViewInit(): void {
-    // TODO make this work in all components I guess?
-    this.main.dataBlockChange$
-      .pipe(
-        takeUntil(this.destroyed$),
-        // handle inner primitive fields (1 level deep) and update object with new values.
-        // this makes effect only locally in frontend
-        filter(
-          ([blockId, value]) =>
-            !!this.resource &&
-            blockId.startsWith(this.resource!.id) &&
-            !blockId.substring(this.resource!.id.length + 1).includes('/'),
-        ),
-      )
-      .subscribe(async ([blockId, value]) => {
-        if (blockId === this.resource!.id) {
-          this.resource!.data = value;
-          return;
-        }
-        this.data[idSuffix(this.resource!.id, blockId)] = value;
-        this.cdr.markForCheck();
-      });
-  }
-
-  ngOnDestroy(): void {
-    this.destroyed$.next();
-    this.destroyed$.complete();
+  constructor(
+    public readonly main: MainService,
+    public readonly navigation: NavigationService,
+  ) {
+    super();
   }
 
   protected readonly joinId = joinId;

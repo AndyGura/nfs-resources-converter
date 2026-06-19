@@ -34,13 +34,17 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '26'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Format frontend
+        working-directory: frontend
+        run: npm run prettier-format
 
       - name: Build frontend
         working-directory: frontend
@@ -50,7 +54,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f frontend/dist
+          git add frontend
           git add resources/*.md
           if git diff --cached --quiet; then
             echo "No changes to commit, skipping"

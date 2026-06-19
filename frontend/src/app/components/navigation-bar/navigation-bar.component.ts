@@ -1,7 +1,7 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component } from '@angular/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { NavigationService } from '../../services/navigation.service';
 import { BehaviorSubject } from 'rxjs';
 import { MainService } from '../../services/main.service';
@@ -14,15 +14,15 @@ import { MainService } from '../../services/main.service';
         {{ rootName$ | async }}
       </button>
 
-      <ng-container *ngFor="let item of (navigation.navigationPath$ | async) || []; let i = index">
-        <ng-container *ngIf="!['data', 'children'].includes(item)">
+      @for (item of (navigation.navigationPath$ | async) || []; track item; let i = $index) {
+        @if (!['data', 'children'].includes(item)) {
           <mat-divider vertical></mat-divider>
           <span>/</span>
           <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
             {{ item }}
           </button>
-        </ng-container>
-      </ng-container>
+        }
+      }
     </nav>
   `,
   styles: [
@@ -44,14 +44,16 @@ import { MainService } from '../../services/main.service';
       }
     `,
   ],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatDividerModule, NgFor, NgIf, AsyncPipe],
+  imports: [MatButtonModule, MatDividerModule, AsyncPipe],
 })
 export class NavigationBarComponent implements AfterViewInit {
   public readonly rootName$: BehaviorSubject<string> = new BehaviorSubject<string>('/');
 
-  constructor(public readonly navigation: NavigationService, public readonly main: MainService) {}
+  constructor(
+    public readonly navigation: NavigationService,
+    public readonly main: MainService,
+  ) {}
 
   ngAfterViewInit(): void {
     this.main.resource$.subscribe(r => {

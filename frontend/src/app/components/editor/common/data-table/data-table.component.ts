@@ -8,7 +8,6 @@ import {
   DoCheck,
   Output,
 } from '@angular/core';
-import { isNaN } from 'lodash';
 
 export interface ArrayTableColumn {
   key: string;
@@ -24,9 +23,9 @@ export interface ArrayTableColumn {
   templateUrl: './data-table.component.html',
   styleUrls: ['./data-table.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class DataTableComponent implements DoCheck {
-
   private _columns: ArrayTableColumn[] | null = null;
   get columns(): ArrayTableColumn[] | null {
     return this._columns;
@@ -68,7 +67,7 @@ export class DataTableComponent implements DoCheck {
     return this._data;
   }
   private _data: any[] = [];
-  @Input() disabled: boolean = false;
+  @Input() disabled?: boolean = false;
   @Input() enableArrayEditing: boolean = false;
 
   public pagedData: any[] = [];
@@ -78,7 +77,12 @@ export class DataTableComponent implements DoCheck {
   @Output() removeItem = new EventEmitter<number>();
   @Output() moveItemUp = new EventEmitter<number>();
   @Output() moveItemDown = new EventEmitter<number>();
-  @Output() dataChanged = new EventEmitter<{ index: number; field: string | null; subField: string | null; value: any }>();
+  @Output() dataChanged = new EventEmitter<{
+    index: number;
+    field: string | null;
+    subField: string | null;
+    value: any;
+  }>();
   @Output() focusedElement = new EventEmitter<[string[], number]>();
 
   public hasSubFields: boolean = false;
@@ -98,11 +102,11 @@ export class DataTableComponent implements DoCheck {
   }
 
   isNumeric(mro: string): boolean {
-    return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some((w) => mro.startsWith(w + '__'));
+    return ['IntegerBlock', 'FixedPointBlock', 'DecimalBlock'].some(w => mro.startsWith(w + '__'));
   }
 
   isString(mro: string): boolean {
-    return ['UTF8Block', 'NullTerminatedUTF8Block'].some((w) => mro.startsWith(w + '__'));
+    return ['UTF8Block', 'NullTerminatedUTF8Block'].some(w => mro.startsWith(w + '__'));
   }
 
   isEnum(mro: string): boolean {

@@ -1,23 +1,25 @@
-import { Component } from '@angular/core';
-import { EelDelegateService } from '../../services/eel-delegate.service';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { ApiDelegateService } from '../../services/api/api-delegate.service';
 
 @Component({
   selector: 'app-landing-page',
   templateUrl: './landing-page.component.html',
   styleUrls: ['./landing-page.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class LandingPageComponent {
-  constructor(public readonly eelDelegate: EelDelegateService) {}
+  constructor(public readonly api: ApiDelegateService) {}
 
   async openFile() {
-    const fileName = await this.eelDelegate.openFileDialog();
-    if (fileName) {
-      await this.eelDelegate.openFile(fileName, true);
+    const fileNames = await this.api.openFileDialog();
+    if (fileNames.length > 0) {
+      await this.api.openFile(fileNames[0], true);
     }
   }
 
   async openRecentFile(path: string) {
-    await this.eelDelegate.openFile(path, true);
+    await this.api.openFile(path, true);
   }
 
   getFileName(path: string): string {

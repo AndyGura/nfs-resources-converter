@@ -16,7 +16,6 @@
     canvas {
       position: absolute;
     }
-
   }
 
   .previewNavigationContainer {
@@ -30,7 +29,6 @@
       display: flex;
     }
   }
-
 }
 
 .qfsSelector {
@@ -47,7 +45,8 @@
     flex-grow: 1;
   }
 
-  mat-spinner, button {
+  mat-spinner,
+  button {
     margin-bottom: 1.34375em;
   }
 }
