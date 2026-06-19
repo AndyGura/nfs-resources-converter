@@ -4,7 +4,7 @@
     <span class="flex-spacer"></span>
     <app-block-actions [resource]="this.mainService.resource$ | async"></app-block-actions>
     <mat-divider vertical></mat-divider>
-    @if (!isProduction || true) {
+    @if (!isProduction) {
       <button mat-button [matMenuTriggerFor]="stagedChangesMenu">
         Changes ({{
           changes.localRevision > changes.fileRevision
