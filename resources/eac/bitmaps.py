@@ -200,8 +200,13 @@ class EacImage(DeclarativeCompoundBlock):
             return [transform_color_bitness(x, 1, 5, 5, 5)
                               for x in bitmap]
         elif resource_id == '24Bit color format bitmap':
-            field = ArrayBlock(child=IntegerBlock(length=3), length=width * height)
-            return [(x << 8) | 0xFF for x in field.unpack(ReadContext(BytesIO(bd)))]
+            b4 = bytes(bd)
+            b = []
+            for i in range(0, len(b4), 3):
+                b.extend(b4[i:i+3])
+                b.append(0)
+            bitmap = np.frombuffer(bytes(b), dtype='<u4')
+            return [int((x << 8) | 0xFF) for x in bitmap]
         elif resource_id == '32Bit color format bitmap':
             bitmap = np.frombuffer(bd, dtype='<u4')
             # ARGB => RGBA
@@ -241,8 +246,8 @@ class EacImage(DeclarativeCompoundBlock):
             arr = [revert_color_bitness(x, 1, 5, 5, 5) for x in bd]
             return np.asarray(arr, dtype='<u2').tobytes()
         elif resource_id == '24Bit color format bitmap':
-            field = ArrayBlock(child=IntegerBlock(length=3), length=width * height)
-            return field.pack([x >> 8 for x in bd])
+            b4 = np.asarray([x >> 8 for x in bd], dtype='<u4').tobytes()
+            return bytes([b for i, b in enumerate(b4) if i % 4 != 3])
         elif resource_id == '32Bit color format bitmap':
             # RGBA => ARGB
             arr = [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in bd]

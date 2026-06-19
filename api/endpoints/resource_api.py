@@ -94,13 +94,33 @@ class ResourceAPI:
         changes: List[Dict[str, Any]] = []
 
         def walk(cur_id: str, o: Any, n: Any):
+            if o == n:
+                return
             if isinstance(o, dict) and isinstance(n, dict):
                 for key in n:
                     walk(join_id(cur_id, str(key)), o.get(key), n[key])
             elif isinstance(o, list) and isinstance(n, list) and len(o) == len(n):
+                if len(n) > 0 and isinstance(n[0], (str, int, float, bool, type(None))):
+                    too_different = False
+                    changed_items = 0
+                    for (oi, ni) in enumerate(zip(o, n)):
+                        if oi != ni:
+                            changed_items += 1
+                            if changed_items >= len(n) * 0.33:
+                                too_different = True
+                                break
+                    if too_different:
+                        changes.append({
+                            'id': cur_id,
+                            'timestamp': timestamp,
+                            'op': 'set',
+                            'oldValue': o,
+                            'newValue': n,
+                        })
+                        return
                 for i, (oi, ni) in enumerate(zip(o, n)):
                     walk(join_id(cur_id, str(i)), oi, ni)
-            elif o != n:
+            else:
                 changes.append({
                     'id': cur_id,
                     'timestamp': timestamp,
