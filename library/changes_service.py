@@ -16,9 +16,8 @@ class ChangeExecutor:
         (parent_id, id) = split_last_id_part(change['id'])
         (_, _, parent_resource), _ = require_resource(parent_id)
         if isinstance(parent_resource, list):
-            resource = parent_resource[int(id)]
-        else:
-            resource = parent_resource[id]
+            id = int(id)
+        resource = parent_resource[id]
 
         if change['op'] == 'set':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} = {change["newValue"]}')
@@ -56,9 +55,8 @@ class ChangeExecutor:
         (parent_id, id) = split_last_id_part(change['id'])
         (_, _, parent_resource), _ = require_resource(parent_id)
         if isinstance(parent_resource, list):
-            resource = parent_resource[int(id)]
-        else:
-            resource = parent_resource[id]
+            id = int(id)
+        resource = parent_resource[id]
 
         if change['op'] == 'set':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} = {change["oldValue"]}')
