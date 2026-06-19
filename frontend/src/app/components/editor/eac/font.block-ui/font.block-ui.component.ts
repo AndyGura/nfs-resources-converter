@@ -26,6 +26,7 @@ import { getChildResource } from '../../../../utils/get-child-resource';
   templateUrl: './font.block-ui.component.html',
   styleUrls: ['./font.block-ui.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class FontBlockUiComponent implements GuiComponentInterface, AfterViewInit, OnDestroy {
   @ViewChild('fullBitmapCanvas') fullBitmapCanvas!: ElementRef<HTMLCanvasElement>;

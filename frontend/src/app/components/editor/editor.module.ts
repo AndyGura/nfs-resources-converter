@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EditorComponent } from './editor.component';
 import { DataBlockUIDirective } from './data-block-ui.directive';
-import { FallbackBlockUiComponent } from './library/fallback.block-ui/fallback.block-ui.component';
 import { CompoundBlockUiComponent } from './library/compound.block-ui/compound.block-ui.component';
 import { NumberBlockUiComponent } from './library/number.block-ui/number.block-ui.component';
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
@@ -12,20 +11,7 @@ import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-u
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
-import { SkipBlockUiComponent } from './library/skip.block-ui/skip.block-ui.component';
-import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
-import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
-import { WwwwBlockUiComponent } from './eac/wwww.block-ui/wwww.block-ui.component';
-import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
-import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
-import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
-import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
-import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
-import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
-import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
-import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
-import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -43,52 +29,64 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatOptionModule } from '@angular/material/core';
-import { MatTabsModule } from '@angular/material/tabs';
-import { NgxMatColorPickerModule } from '@angular-material-components/color-picker';
-import { HexEditorModule } from 'ngx-hex-editor';
+import { HexEditorComponent } from 'ngx-hex-editor';
 import { SidenavResListComponent } from './common/sidenav-res-list/sidenav-res-list.component';
 import { MinimapComponent } from './common/minimap/minimap.component';
 import { BlockActionsComponent } from './common/block-actions/block-actions.component';
 import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
 import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
-import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 
 import { MatSliderModule } from '@angular/material/slider';
+import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
+import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
+import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
+import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
+import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
+import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
+import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
+import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
+import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
+import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
+import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
+import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 
 @NgModule({
   declarations: [
     EditorComponent,
     DataBlockUIDirective,
-    FallbackBlockUiComponent,
-    CompoundBlockUiComponent,
-    NumberBlockUiComponent,
-    StringBlockUiComponent,
-    ArrayBlockUiComponent,
     DataTableComponent,
-    BinaryBlockUiComponent,
-    EnumBlockUiComponent,
-    SubByteCompoundBlockUiComponent,
-    DelegateBlockUiComponent,
-    SkipBlockUiComponent,
-    ImageBlockUiComponent,
-    PaletteBlockUiComponent,
-    AngleBlockUiComponent,
-    WwwwBlockUiComponent,
-    TriMapBlockUiComponent,
-    OripGeometryBlockUiComponent,
-    CrpGeometryBlockUiComponent,
-    SoundbankBlockUiComponent,
-    EacsAudioBlockUiComponent,
-    GeoGeometryBlockUiComponent,
-    BaseArchiveBlockUiComponent,
-    TrkMapBlockUiComponent,
-    FrdMapBlockUiComponent,
     SidenavResListComponent,
     MinimapComponent,
     BlockActionsComponent,
     ObjViewerComponent,
     ViewModeToolbarComponent,
+
+    // common data blocks
+    NumberBlockUiComponent,
+    StringBlockUiComponent,
+    EnumBlockUiComponent,
+    BinaryBlockUiComponent,
+    ArrayBlockUiComponent,
+    CompoundBlockUiComponent,
+    SubByteCompoundBlockUiComponent,
+    DelegateBlockUiComponent,
+    AngleBlockUiComponent,
+
+    // common nfs data blocks
+    BaseArchiveBlockUiComponent,
+    ImageBlockUiComponent,
+    PaletteBlockUiComponent,
     FontBlockUiComponent,
+
+    // specific data blocks
+    OripGeometryBlockUiComponent,
+    EacsAudioBlockUiComponent,
+    SoundbankBlockUiComponent,
+    TriMapBlockUiComponent,
+    GeoGeometryBlockUiComponent,
+    TrkMapBlockUiComponent,
+    FrdMapBlockUiComponent,
+    CrpGeometryBlockUiComponent,
   ],
   imports: [
     CommonModule,
@@ -111,9 +109,7 @@ import { MatSliderModule } from '@angular/material/slider';
     MatOptionModule,
     MatCheckboxModule,
     MatSliderModule,
-    MatTabsModule,
-    NgxMatColorPickerModule,
-    HexEditorModule,
+    HexEditorComponent,
   ],
   exports: [EditorComponent, SidenavResListComponent, BlockActionsComponent],
 })

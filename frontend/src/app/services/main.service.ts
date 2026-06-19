@@ -1,44 +1,38 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { EelDelegateService } from './eel-delegate.service';
-import isEqual from 'lodash/isEqual';
-import isNumber from 'lodash/isNumber';
+import { BehaviorSubject } from 'rxjs';
+import { ApiDelegateService } from './api/api-delegate.service';
 import { findNestedObjects } from '../utils/find-nested-object';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
+import { ChangesService } from './changes.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MainService {
-  private readonly _hasUnsavedChanges$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-  private readonly _stagedChanges$: BehaviorSubject<{ [key: string]: any }> = new BehaviorSubject<{
-    [key: string]: any;
-  }>({});
   resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   error$: BehaviorSubject<ResourceError | null> = new BehaviorSubject<ResourceError | null>(null);
 
   customActionRunning$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   isSaving$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
-  readonly changedDataBlocks: { [key: string]: any } = {};
-  dataBlockChange$: Subject<[string, any]> = new Subject<[string, any]>();
-
   public hideHiddenFields$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  constructor(readonly eelDelegate: EelDelegateService) {
-    this.eelDelegate.getGeneralConfig().then(config => {
+  constructor(
+    public readonly api: ApiDelegateService,
+    public readonly changes: ChangesService,
+  ) {
+    this.api.getGeneralConfig().then(config => {
       this.hideHiddenFields$.next(!config.show_hidden_fields);
       this.hideHiddenFields$.subscribe(async hide => {
-        const currentConfig = await this.eelDelegate.getGeneralConfig();
+        const currentConfig = await this.api.getGeneralConfig();
         if (currentConfig.show_hidden_fields !== !hide) {
-          await this.eelDelegate.patchGeneralConfig({ show_hidden_fields: !hide });
+          await this.api.patchGeneralConfig({ show_hidden_fields: !hide });
         }
       });
     });
-    this.eelDelegate.changedDataBlocks = this.changedDataBlocks;
-    this.eelDelegate.openedResource$.subscribe(value => {
-      this.clearUnsavedChanges();
+    this.api.openedResource$.subscribe(value => {
+      this.changes.syncState().then();
       if (value?.data.error_class) {
         this.error$.next(value);
         this.resource$.next(null);
@@ -64,119 +58,40 @@ export class MainService {
         this.error$.next(null);
       }
     });
-    this.dataBlockChange$.subscribe(async ([blockId, value]) => {
-      // ignore if block id starts with one of the already changed data blocks
-      // data in parent block is updated automatically
-      if (Object.keys(this.changedDataBlocks).some(key => blockId.startsWith(key) && key !== blockId)) {
-        return;
-      }
-      this.changedDataBlocks[blockId] = value;
-      this.updateUnsavedChanges();
-      const originalValue = await this.eelDelegate.retrieveValue(blockId);
-      // if was changed by another concurrent call during awaiting
-      if (this.changedDataBlocks[blockId] != value) {
-        return;
-      }
-      if (isNumber(value) ? Math.abs(value - originalValue) < 0.0000000001 : isEqual(value, originalValue)) {
-        // change reverted
-        delete this.changedDataBlocks[blockId];
-        this.updateUnsavedChanges();
-      }
-    });
   }
 
-  private updateUnsavedChanges() {
-    this._hasUnsavedChanges$.next(Object.keys(this.changedDataBlocks).length > 0);
-    this._stagedChanges$.next({ ...this.changedDataBlocks });
-  }
-
-  get stagedChanges$(): Observable<{ [key: string]: any }> {
-    return this._stagedChanges$.asObservable();
-  }
-  get hasUnsavedChanges$(): Observable<boolean> {
-    return this._hasUnsavedChanges$.asObservable();
-  }
-
-  get hasUnsavedChanges(): boolean {
-    return this._hasUnsavedChanges$.getValue();
-  }
-
-  clearUnsavedChanges() {
-    Object.keys(this.changedDataBlocks).forEach(key => {
-      delete this.changedDataBlocks[key];
-    });
-    this.updateUnsavedChanges();
-  }
-
-  private async processExternalChanges(id: string, call: () => Promise<BlockData | ReadError>): Promise<void> {
+  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
     this.customActionRunning$.next(true);
     try {
-      const res: BlockData | ReadError = await call();
-      if (!!(res as ReadError).error_class) {
-        this.customActionRunning$.next(false);
-        throw res;
-      }
-      if (this.resource$.getValue()!.id === id) {
-        this.resource$.getValue()!.data = res;
-      } else {
-        let dataPath = id
-          .substring(this.resource$.getValue()!.id.length)
-          .replace('__', '/')
-          .split('/')
-          .filter(x => x);
-        let data: any = this.resource$.getValue()!.data;
-        for (const key of dataPath.slice(0, dataPath.length - 1)) {
-          data = data[key] || data[+key];
-        }
-        let lastKey: any = dataPath[dataPath.length - 1];
-        if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
-          lastKey = +lastKey;
-        }
-        data[lastKey] = res;
-      }
-      this.clearUnsavedChanges();
-      this.changedDataBlocks['__has_external_changes__'] = 1;
-      this.updateUnsavedChanges();
+      await this.api.runCustomAction(id, action, args);
     } finally {
       this.customActionRunning$.next(false);
     }
   }
 
-  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
-    if (action.is_pure) {
-      await this.eelDelegate.runCustomAction(id, action, args);
-    } else {
-      return this.processExternalChanges(id, () => this.eelDelegate.runCustomAction(id, action, args));
-    }
-  }
-
   public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
-    return this.processExternalChanges(id, () => this.eelDelegate.deserializeResource(id, filePaths, extraOpts));
+    await this.api.deserializeResource(id, filePaths, extraOpts);
   }
 
   public async reloadResource() {
-    const path = this.eelDelegate.openedResourcePath$.getValue();
+    const path = this.api.openedResourcePath$.getValue();
     if (path) {
-      this.eelDelegate.openFile(path, true).then();
+      await this.api.openFile(path, true);
+      this.changes.syncState().then();
     }
   }
 
   public async saveResource() {
     this.isSaving$.next(true);
     try {
-      const changes = Object.entries(this.changedDataBlocks).filter(([id, _]) => id != '__has_external_changes__');
-      await this.eelDelegate.saveFile(
-        changes.map(([id, value]) => {
-          return { id, value };
-        }),
-      );
-      this.clearUnsavedChanges();
+      await this.api.saveFile();
+      await this.changes.syncState();
     } finally {
       this.isSaving$.next(false);
     }
   }
 
   public async getNewItemData(id: string): Promise<any> {
-    return this.eelDelegate.getNewItemData(id);
+    return this.api.getNewItemData(id);
   }
 }
