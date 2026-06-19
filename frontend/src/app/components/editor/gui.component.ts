@@ -5,7 +5,6 @@ import { MainService } from '../../services/main.service';
 import { joinId } from '../../utils/join-id';
 
 @Directive()
-// TODO currently in progress: check all direct children, swithc them to use SubscribableGuiComponent
 export abstract class GuiComponent<BD extends BlockData = BlockData> {
   readonly mainService = inject(MainService);
   readonly changes = inject(ChangesService);
