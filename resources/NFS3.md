@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-05-12 08:14:33.571263+00:00*
+*Last time updated: 2026-06-19 23:53:59.621650+00:00*
 
 
 # **Info by file extensions** #
@@ -128,7 +128,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | This data is presented only if sz != 0 |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord)<br/>- Bytes | This data is presented only if sz != 0 |
 ### **FrdPolygonRecord** ###
 #### **Size**: 14 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -143,13 +143,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolyObjPolygonsBlock](#frdpolyobjpolygonsblock) | This data is presented only if sz > 0 |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolyObjPolygonsBlock](#frdpolyobjpolygonsblock)<br/>- Bytes | This data is presented only if sz > 0 |
 ### **FrdPolyObjPolygonsBlock** ###
 #### **Size**: 4..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **type** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | This data is presented only if type == 1 |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord)<br/>- Bytes | This data is presented only if type == 1 |
 ### **ExtraObjectBlock** ###
 #### **Size**: 36..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
