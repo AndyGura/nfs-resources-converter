@@ -37,14 +37,19 @@ export class EelDelegateService {
   >(null);
   public readonly openedResourcePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-  public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject<[number, number]>([0, 0]);
+  public readonly conversionProgress$: BehaviorSubject<[number, number]> = new BehaviorSubject<[number, number]>([
+    0, 0,
+  ]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
 
   public changedDataBlocks: { [key: string]: any } = {};
 
   readonly _impl: EelDelegateImplService;
 
-  constructor(private readonly ngZone: NgZone, private readonly dialog: MatDialog) {
+  constructor(
+    private readonly ngZone: NgZone,
+    private readonly dialog: MatDialog,
+  ) {
     this._impl = new EelDelegateImplService(this.ngZone);
     this._impl.openedResource$.subscribe((v: any) => {
       if (this.openedResource$.getValue() !== v) this.openedResource$.next(v);
@@ -62,7 +67,6 @@ export class EelDelegateService {
       if (this.version$.getValue() !== v) this.version$.next(v);
     });
   }
-
 
   private async getImpl() {
     return this._impl;
@@ -132,16 +136,26 @@ export class EelDelegateService {
     return this.runSafe(async () => (await this.getImpl()).saveFile(changes));
   }
 
-  public async serializeResource(blockId: string, path: string | null = null, settingsPatch: any = {}): Promise<string[]> {
+  public async serializeResource(
+    blockId: string,
+    path: string | null = null,
+    settingsPatch: any = {},
+  ): Promise<string[]> {
     let changes = Object.entries(this.changedDataBlocks)
       .filter(([id, _]) => id != '__has_external_changes__' && id.startsWith(blockId))
       .map(([id, value]) => {
         return { id, value };
       });
-    return this.runSafe(async () => (await this.getImpl()).serializeResource(blockId, path, changes as any, settingsPatch));
+    return this.runSafe(async () =>
+      (await this.getImpl()).serializeResource(blockId, path, changes as any, settingsPatch),
+    );
   }
 
-  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<BlockData | ReadError> {
+  public async deserializeResource(
+    id: string,
+    filePaths: string[],
+    extraOpts: any = {},
+  ): Promise<BlockData | ReadError> {
     return this.runSafe(async () => (await this.getImpl()).deserializeResource(id, filePaths, extraOpts));
   }
 

@@ -217,7 +217,10 @@ export class EditorComponent implements OnDestroy {
     }
   }
 
-  constructor(readonly mainService: MainService, private readonly deep: NgxDeepEqualsPureService) {}
+  constructor(
+    readonly mainService: MainService,
+    private readonly deep: NgxDeepEqualsPureService,
+  ) {}
 
   ngOnDestroy(): void {
     this.destroyed$.next();

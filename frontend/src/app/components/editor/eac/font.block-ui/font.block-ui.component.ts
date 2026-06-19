@@ -33,7 +33,9 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
 
   _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   _selectedGlyphIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
-  _text$: BehaviorSubject<string> = new BehaviorSubject<string>('The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~');
+  _text$: BehaviorSubject<string> = new BehaviorSubject<string>(
+    'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
+  );
 
   _glyphColumns: ArrayTableColumn[] = [];
   _kerningColumns: ArrayTableColumn[] = [];
@@ -62,11 +64,15 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     public readonly main: MainService,
     private readonly ngZone: NgZone,
     private readonly cdr: ChangeDetectorRef,
-  ) {
-  }
+  ) {}
 
   async ngAfterViewInit(): Promise<void> {
-    combineLatest([this._text$, this._imageRefreshed$, this._resized$, this.main.dataBlockChange$.pipe(startWith(null))])
+    combineLatest([
+      this._text$,
+      this._imageRefreshed$,
+      this._resized$,
+      this.main.dataBlockChange$.pipe(startWith(null)),
+    ])
       .pipe(takeUntil(this.destroyed$), auditTime(50))
       .subscribe(([text]) => {
         this.ngZone.run(() => {
@@ -74,8 +80,12 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
         });
       });
 
-
-    combineLatest([this._selectedGlyphIndex$, this._imageRefreshed$, this._resized$, this.main.dataBlockChange$.pipe(startWith(null))])
+    combineLatest([
+      this._selectedGlyphIndex$,
+      this._imageRefreshed$,
+      this._resized$,
+      this.main.dataBlockChange$.pipe(startWith(null)),
+    ])
       .pipe(takeUntil(this.destroyed$), auditTime(50))
       .subscribe(([index]) => {
         this.ngZone.run(() => {
@@ -166,10 +176,10 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
       const areaCanvasH = targetHeight * ratio;
 
       if (areaCanvasX < 0) offsetX -= areaCanvasX;
-      else if (areaCanvasX + areaCanvasW > canvasWidth) offsetX -= (areaCanvasX + areaCanvasW - canvasWidth);
+      else if (areaCanvasX + areaCanvasW > canvasWidth) offsetX -= areaCanvasX + areaCanvasW - canvasWidth;
 
       if (areaCanvasY < 0) offsetY -= areaCanvasY;
-      else if (areaCanvasY + areaCanvasH > canvasHeight) offsetY -= (areaCanvasY + areaCanvasH - canvasHeight);
+      else if (areaCanvasY + areaCanvasH > canvasHeight) offsetY -= areaCanvasY + areaCanvasH - canvasHeight;
 
       ctx.drawImage(this._image!, offsetX, offsetY, imgWidth * ratio, imgHeight * ratio);
 
@@ -181,12 +191,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
       // Draw bounding box
       ctx.strokeStyle = 'red';
       ctx.lineWidth = 2;
-      ctx.strokeRect(
-        glyphCanvasX,
-        glyphCanvasY,
-        glyphCanvasW,
-        glyphCanvasH,
-      );
+      ctx.strokeRect(glyphCanvasX, glyphCanvasY, glyphCanvasW, glyphCanvasH);
 
       // Draw offset (x_offset, y_offset)
       // Usually offset is relative to the "origin" of the glyph.
@@ -269,7 +274,7 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
     }
 
     const lines = text.split('\n');
-    const lineHeight = (res.data.line_height || 32);
+    const lineHeight = res.data.line_height || 32;
     const padding = 20;
 
     // Measure text to set canvas height
@@ -306,13 +311,9 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
           const x = cursorX + (glyph.x_offset || 0);
           const y = cursorY + (glyph.y_offset || 0) - (res.data.base || lineHeight * 0.8);
 
-          ctx.drawImage(
-            this._image,
-            glyph.x, glyph.y, glyph.width, glyph.height,
-            x, y, glyph.width, glyph.height
-          );
+          ctx.drawImage(this._image, glyph.x, glyph.y, glyph.width, glyph.height, x, y, glyph.width, glyph.height);
 
-          cursorX += (glyph.x_advance || glyph.advance || 0);
+          cursorX += glyph.x_advance || glyph.advance || 0;
           prevCharCode = charCode;
         } else {
           // Fallback for space or missing characters
@@ -459,8 +460,8 @@ export class FontBlockUiComponent implements GuiComponentInterface, AfterViewIni
       'Right Symbol': this.getSymbol(k.right),
       'Left Symbol Code': k.left,
       'Right Symbol Code': k.right,
-      'Kerning': k.kerning,
-      'Unk': k.unk,
+      Kerning: k.kerning,
+      Unk: k.unk,
     }));
   }
 

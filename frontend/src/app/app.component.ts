@@ -26,8 +26,7 @@ export class AppComponent {
     readonly navigation: NavigationService,
     private readonly snackBar: MatSnackBar,
     private readonly cdr: ChangeDetectorRef,
-  ) {
-  }
+  ) {}
 
   async openFile() {
     const fileNames = await this.eelDelegate.openFileDialog();

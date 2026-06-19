@@ -5,11 +5,12 @@
         <div>
           <div class="preview-title">Font header</div>
           <div class="tab-content">
-            <app-compound-block-ui [resource]="resource"
-                                   [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
-                                   [hideName]="true"
-                                   [hideBlockActions]="true"
-                                   (changed)="changed.emit()"></app-compound-block-ui>
+            <app-compound-block-ui
+              [resource]="resource"
+              [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
+              [hideName]="true"
+              [hideBlockActions]="true"
+              (changed)="changed.emit()"></app-compound-block-ui>
           </div>
         </div>
 
@@ -35,29 +36,31 @@
         <div>
           <div class="preview-title">Glyphs</div>
           <div class="table-container">
-            <data-table [data]="glyphsWithSymbols"
-                        [columns]="_glyphColumns"
-                        [enableArrayEditing]="true"
-                        (addItem)="addGlyph()"
-                        (removeItem)="removeGlyph($event)"
-                        (moveItemUp)="moveGlyphUp($event)"
-                        (moveItemDown)="moveGlyphDown($event)"
-                        (dataChanged)="onGlyphDataChanged($event)"
-                        (focusedElement)="onGlyphFocused($event)"></data-table>
+            <data-table
+              [data]="glyphsWithSymbols"
+              [columns]="_glyphColumns"
+              [enableArrayEditing]="true"
+              (addItem)="addGlyph()"
+              (removeItem)="removeGlyph($event)"
+              (moveItemUp)="moveGlyphUp($event)"
+              (moveItemDown)="moveGlyphDown($event)"
+              (dataChanged)="onGlyphDataChanged($event)"
+              (focusedElement)="onGlyphFocused($event)"></data-table>
           </div>
         </div>
 
         <div>
           <div class="preview-title">Kernings</div>
           <div class="table-container">
-            <data-table [data]="kerningsWithSymbols"
-                        [columns]="_kerningColumns"
-                        [enableArrayEditing]="true"
-                        (addItem)="addKerning()"
-                        (removeItem)="removeKerning($event)"
-                        (moveItemUp)="moveKerningUp($event)"
-                        (moveItemDown)="moveKerningDown($event)"
-                        (dataChanged)="onKerningDataChanged($event)"></data-table>
+            <data-table
+              [data]="kerningsWithSymbols"
+              [columns]="_kerningColumns"
+              [enableArrayEditing]="true"
+              (addItem)="addKerning()"
+              (removeItem)="removeKerning($event)"
+              (moveItemUp)="moveKerningUp($event)"
+              (moveItemDown)="moveKerningDown($event)"
+              (dataChanged)="onKerningDataChanged($event)"></data-table>
           </div>
         </div>
       </div>
@@ -65,10 +68,11 @@
   </mat-tab>
   <mat-tab label="Bitmap">
     <div class="tab-content">
-      <image-block-ui [resource]="getChildResource(resource, 'bitmap')"
-                      [hideName]="true"
-                      [hideBlockActions]="true"
-                      (changed)="changed.emit()"></image-block-ui>
+      <image-block-ui
+        [resource]="getChildResource(resource, 'bitmap')"
+        [hideName]="true"
+        [hideBlockActions]="true"
+        (changed)="changed.emit()"></image-block-ui>
     </div>
   </mat-tab>
 </mat-tab-group>
