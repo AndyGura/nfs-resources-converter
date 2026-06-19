@@ -122,11 +122,6 @@ export class AppComponent {
     }
   }
 
-  getStagedChangesCount(changes: { [key: string]: any } | null): number {
-    if (!changes) return 0;
-    return Object.keys(changes).filter(key => key !== '__has_external_changes__').length;
-  }
-
   openConverter() {
     this.dialog.open(ConverterComponent, {
       width: '800px',
