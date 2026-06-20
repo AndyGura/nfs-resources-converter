@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-06-19 23:53:59.621650+00:00*
+*Last time updated: 2026-06-20 21:51:43.367542+00:00*
 
 
 # **Info by file extensions** #
@@ -313,7 +313,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
+| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>64 (0x40): 4Bit PS1<br/>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+<pixel_byteness>\*width\*height + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
