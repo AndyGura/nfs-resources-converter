@@ -1,22 +1,19 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   ElementRef,
   inject,
-  Input,
   NgZone,
-  OnDestroy,
   ViewChild,
 } from '@angular/core';
 import { auditTime, BehaviorSubject, combineLatest, filter, startWith, Subject, takeUntil } from 'rxjs';
-import { BlockSchema, Resource } from '../../types';
-import { NavigationService } from '../../../../services/navigation.service';
+import { BlockData, BlockSchema } from '../../types';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
 import { getChildResource } from '../../../../utils/get-child-resource';
-import { GuiComponent } from '../../gui.component';
+import { SubscribableGuiComponent } from '../../gui.component';
+import { isNaN, parseInt } from 'lodash';
 
 @Component({
   selector: 'app-font-block-ui',
@@ -25,11 +22,10 @@ import { GuiComponent } from '../../gui.component';
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class FontBlockUiComponent extends GuiComponent implements AfterViewInit, OnDestroy {
+export class FontBlockUiComponent extends SubscribableGuiComponent implements AfterViewInit {
   @ViewChild('fullBitmapCanvas') fullBitmapCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('textPreviewCanvas') textPreviewCanvas!: ElementRef<HTMLCanvasElement>;
 
-  _resource$: BehaviorSubject<Resource | null> = new BehaviorSubject<Resource | null>(null);
   _selectedGlyphIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   _text$: BehaviorSubject<string> = new BehaviorSubject<string>(
     'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
@@ -38,14 +34,24 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   _glyphColumns: ArrayTableColumn[] = [];
   _kerningColumns: ArrayTableColumn[] = [];
 
-  @Input() set resource(value: Resource | null) {
-    this._resource$.next(value);
-    this.updateColumns(value);
+  override get resourceSchema(): BlockSchema | undefined {
+    return super.resourceSchema;
+  }
+
+  override set resourceSchema(value: BlockSchema | undefined) {
+    super.resourceSchema = value;
+    this.updateColumns();
     this.refreshImage().then();
   }
 
-  get resource(): Resource | null {
-    return this._resource$.getValue();
+  override get resourceData(): BlockData | undefined {
+    return super.resourceData;
+  }
+
+  override set resourceData(value: BlockData | undefined) {
+    super.resourceData = value;
+    this.updateColumns();
+    this.refreshImage().then();
   }
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
@@ -54,14 +60,12 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   private _resizeObserver: ResizeObserver | null = null;
   private _resized$: Subject<void> = new Subject<void>();
 
-  get bitmapSchema() {
+  bitmapSchema() {
     return (this.resourceSchema.fields || []).find((x: { name: string; schema: BlockSchema }) => x.name === 'bitmap')
       ?.schema;
   }
 
-  readonly navigation = inject(NavigationService);
   readonly ngZone = inject(NgZone);
-  readonly cdr = inject(ChangeDetectorRef);
 
   async ngAfterViewInit(): Promise<void> {
     combineLatest([
@@ -98,6 +102,15 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
         });
       });
 
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(x => !!this.resourceId && x.startsWith(joinId(this.resourceId, `bitmap`))),
+      )
+      .subscribe(() => {
+        this.refreshImage().then();
+      });
+
     this._resizeObserver = new ResizeObserver(() => {
       this._resized$.next();
     });
@@ -106,8 +119,8 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   }
 
   private async refreshImage() {
-    if (!this.resource) return;
-    const paths = await this.mainService.api.serializeResource(this.resource.id);
+    if (!this.resourceId) return;
+    const paths = await this.mainService.api.serializeResource(this.resourceId);
     const imagePath = paths.find(x => x.endsWith('.png'));
     if (!imagePath) {
       this._image = null;
@@ -120,8 +133,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   }
 
   private renderFullBitmap(index: number) {
-    let res = this.resource;
-    if (!res) return;
+    if (!this.resourceData) return;
     const canvas = this.fullBitmapCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx || !this._image) return;
@@ -142,7 +154,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
     // Disable anti-aliasing (image smoothing)
     ctx.imageSmoothingEnabled = false;
 
-    const glyphs = res.data.definitions;
+    const glyphs = this.resourceData.definitions;
     const glyph = glyphs[index];
 
     if (glyph) {
@@ -259,14 +271,13 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   }
 
   private renderTextPreview(text: string) {
-    let res = this.resource;
-    if (!res) return;
+    if (!this.resourceData) return;
     const canvas = this.textPreviewCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx || !this._image) return;
 
-    const definitions: any[] = res.data.definitions;
-    const kernings: any[] = res.data.kernings || [];
+    const definitions: any[] = this.resourceData.definitions;
+    const kernings: any[] = this.resourceData.kernings || [];
 
     const charMap = new Map<number, any>();
     for (const def of definitions) {
@@ -279,7 +290,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
     }
 
     const lines = text.split('\n');
-    const lineHeight = res.data.line_height || 32;
+    const lineHeight = this.resourceData.line_height || 32;
     const padding = 20;
 
     // Measure text to set canvas height
@@ -297,7 +308,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
 
     ctx.imageSmoothingEnabled = false;
 
-    let cursorY = padding + (res.data.base || lineHeight * 0.8);
+    let cursorY = padding + (this.resourceData.base || lineHeight * 0.8);
 
     for (const line of lines) {
       let cursorX = padding;
@@ -314,7 +325,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
           }
 
           const x = cursorX + (glyph.x_offset || 0);
-          const y = cursorY + (glyph.y_offset || 0) - (res.data.base || lineHeight * 0.8);
+          const y = cursorY + (glyph.y_offset || 0) - (this.resourceData.base || lineHeight * 0.8);
 
           ctx.drawImage(this._image, glyph.x, glyph.y, glyph.width, glyph.height, x, y, glyph.width, glyph.height);
 
@@ -330,11 +341,11 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
     }
   }
 
-  private updateColumns(res: Resource | null) {
-    if (!res) return;
+  private updateColumns() {
+    if (!this.resourceSchema || !this.resourceData) return;
     const glyphs = this.glyphs;
     if (glyphs.length > 0) {
-      const gSchema = res.schema.fields.find((f: any) => f.name === 'definitions')?.schema;
+      const gSchema = this.resourceSchema.fields.find((f: any) => f.name === 'definitions')?.schema;
       const gItemSchema = gSchema?.child_schema;
       if (gItemSchema) {
         this._glyphColumns = [
@@ -346,7 +357,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
 
     const kernings = this.kernings;
     if (kernings.length > 0) {
-      const kSchema = res.schema.fields.find((f: any) => f.name === 'kernings')?.schema;
+      const kSchema = this.resourceSchema.fields.find((f: any) => f.name === 'kernings')?.schema;
       const kItemSchema = kSchema?.child_schema;
       if (kItemSchema) {
         this._kerningColumns = [
@@ -366,7 +377,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   }
 
   async addGlyph() {
-    const rid = joinId(this.resource!.id, 'definitions');
+    const rid = joinId(this.resourceId!, 'definitions');
     const newItem = await this.mainService.getNewItemData(rid);
     this.changes
       .appendChanges({
@@ -383,7 +394,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
     this.changes
       .appendChanges({
         timestamp: Date.now(),
-        id: joinId(this.resource!.id, 'definitions'),
+        id: joinId(this.resourceId!, 'definitions'),
         op: 'array_remove',
         index,
         oldValue: this.glyphs[index],
@@ -395,7 +406,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
     this.changes
       .appendChanges({
         timestamp: Date.now(),
-        id: joinId(this.resource!.id, 'definitions'),
+        id: joinId(this.resourceId!, 'definitions'),
         op: 'array_swap',
         indexA: index,
         indexB: index - 1,
@@ -407,7 +418,7 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
     this.changes
       .appendChanges({
         timestamp: Date.now(),
-        id: joinId(this.resource!.id, 'definitions'),
+        id: joinId(this.resourceId!, 'definitions'),
         op: 'array_swap',
         indexA: index,
         indexB: index + 1,
@@ -416,59 +427,87 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   }
 
   onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
-    // const glyph = this.glyphs[event.index];
-    // if (glyph && event.field && event.field !== 'symbol') {
-    //   glyph[event.field] = event.value;
-    //   this.changed.emit();
-    //   this._resource$.next({ ...this.resource! });
-    //   this.cdr.markForCheck();
-    // }
+    if (event.field && event.field !== 'symbol') {
+      this.changes
+        .appendChanges({
+          timestamp: Date.now(),
+          id: joinId(this.resourceId!, 'definitions', event.index, event.field),
+          op: 'set',
+          oldValue: this.glyphs[event.index][event.field],
+          newValue: event.value,
+        })
+        .then();
+    }
   }
 
   async addKerning() {
-    // const newItem = await this.main.getNewItemData(joinId(this.resource!.id, 'kernings'));
-    // this.kernings.push(newItem);
-    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    // this.cdr.markForCheck();
+    const rid = joinId(this.resourceId!, 'kernings');
+    const newItem = await this.mainService.getNewItemData(rid);
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: rid,
+        op: 'array_insert',
+        index: this.kernings.length,
+        value: newItem,
+      })
+      .then();
   }
 
   removeKerning(index: number) {
-    // this.kernings.splice(index, 1);
-    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    // this.cdr.markForCheck();
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: joinId(this.resourceId!, 'kernings'),
+        op: 'array_remove',
+        index,
+        oldValue: this.kernings[index],
+      })
+      .then();
   }
 
   moveKerningUp(index: number) {
-    // const temp = this.kernings[index];
-    // this.kernings[index] = this.kernings[index - 1];
-    // this.kernings[index - 1] = temp;
-    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    // this.cdr.markForCheck();
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: joinId(this.resourceId!, 'kernings'),
+        op: 'array_swap',
+        indexA: index,
+        indexB: index - 1,
+      })
+      .then();
   }
 
   moveKerningDown(index: number) {
-    // const temp = this.kernings[index];
-    // this.kernings[index] = this.kernings[index + 1];
-    // this.kernings[index + 1] = temp;
-    // this.main.dataBlockChange$.next([joinId(this.resource!.id, 'kernings'), this.kernings]);
-    // this.cdr.markForCheck();
+    this.changes
+      .appendChanges({
+        timestamp: Date.now(),
+        id: joinId(this.resourceId!, 'kernings'),
+        op: 'array_swap',
+        indexA: index,
+        indexB: index + 1,
+      })
+      .then();
   }
 
   onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
-    // const kerning = this.kernings[event.index];
-    // if (kerning && event.field && event.field !== 'Left Symbol' && event.field !== 'Right Symbol') {
-    //   // Mapping back from DataTable display keys to data keys if necessary
-    //   let dataField = event.field;
-    //   if (dataField === 'Left Symbol Code') dataField = 'left';
-    //   else if (dataField === 'Right Symbol Code') dataField = 'right';
-    //   else if (dataField === 'Kerning') dataField = 'kerning';
-    //   else if (dataField === 'Unk') dataField = 'unk';
-    //
-    //   kerning[dataField] = event.value;
-    //   this.changed.emit();
-    //   this._resource$.next({ ...this.resource! });
-    //   this.cdr.markForCheck();
-    // }
+    if (event.field && event.field !== 'Left Symbol' && event.field !== 'Right Symbol') {
+      // Mapping back from DataTable display keys to data keys if necessary
+      let dataField = event.field;
+      if (dataField === 'Left Symbol Code') dataField = 'left';
+      else if (dataField === 'Right Symbol Code') dataField = 'right';
+      else if (dataField === 'Kerning') dataField = 'kerning';
+      else if (dataField === 'Unk') dataField = 'unk';
+      this.changes
+        .appendChanges({
+          timestamp: Date.now(),
+          id: joinId(this.resourceId!, 'kernings', event.index, dataField),
+          op: 'set',
+          oldValue: this.kernings[event.index][dataField],
+          newValue: event.value,
+        })
+        .then();
+    }
   }
 
   onGlyphFocused(event: [string[], number]) {
@@ -500,11 +539,11 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
   }
 
   get glyphs(): any[] {
-    return this.resource?.data?.definitions;
+    return this.resourceData?.definitions;
   }
 
   get kernings(): any[] {
-    return this.resource?.data?.kernings;
+    return this.resourceData?.kernings;
   }
 
   getSymbol(code: any): string {
@@ -517,7 +556,8 @@ export class FontBlockUiComponent extends GuiComponent implements AfterViewInit,
     }
   }
 
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
     this.destroyed$.next();
     this.destroyed$.complete();
     this._imageRefreshed$.complete();

@@ -1,4 +1,4 @@
-<mat-tab-group class="font-editor-tabs" *ngIf="resource">
+<mat-tab-group class="font-editor-tabs">
   <mat-tab label="Font">
     <div class="font-editor-container">
       <div class="section top-section">
@@ -75,8 +75,7 @@
         [resourceName]="'bitmap'"
         [resourceSchema]="bitmapSchema()"
         [resourceData]="resourceData.bitmap"
-        [hideName]="true"
-        [hideBlockActions]="true"></image-block-ui>
+        [hideName]="true"></image-block-ui>
     </div>
   </mat-tab>
 </mat-tab-group>
