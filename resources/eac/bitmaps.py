@@ -53,11 +53,14 @@ def get_bitmap_len(resource_id, width, height):
         return ceil(width / 2) * height
     elif resource_id[:1] == '8':
         return width * height
+    else:
+        return 0
 
 
 class EacImage(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (EnumByteBlock(enum_names=[(0x6D, '16Bit_4444 color format bitmap'),
+        resource_id = (EnumByteBlock(enum_names=[(0x40, '4Bit PS1'),
+                                                 (0x6D, '16Bit_4444 color format bitmap'),
                                                  (0x78, '16Bit_0565 color format bitmap'),
                                                  (0x79, '4Bit (swapped)'),
                                                  (0x7A, '4Bit'),
@@ -106,15 +109,18 @@ class EacImage(DeclarativeCompoundBlock):
                     'is_pure': False,
                     'args': [
                         {
+                            'id': 'mode',
+                            'title': 'mode',
+                            'type': 'enum_string',
+                            'choices': ['4Bit',
+                                        '4Bit PS1',
+                                        '4Bit (swapped)']
+                        },
+                        {
                             'id': 'channel',
                             'title': 'Channel',
                             'type': 'enum_string',
                             'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
-                        },
-                        {
-                            'id': 'swapped',
-                            'title': 'Swapped bits',
-                            'type': 'bool',
                         }
                     ],
                 },
@@ -290,9 +296,9 @@ class EacImage(DeclarativeCompoundBlock):
             raise ValueError(f'Invalid channel: {channel}')
         return mask, offs
 
-    def action_convert_to_4bit(self, read_data, channel, swapped, **kwargs):
+    def action_convert_to_4bit(self, read_data, mode, channel, **kwargs):
         current_color_format = read_data['resource_id']
-        target_color_format = '4Bit' if not swapped else '4Bit (swapped)'
+        target_color_format = mode
         if current_color_format == target_color_format:
             return
         elif current_color_format == '8Bit':
