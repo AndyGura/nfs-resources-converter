@@ -343,8 +343,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   private updateColumns() {
     if (!this.resourceSchema || !this.resourceData) return;
-    const glyphs = this.glyphs;
-    if (glyphs.length > 0) {
+    if (this.resourceData.definitions.length > 0) {
       const gSchema = this.resourceSchema.fields.find((f: any) => f.name === 'definitions')?.schema;
       const gItemSchema = gSchema?.child_schema;
       if (gItemSchema) {
@@ -355,8 +354,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       }
     }
 
-    const kernings = this.kernings;
-    if (kernings.length > 0) {
+    if (this.resourceData.kernings.length > 0) {
       const kSchema = this.resourceSchema.fields.find((f: any) => f.name === 'kernings')?.schema;
       const kItemSchema = kSchema?.child_schema;
       if (kItemSchema) {
@@ -384,7 +382,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         timestamp: Date.now(),
         id: rid,
         op: 'array_insert',
-        index: this.glyphs.length,
+        index: this.resourceData!.definitions.length,
         value: newItem,
       })
       .then();
@@ -397,7 +395,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         id: joinId(this.resourceId!, 'definitions'),
         op: 'array_remove',
         index,
-        oldValue: this.glyphs[index],
+        oldValue: this.resourceData!.definitions[index],
       })
       .then();
   }
@@ -433,7 +431,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
           timestamp: Date.now(),
           id: joinId(this.resourceId!, 'definitions', event.index, event.field),
           op: 'set',
-          oldValue: this.glyphs[event.index][event.field],
+          oldValue: this.resourceData!.definitions[event.index][event.field],
           newValue: event.value,
         })
         .then();
@@ -448,7 +446,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         timestamp: Date.now(),
         id: rid,
         op: 'array_insert',
-        index: this.kernings.length,
+        index: this.resourceData!.kernings.length,
         value: newItem,
       })
       .then();
@@ -461,7 +459,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         id: joinId(this.resourceId!, 'kernings'),
         op: 'array_remove',
         index,
-        oldValue: this.kernings[index],
+        oldValue: this.resourceData!.kernings[index],
       })
       .then();
   }
@@ -503,7 +501,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
           timestamp: Date.now(),
           id: joinId(this.resourceId!, 'kernings', event.index, dataField),
           op: 'set',
-          oldValue: this.kernings[event.index][dataField],
+          oldValue: this.resourceData!.kernings[event.index][dataField],
           newValue: event.value,
         })
         .then();
@@ -511,15 +509,15 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   onGlyphFocused(event: [string[], number]) {
-    this.selectGlyph(event[1]);
+    this._selectedGlyphIndex$.next(event[1]);
   }
 
   get glyphsWithSymbols(): any[] {
-    return this.glyphs.map(g => ({ ...g, symbol: this.getSymbol(g.code) }));
+    return this.resourceData?.definitions.map((g: any) => ({ ...g, symbol: this.getSymbol(g.code) })) || [];
   }
 
   get kerningsWithSymbols(): any[] {
-    return (this.kernings || []).map(k => ({
+    return (this.resourceData?.kernings || []).map((k: any) => ({
       ...k,
       'Left Symbol': this.getSymbol(k.left),
       'Right Symbol': this.getSymbol(k.right),
@@ -532,18 +530,6 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   onTextChange(event: Event) {
     this._text$.next((event.target as HTMLTextAreaElement).value);
-  }
-
-  selectGlyph(index: number) {
-    this._selectedGlyphIndex$.next(index);
-  }
-
-  get glyphs(): any[] {
-    return this.resourceData?.definitions;
-  }
-
-  get kernings(): any[] {
-    return this.resourceData?.kernings;
   }
 
   getSymbol(code: any): string {
@@ -566,6 +552,5 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     }
   }
 
-  protected readonly getChildResource = getChildResource;
   protected readonly joinId = joinId;
 }
