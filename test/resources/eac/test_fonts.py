@@ -24,7 +24,7 @@ class TestFfnFont(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output_files = serializer.serialize(font_res, tmp, name, block)
             font_res2 = serializer.deserialize(output_files, name, block=block)
-            (EacImage()).action_convert_to_4bit(font_res2['bitmap'], 'alpha', False)
+            (EacImage()).action_convert_to_4bit(font_res2['bitmap'], '4Bit', 'alpha')
         output = block.pack(font_res2, name=name)
         with open('test/golden_corpus/GRAVER18.FFN', 'rb') as bdata:
             original = bdata.read()
