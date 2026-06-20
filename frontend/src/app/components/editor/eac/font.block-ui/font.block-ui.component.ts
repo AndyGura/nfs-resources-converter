@@ -11,9 +11,7 @@ import { auditTime, BehaviorSubject, combineLatest, filter, startWith, Subject, 
 import { BlockData, BlockSchema } from '../../types';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
-import { getChildResource } from '../../../../utils/get-child-resource';
 import { SubscribableGuiComponent } from '../../gui.component';
-import { isNaN, parseInt } from 'lodash';
 
 @Component({
   selector: 'app-font-block-ui',
