@@ -21,10 +21,28 @@ import { SubscribableGuiComponent } from '../../gui.component';
   standalone: false,
 })
 export class FontBlockUiComponent extends SubscribableGuiComponent implements AfterViewInit {
-  @ViewChild('fullBitmapCanvas') fullBitmapCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('fullBitmapCanvas') fullBitmapCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('textPreviewCanvas') textPreviewCanvas!: ElementRef<HTMLCanvasElement>;
 
   _selectedGlyphIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  _selectedTabIndex: number = 0;
+  set selectedTabIndex(value: number) {
+    this._selectedTabIndex = value;
+    this._selectedTabIndex$.next(value);
+  }
+
+  get selectedTabIndex(): number {
+    return this._selectedTabIndex;
+  }
+
+  get isCharPreviewVisible(): boolean {
+    // Char Preview is visible when "Chars" tab is selected.
+    // However, if "Kernings" tab is visible (version > 300), "Kernings" is at index 1.
+    // If "Kernings" is NOT visible, the indices of subsequent tabs might shift if we use *ngIf on mat-tab.
+    // Actually, mat-tab-group with *ngIf on mat-tab handles index shifting.
+    // "Chars" tab is always the first one, so index 0.
+    return this.selectedTabIndex === 0;
+  }
   _text$: BehaviorSubject<string> = new BehaviorSubject<string>(
     'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
   );
@@ -53,6 +71,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
+  private _selectedTabIndex$ = new BehaviorSubject<number>(0);
   private _image: HTMLImageElement | null = null;
   private _imageRefreshed$: Subject<void> = new Subject<void>();
   private _resizeObserver: ResizeObserver | null = null;
@@ -112,7 +131,12 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     this._resizeObserver = new ResizeObserver(() => {
       this._resized$.next();
     });
-    this._resizeObserver.observe(this.fullBitmapCanvas.nativeElement);
+    this._selectedTabIndex$.pipe(takeUntil(this.destroyed$)).subscribe(() => {
+      if (this.fullBitmapCanvas) {
+        this._resizeObserver?.observe(this.fullBitmapCanvas.nativeElement);
+      }
+      this._resized$.next();
+    });
     this._resizeObserver.observe(this.textPreviewCanvas.nativeElement);
   }
 
@@ -131,7 +155,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   private renderFullBitmap(index: number) {
-    if (!this.resourceData) return;
+    if (!this.resourceData || !this.fullBitmapCanvas) return;
     const canvas = this.fullBitmapCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx || !this._image) return;
@@ -341,34 +365,31 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   private updateColumns() {
     if (!this.resourceSchema || !this.resourceData) return;
-    if (this.resourceData.definitions.length > 0) {
-      const gSchema = this.resourceSchema.fields.find((f: any) => f.name === 'definitions')?.schema;
-      const gItemSchema = gSchema?.child_schema;
-      if (gItemSchema) {
-        this._glyphColumns = [
-          { key: 'symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
-          ...gItemSchema.fields.map((f: any, i: number) => ({ key: f.name, index: i, schema: f.schema })),
-        ];
-      }
+
+    const gSchema = this.resourceSchema.fields.find((f: any) => f.name === 'definitions')?.schema;
+    const gItemSchema = gSchema?.child_schema;
+    if (gItemSchema) {
+      this._glyphColumns = [
+        { key: 'symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+        ...gItemSchema.fields.map((f: any, i: number) => ({ key: f.name, index: i, schema: f.schema })),
+      ];
     }
 
-    if (this.resourceData.kernings.length > 0) {
-      const kSchema = this.resourceSchema.fields.find((f: any) => f.name === 'kernings')?.schema;
-      const kItemSchema = kSchema?.child_schema;
-      if (kItemSchema) {
-        this._kerningColumns = [
-          { key: 'Left Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
-          { key: 'Right Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
-          ...kItemSchema.fields.map((f: any, i: number) => {
-            let key = f.key;
-            if (key === 'left') key = 'Left Symbol Code';
-            else if (key === 'right') key = 'Right Symbol Code';
-            else if (key === 'kerning') key = 'Kerning';
-            else if (key === 'unk') key = 'Unk';
-            return { key, index: i, schema: f.schema };
-          }),
-        ];
-      }
+    const kSchema = this.resourceSchema.fields.find((f: any) => f.name === 'kernings')?.schema;
+    const kItemSchema = kSchema?.child_schema;
+    if (kItemSchema) {
+      this._kerningColumns = [
+        { key: 'Left Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+        { key: 'Right Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+        ...kItemSchema.fields.map((f: any, i: number) => {
+          let key = f.name;
+          if (key === 'left') key = 'Left Symbol Code';
+          else if (key === 'right') key = 'Right Symbol Code';
+          else if (key === 'kerning') key = 'Kerning';
+          else if (key === 'unk') key = 'Unk';
+          return { key, index: i, schema: f.schema };
+        }),
+      ];
     }
   }
 
