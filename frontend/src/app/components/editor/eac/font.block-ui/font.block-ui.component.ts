@@ -139,6 +139,19 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       this._resized$.next();
     });
     this._resizeObserver.observe(this.textPreviewCanvas.nativeElement);
+
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(
+          path =>
+            !!this.resourceId &&
+            (path === joinId(this.resourceId, 'version') || path.startsWith(joinId(this.resourceId, 'flags'))),
+        ),
+      )
+      .subscribe(() => {
+        this.updateColumns();
+      });
   }
 
   private async refreshImage() {
@@ -372,7 +385,17 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     if (gItemSchema) {
       this._glyphColumns = [
         { key: 'symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
-        ...gItemSchema.fields.map((f: any, i: number) => ({ key: f.name, index: i, schema: f.schema })),
+        ...gItemSchema.fields
+          .filter((f: any) => {
+            if (f.name === 'num_kern') return this.resourceData.version >= 300;
+            if (f.name === 'pad') return this.resourceData.version < 300 && this.resourceData.version >= 200;
+            if (f.name === 'kern_index')
+              return this.resourceData.version >= 321 && this.resourceData.flags.format === '16-bytes';
+            if (f.name === 'x_advance')
+              return this.resourceData.version >= 321 && this.resourceData.flags.format === '16-bytes';
+            return true;
+          })
+          .map((f: any, i: number) => ({ key: f.name, index: i, schema: f.schema })),
       ];
     }
 
