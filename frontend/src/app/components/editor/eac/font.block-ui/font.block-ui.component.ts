@@ -17,6 +17,7 @@ import { SubscribableGuiComponent } from '../../gui.component';
   selector: 'app-font-block-ui',
   templateUrl: './font.block-ui.component.html',
   styleUrls: ['./font.block-ui.component.scss'],
+  host: { class: 'full-screen-editor' },
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })

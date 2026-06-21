@@ -1,12 +1,5 @@
 @use '../../../../../variables';
 
-:host {
-  // fullscreen
-  margin: calc(0rem - variables.$viewport-padding);
-  max-width: unset;
-  height: variables.$viewport-height;
-}
-
 .global-container {
   display: flex;
   height: 100%;
