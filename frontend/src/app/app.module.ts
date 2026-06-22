@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
+import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -29,6 +30,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LandingPageComponent } from './components/landing-page/landing-page.component';
 import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
+import { NewFileDialogComponent } from './components/new-file.dialog/new-file.dialog.component';
 
 @NgModule({
   declarations: [
@@ -37,6 +39,7 @@ import { ConfigComponent } from './components/config/config.component';
     RunCustomActionDialogComponent,
     ErrorDialogComponent,
     LandingPageComponent,
+    NewFileDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -52,6 +55,7 @@ import { ConfigComponent } from './components/config/config.component';
     MatDialogModule,
     MatMenuModule,
     MatSelectModule,
+    MatListModule,
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,

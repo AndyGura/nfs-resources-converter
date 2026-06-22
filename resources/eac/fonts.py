@@ -174,10 +174,10 @@ class FfnFont(DeclarativeCompoundBlock):
         data = super().read(ctx, name, read_bytes_amount)
         # assertions for structure consistency. This block won't work correctly if these ptr-s are not in order
         if data['kernings_ptr'] != 0:
-            assert data['definitions_ptr'] < data['kernings_ptr']
+            assert data['definitions_ptr'] <= data['kernings_ptr']
             assert data['kernings_ptr'] < data['bdata_ptr']
         else:
-            assert data['definitions_ptr'] < data['bdata_ptr']
+            assert data['definitions_ptr'] <= data['bdata_ptr']
         return data
 
     def serializer_class(self):

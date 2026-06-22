@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { NavigationService } from './services/navigation.service';
 import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
+import { NewFileDialogComponent } from './components/new-file.dialog/new-file.dialog.component';
 import { environment } from '../environments/environment';
 import { ChangeEntry, ChangesService } from './services/changes.service';
 import { ApiDelegateService } from './services/api/api-delegate.service';
@@ -35,6 +36,19 @@ export class AppComponent {
     const fileNames = await this.mainService.api.openFileDialog();
     if (fileNames.length > 0) {
       await this.mainService.api.openFile(fileNames[0], true);
+    }
+  }
+
+  async createNewFile() {
+    const dialogRef = this.dialog.open(NewFileDialogComponent, {
+      width: '400px',
+    });
+    const format = await firstValueFrom(dialogRef.afterClosed());
+    if (format) {
+      const path = await this.mainService.api.saveFileDialog(`Untitled.${format}`);
+      if (path) {
+        await this.mainService.api.createNewFile(path, format);
+      }
     }
   }
 

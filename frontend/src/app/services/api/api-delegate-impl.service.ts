@@ -163,6 +163,18 @@ export class ApiDelegateImplService {
     });
   }
 
+  public async createNewFile(path: string, format: string) {
+    return this.enqueue(async () => {
+      await eel['create_new_file'](path, format)();
+      this.openedResource$.next(null);
+      this.openedResourcePath$.next(path);
+      const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await eel['open_file'](path, true)();
+      this.openedResource$.next({ ...res, id: res['name'] });
+      this.onFileOpened$.next();
+      await this._syncRecentFiles();
+    });
+  }
+
   public async serializeResource(id: string, path: string | null = null, settingsPatch: any = {}): Promise<string[]> {
     return this.enqueue(() => eel['serialize_resource'](id, path, settingsPatch)());
   }

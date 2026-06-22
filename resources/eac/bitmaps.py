@@ -59,11 +59,11 @@ def get_bitmap_len(resource_id, width, height):
 
 class EacImage(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (EnumByteBlock(enum_names=[(0x40, '4Bit PS1'),
+        resource_id = (EnumByteBlock(enum_names=[(0x7A, '4Bit'),
+                                                 (0x40, '4Bit PS1'),
                                                  (0x6D, '16Bit_4444 color format bitmap'),
                                                  (0x78, '16Bit_0565 color format bitmap'),
                                                  (0x79, '4Bit (swapped)'),
-                                                 (0x7A, '4Bit'),
                                                  (0x7B, '8Bit'),
                                                  (0x7E, '16Bit_1555 color format bitmap'),
                                                  (0x7F, '24Bit color format bitmap'),
@@ -164,6 +164,13 @@ class EacImage(DeclarativeCompoundBlock):
                 }
             ]
         }
+
+    def new_data(self):
+        data = super().new_data()
+        data['width'] = 1
+        data['height'] = 1
+        data['bitmap'] = [[0]]
+        return data
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         length = super().estimate_packed_size(data, ctx)

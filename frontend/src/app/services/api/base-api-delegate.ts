@@ -146,6 +146,10 @@ export abstract class BaseApiDelegateService {
     return this.runSafe(async () => (await this.getImpl()).saveFile());
   }
 
+  public async createNewFile(path: string, format: string): Promise<Resource | ResourceError> {
+    return this.runSafe(async () => (await this.getImpl()).createNewFile(path, format));
+  }
+
   public async serializeResource(
     blockId: string,
     path: string | null = null,
