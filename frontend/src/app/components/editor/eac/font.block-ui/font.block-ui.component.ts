@@ -88,14 +88,20 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   // Rectangle preview while dragging (in image coords)
   private _previewRect: { x: number; y: number; width: number; height: number } | null = null;
+  private _previewOffset: { x: number; y: number } | null = null;
+  private _previewAdvance: number | null = null;
 
   // Dragging state
   private _drag: {
-    mode: 'move' | 'resize';
+    mode: 'move' | 'resize' | 'pan' | 'offset' | 'advance';
     edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean };
     startMouseX: number;
     startMouseY: number;
     startRect: { x: number; y: number; width: number; height: number };
+    startViewOffsetX?: number;
+    startViewOffsetY?: number;
+    startOffset?: { x: number; y: number };
+    startAdvance?: number;
   } | null = null;
 
   private get currentGlyphIndex(): number {
@@ -314,18 +320,31 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       }
 
       // Draw offset (x_offset, y_offset)
-      const originCanvasX = glyphCanvasX - (glyph.x_offset || 0) * ratio;
-      const originCanvasY = glyphCanvasY - (glyph.y_offset || 0) * ratio;
+      const currentXOffset = this._previewOffset?.x ?? glyph.x_offset ?? 0;
+      const currentYOffset = this._previewOffset?.y ?? glyph.y_offset ?? 0;
 
-      // Draw origin point (Green)
+      const originCanvasX = offsetX + (rectX - currentXOffset) * ratio;
+      const originCanvasY = offsetY + (rectY - currentYOffset) * ratio;
+
+      // Draw origin point (Green circle)
       ctx.fillStyle = '#00ff00';
       ctx.beginPath();
-      ctx.arc(originCanvasX, originCanvasY, 3, 0, Math.PI * 2);
+      ctx.arc(originCanvasX, originCanvasY, 5, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       // Draw advance (Blue)
-      let xAdvance = glyph.x_advance || glyph.advance;
-      if (xAdvance !== undefined) {
+      let xAdvance = this._previewAdvance;
+      if (xAdvance === null) {
+        if (glyph.x_advance !== undefined && glyph.x_advance !== 0) {
+          xAdvance = glyph.x_advance;
+        } else {
+          xAdvance = glyph.advance ?? 0;
+        }
+      }
+      if (xAdvance !== undefined && xAdvance !== null) {
         ctx.strokeStyle = '#4040ff';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -334,10 +353,18 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         ctx.stroke();
 
         // Little tick at the end of advance
+        const advanceEndX = originCanvasX + xAdvance * ratio;
         ctx.beginPath();
-        ctx.moveTo(originCanvasX + xAdvance * ratio, originCanvasY - 5);
-        ctx.lineTo(originCanvasX + xAdvance * ratio, originCanvasY + 5);
+        ctx.moveTo(advanceEndX, originCanvasY - 8);
+        ctx.lineTo(advanceEndX, originCanvasY + 8);
         ctx.stroke();
+
+        // Draw handle at the end of advance
+        ctx.fillStyle = '#4040ff';
+        ctx.fillRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
       }
 
       // Draw vertical advance if present
@@ -388,10 +415,15 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   private hitTest(
     canvasX: number,
     canvasY: number,
-  ): { type: 'inside' | 'edge' | 'corner' | 'none'; edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean } } {
+  ): {
+    type: 'inside' | 'edge' | 'corner' | 'none' | 'offset' | 'advance';
+    edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean };
+  } {
+    const idx = this.currentGlyphIndex;
+    const glyph: any = this.resourceData?.definitions?.[idx];
     const rect = this.getCurrentRect();
     const canvas = this.fullBitmapCanvas?.nativeElement;
-    if (!rect || !canvas) return { type: 'none' };
+    if (!rect || !canvas || !glyph) return { type: 'none' };
     const ratio = this._viewRatio;
     const offsetX = this._viewOffsetX;
     const offsetY = this._viewOffsetY;
@@ -400,6 +432,33 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     const y = offsetY + rect.y * ratio;
     const w = rect.width * ratio;
     const h = rect.height * ratio;
+
+    const currentXOffset = this._previewOffset?.x ?? glyph.x_offset ?? 0;
+    const currentYOffset = this._previewOffset?.y ?? glyph.y_offset ?? 0;
+    const originCanvasX = offsetX + (rect.x - currentXOffset) * ratio;
+    const originCanvasY = offsetY + (rect.y - currentYOffset) * ratio;
+
+    // Hit test for origin (offset) - green circle
+    const distToOrigin = Math.sqrt(Math.pow(canvasX - originCanvasX, 2) + Math.pow(canvasY - originCanvasY, 2));
+    if (distToOrigin <= 8) {
+      return { type: 'offset' };
+    }
+
+    // Hit test for advance end
+    let xAdvance = this._previewAdvance;
+    if (xAdvance === null) {
+      if (glyph.x_advance !== undefined && glyph.x_advance !== 0) {
+        xAdvance = glyph.x_advance;
+      } else {
+        xAdvance = glyph.advance ?? 0;
+      }
+    }
+    if (xAdvance !== undefined && xAdvance !== null) {
+      const advanceEndX = originCanvasX + xAdvance * ratio;
+      if (Math.abs(canvasX - advanceEndX) <= 8 && Math.abs(canvasY - originCanvasY) <= 12) {
+        return { type: 'advance' };
+      }
+    }
 
     // When zoomed out a lot, prioritize move over resize: disable handles below threshold
     const handleEnabled = ratio >= 0.5;
@@ -441,13 +500,15 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   private setCursorForHit(hit: {
-    type: 'inside' | 'edge' | 'corner' | 'none';
+    type: 'inside' | 'edge' | 'corner' | 'none' | 'offset' | 'advance';
     edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean };
   }) {
     const canvas = this.fullBitmapCanvas?.nativeElement;
     if (!canvas) return;
     let cursor = 'default';
     if (hit.type === 'inside') cursor = 'move';
+    else if (hit.type === 'offset') cursor = 'move';
+    else if (hit.type === 'advance') cursor = 'ew-resize';
     else if (hit.type === 'edge') {
       const e = hit.edges!;
       if (e.t || e.b) cursor = 'ns-resize';
@@ -456,6 +517,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       const e = hit.edges!;
       if ((e.t && e.l) || (e.b && e.r)) cursor = 'nwse-resize';
       if ((e.t && e.r) || (e.b && e.l)) cursor = 'nesw-resize';
+    } else if (hit.type === 'none') {
+      cursor = 'grab';
     }
     canvas.style.cursor = cursor;
   }
@@ -466,22 +529,57 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     const pos = this.getMouseCanvasPos(evt, canvas);
 
     const hit = this.hitTest(pos.x, pos.y);
-    if (hit.type === 'none') return;
 
     const rect = this.getCurrentRect();
     if (!rect) return;
 
     // Start drag
     this._hasCustomView = true; // lock view to user interaction
-    this._drag = {
-      mode: hit.type === 'inside' ? 'move' : 'resize',
-      edges: hit.edges,
-      startMouseX: pos.x,
-      startMouseY: pos.y,
-      startRect: { ...rect },
-    };
-    // preview immediately
-    this._previewRect = { ...rect };
+    const idx = this.currentGlyphIndex;
+    const glyph: any = this.resourceData.definitions[idx];
+    if (hit.type === 'none') {
+      this._drag = {
+        mode: 'pan',
+        startMouseX: pos.x,
+        startMouseY: pos.y,
+        startRect: { ...rect },
+        startViewOffsetX: this._viewOffsetX,
+        startViewOffsetY: this._viewOffsetY,
+      };
+      canvas.style.cursor = 'grabbing';
+    } else if (hit.type === 'offset') {
+      this._drag = {
+        mode: 'offset',
+        startMouseX: pos.x,
+        startMouseY: pos.y,
+        startRect: { ...rect },
+        startOffset: { x: glyph.x_offset || 0, y: glyph.y_offset || 0 },
+      };
+      this._previewOffset = { ...this._drag.startOffset! };
+    } else if (hit.type === 'advance') {
+      let startAdvance = glyph.x_advance;
+      if (startAdvance === undefined || startAdvance === 0) {
+        startAdvance = glyph.advance ?? 0;
+      }
+      this._drag = {
+        mode: 'advance',
+        startMouseX: pos.x,
+        startMouseY: pos.y,
+        startRect: { ...rect },
+        startAdvance: startAdvance,
+      };
+      this._previewAdvance = startAdvance;
+    } else {
+      this._drag = {
+        mode: hit.type === 'inside' ? 'move' : 'resize',
+        edges: hit.edges,
+        startMouseX: pos.x,
+        startMouseY: pos.y,
+        startRect: { ...rect },
+      };
+      // preview immediately
+      this._previewRect = { ...rect };
+    }
   }
 
   onFullCanvasMouseMove(evt: MouseEvent) {
@@ -496,36 +594,55 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     }
 
     const drag = this._drag;
-    const dx = (pos.x - drag.startMouseX) / this._viewRatio;
-    const dy = (pos.y - drag.startMouseY) / this._viewRatio;
 
-    if (drag.mode === 'move') {
-      const nx = Math.round(drag.startRect.x + dx);
-      const ny = Math.round(drag.startRect.y + dy);
-      this._previewRect = { x: nx, y: ny, width: drag.startRect.width, height: drag.startRect.height };
+    if (drag.mode === 'pan') {
+      this._viewOffsetX = drag.startViewOffsetX! + (pos.x - drag.startMouseX);
+      this._viewOffsetY = drag.startViewOffsetY! + (pos.y - drag.startMouseY);
+    } else if (drag.mode === 'offset') {
+      const dx = (pos.x - drag.startMouseX) / this._viewRatio;
+      const dy = (pos.y - drag.startMouseY) / this._viewRatio;
+      // Moving origin point moves rectangle but we want to change x_offset/y_offset
+      // x_offset = glyph.x - origin.x
+      // x_offset_new = glyph.x - (origin.x + dx) = x_offset - dx
+      this._previewOffset = {
+        x: Math.round(drag.startOffset!.x - dx),
+        y: Math.round(drag.startOffset!.y - dy),
+      };
+    } else if (drag.mode === 'advance') {
+      const dx = (pos.x - drag.startMouseX) / this._viewRatio;
+      this._previewAdvance = Math.round(drag.startAdvance! + dx);
     } else {
-      // resize
-      let x1 = drag.startRect.x;
-      let y1 = drag.startRect.y;
-      let x2 = drag.startRect.x + drag.startRect.width;
-      let y2 = drag.startRect.y + drag.startRect.height;
+      const dx = (pos.x - drag.startMouseX) / this._viewRatio;
+      const dy = (pos.y - drag.startMouseY) / this._viewRatio;
 
-      if (drag.edges?.l) x1 = Math.round(drag.startRect.x + dx);
-      if (drag.edges?.r) x2 = Math.round(drag.startRect.x + drag.startRect.width + dx);
-      if (drag.edges?.t) y1 = Math.round(drag.startRect.y + dy);
-      if (drag.edges?.b) y2 = Math.round(drag.startRect.y + drag.startRect.height + dy);
+      if (drag.mode === 'move') {
+        const nx = Math.round(drag.startRect.x + dx);
+        const ny = Math.round(drag.startRect.y + dy);
+        this._previewRect = { x: nx, y: ny, width: drag.startRect.width, height: drag.startRect.height };
+      } else {
+        // resize
+        let x1 = drag.startRect.x;
+        let y1 = drag.startRect.y;
+        let x2 = drag.startRect.x + drag.startRect.width;
+        let y2 = drag.startRect.y + drag.startRect.height;
 
-      // Ensure minimum size 1px
-      if (x2 - x1 < 1) {
-        if (drag.edges?.l) x1 = x2 - 1;
-        else x2 = x1 + 1;
+        if (drag.edges?.l) x1 = Math.round(drag.startRect.x + dx);
+        if (drag.edges?.r) x2 = Math.round(drag.startRect.x + drag.startRect.width + dx);
+        if (drag.edges?.t) y1 = Math.round(drag.startRect.y + dy);
+        if (drag.edges?.b) y2 = Math.round(drag.startRect.y + drag.startRect.height + dy);
+
+        // Ensure minimum size 1px
+        if (x2 - x1 < 1) {
+          if (drag.edges?.l) x1 = x2 - 1;
+          else x2 = x1 + 1;
+        }
+        if (y2 - y1 < 1) {
+          if (drag.edges?.t) y1 = y2 - 1;
+          else y2 = y1 + 1;
+        }
+
+        this._previewRect = { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
       }
-      if (y2 - y1 < 1) {
-        if (drag.edges?.t) y1 = y2 - 1;
-        else y2 = y1 + 1;
-      }
-
-      this._previewRect = { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
     }
 
     // re-render
@@ -538,29 +655,83 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       return;
     }
 
+    if (this._drag.mode === 'pan') {
+      this._drag = null;
+      const canvas = this.fullBitmapCanvas?.nativeElement;
+      if (canvas) {
+        const pos = this.getMouseCanvasPos(_evt, canvas);
+        const hit = this.hitTest(pos.x, pos.y);
+        this.setCursorForHit(hit);
+      }
+      return;
+    }
+
     const idx = this.currentGlyphIndex;
     const glyph: any = this.resourceData.definitions[idx];
-    const rect = this._previewRect || { x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height };
 
-    // Build changes
-    let change: ChangeEntryPayload & { id?: string } = {
-      op: 'bundle',
-      changes: ['x', 'y', 'width', 'height']
-        .filter(key => (rect as any)[key] !== glyph[key])
-        .map(key => ({
+    let changes: any[] = [];
+
+    if (this._drag.mode === 'offset') {
+      const offset = this._previewOffset || { x: glyph.x_offset || 0, y: glyph.y_offset || 0 };
+      if (offset.x !== glyph.x_offset) {
+        changes.push({
+          op: 'set',
+          id: joinId(this.resourceId!, 'definitions', idx, 'x_offset'),
+          timestamp: Date.now(),
+          oldValue: glyph.x_offset,
+          newValue: offset.x,
+        });
+      }
+      if (offset.y !== glyph.y_offset) {
+        changes.push({
+          op: 'set',
+          id: joinId(this.resourceId!, 'definitions', idx, 'y_offset'),
+          timestamp: Date.now(),
+          oldValue: glyph.y_offset,
+          newValue: offset.y,
+        });
+      }
+    } else if (this._drag.mode === 'advance') {
+      let advance = this._previewAdvance;
+      if (advance === null) {
+        advance = glyph.x_advance !== undefined && glyph.x_advance !== 0 ? glyph.x_advance : (glyph.advance ?? 0);
+      }
+      const key = glyph.x_advance !== undefined && glyph.x_advance !== 0 ? 'x_advance' : 'advance';
+      if (advance !== glyph[key]) {
+        changes.push({
           op: 'set',
           id: joinId(this.resourceId!, 'definitions', idx, key),
           timestamp: Date.now(),
-          oldValue: this.resourceData!.definitions[idx][key],
-          newValue: (rect as any)[key],
-        })),
-    };
-    if (change.changes.length > 0) {
-      this.emitNewChange(change);
+          oldValue: glyph[key],
+          newValue: advance,
+        });
+      }
+    } else {
+      const rect = this._previewRect || { x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height };
+      ['x', 'y', 'width', 'height'].forEach(key => {
+        if ((rect as any)[key] !== glyph[key]) {
+          changes.push({
+            op: 'set',
+            id: joinId(this.resourceId!, 'definitions', idx, key),
+            timestamp: Date.now(),
+            oldValue: glyph[key],
+            newValue: (rect as any)[key],
+          });
+        }
+      });
+    }
+
+    if (changes.length > 0) {
+      this.emitNewChange({
+        op: 'bundle',
+        changes: changes,
+      });
     }
 
     this._drag = null;
     this._previewRect = null;
+    this._previewOffset = null;
+    this._previewAdvance = null;
   }
 
   onFullCanvasWheel(evt: WheelEvent) {
