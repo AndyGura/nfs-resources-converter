@@ -836,7 +836,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     const gItemSchema = gSchema?.child_schema;
     if (gItemSchema) {
       this._glyphColumns = [
-        { key: 'symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+        { key: 'symbol', index: -1, schema: { block_class_mro: 'UTF8Block__' } },
         ...gItemSchema.fields
           .filter((f: any) => {
             if (f.name === 'num_kern') return this.resourceData.version >= 300;
@@ -855,8 +855,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     const kItemSchema = kSchema?.child_schema;
     if (kItemSchema) {
       this._kerningColumns = [
-        { key: 'Left Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
-        { key: 'Right Symbol', index: -1, readonly: true, schema: { block_class_mro: 'UTF8Block__' } },
+        { key: 'Left Symbol', index: -1, schema: { block_class_mro: 'UTF8Block__' } },
+        { key: 'Right Symbol', index: -1, schema: { block_class_mro: 'UTF8Block__' } },
         ...kItemSchema.fields.map((f: any, i: number) => {
           let key = f.name;
           if (key === 'left') key = 'Left Symbol Code';
@@ -920,7 +920,22 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
-    if (event.field && event.field !== 'symbol') {
+    if (event.field === 'symbol') {
+      const charCode = event.value?.charCodeAt(0);
+      if (charCode !== undefined && !isNaN(charCode)) {
+        this.changes
+          .appendChanges({
+            timestamp: Date.now(),
+            id: joinId(this.resourceId!, 'definitions', event.index, 'code'),
+            op: 'set',
+            oldValue: this.resourceData!.definitions[event.index]['code'],
+            newValue: charCode,
+          })
+          .then();
+      }
+      return;
+    }
+    if (event.field) {
       this.changes
         .appendChanges({
           timestamp: Date.now(),
@@ -984,7 +999,23 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
-    if (event.field && event.field !== 'Left Symbol' && event.field !== 'Right Symbol') {
+    if (event.field === 'Left Symbol' || event.field === 'Right Symbol') {
+      const charCode = event.value?.charCodeAt(0);
+      if (charCode !== undefined && !isNaN(charCode)) {
+        const dataField = event.field === 'Left Symbol' ? 'left' : 'right';
+        this.changes
+          .appendChanges({
+            timestamp: Date.now(),
+            id: joinId(this.resourceId!, 'kernings', event.index, dataField),
+            op: 'set',
+            oldValue: this.resourceData!.kernings[event.index][dataField],
+            newValue: charCode,
+          })
+          .then();
+      }
+      return;
+    }
+    if (event.field) {
       // Mapping back from DataTable display keys to data keys if necessary
       let dataField = event.field;
       if (dataField === 'Left Symbol Code') dataField = 'left';
