@@ -1,3 +1,4 @@
+@use './variables';
 //@use '@angular/material' as mat;
 
 html {
@@ -18,4 +19,11 @@ body {
 
 .hidden {
   display: none !important;
+}
+
+.full-screen-editor {
+  /* prettier-ignore */
+  margin: - variables.$viewport-padding;
+  max-width: unset !important;
+  height: variables.$viewport-height;
 }

@@ -1,0 +1,85 @@
+<div class="global-container">
+  <mat-tab-group class="font-editor-tabs" [(selectedIndex)]="selectedTabIndex">
+    <mat-tab label="Chars">
+      <div class="font-editor-container">
+        <div class="table-container">
+          <data-table
+            [data]="glyphsWithSymbols"
+            [columns]="_glyphColumns"
+            [enableArrayEditing]="true"
+            [selectedIndex]="_selectedGlyphIndex$ | async"
+            (addItem)="addGlyph()"
+            (removeItem)="removeGlyph($event)"
+            (moveItemUp)="moveGlyphUp($event)"
+            (moveItemDown)="moveGlyphDown($event)"
+            (dataChanged)="onGlyphDataChanged($event)"
+            (focusedElement)="onGlyphFocused($event)"></data-table>
+        </div>
+      </div>
+    </mat-tab>
+    <mat-tab label="Kernings">
+      <div class="font-editor-container">
+        <div class="table-container">
+          <data-table
+            [data]="kerningsWithSymbols"
+            [columns]="_kerningColumns"
+            [enableArrayEditing]="true"
+            [selectedIndex]="_selectedKerningIndex$ | async"
+            (addItem)="addKerning()"
+            (removeItem)="removeKerning($event)"
+            (moveItemUp)="moveKerningUp($event)"
+            (moveItemDown)="moveKerningDown($event)"
+            (dataChanged)="onKerningDataChanged($event)"
+            (focusedElement)="onKerningFocused($event)"></data-table>
+        </div>
+      </div>
+    </mat-tab>
+    <mat-tab label="Headers">
+      <div class="tab-content">
+        <app-compound-block-ui
+          [resourceId]="resourceId"
+          [resourceName]="resourceName"
+          [resourceSchema]="resourceSchema"
+          [resourceData]="resourceData"
+          [fieldBlacklist]="['bitmap', 'definitions', 'kernings']"
+          [hideName]="true"
+          [hideBlockActions]="true"></app-compound-block-ui>
+      </div>
+    </mat-tab>
+    <mat-tab label="Bitmap">
+      <div class="tab-content">
+        <image-block-ui
+          [resourceId]="joinId(resourceId!, 'bitmap')"
+          [resourceName]="'bitmap'"
+          [resourceSchema]="bitmapSchema()"
+          [resourceData]="resourceData.bitmap"
+          [hideName]="true"></image-block-ui>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+  <div class="previews-column">
+    <div class="section-preview" *ngIf="isCharPreviewVisible">
+      <div class="preview-title">Char Preview</div>
+      <div class="preview-container">
+        <canvas
+          #fullBitmapCanvas
+          (mousedown)="onFullCanvasMouseDown($event)"
+          (mousemove)="onFullCanvasMouseMove($event)"
+          (mouseup)="onFullCanvasMouseUp($event)"
+          (mouseleave)="onFullCanvasMouseUp($event)"
+          (wheel)="onFullCanvasWheel($event)"></canvas>
+      </div>
+    </div>
+
+    <div class="section-preview">
+      <div class="preview-title">Font Preview</div>
+      <div class="text-preview-container">
+        <textarea (input)="onTextChange($event)">{{ _text$.getValue() }}</textarea>
+        <div class="canvas-scroll-container">
+          <canvas #textPreviewCanvas></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

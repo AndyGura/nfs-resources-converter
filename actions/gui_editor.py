@@ -37,6 +37,18 @@ def run_gui_editor(file_path=None):
     eel.init(static_path)
     # copy all files
     copy_tree(src, static_path)
-    eel.start('index.html', port=0)
+
+    def on_close(page, sockets):
+        os.system("pkill -f 'eel_chrome_profile'")
+        sys.exit(0)
+
+    user_data_dir = os.path.join(tempfile.gettempdir(), 'eel_chrome_profile')
+    eel.start('index.html',
+              port=0,
+              close_callback=on_close,
+              cmdline_args=[
+                  f'--user-data-dir={user_data_dir}',
+                  '--no-first-run',
+              ])
 
     static_dir.cleanup()

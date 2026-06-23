@@ -2,7 +2,7 @@
 
 This document describes various color models used in EA games.
 
-## 4-bit (bitmap resource ids: 0x79, 0x7A)
+## 4-bit (bitmap resource ids: 0x40, 0x79, 0x7A)
 **Description**: Used for single-channel images, 4 bits per pixel. If resource id is 0x79, then values in each byte are swapped.
 
 **Found in games**:

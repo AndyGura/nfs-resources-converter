@@ -48,6 +48,8 @@ import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
+import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
+import { MatTab, MatTabGroup } from '@angular/material/tabs';
 
 @NgModule({
   declarations: [
@@ -75,6 +77,7 @@ import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geo
     BaseArchiveBlockUiComponent,
     ImageBlockUiComponent,
     PaletteBlockUiComponent,
+    FontBlockUiComponent,
 
     // specific data blocks
     OripGeometryBlockUiComponent,
@@ -108,6 +111,8 @@ import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geo
     MatCheckboxModule,
     MatSliderModule,
     HexEditorComponent,
+    MatTab,
+    MatTabGroup,
   ],
   exports: [EditorComponent, SidenavResListComponent, BlockActionsComponent],
 })

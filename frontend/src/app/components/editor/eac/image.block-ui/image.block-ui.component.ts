@@ -278,7 +278,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
       formPatch['channel'] = ''; // this variable is unused when converting 4bit -> 8bit
     }
     if (newFormatSmpl === '4bit') {
-      formPatch['swapped'] = newFormat.indexOf('swapped') >= 0;
+      formPatch['mode'] = newFormat;
       if (currentFormatSmpl === '8bit' || currentFormatSmpl === '4bit') {
         formPatch['channel'] = ''; // this variable is unused when converting 8bit -> 4bit
       }

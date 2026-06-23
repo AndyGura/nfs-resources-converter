@@ -125,6 +125,7 @@ class TestBitmap(unittest.TestCase):
         serialized_pixel = self._get_serialized_pixel_data(data)
         self.assertListEqual(list(serialized_pixel), [0x78, 0x56, 0x34, 0x12])
 
+    # TODO add tests, similar to test_ffn_can_be_reconstructed_from_files to few file formats
 
 
 class TestPalette(unittest.TestCase):

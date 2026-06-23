@@ -2,12 +2,18 @@
   <div class="landing-page-content">
     <h1>NFS Resources Converter</h1>
     <p>Welcome to the NFS Resources Converter. Use this tool to view and edit NFS game resource files.</p>
-    <div class="actions">
+    <div class="main-actions">
+      <button mat-raised-button color="accent" (click)="createNewFile()">
+        <mat-icon>note_add</mat-icon>
+        New File
+      </button>
       <button mat-raised-button color="primary" (click)="openFile()">
         <mat-icon>folder_open</mat-icon>
         Open File
       </button>
+    </div>
 
+    <div class="actions">
       @if (((api.recentFiles$ | async) || []).length > 0) {
         <div class="recent-files">
           <h3>Recent Files</h3>

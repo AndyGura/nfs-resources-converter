@@ -69,6 +69,7 @@ export class DataTableComponent implements DoCheck {
   private _data: any[] = [];
   @Input() disabled?: boolean = false;
   @Input() enableArrayEditing: boolean = false;
+  @Input() selectedIndex: number | null = null;
 
   public pagedData: any[] = [];
   private iterableDiffer: any;

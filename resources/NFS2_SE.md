@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-05-10 23:37:00.716751+00:00*
+*Last time updated: 2026-06-20 21:51:43.319289+00:00*
 
 
 # **Info by file extensions** #
@@ -262,7 +262,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
+| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>64 (0x40): 4Bit PS1<br/>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
 | 1 | **block_size** | 3 | 3-bytes unsigned integer (little endian) | Bitmap block size 16+<pixel_byteness>\*width\*height + trailing bytes length |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
@@ -286,24 +286,27 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Size**: 48..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == "FNTF" | Resource ID |
-| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes |
-| 8 | **unk0** | 1 | 1-byte unsigned integer. Always == 0x64 | Unknown purpose |
-| 9 | **unk1** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
+| 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
+| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include "remaining_bytes" length. For older versions (I set version <= 101, but it can be anywhere < 309), "padding_2" length is not included as well |
+| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **unk2** | 6 | Bytes | Unknown purpose |
-| 18 | **font_size** | 1 | 1-byte unsigned integer | Font size ? |
-| 19 | **unk3** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 20 | **line_height** | 1 | 1-byte unsigned integer | Line height ? |
-| 21 | **unk4** | 7 | Bytes. Always == b'\x00\x00\x00\x00\x00\x00\x00' | Unknown purpose |
-| 28 | **bdata_ptr** | 2 | 2-bytes unsigned integer (little endian) | Pointer to bitmap block |
-| 30 | **unk5** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 31 | **unk6** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 32 | **definitions** | num_glyphs\*11 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
-| 32 + num_glyphs\*11 | **skip_bytes** | up to offset bdata_ptr | Padding bytes | 4-bytes AD AD AD AD (optional, happens in nfs2 SWISS36) |
-| bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data. Usually 4bit |
+| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>1-bit flag "antialiased"<br/>1-bit flag "dropshadow"<br/>1-bit flag "outline"<br/>1-bit flag "vram"<br/>4-bits int "drawpad"<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>4-bits int "layoutpad"<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>13-bits int "pad" | - |
+| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | - |
+| 18 | **ascent** | 1 | 1-byte unsigned integer | - |
+| 19 | **descent** | 1 | 1-byte unsigned integer | - |
+| 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
+| 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
+| 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
+| 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
+| definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*17 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
+| ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
+| ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
+| bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
+| ? | **padding_3** | up to offset block_size + padding_2 length (version <= 101) | Padding bytes | Unknown purpose |
+| block_size + padding_2 length (version <= 101) | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
-#### **Size**: 11 bytes ####
+#### **Size**: 11..17 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **code** | 2 | 2-bytes unsigned integer (little endian) | Code of symbol |
@@ -311,9 +314,20 @@ Did not find what you need or some given data is wrong? Please submit an
 | 3 | **height** | 1 | 1-byte unsigned integer | Height of symbol in font bitmap |
 | 4 | **x** | 2 | 2-bytes unsigned integer (little endian) | Position (x) of symbol in font bitmap |
 | 6 | **y** | 2 | 2-bytes unsigned integer (little endian) | Position (y) of symbol in font bitmap |
-| 8 | **x_advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
+| 8 | **advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
 | 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
+| 11 | **num_kern** | 0..1 | Optional (if ^^version >= 300): 1-byte unsigned integer | Number of kerning pairs for this glyph |
+| 11..12 | **pad** | 0..1 | Optional (if ^^version < 300): 1-byte unsigned integer | Padding |
+| 11..13 | **kern_index** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Index in kerning table? |
+| 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
+### **KerningItem** ###
+#### **Size**: 4 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
+| 2 | **kerning** | 1 | 1-byte signed integer | - |
+| 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |
 ## **Misc** ##
 ### **ShpiText** ###
 #### **Size**: 8..? bytes ####

@@ -147,7 +147,7 @@ class EnumByteBlock(IntegerBlock):
     def new_data(self):
         if self.value_validator:
             return self.value_validator.new_data()
-        return next(x for x in self.enum_name_map if x is not None)
+        return self.enum_names[0][1]
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         raw = super().read(ctx, name, read_bytes_amount)

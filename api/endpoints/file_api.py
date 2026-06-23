@@ -236,3 +236,25 @@ class FileAPI:
         ChangesService.on_file_saved()
         clear_file_cache(path)
         return self.render_data(self.current_file_data)
+
+    def create_new_file(self, path: str, format_name: str):
+        """
+        Create a new empty file of given format.
+
+        Args:
+            path: Path where to save the file
+            format_name: Name of the format (e.g. 'ffn')
+
+        Returns:
+            Result of open_file
+        """
+        if format_name.lower() == 'ffn':
+            from resources.eac.fonts import FfnFont
+            block = FfnFont()
+            data = block.new_data()
+        else:
+            raise Exception(f'Unsupported format: {format_name}')
+
+        bts = block.pack(data)
+        with open(path, 'wb') as file:
+            file.write(bts)

@@ -70,6 +70,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         if resource_id in [0x22, 0x24, 0x29, 0x2A, 0x2D]:
             from resources.eac.bitmaps import EacPalette
             return EacPalette
+        elif resource_id in [0x40, 0x6D, 0x78, 0x79, 0x7A, 0x7B, 0x7E, 0x7F, 0x7D]:
+            from resources.eac.bitmaps import EacImage
+            return EacImage
         # TODO PIXEL_PAL4_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
         # elif resource_id == 0x5C:
         #     pass
@@ -103,9 +106,6 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif resource_id == 0x6F:
             from resources.eac.misc import ShpiText
             return ShpiText
-        elif resource_id in [0x6D, 0x78, 0x79, 0x7A, 0x7B, 0x7E, 0x7F, 0x7D]:
-            from resources.eac.bitmaps import EacImage
-            return EacImage
         elif resource_id == 0x7C:
             from resources.eac.archives import PaletteReference
             return PaletteReference

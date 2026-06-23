@@ -34,6 +34,7 @@ import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geo
 import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
+import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -66,6 +67,7 @@ export class EditorComponent implements OnDestroy {
     BaseArchiveBlock: BaseArchiveBlockUiComponent,
     EacImage: ImageBlockUiComponent,
     EacPalette: PaletteBlockUiComponent,
+    FfnFont: FontBlockUiComponent,
 
     // TNFS-specific blocks
     OripGeometry: OripGeometryBlockUiComponent,

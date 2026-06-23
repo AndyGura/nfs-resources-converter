@@ -72,6 +72,10 @@
 <ng-template #appMenu>
   <button mat-button [matMenuTriggerFor]="fileMenu">File</button>
   <mat-menu #fileMenu="matMenu">
+    <button mat-menu-item (click)="createNewFile()">
+      <mat-icon>note_add</mat-icon>
+      <span>New...</span>
+    </button>
     <button mat-menu-item (click)="openFile()">
       <mat-icon>folder_open</mat-icon>
       <span>Open</span>

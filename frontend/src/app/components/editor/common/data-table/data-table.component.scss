@@ -13,6 +13,17 @@ table {
   width: 100%;
   border-collapse: collapse;
 
+  tbody tr {
+    &.selected {
+      background-color: #e3f2fd;
+
+      td .compact-input input,
+      td .compact-input select {
+        background-color: #e3f2fd;
+      }
+    }
+  }
+
   th {
     padding: 0 16px;
     text-align: center;

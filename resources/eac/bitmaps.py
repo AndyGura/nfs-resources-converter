@@ -53,14 +53,17 @@ def get_bitmap_len(resource_id, width, height):
         return ceil(width / 2) * height
     elif resource_id[:1] == '8':
         return width * height
+    else:
+        return 0
 
 
 class EacImage(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (EnumByteBlock(enum_names=[(0x6D, '16Bit_4444 color format bitmap'),
+        resource_id = (EnumByteBlock(enum_names=[(0x7A, '4Bit'),
+                                                 (0x40, '4Bit PS1'),
+                                                 (0x6D, '16Bit_4444 color format bitmap'),
                                                  (0x78, '16Bit_0565 color format bitmap'),
                                                  (0x79, '4Bit (swapped)'),
-                                                 (0x7A, '4Bit'),
                                                  (0x7B, '8Bit'),
                                                  (0x7E, '16Bit_1555 color format bitmap'),
                                                  (0x7F, '24Bit color format bitmap'),
@@ -106,15 +109,18 @@ class EacImage(DeclarativeCompoundBlock):
                     'is_pure': False,
                     'args': [
                         {
+                            'id': 'mode',
+                            'title': 'mode',
+                            'type': 'enum_string',
+                            'choices': ['4Bit',
+                                        '4Bit PS1',
+                                        '4Bit (swapped)']
+                        },
+                        {
                             'id': 'channel',
                             'title': 'Channel',
                             'type': 'enum_string',
                             'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
-                        },
-                        {
-                            'id': 'swapped',
-                            'title': 'Swapped bits',
-                            'type': 'bool',
                         }
                     ],
                 },
@@ -159,6 +165,13 @@ class EacImage(DeclarativeCompoundBlock):
             ]
         }
 
+    def new_data(self):
+        data = super().new_data()
+        data['width'] = 1
+        data['height'] = 1
+        data['bitmap'] = [[0]]
+        return data
+
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         length = super().estimate_packed_size(data, ctx)
         # original assumes length if bitmap == length of array, which is not true
@@ -198,12 +211,12 @@ class EacImage(DeclarativeCompoundBlock):
         elif resource_id == '16Bit_1555 color format bitmap':
             bitmap = np.frombuffer(bd, dtype='<u2')
             return [transform_color_bitness(x, 1, 5, 5, 5)
-                              for x in bitmap]
+                    for x in bitmap]
         elif resource_id == '24Bit color format bitmap':
             b4 = bytes(bd)
             b = []
             for i in range(0, len(b4), 3):
-                b.extend(b4[i:i+3])
+                b.extend(b4[i:i + 3])
                 b.append(0)
             bitmap = np.frombuffer(bytes(b), dtype='<u4')
             return [int((x << 8) | 0xFF) for x in bitmap]
@@ -290,9 +303,9 @@ class EacImage(DeclarativeCompoundBlock):
             raise ValueError(f'Invalid channel: {channel}')
         return mask, offs
 
-    def action_convert_to_4bit(self, read_data, channel, swapped, **kwargs):
+    def action_convert_to_4bit(self, read_data, mode, channel, **kwargs):
         current_color_format = read_data['resource_id']
-        target_color_format = '4Bit' if not swapped else '4Bit (swapped)'
+        target_color_format = mode
         if current_color_format == target_color_format:
             return
         elif current_color_format == '8Bit':
@@ -310,10 +323,11 @@ class EacImage(DeclarativeCompoundBlock):
                 def transform(color):
                     r = (color >> 24) & 0xFF
                     g = (color >> 16) & 0xFF
-                    b = (color >> 8)  & 0xFF
+                    b = (color >> 8) & 0xFF
                     return 0xffffff00 | ((r * 77 + g * 150 + b * 29) >> 8)
             else:
                 (mask, offs) = self._get_channel_mask_offset(channel)
+
                 def transform(color):
                     return 0xffffff00 | ((color & mask) >> offs)
             new_bitmap = []
@@ -343,10 +357,11 @@ class EacImage(DeclarativeCompoundBlock):
                 def transform(color):
                     r = (color >> 24) & 0xFF
                     g = (color >> 16) & 0xFF
-                    b = (color >> 8)  & 0xFF
+                    b = (color >> 8) & 0xFF
                     return (r * 77 + g * 150 + b * 29) >> 8
             else:
                 (mask, offs) = self._get_channel_mask_offset(channel)
+
                 def transform(color):
                     return (color & mask) >> offs
             read_data['bitmap'] = [transform(pxl) for pxl in read_data['bitmap']]
@@ -365,8 +380,10 @@ class EacImage(DeclarativeCompoundBlock):
         elif current_color_format == '8Bit':
             new_bitmap8 = read_data['bitmap']
         else:
-            native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'], read_data['bitmap'])
-            read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'], read_data['height'], native)
+            native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
+                                              read_data['bitmap'])
+            read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'], read_data['height'],
+                                                           native)
         if new_bitmap8:
             if output_colors == 'transparent-white':
                 read_data['bitmap'] = [x | 0xffffff00 for x in new_bitmap8]
