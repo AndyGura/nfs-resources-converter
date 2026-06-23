@@ -12,6 +12,7 @@ import { BlockData, BlockSchema } from '../../types';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
 import { SubscribableGuiComponent } from '../../gui.component';
+import { ChangeEntryPayload } from '../../../../services/changes.service';
 
 @Component({
   selector: 'app-font-block-ui',
@@ -26,6 +27,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   @ViewChild('textPreviewCanvas') textPreviewCanvas!: ElementRef<HTMLCanvasElement>;
 
   _selectedGlyphIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  _selectedKerningIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   _selectedTabIndex: number = 0;
   set selectedTabIndex(value: number) {
     this._selectedTabIndex = value;
@@ -77,6 +79,28 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   private _imageRefreshed$: Subject<void> = new Subject<void>();
   private _resizeObserver: ResizeObserver | null = null;
   private _resized$: Subject<void> = new Subject<void>();
+
+  // Interactive view state
+  private _hasCustomView: boolean = false;
+  private _viewRatio: number = 1;
+  private _viewOffsetX: number = 0;
+  private _viewOffsetY: number = 0;
+
+  // Rectangle preview while dragging (in image coords)
+  private _previewRect: { x: number; y: number; width: number; height: number } | null = null;
+
+  // Dragging state
+  private _drag: {
+    mode: 'move' | 'resize';
+    edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean };
+    startMouseX: number;
+    startMouseY: number;
+    startRect: { x: number; y: number; width: number; height: number };
+  } | null = null;
+
+  private get currentGlyphIndex(): number {
+    return this._selectedGlyphIndex$.getValue();
+  }
 
   bitmapSchema() {
     return (this.resourceSchema.fields || []).find((x: { name: string; schema: BlockSchema }) => x.name === 'bitmap')
@@ -216,7 +240,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       const targetScale = 0.5;
       const scaleX = (canvasWidth * targetScale) / targetWidth;
       const scaleY = (canvasHeight * targetScale) / targetHeight;
-      const ratio = Math.min(scaleX, scaleY);
+      let ratio = Math.min(scaleX, scaleY);
 
       // Center the target area on the canvas
       let offsetX = canvasWidth / 2 - (minX + targetWidth / 2) * ratio;
@@ -234,24 +258,62 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       if (areaCanvasY < 0) offsetY -= areaCanvasY;
       else if (areaCanvasY + areaCanvasH > canvasHeight) offsetY -= areaCanvasY + areaCanvasH - canvasHeight;
 
+      // Apply or capture custom view
+      if (this._hasCustomView) {
+        // Use stored view params
+        ratio = this._viewRatio > 0 ? this._viewRatio : ratio;
+        offsetX = this._viewOffsetX;
+        offsetY = this._viewOffsetY;
+      } else {
+        // Initialize stored view from computed framing
+        this._viewRatio = ratio;
+        this._viewOffsetX = offsetX;
+        this._viewOffsetY = offsetY;
+      }
+
+      // Draw full atlas image with current view
       ctx.drawImage(this._image!, offsetX, offsetY, imgWidth * ratio, imgHeight * ratio);
 
-      const glyphCanvasX = offsetX + glyph.x * ratio;
-      const glyphCanvasY = offsetY + glyph.y * ratio;
-      const glyphCanvasW = glyph.width * ratio;
-      const glyphCanvasH = glyph.height * ratio;
+      // Pick rect to display: preview while dragging or current glyph
+      const rectX = this._previewRect?.x ?? glyph.x;
+      const rectY = this._previewRect?.y ?? glyph.y;
+      const rectW = this._previewRect?.width ?? glyph.width;
+      const rectH = this._previewRect?.height ?? glyph.height;
+
+      const glyphCanvasX = offsetX + rectX * ratio;
+      const glyphCanvasY = offsetY + rectY * ratio;
+      const glyphCanvasW = rectW * ratio;
+      const glyphCanvasH = rectH * ratio;
 
       // Draw bounding box
       ctx.strokeStyle = 'red';
       ctx.lineWidth = 2;
       ctx.strokeRect(glyphCanvasX, glyphCanvasY, glyphCanvasW, glyphCanvasH);
 
+      // Draw resize handles if not zoomed out too much
+      const handleSize = 6;
+      const hs = handleSize;
+      const drawHandle = (cx: number, cy: number) => {
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(cx - hs / 2, cy - hs / 2, hs, hs);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - hs / 2, cy - hs / 2, hs, hs);
+      };
+      if (ratio >= 0.5) {
+        // corners
+        drawHandle(glyphCanvasX, glyphCanvasY);
+        drawHandle(glyphCanvasX + glyphCanvasW, glyphCanvasY);
+        drawHandle(glyphCanvasX, glyphCanvasY + glyphCanvasH);
+        drawHandle(glyphCanvasX + glyphCanvasW, glyphCanvasY + glyphCanvasH);
+        // edges midpoints
+        drawHandle(glyphCanvasX + glyphCanvasW / 2, glyphCanvasY);
+        drawHandle(glyphCanvasX + glyphCanvasW / 2, glyphCanvasY + glyphCanvasH);
+        drawHandle(glyphCanvasX, glyphCanvasY + glyphCanvasH / 2);
+        drawHandle(glyphCanvasX + glyphCanvasW, glyphCanvasY + glyphCanvasH / 2);
+      }
+
       // Draw offset (x_offset, y_offset)
-      // Usually offset is relative to the "origin" of the glyph.
-      // If we consider (glyphCanvasX, glyphCanvasY) to be the top-left of the image in the atlas,
-      // the "origin" (baseline point) would be at (glyphCanvasX - x_offset*ratio, glyphCanvasY - y_offset*ratio)
-      // Wait, usually x_offset and y_offset are added to the current pen position to get the top-left corner of the glyph image.
-      // So: image_pos = pen_pos + offset => pen_pos = image_pos - offset
       const originCanvasX = glyphCanvasX - (glyph.x_offset || 0) * ratio;
       const originCanvasY = glyphCanvasY - (glyph.y_offset || 0) * ratio;
 
@@ -262,7 +324,6 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       ctx.fill();
 
       // Draw advance (Blue)
-      // Advance is usually from the origin.
       let xAdvance = glyph.x_advance || glyph.advance;
       if (xAdvance !== undefined) {
         ctx.strokeStyle = '#4040ff';
@@ -279,9 +340,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         ctx.stroke();
       }
 
-      // Draw vertical advance (advance means "y_advance" if x_advance is presen)
+      // Draw vertical advance if present
       if (glyph.x_advance !== undefined && glyph.advance !== 0) {
-        ctx.strokeStyle = '#ff40ff'; // Purple/Magenta for vertical advance
+        ctx.strokeStyle = '#ff40ff';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(originCanvasX, originCanvasY);
@@ -304,6 +365,226 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
       ctx.drawImage(this._image!, offsetX, offsetY, drawWidth, drawHeight);
     }
+  }
+
+  // ===== Mouse helpers and event handlers for Char Preview =====
+  private getMouseCanvasPos(evt: MouseEvent, canvas: HTMLCanvasElement): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+  }
+
+  private canvasToImage(x: number, y: number): { x: number; y: number } {
+    return { x: (x - this._viewOffsetX) / this._viewRatio, y: (y - this._viewOffsetY) / this._viewRatio };
+  }
+
+  private getCurrentRect(): { x: number; y: number; width: number; height: number } | null {
+    const idx = this.currentGlyphIndex;
+    const glyph: any = this.resourceData?.definitions?.[idx];
+    if (!glyph) return null;
+    if (this._previewRect) return this._previewRect;
+    return { x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height };
+  }
+
+  private hitTest(
+    canvasX: number,
+    canvasY: number,
+  ): { type: 'inside' | 'edge' | 'corner' | 'none'; edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean } } {
+    const rect = this.getCurrentRect();
+    const canvas = this.fullBitmapCanvas?.nativeElement;
+    if (!rect || !canvas) return { type: 'none' };
+    const ratio = this._viewRatio;
+    const offsetX = this._viewOffsetX;
+    const offsetY = this._viewOffsetY;
+
+    const x = offsetX + rect.x * ratio;
+    const y = offsetY + rect.y * ratio;
+    const w = rect.width * ratio;
+    const h = rect.height * ratio;
+
+    // When zoomed out a lot, prioritize move over resize: disable handles below threshold
+    const handleEnabled = ratio >= 0.5;
+    const handleSize = 8;
+
+    // Check handles first if enabled
+    if (handleEnabled) {
+      const within = (cx: number, cy: number) =>
+        Math.abs(canvasX - cx) <= handleSize && Math.abs(canvasY - cy) <= handleSize;
+
+      const centers = {
+        tl: { x: x, y: y },
+        tr: { x: x + w, y: y },
+        bl: { x: x, y: y + h },
+        br: { x: x + w, y: y + h },
+        tm: { x: x + w / 2, y: y },
+        bm: { x: x + w / 2, y: y + h },
+        ml: { x: x, y: y + h / 2 },
+        mr: { x: x + w, y: y + h / 2 },
+      } as const;
+
+      if (within(centers.tl.x, centers.tl.y)) return { type: 'corner', edges: { l: true, t: true } };
+      if (within(centers.tr.x, centers.tr.y)) return { type: 'corner', edges: { r: true, t: true } };
+      if (within(centers.bl.x, centers.bl.y)) return { type: 'corner', edges: { l: true, b: true } };
+      if (within(centers.br.x, centers.br.y)) return { type: 'corner', edges: { r: true, b: true } };
+
+      if (within(centers.tm.x, centers.tm.y)) return { type: 'edge', edges: { t: true } };
+      if (within(centers.bm.x, centers.bm.y)) return { type: 'edge', edges: { b: true } };
+      if (within(centers.ml.x, centers.ml.y)) return { type: 'edge', edges: { l: true } };
+      if (within(centers.mr.x, centers.mr.y)) return { type: 'edge', edges: { r: true } };
+    }
+
+    // Inside rect check
+    if (canvasX >= x && canvasX <= x + w && canvasY >= y && canvasY <= y + h) {
+      return { type: 'inside' };
+    }
+
+    return { type: 'none' };
+  }
+
+  private setCursorForHit(hit: {
+    type: 'inside' | 'edge' | 'corner' | 'none';
+    edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean };
+  }) {
+    const canvas = this.fullBitmapCanvas?.nativeElement;
+    if (!canvas) return;
+    let cursor = 'default';
+    if (hit.type === 'inside') cursor = 'move';
+    else if (hit.type === 'edge') {
+      const e = hit.edges!;
+      if (e.t || e.b) cursor = 'ns-resize';
+      if (e.l || e.r) cursor = 'ew-resize';
+    } else if (hit.type === 'corner') {
+      const e = hit.edges!;
+      if ((e.t && e.l) || (e.b && e.r)) cursor = 'nwse-resize';
+      if ((e.t && e.r) || (e.b && e.l)) cursor = 'nesw-resize';
+    }
+    canvas.style.cursor = cursor;
+  }
+
+  onFullCanvasMouseDown(evt: MouseEvent) {
+    if (!this.resourceData || !this.fullBitmapCanvas) return;
+    const canvas = this.fullBitmapCanvas.nativeElement;
+    const pos = this.getMouseCanvasPos(evt, canvas);
+
+    const hit = this.hitTest(pos.x, pos.y);
+    if (hit.type === 'none') return;
+
+    const rect = this.getCurrentRect();
+    if (!rect) return;
+
+    // Start drag
+    this._hasCustomView = true; // lock view to user interaction
+    this._drag = {
+      mode: hit.type === 'inside' ? 'move' : 'resize',
+      edges: hit.edges,
+      startMouseX: pos.x,
+      startMouseY: pos.y,
+      startRect: { ...rect },
+    };
+    // preview immediately
+    this._previewRect = { ...rect };
+  }
+
+  onFullCanvasMouseMove(evt: MouseEvent) {
+    if (!this.resourceData || !this.fullBitmapCanvas) return;
+    const canvas = this.fullBitmapCanvas.nativeElement;
+    const pos = this.getMouseCanvasPos(evt, canvas);
+
+    if (!this._drag) {
+      const hit = this.hitTest(pos.x, pos.y);
+      this.setCursorForHit(hit);
+      return;
+    }
+
+    const drag = this._drag;
+    const dx = (pos.x - drag.startMouseX) / this._viewRatio;
+    const dy = (pos.y - drag.startMouseY) / this._viewRatio;
+
+    if (drag.mode === 'move') {
+      const nx = Math.round(drag.startRect.x + dx);
+      const ny = Math.round(drag.startRect.y + dy);
+      this._previewRect = { x: nx, y: ny, width: drag.startRect.width, height: drag.startRect.height };
+    } else {
+      // resize
+      let x1 = drag.startRect.x;
+      let y1 = drag.startRect.y;
+      let x2 = drag.startRect.x + drag.startRect.width;
+      let y2 = drag.startRect.y + drag.startRect.height;
+
+      if (drag.edges?.l) x1 = Math.round(drag.startRect.x + dx);
+      if (drag.edges?.r) x2 = Math.round(drag.startRect.x + drag.startRect.width + dx);
+      if (drag.edges?.t) y1 = Math.round(drag.startRect.y + dy);
+      if (drag.edges?.b) y2 = Math.round(drag.startRect.y + drag.startRect.height + dy);
+
+      // Ensure minimum size 1px
+      if (x2 - x1 < 1) {
+        if (drag.edges?.l) x1 = x2 - 1;
+        else x2 = x1 + 1;
+      }
+      if (y2 - y1 < 1) {
+        if (drag.edges?.t) y1 = y2 - 1;
+        else y2 = y1 + 1;
+      }
+
+      this._previewRect = { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+    }
+
+    // re-render
+    this.renderFullBitmap(this.currentGlyphIndex);
+  }
+
+  onFullCanvasMouseUp(_evt: MouseEvent) {
+    if (!this._drag || !this.resourceData) {
+      this._drag = null;
+      return;
+    }
+
+    const idx = this.currentGlyphIndex;
+    const glyph: any = this.resourceData.definitions[idx];
+    const rect = this._previewRect || { x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height };
+
+    // Build changes
+    let change: ChangeEntryPayload & { id?: string } = {
+      op: 'bundle',
+      changes: ['x', 'y', 'width', 'height']
+        .filter(key => (rect as any)[key] !== glyph[key])
+        .map(key => ({
+          op: 'set',
+          id: joinId(this.resourceId!, 'definitions', idx, key),
+          timestamp: Date.now(),
+          oldValue: this.resourceData!.definitions[idx][key],
+          newValue: (rect as any)[key],
+        })),
+    };
+    if (change.changes.length > 0) {
+      this.emitNewChange(change);
+    }
+
+    this._drag = null;
+    this._previewRect = null;
+  }
+
+  onFullCanvasWheel(evt: WheelEvent) {
+    if (!this.fullBitmapCanvas || !this._image) return;
+    evt.preventDefault();
+    const canvas = this.fullBitmapCanvas.nativeElement;
+    const pos = this.getMouseCanvasPos(evt as unknown as MouseEvent, canvas);
+
+    // Anchor image coords under cursor
+    const imgPt = this.canvasToImage(pos.x, pos.y);
+
+    const zoomFactor = Math.pow(1.8, -evt.deltaY / 100);
+    const minZoom = 0.05;
+    const maxZoom = 32;
+    let newRatio = this._viewRatio * zoomFactor;
+    newRatio = Math.max(minZoom, Math.min(maxZoom, newRatio));
+
+    // Update view to keep anchor stable
+    this._viewOffsetX = pos.x - imgPt.x * newRatio;
+    this._viewOffsetY = pos.y - imgPt.y * newRatio;
+    this._viewRatio = newRatio;
+    this._hasCustomView = true;
+
+    this.renderFullBitmap(this.currentGlyphIndex);
   }
 
   private renderTextPreview(text: string) {
@@ -552,7 +833,14 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   onGlyphFocused(event: [string[], number]) {
+    // Reset view to auto-focus new glyph
+    this._hasCustomView = false;
+    this._previewRect = null;
     this._selectedGlyphIndex$.next(event[1]);
+  }
+
+  onKerningFocused(event: [string[], number]) {
+    this._selectedKerningIndex$.next(event[1]);
   }
 
   get glyphsWithSymbols(): any[] {

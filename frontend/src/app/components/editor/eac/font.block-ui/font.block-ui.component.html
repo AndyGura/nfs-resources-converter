@@ -7,6 +7,7 @@
             [data]="glyphsWithSymbols"
             [columns]="_glyphColumns"
             [enableArrayEditing]="true"
+            [selectedIndex]="_selectedGlyphIndex$ | async"
             (addItem)="addGlyph()"
             (removeItem)="removeGlyph($event)"
             (moveItemUp)="moveGlyphUp($event)"
@@ -23,11 +24,13 @@
             [data]="kerningsWithSymbols"
             [columns]="_kerningColumns"
             [enableArrayEditing]="true"
+            [selectedIndex]="_selectedKerningIndex$ | async"
             (addItem)="addKerning()"
             (removeItem)="removeKerning($event)"
             (moveItemUp)="moveKerningUp($event)"
             (moveItemDown)="moveKerningDown($event)"
-            (dataChanged)="onKerningDataChanged($event)"></data-table>
+            (dataChanged)="onKerningDataChanged($event)"
+            (focusedElement)="onKerningFocused($event)"></data-table>
         </div>
       </div>
     </mat-tab>
@@ -59,7 +62,13 @@
     <div class="section-preview" *ngIf="isCharPreviewVisible">
       <div class="preview-title">Char Preview</div>
       <div class="preview-container">
-        <canvas #fullBitmapCanvas></canvas>
+        <canvas
+          #fullBitmapCanvas
+          (mousedown)="onFullCanvasMouseDown($event)"
+          (mousemove)="onFullCanvasMouseMove($event)"
+          (mouseup)="onFullCanvasMouseUp($event)"
+          (mouseleave)="onFullCanvasMouseUp($event)"
+          (wheel)="onFullCanvasWheel($event)"></canvas>
       </div>
     </div>
 
