@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MainService } from './services/main.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { NewFileDialogComponent } from './components/new-file.dialog/new-file.di
 import { environment } from '../environments/environment';
 import { ChangeEntry, ChangesService } from './services/changes.service';
 import { ApiDelegateService } from './services/api/api-delegate.service';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-root',
@@ -19,7 +20,7 @@ import { ApiDelegateService } from './services/api/api-delegate.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   readonly isProduction = environment.production;
 
   constructor(
@@ -30,7 +31,18 @@ export class AppComponent {
     readonly navigation: NavigationService,
     private readonly snackBar: MatSnackBar,
     private readonly cdr: ChangeDetectorRef,
+    private readonly titleService: Title,
   ) {}
+
+  ngOnInit() {
+    this.api.openedResourcePath$.subscribe(path => {
+      if (path) {
+        this.titleService.setTitle(`${this.getFileName(path)} | NFS Resources Converter`);
+      } else {
+        this.titleService.setTitle('NFS Resources Converter');
+      }
+    });
+  }
 
   async openFile() {
     const fileNames = await this.mainService.api.openFileDialog();

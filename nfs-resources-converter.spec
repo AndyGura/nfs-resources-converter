@@ -57,6 +57,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='frontend/dist/gui/favicon.ico',
 )
 coll = COLLECT(
     exe,
@@ -71,7 +72,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name=f'NFS Resources Converter-{__version__}.app',
-    icon=None,
+    icon='frontend/dist/gui/favicon.ico',
     bundle_identifier='com.andygura.nfs-resources-converter',
     info_plist={
         'CFBundleDocumentTypes': [

@@ -60,10 +60,12 @@ class GlyphDefinition(DeclarativeCompoundBlock):
                {'description': 'Padding'})
         # 13th - 16th bytes
         kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                    criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes'),
+                                    criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data(
+                                        '../../flags/format') == '16-bytes'),
                       {'description': 'Index in kerning table?'})
         x_advance = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                   criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes'),
+                                   criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data(
+                                       '../../flags/format') == '16-bytes'),
                      {'description': 'Gap between this symbol and next one in rendered text?'})
 
 
@@ -112,19 +114,19 @@ class FfnFont(DeclarativeCompoundBlock):
                       {'usage': 'io,doc',
                        'description': 'Amount of symbols, defined in this font'})
         flags = SubByteCompoundBlock(length=4, schema=[
-            (1, 'antialiased', 'boolean', [], ''),
-            (1, 'dropshadow', 'boolean', [], ''),
-            (1, 'outline', 'boolean', [], ''),
+            (13, 'pad', 'number', [], 'pad structure to 32 bits'),
+            (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
+            (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
+            (4, 'layoutpad', 'number', [], 'pad to save 4 other layout bits'),
+            (1, 'direction', 'enum', ['LTR', 'RTL'], ''),
+            (1, 'orientation', 'enum', ['Horizontal', 'Vertical'], ''),
+            (2, 'baseline', 'enum', ['Roman (english)', 'Ideographic (Kanji)', 'Hanging (Arabic)', 'Unknown'], ''),
+            (4, 'drawpad', 'number', [], 'pad to save 4 other draw attribute bits'),
             (1, 'vram', 'boolean', [],
              'VRAM fonts are the default, they have extra space around the characters so that uv extraction will work under hardware.'),
-            (4, 'drawpad', 'number', [], 'pad to save 4 other draw attribute bits'),
-            (2, 'baseline', 'enum', ['Roman (english)', 'Ideographic (Kanji)', 'Hanging (Arabic)', 'Unknown'], ''),
-            (1, 'orientation', 'enum', ['Horizontal', 'Vertical'], ''),
-            (1, 'direction', 'enum', ['LTR', 'RTL'], ''),
-            (4, 'layoutpad', 'number', [], 'pad to save 4 other layout bits'),
-            (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
-            (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
-            (13, 'pad', 'number', [], 'pad structure to 32 bits'),
+            (1, 'outline', 'boolean', [], ''),
+            (1, 'dropshadow', 'boolean', [], ''),
+            (1, 'antialiased', 'boolean', [], ''),
         ])
         center = Point2D(child=IntegerBlock(length=1, is_signed=False))
         ascent = IntegerBlock(length=1, is_signed=False)

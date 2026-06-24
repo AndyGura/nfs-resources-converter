@@ -85,30 +85,22 @@ jobs:
           # mkdir -p package/usr/bin
           # mkdir -p package/usr/share/applications
           # mkdir -p package/usr/share/mime/packages
-          # cp -r dist/nfs-resources-converter/* package/usr/lib/nfs-resources-converter/
-          # ln -s /usr/lib/nfs-resources-converter/nfs-resources-converter package/usr/bin/nfs-resources-converter
+          # mkdir -p package/usr/share/icons/hicolor/256x256/apps
+          # cp -r dist/nfs-resources-converter-${{ needs.release.outputs.version }}/* package/usr/lib/nfs-resources-converter/
+          # ln -s /usr/lib/nfs-resources-converter/nfs-resources-converter-${{ needs.release.outputs.version }} package/usr/bin/nfs-resources-converter
           # cp nfs-resources-converter.desktop package/usr/share/applications/
           # cp nfs-resources-converter-mime.xml package/usr/share/mime/packages/
+          # cp frontend/dist/gui/favicon.ico package/usr/share/icons/hicolor/256x256/apps/nfs-resources-converter.ico
           # fpm -s dir -t deb -n nfs-resources-converter -v ${{ needs.release.outputs.version }} \
           #   --description "NFS Resources Converter" \
           #   -p dist/nfs-resources-converter-linux.deb \
           #   package/=/
-          # Also keep the single executable if needed, but the user asked for installer.
-          # We'll provide both or just the deb. Let's provide the deb as the primary.
 
       - name: Build (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           pyinstaller nfs-resources-converter.spec
-          # PyInstaller with the updated spec creates dist/nfs-resources-converter/nfs-resources-converter.exe
-          # Need to adjust the .iss file or the build.
-          # Let's use the one-file mode for the installer to keep it simple, 
-          # OR use the directory. Inno Setup can handle directories.
-          # I'll modify the .iss to use the directory if I wanted, but let's stick to onefile for the .iss for now
-          # Wait, I changed the spec to one-dir (COLLECT).
-          # Let's change it back to onefile for Windows/Linux or handle one-dir in installers.
-          # One-dir is better for performance.
           iscc windows-installer.iss /DAppVersion=${{ needs.release.outputs.version }}
 
       - name: Build (macOS)
@@ -123,8 +115,8 @@ jobs:
           #   --window-pos 200 120 \
           #   --window-size 800 400 \
           #   --icon-size 100 \
-          #   --icon "NFS Resources Converter.app" 200 190 \
-          #   --hide-extension "NFS Resources Converter.app" \
+          #   --icon "NFS Resources Converter-${{ needs.release.outputs.version }}.app" 200 190 \
+          #   --hide-extension "NFS Resources Converter-${{ needs.release.outputs.version }}.app" \
           #   --app-drop-link 600 185 \
           #   "dist/nfs-resources-converter-macos-${{ needs.release.outputs.version }}.dmg" \
           #   "dist/"

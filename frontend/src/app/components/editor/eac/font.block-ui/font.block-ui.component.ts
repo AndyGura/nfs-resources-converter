@@ -53,6 +53,13 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   _glyphColumns: ArrayTableColumn[] = [];
   _kerningColumns: ArrayTableColumn[] = [];
 
+  public _glyphsWithSymbols$ = new BehaviorSubject<any[]>([]);
+  public _kerningsWithSymbols$ = new BehaviorSubject<any[]>([]);
+  public _glyphPageSize = 300;
+  public _glyphPageIndex = 0;
+  public _kerningPageSize = 300;
+  public _kerningPageIndex = 0;
+
   override get resourceSchema(): BlockSchema | undefined {
     return super.resourceSchema;
   }
@@ -71,6 +78,28 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     super.resourceData = value;
     this.updateColumns();
     this.refreshImage().then();
+    this.updateSymbols();
+  }
+
+  private updateSymbols() {
+    if (!this.resourceData) {
+      this._glyphsWithSymbols$.next([]);
+      this._kerningsWithSymbols$.next([]);
+      return;
+    }
+    const glyphs = this.resourceData.definitions.map((g: any) => ({ ...g, symbol: this.getSymbol(g.code) }));
+    this._glyphsWithSymbols$.next(glyphs);
+
+    const kernings = (this.resourceData.kernings || []).map((k: any) => ({
+      ...k,
+      'Left Symbol': this.getSymbol(k.left),
+      'Right Symbol': this.getSymbol(k.right),
+      'Left Symbol Code': k.left,
+      'Right Symbol Code': k.right,
+      Kerning: k.kerning,
+      Unk: k.unk,
+    }));
+    this._kerningsWithSymbols$.next(kernings);
   }
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
@@ -148,6 +177,15 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         this.ngZone.run(() => {
           this.renderFullBitmap(index);
         });
+      });
+
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(x => !!this.resourceId && x.startsWith(this.resourceId)),
+      )
+      .subscribe(() => {
+        this.updateSymbols();
       });
 
     this.changes.change$
@@ -1043,22 +1081,6 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   onKerningFocused(event: [string[], number]) {
     this._selectedKerningIndex$.next(event[1]);
-  }
-
-  get glyphsWithSymbols(): any[] {
-    return this.resourceData?.definitions.map((g: any) => ({ ...g, symbol: this.getSymbol(g.code) })) || [];
-  }
-
-  get kerningsWithSymbols(): any[] {
-    return (this.resourceData?.kernings || []).map((k: any) => ({
-      ...k,
-      'Left Symbol': this.getSymbol(k.left),
-      'Right Symbol': this.getSymbol(k.right),
-      'Left Symbol Code': k.left,
-      'Right Symbol Code': k.right,
-      Kerning: k.kerning,
-      Unk: k.unk,
-    }));
   }
 
   onTextChange(event: Event) {

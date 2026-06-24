@@ -39,7 +39,7 @@
       }
     </thead>
     <tbody>
-      @for (item of pagedData; track trackByFn(i, item); let i = $index) {
+      @for (item of pagedData; track trackByFn(getGlobalIndex(i), item); let i = $index) {
         <tr [class.selected]="getGlobalIndex(i) === selectedIndex">
           <td class="index-cell" [class.editable]="!disabled">
             <span class="index-number">{{ getGlobalIndex(i) }}</span>

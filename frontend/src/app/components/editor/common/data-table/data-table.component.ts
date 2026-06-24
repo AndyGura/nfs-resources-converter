@@ -2,10 +2,10 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DoCheck,
   EventEmitter,
   Input,
   IterableDiffers,
-  DoCheck,
   Output,
 } from '@angular/core';
 
@@ -30,6 +30,7 @@ export class DataTableComponent implements DoCheck {
   get columns(): ArrayTableColumn[] | null {
     return this._columns;
   }
+
   @Input()
   set columns(value: ArrayTableColumn[] | null) {
     this._columns = value;
@@ -42,6 +43,7 @@ export class DataTableComponent implements DoCheck {
     this._pageIndex = value;
     this.updatePagedData();
   }
+
   get pageIndex(): number {
     return this._pageIndex;
   }
@@ -52,6 +54,7 @@ export class DataTableComponent implements DoCheck {
     this._pageSize = value;
     this.updatePagedData();
   }
+
   get pageSize(): number {
     return this._pageSize;
   }
@@ -63,9 +66,11 @@ export class DataTableComponent implements DoCheck {
     this.iterableDiffer = this.differs.find(value).create();
     this.updatePagedData();
   }
+
   get data(): any[] {
     return this._data;
   }
+
   private _data: any[] = [];
   @Input() disabled?: boolean = false;
   @Input() enableArrayEditing: boolean = false;
@@ -141,7 +146,7 @@ export class DataTableComponent implements DoCheck {
     const columnIds: string[] = [];
     if (field) columnIds.push(field);
     if (subField) columnIds.push(subField);
-    this.focusedElement.emit([columnIds, this.getGlobalIndex(index)]);
+    this.focusedElement.emit([columnIds, index]);
   }
 
   getGlobalIndex(i: number): number {
