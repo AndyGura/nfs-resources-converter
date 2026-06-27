@@ -3,7 +3,7 @@
   <mat-selection-list [multiple]="false" (selectionChange)="selectedFormat = $event.options[0].value">
     @for (format of formats; track format.id) {
       <mat-list-option [value]="format.id" [selected]="selectedFormat === format.id">
-        <mat-icon matListItemIcon>{{ format.icon }}</mat-icon>
+        <mat-icon matListItemIcon>{{ fileFormatIcon(format.blockClass) }}</mat-icon>
         <span matListItemTitle>{{ format.name }}</span>
       </mat-list-option>
     }

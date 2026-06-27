@@ -3,6 +3,11 @@
   (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
   @for (key of keys; track key) {
     <mat-list-option [value]="key" [selected]="selectedValue == key" (dblclick)="onDoubleClick(key)">
+      @if (resources[key].schema; as schema) {
+        <mat-icon matListItemIcon>{{ fileFormatIcon(schema.block_class_mro) }}</mat-icon>
+      } @else {
+        <mat-icon matListItemIcon>error</mat-icon>
+      }
       {{ key }}
     </mat-list-option>
   }

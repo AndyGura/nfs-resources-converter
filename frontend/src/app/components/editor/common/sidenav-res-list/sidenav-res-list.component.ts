@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { NavigationService } from '../../../../services/navigation.service';
-import { BlockData, ReadError } from '../../types';
+import { Resource, ResourceError } from '../../types';
 import { joinId } from '../../../../utils/join-id';
+import { fileFormatIcon } from '../../../../utils/file-format-icon';
 
 @Component({
   selector: 'app-sidenav-res-list',
@@ -11,12 +12,12 @@ import { joinId } from '../../../../utils/join-id';
   standalone: false,
 })
 export class SidenavResListComponent {
-  _resources: { [key: string]: BlockData | ReadError } = {};
-  get resources(): { [key: string]: BlockData | ReadError } {
+  _resources: { [key: string]: Resource | ResourceError } = {};
+  get resources(): { [key: string]: Resource | ResourceError } {
     return this._resources;
   }
 
-  @Input() set resources(value: { [key: string]: BlockData | ReadError }) {
+  @Input() set resources(value: { [key: string]: Resource | ResourceError }) {
     this._resources = value;
     if (!this.selectedValue || !Object.keys(value).includes(this.selectedValue)) {
       this.selectedValue = Object.keys(value).length > 0 ? Object.keys(value)[0] : null;
@@ -43,4 +44,5 @@ export class SidenavResListComponent {
   }
 
   protected readonly joinId = joinId;
+  protected readonly fileFormatIcon = fileFormatIcon;
 }
