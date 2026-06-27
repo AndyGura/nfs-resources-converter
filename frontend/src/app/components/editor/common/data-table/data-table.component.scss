@@ -1,6 +1,33 @@
+.table-outer-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%; // Ensure it takes full height of parent when maxHeight is %
+}
+
 .table-container {
   overflow-x: auto;
   overflow-y: hidden;
+  flex: 1;
+  min-height: 0;
+
+  &.sticky-header {
+    overflow-y: auto;
+
+    table {
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+
+        th {
+          background-color: #fafafa;
+          // Ensure border is visible when sticky
+          box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+        }
+      }
+    }
+  }
 }
 
 table,
@@ -11,7 +38,23 @@ td {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th,
+  td {
+    border-top: none;
+    border-left: none;
+  }
+
+  th:first-child,
+  td:first-child {
+    border-left: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  tr:first-child th {
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
 
   tbody tr {
     &.selected {
@@ -77,8 +120,24 @@ table {
 }
 
 .add-item-button {
-  align-self: flex-start;
-  margin-top: 8px;
+  // margin-top: 8px;
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: #fafafa;
+
+  .actions-container {
+    flex: 1;
+    padding-left: 8px;
+  }
+
+  mat-paginator {
+    background: transparent;
+  }
 }
 
 .index-cell {

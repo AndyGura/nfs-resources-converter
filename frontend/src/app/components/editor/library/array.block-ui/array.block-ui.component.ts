@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, ViewChild } from '@angular/core';
 import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
 import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
-import { ArrayTableColumn } from '../../common/data-table/data-table.component';
+import { ArrayTableColumn, DataTableComponent } from '../../common/data-table/data-table.component';
 
 @Component({
   selector: 'app-array-block-ui',
@@ -75,6 +75,8 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
   public pagedData: any[] = [];
 
   protected readonly joinId = joinId;
+  public readonly tableMaxHeight = 'calc((100vh - 64px) * 0.9)';
+  @ViewChild(DataTableComponent) dataTable?: DataTableComponent;
 
   get enableArrayEditing(): boolean {
     return (
@@ -92,6 +94,7 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
     }
     this.renderPage(this.pageIndex, this.pageSize);
     this.updatePagedData();
+    this.dataTable?.markForCheck();
     super.onExternalChanges();
   }
 
@@ -261,6 +264,20 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
         this.cdr.markForCheck();
       }, 2000) as any as number;
     }
+  }
+
+  onPageIndexChange(event: number) {
+    this.pageIndex = event;
+    this.updatePageIndexes();
+    this.updatePagedData();
+    this.cdr.markForCheck();
+  }
+
+  onPageSizeChange(event: number) {
+    this.pageSize = event;
+    this.updatePageIndexes();
+    this.updatePagedData();
+    this.cdr.markForCheck();
   }
 
   renderPage(pageIndex: number, pageSize: number) {
