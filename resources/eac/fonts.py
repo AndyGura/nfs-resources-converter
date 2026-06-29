@@ -50,8 +50,7 @@ class GlyphDefinition(DeclarativeCompoundBlock):
         # TODO this feels like should have a programmatic value
         # programmatic_value=lambda ctx: sum(
         #                                                          1 for x in ctx.data('../../kernings') if
-        #                                                          x['left'] == ctx.data('code'))
-        # but this does not work
+        #                                                          x['right'] == ctx.data('code'))
         num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
                                   criteria=lambda ctx: ctx.data('../../version') >= 300),
                     {'description': 'Number of kerning pairs for this glyph'})
