@@ -12,7 +12,6 @@ import { BlockData, BlockSchema } from '../../types';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
 import { SubscribableGuiComponent } from '../../gui.component';
-import { ChangeEntryPayload } from '../../../../services/changes.service';
 
 @Component({
   selector: 'app-font-block-ui',
@@ -41,6 +40,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   get isCharPreviewVisible(): boolean {
     return this.selectedTabIndex === 0;
   }
+
   _text$: BehaviorSubject<string> = new BehaviorSubject<string>(
     'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
   );
@@ -984,17 +984,25 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       .then();
   }
 
-  onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
-    if (event.field === 'symbol') {
-      if (!event.value) return;
-      let oldCode = this.resourceData!.definitions[event.index]['code'];
+  private symbolInputToCode(input: string, oldCode: number): number | undefined {
+    if (input && input.length) {
       let charCode = oldCode;
-      for (let i = 0; i < event.value.length; i++) {
-        if (event.value.charCodeAt(i) !== oldCode) {
-          charCode = event.value.charCodeAt(i);
+      for (let i = 0; i < input.length; i++) {
+        if (input.charCodeAt(i) !== oldCode) {
+          charCode = input.charCodeAt(i);
         }
       }
       if (charCode !== undefined && !isNaN(charCode) && charCode !== oldCode) {
+        return charCode;
+      }
+    }
+    return undefined;
+  }
+
+  onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
+    if (event.field === 'symbol') {
+      let charCode = this.symbolInputToCode(event.value, this.resourceData!.definitions[event.index]['code']);
+      if (charCode !== undefined) {
         const change = {
           timestamp: Date.now(),
           id: joinId(this.resourceId!, 'definitions', event.index, 'code'),
@@ -1086,18 +1094,17 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
     if (event.field === 'Left Symbol' || event.field === 'Right Symbol') {
-      const charCode = event.value?.charCodeAt(0);
-      if (charCode !== undefined && !isNaN(charCode)) {
-        const dataField = event.field === 'Left Symbol' ? 'left' : 'right';
-        this.changes
-          .appendChanges({
-            timestamp: Date.now(),
-            id: joinId(this.resourceId!, 'kernings', event.index, dataField),
-            op: 'set',
-            oldValue: this.resourceData!.kernings[event.index][dataField],
-            newValue: charCode,
-          })
-          .then();
+      const dataField = event.field === 'Left Symbol' ? 'left' : 'right';
+      let charCode = this.symbolInputToCode(event.value, this.resourceData!.kernings[event.index][dataField]);
+      if (charCode !== undefined) {
+        const change = {
+          timestamp: Date.now(),
+          id: joinId(this.resourceId!, 'kernings', event.index, dataField),
+          op: 'set',
+          oldValue: this.resourceData!.kernings[event.index][dataField],
+          newValue: charCode,
+        };
+        this.changes.appendChanges(change as any).then();
       }
       return;
     }
