@@ -83,7 +83,7 @@ Then, every time you want to debug:
 npm run start
 ```
 
-This serves the app on `http://localhost:4200`. Its `proxy.conf.json` forwards `/eel.js`
+This serves the app on `http://localhost:4200`. Its `proxy.conf.json` forwards `/bridge.js`
 (the bridge shim) and `/resources` (serialized resource previews) to `http://127.0.0.1:8000`.
 
 2) In another terminal, start the application in development mode (from the project root):
@@ -93,7 +93,7 @@ python run.py --dev
 ```
 
 This launches the native window pointed at the dev server with **developer tools enabled**.
-It also starts a small static server on port `8000` that serves the `eel.js` shim and the
+It also starts a small static server on port `8000` that serves the `bridge.js` shim and the
 serialized resource files the proxy expects. You can open a specific file as usual, e.g.
 `python run.py --dev NFSSE/SIMDATA/MISC/AL1.TRI`, and override the dev server URL with
 `--dev-server http://localhost:4200` if you changed the Angular port.

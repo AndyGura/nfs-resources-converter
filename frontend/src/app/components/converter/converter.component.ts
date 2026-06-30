@@ -16,8 +16,6 @@ import { ApiDelegateService } from '../../services/api-delegate.service';
 import { ConfigComponent } from '../config/config.component';
 import { firstValueFrom } from 'rxjs';
 
-declare const eel: any;
-
 @Component({
   selector: 'app-converter',
   templateUrl: './converter.component.html',

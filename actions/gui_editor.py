@@ -14,14 +14,14 @@ from api.bridge import bridge
 
 # Port of the auxiliary static HTTP server used only in development mode (see
 # ``run_gui_editor``). It matches the ``target`` in ``frontend/src/proxy.conf.json``
-# so the Angular dev server can proxy ``/eel.js`` and ``/resources`` to it.
+# so the Angular dev server can proxy ``/bridge.js`` and ``/resources`` to it.
 _DEV_STATIC_SERVER_PORT = 8000
 
 
 class _StaticFilesHandler(http.server.SimpleHTTPRequestHandler):
     """Quiet static handler with permissive CORS and disabled caching.
 
-    Used in development mode to serve the ``eel.js`` shim and the serialized
+    Used in development mode to serve the ``bridge.js`` shim and the serialized
     resource files (``/resources/...``) that the GUI requests, so the Angular
     dev server's proxy has something to forward to now that the production
     web view no longer runs an HTTP backend.
@@ -59,7 +59,7 @@ def _get_frontend_dist_path():
     return os.path.join(base, 'frontend', 'dist', 'gui')
 
 
-# Compatibility shim served as ``/eel.js``.
+# Compatibility shim served as ``/bridge.js``.
 #
 # The compiled Angular frontend was built against the Eel client and references
 # a global ``eel`` object (``eel.expose``, ``eel['py_func'](args)()``,
@@ -72,11 +72,11 @@ _EEL_SHIM_JS = r"""
   'use strict';
 
   // JS functions exposed to Python (Python -> JS direction).
-  window._eel_exposed_functions = window._eel_exposed_functions || {};
+  window._bridge_exposed_functions = window._bridge_exposed_functions || {};
 
   // Invoked from Python through window.evaluate_js to call an exposed JS function.
   window.__eel_call_exposed = function (name, args) {
-    var fn = window._eel_exposed_functions[name];
+    var fn = window._bridge_exposed_functions[name];
     if (typeof fn === 'function') {
       try {
         return fn.apply(null, args || []);
@@ -135,11 +135,11 @@ _EEL_SHIM_JS = r"""
     syncTitle();
   }
 
-  var eelTarget = {
+  var bridgeTarget = {
     // eel.expose(fn, name): register a JS function callable from Python.
     expose: function (fn, name) {
       var key = name || fn.name;
-      window._eel_exposed_functions[key] = fn;
+      window._bridge_exposed_functions[key] = fn;
     },
     // Dummy websocket: native window lifecycle is handled by pywebview, so the
     // frontend's close-detection loop just needs a truthy object to latch onto.
@@ -147,7 +147,7 @@ _EEL_SHIM_JS = r"""
   };
 
   // Proxy implementing eel['py_func'](args)() -> Promise semantics.
-  window.eel = new Proxy(eelTarget, {
+  window.bridge = new Proxy(bridgeTarget, {
     get: function (target, prop) {
       if (prop in target) {
         return target[prop];
@@ -183,7 +183,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
             reload and debugged directly inside the web view.
     """
     # Directory holding files needed by the GUI: in production the frontend
-    # build; in development just the eel.js shim and serialized resources. In
+    # build; in development just the bridge.js shim and serialized resources. In
     # both cases serialized resources are written here by the backend.
     static_dir = tempfile.TemporaryDirectory()
     static_path = static_dir.name
@@ -194,10 +194,10 @@ def run_gui_editor(file_path=None, dev_server_url=None):
         # Development mode. The UI itself is served (with live reload and source
         # maps) by the Angular dev server, so we don't copy the production
         # build. We still must serve two things the frontend asks for over
-        # HTTP: the `/eel.js` shim and the serialized `/resources/...` files.
+        # HTTP: the `/bridge.js` shim and the serialized `/resources/...` files.
         # A tiny static server on _DEV_STATIC_SERVER_PORT does that, and the
-        # dev server's proxy.conf.json forwards `/eel` and `/resources` to it.
-        with open(os.path.join(static_path, 'eel.js'), 'w', encoding='utf-8') as f:
+        # dev server's proxy.conf.json forwards `/bridge` and `/resources` to it.
+        with open(os.path.join(static_path, 'bridge.js'), 'w', encoding='utf-8') as f:
             f.write(_EEL_SHIM_JS)
         httpd = _start_static_server(static_path, _DEV_STATIC_SERVER_PORT)
         window_url = dev_server_url
@@ -205,8 +205,8 @@ def run_gui_editor(file_path=None, dev_server_url=None):
         # Production mode: copy the frontend build and drop the shim alongside.
         src = _get_frontend_dist_path()
         copy_tree(src, static_path)
-        # The frontend's index.html loads `/eel.js`; provide our shim under that name.
-        with open(os.path.join(static_path, 'eel.js'), 'w', encoding='utf-8') as f:
+        # The frontend's index.html loads `/bridge.js`; provide our shim under that name.
+        with open(os.path.join(static_path, 'bridge.js'), 'w', encoding='utf-8') as f:
             f.write(_EEL_SHIM_JS)
         window_url = os.path.join(static_path, 'index.html')
 
@@ -221,7 +221,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     )
 
     # Allow the frontend to drive the native window title (it updates
-    # ``document.title`` whenever the opened file/tab changes). The eel.js shim
+    # ``document.title`` whenever the opened file/tab changes). The bridge.js shim
     # observes ``document.title`` and calls this through ``window.pywebview.api``.
     def set_window_title(title):
         window.set_title(title)

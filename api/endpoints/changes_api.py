@@ -1,4 +1,4 @@
-from api.bridge import bridge as eel
+from api.bridge import bridge
 
 from library.changes_service import ChangesService
 
@@ -6,7 +6,7 @@ from library.changes_service import ChangesService
 class ChangesAPI:
     def __init__(self, api):
         self.api = api
-        ChangesService.ws_instance = eel
+        ChangesService.ws_instance = bridge
 
     def get_revisions(self):
         return (ChangesService.file_revision, ChangesService.local_revision)

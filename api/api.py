@@ -3,7 +3,7 @@ Main API class for the NFS Resources Converter.
 This class initializes and manages all API endpoints.
 """
 
-from api.bridge import bridge as eel
+from api.bridge import bridge
 from .endpoints.conversion_api import ConversionAPI
 from .endpoints.file_api import FileAPI
 from .endpoints.resource_api import ResourceAPI
@@ -36,46 +36,46 @@ class API:
         self.conversion_api = ConversionAPI(self)
         self.changes_api = ChangesAPI(self)
 
-        # Register all API endpoints with Eel
+        # Register all API endpoints
         self._register_endpoints()
 
     def _register_endpoints(self):
-        """Register all API endpoints with Eel."""
+        """Register all API endpoints with bridge."""
         # File API
-        eel.expose(self.file_api.on_angular_ready)
-        eel.expose(self.file_api.open_file_dialog)
-        eel.expose(self.file_api.save_file_dialog)
-        eel.expose(self.file_api.open_file)
-        eel.expose(self.file_api.open_file_with_system_app)
-        eel.expose(self.file_api.save_file)
-        eel.expose(self.file_api.create_new_file)
-        eel.expose(self.file_api.close_file)
+        bridge.expose(self.file_api.on_angular_ready)
+        bridge.expose(self.file_api.open_file_dialog)
+        bridge.expose(self.file_api.save_file_dialog)
+        bridge.expose(self.file_api.open_file)
+        bridge.expose(self.file_api.open_file_with_system_app)
+        bridge.expose(self.file_api.save_file)
+        bridge.expose(self.file_api.create_new_file)
+        bridge.expose(self.file_api.close_file)
 
         # Resource API
-        eel.expose(self.resource_api.retrieve_value)
-        eel.expose(self.resource_api.run_custom_action)
-        eel.expose(self.resource_api.get_new_item_data)
+        bridge.expose(self.resource_api.retrieve_value)
+        bridge.expose(self.resource_api.run_custom_action)
+        bridge.expose(self.resource_api.get_new_item_data)
 
         # Serialization API
-        eel.expose(self.serialization_api.serialize_resource)
-        eel.expose(self.serialization_api.deserialize_resource)
+        bridge.expose(self.serialization_api.serialize_resource)
+        bridge.expose(self.serialization_api.deserialize_resource)
 
         # Conversion API
-        eel.expose(self.conversion_api.select_directory_dialog)
-        eel.expose(self.conversion_api.convert_files)
-        eel.expose(self.conversion_api.get_general_config)
-        eel.expose(self.conversion_api.get_conversion_config)
-        eel.expose(self.conversion_api.patch_general_config)
-        eel.expose(self.conversion_api.patch_conversion_config)
-        eel.expose(self.conversion_api.test_executable)
+        bridge.expose(self.conversion_api.select_directory_dialog)
+        bridge.expose(self.conversion_api.convert_files)
+        bridge.expose(self.conversion_api.get_general_config)
+        bridge.expose(self.conversion_api.get_conversion_config)
+        bridge.expose(self.conversion_api.patch_general_config)
+        bridge.expose(self.conversion_api.patch_conversion_config)
+        bridge.expose(self.conversion_api.test_executable)
 
         # Changes API
-        eel.expose(self.changes_api.get_revisions)
-        eel.expose(self.changes_api.get_changes)
-        eel.expose(self.changes_api.on_fe_update)
+        bridge.expose(self.changes_api.get_revisions)
+        bridge.expose(self.changes_api.get_changes)
+        bridge.expose(self.changes_api.on_fe_update)
 
         # Version API
-        eel.expose(self.get_version)
+        bridge.expose(self.get_version)
 
     def get_version(self) -> str:
         """Return the current application version."""

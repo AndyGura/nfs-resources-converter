@@ -7,7 +7,7 @@ import os
 import traceback
 from typing import Dict, Optional, Any, List
 
-from api.bridge import bridge as eel
+from api.bridge import bridge
 
 from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
@@ -53,7 +53,7 @@ class FileAPI:
         Opens the initial file if one was specified.
         """
         if self.api.initial_file_path:
-            eel.open_arg_file(self.api.initial_file_path)
+            bridge.open_arg_file(self.api.initial_file_path)
 
     def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
@@ -67,7 +67,7 @@ class FileAPI:
         """
         import webview
 
-        window = eel.get_window()
+        window = bridge.get_window()
         if window is None:
             return []
         selection = window.create_file_dialog(
@@ -91,7 +91,7 @@ class FileAPI:
         import os
         import webview
 
-        window = eel.get_window()
+        window = bridge.get_window()
         if window is None:
             return None
 

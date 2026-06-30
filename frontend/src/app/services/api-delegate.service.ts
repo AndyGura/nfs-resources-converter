@@ -5,7 +5,10 @@ import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../
 import { ChangeEntry, ChangesFeUpdate } from './changes.service';
 import { ErrorDialogComponent } from '../components/error.dialog/error.dialog.component';
 
-declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
+declare const bridge: { expose: (func: Function, alias: string) => void } & {
+  [key: string]: Function;
+  _websocket: any;
+};
 
 export type GeneralConfig = {
   blender_executable: string;
@@ -53,9 +56,9 @@ export class ApiDelegateService {
   ]);
 
   constructor() {
-    eel.expose(this.wrapHandler(this.openArgFile$), 'open_arg_file');
-    eel.expose(this.wrapHandler(this.conversionProgress$), 'update_conversion_progress');
-    eel.expose(this.wrapHandler(this.onAppendChanges$), 'on_append_changes');
+    bridge.expose(this.wrapHandler(this.openArgFile$), 'open_arg_file');
+    bridge.expose(this.wrapHandler(this.conversionProgress$), 'update_conversion_progress');
+    bridge.expose(this.wrapHandler(this.onAppendChanges$), 'on_append_changes');
 
     this.openArgFile$.subscribe(async ([path]) => this.openFile(path));
 
@@ -63,11 +66,11 @@ export class ApiDelegateService {
     this.syncRecentFiles().then();
     this.syncVersion().then();
 
-    // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
+    // wait while bridge websocket connection establishes and add a handler to close window when main python script stopped
     setTimeout(async () => {
       while (true) {
-        if (eel._websocket) {
-          eel._websocket.onclose = () => window.close();
+        if (bridge._websocket) {
+          bridge._websocket.onclose = () => window.close();
           break;
         }
         await new Promise(r => setTimeout(r, 0));
@@ -234,7 +237,7 @@ export class ApiDelegateService {
         } catch (e) {
           // ignore
         }
-        return await eel[funcName](...args)();
+        return await bridge[funcName](...args)();
       })();
       this.callQueue = current;
       return await current;
