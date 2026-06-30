@@ -41,7 +41,7 @@ Milestones are AI-generated to guide public planning and will evolve over time.
 
 First of all, you need to install `ffmpeg` and `blender` (version 4+). These are required for both release artifacts and development mode.
 
-For the GUI application, Google Chrome or Chromium is recommended for the best experience. If not found, the application will try to use your system's default web browser.
+The GUI application runs in a native web view (powered by [pywebview](https://pywebview.flowrlab.com/)), so it looks and feels like a standalone desktop app on Windows, macOS and Linux. No external browser is required: it uses the OS-native web renderer (WebView2 on Windows, WebKit on macOS, WebKitGTK/Qt on Linux).
 
 ### Release Artifacts (Recommended for Windows)
 
@@ -58,6 +58,53 @@ If you want to run the project from source (required for Linux and macOS):
 0) Install Python 3.9+ and pip
 1) Install dependencies `pip install -r requirements.txt`
 2) Run the application: `python run.py`
+
+### Debugging the Angular frontend
+
+The GUI now runs inside a native web view (pywebview) instead of an external Chrome
+instance, so the JavaScript ⟷ Python bridge (`window.pywebview.api`) is available **only
+inside that native window**. This means the frontend can no longer be debugged from a
+separate browser tab — it must be loaded by the application window itself. Development
+mode does exactly that: it points the native window at the Angular dev server (`ng serve`),
+so you keep live reload, source maps and full DevTools while talking to the real backend.
+
+Prerequisites (once): install the frontend toolchain.
+
+```bash
+cd frontend
+npm install
+```
+
+Then, every time you want to debug:
+
+1) Start the Angular dev server (live reload + source maps), from the `frontend` directory:
+
+```bash
+npm run start
+```
+
+This serves the app on `http://localhost:4200`. Its `proxy.conf.json` forwards `/eel.js`
+(the bridge shim) and `/resources` (serialized resource previews) to `http://127.0.0.1:8000`.
+
+2) In another terminal, start the application in development mode (from the project root):
+
+```bash
+python run.py --dev
+```
+
+This launches the native window pointed at the dev server with **developer tools enabled**.
+It also starts a small static server on port `8000` that serves the `eel.js` shim and the
+serialized resource files the proxy expects. You can open a specific file as usual, e.g.
+`python run.py --dev NFSSE/SIMDATA/MISC/AL1.TRI`, and override the dev server URL with
+`--dev-server http://localhost:4200` if you changed the Angular port.
+
+3) Debug: right-click anywhere in the window and choose **Inspect Element** to open the
+native DevTools (WebKit Web Inspector on macOS/Linux, the Edge/WebView2 DevTools on Windows).
+You get the console, network panel and breakpoints. Edit any file under `frontend/src` and
+the window reloads automatically.
+
+> Note: editing **Python** (backend) code does not hot-reload — restart `python run.py --dev`
+> to pick up backend changes. Editing the **Angular** code reloads instantly.
 
 ### Support for macOS and Linux Binaries (Help Wanted!)
 

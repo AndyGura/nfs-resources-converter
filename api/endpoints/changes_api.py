@@ -1,4 +1,4 @@
-import eel
+from api.bridge import bridge as eel
 
 from library.changes_service import ChangesService
 

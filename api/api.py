@@ -3,7 +3,7 @@ Main API class for the NFS Resources Converter.
 This class initializes and manages all API endpoints.
 """
 
-import eel
+from api.bridge import bridge as eel
 from .endpoints.conversion_api import ConversionAPI
 from .endpoints.file_api import FileAPI
 from .endpoints.resource_api import ResourceAPI

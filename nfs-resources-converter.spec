@@ -12,14 +12,12 @@ hidden_imports = (
     + collect_submodules('library')
     + collect_submodules('actions')
     + collect_submodules('games')
-    + collect_submodules('eel')
+    + collect_submodules('webview')
     + collect_submodules('bottle')
-    + collect_submodules('engineio')
-    + collect_submodules('socketio')
 )
 
 datas = (
-    collect_data_files('eel')
+    collect_data_files('webview')
     + [('frontend/dist/gui', 'frontend/dist/gui')]
 )
 

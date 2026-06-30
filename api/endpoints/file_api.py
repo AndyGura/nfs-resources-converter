@@ -7,7 +7,7 @@ import os
 import traceback
 from typing import Dict, Optional, Any, List
 
-import eel
+from api.bridge import bridge as eel
 
 from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
@@ -65,26 +65,18 @@ class FileAPI:
         Returns:
             The list of selected file paths
         """
-        from tkinter import Tk
-        from tkinter.filedialog import askopenfilename, askopenfilenames
-        root = Tk()
-        root.withdraw()
-        root.update()
-        # Bring the dialog to front on macOS
-        root.lift()
-        root.attributes('-topmost', True)
-        root.after_idle(root.attributes, '-topmost', False)
-        filenames = []
-        if multiple:
-            selection = askopenfilenames()
-            if selection:
-                filenames = list(selection)
-        else:
-            filename = askopenfilename()
-            if filename:
-                filenames = [filename]
-        root.destroy()
-        return filenames
+        import webview
+
+        window = eel.get_window()
+        if window is None:
+            return []
+        selection = window.create_file_dialog(
+            webview.OPEN_DIALOG,
+            allow_multiple=multiple,
+        )
+        if not selection:
+            return []
+        return list(selection)
 
     def save_file_dialog(self, file_name: Optional[str] = None) -> Optional[str]:
         """
@@ -96,21 +88,16 @@ class FileAPI:
         Returns:
             The selected file path or None if canceled
         """
-        from tkinter import Tk
-        from tkinter.filedialog import asksaveasfilename
         import os
+        import webview
 
-        root = Tk()
-        root.withdraw()
-        root.update()
-        # Bring the dialog to front on macOS
-        root.lift()
-        root.attributes('-topmost', True)
-        root.after_idle(root.attributes, '-topmost', False)
+        window = eel.get_window()
+        if window is None:
+            return None
 
         # Determine initial directory and filename
-        initialdir = None
-        initialfile = None
+        initialdir = ''
+        initialfile = ''
 
         if file_name:
             if os.path.isdir(file_name):
@@ -131,14 +118,17 @@ class FileAPI:
                     # No directory component, just a filename
                     initialfile = file_name
 
-        filename = asksaveasfilename(
-            initialdir=initialdir,
-            initialfile=initialfile
+        result = window.create_file_dialog(
+            webview.SAVE_DIALOG,
+            directory=initialdir,
+            save_filename=initialfile,
         )
-        root.destroy()
-        if not filename:
+        if not result:
             return None
-        return filename
+        # pywebview may return either a string or a one-element sequence.
+        if isinstance(result, (list, tuple)):
+            return result[0]
+        return result
 
     def open_file(self, path: str, force_reload: bool = False, update_recent_files: bool = True) -> Dict[str, Any]:
         """

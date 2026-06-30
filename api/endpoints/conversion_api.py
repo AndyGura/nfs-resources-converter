@@ -5,7 +5,7 @@ from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 from typing import Dict, Any
 
-import eel
+from api.bridge import bridge as eel
 
 import config
 from library import require_file
@@ -71,13 +71,17 @@ class ConversionAPI:
             return {"success": False, "message": f"Error testing executable: {str(e)}"}
 
     def select_directory_dialog(self) -> str:
-        import tkinter as tk
-        from tkinter import filedialog
+        import webview
 
-        root = tk.Tk()
-        root.withdraw()
-        directory = filedialog.askdirectory()
-        return directory
+        window = eel.get_window()
+        if window is None:
+            return ''
+        selection = window.create_file_dialog(webview.FOLDER_DIALOG)
+        if not selection:
+            return ''
+        if isinstance(selection, (list, tuple)):
+            return selection[0]
+        return selection
 
     def export_file(self, args):
         base_input_path, path, out_path, custom_settings = args
