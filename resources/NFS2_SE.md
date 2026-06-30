@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-06-24 11:50:00.516388+00:00*
+*Last time updated: 2026-06-30 21:53:02.849396+00:00*
 
 
 # **Info by file extensions** #
@@ -11,7 +11,7 @@
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
-**\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 
 **\*.TRK** main track file. [TrkMap](#trkmap)
 

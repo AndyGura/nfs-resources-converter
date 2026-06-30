@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-06-24 11:50:00.563205+00:00*
+*Last time updated: 2026-06-30 21:53:02.881598+00:00*
 
 
 # **Info by file extensions** #
@@ -13,7 +13,7 @@
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
-**\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 
 **\*.VIV** archive with some data. [BigfBlock](#bigfblock)
 

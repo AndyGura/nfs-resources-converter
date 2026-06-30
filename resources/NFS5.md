@@ -1,11 +1,11 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-06-24 11:50:00.630489+00:00*
+*Last time updated: 2026-06-30 21:53:02.925930+00:00*
 
 
 # **Info by file extensions** #
 
-**\*.crp** geometry file. [CrpGeometry](#crpgeometry), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.crp** geometry file. [CrpGeometry](#crpgeometry), [compressed](eac_compressions.md)
         
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 

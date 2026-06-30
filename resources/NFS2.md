@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2026-06-24 11:50:00.467738+00:00*
+*Last time updated: 2026-06-30 21:53:02.815850+00:00*
 
 
 # **Info by file extensions** #
@@ -15,7 +15,7 @@
 
 **\*.MSK** archive with some data. [BigfBlock](#bigfblock)
 
-**\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 
 **\*.TRK** main track file. [TrkMap](#trkmap)
 

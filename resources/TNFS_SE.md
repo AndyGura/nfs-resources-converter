@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-06-24 11:50:00.419645+00:00*
+*Last time updated: 2026-06-30 21:53:02.771945+00:00*
 
 
 # **Info by file extensions** #
@@ -27,11 +27,11 @@
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
-**\*.PBS** car physics. [CarPerformanceSpec](#carperformancespec), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.PBS** car physics. [CarPerformanceSpec](#carperformancespec), [compressed](eac_compressions.md)
 
-**\*.PDN** car characteristic for unknown purpose. [CarSimplifiedPerformanceSpec](#carsimplifiedperformancespec), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.PDN** car characteristic for unknown purpose. [CarSimplifiedPerformanceSpec](#carsimplifiedperformancespec), [compressed](eac_compressions.md)
 
-**\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 
 **\*.TGV** video, I just use ffmpeg to convert it
 
