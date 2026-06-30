@@ -78,10 +78,6 @@ export class ApiDelegateService {
     }, 0);
   }
 
-  updateConversionProgress(current: number, total: number): void {
-    this.conversionProgress$.next([current, total]);
-  }
-
   // File API
   public async openFileDialog(multiple: boolean = false): Promise<string[]> {
     return this.wrapCall('open_file_dialog', multiple);
