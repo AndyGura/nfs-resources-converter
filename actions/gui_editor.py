@@ -50,6 +50,111 @@ def _start_static_server(root, port):
     return httpd
 
 
+_pointer_lock_patched = False
+
+# Byte offset of the ``invoke`` function pointer inside an Objective-C block
+# (``struct Block_literal``) on 64-bit platforms: isa(8) + flags(4) + reserved(4).
+_BLOCK_INVOKE_OFFSET = 16
+
+
+def _call_bool_completion_block(block_obj, value):
+    """Invoke an Objective-C ``void (^)(BOOL)`` block directly via its ABI.
+
+    WebKit hands the pointer-lock completion handler to us as a block. Under
+    pyobjc 11 such a block can only be *called* from Python if it carries a
+    readable type signature; WebKit's ``makeBlockPtr`` block does not expose one
+    that pyobjc can read, so ``block(True)`` raises ``TypeError: cannot call
+    block without a signature`` (and, being uncaught across the Objective-C
+    boundary, crashes the whole app). ``registerMetaDataForSelector`` does not
+    help here either — it cannot retrofit a signature onto a signature-less
+    incoming block.
+
+    Instead we call the block the way the Objective-C runtime does: every block
+    stores its ``invoke`` function pointer at a fixed offset in its memory
+    layout, so we read that pointer and call it directly through ctypes, passing
+    the block itself as the implicit first argument and the ``BOOL`` as the
+    second. This sidesteps pyobjc's signature requirement entirely.
+    """
+    import ctypes
+    import objc
+
+    block_ptr = objc.pyobjc_id(block_obj)
+    invoke_addr = ctypes.c_void_p.from_address(block_ptr + _BLOCK_INVOKE_OFFSET).value
+    invoke = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_bool)(invoke_addr)
+    invoke(block_ptr, value)
+
+
+def _enable_macos_pointer_lock():
+    """Re-enable the Pointer Lock API inside the macOS native web view.
+
+    pywebview uses a ``WKWebView`` on macOS, and WebKit only grants
+    ``element.requestPointerLock()`` when the web view's UI delegate implements
+    the private ``_webViewDidRequestPointerLock:completionHandler:`` selector and
+    invokes the supplied completion handler with ``YES``. If the delegate does
+    not implement it WebKit immediately denies the request (see
+    ``UIDelegate::UIClient::requestPointerLock`` in WebKit), which is exactly
+    what happened after migrating away from the Chrome app: the 3D viewers
+    (``obj-viewer``, ``frd``/``tri``/``trk`` maps) request pointer lock for their
+    free-fly camera and silently got denied.
+
+    Note that the older ``_webViewRequestPointerLock:`` selector is *not* usable:
+    current WebKit calls it and then unconditionally denies the request
+    (``completionHandler(false)``), so only the completion-handler variant can
+    grant pointer lock.
+
+    pywebview's shared delegate class (``BrowserView.BrowserDelegate``) does not
+    implement this selector, so here we extend it (via an Objective-C category)
+    with a granting ``_webViewDidRequestPointerLock:completionHandler:`` and a
+    no-op ``_webViewDidLosePointerLock:``. This must run before pywebview creates
+    the window (i.e. before ``webview.start()``), because WebKit caches which
+    delegate selectors are available when the UI delegate is assigned.
+
+    (The related macOS "funk" beep that WebKit emits for held keyboard keys while
+    the pointer is locked is suppressed in JavaScript from the bridge.js shim by
+    calling ``preventDefault`` on key events while ``document.pointerLockElement``
+    is set, which is far more robust than trying to intercept the native
+    responder chain: the actual first responder is an internal ``WKContentView``,
+    not pywebview's ``WebKitHost``, so a native ``noResponderFor:`` override never
+    fires for those key events.)
+
+    The whole thing is macOS-only and best-effort: on Windows (WebView2/Chromium)
+    and Linux (WebKitGTK) pointer lock already works, and any failure here must
+    never prevent the GUI from starting.
+    """
+    global _pointer_lock_patched
+    if _pointer_lock_patched or sys.platform != 'darwin':
+        return
+    try:
+        import objc
+        from webview.platforms import cocoa
+
+        browser_delegate_cls = cocoa.BrowserView.BrowserDelegate
+
+        # pyobjc requires a category's class name to match the class it extends.
+        class BrowserDelegate(objc.Category(browser_delegate_cls)):
+            def _webViewDidRequestPointerLock_completionHandler_(self, webview_, handler):
+                # Grant every pointer lock request. The web view is the user's
+                # own standalone application window, so there is no untrusted
+                # content to guard against, and the OS/WebKit still let the user
+                # escape the lock with the Esc key. The completion handler is a
+                # signature-less block, so it must be invoked through its ABI
+                # rather than called as a normal pyobjc block (which would raise
+                # "cannot call block without a signature" and crash the app).
+                try:
+                    _call_bool_completion_block(handler, True)
+                except Exception:
+                    pass
+
+            def _webViewDidLosePointerLock_(self, webview_):
+                pass
+
+        _pointer_lock_patched = True
+    except Exception:
+        # Pointer lock is a nice-to-have for the 3D viewers; never let a failure
+        # to patch the delegate stop the application from launching.
+        pass
+
+
 def _get_frontend_dist_path():
     """Return path to frontend/dist/gui, works both normally and when bundled by PyInstaller."""
     if getattr(sys, 'frozen', False):
@@ -134,6 +239,28 @@ _EEL_SHIM_JS = r"""
   } else {
     syncTitle();
   }
+
+  // Suppress the macOS system "funk" beep while the pointer is locked.
+  //
+  // The 3D viewers (obj-viewer, frd/tri/trk maps) lock the pointer for their
+  // free-fly WASD camera and handle the keys themselves, but they do not call
+  // preventDefault on the key events. On macOS the native web view (WKWebView)
+  // then forwards each "unhandled" key to the AppKit responder chain, which
+  // rings the system bell on every key repeat while a key (e.g. W) is held.
+  //
+  // Calling preventDefault marks the key event as handled, so WebKit no longer
+  // passes it to the native responder chain and the beep stops. preventDefault
+  // does not stop propagation, so the engine's own key listeners still run and
+  // movement keeps working. We skip events carrying Cmd/Ctrl so application
+  // shortcuts (copy/paste/quit/close) are never swallowed, and only act while a
+  // pointer lock is actually active so normal typing is completely unaffected.
+  function suppressPointerLockBeep(e) {
+    if (document.pointerLockElement && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+    }
+  }
+  window.addEventListener('keydown', suppressPointerLockBeep, true);
+  window.addEventListener('keyup', suppressPointerLockBeep, true);
 
   var bridgeTarget = {
     // eel.expose(fn, name): register a JS function callable from Python.
@@ -230,6 +357,11 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     # (JS -> Python) collected during API initialization.
     bridge.set_window(window)
     window.expose(set_window_title, *bridge.get_exposed_functions())
+
+    # Restore pointer lock support (used by the 3D viewers' free-fly camera),
+    # which the native macOS web view denies by default. Must run before the
+    # window is created by webview.start().
+    _enable_macos_pointer_lock()
 
     try:
         # ``debug=True`` enables the native web view's developer tools (right
