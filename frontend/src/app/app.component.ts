@@ -10,7 +10,7 @@ import { ConfigComponent } from './components/config/config.component';
 import { NewFileDialogComponent } from './components/new-file.dialog/new-file.dialog.component';
 import { environment } from '../environments/environment';
 import { ChangeEntry, ChangesService } from './services/changes.service';
-import { ApiDelegateService } from './services/api/api-delegate.service';
+import { ApiDelegateService } from './services/api-delegate.service';
 import { Title } from '@angular/platform-browser';
 
 @Component({

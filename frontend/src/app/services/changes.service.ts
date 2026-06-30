@@ -1,5 +1,5 @@
 import { Injectable, NgZone } from '@angular/core';
-import { ApiDelegateService } from './api/api-delegate.service';
+import { ApiDelegateService } from './api-delegate.service';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { Resource } from '../components/editor/types';
 import { SubscribableGuiComponent } from '../components/editor/gui.component';
@@ -180,7 +180,7 @@ export class ChangesService {
     private readonly api: ApiDelegateService,
     private readonly ngZone: NgZone,
   ) {
-    this.api.onAppendChanges$.subscribe((changes: ChangeEntry[]) => {
+    this.api.onAppendChanges$.subscribe(([changes]) => {
       if (this._localRevision < this._changes.length) {
         this._changes.splice(this._localRevision);
       }
