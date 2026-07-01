@@ -118,9 +118,8 @@ So on Linux, to debug:
 
 1) Start the Angular dev server as above (`npm run start` in `frontend`).
 2) Start the backend in development mode (`python run.py --dev`).
-3) **Ignore the Eel window** (there isn't one) and open the app in a normal browser
-   tab at `http://localhost:4200`. Use the browser's built-in DevTools there, with
-   full live reload and source maps.
+3) Open the app in a normal browser tab at `http://localhost:4200`. Use the browser's
+   built-in DevTools there, with full live reload and source maps.
 
 ### Support for Linux Binary (Help Wanted!)
 
