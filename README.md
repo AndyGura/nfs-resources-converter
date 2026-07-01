@@ -41,17 +41,17 @@ Milestones are AI-generated to guide public planning and will evolve over time.
 
 First of all, you need to install `ffmpeg` and `blender` (version 4+). These are required for both release artifacts and development mode.
 
-The GUI application runs in a native web view (powered by [pywebview](https://pywebview.flowrlab.com/)), so it looks and feels like a standalone desktop app on Windows, macOS and Linux. No external browser is required: it uses the OS-native web renderer (WebView2 on Windows, WebKit on macOS, WebKitGTK/Qt on Linux).
+The GUI application runs in a native web view (powered by [pywebview](https://pywebview.flowrlab.com/)) on Windows + MacOS, so it looks and feels like a standalone desktop app, no external browser is required: it uses the OS-native web renderer (WebView2 on Windows, WebKit on macOS). On linux, it requires browser to be installed on the system. Recomended browser is Chrome
 
-### Release Artifacts (Recommended for Windows)
+### Release Artifacts (Recommended for Windows and MacOS)
 
-You can use pre-built installer for Windows from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
+You can use pre-built installer from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
 
-#### Windows
-1. Download `nfs-resources-converter-windows-setup-<version>.exe`.
+#### Windows/MacOS:
+1. Download `nfs-resources-converter-windows-setup-<version>`.
 2. Run the installer to install the application and set up file associations (`*.fsh`, `*.fam`, `*.qfs`, `*.tri` etc.).
 
-### Development Mode (Recommended for Linux and macOS)
+### Development Mode (Recommended for Linux)
 
 If you want to run the project from source (required for Linux and macOS):
 
@@ -122,13 +122,11 @@ So on Linux, to debug:
    tab at `http://localhost:4200`. Use the browser's built-in DevTools there, with
    full live reload and source maps.
 
-### Support for macOS and Linux Binaries (Help Wanted!)
+### Support for Linux Binary (Help Wanted!)
 
-Currently, pre-built binary support for macOS and Linux is suspended because:
-- **macOS**: Issues with opening files directly from Finder (even when associated).
-- **Linux**: The standalone binary fails to launch.
+Currently, pre-built binary support for Linux is suspended because the standalone binary fails to launch (tested on Arch Linux, installed via `dpkg`).
 
-If you are an experienced developer on these platforms and would like to help restore binary support, your contributions are highly welcome! In the meantime, please use the **Development Mode** described above.
+If you are an experienced developer on this platform and would like to help restore binary support, your contributions are highly welcome! In the meantime, please use the **Development Mode** described above.
 
 All commands below will work in development mode if you replace the binary file name with "python run.py", for instance:
 
