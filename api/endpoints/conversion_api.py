@@ -5,7 +5,7 @@ from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 from typing import Dict, Any
 
-import eel
+from api.bridge import bridge
 
 import config
 from library import require_file
@@ -71,13 +71,23 @@ class ConversionAPI:
             return {"success": False, "message": f"Error testing executable: {str(e)}"}
 
     def select_directory_dialog(self) -> str:
-        import tkinter as tk
-        from tkinter import filedialog
-
-        root = tk.Tk()
-        root.withdraw()
-        directory = filedialog.askdirectory()
-        return directory
+        window = bridge.get_window()
+        if window is None:
+            # No native web view (Linux/Eel): fall back to a Tk directory dialog.
+            import tkinter as tk
+            from tkinter import filedialog
+            root = tk.Tk()
+            root.withdraw()
+            directory = filedialog.askdirectory()
+            root.destroy()
+            return directory or ''
+        import webview
+        selection = window.create_file_dialog(webview.FOLDER_DIALOG)
+        if not selection:
+            return ''
+        if isinstance(selection, (list, tuple)):
+            return selection[0]
+        return selection
 
     def export_file(self, args):
         base_input_path, path, out_path, custom_settings = args
@@ -124,11 +134,11 @@ class ConversionAPI:
 
             self.total_files = len(files_to_open)
 
-            eel.update_conversion_progress(0, self.total_files)
+            bridge.update_conversion_progress(0, self.total_files)
 
             def update_progress(result):
                 self.current_progress += 1
-                eel.update_conversion_progress(self.current_progress, self.total_files)
+                bridge.update_conversion_progress(self.current_progress, self.total_files)
 
             conversion_config = config.conversion_config(custom_settings)
             processes = conversion_config.multiprocess_processes_count
@@ -162,7 +172,7 @@ class ConversionAPI:
                     with open(skipped_txt_output_path, 'w') as f:
                         for item in skipped:
                             f.write("%s\t\t%s\n" % item)
-            eel.update_conversion_progress(self.total_files, self.total_files)
+            bridge.update_conversion_progress(self.total_files, self.total_files)
             return {"success": True, "output_path": output_path}
         except Exception as e:
             traceback.print_exc()

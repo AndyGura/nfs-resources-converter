@@ -164,6 +164,7 @@ class FfnFontSerializer(BaseFileSerializer):
                     'y_offset': values['yoffset'],
                     'advance': values['xadvance'],
                 }
+                glyph_data['num_kern'] = 0
                 glyph_data['x_advance'] = 0
                 glyph_data['kern_index'] = 0
                 data['definitions'].append(glyph_data)

@@ -7,7 +7,7 @@ import os
 import traceback
 from typing import Dict, Optional, Any, List
 
-import eel
+from api.bridge import bridge
 
 from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
@@ -53,7 +53,11 @@ class FileAPI:
         Opens the initial file if one was specified.
         """
         if self.api.initial_file_path:
-            eel.open_arg_file(self.api.initial_file_path)
+            bridge.open_arg_file(self.api.initial_file_path)
+        # Signal that the frontend is now able to receive Python -> JS calls, so
+        # files handed to the app afterwards (e.g. via a macOS "open document"
+        # Apple Event) can be opened live instead of being buffered.
+        bridge.frontend_ready.set()
 
     def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
@@ -65,26 +69,37 @@ class FileAPI:
         Returns:
             The list of selected file paths
         """
-        from tkinter import Tk
-        from tkinter.filedialog import askopenfilename, askopenfilenames
-        root = Tk()
-        root.withdraw()
-        root.update()
-        # Bring the dialog to front on macOS
-        root.lift()
-        root.attributes('-topmost', True)
-        root.after_idle(root.attributes, '-topmost', False)
-        filenames = []
-        if multiple:
-            selection = askopenfilenames()
-            if selection:
-                filenames = list(selection)
-        else:
-            filename = askopenfilename()
-            if filename:
-                filenames = [filename]
-        root.destroy()
-        return filenames
+        window = bridge.get_window()
+        if window is None:
+            # No native web view (Linux/Eel): fall back to a Tk file dialog,
+            # as the app did before the pywebview migration.
+            from tkinter import Tk
+            from tkinter.filedialog import askopenfilename, askopenfilenames
+            root = Tk()
+            root.withdraw()
+            root.update()
+            root.lift()
+            root.attributes('-topmost', True)
+            root.after_idle(root.attributes, '-topmost', False)
+            filenames = []
+            if multiple:
+                selection = askopenfilenames()
+                if selection:
+                    filenames = list(selection)
+            else:
+                filename = askopenfilename()
+                if filename:
+                    filenames = [filename]
+            root.destroy()
+            return filenames
+        import webview
+        selection = window.create_file_dialog(
+            webview.OPEN_DIALOG,
+            allow_multiple=multiple,
+        )
+        if not selection:
+            return []
+        return list(selection)
 
     def save_file_dialog(self, file_name: Optional[str] = None) -> Optional[str]:
         """
@@ -96,21 +111,47 @@ class FileAPI:
         Returns:
             The selected file path or None if canceled
         """
-        from tkinter import Tk
-        from tkinter.filedialog import asksaveasfilename
         import os
 
-        root = Tk()
-        root.withdraw()
-        root.update()
-        # Bring the dialog to front on macOS
-        root.lift()
-        root.attributes('-topmost', True)
-        root.after_idle(root.attributes, '-topmost', False)
+        window = bridge.get_window()
+        if window is None:
+            # No native web view (Linux/Eel): fall back to a Tk save dialog.
+            from tkinter import Tk
+            from tkinter.filedialog import asksaveasfilename
+            root = Tk()
+            root.withdraw()
+            root.update()
+            root.lift()
+            root.attributes('-topmost', True)
+            root.after_idle(root.attributes, '-topmost', False)
+            tk_initialdir = None
+            tk_initialfile = None
+            if file_name:
+                if os.path.isdir(file_name):
+                    tk_initialdir = file_name
+                else:
+                    dir_part = os.path.dirname(file_name)
+                    file_part = os.path.basename(file_name)
+                    if dir_part and os.path.isdir(dir_part):
+                        tk_initialdir = dir_part
+                        tk_initialfile = file_part
+                    elif dir_part:
+                        tk_initialfile = file_name
+                    else:
+                        tk_initialfile = file_name
+            filename = asksaveasfilename(
+                initialdir=tk_initialdir,
+                initialfile=tk_initialfile,
+            )
+            root.destroy()
+            if not filename:
+                return None
+            return filename
+        import webview
 
         # Determine initial directory and filename
-        initialdir = None
-        initialfile = None
+        initialdir = ''
+        initialfile = ''
 
         if file_name:
             if os.path.isdir(file_name):
@@ -131,14 +172,17 @@ class FileAPI:
                     # No directory component, just a filename
                     initialfile = file_name
 
-        filename = asksaveasfilename(
-            initialdir=initialdir,
-            initialfile=initialfile
+        result = window.create_file_dialog(
+            webview.SAVE_DIALOG,
+            directory=initialdir,
+            save_filename=initialfile,
         )
-        root.destroy()
-        if not filename:
+        if not result:
             return None
-        return filename
+        # pywebview may return either a string or a one-element sequence.
+        if isinstance(result, (list, tuple)):
+            return result[0]
+        return result
 
     def open_file(self, path: str, force_reload: bool = False, update_recent_files: bool = True) -> Dict[str, Any]:
         """

@@ -12,7 +12,6 @@ import { BlockData, BlockSchema } from '../../types';
 import { ArrayTableColumn } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
 import { SubscribableGuiComponent } from '../../gui.component';
-import { ChangeEntryPayload } from '../../../../services/changes.service';
 
 @Component({
   selector: 'app-font-block-ui',
@@ -26,8 +25,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   @ViewChild('fullBitmapCanvas') fullBitmapCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('textPreviewCanvas') textPreviewCanvas!: ElementRef<HTMLCanvasElement>;
 
-  _selectedGlyphIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
-  _selectedKerningIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  _selectedGlyphIndex$: BehaviorSubject<number | null> = new BehaviorSubject<number | null>(0);
+  _selectedKerningIndex$: BehaviorSubject<number | null> = new BehaviorSubject<number | null>(0);
   _selectedTabIndex: number = 0;
   set selectedTabIndex(value: number) {
     this._selectedTabIndex = value;
@@ -39,13 +38,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   get isCharPreviewVisible(): boolean {
-    // Char Preview is visible when "Chars" tab is selected.
-    // However, if "Kernings" tab is visible (version > 300), "Kernings" is at index 1.
-    // If "Kernings" is NOT visible, the indices of subsequent tabs might shift if we use *ngIf on mat-tab.
-    // Actually, mat-tab-group with *ngIf on mat-tab handles index shifting.
-    // "Chars" tab is always the first one, so index 0.
     return this.selectedTabIndex === 0;
   }
+
   _text$: BehaviorSubject<string> = new BehaviorSubject<string>(
     'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
   );
@@ -55,9 +50,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   public _glyphsWithSymbols$ = new BehaviorSubject<any[]>([]);
   public _kerningsWithSymbols$ = new BehaviorSubject<any[]>([]);
-  public _glyphPageSize = 300;
+  public _glyphPageSize = 100;
   public _glyphPageIndex = 0;
-  public _kerningPageSize = 300;
+  public _kerningPageSize = 100;
   public _kerningPageIndex = 0;
 
   override get resourceSchema(): BlockSchema | undefined {
@@ -133,7 +128,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     startAdvance?: number;
   } | null = null;
 
-  private get currentGlyphIndex(): number {
+  private get currentGlyphIndex(): number | null {
     return this._selectedGlyphIndex$.getValue();
   }
 
@@ -236,7 +231,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     this._imageRefreshed$.next();
   }
 
-  private renderFullBitmap(index: number) {
+  private renderFullBitmap(index: number | null) {
     if (!this.resourceData || !this.fullBitmapCanvas) return;
     const canvas = this.fullBitmapCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
@@ -257,6 +252,18 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
     // Disable anti-aliasing (image smoothing)
     ctx.imageSmoothingEnabled = false;
+
+    if (index === null) {
+      // If no glyph selected, just draw the full image centered/fitted
+      const scaleX = canvasWidth / imgWidth;
+      const scaleY = canvasHeight / imgHeight;
+      const ratio = Math.min(scaleX, scaleY);
+      const offsetX = (canvasWidth - imgWidth * ratio) / 2;
+      const offsetY = (canvasHeight - imgHeight * ratio) / 2;
+
+      ctx.drawImage(this._image!, offsetX, offsetY, imgWidth * ratio, imgHeight * ratio);
+      return;
+    }
 
     const glyphs = this.resourceData.definitions;
     const glyph = glyphs[index];
@@ -444,6 +451,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   private getCurrentRect(): { x: number; y: number; width: number; height: number } | null {
     const idx = this.currentGlyphIndex;
+    if (idx === null) return null;
     const glyph: any = this.resourceData?.definitions?.[idx];
     if (!glyph) return null;
     if (this._previewRect) return this._previewRect;
@@ -458,6 +466,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     edges?: { l?: boolean; r?: boolean; t?: boolean; b?: boolean };
   } {
     const idx = this.currentGlyphIndex;
+    if (idx === null) return { type: 'none' };
     const glyph: any = this.resourceData?.definitions?.[idx];
     const rect = this.getCurrentRect();
     const canvas = this.fullBitmapCanvas?.nativeElement;
@@ -574,6 +583,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     // Start drag
     this._hasCustomView = true; // lock view to user interaction
     const idx = this.currentGlyphIndex;
+    if (idx === null) return;
     const glyph: any = this.resourceData.definitions[idx];
     if (hit.type === 'none') {
       this._drag = {
@@ -705,6 +715,10 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     }
 
     const idx = this.currentGlyphIndex;
+    if (idx === null) {
+      this._drag = null;
+      return;
+    }
     const glyph: any = this.resourceData.definitions[idx];
 
     let changes: any[] = [];
@@ -877,8 +891,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         { key: 'symbol', index: -1, schema: { block_class_mro: 'UTF8Block__' } },
         ...gItemSchema.fields
           .filter((f: any) => {
-            if (f.name === 'num_kern') return this.resourceData.version >= 300;
-            if (f.name === 'pad') return this.resourceData.version < 300 && this.resourceData.version >= 200;
+            if (f.name === 'num_kern') return this.resourceData.version > 309;
+            if (f.name === 'pad') return this.resourceData.version <= 309 && this.resourceData.version >= 200;
             if (f.name === 'kern_index')
               return this.resourceData.version >= 321 && this.resourceData.flags.format === '16-bytes';
             if (f.name === 'x_advance')
@@ -922,6 +936,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   removeGlyph(index: number) {
+    if (this.currentGlyphIndex === index) {
+      this.onGlyphSelectedIndexChange(null);
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -934,6 +951,11 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   moveGlyphUp(index: number) {
+    if (this.currentGlyphIndex === index) {
+      this.onGlyphSelectedIndexChange(index - 1);
+    } else if (this.currentGlyphIndex === index - 1) {
+      this.onGlyphSelectedIndexChange(index);
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -946,6 +968,11 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   moveGlyphDown(index: number) {
+    if (this.currentGlyphIndex === index) {
+      this.onGlyphSelectedIndexChange(index + 1);
+    } else if (this.currentGlyphIndex === index + 1) {
+      this.onGlyphSelectedIndexChange(index);
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -957,19 +984,33 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       .then();
   }
 
+  private symbolInputToCode(input: string, oldCode: number): number | undefined {
+    if (input && input.length) {
+      let charCode = oldCode;
+      for (let i = 0; i < input.length; i++) {
+        if (input.charCodeAt(i) !== oldCode) {
+          charCode = input.charCodeAt(i);
+        }
+      }
+      if (charCode !== undefined && !isNaN(charCode) && charCode !== oldCode) {
+        return charCode;
+      }
+    }
+    return undefined;
+  }
+
   onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
     if (event.field === 'symbol') {
-      const charCode = event.value?.charCodeAt(0);
-      if (charCode !== undefined && !isNaN(charCode)) {
-        this.changes
-          .appendChanges({
-            timestamp: Date.now(),
-            id: joinId(this.resourceId!, 'definitions', event.index, 'code'),
-            op: 'set',
-            oldValue: this.resourceData!.definitions[event.index]['code'],
-            newValue: charCode,
-          })
-          .then();
+      let charCode = this.symbolInputToCode(event.value, this.resourceData!.definitions[event.index]['code']);
+      if (charCode !== undefined) {
+        const change = {
+          timestamp: Date.now(),
+          id: joinId(this.resourceId!, 'definitions', event.index, 'code'),
+          op: 'set',
+          oldValue: this.resourceData!.definitions[event.index]['code'],
+          newValue: charCode,
+        };
+        this.changes.appendChanges(change as any).then();
       }
       return;
     }
@@ -1001,6 +1042,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   removeKerning(index: number) {
+    if (this._selectedKerningIndex$.getValue() === index) {
+      this.onKerningSelectedIndexChange(null);
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -1013,6 +1057,12 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   moveKerningUp(index: number) {
+    const currentIndex = this._selectedKerningIndex$.getValue();
+    if (currentIndex === index) {
+      this.onKerningSelectedIndexChange(index - 1);
+    } else if (currentIndex === index - 1) {
+      this.onKerningSelectedIndexChange(index);
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -1025,6 +1075,12 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   }
 
   moveKerningDown(index: number) {
+    const currentIndex = this._selectedKerningIndex$.getValue();
+    if (currentIndex === index) {
+      this.onKerningSelectedIndexChange(index + 1);
+    } else if (currentIndex === index + 1) {
+      this.onKerningSelectedIndexChange(index);
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -1038,18 +1094,17 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
   onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
     if (event.field === 'Left Symbol' || event.field === 'Right Symbol') {
-      const charCode = event.value?.charCodeAt(0);
-      if (charCode !== undefined && !isNaN(charCode)) {
-        const dataField = event.field === 'Left Symbol' ? 'left' : 'right';
-        this.changes
-          .appendChanges({
-            timestamp: Date.now(),
-            id: joinId(this.resourceId!, 'kernings', event.index, dataField),
-            op: 'set',
-            oldValue: this.resourceData!.kernings[event.index][dataField],
-            newValue: charCode,
-          })
-          .then();
+      const dataField = event.field === 'Left Symbol' ? 'left' : 'right';
+      let charCode = this.symbolInputToCode(event.value, this.resourceData!.kernings[event.index][dataField]);
+      if (charCode !== undefined) {
+        const change = {
+          timestamp: Date.now(),
+          id: joinId(this.resourceId!, 'kernings', event.index, dataField),
+          op: 'set',
+          oldValue: this.resourceData!.kernings[event.index][dataField],
+          newValue: charCode,
+        };
+        this.changes.appendChanges(change as any).then();
       }
       return;
     }
@@ -1076,11 +1131,19 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     // Reset view to auto-focus new glyph
     this._hasCustomView = false;
     this._previewRect = null;
-    this._selectedGlyphIndex$.next(event[1]);
+    this.onGlyphSelectedIndexChange(event[1]);
+  }
+
+  onGlyphSelectedIndexChange(index: number | null) {
+    this._selectedGlyphIndex$.next(index);
   }
 
   onKerningFocused(event: [string[], number]) {
-    this._selectedKerningIndex$.next(event[1]);
+    this.onKerningSelectedIndexChange(event[1]);
+  }
+
+  onKerningSelectedIndexChange(index: number | null) {
+    this._selectedKerningIndex$.next(index);
   }
 
   onTextChange(event: Event) {

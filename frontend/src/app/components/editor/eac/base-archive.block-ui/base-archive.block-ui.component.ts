@@ -44,9 +44,9 @@ export class BaseArchiveBlockUiComponent extends SubscribableGuiComponent {
     for (const [i, alias] of this._resourceData.children_aliases.entries()) {
       let childName = alias || '__' + unaliasedCounter++;
       this.resourceMap[childName] = {
-        id: joinId(this.resourceId || '', `children/${i}`),
-        data: this._resourceData.children[i],
-        schema: childSchema,
+        id: joinId(this.resourceId || '', `children/${i}/data`),
+        data: this._resourceData.children[i].data,
+        schema: childSchema.possible_resource_schemas[this._resourceData.children[i].choice_index],
         name: '',
       };
     }

@@ -55,20 +55,14 @@
   flex-direction: column;
   gap: 5px;
   padding: 5px;
-  height: calc(100% - 10px);
+  height: 100%;
   overflow: hidden;
   background: white;
-}
-
-.table-container {
-  padding: 5px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  box-sizing: border-box;
 
   data-table {
-    min-width: fit-content;
+    flex: 1;
+    min-height: 0;
   }
 }
 

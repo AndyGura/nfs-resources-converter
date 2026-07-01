@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { ApiDelegateService } from './api/api-delegate.service';
 import { findNestedObjects } from '../utils/find-nested-object';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
+import { CustomAction, Resource, ResourceError } from '../components/editor/types';
 import { ChangesService } from './changes.service';
 
 @Injectable({

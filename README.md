@@ -41,17 +41,17 @@ Milestones are AI-generated to guide public planning and will evolve over time.
 
 First of all, you need to install `ffmpeg` and `blender` (version 4+). These are required for both release artifacts and development mode.
 
-For the GUI application, Google Chrome or Chromium is recommended for the best experience. If not found, the application will try to use your system's default web browser.
+The GUI application runs in a native web view (powered by [pywebview](https://pywebview.flowrlab.com/)) on Windows + MacOS, so it looks and feels like a standalone desktop app, no external browser is required: it uses the OS-native web renderer (WebView2 on Windows, WebKit on macOS). On linux, it requires browser to be installed on the system. Recomended browser is Chrome
 
-### Release Artifacts (Recommended for Windows)
+### Release Artifacts (Recommended for Windows and MacOS)
 
-You can use pre-built installer for Windows from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
+You can use pre-built installer from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
 
-#### Windows
-1. Download `nfs-resources-converter-windows-setup-<version>.exe`.
+#### Windows/MacOS:
+1. Download `nfs-resources-converter-windows-setup-<version>`.
 2. Run the installer to install the application and set up file associations (`*.fsh`, `*.fam`, `*.qfs`, `*.tri` etc.).
 
-### Development Mode (Recommended for Linux and macOS)
+### Development Mode (Recommended for Linux)
 
 If you want to run the project from source (required for Linux and macOS):
 
@@ -59,13 +59,74 @@ If you want to run the project from source (required for Linux and macOS):
 1) Install dependencies `pip install -r requirements.txt`
 2) Run the application: `python run.py`
 
-### Support for macOS and Linux Binaries (Help Wanted!)
+### Debugging the Angular frontend
 
-Currently, pre-built binary support for macOS and Linux is suspended because:
-- **macOS**: Issues with opening files directly from Finder (even when associated).
-- **Linux**: The standalone binary fails to launch.
+The GUI now runs inside a native web view (pywebview) instead of an external Chrome
+instance, so the JavaScript ⟷ Python bridge (`window.pywebview.api`) is available **only
+inside that native window**. This means the frontend can no longer be debugged from a
+separate browser tab — it must be loaded by the application window itself. Development
+mode does exactly that: it points the native window at the Angular dev server (`ng serve`),
+so you keep live reload, source maps and full DevTools while talking to the real backend.
 
-If you are an experienced developer on these platforms and would like to help restore binary support, your contributions are highly welcome! In the meantime, please use the **Development Mode** described above.
+Prerequisites (once): install the frontend toolchain.
+
+```bash
+cd frontend
+npm install
+```
+
+Then, every time you want to debug:
+
+1) Start the Angular dev server (live reload + source maps), from the `frontend` directory:
+
+```bash
+npm run start
+```
+
+This serves the app on `http://localhost:4200`. Its `proxy.conf.json` forwards `/eel.js`
+(the bridge shim) and `/resources` (serialized resource previews) to `http://127.0.0.1:8000`.
+
+2) In another terminal, start the application in development mode (from the project root):
+
+```bash
+python run.py --dev
+```
+
+This launches the native window pointed at the dev server with **developer tools enabled**.
+It also starts a small static server on port `8000` that serves the `eel.js` shim and the
+serialized resource files the proxy expects. You can open a specific file as usual, e.g.
+`python run.py --dev NFSSE/SIMDATA/MISC/AL1.TRI`, and override the dev server URL with
+`--dev-server http://localhost:4200` if you changed the Angular port.
+
+3) Debug: right-click anywhere in the window and choose **Inspect Element** to open the
+native DevTools (WebKit Web Inspector on macOS, the Edge/WebView2 DevTools on Windows).
+You get the console, network panel and breakpoints. Edit any file under `frontend/src` and
+the window reloads automatically. (On **Linux** debugging works differently — see below.)
+
+> Note: editing **Python** (backend) code does not hot-reload — restart `python run.py --dev`
+> to pick up backend changes. Editing the **Angular** code reloads instantly.
+
+#### Debugging on Linux (different from macOS/Windows)
+
+On Linux the GUI still runs on **Eel** (a Chrome/Chromium application window), not
+the native web view used on macOS and Windows. Because of that, debugging works
+differently: **there is no native window to inspect**. In development mode Eel does
+**not** open its own window at all — it only runs as the backend web server on port
+`8000` (so `proxy.conf.json` can forward `/eel` and `/resources` to it).
+
+So on Linux, to debug:
+
+1) Start the Angular dev server as above (`npm run start` in `frontend`).
+2) Start the backend in development mode (`python run.py --dev`).
+3) **Ignore the Eel window** (there isn't one) and open the app in a normal browser
+   tab at `http://localhost:4200`. Use the browser's built-in DevTools there, with
+   full live reload and source maps.
+
+### Support for Linux Binary (Help Wanted!)
+
+Currently, pre-built binary support for Linux is suspended because the standalone binary fails to launch (tested on Arch Linux, installed via `dpkg`).
+
+If you are an experienced developer on this platform and would like to help restore binary support, your contributions are highly welcome! In the meantime, please use the **Development Mode** described above.
 
 All commands below will work in development mode if you replace the binary file name with "python run.py", for instance:
 

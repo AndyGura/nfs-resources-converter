@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-06-24 11:50:00.419645+00:00*
+*Last time updated: 2026-07-01 22:07:02.957138+00:00*
 
 
 # **Info by file extensions** #
@@ -27,11 +27,11 @@
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
-**\*.PBS** car physics. [CarPerformanceSpec](#carperformancespec), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.PBS** car physics. [CarPerformanceSpec](#carperformancespec), [compressed](eac_compressions.md)
 
-**\*.PDN** car characteristic for unknown purpose. [CarSimplifiedPerformanceSpec](#carsimplifiedperformancespec), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.PDN** car characteristic for unknown purpose. [CarSimplifiedPerformanceSpec](#carsimplifiedperformancespec), [compressed](eac_compressions.md)
 
-**\*.QFS** image archive. [ShpiBlock](#shpiblock), **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 
 **\*.TGV** video, I just use ffmpeg to convert it
 
@@ -426,8 +426,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
 | 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
-| 11 | **num_kern** | 0..1 | Optional (if ^^version >= 300): 1-byte unsigned integer | Number of kerning pairs for this glyph |
-| 11..12 | **pad** | 0..1 | Optional (if ^^version < 300): 1-byte unsigned integer | Padding |
+| 11 | **num_kern** | 0..1 | Optional (if ^^version > 309): 1-byte unsigned integer | Number of kerning pairs for this glyph |
+| 11..12 | **pad** | 0..1 | Optional (if ^^version <= 309): 1-byte unsigned integer | Padding |
 | 11..13 | **kern_index** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Index in kerning table? |
 | 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
 ### **KerningItem** ###
