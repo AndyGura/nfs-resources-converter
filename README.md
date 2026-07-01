@@ -99,12 +99,28 @@ serialized resource files the proxy expects. You can open a specific file as usu
 `--dev-server http://localhost:4200` if you changed the Angular port.
 
 3) Debug: right-click anywhere in the window and choose **Inspect Element** to open the
-native DevTools (WebKit Web Inspector on macOS/Linux, the Edge/WebView2 DevTools on Windows).
+native DevTools (WebKit Web Inspector on macOS, the Edge/WebView2 DevTools on Windows).
 You get the console, network panel and breakpoints. Edit any file under `frontend/src` and
-the window reloads automatically.
+the window reloads automatically. (On **Linux** debugging works differently — see below.)
 
 > Note: editing **Python** (backend) code does not hot-reload — restart `python run.py --dev`
 > to pick up backend changes. Editing the **Angular** code reloads instantly.
+
+#### Debugging on Linux (different from macOS/Windows)
+
+On Linux the GUI still runs on **Eel** (a Chrome/Chromium application window), not
+the native web view used on macOS and Windows. Because of that, debugging works
+differently: **there is no native window to inspect**. In development mode Eel does
+**not** open its own window at all — it only runs as the backend web server on port
+`8000` (so `proxy.conf.json` can forward `/eel` and `/resources` to it).
+
+So on Linux, to debug:
+
+1) Start the Angular dev server as above (`npm run start` in `frontend`).
+2) Start the backend in development mode (`python run.py --dev`).
+3) **Ignore the Eel window** (there isn't one) and open the app in a normal browser
+   tab at `http://localhost:4200`. Use the browser's built-in DevTools there, with
+   full live reload and source maps.
 
 ### Support for macOS and Linux Binaries (Help Wanted!)
 

@@ -34,6 +34,11 @@ class _WebviewBridge:
         self._exposed = {}
         # The native pywebview window, set once it is created.
         self._window = None
+        # The Eel module, set on platforms (Linux) that drive the GUI through
+        # Eel instead of a native pywebview window. When set, the bridge routes
+        # ``expose`` and Python -> JS calls through Eel (see
+        # :meth:`enable_eel_backend`).
+        self._eel = None
         # Set once the frontend has signalled that it is ready (see
         # ``FileAPI.on_angular_ready``). Used to decide whether a file opened
         # via the OS (e.g. a macOS "open document" Apple Event) can be pushed to
@@ -47,6 +52,8 @@ class _WebviewBridge:
         is wired into the pywebview window by the GUI launcher.
         """
         self._exposed[func.__name__] = func
+        if self.__dict__.get('_eel') is not None:
+            self._eel.expose(func)
         return func
 
     def get_exposed_functions(self):
@@ -56,6 +63,21 @@ class _WebviewBridge:
     def set_window(self, window):
         """Attach the native pywebview window used for Python -> JS calls."""
         self._window = window
+
+    def enable_eel_backend(self):
+        """Drive this bridge through the Eel library instead of pywebview.
+
+        Used on Linux, where the GUI keeps running on Eel (a Chrome/Chromium
+        app window) as it did historically. Every callable already registered
+        via :meth:`expose` is handed to ``eel.expose`` and the bridge is flipped
+        into "eel mode", so subsequent Python -> JS attribute calls
+        (``bridge.some_js_func(...)``) are dispatched through Eel rather than a
+        pywebview window.
+        """
+        import eel
+        self._eel = eel
+        for func in self._exposed.values():
+            eel.expose(func)
 
     def get_window(self):
         """Return the native pywebview window, or ``None`` if not yet created.
@@ -75,6 +97,9 @@ class _WebviewBridge:
         """
 
         def _call_js(*args):
+            eel_backend = self.__dict__.get('_eel')
+            if eel_backend is not None:
+                return getattr(eel_backend, name)(*args)
             window = self.__dict__.get('_window')
             if window is None:
                 return None

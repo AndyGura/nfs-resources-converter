@@ -69,11 +69,30 @@ class FileAPI:
         Returns:
             The list of selected file paths
         """
-        import webview
-
         window = bridge.get_window()
         if window is None:
-            return []
+            # No native web view (Linux/Eel): fall back to a Tk file dialog,
+            # as the app did before the pywebview migration.
+            from tkinter import Tk
+            from tkinter.filedialog import askopenfilename, askopenfilenames
+            root = Tk()
+            root.withdraw()
+            root.update()
+            root.lift()
+            root.attributes('-topmost', True)
+            root.after_idle(root.attributes, '-topmost', False)
+            filenames = []
+            if multiple:
+                selection = askopenfilenames()
+                if selection:
+                    filenames = list(selection)
+            else:
+                filename = askopenfilename()
+                if filename:
+                    filenames = [filename]
+            root.destroy()
+            return filenames
+        import webview
         selection = window.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=multiple,
@@ -93,11 +112,42 @@ class FileAPI:
             The selected file path or None if canceled
         """
         import os
-        import webview
 
         window = bridge.get_window()
         if window is None:
-            return None
+            # No native web view (Linux/Eel): fall back to a Tk save dialog.
+            from tkinter import Tk
+            from tkinter.filedialog import asksaveasfilename
+            root = Tk()
+            root.withdraw()
+            root.update()
+            root.lift()
+            root.attributes('-topmost', True)
+            root.after_idle(root.attributes, '-topmost', False)
+            tk_initialdir = None
+            tk_initialfile = None
+            if file_name:
+                if os.path.isdir(file_name):
+                    tk_initialdir = file_name
+                else:
+                    dir_part = os.path.dirname(file_name)
+                    file_part = os.path.basename(file_name)
+                    if dir_part and os.path.isdir(dir_part):
+                        tk_initialdir = dir_part
+                        tk_initialfile = file_part
+                    elif dir_part:
+                        tk_initialfile = file_name
+                    else:
+                        tk_initialfile = file_name
+            filename = asksaveasfilename(
+                initialdir=tk_initialdir,
+                initialfile=tk_initialfile,
+            )
+            root.destroy()
+            if not filename:
+                return None
+            return filename
+        import webview
 
         # Determine initial directory and filename
         initialdir = ''

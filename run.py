@@ -35,7 +35,12 @@ if __name__ == "__main__":
     if action is None:
         if args.file is not None and os.path.isdir(args.file):
             raise Exception('Cannot open GUI for directory, use path to file')
-        from actions.gui_editor import run_gui_editor
+        if sys.platform == 'darwin':
+            from actions.gui_editor_macos import run_gui_editor
+        elif sys.platform.startswith('win'):
+            from actions.gui_editor_windows import run_gui_editor
+        else:
+            from actions.gui_editor_linux import run_gui_editor
         file_to_open = str(args.file) if args.file is not None else None
         dev_server_url = args.dev_server if args.dev else None
         run_gui_editor(file_to_open, dev_server_url=dev_server_url)
