@@ -23,6 +23,7 @@ migrated by only changing the import.
 """
 
 import json
+import threading
 
 
 class _WebviewBridge:
@@ -33,6 +34,11 @@ class _WebviewBridge:
         self._exposed = {}
         # The native pywebview window, set once it is created.
         self._window = None
+        # Set once the frontend has signalled that it is ready (see
+        # ``FileAPI.on_angular_ready``). Used to decide whether a file opened
+        # via the OS (e.g. a macOS "open document" Apple Event) can be pushed to
+        # the frontend right away or has to wait for it to load first.
+        self.frontend_ready = threading.Event()
 
     def expose(self, func):
         """Register a Python callable to be callable from JS.

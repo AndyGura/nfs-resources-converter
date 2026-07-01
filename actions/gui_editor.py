@@ -52,6 +52,15 @@ def _start_static_server(root, port):
 
 _pointer_lock_patched = False
 
+# Whether the macOS "open document" Apple Event handler has been installed on
+# pywebview's application delegate (see ``_enable_macos_open_file``).
+_open_file_patched = False
+
+# The API instance backing the currently running GUI window. Set by
+# ``run_gui_editor`` so the macOS open-file handler can route files the OS hands
+# to the app into the running editor.
+_current_api = None
+
 # Byte offset of the ``invoke`` function pointer inside an Objective-C block
 # (``struct Block_literal``) on 64-bit platforms: isa(8) + flags(4) + reserved(4).
 _BLOCK_INVOKE_OFFSET = 16
@@ -152,6 +161,97 @@ def _enable_macos_pointer_lock():
     except Exception:
         # Pointer lock is a nice-to-have for the 3D viewers; never let a failure
         # to patch the delegate stop the application from launching.
+        pass
+
+
+def _handle_macos_open_file(path):
+    """Route a file the OS asked the app to open into the running GUI.
+
+    Called from the macOS ``application:openFile(s):`` delegate methods (see
+    ``_enable_macos_open_file``). Two situations are handled:
+
+    * The app was *launched* by opening the file: the delegate fires before the
+      Angular frontend has loaded, so we can't push anything to it yet. We stash
+      the path as the ``initial_file_path`` and let ``FileAPI.on_angular_ready``
+      open it once the frontend signals it is ready.
+    * The app was *already running*: the frontend is ready, so we open the file
+      live via the same ``open_arg_file`` JS hook used for the initial file, and
+      bring the window to the front.
+    """
+    api = _current_api
+    if not path or api is None:
+        return
+    path = str(path)
+    if bridge.frontend_ready.is_set():
+        try:
+            bridge.open_arg_file(path)
+            # Bring the app forward: the user just asked to open a document, so
+            # the existing window should come to focus.
+            import AppKit
+            AppKit.NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+        except Exception:
+            # If the live push fails for any reason, fall back to the buffered
+            # path so at least the next readiness signal picks it up.
+            api.initial_file_path = path
+    else:
+        api.initial_file_path = path
+
+
+def _enable_macos_open_file():
+    """Handle the macOS "open document" Apple Event so Finder can open files.
+
+    The app registers document types (``tri``, ``fsh``, ``viv`` …) in its
+    ``Info.plist``, so double-clicking such a file in Finder, or using "Open
+    With", tells macOS to launch/forward it to this app. Unlike other platforms,
+    macOS does *not* pass the file path on ``argv``: it sends the
+    ``kAEOpenDocuments`` ("odoc") Apple Event, which the application delegate
+    must handle via ``application:openFile:`` / ``application:openFiles:``.
+
+    pywebview's shared application delegate (``BrowserView.AppDelegate``) does
+    not implement these selectors, so with no handler macOS reports
+    "<app> cannot open files in the <type> format" even though the app supports
+    them. Here we extend that delegate (via an Objective-C category) with the
+    two selectors and forward the paths into the running GUI.
+
+    Must run before pywebview creates the window (i.e. before
+    ``webview.start()``), because the delegate instance is created and assigned
+    to the shared application during window creation. It is macOS-only and
+    best-effort: any failure here must never prevent the GUI from starting.
+    """
+    global _open_file_patched
+    if _open_file_patched or sys.platform != 'darwin':
+        return
+    try:
+        import objc
+        from webview.platforms import cocoa
+
+        app_delegate_cls = cocoa.BrowserView.AppDelegate
+
+        # pyobjc requires a category's class name to match the class it extends.
+        class AppDelegate(objc.Category(app_delegate_cls)):
+            def application_openFile_(self, app, filename):
+                try:
+                    _handle_macos_open_file(filename)
+                except Exception:
+                    pass
+                return True
+
+            def application_openFiles_(self, app, filenames):
+                try:
+                    for filename in filenames:
+                        _handle_macos_open_file(filename)
+                finally:
+                    # NSApplicationDelegateReplySuccess == 0. Always reply so the
+                    # OS does not consider the open request as failed/timed out.
+                    try:
+                        app.replyToOpenOrPrint_(0)
+                    except Exception:
+                        pass
+
+        _open_file_patched = True
+    except Exception:
+        # Never let a failure to patch the delegate stop the application from
+        # launching; the GUI still works when files are opened from within it.
         pass
 
 
@@ -338,6 +438,10 @@ def run_gui_editor(file_path=None, dev_server_url=None):
         window_url = os.path.join(static_path, 'index.html')
 
     api = API(static_path, file_path)
+    # Expose the API to the macOS open-file handler so files the OS hands to the
+    # app (Finder double-click / "Open With") can be routed into this window.
+    global _current_api
+    _current_api = api
 
     window = webview.create_window(
         'NFS Resources Converter',
@@ -362,6 +466,11 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     # which the native macOS web view denies by default. Must run before the
     # window is created by webview.start().
     _enable_macos_pointer_lock()
+
+    # Handle the macOS "open document" Apple Event so double-clicking a
+    # registered file in Finder (or "Open With") actually opens it. Must also
+    # run before the window is created by webview.start().
+    _enable_macos_open_file()
 
     try:
         # ``debug=True`` enables the native web view's developer tools (right

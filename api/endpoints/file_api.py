@@ -54,6 +54,10 @@ class FileAPI:
         """
         if self.api.initial_file_path:
             bridge.open_arg_file(self.api.initial_file_path)
+        # Signal that the frontend is now able to receive Python -> JS calls, so
+        # files handed to the app afterwards (e.g. via a macOS "open document"
+        # Apple Event) can be opened live instead of being buffered.
+        bridge.frontend_ready.set()
 
     def open_file_dialog(self, multiple: bool = False) -> List[str]:
         """
