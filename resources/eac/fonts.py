@@ -24,8 +24,8 @@ class GlyphDefinition(DeclarativeCompoundBlock):
             **super().schema,
             'description': 'Glyph definition.<br/>'
                            '- for FNT version < 200 has length 11 bytes.<br/>'
-                           '- for versions >= 200 and < 300 - 12 bytes, last byte is padding.<br/>'
-                           '- for versions >= 300 - 12th byte is num_kern.<br/>'
+                           '- for versions >= 200 and <= 309 - 12 bytes, last byte is padding.<br/>'
+                           '- for versions > 309 - 12th byte is num_kern.<br/>'
                            '- for versions >= 321 it may be 16 bytes if "format" flag is set to 16-bytes',
         }
 
@@ -47,15 +47,14 @@ class GlyphDefinition(DeclarativeCompoundBlock):
         y_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (y) for drawing the character image'})
         # 12-th byte
-        # TODO this feels like should have a programmatic value
-        # programmatic_value=lambda ctx: sum(
-        #                                                          1 for x in ctx.data('../../kernings') if
-        #                                                          x['right'] == ctx.data('code'))
-        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
-                                  criteria=lambda ctx: ctx.data('../../version') >= 300),
+        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False,
+                                                     programmatic_value=lambda ctx: sum(
+                                                         1 for x in ctx.data('../../kernings') if
+                                                         x['right'] == ctx.data('code'))),
+                                  criteria=lambda ctx: ctx.data('../../version') > 309),
                     {'description': 'Number of kerning pairs for this glyph'})
         pad = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
-                             criteria=lambda ctx: 200 <= ctx.data('../../version') < 300),
+                             criteria=lambda ctx: 200 <= ctx.data('../../version') <= 309),
                {'description': 'Padding'})
         # 13th - 16th bytes
         kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
