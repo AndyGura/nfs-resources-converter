@@ -1,41 +1,13 @@
-import { inject, Injectable, NgZone } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
+import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../components/editor/types';
-import { ChangeEntry, ChangesFeUpdate } from './changes.service';
-import { ErrorDialogComponent } from '../components/error.dialog/error.dialog.component';
+import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
+import { ConversionConfig, GeneralConfig } from './api-types';
 
-declare const bridge: { expose: (func: Function, alias: string) => void } & {
-  [key: string]: Function;
-  _websocket: any;
-};
-
-export type GeneralConfig = {
-  blender_executable: string;
-  ffmpeg_executable: string;
-  print_errors: boolean;
-  print_blender_log: boolean;
-  recent_files: string[];
-  show_hidden_fields: boolean;
-};
-
-export type ConversionConfig = {
-  multiprocess_processes_count: number;
-  input_path: string;
-  output_path: string;
-  images__save_images_only: boolean;
-  maps__save_as_chunked: boolean;
-  maps__save_invisible_wall_collisions: boolean;
-  maps__save_terrain_collisions: boolean;
-  maps__save_spherical_skybox_texture: boolean;
-  maps__add_props_to_obj: boolean;
-  geometry__save_obj: boolean;
-  geometry__save_blend: boolean;
-  geometry__export_to_gg_web_engine: boolean;
-};
+declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
 
 @Injectable()
-export class ApiDelegateService {
+export class ApiDelegateImplService {
   // public state and events
   public readonly openedResource$: BehaviorSubject<Resource | ResourceError | null> = new BehaviorSubject<
     Resource | ResourceError | null
@@ -44,9 +16,7 @@ export class ApiDelegateService {
   public readonly recentFiles$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
   public readonly version$: BehaviorSubject<string> = new BehaviorSubject<string>('');
   public readonly onFileOpened$: Subject<void> = new Subject<void>();
-
-  readonly dialog = inject(MatDialog);
-  readonly ngZone = inject(NgZone);
+  public readonly apiError$: Subject<string> = new Subject<string>();
 
   // incoming calls handlers
   public readonly openArgFile$: Subject<[string]> = new Subject<[string]>();
@@ -55,10 +25,10 @@ export class ApiDelegateService {
     0, 0,
   ]);
 
-  constructor() {
-    bridge.expose(this.wrapHandler(this.openArgFile$), 'open_arg_file');
-    bridge.expose(this.wrapHandler(this.conversionProgress$), 'update_conversion_progress');
-    bridge.expose(this.wrapHandler(this.onAppendChanges$), 'on_append_changes');
+  constructor(private readonly ngZone: NgZone) {
+    eel.expose(this.wrapHandler(this.openArgFile$), 'open_arg_file');
+    eel.expose(this.wrapHandler(this.conversionProgress$), 'update_conversion_progress');
+    eel.expose(this.wrapHandler(this.onAppendChanges$), 'on_append_changes');
 
     this.openArgFile$.subscribe(async ([path]) => this.openFile(path));
 
@@ -66,11 +36,11 @@ export class ApiDelegateService {
     this.syncRecentFiles().then();
     this.syncVersion().then();
 
-    // wait while bridge websocket connection establishes and add a handler to close window when main python script stopped
+    // wait while eel websocket connection establishes and add a handler to close window when main python script stopped
     setTimeout(async () => {
       while (true) {
-        if (bridge._websocket) {
-          bridge._websocket.onclose = () => window.close();
+        if (eel._websocket) {
+          eel._websocket.onclose = () => window.close();
           break;
         }
         await new Promise(r => setTimeout(r, 0));
@@ -233,14 +203,12 @@ export class ApiDelegateService {
         } catch (e) {
           // ignore
         }
-        return await bridge[funcName](...args)();
+        return await eel[funcName](...args)();
       })();
       this.callQueue = current;
       return await current;
     } catch (err: any) {
-      this.dialog.open(ErrorDialogComponent, {
-        data: { message: err.message || err.errorText || err.toString() },
-      });
+      this.apiError$.next(err.message || err.errorText || err.toString());
       throw err;
     }
   }

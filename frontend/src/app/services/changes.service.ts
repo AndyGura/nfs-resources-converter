@@ -1,5 +1,5 @@
 import { Injectable, NgZone } from '@angular/core';
-import { ApiDelegateService } from './api-delegate.service';
+import { ApiDelegateService } from './api/api-delegate.service';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { Resource } from '../components/editor/types';
 import { SubscribableGuiComponent } from '../components/editor/gui.component';

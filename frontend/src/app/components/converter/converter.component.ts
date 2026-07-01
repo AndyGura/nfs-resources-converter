@@ -12,7 +12,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { ApiDelegateService } from '../../services/api-delegate.service';
+import { ApiDelegateService } from '../../services/api/api-delegate.service';
 import { ConfigComponent } from '../config/config.component';
 import { firstValueFrom } from 'rxjs';
 

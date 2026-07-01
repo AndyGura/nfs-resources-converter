@@ -68,7 +68,13 @@
               "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
-              "namedChunks": true
+              "namedChunks": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/app/services/api/api-delegate.service.ts",
+                  "with": "src/app/services/api/api-delegate.service.local.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"

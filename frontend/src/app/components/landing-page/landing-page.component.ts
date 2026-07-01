@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { ApiDelegateService } from '../../services/api-delegate.service';
+import { ApiDelegateService } from '../../services/api/api-delegate.service';
 
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
