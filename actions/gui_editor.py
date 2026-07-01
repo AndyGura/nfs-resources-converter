@@ -164,6 +164,29 @@ def _enable_macos_pointer_lock():
         pass
 
 
+def _is_own_launch_path(path):
+    """Return whether ``path`` is the app's own executable/script, not a document.
+
+    On macOS AppKit fires ``application:openFile:`` once at launch with the path
+    of the running program itself (``sys.argv[0]`` — the ``run.py`` script when
+    run from source, or the bundle's executable when frozen). That is not a file
+    the user asked to open, so it must be ignored to avoid trying to parse the
+    executable and failing on a plain, argument-less launch.
+    """
+    try:
+        target = os.path.realpath(path)
+    except Exception:
+        return False
+    candidates = []
+    for candidate in (sys.argv[0] if sys.argv else None, sys.executable):
+        if candidate:
+            try:
+                candidates.append(os.path.realpath(candidate))
+            except Exception:
+                pass
+    return target in candidates
+
+
 def _handle_macos_open_file(path):
     """Route a file the OS asked the app to open into the running GUI.
 
@@ -182,6 +205,13 @@ def _handle_macos_open_file(path):
     if not path or api is None:
         return
     path = str(path)
+    # macOS delivers a spurious ``application:openFile:`` at launch whose path is
+    # the running executable/script itself (``sys.argv[0]``), not a document the
+    # user asked to open. Ignore it so a plain launch (``python run.py`` or
+    # double-clicking the app) shows the landing page instead of trying to parse
+    # the executable and failing.
+    if _is_own_launch_path(path):
+        return
     if bridge.frontend_ready.is_set():
         try:
             bridge.open_arg_file(path)
