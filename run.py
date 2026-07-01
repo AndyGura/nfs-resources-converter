@@ -16,7 +16,6 @@ class Action(Enum):
 
 
 if __name__ == "__main__":
-    print('sys.argv:', sys.argv)
     # check if first argument is a valid action. If not, it is a file
     action = None
     if len(sys.argv) > 1:
