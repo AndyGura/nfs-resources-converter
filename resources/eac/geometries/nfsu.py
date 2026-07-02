@@ -117,14 +117,14 @@ class NfsuGenericChunk(DeclarativeCompoundBlock):
 
 class NfsuMeshDescriptorBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = IntegerBlock(length=4)  # Matches 0x00134011
+        chunk_id = IntegerBlock(length=4, value_validator=Eq(0x00134011))  # Matches 0x00134011
         chunk_length = IntegerBlock(length=4)  # Size of this descriptor payload
         payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
 
 
 class NfsuVertexBufferBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = IntegerBlock(length=4)  # 0x00134012
+        chunk_id = IntegerBlock(length=4, value_validator=Eq(0x00134012))  # 0x00134012
         chunk_length = IntegerBlock(length=4)  # 8
 
         payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
@@ -135,7 +135,7 @@ class NfsuVertexBufferBlock(DeclarativeCompoundBlock):
 
 class NfsuIndexBufferBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = IntegerBlock(length=4)  # 0x00134013
+        chunk_id = IntegerBlock(length=4, value_validator=Eq(0x00134013))  # 0x00134013
         chunk_length = IntegerBlock(length=4)  # 8
 
         payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
@@ -171,10 +171,10 @@ class NfsuStreamAllocationBlock(DeclarativeCompoundBlock):
         payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
 
 
-class UnkBlock(DeclarativeCompoundBlock):
+class BaseChunk(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = IntegerBlock(length=4)
-        chunk_length = IntegerBlock(length=4)
+        chunk_length = IntegerBlock(length=4, is_signed=False)
         payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
 
 
@@ -196,7 +196,7 @@ class NfsuMeshContainer(DeclarativeCompoundBlock):
         # 7. Stream Allocation Block (Starts with 0x00134019)
         stream_allocation = OptionalBlock(child=NfsuStreamAllocationBlock(),
                                           criteria=lambda ctx: ctx.local_buffer_pos < ctx.data('chunk_length'))
-        unk_0 = OptionalBlock(child=UnkBlock(),
+        unk_0 = OptionalBlock(child=BaseChunk(),
                             criteria=lambda ctx: ctx.local_buffer_pos < ctx.data('chunk_length'))
 
         # 8. Recalculate remaining space
@@ -224,20 +224,22 @@ class NfsuBinGeometry(DeclarativeCompoundBlock):
         data_length = IntegerBlock(length=4)
         padding_gap = BytesBlock(length=8)
 
-        first_sub_container = NfsuSubContainer()
+        # first_sub_container = NfsuSubContainer()
 
         # 2. To handle the rest of the file dynamically, we can loop through
         # the remaining chunks inside the master payload using an ArrayBlock or sequential parsing.
         # For now, let's capture the 20-byte alignment block you just found:
 
         # Next chunk seems to start without alignment_chunk
-        mesh_chunks = ArrayBlock(length=87,
-                                 child=CompoundBlock(
-                                     fields=[('alignment_chunk', NfsuGenericChunk(), {}),
-                                             ('mesh_chunk', NfsuMeshContainer(), {})]))
+        chunks = ArrayBlock(length=786, child=BaseChunk())
+        # mesh_chunks = ArrayBlock(length=87,
+        #                          child=CompoundBlock(
+        #                              fields=[('alignment_chunk', NfsuGenericChunk(), {}),
+        #                                      ('mesh_chunk', NfsuMeshContainer(), {})]))
+
 
         # The rest of the file data
-        raw_data = BytesBlock(length=lambda ctx: ctx.data('data_length') - ctx.local_buffer_pos)
+        # raw_data = BytesBlock(length=lambda ctx: ctx.data('data_length') - ctx.local_buffer_pos)
         extra = BytesBlock(length=lambda ctx: ctx.read_bytes_remaining)
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
