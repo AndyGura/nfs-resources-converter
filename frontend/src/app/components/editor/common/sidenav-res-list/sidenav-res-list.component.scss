@@ -18,6 +18,14 @@
       }
     }
 
+    .list-label {
+      padding: 12px 16px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.54);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
     ::ng-deep {
       .mdc-radio {
         display: none;

@@ -10,21 +10,21 @@ import { MainService } from '../../services/main.service';
   selector: 'app-navigation-bar',
   template: `
     @if (((navigation.navigationPath$ | async) || []).length > 0) {
-    <nav class='flex items-center space-x-1 py-2 px-4 bg-surface shadow-sm rounded-md'>
-      <button mat-button (click)='navigate(0)' class='font-medium text-primary'>
-        {{ rootName$ | async }}
-      </button>
+      <nav class="flex items-center space-x-1 py-2 px-4 bg-surface shadow-sm rounded-md">
+        <button mat-button (click)="navigate(0)" class="font-medium text-primary">
+          {{ rootName$ | async }}
+        </button>
 
-      @for (item of (navigation.navigationPath$ | async) || []; track item; let i = $index) {
-        @if (!['data', 'children'].includes(item)) {
-          <mat-divider vertical></mat-divider>
-          <span>/</span>
-          <button mat-button (click)='navigate(i + 1)' class='font-medium text-secondary'>
-            {{ item }}
-          </button>
+        @for (item of (navigation.navigationPath$ | async) || []; track item; let i = $index) {
+          @if (!['data', 'children'].includes(item)) {
+            <mat-divider vertical></mat-divider>
+            <span>/</span>
+            <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
+              {{ item }}
+            </button>
+          }
         }
-      }
-    </nav>
+      </nav>
     }
   `,
   styles: [

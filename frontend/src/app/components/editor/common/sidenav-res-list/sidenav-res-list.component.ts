@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, Input } from '@angular/core';
 import { NavigationService } from '../../../../services/navigation.service';
 import { Resource, ResourceError } from '../../types';
 import { joinId } from '../../../../utils/join-id';
 import { fileFormatIcon } from '../../../../utils/file-format-icon';
+import { GuiComponent } from '../../gui.component';
 
 @Component({
   selector: 'app-sidenav-res-list',
@@ -12,7 +13,7 @@ import { fileFormatIcon } from '../../../../utils/file-format-icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class SidenavResListComponent {
+export class SidenavResListComponent extends GuiComponent {
   _resources: { [key: string]: Resource | ResourceError } = {};
   get resources(): { [key: string]: Resource | ResourceError } {
     return this._resources;
@@ -20,8 +21,11 @@ export class SidenavResListComponent {
 
   @Input() set resources(value: { [key: string]: Resource | ResourceError }) {
     this._resources = value;
-    if (!this.selectedValue || !Object.keys(value).includes(this.selectedValue)) {
-      this.selectedValue = Object.keys(value).length > 0 ? Object.keys(value)[0] : null;
+    if (
+      !this.selectedValue ||
+      (!Object.keys(value).includes(this.selectedValue) && this.selectedValue !== '___headers___')
+    ) {
+      this.selectedValue = Object.keys(value).length > 0 ? Object.keys(value)[0] : '___headers___';
     }
   }
 
@@ -38,7 +42,7 @@ export class SidenavResListComponent {
     return Object.keys(this.resources);
   }
 
-  constructor(private readonly navigation: NavigationService) {}
+  private readonly navigation = inject(NavigationService);
 
   onDoubleClick(key: string) {
     this.navigation.navigateToId(this.resources[key]!.id);

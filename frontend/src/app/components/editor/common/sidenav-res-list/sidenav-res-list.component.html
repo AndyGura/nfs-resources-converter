@@ -1,6 +1,10 @@
 <mat-selection-list
   [multiple]="false"
   (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
+  <mat-list-option value="___headers___" [selected]="selectedValue == '___headers___'">
+    {{ resourceSchema?.block_class_mro.split('__')[0] || 'Headers' }}
+  </mat-list-option>
+  <div class="list-label">Children</div>
   @for (key of keys; track key) {
     <mat-list-option [value]="key" [selected]="selectedValue == key" (dblclick)="onDoubleClick(key)">
       @if (resources[key].schema; as schema) {
@@ -14,6 +18,18 @@
 </mat-selection-list>
 @if (selectedValue) {
   <mat-card>
-    <app-editor [resourceOrError]="resources[selectedValue]"></app-editor>
+    @if (selectedValue === '___headers___') {
+      <app-compound-block-ui
+        [resourceId]="resourceId"
+        [resourceName]="resourceName"
+        [resourceData]="resourceData"
+        [resourceSchema]="resourceSchema"
+        [resourceDescription]="resourceDescription"
+        [hideName]="hideName"
+        [hideBlockActions]="hideBlockActions"
+        [fieldBlacklist]="['children', 'items_descr', 'num_items', 'items']"></app-compound-block-ui>
+    } @else {
+      <app-editor [resourceOrError]="resources[selectedValue]"></app-editor>
+    }
   </mat-card>
 }
