@@ -97,11 +97,11 @@ EXPORT_RESOURCES = {
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, [compressed](eac_compressions.md)
 
-**\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
 **\*.TGV** video, I just use ffmpeg to convert it
 
@@ -171,7 +171,7 @@ EXPORT_RESOURCES = {
 
 **\*.MSK** archive with some data. {render_type(archives.BigfBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
 **\*.TRK** main track file. {render_type(maps.TrkMap())}
 
@@ -237,7 +237,7 @@ EXPORT_RESOURCES = {
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
 **\*.TRK** main track file. {render_type(maps.TrkMap())}
 
@@ -305,7 +305,7 @@ EXPORT_RESOURCES = {
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
 **\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
@@ -374,7 +374,7 @@ EXPORT_RESOURCES = {
 
 **\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
 **\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
@@ -407,7 +407,7 @@ EXPORT_RESOURCES = {
     'nfs5': {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
-        'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, **compressed** (compression algorithms not documented, can be found in resources/eac/compressions/)
+        'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, [compressed](eac_compressions.md)
         
 **\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 

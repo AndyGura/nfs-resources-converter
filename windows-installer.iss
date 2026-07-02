@@ -4,6 +4,7 @@ AppVersion={#AppVersion}
 DefaultDirName={pf}\NFS Resources Converter
 DefaultGroupName=NFS Resources Converter
 UninstallDisplayIcon={app}\nfs-resources-converter-{#AppVersion}.exe
+SetupIconFile=frontend\dist\gui\favicon.ico
 Compression=lzma2
 SolidCompression=yes
 OutputDir=dist

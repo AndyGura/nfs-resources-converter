@@ -24,8 +24,8 @@ class GlyphDefinition(DeclarativeCompoundBlock):
             **super().schema,
             'description': 'Glyph definition.<br/>'
                            '- for FNT version < 200 has length 11 bytes.<br/>'
-                           '- for versions >= 200 and < 300 - 12 bytes, last byte is padding.<br/>'
-                           '- for versions >= 300 - 12th byte is num_kern.<br/>'
+                           '- for versions >= 200 and <= 309 - 12 bytes, last byte is padding.<br/>'
+                           '- for versions > 309 - 12th byte is num_kern.<br/>'
                            '- for versions >= 321 it may be 16 bytes if "format" flag is set to 16-bytes',
         }
 
@@ -47,24 +47,30 @@ class GlyphDefinition(DeclarativeCompoundBlock):
         y_offset = (IntegerBlock(length=1, is_signed=True),
                     {'description': 'Offset (y) for drawing the character image'})
         # 12-th byte
-        # TODO this feels like should have a programmatic value
-        # programmatic_value=lambda ctx: sum(
-        #                                                          1 for x in ctx.data('../../kernings') if
-        #                                                          x['left'] == ctx.data('code'))
-        # but this does not work
-        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
-                                  criteria=lambda ctx: ctx.data('../../version') >= 300),
+        num_kern = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False,
+                                                     programmatic_value=lambda ctx: sum(
+                                                         1 for x in ctx.data('../../kernings') if
+                                                         x['right'] == ctx.data('code'))),
+                                  criteria=lambda ctx: ctx.data('../../version') > 309),
                     {'description': 'Number of kerning pairs for this glyph'})
         pad = (OptionalBlock(child=IntegerBlock(length=1, is_signed=False),
-                             criteria=lambda ctx: 200 <= ctx.data('../../version') < 300),
+                             criteria=lambda ctx: 200 <= ctx.data('../../version') <= 309),
                {'description': 'Padding'})
         # 13th - 16th bytes
         kern_index = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                    criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes'),
+                                    criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data(
+                                        '../../flags/format') == '16-bytes'),
                       {'description': 'Index in kerning table?'})
         x_advance = (OptionalBlock(child=IntegerBlock(length=2, is_signed=False),
-                                   criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes'),
+                                   criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data(
+                                       '../../flags/format') == '16-bytes'),
                      {'description': 'Gap between this symbol and next one in rendered text?'})
+
+    def new_data(self):
+        data = super().new_data()
+        data['width'] = 1
+        data['height'] = 1
+        return data
 
 
 class KerningItem(DeclarativeCompoundBlock):
@@ -112,19 +118,19 @@ class FfnFont(DeclarativeCompoundBlock):
                       {'usage': 'io,doc',
                        'description': 'Amount of symbols, defined in this font'})
         flags = SubByteCompoundBlock(length=4, schema=[
-            (1, 'antialiased', 'boolean', [], ''),
-            (1, 'dropshadow', 'boolean', [], ''),
-            (1, 'outline', 'boolean', [], ''),
+            (13, 'pad', 'number', [], 'pad structure to 32 bits'),
+            (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
+            (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
+            (4, 'layoutpad', 'number', [], 'pad to save 4 other layout bits'),
+            (1, 'direction', 'enum', ['LTR', 'RTL'], ''),
+            (1, 'orientation', 'enum', ['Horizontal', 'Vertical'], ''),
+            (2, 'baseline', 'enum', ['Roman (english)', 'Ideographic (Kanji)', 'Hanging (Arabic)', 'Unknown'], ''),
+            (4, 'drawpad', 'number', [], 'pad to save 4 other draw attribute bits'),
             (1, 'vram', 'boolean', [],
              'VRAM fonts are the default, they have extra space around the characters so that uv extraction will work under hardware.'),
-            (4, 'drawpad', 'number', [], 'pad to save 4 other draw attribute bits'),
-            (2, 'baseline', 'enum', ['Roman (english)', 'Ideographic (Kanji)', 'Hanging (Arabic)', 'Unknown'], ''),
-            (1, 'orientation', 'enum', ['Horizontal', 'Vertical'], ''),
-            (1, 'direction', 'enum', ['LTR', 'RTL'], ''),
-            (4, 'layoutpad', 'number', [], 'pad to save 4 other layout bits'),
-            (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
-            (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
-            (13, 'pad', 'number', [], 'pad structure to 32 bits'),
+            (1, 'outline', 'boolean', [], ''),
+            (1, 'dropshadow', 'boolean', [], ''),
+            (1, 'antialiased', 'boolean', [], ''),
         ])
         center = Point2D(child=IntegerBlock(length=1, is_signed=False))
         ascent = IntegerBlock(length=1, is_signed=False)

@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
+import { fileFormatIcon } from '../../utils/file-format-icon';
 
 @Component({
   selector: 'app-new-file.dialog',
@@ -9,7 +10,7 @@ import { MatDialogRef } from '@angular/material/dialog';
   standalone: false,
 })
 export class NewFileDialogComponent {
-  public formats = [{ id: 'ffn', name: 'FFN font', icon: 'text_fields' }];
+  public formats = [{ id: 'ffn', name: 'FFN font', blockClass: 'FfnFont' }];
   public selectedFormat = 'ffn';
 
   constructor(public dialogRef: MatDialogRef<NewFileDialogComponent>) {}
@@ -21,4 +22,6 @@ export class NewFileDialogComponent {
   onCreate(): void {
     this.dialogRef.close(this.selectedFormat);
   }
+
+  fileFormatIcon = fileFormatIcon;
 }

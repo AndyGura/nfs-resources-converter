@@ -15,14 +15,18 @@
     [enableArrayEditing]="enableArrayEditing"
     [pageIndex]="pageIndex"
     [pageSize]="pageSize"
+    [usePaginator]="true"
+    [pageSizeOptions]="pageSizeOptions"
+    [maxHeight]="tableMaxHeight"
     (addItem)="addItem()"
     (removeItem)="removeItem($event)"
     (moveItemUp)="moveItemUp($event)"
     (moveItemDown)="moveItemDown($event)"
     (dataChanged)="onTableDataChanged($event)"
     (focusedElement)="onFocusedElement($event)"
+    (pageIndexChange)="onPageIndexChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)"
     (blur)="onBlur()"></data-table>
-  <ng-template [ngTemplateOutlet]="paginator"></ng-template>
 } @else {
   <mat-expansion-panel (opened)="onContentsTrigger(true)" (closed)="onContentsTrigger(false)">
     <mat-expansion-panel-header [matTooltip]="resourceDescription || ''" matTooltipPosition="above">

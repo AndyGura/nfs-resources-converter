@@ -12,14 +12,12 @@ hidden_imports = (
     + collect_submodules('library')
     + collect_submodules('actions')
     + collect_submodules('games')
-    + collect_submodules('eel')
+    + collect_submodules('webview')
     + collect_submodules('bottle')
-    + collect_submodules('engineio')
-    + collect_submodules('socketio')
 )
 
 datas = (
-    collect_data_files('eel')
+    collect_data_files('webview')
     + [('frontend/dist/gui', 'frontend/dist/gui')]
 )
 
@@ -57,6 +55,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='frontend/dist/gui/favicon.ico',
 )
 coll = COLLECT(
     exe,
@@ -71,7 +70,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name=f'NFS Resources Converter-{__version__}.app',
-    icon=None,
+    icon='frontend/dist/gui/favicon.ico',
     bundle_identifier='com.andygura.nfs-resources-converter',
     info_plist={
         'CFBundleDocumentTypes': [

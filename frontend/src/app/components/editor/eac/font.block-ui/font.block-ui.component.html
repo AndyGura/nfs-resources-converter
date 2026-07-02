@@ -2,36 +2,42 @@
   <mat-tab-group class="font-editor-tabs" [(selectedIndex)]="selectedTabIndex">
     <mat-tab label="Chars">
       <div class="font-editor-container">
-        <div class="table-container">
-          <data-table
-            [data]="glyphsWithSymbols"
-            [columns]="_glyphColumns"
-            [enableArrayEditing]="true"
-            [selectedIndex]="_selectedGlyphIndex$ | async"
-            (addItem)="addGlyph()"
-            (removeItem)="removeGlyph($event)"
-            (moveItemUp)="moveGlyphUp($event)"
-            (moveItemDown)="moveGlyphDown($event)"
-            (dataChanged)="onGlyphDataChanged($event)"
-            (focusedElement)="onGlyphFocused($event)"></data-table>
-        </div>
+        <data-table
+          [data]="(_glyphsWithSymbols$ | async) || []"
+          [columns]="_glyphColumns"
+          [enableArrayEditing]="true"
+          [(pageSize)]="_glyphPageSize"
+          [(pageIndex)]="_glyphPageIndex"
+          [selectedIndex]="_selectedGlyphIndex$ | async"
+          [maxHeight]="'100%'"
+          [usePaginator]="true"
+          [pageSizeOptions]="[100, 200, 500]"
+          (addItem)="addGlyph()"
+          (removeItem)="removeGlyph($event)"
+          (moveItemUp)="moveGlyphUp($event)"
+          (moveItemDown)="moveGlyphDown($event)"
+          (dataChanged)="onGlyphDataChanged($event)"
+          (focusedElement)="onGlyphFocused($event)"></data-table>
       </div>
     </mat-tab>
     <mat-tab label="Kernings">
       <div class="font-editor-container">
-        <div class="table-container">
-          <data-table
-            [data]="kerningsWithSymbols"
-            [columns]="_kerningColumns"
-            [enableArrayEditing]="true"
-            [selectedIndex]="_selectedKerningIndex$ | async"
-            (addItem)="addKerning()"
-            (removeItem)="removeKerning($event)"
-            (moveItemUp)="moveKerningUp($event)"
-            (moveItemDown)="moveKerningDown($event)"
-            (dataChanged)="onKerningDataChanged($event)"
-            (focusedElement)="onKerningFocused($event)"></data-table>
-        </div>
+        <data-table
+          [data]="(_kerningsWithSymbols$ | async) || []"
+          [columns]="_kerningColumns"
+          [enableArrayEditing]="true"
+          [(pageSize)]="_kerningPageSize"
+          [(pageIndex)]="_kerningPageIndex"
+          [selectedIndex]="_selectedKerningIndex$ | async"
+          [maxHeight]="'100%'"
+          [usePaginator]="true"
+          [pageSizeOptions]="[100, 200, 500]"
+          (addItem)="addKerning()"
+          (removeItem)="removeKerning($event)"
+          (moveItemUp)="moveKerningUp($event)"
+          (moveItemDown)="moveKerningDown($event)"
+          (dataChanged)="onKerningDataChanged($event)"
+          (focusedElement)="onKerningFocused($event)"></data-table>
       </div>
     </mat-tab>
     <mat-tab label="Headers">
@@ -59,18 +65,20 @@
   </mat-tab-group>
 
   <div class="previews-column">
-    <div class="section-preview" *ngIf="isCharPreviewVisible">
-      <div class="preview-title">Char Preview</div>
-      <div class="preview-container">
-        <canvas
-          #fullBitmapCanvas
-          (mousedown)="onFullCanvasMouseDown($event)"
-          (mousemove)="onFullCanvasMouseMove($event)"
-          (mouseup)="onFullCanvasMouseUp($event)"
-          (mouseleave)="onFullCanvasMouseUp($event)"
-          (wheel)="onFullCanvasWheel($event)"></canvas>
+    @if (isCharPreviewVisible) {
+      <div class="section-preview">
+        <div class="preview-title">Char Preview</div>
+        <div class="preview-container">
+          <canvas
+            #fullBitmapCanvas
+            (mousedown)="onFullCanvasMouseDown($event)"
+            (mousemove)="onFullCanvasMouseMove($event)"
+            (mouseup)="onFullCanvasMouseUp($event)"
+            (mouseleave)="onFullCanvasMouseUp($event)"
+            (wheel)="onFullCanvasWheel($event)"></canvas>
+        </div>
       </div>
-    </div>
+    }
 
     <div class="section-preview">
       <div class="preview-title">Font Preview</div>
