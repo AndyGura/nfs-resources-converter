@@ -182,6 +182,12 @@ def run_gui_editor(file_path=None, dev_server_url=None):
             developer tools enabled, so the frontend can be edited with live
             reload and debugged directly inside the web view.
     """
+    # Suppress all logging to stdout/stderr to prevent 'charmap' codec errors
+    # in the windowed (frozen) application on Windows.
+    if not dev_server_url:
+        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+        sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+
     # Directory holding files needed by the GUI: in production the frontend
     # build; in development just the eel.js shim and serialized resources. In
     # both cases serialized resources are written here by the backend.
