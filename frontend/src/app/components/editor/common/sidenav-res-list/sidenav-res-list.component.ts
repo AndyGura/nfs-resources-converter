@@ -8,6 +8,7 @@ import { fileFormatIcon } from '../../../../utils/file-format-icon';
   selector: 'app-sidenav-res-list',
   templateUrl: './sidenav-res-list.component.html',
   styleUrls: ['./sidenav-res-list.component.scss'],
+  host: { class: 'full-screen-editor' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
