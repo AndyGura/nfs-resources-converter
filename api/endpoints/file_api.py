@@ -296,6 +296,10 @@ class FileAPI:
             from resources.eac.fonts import FfnFont
             block = FfnFont()
             data = block.new_data()
+        elif format_name.lower() == 'fsh':
+            from resources.eac.archives import ShpiBlock
+            block = ShpiBlock()
+            data = block.new_data()
         else:
             raise Exception(f'Unsupported format: {format_name}')
 
