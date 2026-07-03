@@ -21,14 +21,6 @@ class FfnFontSerializer(BaseFileSerializer):
             'reversible_settings_patch': {}
         }
 
-    # TODO not used fields in serialize/deserialize:
-    # [ ] definitions/kern_index - unknown
-    # [ ] definitions/x_advance - not clear
-    # [ ] kernings/left
-    # [ ] kernings/unk
-    # [ ] kernings/kerning
-    # [ ] kernings/right
-
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id=id, block=None)
         image_serializer = ImageSerializer()
@@ -43,6 +35,8 @@ class FfnFontSerializer(BaseFileSerializer):
                 for key, value in data.items():
                     if isinstance(value, str):
                         value = f'"{value}"'
+                    elif isinstance(value, bytes):
+                        value = f'"{value.hex()}"'
                     parts.append(f'{key}={value}')
                 file.write(' '.join(parts) + '\n')
 
@@ -65,16 +59,35 @@ class FfnFontSerializer(BaseFileSerializer):
                                        'format': data['flags']['format'],
                                        'pad': data['flags']['pad'],
                                        'center_x': data['center']['x'],
-                                       'center_y': data['center']['y'], })
+                                       'center_y': data['center']['y'],
+                                       'padding_0': data['padding_0'],
+                                       'padding_1': data.get('padding_1'),
+                                       'padding_2': data['padding_2'],
+                                       'padding_3': data['padding_3'],
+                                       'remaining_bytes': data['remaining_bytes']})
             write_fnt_line('page', {'id': 0, 'file': 'bitmap.png'})
             write_fnt_line('chars', {'count': data['num_glyphs']})
             for symbol in data['definitions']:
-                write_fnt_line('char',
-                               {'id': symbol['code'],
-                                'x': symbol['x'], 'y': symbol['y'], 'width': symbol['width'],
-                                'height': symbol['height'], 'xoffset': symbol['x_offset'],
-                                'yoffset': symbol['y_offset'], 'xadvance': symbol['advance'], 'page': 0,
-                                'chnl': 0})
+                char_data = {'id': symbol['code'],
+                             'x': symbol['x'], 'y': symbol['y'], 'width': symbol['width'],
+                             'height': symbol['height'], 'xoffset': symbol['x_offset'],
+                             'yoffset': symbol['y_offset'], 'xadvance': symbol['advance'], 'page': 0,
+                             'chnl': 0}
+                if symbol.get('num_kern') is not None:
+                    char_data['num_kern'] = symbol['num_kern']
+                if symbol.get('kern_index') is not None:
+                    char_data['kern_index'] = symbol['kern_index']
+                if symbol.get('x_advance') is not None:
+                    char_data['x_advance'] = symbol['x_advance']
+                if symbol.get('pad') is not None:
+                    char_data['pad'] = symbol['pad']
+                write_fnt_line('char', char_data)
+            if data.get('kernings'):
+                write_fnt_line('kernings', {'count': len(data['kernings'])})
+                for kerning in data['kernings']:
+                    write_fnt_line('kerning',
+                                   {'first': kerning['left'], 'second': kerning['right'],
+                                    'amount': kerning['kerning']})
         output.append(fnt_path)
         return output
 
@@ -97,10 +110,13 @@ class FfnFontSerializer(BaseFileSerializer):
                 for part in parts:
                     if '=' in part:
                         key, value = part.split('=', 1)
-                        try:
-                            value = int(value)
-                        except ValueError:
-                            pass
+                        if value.startswith('"') and value.endswith('"'):
+                            value = value[1:-1]
+                        else:
+                            try:
+                                value = int(value)
+                            except ValueError:
+                                pass
                         result[key] = value
                 return result
 
@@ -148,6 +164,17 @@ class FfnFontSerializer(BaseFileSerializer):
                     data['center']['x'] = custom_part['center_x']
                 if 'center_y' in custom_part:
                     data['center']['y'] = custom_part['center_y']
+                if 'padding_0' in custom_part:
+                    data['padding_0'] = bytes.fromhex(str(custom_part['padding_0']))
+                if 'padding_1' in custom_part and custom_part['padding_1'] is not None:
+                    data['padding_1'] = bytes.fromhex(str(custom_part['padding_1'])) if custom_part[
+                        'padding_1'] else b''
+                if 'padding_2' in custom_part:
+                    data['padding_2'] = bytes.fromhex(str(custom_part['padding_2']))
+                if 'padding_3' in custom_part:
+                    data['padding_3'] = bytes.fromhex(str(custom_part['padding_3']))
+                if 'remaining_bytes' in custom_part:
+                    data['remaining_bytes'] = bytes.fromhex(str(custom_part['remaining_bytes']))
             except StopIteration:
                 pass
 
@@ -164,8 +191,18 @@ class FfnFontSerializer(BaseFileSerializer):
                     'y_offset': values['yoffset'],
                     'advance': values['xadvance'],
                 }
-                glyph_data['num_kern'] = 0
-                glyph_data['x_advance'] = 0
-                glyph_data['kern_index'] = 0
+                glyph_data['num_kern'] = values.get('num_kern', 0)
+                glyph_data['x_advance'] = values.get('x_advance', 0)
+                glyph_data['kern_index'] = values.get('kern_index', 0)
+                glyph_data['pad'] = values.get('pad', 0)
                 data['definitions'].append(glyph_data)
+
+            kerning_lines = [parse_fnt_char_line(l) for l in lines if l.startswith('kerning ')]
+            data['kernings'] = []
+            for values in kerning_lines:
+                data['kernings'].append({
+                    'left': values['first'],
+                    'right': values['second'],
+                    'kerning': values['amount'],
+                })
         return data
