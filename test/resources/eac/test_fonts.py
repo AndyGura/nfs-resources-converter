@@ -41,7 +41,6 @@ class TestFfnFont(unittest.TestCase):
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f"Wrong value at index {i}")
 
-    @unittest.skip("Kernings export is not implemented yet")
     def test_new_ffn_can_be_reconstructed_from_files(self):
         (name, block, font_res) = require_file('test/golden_corpus/Arial12b.ffn')
         import tempfile
@@ -52,6 +51,8 @@ class TestFfnFont(unittest.TestCase):
             output_files = serializer.serialize(font_res, tmp, name, block)
             font_res2 = serializer.deserialize(output_files, name, block=block)
             (EacImage()).action_convert_to_8bit(font_res2['bitmap'], 'alpha')
+            # we don't set it as it is optional. In order to reconstruct this particular font exactly, we need to set it
+            font_res2['bitmap']['block_size'] = 51264
         output = block.pack(font_res2, name=name)
         with open('test/golden_corpus/Arial12b.ffn', 'rb') as bdata:
             original = bdata.read()

@@ -160,11 +160,13 @@ class FfnFont(DeclarativeCompoundBlock):
                                   length=lambda ctx: ctx.data('num_glyphs')),
                        {'description': 'Definitions of chars in this bitmap font'})
         padding_1 = (OptionalBlock(child=Padding(to=lambda ctx: ctx.data('kernings_ptr')),
-                                   criteria=lambda ctx: ctx.data('kernings_ptr') != 0),
+                                   criteria=lambda ctx: ctx.data('kernings_ptr') != 0
+                                                        or len(ctx.data('kernings') or []) != 0),
                      {'is_unknown': True})
         kernings = (OptionalBlock(child=LengthPrefixedArrayBlock(child=KerningItem(),
                                                                  length_block=IntegerBlock(length=4)),
-                                  criteria=lambda ctx: ctx.data('kernings_ptr') != 0))
+                                  criteria=lambda ctx: ctx.data('kernings_ptr') != 0
+                                                       or len(ctx.data('kernings') or []) != 0))
         padding_2 = (Padding(to=lambda ctx: ctx.data('bdata_ptr')),
                      {'is_unknown': True})
         bitmap = (EacImage(),
