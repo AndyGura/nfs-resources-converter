@@ -19,11 +19,47 @@
     }
 
     .list-label {
-      padding: 12px 16px;
+      padding: 12px 16px 4px;
       font-weight: 500;
       color: rgba(0, 0, 0, 0.54);
       font-size: 12px;
       text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .add-item-option {
+      color: var(--mat-sys-primary);
+      ::ng-deep .mat-mdc-list-item-icon {
+        color: var(--mat-sys-primary);
+      }
+    }
+
+    .option-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      overflow: hidden;
+
+      .key-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-right: 8px;
+      }
+
+      app-item-actions {
+        display: none;
+        flex-shrink: 0;
+      }
+    }
+
+    mat-list-option:hover {
+      .option-content app-item-actions {
+        display: flex;
+      }
     }
 
     ::ng-deep {

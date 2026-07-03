@@ -5,15 +5,34 @@
     {{ resourceSchema?.block_class_mro.split('__')[0] || 'Headers' }}
   </mat-list-option>
   <div class="list-label">Children</div>
-  @for (key of keys; track key) {
+  @for (key of keys; track key; let i = $index) {
     <mat-list-option [value]="key" [selected]="selectedValue == key" (dblclick)="onDoubleClick(key)">
       @if (resources[key].schema; as schema) {
         <mat-icon matListItemIcon>{{ fileFormatIcon(schema.block_class_mro) }}</mat-icon>
       } @else {
         <mat-icon matListItemIcon>error</mat-icon>
       }
-      {{ key }}
+      <div class="option-content">
+        <span class="key-label">{{ key }}</span>
+        @if (!disabled) {
+          <app-item-actions
+            [index]="i"
+            [totalItems]="keys.length"
+            [disabled]="!!disabled"
+            (moveUp)="moveItemUp($event)"
+            (moveDown)="moveItemDown($event)"
+            (remove)="removeItem($event)"></app-item-actions>
+        }
+      </div>
     </mat-list-option>
+  }
+  @if (!disabled) {
+    <div class="add-item-container">
+      <button mat-button color="primary" (click)="addItem()" class="add-item-button">
+        <mat-icon>add</mat-icon>
+        Add Item
+      </button>
+    </div>
   }
 </mat-selection-list>
 @if (selectedValue) {

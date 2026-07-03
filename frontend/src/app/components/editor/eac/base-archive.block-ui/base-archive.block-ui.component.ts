@@ -31,6 +31,11 @@ export class BaseArchiveBlockUiComponent extends SubscribableGuiComponent {
     this.buildResourceMap();
   }
 
+  override onExternalChanges() {
+    super.onExternalChanges();
+    this.buildResourceMap();
+  }
+
   resourceMap: { [key: string]: Resource } = {};
 
   buildResourceMap() {

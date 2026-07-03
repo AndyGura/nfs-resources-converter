@@ -45,36 +45,14 @@
             <td class="index-cell" [class.editable]="!disabled">
               <span class="index-number">{{ getGlobalIndex(i) }}</span>
               @if (!disabled) {
-                <div class="item-actions">
-                  <button
-                    mat-icon-button
-                    color="primary"
-                    class="move-item-button"
-                    [disabled]="getGlobalIndex(i) === 0"
-                    (click)="moveItemUp.emit(getGlobalIndex(i))"
-                    matTooltip="Move up">
-                    <mat-icon>arrow_upward</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    color="primary"
-                    class="move-item-button"
-                    [disabled]="getGlobalIndex(i) === (data?.length || 0) - 1"
-                    (click)="moveItemDown.emit(getGlobalIndex(i))"
-                    matTooltip="Move down">
-                    <mat-icon>arrow_downward</mat-icon>
-                  </button>
-                  @if (enableArrayEditing) {
-                    <button
-                      mat-icon-button
-                      color="warn"
-                      class="remove-item-button"
-                      (click)="removeItem.emit(getGlobalIndex(i))"
-                      matTooltip="Remove item">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  }
-                </div>
+                <app-item-actions
+                  [index]="getGlobalIndex(i)"
+                  [totalItems]="data?.length || 0"
+                  [showRemove]="enableArrayEditing"
+                  [disabled]="!!disabled"
+                  (moveUp)="moveItemUp.emit($event)"
+                  (moveDown)="moveItemDown.emit($event)"
+                  (remove)="removeItem.emit($event)"></app-item-actions>
               }
             </td>
             @if (columns) {
