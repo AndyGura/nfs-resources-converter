@@ -22,7 +22,7 @@ from .numbers import (
     DecimalBlock,
     EnumByteBlock,
 )
-from .smart_fields import (
+from .delegates import (
     DelegateBlock,
     AutoDetectBlock,
     EnumLookupDelegateBlock,
