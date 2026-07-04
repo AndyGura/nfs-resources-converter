@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 
 from library import require_resource
 from library.changes_service import ChangesService
-from library.read_blocks.misc.optional import OptionalBlock
+from library.read_blocks.optional import OptionalBlock
 from library.utils.id import join_id
 from serializers.misc.json_utils import convert_bytes, serialize_exceptions
 
