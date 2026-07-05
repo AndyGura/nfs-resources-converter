@@ -76,7 +76,7 @@ export class ApiDelegateImplService {
   public async saveFile(): Promise<void> {
     const current = this.openedResource$.getValue();
     if (!current) return;
-    const updatedData = this.wrapCall('save_file', this.openedResourcePath$.getValue());
+    const updatedData = await this.wrapCall('save_file', this.openedResourcePath$.getValue());
     this.openedResource$.next({
       id: current.id,
       name: current.name,
