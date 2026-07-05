@@ -188,14 +188,9 @@ table {
     .index-number {
       visibility: hidden;
     }
-    app-item-actions {
+    .item-actions {
       display: flex;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #fafafa;
-      z-index: 1;
+      gap: 4px;
     }
   }
 }
