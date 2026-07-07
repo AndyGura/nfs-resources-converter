@@ -77,7 +77,7 @@ export class MainService {
     }
   }
 
-  public async getNewItemData(id: string, patch : any = {}): Promise<any> {
+  public async getNewItemData(id: string, patch: any = {}): Promise<any> {
     return this.api.getNewItemData(id, patch);
   }
 }
