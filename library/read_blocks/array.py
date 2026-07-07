@@ -72,7 +72,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return self.child, unpacked_data[int(name)]
 
-    def new_data(self):
+    def new_data(self, patch = None):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length
@@ -139,7 +139,7 @@ class LengthPrefixedArrayBlock(ArrayBlock):
     def size_doc_str(self):
         return f'{self.length_block.size_doc_str}..?'
 
-    def new_data(self):
+    def new_data(self, patch = None):
         return []
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -231,7 +231,7 @@ class SubByteArrayBlock(DataBlock):
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return None, unpacked_data[int(name)]
 
-    def new_data(self):
+    def new_data(self, patch = None):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length

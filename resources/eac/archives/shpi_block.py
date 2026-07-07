@@ -94,8 +94,8 @@ class ShpiBlock(BaseArchiveBlock):
                                    ) if x > 0), 'item_length'))])),
                     {'usage': 'ui'})
 
-    def new_data(self):
-        return {**super().new_data(), 'shpi_dir': 'LN32'}
+    def new_data(self, patch = None):
+        return {**super().new_data(patch), 'shpi_dir': 'LN32'}
 
     def parse_abs_offsets(self, block_start, data, read_bytes_amount):
         return [(x['name'], block_start + x['offset'], None) for x in data['items_descr']]
