@@ -150,7 +150,7 @@ class BytesBlock(DataBlock):
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
-        if callable(self_len):
+        if callable(self_len) or self_len is None:
             return b''
         return bytes([0] * self_len)
 
@@ -170,9 +170,6 @@ class BytesBlock(DataBlock):
         return len(data)
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        # data comes as list from GUI app
-        if isinstance(data, list):
-            data = bytes(data)
         return data
 
 
