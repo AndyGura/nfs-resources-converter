@@ -135,7 +135,7 @@ class ResourceAPI:
 
     # FIXME this function looks strange. Can we make ut get_new_data and provie id with "/0" suffix for array,
     # and do not look intho block child attribute?
-    def get_new_item_data(self, resource_id: str) -> Any:
+    def get_new_item_data(self, resource_id: str, patch) -> Any:
         """
         Get new item data for a resource.
         
@@ -149,5 +149,5 @@ class ResourceAPI:
         if isinstance(res_block, OptionalBlock):
             res_block = res_block.child
         if hasattr(res_block, 'child'):
-            return self.render_data(res_block.child.new_data())
+            return self.render_data(res_block.child.new_data(patch))
         return None
