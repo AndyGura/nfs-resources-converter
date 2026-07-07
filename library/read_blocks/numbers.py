@@ -35,7 +35,7 @@ class IntegerBlock(DataBlock):
     def size_doc_str(self):
         return str(self.length)
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         if self.value_validator:
             return self.value_validator.new_data()
         return 0
@@ -107,7 +107,7 @@ class DecimalBlock(DataBlock):
     def size_doc_str(self):
         return str(self.length)
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         return 0.0
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -144,7 +144,7 @@ class EnumByteBlock(IntegerBlock):
         for value, name in self.enum_names:
             self.enum_name_map[value] = name
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         if self.value_validator:
             return self.value_validator.new_data()
         return self.enum_names[0][1]

@@ -17,9 +17,9 @@ from library.read_blocks import (DeclarativeCompoundBlock)
 ### Aliases can repeat
 class BaseArchiveBlock(DeclarativeCompoundBlock, ABC):
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         # CompoundBlock does not create those custom fields
-        return {**super().new_data(),
+        return {**super().new_data(patch),
                 'children': [],
                 'children_aliases': [],
                 'offset_payloads': [b'']}

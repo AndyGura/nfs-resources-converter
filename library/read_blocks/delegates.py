@@ -77,8 +77,10 @@ class DelegateBlock(DataBlock):
     def get_choice_index_by_class_name(self, class_name):
         return [x.__class__.__name__ for x in self.possible_blocks].index(class_name)
 
-    def new_data(self, **kwargs):
-        choice_index = kwargs.get('choice_index', 0)
+    def new_data(self, patch = None):
+        if patch is None:
+            patch = {}
+        choice_index = patch.get('choice_index', 0)
         return {'choice_index': choice_index,
                 'data': self.possible_blocks[choice_index].new_data()}
 

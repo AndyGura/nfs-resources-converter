@@ -96,7 +96,7 @@ class ChangeExecutor {
       array[change.indexB] = tmp;
       return [change.id];
     } else if (change.op == 'binary_delta') {
-      let array = ChangeExecutor.locateId(res, change.id);
+      let array = ChangeExecutor.locateId(res, change.id).$bytes;
       array.splice(change.index, change.oldPart.length, ...change.newPart);
       return [change.id];
     } else if (change.op == 'bundle') {
@@ -132,7 +132,7 @@ class ChangeExecutor {
       array[change.indexB] = tmp;
       return [change.id];
     } else if (change.op == 'binary_delta') {
-      let array = ChangeExecutor.locateId(res, change.id);
+      let array = ChangeExecutor.locateId(res, change.id).$bytes;
       array.splice(change.index, change.newPart.length, ...change.oldPart);
       return [change.id];
     } else if (change.op == 'bundle') {

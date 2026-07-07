@@ -107,8 +107,8 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).runCustomAction(name, action, args);
   }
 
-  public async getNewItemData(id: string, kwargs: any = {}): Promise<any> {
-    return (await this.getImpl()).getNewItemData(id, kwargs);
+  public async getNewItemData(id: string, patch: any = {}): Promise<any> {
+    return (await this.getImpl()).getNewItemData(id, patch);
   }
 
   // Serialization API

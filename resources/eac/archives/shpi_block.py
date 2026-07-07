@@ -100,7 +100,7 @@ class ShpiBlock(ArchiveBlock):
                                          '<br/>- [PaletteReference](#palettereference)'
                                          '<br/>- [ShpiText](#shpitext)'})
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):

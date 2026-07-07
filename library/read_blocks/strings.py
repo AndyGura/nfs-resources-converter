@@ -53,7 +53,7 @@ class UTF8Block(DataBlock):
             return None
         return self_len
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         if self.value_validator:
             return self.value_validator.new_data()
         return ""

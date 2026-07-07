@@ -10,7 +10,7 @@ class ValueValidator(ABC):
 
     # for data generation
     @abstractmethod
-    def new_data(self, **kwargs):
+    def new_data(self):
         raise NotImplementedError
 
     # for frontend
@@ -40,7 +40,7 @@ class Eq(ValueValidator):
     def validate(self, value):
         return value == self.expected_value
 
-    def new_data(self, **kwargs):
+    def new_data(self):
         return self.expected_value
 
     def schema(self):
@@ -58,7 +58,7 @@ class Or(ValueValidator):
     def validate(self, value):
         return value in self.possible_values
 
-    def new_data(self, **kwargs):
+    def new_data(self):
         return self.possible_values[0]
 
     def schema(self):

@@ -165,7 +165,7 @@ class EacImage(DeclarativeCompoundBlock):
             ]
         }
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         data = super().new_data()
         data['width'] = 1
         data['height'] = 1
@@ -449,7 +449,7 @@ class EacPalette(DeclarativeCompoundBlock):
                                  'for cop car siren',
         }
 
-    def new_data(self, **kwargs):
+    def new_data(self, patch = None):
         return {**super().new_data(),
                 'last_color_transparent': False}
 
