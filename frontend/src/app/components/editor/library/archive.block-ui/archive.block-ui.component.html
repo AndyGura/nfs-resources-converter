@@ -3,7 +3,7 @@
     [multiple]="false"
     (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
     <mat-list-option value="___headers___" [selected]="selectedValue == '___headers___'">
-      {{ resourceSchema?.block_class_mro.split('__')[0] || 'Headers' }}
+      {{ blockClassStr(resourceSchema) || 'Headers' }}
     </mat-list-option>
     <div class="list-label">Children</div>
     @for (child of resourceData.children; track i; let i = $index) {

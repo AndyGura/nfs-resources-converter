@@ -8,6 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ArchiveItemEditDialogComponent } from '../../common/archive-item-edit.dialog/archive-item-edit.dialog.component';
 import { ArchiveDelegateItemTypeDialogComponent } from '../../common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
 import { firstValueFrom } from 'rxjs';
+import { blockClassStr } from '../../../../utils/block_class_str';
 
 type ArchiveChildData = {
   alias: string | null;
@@ -161,4 +162,5 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
   }
 
   protected readonly joinId = joinId;
+  protected readonly blockClassStr = blockClassStr;
 }
