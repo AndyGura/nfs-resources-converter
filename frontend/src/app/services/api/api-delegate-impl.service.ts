@@ -1,8 +1,16 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import {
+  BlockData,
+  BlockSchema,
+  CustomAction,
+  ReadError,
+  Resource,
+  ResourceError,
+} from '../../components/editor/types';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 import { ConversionConfig, GeneralConfig } from './api-types';
+import { findNestedObjects } from '../../utils/find-nested-object';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
 
@@ -64,6 +72,9 @@ export class ApiDelegateImplService {
     this.openedResource$.next(null);
     this.openedResourcePath$.next(path);
     const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await this.wrapCall('open_file', path, forceReload);
+    if (res.schema) {
+      this.fixRecursiveSchema(res.schema);
+    }
     this.openedResource$.next({ ...res, id: res['name'] });
     this.onFileOpened$.next();
     await this.syncRecentFiles();
@@ -90,6 +101,9 @@ export class ApiDelegateImplService {
     this.openedResource$.next(null);
     this.openedResourcePath$.next(path);
     const res: Omit<Resource, 'id'> | Omit<ResourceError, 'id'> = await this.wrapCall('open_file', path, true);
+    if (res.schema) {
+      this.fixRecursiveSchema(res.schema);
+    }
     this.openedResource$.next({ ...res, id: res['name'] });
     this.onFileOpened$.next();
     await this.syncRecentFiles();
@@ -192,6 +206,22 @@ export class ApiDelegateImplService {
   }
 
   // internal
+  private fixRecursiveSchema(schema: BlockSchema) {
+    const recursiveSchemas = findNestedObjects(schema, 'is_recursive_ref', true);
+    for (const [val, path] of recursiveSchemas) {
+      const blockClass = val.block_class_mro;
+      let entry = schema;
+      let valueToSet = entry.block_class_mro === blockClass ? entry : undefined;
+      for (const key of path.slice(0, path.length - 1)) {
+        if (!valueToSet && entry[key]?.['block_class_mro'] === blockClass) {
+          valueToSet = entry[key];
+        }
+        entry = entry[key];
+      }
+      entry[path[path.length - 1]] = valueToSet;
+    }
+  }
+
   private callQueue: Promise<any> = Promise.resolve();
 
   private async wrapCall(funcName: string, ...args: any[]): Promise<any> {
