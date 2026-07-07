@@ -27,11 +27,15 @@ class ArchiveBlock(DeclarativeCompoundBlock, ABC):
     def item_block(self):
         return self._item_block
 
-    def __init__(self, item_block, **kwargs):
+    def __init__(self, item_block, alias_field=None, **kwargs):
         super().__init__(**kwargs)
+        if alias_field is None:
+            alias_field = {}
         self._item_block = item_block
-        self.field_blocks_map['children'].child = CompoundBlock(
-            fields=[('item', item_block, {}),
-                    ('alias', UTF8Block(length=None), {}),
-                    ('pre_offset_payload', BytesBlock(length=None), {}),
-                    ('post_offset_payload', BytesBlock(length=None), {})])
+        fields = [('item', item_block, {}),
+                  ('pre_offset_payload', BytesBlock(length=None), {}),
+                  ('post_offset_payload', BytesBlock(length=None), {})]
+        if not alias_field.get('disabled', False):
+            field_kwargs = alias_field.get('kwargs', {'length': None})
+            fields.append(('alias', UTF8Block(**field_kwargs), {}))
+        self.field_blocks_map['children'].child = CompoundBlock(fields=fields)

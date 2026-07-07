@@ -35,6 +35,7 @@ import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
+import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -54,6 +55,7 @@ export class EditorComponent implements OnDestroy {
     BytesBlock: BinaryBlockUiComponent,
 
     // basic containers
+    ArchiveBlock: ArchiveBlockUiComponent,
     ArrayBlock: ArrayBlockUiComponent,
     SubByteArrayBlock: ArrayBlockUiComponent,
     CompoundBlock: CompoundBlockUiComponent,

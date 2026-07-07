@@ -7,7 +7,6 @@ import { NumberBlockUiComponent } from './library/number.block-ui/number.block-u
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
 import { DataTableComponent } from './common/data-table/data-table.component';
-import { ItemActionsComponent } from './common/item-actions/item-actions.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
@@ -51,13 +50,15 @@ import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 import { MatTab, MatTabGroup } from '@angular/material/tabs';
+import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
+import { ArchiveItemEditDialogComponent } from './common/archive-item-edit.dialog/archive-item-edit.dialog.component';
+import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
 
 @NgModule({
   declarations: [
     EditorComponent,
     DataBlockUIDirective,
     DataTableComponent,
-    ItemActionsComponent,
     SidenavResListComponent,
     MinimapComponent,
     BlockActionsComponent,
@@ -74,6 +75,9 @@ import { MatTab, MatTabGroup } from '@angular/material/tabs';
     SubByteCompoundBlockUiComponent,
     DelegateBlockUiComponent,
     AngleBlockUiComponent,
+    ArchiveBlockUiComponent,
+    ArchiveItemEditDialogComponent,
+    ArchiveDelegateItemTypeDialogComponent,
 
     // common nfs data blocks
     BaseArchiveBlockUiComponent,

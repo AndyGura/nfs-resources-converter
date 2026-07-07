@@ -43,7 +43,7 @@ class DataBlock(ABC):
         return None, unpacked_data.get(name)
 
     # creates empty data
-    def new_data(self):
+    def new_data(self, **kwargs):
         if self.value_validator:
             return self.value_validator.new_data()
         raise BlockDefinitionException("Cannot generate new data for block.")
@@ -143,14 +143,14 @@ class BytesBlock(DataBlock):
             self_len = self_len(ctx)
         return self_len
 
-    def new_data(self):
+    def new_data(self, **kwargs):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
-        if callable(self_len):
+        if callable(self_len) or self_len is None:
             return b''
         return bytes([0] * self_len)
 

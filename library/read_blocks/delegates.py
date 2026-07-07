@@ -1,6 +1,8 @@
 import traceback
 from typing import List, Dict, Tuple, Any
 
+from numpy.random.mtrand import choice
+
 import config
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException
@@ -75,9 +77,10 @@ class DelegateBlock(DataBlock):
     def get_choice_index_by_class_name(self, class_name):
         return [x.__class__.__name__ for x in self.possible_blocks].index(class_name)
 
-    def new_data(self):
-        return {'choice_index': 0,
-                'data': self.possible_blocks[0].new_data()}
+    def new_data(self, **kwargs):
+        choice_index = kwargs.get('choice_index', 0)
+        return {'choice_index': choice_index,
+                'data': self.possible_blocks[choice_index].new_data()}
 
     def serializer_class(self):
         from serializers import DelegateBlockSerializer

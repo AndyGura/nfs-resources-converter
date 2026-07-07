@@ -113,8 +113,8 @@ export class ApiDelegateImplService {
     return this.wrapCall('run_custom_action', name, action, args);
   }
 
-  public async getNewItemData(id: string): Promise<any> {
-    return this.wrapCall('get_new_item_data', id);
+  public async getNewItemData(id: string, kwargs: any = {}): Promise<any> {
+    return this.wrapCall('get_new_item_data', id, kwargs);
   }
 
   // Serialization API

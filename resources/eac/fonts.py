@@ -66,7 +66,7 @@ class GlyphDefinition(DeclarativeCompoundBlock):
                                        '../../flags/format') == '16-bytes'),
                      {'description': 'Gap between this symbol and next one in rendered text?'})
 
-    def new_data(self):
+    def new_data(self, **kwargs):
         data = super().new_data()
         data['width'] = 1
         data['height'] = 1

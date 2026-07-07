@@ -15,7 +15,6 @@ from library.read_blocks.archives import ArchiveBlock
 from library.read_blocks.misc.value_validators import Eq
 from resources.eac.bitmaps import EacImage, EacPalette
 from resources.eac.misc import ShpiText
-from .base_archive_block import BaseArchiveBlock
 
 
 def determine_shpi_length(ctx):
@@ -63,7 +62,9 @@ class ShpiBlock(ArchiveBlock):
                 x['offset'] - ctx.local_buffer_pos
                 for x in (sorted(ctx.data('items_descr'), key=lambda x: x['offset'])
                           + [{'offset': ctx.read_bytes_amount}])
-            ) if x > 0), 'item_length'))]), **kwargs)
+            ) if x > 0), 'item_length'))]),
+            alias_field={'kwargs': {'length': 4}},
+            **kwargs)
 
     class Fields(ArchiveBlock.Fields):
         resource_id = (UTF8Block(length=4, value_validator=Eq('SHPI')),
@@ -99,7 +100,7 @@ class ShpiBlock(ArchiveBlock):
                                          '<br/>- [PaletteReference](#palettereference)'
                                          '<br/>- [ShpiText](#shpitext)'})
 
-    def new_data(self):
+    def new_data(self, **kwargs):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -118,7 +119,7 @@ class ShpiBlock(ArchiveBlock):
         except StopIteration:
             bytes_choice = -1
         for i, (alias, offset, length) in enumerate(abs_offsets):
-            child = { 'item': None, 'alias': alias, 'pre_offset_payload': b'', 'post_offset_payload': b'' }
+            child = {'item': None, 'alias': alias, 'pre_offset_payload': b'', 'post_offset_payload': b''}
             res['children'].append(child)
             if offset > ctx.buffer.tell():
                 child['pre_offset_payload'] = ctx.buffer.read(offset - ctx.buffer.tell())
@@ -132,12 +133,13 @@ class ShpiBlock(ArchiveBlock):
                 ctx.buffer.seek(offset)
                 child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
             # Try to read optional extra block after 8-bit bitmap data
-            if self_ctx.data('shpi_dir') != 'WRAP' and isinstance(child['item']['data'], dict) and child['item']['data'].get(
-                    'resource_id') == '8Bit':
+            if self_ctx.data('shpi_dir') != 'WRAP' and isinstance(child['item']['data'], dict) and child['item'][
+                'data'].get(
+                'resource_id') == '8Bit':
                 extra_abs = offset + child['item']['data']['block_size']
                 next_abs = abs_offsets[i + 1][1] if i < len(abs_offsets) - 1 else None
                 if child['item']['data']['block_size'] > 0 and (next_abs is None or extra_abs < next_abs):
-                    extra_child = { 'item': None, 'alias': None, 'pre_offset_payload': b'', 'post_offset_payload': b'' }
+                    extra_child = {'item': None, 'alias': None, 'pre_offset_payload': b'', 'post_offset_payload': b''}
                     res['children'].append(extra_child)
                     if extra_abs > ctx.buffer.tell():
                         extra_child['pre_offset_payload'] = ctx.buffer.read(extra_abs - ctx.buffer.tell())

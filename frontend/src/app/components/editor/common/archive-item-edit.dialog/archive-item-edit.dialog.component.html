@@ -1,0 +1,12 @@
+<h2 mat-dialog-title>Edit {{ data.name }}</h2>
+<mat-dialog-content>
+  <app-compound-block-ui
+    [resourceId]="data.id"
+    [resourceData]="data.data"
+    [resourceSchema]="data.schema"
+    [fieldBlacklist]="['item']"
+    [hideName]="true"></app-compound-block-ui>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close()">Close</button>
+</mat-dialog-actions>

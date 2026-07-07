@@ -91,10 +91,10 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             acc = add_doc_numbers(acc, field_size_doc, show_expressions=False, produce_ranges=True)
         return acc
 
-    def new_data(self):
+    def new_data(self, **kwargs):
         res = dict()
         for name, field in self.field_blocks:
-            res[name] = field.new_data()
+            res[name] = field.new_data(**kwargs.get(name, {}))
         return res
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -186,7 +186,7 @@ class SubByteCompoundBlock(IntegerBlock):
             ]
         }
 
-    def new_data(self):
+    def new_data(self, **kwargs):
         res = {}
         for size, alias, type_name, details, description in self._schema_def:
             if type_name == 'boolean':

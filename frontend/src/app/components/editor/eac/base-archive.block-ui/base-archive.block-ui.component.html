@@ -1,9 +1,10 @@
-<app-sidenav-res-list
+<app-compound-block-ui
   [resourceId]="resourceId"
   [resourceName]="resourceName"
   [resourceSchema]="resourceSchema"
   [resourceData]="resourceData"
   [hideName]="hideName"
   [hideBlockActions]="hideBlockActions"
-  [resources]="resourceMap"></app-sidenav-res-list>
-<!--[fieldBlacklist]="['children', 'items_descr']"-->
+  [preferHorizontalLayout]="true"
+  [fieldBlacklist]="['children', 'items_descr']"></app-compound-block-ui>
+<app-sidenav-res-list [resources]="resourceMap"></app-sidenav-res-list>
