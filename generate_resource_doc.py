@@ -9,6 +9,7 @@ from library.read_blocks import (CompoundBlock,
                                  EnumLookupDelegateBlock,
                                  LengthPrefixedArrayBlock,
                                  OptionalBlock)
+from library.read_blocks.strings import LengthPrefixedUtf8Block, UTF8Block
 from library.utils.docs import add_doc_numbers
 from resources.eac import (archives,
                            bitmaps,
@@ -42,7 +43,7 @@ def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
         if isinstance(instance, OptionalBlock):
             return f'Optional (if {schema["criteria"]}): {render_type(instance.child, possible_blocks_filter)}'
         if isinstance(instance, ArrayBlock):
-            if isinstance(instance, LengthPrefixedArrayBlock):
+            if isinstance(instance, LengthPrefixedArrayBlock) or isinstance(instance, LengthPrefixedUtf8Block):
                 descr += f'<br/>Length field type: {instance.length_block.schema["block_description"]}'
             if not isinstance(instance.child, CompoundBlock) or instance.child.schema["inline_description"]:
                 size = render_value_doc_str(instance.child.size_doc_str)
@@ -572,6 +573,13 @@ Did not find what you need or some given data is wrong? Please submit an
                     tmp_arr_field = ArrayBlock(child=field.child, length=lambda ctx: ctx.data(f"num_{key}"))
                     new_contents += render_field(offset, key, tmp_arr_field, extras)
                     offset = add_doc_numbers(offset, tmp_arr_field.size_doc_str)
+                elif isinstance(field, LengthPrefixedUtf8Block):
+                    new_contents += render_field(offset, f'len_{key}', field.length_block,
+                                                 {"description": f"Length of '{key}' utf8 block"})
+                    offset = add_doc_numbers(offset, field.length_block.size_doc_str)
+                    tmp_utf_field = UTF8Block(length=lambda ctx: ctx.data(f"num_{key}"))
+                    new_contents += render_field(offset, key, tmp_utf_field, extras)
+                    offset = add_doc_numbers(offset, tmp_utf_field.size_doc_str)
                 elif isinstance(field, Padding):
                     new_contents += render_field(offset, key, field, extras)
                     offset = field.to_descr

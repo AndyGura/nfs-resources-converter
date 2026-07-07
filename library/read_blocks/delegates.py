@@ -1,8 +1,6 @@
 import traceback
 from typing import List, Dict, Tuple, Any
 
-from numpy.random.mtrand import choice
-
 import config
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException
