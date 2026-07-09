@@ -150,6 +150,8 @@ class ShpiBlock(ArchiveBlock):
             diff = block_start + res['length'] - ctx.buffer.tell()
             res['children'][-1]['post_offset_payload'] = ctx.buffer.read(diff)
         ctx.buffer.seek(end_pos)
+        del res['items_descr']
+        del res['data_bytes']
         return res
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:

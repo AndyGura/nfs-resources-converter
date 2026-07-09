@@ -30,6 +30,7 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
   children: ArchiveChildData[];
 }> {
   childSchema: BlockSchema | undefined;
+  supportsAliases: boolean = false;
 
   override get resourceSchema(): BlockSchema | undefined {
     return super.resourceSchema;
@@ -38,10 +39,16 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
   override set resourceSchema(value: BlockSchema | undefined) {
     super.resourceSchema = value;
     this.childSchema = undefined;
+    this.supportsAliases = false;
     if (value) {
-      this.childSchema = value.fields
-        .find((x: { name: string; schema: BlockSchema }) => x.name === 'children')
-        ?.schema.child_schema.fields.find((x: { name: string; schema: BlockSchema }) => x.name === 'item')?.schema;
+      const childrenField = value.fields.find((x: { name: string; schema: BlockSchema }) => x.name === 'children');
+      if (childrenField) {
+        const childSchema = childrenField.schema.child_schema;
+        this.supportsAliases = childSchema.fields.some((x: { name: string }) => x.name === 'alias');
+        this.childSchema = childSchema.fields.find(
+          (x: { name: string; schema: BlockSchema }) => x.name === 'item',
+        )?.schema;
+      }
     }
   }
 

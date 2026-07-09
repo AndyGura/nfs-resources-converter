@@ -13,7 +13,9 @@
         (dblclick)="onDoubleClick(i)">
         <mat-icon matListItemIcon class="type-icon">{{ childIcon(child) }}</mat-icon>
         <div class="option-content">
-          <span class="key-label">{{ child.alias || i.toString() }}</span>
+          <span class="key-label" [class.no-alias]="supportsAliases && !child.alias">{{
+            child.alias || i.toString()
+          }}</span>
           @if (!disabled) {
             <div class="item-actions">
               <button
