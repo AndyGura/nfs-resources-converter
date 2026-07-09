@@ -604,10 +604,11 @@ class TrkMapSerializer(BaseFileSerializer):
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
-            (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
+            (_, _, shpi_children), _ = require_resource(id[:-4] + '0.QFS__data/children')
+            shpi_aliases = [x['alias'] for x in shpi_children if x['alias']]
 
             def get_texture(tex):
-                return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
+                return shpi_aliases[texture_map[tex]['texture_number']], texture_map[tex]['alignment']
         except Exception:
             if general_config.print_errors:
                 traceback.print_exc()
@@ -785,11 +786,12 @@ class FrdMapSerializer(BaseFileSerializer):
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
-            (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
+            (_, _, shpi_children), _ = require_resource(id[:-4] + '0.QFS__data/children')
+            shpi_aliases = [x['alias'] for x in shpi_children if x['alias']]
 
             def get_texture(tex):
                 try:
-                    return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
+                    return shpi_aliases[texture_map[tex]['texture_number']], texture_map[tex]['alignment']
                 except IndexError:
                     return f"{tex:04}", 0
         except Exception:

@@ -34,9 +34,9 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
-        children_field = block.field_blocks_map['children'].child
-        items = [(alias, child['data'], children_field.possible_blocks[child['choice_index']])
-                 for i, (alias, child) in enumerate(zip(data['children_aliases'], data['children']))]
+        item_field = block.field_blocks_map['children'].child.field_blocks_map['item']
+        items = [(x['alias'], x['item']['data'], item_field.possible_blocks[x['item']['choice_index']])
+                 for x in data['children']]
         skipped_resources = []
         save_image_names = {}
         unaliased_idx = 0

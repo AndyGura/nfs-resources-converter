@@ -40,11 +40,11 @@ class OripGeometrySerializer(BaseFileSerializer):
             u_multiplier, v_multiplier = 1, 1
             if model.texture_id:
                 try:
-                    idx = textures_shpi_data['children_aliases'].index(model.texture_id)
-                    u_multiplier, v_multiplier = (1 / textures_shpi_data['children'][idx]['data']['width'],
-                                                  1 / textures_shpi_data['children'][idx]['data']['height'])
+                    c = next(x for x in textures_shpi_data['children'] if x['alias'] == model.texture_id)
+                    u_multiplier, v_multiplier = (1 / c['item']['data']['width'],
+                                                  1 / c['item']['data']['height'])
 
-                except ValueError:
+                except (StopIteration, ValueError):
                     pass
             model.vertex_uvs.append([block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'] * u_multiplier,
                                      block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier])
@@ -128,12 +128,12 @@ class OripGeometrySerializer(BaseFileSerializer):
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
-        for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
-            texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
-                textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, EacImage):
-                continue
-            scene.mtl_texture_names.append(texture_name)
+        for c in textures_shpi_data['children']:
+            texture_block = \
+                textures_shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[
+                    c['item']['choice_index']]
+            if isinstance(texture_block, EacImage):
+                scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer
@@ -223,12 +223,12 @@ class GeoGeometrySerializer(BaseFileSerializer):
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
-        for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
-            texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
-                textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, EacImage):
-                continue
-            scene.mtl_texture_names.append(texture_name)
+        for c in textures_shpi_data['children']:
+            texture_block = \
+                textures_shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[
+                    c['item']['choice_index']]
+            if isinstance(texture_block, EacImage):
+                scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer
