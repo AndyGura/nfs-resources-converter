@@ -39,3 +39,6 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Downloaded fonts
+/src/assets/fonts/
