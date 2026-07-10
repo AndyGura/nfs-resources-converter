@@ -19,6 +19,9 @@ export class BlockActionsComponent {
   @Input()
   public hideCustomActions = false;
 
+  @Input()
+  public size: 'default' | 'small' = 'default';
+
   constructor(
     readonly mainService: MainService,
     readonly cdr: ChangeDetectorRef,

@@ -11,6 +11,14 @@
     flex-shrink: 0;
     padding: 0;
 
+    ::ng-deep {
+      mat-list-option {
+        .mdc-list-item__end {
+          display: none !important;
+        }
+      }
+    }
+
     mat-list-option[aria-selected='true'] {
       background-color: #e0e0e0;
       &:focus {
@@ -49,19 +57,18 @@
 
     .option-content {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
       width: 100%;
-      position: relative;
-      padding-right: 120px;
+      column-gap: 8px;
       overflow: visible;
 
       .key-label {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        width: 100%;
+        min-width: 0;
 
         &.no-alias {
           color: rgba(0, 0, 0, 0.4);
@@ -70,43 +77,10 @@
 
       .item-actions {
         display: flex;
-        position: absolute;
-        right: -4px;
-        top: 50%;
-        transform: translate(-100%, -50%);
         flex-shrink: 0;
         background: inherit;
         white-space: nowrap;
         z-index: 10;
-
-        button {
-          width: 24px;
-          height: 24px;
-          line-height: 24px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0;
-          opacity: 0.7;
-          min-width: 0;
-          flex-shrink: 0;
-
-          &:hover {
-            opacity: 1;
-          }
-
-          .mat-icon {
-            font-size: 16px;
-            width: 16px;
-            height: 16px;
-            line-height: 16px;
-          }
-
-          ::ng-deep .mat-mdc-button-touch-target {
-            width: 24px !important;
-            height: 24px !important;
-          }
-        }
       }
     }
 

@@ -3,7 +3,21 @@
     [multiple]="false"
     (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
     <mat-list-option value="___headers___" [selected]="selectedValue == '___headers___'">
-      {{ blockClassStr(resourceSchema) || 'Headers' }}
+      <div class="option-content">
+        <span class="key-label">{{ blockClassStr(resourceSchema) || 'Headers' }}</span>
+        <div class="flex-spacer"></div>
+        @if (resourceSchema && !hideBlockActions) {
+          <app-block-actions
+            class="item-actions"
+            [resource]="{
+              id: resourceId!,
+              name: resourceName!,
+              data: resourceData,
+              schema: resourceSchema,
+            }"
+            size="small"></app-block-actions>
+        }
+      </div>
     </mat-list-option>
     <div class="list-label">Children</div>
     @for (child of resourceData.children; track i; let i = $index) {
@@ -16,11 +30,13 @@
           <span class="key-label" [class.no-alias]="supportsAliases && !child.alias">{{
             child.alias || i.toString()
           }}</span>
+          <div class="flex-spacer"></div>
           @if (!disabled) {
-            <div class="item-actions">
+            <div matListItemEnd class="item-actions">
               <button
                 mat-icon-button
                 color="primary"
+                class="mat-icon-button-sm-24"
                 (click)="$event.stopPropagation(); editItem(i)"
                 matTooltip="Edit item">
                 <mat-icon>edit</mat-icon>
@@ -28,7 +44,7 @@
               <button
                 mat-icon-button
                 color="primary"
-                class="move-item-button"
+                class="mat-icon-button-sm-24 move-item-button"
                 [disabled]="!!disabled || i === 0"
                 (click)="$event.stopPropagation(); moveItemUp(i)"
                 matTooltip="Move up">
@@ -37,7 +53,7 @@
               <button
                 mat-icon-button
                 color="primary"
-                class="move-item-button"
+                class="mat-icon-button-sm-24 move-item-button"
                 [disabled]="!!disabled || i === resourceData.children.length - 1"
                 (click)="$event.stopPropagation(); moveItemDown(i)"
                 matTooltip="Move down">
@@ -46,7 +62,7 @@
               <button
                 mat-icon-button
                 color="warn"
-                class="remove-item-button"
+                class="mat-icon-button-sm-24 remove-item-button"
                 [disabled]="!!disabled"
                 (click)="$event.stopPropagation(); removeItem(i)"
                 matTooltip="Remove item">
@@ -77,7 +93,7 @@
           [resourceSchema]="resourceSchema"
           [resourceDescription]="resourceDescription"
           [hideName]="hideName"
-          [hideBlockActions]="hideBlockActions"
+          [hideBlockActions]="true"
           [fieldBlacklist]="['children']"></app-compound-block-ui>
       } @else {
         <app-editor
