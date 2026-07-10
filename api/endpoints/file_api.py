@@ -108,7 +108,7 @@ class FileAPI:
 
         return {
             'name': self.current_file_name,
-            'schema': self.current_file_block.schema if self.current_file_block else None,
+            'schema': convert_bytes(self.current_file_block.schema) if self.current_file_block else None,
             'data': self.render_data(self.current_file_data)
         }
 
