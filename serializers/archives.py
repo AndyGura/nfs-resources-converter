@@ -1,5 +1,6 @@
 import os
 import traceback
+from os.path import isdir
 from typing import List
 
 import config
@@ -124,6 +125,9 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         return output
 
     def deserialize(self, file_paths: List[str], id=None, block=None, quantize_new_palette=True, **kwargs) -> None:
+        if not file_paths or not isdir(file_paths[0]):
+            raise Exception('A directory must be selected for ShpiArchiveSerializer')
+        path = file_paths[0]
         max_colors_amount = 255  # minus the last one, reserved for transparency
         generate_palettes = ['!pal']
         if '.CFM' in id:
@@ -188,30 +192,37 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             palette = palette[:idx] + palette[(idx + 1):] + [transparent]
         except ValueError:
             palette[-1] = transparent
-        child_field = block.field_blocks_map['children'].child
+        child_field = block.field_blocks_map['children'].child.field_blocks_map['item']
         new_shpi = block.new_data()
         pal_block = EacPalette()
         img_block = EacImage()
         pal = pal_block.new_data()
         pal['colors']['data'] = palette
         for pal_alias in generate_palettes:
-            new_shpi['children'].append({'choice_index': next(i for (i, b) in enumerate(child_field.possible_blocks) if
-                                                              isinstance(b, EacPalette)),
-                                         'data': pal})
-            new_shpi['children_aliases'].append(pal_alias)
-            new_shpi['offset_payloads'].append(b'')
+            new_shpi['children'].append({
+                'pre_offset_payload': b'',
+                'post_offset_payload': b'',
+                'alias': pal_alias,
+                'item': {'choice_index': next(i for (i, b) in enumerate(child_field.possible_blocks) if
+                                              isinstance(b, EacPalette)),
+                         'data': pal}
+            })
         image_serializer = BitmapWithPaletteSerializer()
-        bitmap8_choice = next(i for i in range(len(child_field.possible_blocks)) if
-                              isinstance(child_field.possible_blocks[i], EacImage))
+        bitmap_choice = next(i for i in range(len(child_field.possible_blocks)) if
+                             isinstance(child_field.possible_blocks[i], EacImage))
         for name in file_names:
             alias = name[:-4]
-            img = image_serializer.deserialize(path_join(path, name),
-                                               join_id(id, f'children/{alias}'),
+            img = image_serializer.deserialize([path_join(path, name)],
+                                               join_id(id, f'children/{len(new_shpi["children"])}/item/data'),
                                                img_block,
                                                palette=palette)
-            new_shpi['children'].append({'choice_index': bitmap8_choice, 'data': img})
-            new_shpi['children_aliases'].append(alias)
-            new_shpi['offset_payloads'].append(b'')
+            new_shpi['children'].append({
+                'pre_offset_payload': b'',
+                'post_offset_payload': b'',
+                'alias': alias,
+                'item': {'choice_index': bitmap_choice,
+                         'data': img}
+            })
         return new_shpi
 
 

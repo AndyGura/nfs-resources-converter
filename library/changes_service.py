@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 
 from library import require_resource
 from library.utils.id import split_last_id_part
+from serializers.misc.json_utils import convert_bytes
 
 
 class ChangeExecutor:
@@ -122,7 +123,7 @@ class ChangesService:
             cls.changes = cls.changes[:cls.local_revision]
         cls.changes.extend(changes)
         cls.local_revision = len(cls.changes)
-        cls.ws_instance.on_append_changes(changes)
+        cls.ws_instance.on_append_changes(convert_bytes(changes))
 
     @classmethod
     def on_file_saved(cls):

@@ -138,7 +138,9 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         return [file_path]
 
     def deserialize(self, file_paths: List[str], id=None, block=None, palette=None, **kwargs):
-        source = Image.open(path)
+        if len(file_paths) == 0:
+            raise Exception('No image file provided to BitmapWithPaletteSerializer')
+        source = Image.open(file_paths[0])
         transparency = palette[255]
         im = Image.new("RGB", source.size, ((transparency & 0xff000000) >> 24,
                                             (transparency & 0xff0000) >> 16,
@@ -160,6 +162,7 @@ class BitmapWithPaletteSerializer(BaseFileSerializer):
         #     palette_colors.remove(0xFF00FF00)
         #     palette_colors += [0xFF00FF00]
         data = block.new_data()
+        data['resource_id'] = '8Bit'
         data['width'] = im.width
         data['height'] = im.height
         data['bitmap'] = list(im.getdata())
