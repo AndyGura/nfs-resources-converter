@@ -197,35 +197,59 @@ class ShpiBlock(ArchiveBlock):
         from PIL import Image
         images = [Image.frombytes('RGBA',
                                   (x['item']['data']['width'], x['item']['data']['height']),
-                                  bytes().join([c.to_bytes(4, 'big') for c in x['item']['data']['bitmap']])) for x in
-                  read_data['children']]
+                                  bytes().join(c.to_bytes(4, 'big') for c in x['item']['data']['bitmap']))
+                  for x in read_data['children']]
+
+        # Build a reference RGB image using only visible pixels
         max_width = max(img.width for img in images)
         total_height = sum(img.height for img in images)
-        master_image = Image.new("RGBA", (max_width, total_height), (0, 0, 0, 0))
+        master_image = Image.new("RGB", (max_width, total_height), (0, 0, 0))
+
         current_y = 0
         for img in images:
-            master_image.alpha_composite(img, (0, current_y))
+            rgb = Image.new("RGB", img.size, (0, 0, 0))
+            rgb.paste(img.convert("RGB"), mask=img.getchannel("A"))
+            master_image.paste(rgb, (0, current_y))
             current_y += img.height
         reference_palette_img = master_image.quantize(
-            colors=256,
+            colors=255,
             method=Image.Quantize.FASTOCTREE
         )
-        rgba_palette_data = reference_palette_img.getpalette("RGBA")
-        rgb_palette_data = [rgba_palette_data[i] for i in range(len(rgba_palette_data)) if i % 4 != 3]
+        rgba_palette_data = reference_palette_img.getpalette("RGBA")[:255 * 4]
+        rgba_palette_data += [0, 0, 0, 0]
+        rgb_palette_data = []
+        for i in range(0, len(rgba_palette_data), 4):
+            rgb_palette_data.extend(rgba_palette_data[i:i + 3])
         dummy_palette_img = Image.new("P", (1, 1))
         dummy_palette_img.putpalette(rgb_palette_data, "RGB")
-        for (child, img) in zip(read_data['children'], images):
-            rgb_layer = img.convert("RGB")
-            q_img = rgb_layer.quantize(palette=dummy_palette_img)
+        for child, img in zip(read_data['children'], images):
+            alpha = img.getchannel("A")
+            rgb = Image.new("RGB", img.size, (0, 0, 0))
+            rgb.paste(img.convert("RGB"), mask=alpha)
+            q_img = rgb.quantize(palette=dummy_palette_img)
+            data = bytearray(q_img.tobytes())
+            alpha_data = alpha.load()
+            w, h = img.size
+            k = 0
+            for y in range(h):
+                for x in range(w):
+                    if alpha_data[x, y] == 0:
+                        data[k] = 255
+                    k += 1
+
+            q_img = Image.frombytes("P", img.size, bytes(data))
             q_img.putpalette(rgba_palette_data, "RGBA")
             child['item']['data']['resource_id'] = '8Bit'
             child['item']['data']['bitmap'] = list(q_img.getdata())
         pal = EacPalette().new_data()
         pal['resource_id'] = palette_type
         pal['colors']['data'] = [
-            (rgba_palette_data[i] << 24) + (rgba_palette_data[i + 1] << 16) + (rgba_palette_data[i + 2] << 8) + 0xff
-            for i in
-            range(0, len(rgba_palette_data), 4)]
+            (rgba_palette_data[i] << 24)
+            | (rgba_palette_data[i + 1] << 16)
+            | (rgba_palette_data[i + 2] << 8)
+            | rgba_palette_data[i + 3]
+            for i in range(0, len(rgba_palette_data), 4)
+        ]
         read_data['children'].append({
             'pre_offset_payload': b'',
             'post_offset_payload': b'',
