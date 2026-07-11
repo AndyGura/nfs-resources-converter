@@ -47,10 +47,26 @@ class ShpiBlock(ArchiveBlock):
 
     @property
     def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'A container of images and palettes for them',
-        }
+        return {**super().schema,
+                'block_description': 'A container of images and palettes for them',
+                'custom_actions': [{
+                    'method': 'convert_to_8bit',
+                    'title': 'Convert to 8Bit + !pal',
+                    'description': 'Quantize all images in this SHPI block and make them 8-bit with single palette',
+                    'is_pure': False,
+                    'args': [
+                        {
+                            'id': 'palette_type',
+                            'title': 'Palette type',
+                            'type': 'enum_string',
+                            'choices': ['24BitDos color format palette',
+                                        '24Bit color format palette',
+                                        '16BitUnk color format palette',
+                                        '32Bit color format palette',
+                                        '16Bit_1555 color format palette']
+                        }
+                    ],
+                }]}
 
     def __init__(self, **kwargs):
         super().__init__(item_block=AutoDetectBlock(possible_blocks=[
@@ -100,7 +116,7 @@ class ShpiBlock(ArchiveBlock):
                                          '<br/>- [PaletteReference](#palettereference)'
                                          '<br/>- [ShpiText](#shpitext)'})
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -168,6 +184,57 @@ class ShpiBlock(ArchiveBlock):
         for x in data['items_descr']:
             x['offset'] += heap_offset
         return super().write(data=data, ctx=ctx, name=name)
+
+    def action_convert_to_8bit(self, read_data, palette_type, **kwargs):
+        bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')
+        for child in read_data['children']:
+            if (child['item']['choice_index'] != bitmap_choice_index
+                    or child['item']['data']['resource_id'] != '32Bit color format bitmap'):
+                raise Exception('Only SHPI with 32 bit bitmaps exclusively can be converted to 8Bit')
+        if palette_type != '32Bit color format palette':
+            raise Exception('Only 32Bit color format palette is supported for now')
+
+        from PIL import Image
+        images = [Image.frombytes('RGBA',
+                                  (x['item']['data']['width'], x['item']['data']['height']),
+                                  bytes().join([c.to_bytes(4, 'big') for c in x['item']['data']['bitmap']])) for x in
+                  read_data['children']]
+        max_width = max(img.width for img in images)
+        total_height = sum(img.height for img in images)
+        master_image = Image.new("RGBA", (max_width, total_height), (0, 0, 0, 0))
+        current_y = 0
+        for img in images:
+            master_image.alpha_composite(img, (0, current_y))
+            current_y += img.height
+        reference_palette_img = master_image.quantize(
+            colors=256,
+            method=Image.Quantize.FASTOCTREE
+        )
+        rgba_palette_data = reference_palette_img.getpalette("RGBA")
+        rgb_palette_data = [rgba_palette_data[i] for i in range(len(rgba_palette_data)) if i % 4 != 3]
+        dummy_palette_img = Image.new("P", (1, 1))
+        dummy_palette_img.putpalette(rgb_palette_data, "RGB")
+        for (child, img) in zip(read_data['children'], images):
+            rgb_layer = img.convert("RGB")
+            q_img = rgb_layer.quantize(palette=dummy_palette_img)
+            q_img.putpalette(rgba_palette_data, "RGBA")
+            child['item']['data']['resource_id'] = '8Bit'
+            child['item']['data']['bitmap'] = list(q_img.getdata())
+        pal = EacPalette().new_data()
+        pal['resource_id'] = palette_type
+        pal['colors']['data'] = [
+            (rgba_palette_data[i] << 24) + (rgba_palette_data[i + 1] << 16) + (rgba_palette_data[i + 2] << 8) + 0xff
+            for i in
+            range(0, len(rgba_palette_data), 4)]
+        read_data['children'].append({
+            'pre_offset_payload': b'',
+            'post_offset_payload': b'',
+            'alias': '!pal',
+            'item': {
+                'choice_index': self.item_block.get_choice_index_by_class_name('EacPalette'),
+                'data': pal
+            }
+        })
 
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer

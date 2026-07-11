@@ -150,8 +150,9 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         # find unused color for marking transparency
         all_colors = set()
         for src in images:
-            all_colors.union({(x[0] << 24) + (x[1] << 16) + (x[2] << 8) + (0xff if src.mode == 'RGB' else x[3])
-                              for _, x in src.getcolors(src.size[0] * src.size[1])})
+            all_colors = all_colors.union(
+                {(x[0] << 24) + (x[1] << 16) + (x[2] << 8) + (0xff if src.mode == 'RGB' else x[3])
+                 for _, x in src.getcolors(src.size[0] * src.size[1])})
         # pick transparent color
         transparent = 0xff
         for c in [0xFF_00_00_FF,

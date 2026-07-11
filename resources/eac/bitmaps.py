@@ -462,6 +462,8 @@ class EacPalette(DeclarativeCompoundBlock):
             return None
         return super().get_child_block(name)
 
+    # TODO public function to transform color to natively supported color. Use it in ShpiBlock when converting to 8Bit, to aggregate repetitive colors from map and pick the best fits
+
     def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
         if name == 'last_color_transparent':
             return None, unpacked_data['last_color_transparent']
@@ -473,6 +475,7 @@ class EacPalette(DeclarativeCompoundBlock):
             assert data['num_colors'] == data['num_colors1']
         # I'm not sure how game decides whether it should draw 255th color transparent or not.
         # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
+        # TODO 16Bit_1555 color format palette has it's own alpha. Turn off last_color_transparent for it?
         data['last_color_transparent'] = not data['resource_id'].startswith('32Bit') and len(
             data['colors']['data']) >= 256 and 'SLIDES/' not in ctx.ctx_path
         if data['resource_id'] == '24BitDos color format palette':
