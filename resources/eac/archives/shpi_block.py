@@ -185,26 +185,25 @@ class ShpiBlock(ArchiveBlock):
             x['offset'] += heap_offset
         return super().write(data=data, ctx=ctx, name=name)
 
-    def action_convert_to_8bit(self, read_data, palette_type, **kwargs):
-        bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')
-        for child in read_data['children']:
-            if (child['item']['choice_index'] != bitmap_choice_index
-                    or child['item']['data']['resource_id'] != '32Bit color format bitmap'):
-                raise Exception('Only SHPI with 32 bit bitmaps exclusively can be converted to 8Bit')
+    def action_convert_to_8bit(self, read_data, name, palette_type, **kwargs):
+        import tempfile
+        tmp_dir = tempfile.TemporaryDirectory()
+        serializer = self.serializer_class()()
+        serializer.patch_settings({'images__save_images_only': True})
+        serializer.serialize(data=read_data, path=tmp_dir.name, block=self, id=name)
         if palette_type != '32Bit color format palette':
             raise Exception('Only 32Bit color format palette is supported for now')
 
-        from PIL import Image
-        images = [Image.frombytes('RGBA',
-                                  (x['item']['data']['width'], x['item']['data']['height']),
-                                  bytes().join(c.to_bytes(4, 'big') for c in x['item']['data']['bitmap']))
-                  for x in read_data['children']]
+        bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')
+        read_data['children'] = [x for x in read_data['children'] if x['item']['choice_index'] == bitmap_choice_index]
 
-        # Build a reference RGB image using only visible pixels
+        from library.utils import path_join
+        from PIL import Image
+        images = [Image.open(path_join(tmp_dir.name, x['alias'] + '.png')) for x in read_data['children']]
+
         max_width = max(img.width for img in images)
         total_height = sum(img.height for img in images)
         master_image = Image.new("RGB", (max_width, total_height), (0, 0, 0))
-
         current_y = 0
         for img in images:
             rgb = Image.new("RGB", img.size, (0, 0, 0))
@@ -250,7 +249,7 @@ class ShpiBlock(ArchiveBlock):
             | rgba_palette_data[i + 3]
             for i in range(0, len(rgba_palette_data), 4)
         ]
-        read_data['children'].append({
+        read_data['children'].insert(0, {
             'pre_offset_payload': b'',
             'post_offset_payload': b'',
             'alias': '!pal',
