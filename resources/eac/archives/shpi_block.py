@@ -191,8 +191,6 @@ class ShpiBlock(ArchiveBlock):
         serializer = self.serializer_class()()
         serializer.patch_settings({'images__save_images_only': True})
         serializer.serialize(data=read_data, path=tmp_dir.name, block=self, id=name)
-        if palette_type != '32Bit color format palette':
-            raise Exception('Only 32Bit color format palette is supported for now')
 
         bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')
         read_data['children'] = [x for x in read_data['children'] if x['item']['choice_index'] == bitmap_choice_index]
@@ -241,7 +239,7 @@ class ShpiBlock(ArchiveBlock):
             child['item']['data']['resource_id'] = '8Bit'
             child['item']['data']['bitmap'] = list(q_img.getdata())
         pal = EacPalette().new_data()
-        pal['resource_id'] = palette_type
+        pal['resource_id'] = '32Bit color format palette'
         pal['colors']['data'] = [
             (rgba_palette_data[i] << 24)
             | (rgba_palette_data[i + 1] << 16)
@@ -258,6 +256,8 @@ class ShpiBlock(ArchiveBlock):
                 'data': pal
             }
         })
+        if palette_type != '32Bit color format palette':
+            EacPalette().action_convert_format(pal, palette_type)
 
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer

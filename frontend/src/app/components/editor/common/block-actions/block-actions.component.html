@@ -16,7 +16,7 @@
     <mat-icon fontIcon="download"></mat-icon>
   </button>
 }
-@if (!hideCustomActions && resource?.schema?.custom_actions?.length > 0) {
+@if (!hideCustomActions && customActions.length > 0) {
   <button
     mat-icon-button
     [matMenuTriggerFor]="customActionsMenu"
@@ -27,7 +27,7 @@
 }
 
 <mat-menu #customActionsMenu="matMenu">
-  @for (action of resource?.schema?.custom_actions || []; track action) {
+  @for (action of customActions; track action) {
     <button mat-menu-item (click)="runCustomAction(action)">
       <span>{{ action.title }}</span>
     </button>

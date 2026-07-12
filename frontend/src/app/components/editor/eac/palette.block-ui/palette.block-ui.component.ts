@@ -1,6 +1,9 @@
-import { ChangeDetectionStrategy, Component, ElementRef, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
+import { MatSelectChange } from '@angular/material/select';
+import { CustomAction } from '../../types';
+import { CustomActionService } from '../../../../services/custom-action.service';
 
 @Component({
   selector: 'app-palette-block-ui',
@@ -11,6 +14,8 @@ import { joinId } from '../../../../utils/join-id';
 })
 export class PaletteBlockUiComponent extends SubscribableGuiComponent {
   @ViewChild('colorInput') colorInput!: ElementRef<HTMLInputElement>;
+
+  readonly customActionService = inject(CustomActionService);
 
   lpad(str: string, padString: string, length: number) {
     while (str.length < length) str = padString + str;
@@ -59,5 +64,23 @@ export class PaletteBlockUiComponent extends SubscribableGuiComponent {
       index: this.resourceData.colors.data.length - 1,
       oldValue: this.resourceData.colors.data[this.resourceData.colors.data.length - 1],
     });
+  }
+
+  async onFormatChange(event: MatSelectChange) {
+    const newFormat = event.value;
+    if (!this._resourceData || this._resourceData.resource_id === newFormat) return;
+    const action = this.resourceSchema.custom_actions.find((a: CustomAction) => a.method === 'convert_format')!;
+    const formPatch: any = { color_mode: newFormat };
+    const done = await this.customActionService.runCustomAction(
+      this.resourceId!,
+      this.resourceName!,
+      action,
+      formPatch,
+      true,
+    );
+    if (!done) {
+      // restore value in the input
+      event.source.value = this.resourceData.resource_id;
+    }
   }
 }

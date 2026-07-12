@@ -440,6 +440,22 @@ class EacPalette(DeclarativeCompoundBlock):
                     'description': 'Inverts all colors',
                     'is_pure': False,
                     'args': [],
+                },
+                {
+                    'method': 'convert_format',
+                    'title': 'Convert color format',
+                    'description': 'Converts color format',
+                    'is_pure': False,
+                    'args': [{
+                        'id': 'color_mode',
+                        'title': 'Color mode',
+                        'type': 'enum_string',
+                        'choices': ['24BitDos color format palette',
+                                    '24Bit color format palette',
+                                    '16BitUnk color format palette',
+                                    '32Bit color format palette',
+                                    '16Bit_1555 color format palette']
+                    }],
                 }
             ],
             'block_description': 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, '
@@ -520,3 +536,12 @@ class EacPalette(DeclarativeCompoundBlock):
             alpha = color & 0xFF
             inverted_rgb = rgb ^ 0xFFFFFF
             read_data['colors']['data'][i] = (inverted_rgb << 8) | alpha
+
+    def action_convert_format(self, read_data, color_mode, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = color_mode
+        if current_color_format == target_color_format:
+            return
+        native = self._colors_internal_to_native(target_color_format, read_data['colors']['data'])
+        read_data['colors']['data'] = self._colors_native_to_internal(target_color_format, native)
+        read_data['resource_id'] = target_color_format

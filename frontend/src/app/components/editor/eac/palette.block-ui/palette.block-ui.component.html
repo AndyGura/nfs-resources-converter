@@ -1,11 +1,33 @@
+@if (!hideBlockActions) {
+  <app-block-actions
+    [resource]="{
+      id: resourceId!,
+      name: resourceName!,
+      data: resourceData,
+      schema: resourceSchema,
+    }"
+    [customActionsBlacklist]="['convert_format']"></app-block-actions>
+}
+@if (resourceData && resourceSchema) {
+  <mat-form-field subscriptSizing="dynamic">
+    <mat-label>Color Model</mat-label>
+    <mat-select [value]="resourceData.resource_id" (selectionChange)="onFormatChange($event)" #formatSelect>
+      @for (enumValue of resourceSchema.fields[0].schema.enum_names; track enumValue) {
+        <mat-option [value]="enumValue[1]">
+          {{ enumValue[1] }}
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+}
 <app-compound-block-ui
   [resourceId]="resourceId"
   [resourceName]="resourceName"
   [resourceSchema]="resourceSchema"
   [resourceData]="resourceData"
-  [hideBlockActions]="hideBlockActions"
+  [hideBlockActions]="true"
   [hideName]="hideName"
-  [fieldBlacklist]="['colors']"></app-compound-block-ui>
+  [fieldBlacklist]="['resource_id', 'colors']"></app-compound-block-ui>
 <div id="colors-container">
   @for (color of resourceData?.colors.data; track color; let i = $index) {
     <div

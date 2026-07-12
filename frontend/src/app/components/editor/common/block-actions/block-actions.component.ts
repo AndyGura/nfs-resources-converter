@@ -20,7 +20,16 @@ export class BlockActionsComponent {
   public hideCustomActions = false;
 
   @Input()
+  public customActionsBlacklist: string[] = [];
+
+  @Input()
   public size: 'default' | 'small' = 'default';
+
+  get customActions(): CustomAction[] {
+    return (this.resource?.schema?.custom_actions || []).filter(
+      (action: CustomAction) => !this.customActionsBlacklist.includes(action.method),
+    );
+  }
 
   constructor(
     readonly mainService: MainService,
