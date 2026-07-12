@@ -70,6 +70,13 @@ class ShpiBlock(ArchiveBlock):
                                         '16BitUnk color format palette',
                                         '32Bit color format palette',
                                         '16Bit_1555 color format palette']
+                        },
+                        {
+                            'id': 'num_colors',
+                            'title': 'Max number of colors',
+                            'description': 'Maximum number of colors in the palette. Last transparent color is included',
+                            'type': 'number',
+                            'default': 256
                         }
                     ],
                 }]}
@@ -191,7 +198,7 @@ class ShpiBlock(ArchiveBlock):
             x['offset'] += heap_offset
         return super().write(data=data, ctx=ctx, name=name)
 
-    def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, **kwargs):
+    def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, num_colors, **kwargs):
         import tempfile
         tmp_dir = tempfile.TemporaryDirectory()
         serializer = self.serializer_class()()
@@ -218,7 +225,7 @@ class ShpiBlock(ArchiveBlock):
             colors=255,
             method=Image.Quantize.FASTOCTREE
         )
-        rgba_palette_data = reference_palette_img.getpalette("RGBA")[:255 * 4]
+        rgba_palette_data = reference_palette_img.getpalette("RGBA")[:(num_colors - 1) * 4]
         rgba_palette_data += [0, 0, 0, 0]
         rgb_palette_data = []
         for i in range(0, len(rgba_palette_data), 4):
