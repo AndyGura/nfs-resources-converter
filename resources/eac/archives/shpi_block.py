@@ -51,10 +51,16 @@ class ShpiBlock(ArchiveBlock):
                 'block_description': 'A container of images and palettes for them',
                 'custom_actions': [{
                     'method': 'convert_to_8bit',
-                    'title': 'Convert to 8Bit + !pal',
-                    'description': 'Quantize all images in this SHPI block and make them 8-bit with single palette',
+                    'title': 'Convert all images to 8Bit',
+                    'description': 'Quantize all images in this SHPI block to 8-bit with single palette',
                     'is_pure': False,
                     'args': [
+                        {
+                            'id': 'palette_name',
+                            'title': 'Palette name',
+                            'type': 'string',
+                            'default': '!pal'
+                        },
                         {
                             'id': 'palette_type',
                             'title': 'Palette type',
@@ -185,7 +191,7 @@ class ShpiBlock(ArchiveBlock):
             x['offset'] += heap_offset
         return super().write(data=data, ctx=ctx, name=name)
 
-    def action_convert_to_8bit(self, read_data, name, palette_type, **kwargs):
+    def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, **kwargs):
         import tempfile
         tmp_dir = tempfile.TemporaryDirectory()
         serializer = self.serializer_class()()
@@ -250,7 +256,7 @@ class ShpiBlock(ArchiveBlock):
         read_data['children'].insert(0, {
             'pre_offset_payload': b'',
             'post_offset_payload': b'',
-            'alias': '!pal',
+            'alias': palette_name,
             'item': {
                 'choice_index': self.item_block.get_choice_index_by_class_name('EacPalette'),
                 'data': pal
