@@ -81,6 +81,14 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
         if (this.resourceData.children.length == 0) {
           this.selectedValue = '___headers___';
         } else {
+          if (this.selectedValue[1].alias != null) {
+            for (const c of this.resourceData.children) {
+              if (c.alias == this.selectedValue[1].alias) {
+                this.selectedValue = [this.resourceData.children.indexOf(c), c];
+                return;
+              }
+            }
+          }
           let index = Math.min(this.selectedValue[0], this.resourceData.children.length - 1);
           this.selectedValue = [index, this.resourceData.children[index]];
         }
