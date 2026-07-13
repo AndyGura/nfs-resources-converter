@@ -3,7 +3,6 @@ import os
 import shutil
 import sys
 import tempfile
-from distutils.dir_util import copy_tree
 
 import eel
 
@@ -80,7 +79,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     else:
         # Production mode: serve the whole frontend build through Eel and open
         # it in a dedicated Chrome/Chromium app window.
-        copy_tree(src, static_path)
+        shutil.copytree(src, static_path, dirs_exist_ok=True)
 
         def on_close(page, sockets):
             os.system("pkill -f 'eel_chrome_profile'")

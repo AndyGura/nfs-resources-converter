@@ -39,7 +39,10 @@ Milestones are AI-generated to guide public planning and will evolve over time.
 
 # Installation:
 
-First of all, you need to install `ffmpeg` and `blender` (version 4+). These are required for both release artifacts and development mode.
+
+These are required for both release artifacts and development mode:
+- If you need to convert audio/video files - install `ffmpeg`
+- If you need to convert 3D models - install `blender` (version 4+)
 
 The GUI application runs in a native web view (powered by [pywebview](https://pywebview.flowrlab.com/)) on Windows + MacOS, so it looks and feels like a standalone desktop app, no external browser is required: it uses the OS-native web renderer (WebView2 on Windows, WebKit on macOS). On linux, it requires browser to be installed on the system. Recomended browser is Chrome
 
@@ -53,9 +56,9 @@ You can use pre-built installer from the [Releases page](https://github.com/Andy
 
 ### Development Mode (Recommended for Linux)
 
-If you want to run the project from source (required for Linux and macOS):
+If you want to run the project from source (required for Linux):
 
-0) Install Python 3.9+ and pip
+0) Install Python >=3.9; <=3.12 and pip
 1) Install dependencies `pip install -r requirements.txt`
 2) Run the application: `python run.py`
 
