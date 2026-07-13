@@ -43,4 +43,9 @@
     <mat-icon>delete</mat-icon>
   </div>
 </div>
-<input #colorInput type="color" alpha class="hidden" (change)="onColorChange($any($event.currentTarget).value)" />
+<input
+  #colorInput
+  type="color"
+  alpha
+  class="color-input-hidden"
+  (change)="onColorChange($any($event.currentTarget).value)" />

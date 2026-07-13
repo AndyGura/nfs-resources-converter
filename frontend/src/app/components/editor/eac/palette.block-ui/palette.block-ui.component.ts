@@ -32,6 +32,13 @@ export class PaletteBlockUiComponent extends SubscribableGuiComponent {
     this.selectedIndex = index;
     this.colorInput.nativeElement.value =
       '#' + this.lpad(this.resourceData.colors.data[this.selectedIndex].toString(16), '0', 8);
+
+    const rect = em.getBoundingClientRect();
+    this.colorInput.nativeElement.style.left = `${rect.left}px`;
+    this.colorInput.nativeElement.style.top = `${rect.top}px`;
+    this.colorInput.nativeElement.style.width = `${rect.width}px`;
+    this.colorInput.nativeElement.style.height = `${rect.height}px`;
+
     this.colorInput.nativeElement.click();
   }
 
