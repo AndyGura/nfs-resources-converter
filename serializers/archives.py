@@ -124,104 +124,26 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             output.append(path_join(path, 'skipped.txt'))
         return output
 
-    def deserialize(self, file_paths: List[str], id=None, block=None, quantize_new_palette=True, **kwargs) -> None:
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs) -> None:
         if not file_paths or not isdir(file_paths[0]):
             raise Exception('A directory must be selected for ShpiArchiveSerializer')
-        path = file_paths[0]
-        max_colors_amount = 255  # minus the last one, reserved for transparency
-        generate_palettes = ['!pal']
-        if '.CFM' in id:
-            # last 6 colors are special for cars:
-            # 250th, 251th - cop red blinker
-            # 252th, 253th - cop blue blinker
-            # 254th is replaced with tail colors in the game
-            # 255th is transparent
-            max_colors_amount = 250
-            generate_palettes = ['!PAL', '!xxx']
-        if '.FAM' in id:
-            generate_palettes = ['!PAL']
-        # build a new palette for SHPI
-        from PIL import Image
-        from collections import Counter
-        from serializers.bitmaps import BitmapWithPaletteSerializer
-        individual_palettes = []
-        file_names = [x for x in os.listdir(path)]
-        images = [Image.open(path_join(path, x)) for x in file_names]
-        # find unused color for marking transparency
-        all_colors = set()
-        for src in images:
-            all_colors = all_colors.union(
-                {(x[0] << 24) + (x[1] << 16) + (x[2] << 8) + (0xff if src.mode == 'RGB' else x[3])
-                 for _, x in src.getcolors(src.size[0] * src.size[1])})
-        # pick transparent color
-        transparent = 0xff
-        for c in [0xFF_00_00_FF,
-                  0x00_FF_00_FF,
-                  0x00_00_FF_FF,
-                  0xFF_FF_00_FF,
-                  0xFF_00_FF_FF,
-                  0x00_FF_FF_FF,
-                  0xFF_FF_FF_FF,
-                  0x00_00_00_FF]:
-            if c not in all_colors:
-                transparent = c
-                break
-        # quantize all images, transparency replaced with solid color, picked above
-        for i, src in enumerate(images):
-            img = Image.new(
-                "RGB",
-                src.size,
-                ((transparent & 0xff000000) >> 24, (transparent & 0xff0000) >> 16,
-                 (transparent & 0xff00) >> 8)
-            )
-            img.paste(src, mask=(None if src.mode == 'RGB' else src.split()[3]))
-            quantized_img = img.quantize(colors=max_colors_amount + 1)  # + transparent channel
-            pil_palette = quantized_img.getpalette()
-            individual_palettes.append(
-                [(pil_palette[i] << 24) + (pil_palette[i + 1] << 16) + (pil_palette[i + 2] << 8) + 0xff for i in
-                 range(0, len(pil_palette), 3)])
-        # calculating common palette among images
-        all_colors = sum(individual_palettes, [])
-        color_counts = Counter(all_colors)
-        most_common_colors = color_counts.most_common(max_colors_amount + 1)  # + transparent channel
-        palette = [color[0] for color in most_common_colors]
-        if len(palette) < 256:
-            palette += [0] * (256 - len(palette))
-        # place transparent color in the end
-        try:
-            idx = palette.index(transparent)
-            palette = palette[:idx] + palette[(idx + 1):] + [transparent]
-        except ValueError:
-            palette[-1] = transparent
-        child_field = block.field_blocks_map['children'].child.field_blocks_map['item']
         new_shpi = block.new_data()
-        pal_block = EacPalette()
+
+        path = file_paths[0]
+        file_names = [x for x in os.listdir(path)]
         img_block = EacImage()
-        pal = pal_block.new_data()
-        pal['colors']['data'] = palette
-        for pal_alias in generate_palettes:
+        img_serializer = img_block.serializer_class()()
+
+        for file_name in file_names:
+            img = img_serializer.deserialize([path_join(path, file_name)],
+                                             join_id(id, f'children/{len(new_shpi["children"])}/item/data'),
+                                             img_block)
+
             new_shpi['children'].append({
                 'pre_offset_payload': b'',
                 'post_offset_payload': b'',
-                'alias': pal_alias,
-                'item': {'choice_index': next(i for (i, b) in enumerate(child_field.possible_blocks) if
-                                              isinstance(b, EacPalette)),
-                         'data': pal}
-            })
-        image_serializer = BitmapWithPaletteSerializer()
-        bitmap_choice = next(i for i in range(len(child_field.possible_blocks)) if
-                             isinstance(child_field.possible_blocks[i], EacImage))
-        for name in file_names:
-            alias = name[:-4]
-            img = image_serializer.deserialize([path_join(path, name)],
-                                               join_id(id, f'children/{len(new_shpi["children"])}/item/data'),
-                                               img_block,
-                                               palette=palette)
-            new_shpi['children'].append({
-                'pre_offset_payload': b'',
-                'post_offset_payload': b'',
-                'alias': alias,
-                'item': {'choice_index': bitmap_choice,
+                'alias': file_name[:-4],
+                'item': {'choice_index': block.item_block.get_choice_index_by_class_name('EacImage'),
                          'data': img}
             })
         return new_shpi

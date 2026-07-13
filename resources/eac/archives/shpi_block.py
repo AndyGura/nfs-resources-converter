@@ -199,6 +199,19 @@ class ShpiBlock(ArchiveBlock):
         return super().write(data=data, ctx=ctx, name=name)
 
     def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, num_colors, **kwargs):
+        # notes for future:
+
+        # TNFS CFM files: last 6 colors are special for cars:
+        # palette name is '!PAL'
+        # 250th, 251th - cop red blinker
+        # 252th, 253th - cop blue blinker
+        # 254th is replaced with tail colors in the game
+        # 255th is transparent
+        # Also CFM has additional !xxx palette
+
+        # TNFS FAM files:
+        # palette name is '!PAL'
+
         import tempfile
         tmp_dir = tempfile.TemporaryDirectory()
         serializer = self.serializer_class()()
