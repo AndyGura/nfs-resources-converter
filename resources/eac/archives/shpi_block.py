@@ -132,6 +132,15 @@ class ShpiBlock(ArchiveBlock):
     def new_data(self, patch=None):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
 
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        total_length = 16
+        for i, child in enumerate(data['children']):
+            total_length += len(child['pre_offset_payload']) + len(child['post_offset_payload'])
+            total_length += self.item_block.estimate_packed_size(data=child['item'], ctx=ctx)
+            if child['alias'] is not None:
+                total_length += 8
+        return total_length
+
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         block_start = ctx.buffer.tell()
         res = super().read(ctx, name, read_bytes_amount)
@@ -139,7 +148,10 @@ class ShpiBlock(ArchiveBlock):
         ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
         res['children'] = []
 
-        abs_offsets = [(x['name'], block_start + x['offset'], None) for x in res['items_descr']]
+        abs_offsets = [
+            (x['name'], block_start + x['offset'], None)
+            for x in sorted(res['items_descr'], key=lambda x: x['offset'])
+        ]
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         try:
             bytes_choice = next(idx
@@ -196,7 +208,10 @@ class ShpiBlock(ArchiveBlock):
         heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': data['items_descr']}, 'data_bytes')
         for x in data['items_descr']:
             x['offset'] += heap_offset
-        return super().write(data=data, ctx=ctx, name=name)
+        ret = super().write(data=data, ctx=ctx, name=name)
+        del data['items_descr']
+        del data['data_bytes']
+        return ret
 
     def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, num_colors, **kwargs):
         # notes for future:

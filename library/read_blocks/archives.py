@@ -12,6 +12,7 @@ from library.read_blocks import CompoundBlock, DeclarativeCompoundBlock, ArrayBl
 # 4) Fields class should be extended from ArchiveBlock.Fields, not DeclarativeCompoundBlock.Fields
 # 5) Update read function to produce "children" array as per structure, implemented here
 # 6) Update write function to use "children" array as per structure, and transform it to the io format
+# 7) Override estimate_packed_size (look at shpi example)
 class ArchiveBlock(DeclarativeCompoundBlock, ABC):
     class Fields(DeclarativeCompoundBlock.Fields):
         children = (ArrayBlock(child=None, length=None),
