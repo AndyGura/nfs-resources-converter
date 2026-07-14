@@ -62,7 +62,7 @@ def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
         palette_block, palette_data = _get_palette_from_shpi(shpi_block, shpi_data)
         # need to find the palette, it is a tricky part
         # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
-        # sometimes better, sometime worse, the difference is not much noticeable.
+        # sometimes better, sometimes worse, the difference is not much noticeable.
         # In case of Autumn Valley fence texture, it totally breaks the picture.
         # If ignore inline palettes in LN32 SHPI, DASH FSH will be broken ¯\_(ツ)_/¯
         # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯

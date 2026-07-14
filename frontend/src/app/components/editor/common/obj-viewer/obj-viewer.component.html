@@ -38,7 +38,7 @@
               [id]="'custom_control_' + i + '_' + j"
               type="color"
               [value]="toHex(c.value)"
-              (change)="c.value = fromHex($any($event.currentTarget).value); c.change(c.value)" />
+              (change)="onColorChange(c, $any($event.currentTarget).value)" />
           }
           @if (c.type === 'slider') {
             <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>

@@ -4,6 +4,7 @@ import { joinId } from '../../../../utils/join-id';
 import { MatSelectChange } from '@angular/material/select';
 import { CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
+import { parseColorInputValue } from '../../../../utils/parse-color-input-value';
 
 @Component({
   selector: 'app-palette-block-ui',
@@ -42,15 +43,16 @@ export class PaletteBlockUiComponent extends SubscribableGuiComponent {
     this.colorInput.nativeElement.click();
   }
 
-  onColorChange(hex: string | null) {
+  onColorChange(raw: string | null) {
     if (!this.resourceId || !this.resourceData || this.selectedIndex === null) {
       this.selectedIndex = null;
       return;
     }
     const color = this.resourceData.colors.data[this.selectedIndex];
     const alpha = color & 0xff;
-    const value = hex ? parseInt(hex.substring(1), 16) : 0;
-    this.onValueSet((alpha | (value << 8)) >>> 0, 'colors', 'data', this.selectedIndex);
+    const value = parseColorInputValue(raw, alpha);
+    if (value === null) return;
+    this.onValueSet(value, 'colors', 'data', this.selectedIndex);
   }
 
   async addColor() {
