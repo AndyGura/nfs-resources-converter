@@ -92,7 +92,7 @@ class ShpiBlock(ArchiveBlock):
                 for x in (sorted(ctx.data('items_descr'), key=lambda x: x['offset'])
                           + [{'offset': ctx.read_bytes_amount}])
             ) if x > 0), 'item_length'))]),
-            alias_field={'kwargs': {'length': 4}},
+            alias_field=UTF8Block(length=4),
             **kwargs)
 
     class Fields(ArchiveBlock.Fields):
@@ -128,6 +128,7 @@ class ShpiBlock(ArchiveBlock):
                                          '<br/>- [EacPalette](#eacpalette)'
                                          '<br/>- [PaletteReference](#palettereference)'
                                          '<br/>- [ShpiText](#shpitext)'})
+        children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
     def new_data(self, patch=None):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
@@ -154,9 +155,7 @@ class ShpiBlock(ArchiveBlock):
         ]
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         try:
-            bytes_choice = next(idx
-                                for idx, blk in enumerate(self.item_block.possible_blocks)
-                                if isinstance(blk, BytesBlock))
+            bytes_choice = self.item_block.get_choice_index_by_class_name('BytesBlock')
         except StopIteration:
             bytes_choice = -1
         for i, (alias, offset, length) in enumerate(abs_offsets):
@@ -205,7 +204,7 @@ class ShpiBlock(ArchiveBlock):
             data['data_bytes'] += item_data
             data['data_bytes'] += child['post_offset_payload']
         data['items_descr'] = [{'name': name, 'offset': offset} for (name, offset, _) in children if name is not None]
-        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': data['items_descr']}, 'data_bytes')
+        heap_offset = 16 + len(data['items_descr']) * 8
         for x in data['items_descr']:
             x['offset'] += heap_offset
         ret = super().write(data=data, ctx=ctx, name=name)

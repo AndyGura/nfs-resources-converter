@@ -1,10 +1,10 @@
+import traceback
 from copy import deepcopy
-from io import BytesIO
+from io import BytesIO, SEEK_CUR
 from os.path import getsize
 from typing import Dict
 
-from .shpi_block import ShpiBlock, PaletteReference
-
+from config import general_config
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
@@ -12,11 +12,14 @@ from library.read_blocks import (DeclarativeCompoundBlock,
                                  ArrayBlock,
                                  AutoDetectBlock,
                                  BytesBlock)
+from library.read_blocks.archives import ArchiveBlock
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
 from .base_archive_block import BaseArchiveBlock
+from .shpi_block import ShpiBlock, PaletteReference
+
 
 class CompressedBlock(AutoDetectBlock):
 
@@ -91,7 +94,7 @@ class Qfs3Block(CompressedBlock):
         return Qfs3Compression().uncompress
 
 
-class WwwwBlock(BaseArchiveBlock):
+class WwwwBlock(ArchiveBlock):
 
     @property
     def schema(self) -> Dict:
@@ -111,7 +114,19 @@ class WwwwBlock(BaseArchiveBlock):
         delattr(self, 'schema_call_recv')
         return schema
 
-    class Fields(DeclarativeCompoundBlock.Fields):
+    def __init__(self, **kwargs):
+        from resources.eac.geometries import OripGeometry
+        super().__init__(item_block=AutoDetectBlock(possible_blocks=[
+            ShpiBlock(),
+            OripGeometry(),
+            self,
+            BytesBlock(length=(lambda ctx: next(x for x in (
+                x - ctx.local_buffer_pos
+                for x in (sorted(ctx.data('items_descr')) + [ctx.read_bytes_amount])
+            ) if x > 0), 'item_length'))]),
+            **kwargs)
+
+    class Fields(ArchiveBlock.Fields):
         resource_id = (UTF8Block(value_validator=Eq('wwww'), length=4),
                        {'description': 'Resource ID'})
         num_items = (IntegerBlock(length=4,
@@ -119,51 +134,86 @@ class WwwwBlock(BaseArchiveBlock):
                      {'description': 'An amount of items'})
         items_descr = (ArrayBlock(child=IntegerBlock(length=4),
                                   length=lambda ctx: ctx.data('num_items')),
-                       {'description': 'An array of offsets to items data in file, relatively to wwww block start '
+                       {'usage': 'io,doc',
+                        'description': 'An array of offsets to items data in file, relatively to wwww block start '
                                        '(where resource id string is presented)'})
         data_bytes = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
-                      {'description': 'A part of block, where items data is located. Offsets are defined in previous '
+                      {'usage': 'io,doc',
+                       'description': 'A part of block, where items data is located. Offsets are defined in previous '
                                       'block, lengths are calculated: either up to next item offset, or up to the end '
                                       'of this block. Possible item types:'
                                       '<br/>- [ShpiBlock](#shpiblock)'
                                       '<br/>- [OripGeometry](#oripgeometry)'
-                                      '<br/>- [WwwwBlock](#wwwwblock)',
-                       'usage': 'io,doc'})
-        children = (ArrayBlock(length=(0, 'num_items'), child=None),
-                    {'usage': 'ui'})
+                                      '<br/>- [WwwwBlock](#wwwwblock)'})
+        children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
-    def __init__(self, **kwargs):
-        from resources.eac.geometries import OripGeometry
-        super().__init__(**kwargs)
-        # UI Array child block for referencing self in possible blocks
-        self.child_block = AutoDetectBlock(possible_blocks=[
-            ShpiBlock(),
-            OripGeometry(),
-            self,
-            BytesBlock(length=(lambda ctx: next(x for x in (
-                x - ctx.local_buffer_pos
-                for x in (sorted(ctx.data('items_descr')) + [ctx.read_bytes_amount])
-            ) if x > 0), 'item_length'))])
-        self.field_blocks_map['children'].child = self.child_block
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        total_length = 8
+        for i, child in enumerate(data['children']):
+            total_length += len(child['pre_offset_payload']) + len(child['post_offset_payload'])
+            total_length += self.item_block.estimate_packed_size(data=child['item'], ctx=ctx)
+            total_length += 4
+        return total_length
 
-    def serializer_class(self):
-        from serializers import WwwwArchiveSerializer
-        return WwwwArchiveSerializer
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        block_start = ctx.buffer.tell()
+        res = super().read(ctx, name, read_bytes_amount)
+        end_pos = ctx.buffer.tell()
+        ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
+        res['children'] = []
 
-    def parse_abs_offsets(self, block_start, data, read_bytes_amount):
-        offsets = [block_start + x for x in data['items_descr']]
+        offsets = [block_start + x for x in res['items_descr']]
         lengths = []
         for offset in offsets:
             try:
                 lengths.append(sorted(x for x in offsets if x > offset)[0] - offset)
             except IndexError:
                 lengths.append(block_start + read_bytes_amount - offset)
-        return [(str(i), o, l) for i, (o, l) in enumerate(zip(offsets, lengths))]
+        abs_offsets = list(zip(offsets, lengths))
 
-    def generate_items_descr(self, data, children):
-        res = [offset for (_, offset, _) in children]
-        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'data_bytes')
-        return [x + heap_offset for x in res]
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
+        try:
+            bytes_choice = self.item_block.get_choice_index_by_class_name('BytesBlock')
+        except StopIteration:
+            bytes_choice = -1
+        for i, (offset, length) in enumerate(abs_offsets):
+            child = {'item': None, 'pre_offset_payload': b'', 'post_offset_payload': b''}
+            res['children'].append(child)
+            if offset > ctx.buffer.tell():
+                child['pre_offset_payload'] = ctx.buffer.read(offset - ctx.buffer.tell())
+            else:
+                ctx.buffer.seek(offset)
+            try:
+                child['item'] = self.item_block.unpack(ctx=self_ctx, name=str(i), read_bytes_amount=length)
+            except Exception:
+                if general_config().print_errors:
+                    traceback.print_exc()
+                ctx.buffer.seek(offset)
+                child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
+        ctx.buffer.seek(end_pos)
+        del res['items_descr']
+        del res['data_bytes']
+        return res
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        data['data_bytes'] = b''
+        data['items_descr'] = []
+        for i, child in enumerate(data['children']):
+            item_data = self.item_block.pack(data=child['item'], ctx=ctx, name=str(i))
+            data['items_descr'].append(len(data['data_bytes']))
+            data['data_bytes'] += child['pre_offset_payload']
+            data['data_bytes'] += item_data
+            data['data_bytes'] += child['post_offset_payload']
+        heap_offset = 8 + len(data['items_descr']) * 4
+        data['items_descr'] = [x + heap_offset for x in data['items_descr']]
+        ret = super().write(data=data, ctx=ctx, name=name)
+        del data['items_descr']
+        del data['data_bytes']
+        return ret
+
+    def serializer_class(self):
+        from serializers import WwwwArchiveSerializer
+        return WwwwArchiveSerializer
 
 
 class BigfItemDescriptionBlock(DeclarativeCompoundBlock):

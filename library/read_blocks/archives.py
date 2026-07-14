@@ -1,7 +1,6 @@
 from abc import ABC
-from typing import List, Tuple
 
-from library.read_blocks import CompoundBlock, DeclarativeCompoundBlock, ArrayBlock, DataBlock, BytesBlock, UTF8Block
+from library.read_blocks import CompoundBlock, DeclarativeCompoundBlock, BytesBlock, UTF8Block
 
 
 # Base abstract class for archive blocks
@@ -9,34 +8,17 @@ from library.read_blocks import CompoundBlock, DeclarativeCompoundBlock, ArrayBl
 # 1) Provide item block to super().__init__
 # 2) Declare own compound block fields as usual, documentation and io friendly
 # 3) Declare fields like children offsets, children array etc. usage to be "io,doc" (skip showing in UI)
-# 4) Fields class should be extended from ArchiveBlock.Fields, not DeclarativeCompoundBlock.Fields
+# 4) Add `children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})` to Fields class
 # 5) Update read function to produce "children" array as per structure, implemented here
 # 6) Update write function to use "children" array as per structure, and transform it to the io format
 # 7) Override estimate_packed_size (look at shpi example)
 class ArchiveBlock(DeclarativeCompoundBlock, ABC):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        children = (ArrayBlock(child=None, length=None),
-                    {'usage': 'ui'})
-
-        @classmethod
-        @property
-        def fields(cls) -> List[Tuple[str, DataBlock]]:
-            fields = super().fields
-            return fields + [('children', cls.children)]
-
-    @property
-    def item_block(self):
-        return self._item_block
-
     def __init__(self, item_block, alias_field=None, **kwargs):
         super().__init__(**kwargs)
-        if alias_field is None:
-            alias_field = {}
-        self._item_block = item_block
+        self.item_block = item_block
         fields = [('item', item_block, {}),
                   ('pre_offset_payload', BytesBlock(length=None), {}),
                   ('post_offset_payload', BytesBlock(length=None), {})]
-        if not alias_field.get('disabled', False):
-            field_kwargs = alias_field.get('kwargs', {'length': None})
-            fields.append(('alias', UTF8Block(**field_kwargs), {}))
+        if alias_field is not None:
+            fields.append(('alias', alias_field, {}))
         self.field_blocks_map['children'].child = CompoundBlock(fields=fields)

@@ -153,7 +153,6 @@ def id_to_path(id: str) -> str:
     return id.split('__')[0].replace('---DRIVE', ':')
 
 
-# id example: /media/data/nfs/SIMDATA/CARFAMS/LDIABL.CFM__1/frnt
 def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str, "DataBlock", dict]]:
     file_path = id_to_path(id)
     (file_id, block, data) = require_file(file_path)

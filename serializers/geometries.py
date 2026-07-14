@@ -54,7 +54,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         # shpi is always next block
         from library import require_resource
         shpi_id = id.split('/')
-        shpi_id[-2] = str(int(shpi_id[-2]) + 1)
+        shpi_id[-3] = str(int(shpi_id[-3]) + 1)
         (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource('/'.join(shpi_id))
         if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
             raise DataIntegrityException('Cannot find SHPI archive for ORIP geometry')
