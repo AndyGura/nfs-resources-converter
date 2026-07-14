@@ -17,7 +17,6 @@ from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
-from .base_archive_block import BaseArchiveBlock
 from .shpi_block import ShpiBlock, PaletteReference
 
 
@@ -223,7 +222,7 @@ class BigfItemDescriptionBlock(DeclarativeCompoundBlock):
         name = NullTerminatedUTF8Block(length=8)
 
 
-class BigfBlock(BaseArchiveBlock):
+class BigfBlock(ArchiveBlock):
 
     @property
     def schema(self) -> Dict:
@@ -243,34 +242,9 @@ class BigfBlock(BaseArchiveBlock):
         delattr(self, 'schema_call_recv')
         return schema
 
-    class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(length=4, value_validator=Eq('BIGF')),
-                       {'description': 'Resource ID'})
-        length = (IntegerBlock(length=4, byte_order='big',
-                               programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
-                  {'description': 'The length of this BIGF block in bytes'})
-        num_items = (IntegerBlock(length=4, byte_order='big',
-                                  programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
-                     {'description': 'An amount of items'})
-        unk0 = (IntegerBlock(length=4),
-                {'is_unknown': True})
-        items_descr = ArrayBlock(length=lambda ctx: ctx.data('num_items'),
-                                 child=BigfItemDescriptionBlock())
-        data_bytes = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
-                      {'description': 'A part of block, where items data is located. Offsets and lengths are defined '
-                                      'in previous block. Possible item types:'
-                                      '<br/>- [GeoGeometry](#geogeometry)'
-                                      '<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file'
-                                      '<br/>- [BigfBlock](#bigfblock)',
-                       'usage': 'io,doc'})
-        children = (ArrayBlock(length=(0, 'num_items'), child=None),
-                    {'usage': 'ui'})
-
     def __init__(self, **kwargs):
         from resources.eac.geometries import GeoGeometry
-        super().__init__(**kwargs)
-        # write array field child block for referencing self in possible blocks
-        child_block = AutoDetectBlock(possible_blocks=[
+        super().__init__(item_block=AutoDetectBlock(possible_blocks=[
             GeoGeometry(),
             ShpiBlock(),
             RefPackBlock(),
@@ -281,22 +255,108 @@ class BigfBlock(BaseArchiveBlock):
                 length=(lambda ctx: next(x
                                          for x in ctx.data('items_descr')
                                          if x['offset'] == ctx.local_buffer_pos)['length'],
-                        'item_length'))])
-        self.field_blocks_map['children'].child = child_block
+                        'item_length'))]),
+            alias_field=NullTerminatedUTF8Block(length=8),
+            **kwargs)
+
+    class Fields(ArchiveBlock.Fields):
+        resource_id = (UTF8Block(length=4, value_validator=Eq('BIGF')),
+                       {'description': 'Resource ID'})
+        length = (IntegerBlock(length=4, byte_order='big',
+                               programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
+                  {'description': 'The length of this BIGF block in bytes'})
+        num_items = (IntegerBlock(length=4, byte_order='big',
+                                  programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
+                     {'description': 'An amount of items'})
+        unk0 = (IntegerBlock(length=4),
+                {'is_unknown': True})
+        items_descr = (ArrayBlock(length=lambda ctx: ctx.data('num_items'),
+                                  child=BigfItemDescriptionBlock()),
+                       {'usage': 'io,doc'})
+        data_bytes = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+                      {'usage': 'io,doc',
+                       'description': 'A part of block, where items data is located. Offsets and lengths are defined '
+                                      'in previous block. Possible item types:'
+                                      '<br/>- [GeoGeometry](#geogeometry)'
+                                      '<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file'
+                                      '<br/>- [BigfBlock](#bigfblock)'})
+        children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        total_length = 16
+        for i, child in enumerate(data['children']):
+            total_length += len(child['pre_offset_payload']) + len(child['post_offset_payload'])
+            total_length += self.item_block.estimate_packed_size(data=child['item'], ctx=ctx)
+            total_length += 9 + len(child['alias'])
+        return total_length
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        block_start = ctx.buffer.tell()
+        res = super().read(ctx, name, read_bytes_amount)
+        end_pos = ctx.buffer.tell()
+        ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
+        res['children'] = []
+
+        abs_offsets = [
+            (i, x['name'], block_start + x['offset'], x['length'])
+            for i, x in sorted(list(enumerate(res['items_descr'])), key=lambda x: x[1]['offset'])
+        ]
+        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
+        try:
+            bytes_choice = self.item_block.get_choice_index_by_class_name('BytesBlock')
+        except StopIteration:
+            bytes_choice = -1
+        children_map = [None] * len(abs_offsets)
+        for i, (descr_index, alias, offset, length) in enumerate(abs_offsets):
+            child = {'item': None, 'alias': alias, 'pre_offset_payload': b'', 'post_offset_payload': b''}
+            children_map[descr_index] = [child]
+            if offset > ctx.buffer.tell():
+                child['pre_offset_payload'] = ctx.buffer.read(offset - ctx.buffer.tell())
+            else:
+                ctx.buffer.seek(offset)
+            try:
+                child['item'] = self.item_block.unpack(ctx=self_ctx, name=f"{descr_index}_{alias}",
+                                                       read_bytes_amount=length)
+            except Exception:
+                if general_config().print_errors:
+                    traceback.print_exc()
+                ctx.buffer.seek(offset)
+                child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
+        if res.get('length') is not None and ctx.buffer.tell() < block_start + res['length']:
+            diff = block_start + res['length'] - ctx.buffer.tell()
+            children_map[abs_offsets[-1][0]][-1]['post_offset_payload'] = ctx.buffer.read(diff)
+        res['children'] = []
+        for cs in children_map:
+            res['children'].extend(cs)
+        ctx.buffer.seek(end_pos)
+        del res['items_descr']
+        del res['data_bytes']
+        return res
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        data['data_bytes'] = b''
+        children = []
+        for i, child in enumerate(data['children']):
+            data['data_bytes'] += child['pre_offset_payload']
+            item_data = self.item_block.pack(data=child['item'], ctx=ctx, name=str(i))
+            children.append((child['alias'], len(data['data_bytes']), len(item_data)))
+            data['data_bytes'] += item_data
+            data['data_bytes'] += child['post_offset_payload']
+        data['items_descr'] = [{'name': name, 'offset': offset, 'length': length} for (name, offset, length) in children
+                               if name is not None]
+        heap_offset = 16
+        for x in data['items_descr']:
+            heap_offset += 9 + len(x['name'])
+        for x in data['items_descr']:
+            x['offset'] += heap_offset
+        ret = super().write(data=data, ctx=ctx, name=name)
+        del data['items_descr']
+        del data['data_bytes']
+        return ret
 
     def serializer_class(self):
         from serializers import BigfArchiveSerializer
         return BigfArchiveSerializer
-
-    def parse_abs_offsets(self, block_start, data, read_bytes_amount):
-        return [(x['name'], block_start + x['offset'], x['length']) for x in data['items_descr']]
-
-    def generate_items_descr(self, data, children):
-        res = [{'name': name, 'offset': offset, 'length': length} for (name, offset, length) in children]
-        heap_offset = self.offset_to_child_when_packed({**data, 'items_descr': res}, 'data_bytes')
-        for x in res:
-            x['offset'] += heap_offset
-        return res
 
 
 class SoundBank(DeclarativeCompoundBlock):

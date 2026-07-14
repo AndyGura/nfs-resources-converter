@@ -37,7 +37,6 @@ import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
 import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
 
 import { MatSliderModule } from '@angular/material/slider';
-import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
 import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
@@ -80,7 +79,6 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
     ArchiveDelegateItemTypeDialogComponent,
 
     // common nfs data blocks
-    BaseArchiveBlockUiComponent,
     ImageBlockUiComponent,
     PaletteBlockUiComponent,
     FontBlockUiComponent,

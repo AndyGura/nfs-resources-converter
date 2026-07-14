@@ -154,7 +154,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
             local_id = id[id.index('__children/') + 11:]
             idx = int(local_id[:local_id.index('/')])
             (_, _, viv_data), _ = require_resource(id[:id.find('__children')])
-            qfs_name = viv_data['children_aliases'][idx].upper()
+            qfs_name = viv_data['children'][idx]['alias'].upper()
             qfs_id = path_join(id[:id.find('CARDATA.VIV')], f'../../CARMODEL/PC/{qfs_name[:-4]}.QFS')
         else:
             # NFS2
