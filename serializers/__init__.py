@@ -2,7 +2,7 @@ from library.read_blocks import DataBlock
 from serializers.base import BaseFileSerializer, DelegateBlockSerializer, PlainBinarySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer, BigfArchiveSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
-from .bitmaps import ImageSerializer, PaletteSerializer, BitmapWithPaletteSerializer
+from .bitmaps import ImageSerializer, PaletteSerializer
 from .fonts import FfnFontSerializer
 from .geometries import OripGeometrySerializer, GeoGeometrySerializer, CrpGeometrySerializer
 from .json import JsonSerializer
