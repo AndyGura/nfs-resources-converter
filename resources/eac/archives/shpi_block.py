@@ -150,23 +150,24 @@ class ShpiBlock(ArchiveBlock):
         res['children'] = []
 
         abs_offsets = [
-            (x['name'], block_start + x['offset'], None)
-            for x in sorted(res['items_descr'], key=lambda x: x['offset'])
+            (i, x['name'], block_start + x['offset'], None)
+            for i, x in sorted(list(enumerate(res['items_descr'])), key=lambda x: x[1]['offset'])
         ]
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         try:
             bytes_choice = self.item_block.get_choice_index_by_class_name('BytesBlock')
         except StopIteration:
             bytes_choice = -1
-        for i, (alias, offset, length) in enumerate(abs_offsets):
+        children_map = [None] * len(abs_offsets)
+        for i, (descr_index, alias, offset, length) in enumerate(abs_offsets):
             child = {'item': None, 'alias': alias, 'pre_offset_payload': b'', 'post_offset_payload': b''}
-            res['children'].append(child)
+            children_map[descr_index] = [child]
             if offset > ctx.buffer.tell():
                 child['pre_offset_payload'] = ctx.buffer.read(offset - ctx.buffer.tell())
             else:
                 ctx.buffer.seek(offset)
             try:
-                child['item'] = self.item_block.unpack(ctx=self_ctx, name=f"{i}_{alias}", read_bytes_amount=length)
+                child['item'] = self.item_block.unpack(ctx=self_ctx, name=f"{descr_index}_{alias}", read_bytes_amount=length)
             except Exception:
                 if general_config().print_errors:
                     traceback.print_exc()
@@ -177,18 +178,21 @@ class ShpiBlock(ArchiveBlock):
                 'data'].get(
                 'resource_id') == '8Bit':
                 extra_abs = offset + child['item']['data']['block_size']
-                next_abs = abs_offsets[i + 1][1] if i < len(abs_offsets) - 1 else None
+                next_abs = abs_offsets[i + 1][2] if i < len(abs_offsets) - 1 else None
                 if child['item']['data']['block_size'] > 0 and (next_abs is None or extra_abs < next_abs):
                     extra_child = {'item': None, 'alias': None, 'pre_offset_payload': b'', 'post_offset_payload': b''}
-                    res['children'].append(extra_child)
+                    children_map[descr_index].append(extra_child)
                     if extra_abs > ctx.buffer.tell():
                         extra_child['pre_offset_payload'] = ctx.buffer.read(extra_abs - ctx.buffer.tell())
                     else:
                         ctx.buffer.seek(extra_abs)
-                    extra_child['item'] = self.item_block.unpack(ctx=self_ctx, name=f'extra_{i}')
+                    extra_child['item'] = self.item_block.unpack(ctx=self_ctx, name=f'extra_{descr_index}')
         if res.get('length') is not None and ctx.buffer.tell() < block_start + res['length']:
             diff = block_start + res['length'] - ctx.buffer.tell()
-            res['children'][-1]['post_offset_payload'] = ctx.buffer.read(diff)
+            children_map[abs_offsets[-1][0]][-1]['post_offset_payload'] = ctx.buffer.read(diff)
+        res['children'] = []
+        for cs in children_map:
+            res['children'].extend(cs)
         ctx.buffer.seek(end_pos)
         del res['items_descr']
         del res['data_bytes']

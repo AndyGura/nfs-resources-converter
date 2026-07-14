@@ -173,15 +173,16 @@ class WwwwArchiveSerializer(BaseFileSerializer):
             names = ['background', 'foreground', 'skybox', 'props']
         else:
             names = [str(i) for i in range(data['num_items'])]
-        items = list(zip(names, data['children']))
+        children = list(zip(names, data['children']))
         skipped_resources = []
         # after orip skip shpi block. It will be exported by orip serializer
         skip_next_shpi = False
         output = []
-        for i, (name, item) in enumerate(items):
+        for i, (name, child) in enumerate(children):
+            item = child['item']
             if item is None:
                 continue
-            item_block = block.child_block.possible_blocks[item['choice_index']]
+            item_block = block.item_block.possible_blocks[item['choice_index']]
             item_data = item['data']
             if isinstance(item_data, Exception):
                 skipped_resources.append((name, format_exception(item_data)))
@@ -196,7 +197,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
             try:
                 serializer = serializers.get_serializer(item_block, item_data)
                 output.extend(serializer.serialize(item_data, path_join(path, name), block=item_block,
-                                                   id=join_id(id, 'children', str(i), 'data')))
+                                                   id=join_id(id, 'children', str(i), 'item', 'data')))
             except Exception as ex:
                 if general_config.print_errors:
                     traceback.print_exc()

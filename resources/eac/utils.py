@@ -23,8 +23,8 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
     palette_block = None
     palette_data = None
     for i in range(max_index - 1, -1, -1):
-        block = wwww_block.child_block.possible_blocks[wwww_data['children'][i]['choice_index']]
-        data = wwww_data['children'][i]['data']
+        block = wwww_block.item_block.possible_blocks[wwww_data['children'][i]['item']['choice_index']]
+        data = wwww_data['children'][i]['item']['data']
         if isinstance(block, ShpiBlock):
             (palette_block, palette_data) = _get_palette_from_shpi(block, data)
             if palette_block:
@@ -70,9 +70,9 @@ def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
         # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette,
         # use previous available !pal. 7C bitmap resource data seems to not change as well :(
         if not palette_block and '.FAM' in id:
-            (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[:shpi_id.rindex('children')])
+            (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[:shpi_id.rindex('children') - 1])
             (palette_block, palette_data) = _get_palette_from_wwww(parent_id, parent_block, parent_data,
-                                                                   int(shpi_id.split('/')[-2]))
+                                                                   int(shpi_id.split('/')[-3]))
         if palette_block is None and 'ART/CONTROL/' in id:
             # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
             from library import require_resource

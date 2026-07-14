@@ -1,7 +1,7 @@
 --- Test Statistics ---
 Total files tested: 7754
 Files read successfully: 3627
-Files written successfully: 3480
+Files written successfully: 3481
 Files read again successfully: 1461
 Files passed comparison test: 1425
 
@@ -49,6 +49,7 @@ INFO: 100.00%
 .CFM: 100.00%
 .PBS: 100.00%
 .FMM: 100.00%
+.FAM: 100.00%
 .TRI: 100.00%
 .MMB: 100.00%
 .GEO: 100.00%
@@ -58,7 +59,6 @@ INFO: 100.00%
 .PFN: 100.00%
 .ENV: 100.00%
 .QFS: 99.13%
-.FAM: 98.72%
 .VIV: 97.65%
 .TRK: 88.89%
 .FRD: 23.68%
@@ -142,4 +142,4 @@ INFO: 0.00%
 .CRP: 0.00%
 
 --- Time Spent ---
-Total time: 00:57:23.15
+Total time: 00:24:6.65
