@@ -22,6 +22,7 @@ datas = (
 )
 
 from version import __version__
+from file_associations import FILE_ASSOCIATIONS
 a = Analysis(
     ['run.py'],
     pathex=['.'],
@@ -75,137 +76,12 @@ app = BUNDLE(
     info_plist={
         'CFBundleDocumentTypes': [
             {
-                'CFBundleTypeName': 'AS4 Audio File',
-                'CFBundleTypeExtensions': ['as4'],
+                'CFBundleTypeName': entry['name'],
+                'CFBundleTypeExtensions': [entry['extension']],
                 'CFBundleTypeRole': 'Editor',
                 'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'ASF Audio File',
-                'CFBundleTypeExtensions': ['asf'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'BNK Sound Bank File',
-                'CFBundleTypeExtensions': ['bnk'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'CFM Car 3D Model File',
-                'CFBundleTypeExtensions': ['cfm'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'COL Track Data File',
-                'CFBundleTypeExtensions': ['col'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'EAS Audio File',
-                'CFBundleTypeExtensions': ['eas'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'ENV Image Archive File',
-                'CFBundleTypeExtensions': ['env'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'FAM Archive File',
-                'CFBundleTypeExtensions': ['fam'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'FFN Bitmap Font File',
-                'CFBundleTypeExtensions': ['ffn'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'FRD Track File',
-                'CFBundleTypeExtensions': ['frd'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'FSH Image Archive File',
-                'CFBundleTypeExtensions': ['fsh'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'GEO Car 3D Model File',
-                'CFBundleTypeExtensions': ['geo'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'MSK Archive File',
-                'CFBundleTypeExtensions': ['msk'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'PBS Car Physics File',
-                'CFBundleTypeExtensions': ['pbs'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'PDN Car Characteristic File',
-                'CFBundleTypeExtensions': ['pdn'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'QFS Compressed image Archive File',
-                'CFBundleTypeExtensions': ['qfs'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'TGV Video File',
-                'CFBundleTypeExtensions': ['tgv'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'TRI Track File',
-                'CFBundleTypeExtensions': ['tri'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'TRK Track File',
-                'CFBundleTypeExtensions': ['trk'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'UV Video File',
-                'CFBundleTypeExtensions': ['uv'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'VIV Archive File',
-                'CFBundleTypeExtensions': ['viv'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
-            {
-                'CFBundleTypeName': 'CRP Geometry File',
-                'CFBundleTypeExtensions': ['crp'],
-                'CFBundleTypeRole': 'Editor',
-                'LSHandlerRank': 'Owner',
-            },
+            }
+            for entry in FILE_ASSOCIATIONS
         ],
     },
 )
