@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2026-07-15 01:20:11.996372+00:00*
+*Last time updated: 2026-07-15 01:25:23.851994+00:00*
 
 
 # **Info by file extensions** #
@@ -341,4 +341,4 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x6f | Resource ID |
 | 1 | **unk** | 3 | Bytes | Unknown purpose |
 | 4 | **len_text** | 4 | 4-bytes unsigned integer (little endian) | Length of 'text' utf8 block |
-| 8 | **text** | num_text | UTF-8 string | - |
+| 8 | **text** | len_text | UTF-8 string | - |
