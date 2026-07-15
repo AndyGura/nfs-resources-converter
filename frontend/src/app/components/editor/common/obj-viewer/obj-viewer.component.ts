@@ -481,8 +481,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   public onColorChange(control: { value: number; change: (value: number) => void }, raw: string | null) {
     if (!raw) return;
-    const color = parseColorInputValue(raw);
+    let color = parseColorInputValue(raw);
     if (!color) return;
+    // remove alpha
+    color = color >>> 8;
     control.value = color;
     control.change(control.value);
   }
