@@ -10,7 +10,10 @@ import { fileFormatIcon } from '../../utils/file-format-icon';
   standalone: false,
 })
 export class NewFileDialogComponent {
-  public formats = [{ id: 'ffn', name: 'FFN font', blockClass: 'FfnFont' }];
+  public formats = [
+    { id: 'ffn', name: 'FFN font', blockClass: 'FfnFont' },
+    { id: 'fsh', name: 'FSH image archive', blockClass: 'ShpiBlock' },
+  ];
   public selectedFormat = 'ffn';
 
   constructor(public dialogRef: MatDialogRef<NewFileDialogComponent>) {}

@@ -54,10 +54,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt pyinstaller
+
+      - name: Generate build configs
+        run: python generate_build_configs.py
+
+      - name: Verify committed build configs are up to date
+        if: matrix.os == 'ubuntu-22.04'
+        run: git diff --exit-code nfs-resources-converter-mime.xml nfs-resources-converter.desktop windows-installer.filetypes.iss
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

@@ -70,14 +70,6 @@ export abstract class BaseApiDelegateService {
   }
 
   // File API
-  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
-    return (await this.getImpl()).openFileDialog(multiple);
-  }
-
-  public async saveFileDialog(fileName?: string): Promise<string | null> {
-    return (await this.getImpl()).saveFileDialog(fileName);
-  }
-
   public async openFile(path: string, forceReload: boolean = false) {
     return (await this.getImpl()).openFile(path, forceReload);
   }
@@ -129,10 +121,6 @@ export abstract class BaseApiDelegateService {
   }
 
   // Conversion API
-  public async selectDirectoryDialog(): Promise<string | null> {
-    return (await this.getImpl()).selectDirectoryDialog();
-  }
-
   public async convertFiles(
     inputPath: string,
     outputPath: string,
@@ -172,6 +160,19 @@ export abstract class BaseApiDelegateService {
 
   public async onFeUpdate(updateDict: ChangesFeUpdate): Promise<void> {
     return (await this.getImpl()).onFeUpdate(updateDict);
+  }
+
+  // File dialog API
+  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
+    return (await this.getImpl()).openFileDialog(multiple);
+  }
+
+  public async saveFileDialog(fileName?: string): Promise<string | null> {
+    return (await this.getImpl()).saveFileDialog(fileName);
+  }
+
+  public async selectDirectoryDialog(): Promise<string | null> {
+    return (await this.getImpl()).selectDirectoryDialog();
   }
 
   // shortcuts

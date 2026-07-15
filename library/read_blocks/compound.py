@@ -93,8 +93,10 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
 
     def new_data(self, patch = None):
         res = dict()
+        if patch is None:
+            patch = {}
         for name, field in self.field_blocks:
-            res[name] = field.new_data()
+            res[name] = field.new_data(patch.get(name, {}))
         return res
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):

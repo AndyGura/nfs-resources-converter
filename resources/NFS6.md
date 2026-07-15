@@ -1,6 +1,6 @@
 # **NFS 6 Hot Pursuit 2 file specs** #
 
-*Last time updated: 2026-07-01 22:07:03.215224+00:00*
+*Last time updated: 2026-07-15 01:20:12.212310+00:00*
 
 
 # **Info by file extensions** #
@@ -63,7 +63,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black: thy are reserved for cop car siren ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>34 (0x22): 24BitDos color format palette<br/>36 (0x24): 24Bit color format palette<br/>41 (0x29): 16BitUnk color format palette<br/>42 (0x2a): 32Bit color format palette<br/>45 (0x2d): 16Bit_1555 color format palette</details> | Resource ID |
+| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>34 (0x22): 24BitDos color format palette<br/>36 (0x24): 24Bit color format palette<br/>41 (0x29): 16Bit_0565 color format palette<br/>42 (0x2a): 32Bit color format palette<br/>45 (0x2d): 16Bit_1555 color format palette</details> | Resource ID |
 | 1 | **unk0** | 3 | Bytes | Unknown purpose |
 | 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
 | 6 | **unk1** | 2 | Bytes | Unknown purpose |

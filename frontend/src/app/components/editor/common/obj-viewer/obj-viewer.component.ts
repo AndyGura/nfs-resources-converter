@@ -41,6 +41,7 @@ import {
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { ViewMode, ViewModeController } from './view-mode-toolbar/view-mode.controller';
+import { parseColorInputValue } from '../../../../utils/parse-color-input-value';
 
 export type ViewFilterOpts = {
   name: string;
@@ -478,8 +479,14 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     return '#' + (value & 0xffffff).toString(16).padStart(6, '0');
   }
 
-  public fromHex(hex: string): number {
-    return parseInt(hex.substring(1), 16);
+  public onColorChange(control: { value: number; change: (value: number) => void }, raw: string | null) {
+    if (!raw) return;
+    let color = parseColorInputValue(raw);
+    if (!color) return;
+    // remove alpha
+    color = color >>> 8;
+    control.value = color;
+    control.change(control.value);
   }
 
   ngOnDestroy(): void {

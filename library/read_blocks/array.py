@@ -79,7 +79,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
-        if callable(self_len):
+        if callable(self_len) or self_len is None:
             return []
         return [self.child.new_data()] * self_len
 
@@ -120,6 +120,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         return res
 
 
+# TODO maybe merge with LengthPrefixedUtf8Block, make abstract
 class LengthPrefixedArrayBlock(ArrayBlock):
 
     def __init__(self, length_block: DataBlock, **kwargs):

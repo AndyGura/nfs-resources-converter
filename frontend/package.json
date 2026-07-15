@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "prestart": "python scripts/download_fonts.py",
     "start": "ng serve",
+    "prebuild": "python scripts/download_fonts.py",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",

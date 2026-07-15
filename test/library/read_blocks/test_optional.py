@@ -69,7 +69,7 @@ class TestOptional(unittest.TestCase):
         opt = OptionalBlock(child=IntegerBlock(length=2), criteria=lambda ctx: True)
         self.assertEqual(opt.size_doc_str, '0..2')
 
-        from library.read_blocks.smart_fields import DelegateBlock
+        from library.read_blocks.delegates import DelegateBlock
         opt2 = OptionalBlock(child=DelegateBlock(possible_blocks=[IntegerBlock(length=2), IntegerBlock(length=4)]),
                              criteria=lambda ctx: True)
         self.assertEqual(opt2.size_doc_str, '0..4')

@@ -53,8 +53,8 @@ export type CustomAction = {
 
 export type CustomActionArgument = { id: string; title: string } & (
   | { type: 'file_output'; file_name_suffix: string }
-  | { type: 'number' }
-  | { type: 'string' }
-  | { type: 'bool' }
+  | { type: 'number'; default?: number }
+  | { type: 'string'; default?: string }
+  | { type: 'bool'; default?: boolean }
   | { type: 'enum_string'; choices: string[] }
 );

@@ -1,7 +1,7 @@
-import { ChangeDetectorRef, Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input } from '@angular/core';
 import { MainService } from '../../../../services/main.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Resource, CustomAction } from '../../types';
+import { CustomAction, Resource } from '../../types';
 import { lastIdPart } from '../../../../utils/join-id';
 import { CustomActionService } from '../../../../services/custom-action.service';
 
@@ -18,6 +18,18 @@ export class BlockActionsComponent {
 
   @Input()
   public hideCustomActions = false;
+
+  @Input()
+  public customActionsBlacklist: string[] = [];
+
+  @Input()
+  public size: 'default' | 'small' = 'default';
+
+  get customActions(): CustomAction[] {
+    return (this.resource?.schema?.custom_actions || []).filter(
+      (action: CustomAction) => !this.customActionsBlacklist.includes(action.method),
+    );
+  }
 
   constructor(
     readonly mainService: MainService,
@@ -73,9 +85,17 @@ export class BlockActionsComponent {
     if (!this.resource) {
       return;
     }
-    // TODO need a way to select directory?
-    let paths = await this.mainService.api.openFileDialog(true);
-    if (!paths) {
+    const isDirectory = !!this.resource.schema?.serialization?.is_directory;
+    let paths: string[] | null = null;
+    if (isDirectory) {
+      const path = await this.mainService.api.selectDirectoryDialog();
+      if (path) {
+        paths = [path];
+      }
+    } else {
+      paths = await this.mainService.api.openFileDialog(true);
+    }
+    if (!paths || paths.length === 0) {
       return;
     }
     try {

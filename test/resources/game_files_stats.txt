@@ -1,8 +1,8 @@
 --- Test Statistics ---
 Total files tested: 7754
 Files read successfully: 3627
-Files written successfully: 3480
-Files read again successfully: 1432
+Files written successfully: 3481
+Files read again successfully: 1461
 Files passed comparison test: 1425
 
 --- File Extension Read Success Rates (Test 1) ---
@@ -49,6 +49,7 @@ INFO: 100.00%
 .CFM: 100.00%
 .PBS: 100.00%
 .FMM: 100.00%
+.FAM: 100.00%
 .TRI: 100.00%
 .MMB: 100.00%
 .GEO: 100.00%
@@ -58,7 +59,6 @@ INFO: 100.00%
 .PFN: 100.00%
 .ENV: 100.00%
 .QFS: 99.13%
-.FAM: 98.72%
 .VIV: 97.65%
 .TRK: 88.89%
 .FRD: 23.68%
@@ -75,6 +75,8 @@ INFO: 0.00%
 
 --- File Extension Read-Again Success Rates (Test 3) ---
 .FFN: 100.00%
+.FSB: 100.00%
+.EAS: 100.00%
 .AS4: 100.00%
 .FMM: 100.00%
 .MMB: 100.00%
@@ -83,21 +85,19 @@ INFO: 0.00%
 .COL: 100.00%
 .PFN: 100.00%
 .ENV: 100.00%
-.FSH: 96.20%
-.EAS: 95.85%
+.FSH: 98.03%
 .TRK: 88.89%
 .CFM: 74.36%
 .TRI: 58.82%
 .VIV: 43.90%
 .FAM: 29.49%
-.FSB: 20.00%
 .ART: 12.50%
+.ASF: 5.36%
 .BNK: 3.86%
 .SPL: 0.99%
 .CAN: 0.62%
 .QFS: 0.00%
 .TGV: 0.00%
-.ASF: 0.00%
 .DAT: 0.00%
 .PDN: 0.00%
 .PBS: 0.00%
@@ -142,4 +142,4 @@ INFO: 0.00%
 .CRP: 0.00%
 
 --- Time Spent ---
-Total time: 00:47:50.33
+Total time: 00:24:6.65

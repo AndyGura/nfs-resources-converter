@@ -5,7 +5,7 @@ import socketserver
 import sys
 import tempfile
 import threading
-from distutils.dir_util import copy_tree
+import shutil
 
 import webview
 
@@ -210,7 +210,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     else:
         # Production mode: copy the frontend build and drop the shim alongside.
         src = _get_frontend_dist_path()
-        copy_tree(src, static_path)
+        shutil.copytree(src, static_path, dirs_exist_ok=True)
         # The frontend's index.html loads `/eel.js`; provide our shim under that name.
         with open(os.path.join(static_path, 'eel.js'), 'w', encoding='utf-8') as f:
             f.write(_EEL_SHIM_JS)

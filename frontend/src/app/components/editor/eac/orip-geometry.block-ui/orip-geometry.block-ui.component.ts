@@ -55,14 +55,13 @@ export class OripGeometryBlockUiComponent extends GuiComponent implements AfterV
     if (this.resourceId && this.resourceId.includes('.CFM__')) {
       try {
         const idParts = this.resourceId.split('/')!;
-        idParts.pop();
-        idParts[idParts.length - 1] = '' + (+idParts[idParts.length - 1] + 1);
-        const shpiData = await this.mainService.api.retrieveValue(idParts.join('/') + '/data');
-        const paletteIndex = shpiData.children_aliases.findIndex((x: string) => x === '!PAL');
-        if (paletteIndex == -1) throw new Error('Not a car');
+        idParts[idParts.length - 3] = '' + (+idParts[idParts.length - 3] + 1);
+        const shpiData = await this.mainService.api.retrieveValue(idParts.join('/'));
+        const palette = shpiData.children.find((x: any) => x.alias === '!PAL');
+        if (!palette) throw new Error('Not a car');
         const meshController = new TnfsCarMeshController(
           obj,
-          shpiData.children[paletteIndex].data.colors[254] >>> 8,
+          palette.item.data.colors.data[254] >>> 8,
           this.previewPaths$.value![0].substring(0, this.previewPaths$.value![0].lastIndexOf('/')) + `/assets`,
         );
         this.customControls = [

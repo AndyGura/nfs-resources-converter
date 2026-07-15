@@ -53,8 +53,7 @@
         [resourceOrError]="
           (navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async)
         "
-        [hideName]="true"
-        [hideBlockActions]="$safeNavigationMigration((navigation.navigationPath$ | async)?.length) == 0"></app-editor>
+        [hideName]="true"></app-editor>
       <div class="scroll-bounds-snapper"></div>
     </div>
   </div>

@@ -9,8 +9,8 @@ from library.read_blocks import (IntegerBlock,
                                  ArrayBlock,
                                  Padding,
                                  SubByteCompoundBlock,
+                                 OptionalBlock,
                                  )
-from library.read_blocks.misc.optional import OptionalBlock
 from library.read_blocks.misc.value_validators import Or
 from resources.eac.bitmaps import EacImage
 from resources.eac.fields.misc import Point2D

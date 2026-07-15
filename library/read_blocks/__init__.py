@@ -15,14 +15,14 @@ from .compound import (
     SubByteCompoundBlock,
     BitFlagsBlock,
 )
-from .misc.optional import OptionalBlock
+from .optional import OptionalBlock
 from .numbers import (
     IntegerBlock,
     FixedPointBlock,
     DecimalBlock,
     EnumByteBlock,
 )
-from .smart_fields import (
+from .delegates import (
     DelegateBlock,
     AutoDetectBlock,
     EnumLookupDelegateBlock,

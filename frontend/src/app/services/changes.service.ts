@@ -157,7 +157,7 @@ export class ChangesService {
   private _changes: ChangeEntry[] = [];
   private _localRevision: number = 0;
   private _fileRevision: number = 0;
-  private _cdrSubscribers: { [id: string]: SubscribableGuiComponent } = {};
+  private _cdrSubscribers: { [id: string]: SubscribableGuiComponent[] } = {};
   public change$: Subject<string> = new Subject();
 
   public hasUnsavedChanges$: BehaviorSubject<boolean> = new BehaviorSubject(false);
@@ -198,7 +198,6 @@ export class ChangesService {
     this.api.onFileOpened$.subscribe(() => {
       this.clear();
     });
-    (window as any).cdrSubscribers = this._cdrSubscribers;
   }
 
   public async syncState() {
@@ -282,6 +281,7 @@ export class ChangesService {
   }
 
   private notifyUi(blockIds: string[]) {
+    const comps: Set<SubscribableGuiComponent> = new Set();
     for (const blockId of blockIds) {
       let subscriptionId = Object.keys(this._cdrSubscribers)
         .filter(id => blockId.startsWith(id))
@@ -290,19 +290,33 @@ export class ChangesService {
           return cur;
         }, null);
       if (subscriptionId !== null) {
-        this.ngZone.run(() => {
-          this._cdrSubscribers[subscriptionId!].onExternalChanges();
-        });
+        for (const comp of this._cdrSubscribers[subscriptionId!]) {
+          comps.add(comp);
+        }
       }
+    }
+    this.ngZone.run(() => {
+      for (const comp of comps) {
+        comp.onExternalChanges();
+      }
+    });
+    for (const blockId of blockIds) {
       this.change$.next(blockId);
     }
   }
 
   public subscribeComponent(resourceId: string, component: SubscribableGuiComponent) {
-    this._cdrSubscribers[resourceId] = component;
+    if (!this._cdrSubscribers[resourceId]) {
+      this._cdrSubscribers[resourceId] = [component];
+    } else {
+      this._cdrSubscribers[resourceId].push(component);
+    }
   }
 
-  public unsubscribeComponent(resourceId: string) {
-    delete this._cdrSubscribers[resourceId];
+  public unsubscribeComponent(resourceId: string, component: SubscribableGuiComponent) {
+    this._cdrSubscribers[resourceId] = this._cdrSubscribers[resourceId].filter(c => c !== component);
+    if (this._cdrSubscribers[resourceId].length === 0) {
+      delete this._cdrSubscribers[resourceId];
+    }
   }
 }
