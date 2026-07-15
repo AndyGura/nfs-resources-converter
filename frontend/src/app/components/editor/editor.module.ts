@@ -63,6 +63,8 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
     BlockActionsComponent,
     ObjViewerComponent,
     ViewModeToolbarComponent,
+    ArchiveItemEditDialogComponent,
+    ArchiveDelegateItemTypeDialogComponent,
 
     // common data blocks
     NumberBlockUiComponent,
@@ -75,8 +77,6 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
     DelegateBlockUiComponent,
     AngleBlockUiComponent,
     ArchiveBlockUiComponent,
-    ArchiveItemEditDialogComponent,
-    ArchiveDelegateItemTypeDialogComponent,
 
     // common nfs data blocks
     ImageBlockUiComponent,
