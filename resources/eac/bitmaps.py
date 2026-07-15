@@ -396,7 +396,7 @@ class EacPalette(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (EnumByteBlock(enum_names=[(0x22, '24BitDos color format palette'),
                                                  (0x24, '24Bit color format palette'),
-                                                 (0x29, '16BitUnk color format palette'),
+                                                 (0x29, '16Bit_0565 color format palette'),
                                                  (0x2A, '32Bit color format palette'),
                                                  # TODO colors 15-0 ? found here https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
                                                  (0x2D, '16Bit_1555 color format palette')]),
@@ -452,7 +452,7 @@ class EacPalette(DeclarativeCompoundBlock):
                         'type': 'enum_string',
                         'choices': ['24BitDos color format palette',
                                     '24Bit color format palette',
-                                    '16BitUnk color format palette',
+                                    '16Bit_0565 color format palette',
                                     '32Bit color format palette',
                                     '16Bit_1555 color format palette']
                     }],
@@ -483,7 +483,7 @@ class EacPalette(DeclarativeCompoundBlock):
             return [(x & 0x3F3F3F) << 10 | 255 for x in colors]
         elif resource_id == '24Bit color format palette':
             return [x << 8 | 0xFF for x in colors]
-        elif resource_id == '16BitUnk color format palette':
+        elif resource_id == '16Bit_0565 color format palette':
             return [transform_color_bitness(x, 0, 5, 6, 5) for x in colors]
         elif resource_id == '32Bit color format palette':
             # ARGB => RGBA
@@ -498,7 +498,7 @@ class EacPalette(DeclarativeCompoundBlock):
             return [(x & 0xFCFCFC00) >> 10 for x in colors]
         elif resource_id == '24Bit color format palette':
             return [x >> 8 for x in colors]
-        elif resource_id == '16BitUnk color format palette':
+        elif resource_id == '16Bit_0565 color format palette':
             return [revert_color_bitness(x, 0, 5, 6, 5) for x in colors]
         elif resource_id == '32Bit color format palette':
             # ARGB => RGBA

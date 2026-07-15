@@ -67,7 +67,7 @@ class ShpiBlock(ArchiveBlock):
                             'type': 'enum_string',
                             'choices': ['24BitDos color format palette',
                                         '24Bit color format palette',
-                                        '16BitUnk color format palette',
+                                        '16Bit_0565 color format palette',
                                         '32Bit color format palette',
                                         '16Bit_1555 color format palette']
                         },

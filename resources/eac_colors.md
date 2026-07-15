@@ -57,8 +57,9 @@ grayscale images in some cases.
 - `NFS4`
 - `NFS5`
 
-### 16Bit_unk (palette resource id: 0x29)
-- **Description**: 16-bit color, unknown bit layout.
+### 16Bit_0565 (palette resource id: 0x29)
+- **Description**: 16-bit 0565 color.
+- **Bit layout**: `rrrrrggg_gggbbbbb` (2 bytes).
 
 **Found in games**:
 - `NFS2 SE`
