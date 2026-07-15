@@ -23,7 +23,7 @@ from resources.eac import (archives,
 
 
 def render_value_doc_str(value: str) -> str:
-    return str(value).replace('*', '\*')
+    return str(value).replace('*', '\\*')
 
 
 def render_type(instance: DataBlock, possible_blocks_filter=None) -> str:
@@ -76,39 +76,39 @@ EXPORT_RESOURCES = {
     'tnfsse': {
         'file_name': 'TNFS_SE.md',
         'title': 'TNFSSE (PC) file specs',
-        'file_list': f"""**\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
+        'file_list': f"""**\\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
 
-**\*.AS4**, **\*.ASF**, **\*.EAS** audio + loop settings. {render_type(audios.AsfAudio())}
+**\\*.AS4**, **\\*.ASF**, **\\*.EAS** audio + loop settings. {render_type(audios.AsfAudio())}
 
-**\*.BNK** sound bank. {render_type(archives.SoundBank())}
+**\\*.BNK** sound bank. {render_type(archives.SoundBank())}
 
-**\*.CFM** car 3D model. {render_type(archives.WwwwBlock())} with 4 entries:
+**\\*.CFM** car 3D model. {render_type(archives.WwwwBlock())} with 4 entries:
 - {render_type(geometries.OripGeometry())} high-poly 3D model
 - {render_type(archives.ShpiBlock())} textures for high-poly model
 - {render_type(geometries.OripGeometry())} low-poly 3D model
 - {render_type(archives.ShpiBlock())} textures for low-poly model
 
-**\*.FAM** track textures, props, skybox. {render_type(archives.WwwwBlock())} with 4 entries:
+**\\*.FAM** track textures, props, skybox. {render_type(archives.WwwwBlock())} with 4 entries:
 - {render_type(archives.WwwwBlock())} (background) contains few {render_type(archives.ShpiBlock())} items, terrain textures
 - {render_type(archives.WwwwBlock())} (foreground) contains few {render_type(archives.ShpiBlock())} items, prop textures
 - {render_type(archives.ShpiBlock())} (skybox) contains horizon texture
 - {render_type(archives.WwwwBlock())} (props) contains a series of consecutive {render_type(geometries.OripGeometry())} + {render_type(archives.ShpiBlock())} items, 3D props
 
-**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, [compressed](eac_compressions.md)
+**\\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, [compressed](eac_compressions.md)
 
-**\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
+**\\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\*.TGV** video, I just use ffmpeg to convert it
+**\\*.TGV** video, I just use ffmpeg to convert it
 
-**\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(maps.TriMap())}
+**\\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(maps.TriMap())}
 
-**GAMEDATA\CONFIG\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(configs.TnfsConfigDat())}""",
+**GAMEDATA\\CONFIG\\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(configs.TnfsConfigDat())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -162,23 +162,23 @@ EXPORT_RESOURCES = {
     'nfs2': {
         'file_name': 'NFS2.md',
         'title': 'NFS2 file specs',
-        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
+        'file_list': f"""**\\*.COL** track additional data. {render_type(maps.MapColFile())}
         
-**\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
+**\\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
         
-**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.MSK** archive with some data. {render_type(archives.BigfBlock())}
+**\\*.MSK** archive with some data. {render_type(archives.BigfBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\*.TRK** main track file. {render_type(maps.TrkMap())}
+**\\*.TRK** main track file. {render_type(maps.TrkMap())}
 
-**\*.UV** video, I just use ffmpeg to convert it
+**\\*.UV** video, I just use ffmpeg to convert it
 
-**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -232,19 +232,19 @@ EXPORT_RESOURCES = {
     'nfs2se': {
         'file_name': 'NFS2_SE.md',
         'title': 'NFS2SE file specs',
-        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
+        'file_list': f"""**\\*.COL** track additional data. {render_type(maps.MapColFile())}
         
-**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\*.TRK** main track file. {render_type(maps.TrkMap())}
+**\\*.TRK** main track file. {render_type(maps.TrkMap())}
 
-**\*.UV** video, I just use ffmpeg to convert it
+**\\*.UV** video, I just use ffmpeg to convert it
 
-**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -298,17 +298,17 @@ EXPORT_RESOURCES = {
     'nfs3': {
         'file_name': 'NFS3.md',
         'title': 'NFS 3 Hot Pursuit file specs',
-        'file_list': f"""**\*.COL** track additional data. {render_type(maps.MapColFile())}
+        'file_list': f"""**\\*.COL** track additional data. {render_type(maps.MapColFile())}
         
-**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.FRD** main track file. {render_type(maps.FrdMap())}
+**\\*.FRD** main track file. {render_type(maps.FrdMap())}
 
-**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -369,15 +369,15 @@ EXPORT_RESOURCES = {
     'nfs4': {
         'file_name': 'NFS4.md',
         'title': 'NFS 4 High Stakes file specs',
-        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        'file_list': f"""**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
         
-**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -408,15 +408,15 @@ EXPORT_RESOURCES = {
     'nfs5': {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
-        'file_list': f"""**\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, [compressed](eac_compressions.md)
+        'file_list': f"""**\\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, [compressed](eac_compressions.md)
         
-**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.ENV** image archive. {render_type(archives.ShpiBlock())}
+**\\*.ENV** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -482,11 +482,11 @@ EXPORT_RESOURCES = {
     'nfs6': {
         'file_name': 'NFS6.md',
         'title': 'NFS 6 Hot Pursuit 2 file specs',
-        'file_list': f"""**\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        'file_list': f"""**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
 
-**\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
 
-**\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
@@ -577,7 +577,7 @@ Did not find what you need or some given data is wrong? Please submit an
                     new_contents += render_field(offset, f'len_{key}', field.length_block,
                                                  {"description": f"Length of '{key}' utf8 block"})
                     offset = add_doc_numbers(offset, field.length_block.size_doc_str)
-                    tmp_utf_field = UTF8Block(length=lambda ctx: ctx.data(f"num_{key}"))
+                    tmp_utf_field = UTF8Block(length=lambda ctx: ctx.data(f"len_{key}"))
                     new_contents += render_field(offset, key, tmp_utf_field, extras)
                     offset = add_doc_numbers(offset, tmp_utf_field.size_doc_str)
                 elif isinstance(field, Padding):
