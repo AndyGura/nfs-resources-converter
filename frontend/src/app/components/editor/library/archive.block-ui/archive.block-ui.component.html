@@ -1,0 +1,111 @@
+@if (resourceData) {
+  <mat-selection-list
+    [multiple]="false"
+    (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
+    <mat-list-option value="___headers___" [selected]="selectedValue == '___headers___'">
+      <div class="option-content">
+        <span class="key-label">{{ blockClassStr(resourceSchema) || 'Headers' }}</span>
+        <div class="flex-spacer"></div>
+        @if (resourceSchema && !hideBlockActions) {
+          <app-block-actions
+            (click)="$event.stopPropagation()"
+            class="item-actions"
+            [resource]="{
+              id: resourceId!,
+              name: resourceName!,
+              data: resourceData,
+              schema: resourceSchema,
+            }"
+            size="small"></app-block-actions>
+        }
+      </div>
+    </mat-list-option>
+    <div class="list-label">Children</div>
+    @for (child of resourceData.children; track i; let i = $index) {
+      <mat-list-option
+        [value]="[i, child]"
+        [selected]="selectedValue && selectedValue[1] == child"
+        (dblclick)="onDoubleClick(i)">
+        <mat-icon matListItemIcon class="type-icon">{{ childIcon(child) }}</mat-icon>
+        <div class="option-content">
+          <span class="key-label" [class.no-alias]="supportsAliases && !child.alias">{{
+            child.alias || i.toString()
+          }}</span>
+          <div class="flex-spacer"></div>
+          @if (!disabled) {
+            <div matListItemEnd class="item-actions">
+              <button
+                mat-icon-button
+                color="primary"
+                class="mat-icon-button-sm-24"
+                (click)="$event.stopPropagation(); editItem(i)"
+                matTooltip="Edit item">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="primary"
+                class="mat-icon-button-sm-24 move-item-button"
+                [disabled]="!!disabled || i === 0"
+                (click)="$event.stopPropagation(); moveItemUp(i)"
+                matTooltip="Move up">
+                <mat-icon>arrow_upward</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="primary"
+                class="mat-icon-button-sm-24 move-item-button"
+                [disabled]="!!disabled || i === resourceData.children.length - 1"
+                (click)="$event.stopPropagation(); moveItemDown(i)"
+                matTooltip="Move down">
+                <mat-icon>arrow_downward</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                class="mat-icon-button-sm-24 remove-item-button"
+                [disabled]="!!disabled"
+                (click)="$event.stopPropagation(); removeItem(i)"
+                matTooltip="Remove item">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      </mat-list-option>
+    }
+    @if (!disabled) {
+      <div style="flex: 1"></div>
+      <div class="add-item-container">
+        <button mat-button color="primary" (click)="addItem()" class="add-item-button">
+          <mat-icon>add</mat-icon>
+          Add Item
+        </button>
+      </div>
+    }
+  </mat-selection-list>
+  @if (selectedValue) {
+    <mat-card>
+      @if (selectedValue === '___headers___') {
+        <app-compound-block-ui
+          [resourceId]="resourceId"
+          [resourceName]="resourceName"
+          [resourceData]="resourceData"
+          [resourceSchema]="resourceSchema"
+          [resourceDescription]="resourceDescription"
+          [hideName]="hideName"
+          [hideBlockActions]="true"
+          [fieldBlacklist]="['children']"></app-compound-block-ui>
+      } @else {
+        <app-editor
+          [resourceOrError]="{
+            id: joinId(this.resourceId || '', `children/${selectedValue[0]}/item`),
+            data: selectedValue[1].item,
+            schema: childSchema,
+            name: selectedValue[1].alias || selectedValue[0].toString(),
+          }"
+          [hideName]="true"></app-editor>
+      }
+    </mat-card>
+  }
+}

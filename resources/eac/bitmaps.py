@@ -165,7 +165,7 @@ class EacImage(DeclarativeCompoundBlock):
             ]
         }
 
-    def new_data(self):
+    def new_data(self, patch=None):
         data = super().new_data()
         data['width'] = 1
         data['height'] = 1
@@ -396,7 +396,7 @@ class EacPalette(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (EnumByteBlock(enum_names=[(0x22, '24BitDos color format palette'),
                                                  (0x24, '24Bit color format palette'),
-                                                 (0x29, '16BitUnk color format palette'),
+                                                 (0x29, '16Bit_0565 color format palette'),
                                                  (0x2A, '32Bit color format palette'),
                                                  # TODO colors 15-0 ? found here https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
                                                  (0x2D, '16Bit_1555 color format palette')]),
@@ -440,6 +440,22 @@ class EacPalette(DeclarativeCompoundBlock):
                     'description': 'Inverts all colors',
                     'is_pure': False,
                     'args': [],
+                },
+                {
+                    'method': 'convert_format',
+                    'title': 'Convert color format',
+                    'description': 'Converts color format',
+                    'is_pure': False,
+                    'args': [{
+                        'id': 'color_mode',
+                        'title': 'Color mode',
+                        'type': 'enum_string',
+                        'choices': ['24BitDos color format palette',
+                                    '24Bit color format palette',
+                                    '16Bit_0565 color format palette',
+                                    '32Bit color format palette',
+                                    '16Bit_1555 color format palette']
+                    }],
                 }
             ],
             'block_description': 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, '
@@ -449,7 +465,7 @@ class EacPalette(DeclarativeCompoundBlock):
                                  'for cop car siren',
         }
 
-    def new_data(self):
+    def new_data(self, patch=None):
         return {**super().new_data(),
                 'last_color_transparent': False}
 
@@ -462,6 +478,36 @@ class EacPalette(DeclarativeCompoundBlock):
             return None
         return super().get_child_block(name)
 
+    def _colors_native_to_internal(self, resource_id, colors):
+        if resource_id == '24BitDos color format palette':
+            return [(x & 0x3F3F3F) << 10 | 255 for x in colors]
+        elif resource_id == '24Bit color format palette':
+            return [x << 8 | 0xFF for x in colors]
+        elif resource_id == '16Bit_0565 color format palette':
+            return [transform_color_bitness(x, 0, 5, 6, 5) for x in colors]
+        elif resource_id == '32Bit color format palette':
+            # ARGB => RGBA
+            return [(x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24 for x in colors]
+        elif resource_id == '16Bit_1555 color format palette':
+            return [transform_color_bitness(x, 1, 5, 5, 5) for x in colors]
+        else:
+            raise NotImplementedError(f"Palette resource ID {resource_id} is not supported")
+
+    def _colors_internal_to_native(self, resource_id, colors):
+        if resource_id == '24BitDos color format palette':
+            return [(x & 0xFCFCFC00) >> 10 for x in colors]
+        elif resource_id == '24Bit color format palette':
+            return [x >> 8 for x in colors]
+        elif resource_id == '16Bit_0565 color format palette':
+            return [revert_color_bitness(x, 0, 5, 6, 5) for x in colors]
+        elif resource_id == '32Bit color format palette':
+            # ARGB => RGBA
+            return [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in colors]
+        elif resource_id == '16Bit_1555 color format palette':
+            return [revert_color_bitness(x, 1, 5, 5, 5) for x in colors]
+        else:
+            raise NotImplementedError(f"Palette resource ID {resource_id} is not supported")
+
     def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
         if name == 'last_color_transparent':
             return None, unpacked_data['last_color_transparent']
@@ -473,40 +519,15 @@ class EacPalette(DeclarativeCompoundBlock):
             assert data['num_colors'] == data['num_colors1']
         # I'm not sure how game decides whether it should draw 255th color transparent or not.
         # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
+        # TODO 16Bit_1555 color format palette has it's own alpha. Turn off last_color_transparent for it?
         data['last_color_transparent'] = not data['resource_id'].startswith('32Bit') and len(
             data['colors']['data']) >= 256 and 'SLIDES/' not in ctx.ctx_path
-        if data['resource_id'] == '24BitDos color format palette':
-            data['colors']['data'] = [(x & 0x3F3F3F) << 10 | 255 for x in data['colors']['data']]
-        elif data['resource_id'] == '24Bit color format palette':
-            data['colors']['data'] = [x << 8 | 0xFF for x in data['colors']['data']]
-        elif data['resource_id'] == '16BitUnk color format palette':
-            data['colors']['data'] = [transform_color_bitness(x, 0, 5, 6, 5) for x in data['colors']['data']]
-        elif data['resource_id'] == '32Bit color format palette':
-            # ARGB => RGBA
-            for (i, pxl) in enumerate(data['colors']['data']):
-                data['colors']['data'][i] = (pxl & 0x00_ff_ff_ff) << 8 | (pxl & 0xff_00_00_00) >> 24
-        elif data['resource_id'] == '16Bit_1555 color format palette':
-            data['colors']['data'] = [transform_color_bitness(x, 1, 5, 5, 5) for x in data['colors']['data']]
-        else:
-            raise NotImplementedError(f"Palette resource ID {data['resource_id']} is not supported")
+        data['colors']['data'] = self._colors_native_to_internal(data['resource_id'], data['colors']['data'])
         return data
 
     def write(self, data, ctx: WriteContext = None, name: str = ''):
         copied = deepcopy(data)
-        if copied['resource_id'] == '24BitDos color format palette':
-            copied['colors']['data'] = [(x & 0xFCFCFC00) >> 10 for x in copied['colors']['data']]
-        elif copied['resource_id'] == '24Bit color format palette':
-            copied['colors']['data'] = [x >> 8 for x in copied['colors']['data']]
-        elif copied['resource_id'] == '16BitUnk color format palette':
-            copied['colors']['data'] = [revert_color_bitness(x, 0, 5, 6, 5) for x in copied['colors']['data']]
-        elif copied['resource_id'] == '32Bit color format palette':
-            # RGBA => ARGB
-            for (i, pxl) in enumerate(copied['colors']['data']):
-                copied['colors']['data'][i] = (pxl & 0xff_ff_ff_00) >> 8 | (pxl & 0xff) << 24
-        elif copied['resource_id'] == '16Bit_1555 color format palette':
-            copied['colors']['data'] = [revert_color_bitness(x, 1, 5, 5, 5) for x in copied['colors']['data']]
-        else:
-            raise NotImplementedError(f"Palette resource ID {copied['resource_id']} is not supported")
+        copied['colors']['data'] = self._colors_internal_to_native(copied['resource_id'], copied['colors']['data'])
         return super().write(copied, ctx, name)
 
     def action_invert_colors(self, read_data, **kwargs):
@@ -515,3 +536,12 @@ class EacPalette(DeclarativeCompoundBlock):
             alpha = color & 0xFF
             inverted_rgb = rgb ^ 0xFFFFFF
             read_data['colors']['data'][i] = (inverted_rgb << 8) | alpha
+
+    def action_convert_format(self, read_data, color_mode, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = color_mode
+        if current_color_format == target_color_format:
+            return
+        native = self._colors_internal_to_native(target_color_format, read_data['colors']['data'])
+        read_data['colors']['data'] = self._colors_native_to_internal(target_color_format, native)
+        read_data['resource_id'] = target_color_format

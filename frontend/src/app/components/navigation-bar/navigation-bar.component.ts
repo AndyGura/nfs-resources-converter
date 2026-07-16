@@ -9,29 +9,26 @@ import { MainService } from '../../services/main.service';
 @Component({
   selector: 'app-navigation-bar',
   template: `
-    <nav class="flex items-center space-x-1 py-2 px-4 bg-surface shadow-sm rounded-md">
-      <button mat-button (click)="navigate(0)" class="font-medium text-primary">
-        {{ rootName$ | async }}
-      </button>
+    @if (((navigation.navigationPath$ | async) || []).length > 0) {
+      <nav class="flex items-center space-x-1 py-2 px-4 bg-surface shadow-sm rounded-md">
+        <button mat-button (click)="navigate(0)" class="font-medium text-primary">
+          {{ rootName$ | async }}
+        </button>
 
-      @for (item of (navigation.navigationPath$ | async) || []; track item; let i = $index) {
-        @if (!['data', 'children'].includes(item)) {
-          <mat-divider vertical></mat-divider>
-          <span>/</span>
-          <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
-            {{ item }}
-          </button>
+        @for (item of (navigation.navigationPath$ | async) || []; track item; let i = $index) {
+          @if (!['data', 'children'].includes(item)) {
+            <mat-divider vertical></mat-divider>
+            <span>/</span>
+            <button mat-button (click)="navigate(i + 1)" class="font-medium text-secondary">
+              {{ item }}
+            </button>
+          }
         }
-      }
-    </nav>
+      </nav>
+    }
   `,
   styles: [
     `
-      :host {
-        padding: 1rem;
-        padding-bottom: 0;
-      }
-
       nav {
         display: flex;
         align-items: center;
@@ -41,6 +38,12 @@ import { MainService } from '../../services/main.service';
 
       button {
         text-transform: none;
+        margin: 1rem;
+        margin-bottom: 0;
+      }
+
+      span {
+        margin-top: 1rem;
       }
     `,
   ],

@@ -390,8 +390,8 @@ for obj in bpy.context.selected_objects:
                 from library import require_resource
                 (prop_id, prop_block, prop_data), _ = require_resource(
                     path_join('/'.join(id.split('/')[:-2]),
-                              f'ETRACKFM/{id.split("/")[-1][:3]}_001.FAM__children/3/data/children'
-                              f'/{descr["data"]["data"]["resource_id"]}/data/children/0/data')
+                              f'ETRACKFM/{id.split("/")[-1][:3]}_001.FAM__children/3/item/data/children'
+                              f'/{descr["data"]["data"]["resource_id"]}/item/data/children/0/item/data')
                 )
                 from serializers import OripGeometrySerializer
                 _, shpi_block, shpi_data, sub_models = OripGeometrySerializer().build_mesh(prop_data, prop_id)
@@ -400,13 +400,12 @@ for obj in bpy.context.selected_objects:
                     mesh.texture_id = f"props/{descr['data']['data']['resource_id']}/0/assets/" + mesh.texture_id
                     position_mesh(mesh)
                     meshes.append(mesh)
-                for ti, texture_name in enumerate(shpi_data['children_aliases']):
-                    texture_block = shpi_block.field_blocks_map['children'].child.possible_blocks[
-                        shpi_data['children'][ti]['choice_index']]
+                for ti, child in enumerate(shpi_data['children']):
+                    texture_block = shpi_block.item_block.possible_blocks[child['item']['choice_index']]
                     from resources.eac.bitmaps import EacImage
                     if not isinstance(texture_block, EacImage):
                         continue
-                    additional_textures.append(f"props/{descr['data']['data']['resource_id']}/0/assets/{texture_name}")
+                    additional_textures.append(f"props/{descr['data']['data']['resource_id']}/0/assets/{child['alias']}")
         return (meshes, additional_textures)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
@@ -604,13 +603,13 @@ class TrkMapSerializer(BaseFileSerializer):
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
-            (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
+            (_, _, shpi_children), _ = require_resource(id[:-4] + '0.QFS__data/children')
+            shpi_aliases = [x['alias'] for x in shpi_children if x['alias']]
 
             def get_texture(tex):
-                return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
+                return shpi_aliases[texture_map[tex]['texture_number']], texture_map[tex]['alignment']
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
             def get_texture(tex):
                 return f"{tex:04}", 0
@@ -768,8 +767,7 @@ for obj in bpy.context.selected_objects:
             from serializers import ShpiArchiveSerializer
             ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
         # export scenes
         return export_scenes(scenes, path, self.settings)
@@ -785,16 +783,16 @@ class FrdMapSerializer(BaseFileSerializer):
         from library import require_resource
         try:
             (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
-            (_, _, shpi_items), _ = require_resource(id[:-4] + '0.QFS__data/items_descr')
+            (_, _, shpi_children), _ = require_resource(id[:-4] + '0.QFS__data/children')
+            shpi_aliases = [x['alias'] for x in shpi_children if x['alias']]
 
             def get_texture(tex):
                 try:
-                    return shpi_items[texture_map[tex]['texture_number']]['name'], texture_map[tex]['alignment']
+                    return shpi_aliases[texture_map[tex]['texture_number']], texture_map[tex]['alignment']
                 except IndexError:
                     return f"{tex:04}", 0
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
             def get_texture(tex):
                 return f"{tex:04}", 0
@@ -905,8 +903,7 @@ for obj in bpy.context.selected_objects:
             from serializers import ShpiArchiveSerializer
             ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
         # export scenes
         return export_scenes(scenes, path, self.settings)

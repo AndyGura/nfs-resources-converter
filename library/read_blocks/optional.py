@@ -36,7 +36,7 @@ class OptionalBlock(DataBlock):
     def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
         return self.child.get_child_block_with_data(unpacked_data, name)
 
-    def new_data(self):
+    def new_data(self, patch = None):
         return self.default_value
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):

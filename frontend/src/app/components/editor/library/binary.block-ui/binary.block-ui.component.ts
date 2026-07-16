@@ -10,18 +10,18 @@ import { HexEditorDeltaChange } from 'ngx-hex-editor';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class BinaryBlockUiComponent extends SubscribableGuiComponent<number[]> {
+export class BinaryBlockUiComponent extends SubscribableGuiComponent<{ $bytes: number[] }> {
   @ViewChild('editor') editorDiv?: ElementRef<HTMLDivElement>;
 
-  override get resourceData(): number[] | undefined {
+  override get resourceData(): { $bytes: number[] } | undefined {
     return super.resourceData;
   }
 
   @Input()
-  override set resourceData(value: number[] | undefined) {
+  override set resourceData(value: { $bytes: number[] } | undefined) {
     super.resourceData = value;
     if (value) {
-      this.data$.next(new Uint8Array(value));
+      this.data$.next(new Uint8Array(value.$bytes));
     } else {
       this.data$.next(this.empty);
     }
@@ -32,7 +32,7 @@ export class BinaryBlockUiComponent extends SubscribableGuiComponent<number[]> {
   data$: BehaviorSubject<any> = new BehaviorSubject(new Uint8Array());
 
   override onExternalChanges() {
-    this.data$.next(new Uint8Array(super.resourceData!));
+    this.data$.next(new Uint8Array(super.resourceData!.$bytes));
   }
 
   onDataChange(event: HexEditorDeltaChange) {
@@ -41,21 +41,21 @@ export class BinaryBlockUiComponent extends SubscribableGuiComponent<number[]> {
     let index = event.index;
     switch (event.type) {
       case 'update':
-        oldPart = [this.resourceData![event.index]];
+        oldPart = [this.resourceData!.$bytes[event.index]];
         newPart = [event.data![0]];
         break;
       case 'insert':
         oldPart = [];
-        if (index > this.resourceData!.length) {
-          newPart = new Array(index - this.resourceData!.length).fill(0);
+        if (index > this.resourceData!.$bytes.length) {
+          newPart = new Array(index - this.resourceData!.$bytes.length).fill(0);
           newPart.push(event.data![0]);
-          index = this.resourceData!.length;
+          index = this.resourceData!.$bytes.length;
         } else {
           newPart = [event.data![0]];
         }
         break;
       case 'delete':
-        oldPart = Array.from(this.resourceData!.slice(event.index, event.index + event.count!));
+        oldPart = Array.from(this.resourceData!.$bytes.slice(event.index, event.index + event.count!));
         newPart = [];
         break;
       default:

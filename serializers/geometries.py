@@ -40,11 +40,11 @@ class OripGeometrySerializer(BaseFileSerializer):
             u_multiplier, v_multiplier = 1, 1
             if model.texture_id:
                 try:
-                    idx = textures_shpi_data['children_aliases'].index(model.texture_id)
-                    u_multiplier, v_multiplier = (1 / textures_shpi_data['children'][idx]['data']['width'],
-                                                  1 / textures_shpi_data['children'][idx]['data']['height'])
+                    c = next(x for x in textures_shpi_data['children'] if x['alias'] == model.texture_id)
+                    u_multiplier, v_multiplier = (1 / c['item']['data']['width'],
+                                                  1 / c['item']['data']['height'])
 
-                except ValueError:
+                except (StopIteration, ValueError):
                     pass
             model.vertex_uvs.append([block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'] * u_multiplier,
                                      block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier])
@@ -54,7 +54,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         # shpi is always next block
         from library import require_resource
         shpi_id = id.split('/')
-        shpi_id[-2] = str(int(shpi_id[-2]) + 1)
+        shpi_id[-3] = str(int(shpi_id[-3]) + 1)
         (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource('/'.join(shpi_id))
         if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
             raise DataIntegrityException('Cannot find SHPI archive for ORIP geometry')
@@ -128,12 +128,12 @@ class OripGeometrySerializer(BaseFileSerializer):
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
-        for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
-            texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
-                textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, EacImage):
-                continue
-            scene.mtl_texture_names.append(texture_name)
+        for c in textures_shpi_data['children']:
+            texture_block = \
+                textures_shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[
+                    c['item']['choice_index']]
+            if isinstance(texture_block, EacImage):
+                scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer
@@ -154,7 +154,7 @@ class GeoGeometrySerializer(BaseFileSerializer):
             local_id = id[id.index('__children/') + 11:]
             idx = int(local_id[:local_id.index('/')])
             (_, _, viv_data), _ = require_resource(id[:id.find('__children')])
-            qfs_name = viv_data['children_aliases'][idx].upper()
+            qfs_name = viv_data['children'][idx]['alias'].upper()
             qfs_id = path_join(id[:id.find('CARDATA.VIV')], f'../../CARMODEL/PC/{qfs_name[:-4]}.QFS')
         else:
             # NFS2
@@ -223,12 +223,12 @@ class GeoGeometrySerializer(BaseFileSerializer):
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
-        for i, texture_name in enumerate(textures_shpi_data['children_aliases']):
-            texture_block = textures_shpi_block.field_blocks_map['children'].child.possible_blocks[
-                textures_shpi_data['children'][i]['choice_index']]
-            if not isinstance(texture_block, EacImage):
-                continue
-            scene.mtl_texture_names.append(texture_name)
+        for c in textures_shpi_data['children']:
+            texture_block = \
+                textures_shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[
+                    c['item']['choice_index']]
+            if isinstance(texture_block, EacImage):
+                scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer

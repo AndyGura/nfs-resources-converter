@@ -5,14 +5,14 @@ from resources.eac.bitmaps import EacPalette
 def _get_palette_from_shpi(shpi_block, shpi_data: dict):
     # some of SHPI directories have upper-cased name of palette. Happens in TNFS track FAM files
     # some of SHPI directories have 0000 as palette. Happens in NFS2SE car models, dash hud, render/pc
-    child_field = shpi_block.field_blocks_map['children'].child
+    child_possible_blocks = shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks
     for name in ['!pal', '!PAL', '0000']:
         try:
-            idx = shpi_data['children_aliases'].index(name)
-            block = child_field.possible_blocks[shpi_data['children'][idx]['choice_index']]
+            idx = next(i for i, x in enumerate(shpi_data['children']) if x['alias'] == name)
+            block = child_possible_blocks[shpi_data['children'][idx]['item']['choice_index']]
             if block and isinstance(block, EacPalette):
-                return block, shpi_data['children'][idx]['data']
-        except ValueError:
+                return block, shpi_data['children'][idx]['item']['data']
+        except StopIteration:
             pass
     return None, None
 
@@ -23,8 +23,8 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
     palette_block = None
     palette_data = None
     for i in range(max_index - 1, -1, -1):
-        block = wwww_block.child_block.possible_blocks[wwww_data['children'][i]['choice_index']]
-        data = wwww_data['children'][i]['data']
+        block = wwww_block.item_block.possible_blocks[wwww_data['children'][i]['item']['choice_index']]
+        data = wwww_data['children'][i]['item']['data']
         if isinstance(block, ShpiBlock):
             (palette_block, palette_data) = _get_palette_from_shpi(block, data)
             if palette_block:
@@ -47,31 +47,22 @@ def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
         return None, None
     shpi_id = id[:max(id.rfind('__children'), id.rfind('/children'))]
     (_, shpi_block, shpi_data), _ = require_resource(shpi_id)
-    # in most cases next item in the shpi is the palette without alias in he SHPI header,
+    shpi_child = next(x for x in shpi_data['children'] if x['item']['data'] == data)
+    shpi_child_index = shpi_data['children'].index(shpi_child)
+    # in most cases next item in the shpi is the palette without alias in the SHPI header,
     # but I do not know how to interpret PaletteReference resource
-    alias = id[max(id.rfind('_children'), id.rfind('/children')) + 10:id.rfind('/data')]
-    try:
-        next_idx = shpi_data['children_aliases'].index(alias) + 1
-    except ValueError as ex:
-        # if accessed via array index id
-        if alias.isdigit():
-            next_idx = int(alias) + 1
-            alias = shpi_data['children_aliases'][int(alias)]
-        else:
-            raise ex
-    if next_idx < len(shpi_data['children_aliases']) and shpi_data['children_aliases'][next_idx] is None:
-        next_item = shpi_data['children'][next_idx]
-        next_item_block = shpi_block.field_blocks_map['children'].child.possible_blocks[next_item['choice_index']]
+    if shpi_child_index < (len(shpi_data['children']) - 1) and shpi_data['children'][shpi_child_index + 1]['alias'] is None:
+        next_child = shpi_data['children'][shpi_child_index + 1]
+        next_item_block = shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[next_child['item']['choice_index']]
         if isinstance(next_item_block, EacPalette):
-            palette_data, palette_block = next_item['data'], next_item_block
+            palette_data, palette_block = next_child['item']['data'], next_item_block
     if (palette_block is None
-            or isinstance(palette_block, PaletteReference)
-            or (alias == 'ga00' and 'TR2_001.FAM' in id)):
+            or (shpi_child['alias'] == 'ga00' and 'TR2_001.FAM' in id)):
         # try to use !pal from shpi
         palette_block, palette_data = _get_palette_from_shpi(shpi_block, shpi_data)
         # need to find the palette, it is a tricky part
         # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
-        # sometimes better, sometime worse, the difference is not much noticeable.
+        # sometimes better, sometimes worse, the difference is not much noticeable.
         # In case of Autumn Valley fence texture, it totally breaks the picture.
         # If ignore inline palettes in LN32 SHPI, DASH FSH will be broken ¯\_(ツ)_/¯
         # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯
@@ -79,9 +70,9 @@ def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
         # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette,
         # use previous available !pal. 7C bitmap resource data seems to not change as well :(
         if not palette_block and '.FAM' in id:
-            (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[:shpi_id.rindex('children')])
+            (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[:shpi_id.rindex('children') - 1])
             (palette_block, palette_data) = _get_palette_from_wwww(parent_id, parent_block, parent_data,
-                                                                   int(shpi_id.split('/')[-2]))
+                                                                   int(shpi_id.split('/')[-3]))
         if palette_block is None and 'ART/CONTROL/' in id:
             # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
             from library import require_resource

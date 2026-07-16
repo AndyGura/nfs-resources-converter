@@ -23,7 +23,6 @@ import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-u
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
 import { ChangesService } from '../../services/changes.service';
-import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
 import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
@@ -35,6 +34,7 @@ import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
+import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -54,6 +54,7 @@ export class EditorComponent implements OnDestroy {
     BytesBlock: BinaryBlockUiComponent,
 
     // basic containers
+    ArchiveBlock: ArchiveBlockUiComponent,
     ArrayBlock: ArrayBlockUiComponent,
     SubByteArrayBlock: ArrayBlockUiComponent,
     CompoundBlock: CompoundBlockUiComponent,
@@ -64,7 +65,6 @@ export class EditorComponent implements OnDestroy {
     AngleBlock: AngleBlockUiComponent,
 
     // Common classic Need For Speed blocks
-    BaseArchiveBlock: BaseArchiveBlockUiComponent,
     EacImage: ImageBlockUiComponent,
     EacPalette: PaletteBlockUiComponent,
     FfnFont: FontBlockUiComponent,

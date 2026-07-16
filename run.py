@@ -1,8 +1,12 @@
 import argparse
+import multiprocessing
 import os
 import pathlib
 import sys
+import logging
 from enum import Enum
+
+from library.utils.logging_setup import setup_logging
 
 
 class Action(Enum):
@@ -16,6 +20,9 @@ class Action(Enum):
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    setup_logging()
+    logging.info("Application starting...")
     # check if first argument is a valid action. If not, it is a file
     action = None
     if len(sys.argv) > 1:

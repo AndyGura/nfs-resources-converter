@@ -3,12 +3,12 @@ import os
 import shutil
 import sys
 import tempfile
-from distutils.dir_util import copy_tree
 
 import eel
 
 from api.api import API
 from api.bridge import bridge
+from library.utils.logging_setup import setup_logging
 
 # Port Eel listens on in development mode. It matches the ``target`` in
 # ``frontend/src/proxy.conf.json`` so the Angular dev server (``ng serve``, on
@@ -56,6 +56,9 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     static_path = static_dir.name
     dev_mode = bool(dev_server_url)
 
+    if not dev_mode:
+        setup_logging(redirect_stdout=True)
+
     src = _get_frontend_dist_path()
     if not dev_mode:
         # Copy only eel.*.js first so Eel can pick up the client early, then the
@@ -80,7 +83,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     else:
         # Production mode: serve the whole frontend build through Eel and open
         # it in a dedicated Chrome/Chromium app window.
-        copy_tree(src, static_path)
+        shutil.copytree(src, static_path, dirs_exist_ok=True)
 
         def on_close(page, sockets):
             os.system("pkill -f 'eel_chrome_profile'")

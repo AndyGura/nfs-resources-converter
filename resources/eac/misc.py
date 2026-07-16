@@ -3,6 +3,7 @@ from typing import Dict
 from library.context import WriteContext, ReadContext
 from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
 from library.read_blocks.misc.value_validators import Eq
+from library.read_blocks.strings import LengthPrefixedUtf8Block
 
 
 class ShpiText(DeclarativeCompoundBlock):
@@ -20,10 +21,7 @@ class ShpiText(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk = (BytesBlock(length=3),
                {'is_unknown': True})
-        length = (IntegerBlock(length=4),
-                  {'description': 'Text length'})
-        text = (UTF8Block(length=lambda ctx: ctx.data('length')),
-                {'description': 'Text itself'})
+        text = LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4))
 
     def serializer_class(self):
         from serializers import ShpiTextSerializer

@@ -25,32 +25,5 @@ Name: "{group}\NFS Resources Converter"; Filename: "{app}\nfs-resources-converte
 Name: "{commondesktop}\NFS Resources Converter"; Filename: "{app}\nfs-resources-converter-{#AppVersion}.exe"
 
 [Registry]
-; .fsh
-Root: HKCR; Subkey: ".fsh"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.fsh"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "NFSResourcesConverter.fsh"; ValueType: string; ValueName: ""; ValueData: "FSH Image File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.fsh\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.fsh\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
-
-; .fam
-Root: HKCR; Subkey: ".fam"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.fam"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "NFSResourcesConverter.fam"; ValueType: string; ValueName: ""; ValueData: "FAM Archive File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.fam\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.fam\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
-
-; .qfs
-Root: HKCR; Subkey: ".qfs"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.qfs"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "NFSResourcesConverter.qfs"; ValueType: string; ValueName: ""; ValueData: "QFS Compressed File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.qfs\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.qfs\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
-
-; .tri
-Root: HKCR; Subkey: ".tri"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.tri"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "NFSResourcesConverter.tri"; ValueType: string; ValueName: ""; ValueData: "TRI Track File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.tri\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.tri\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
-
-; .ffn
-Root: HKCR; Subkey: ".ffn"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.ffn"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "NFSResourcesConverter.ffn"; ValueType: string; ValueName: ""; ValueData: "FFN Bitmap Font File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.ffn\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.ffn\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+; File-type associations are generated from file_associations.py by generate_build_configs.py
+#include "windows-installer.filetypes.iss"

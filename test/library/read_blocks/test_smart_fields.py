@@ -1,9 +1,9 @@
 import unittest
 
 from library.read_blocks import CompoundBlock
-from library.read_blocks.misc.optional import OptionalBlock
+from library.read_blocks.optional import OptionalBlock
 from library.read_blocks.numbers import IntegerBlock
-from library.read_blocks.smart_fields import DelegateBlock
+from library.read_blocks.delegates import DelegateBlock
 
 class TestSmartFields(unittest.TestCase):
 

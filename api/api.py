@@ -6,6 +6,7 @@ This class initializes and manages all API endpoints.
 from api.bridge import bridge
 from .endpoints.conversion_api import ConversionAPI
 from .endpoints.file_api import FileAPI
+from .endpoints.file_dialog_api import FileDialogAPI
 from .endpoints.resource_api import ResourceAPI
 from .endpoints.serialization_api import SerializationAPI
 from .endpoints.changes_api import ChangesAPI
@@ -35,6 +36,7 @@ class API:
         self.serialization_api = SerializationAPI(self)
         self.conversion_api = ConversionAPI(self)
         self.changes_api = ChangesAPI(self)
+        self.file_dialog_api = FileDialogAPI(self)
 
         # Register all API endpoints
         self._register_endpoints()
@@ -43,8 +45,6 @@ class API:
         """Register all API endpoints with bridge."""
         # File API
         bridge.expose(self.file_api.on_angular_ready)
-        bridge.expose(self.file_api.open_file_dialog)
-        bridge.expose(self.file_api.save_file_dialog)
         bridge.expose(self.file_api.open_file)
         bridge.expose(self.file_api.open_file_with_system_app)
         bridge.expose(self.file_api.save_file)
@@ -61,7 +61,6 @@ class API:
         bridge.expose(self.serialization_api.deserialize_resource)
 
         # Conversion API
-        bridge.expose(self.conversion_api.select_directory_dialog)
         bridge.expose(self.conversion_api.convert_files)
         bridge.expose(self.conversion_api.get_general_config)
         bridge.expose(self.conversion_api.get_conversion_config)
@@ -76,6 +75,11 @@ class API:
 
         # Version API
         bridge.expose(self.get_version)
+
+        # File dialog API
+        bridge.expose(self.file_dialog_api.open_file_dialog)
+        bridge.expose(self.file_dialog_api.save_file_dialog)
+        bridge.expose(self.file_dialog_api.select_directory_dialog)
 
     def get_version(self) -> str:
         """Return the current application version."""

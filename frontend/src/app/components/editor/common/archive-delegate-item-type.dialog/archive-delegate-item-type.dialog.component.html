@@ -1,0 +1,15 @@
+<h2 mat-dialog-title>Select Item Type</h2>
+<mat-dialog-content>
+  <mat-selection-list [multiple]="false" (selectionChange)="selectedIndex = $event.options[0].value">
+    @for (schema of data.schemas; track $index) {
+      <mat-list-option [value]="$index" [selected]="selectedIndex === $index">
+        <mat-icon matListItemIcon>{{ fileFormatIcon(schema.block_class_mro) }}</mat-icon>
+        <span matListItemTitle>{{ getSchemaName(schema) }}</span>
+      </mat-list-option>
+    }
+  </mat-selection-list>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onSelect()">Select</button>
+</mat-dialog-actions>

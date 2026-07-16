@@ -4,7 +4,7 @@
 
 [✓] FFN fonts
 
-[ ] FSH image archives
+[✓] FSH image archives
 
 [ ] QFS image archives (compressed)
 

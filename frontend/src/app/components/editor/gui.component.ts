@@ -100,22 +100,32 @@ export abstract class SubscribableGuiComponent<BD extends BlockData = BlockData>
   override set resourceId(value: string | undefined) {
     if (super.resourceId === value) return;
     if (super.resourceId) {
-      this.changes.unsubscribeComponent(super.resourceId);
+      for (const rid of this.subscriptionKeys(super.resourceId)) {
+        this.changes.unsubscribeComponent(rid, this);
+      }
     }
     super.resourceId = value;
     if (super.resourceId) {
-      this.changes.subscribeComponent(super.resourceId, this);
+      for (const rid of this.subscriptionKeys(super.resourceId)) {
+        this.changes.subscribeComponent(rid, this);
+      }
     }
   }
 
   ngOnDestroy(): void {
     if (this._resourceId) {
-      this.changes.unsubscribeComponent(this._resourceId);
+      for (const rid of this.subscriptionKeys(this._resourceId)) {
+        this.changes.unsubscribeComponent(rid, this);
+      }
     }
   }
 
   public onExternalChanges() {
     this.cdr.markForCheck();
+  }
+
+  protected subscriptionKeys(resourceId: string): string[] {
+    return [resourceId];
   }
 
   public emitNewChange(change: ChangeEntryPayload & { id?: string }) {

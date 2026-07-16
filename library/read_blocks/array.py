@@ -72,14 +72,14 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return self.child, unpacked_data[int(name)]
 
-    def new_data(self):
+    def new_data(self, patch = None):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length
         if isinstance(self_len, tuple):
             # cut off the documentation
             (self_len, _) = self_len
-        if callable(self_len):
+        if callable(self_len) or self_len is None:
             return []
         return [self.child.new_data()] * self_len
 
@@ -120,6 +120,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         return res
 
 
+# TODO maybe merge with LengthPrefixedUtf8Block, make abstract
 class LengthPrefixedArrayBlock(ArrayBlock):
 
     def __init__(self, length_block: DataBlock, **kwargs):
@@ -139,7 +140,7 @@ class LengthPrefixedArrayBlock(ArrayBlock):
     def size_doc_str(self):
         return f'{self.length_block.size_doc_str}..?'
 
-    def new_data(self):
+    def new_data(self, patch = None):
         return []
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -231,7 +232,7 @@ class SubByteArrayBlock(DataBlock):
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return None, unpacked_data[int(name)]
 
-    def new_data(self):
+    def new_data(self, patch = None):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length

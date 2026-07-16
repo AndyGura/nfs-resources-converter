@@ -40,7 +40,11 @@ export class RunCustomActionDialogComponent {
       } else if (arg.type === 'enum_string') {
         defaultValue = arg.choices[0] || '';
       } else if (arg.type === 'bool') {
-        defaultValue = false;
+        defaultValue = !!arg.default;
+      } else if (arg.type === 'number') {
+        defaultValue = arg.default === undefined ? '' : arg.default.toString();
+      } else if (arg.type === 'string') {
+        defaultValue = arg.default === undefined ? '' : arg.default;
       }
       formData[arg.id] = [defaultValue, validators];
     }

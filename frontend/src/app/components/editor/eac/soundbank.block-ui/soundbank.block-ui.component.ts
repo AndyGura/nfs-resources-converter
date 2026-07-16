@@ -1,16 +1,7 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  OnChanges,
-  Output,
-  SimpleChanges,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnChanges, SimpleChanges } from '@angular/core';
 import { GuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
-import { BlockData, BlockSchema, Resource } from '../../types';
+import { BlockSchema, Resource } from '../../types';
 
 @Component({
   selector: 'app-soundbank-block-ui',

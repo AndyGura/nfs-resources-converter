@@ -37,7 +37,6 @@ import { ObjViewerComponent } from './common/obj-viewer/obj-viewer.component';
 import { ViewModeToolbarComponent } from './common/obj-viewer/view-mode-toolbar/view-mode-toolbar.component';
 
 import { MatSliderModule } from '@angular/material/slider';
-import { BaseArchiveBlockUiComponent } from './eac/base-archive.block-ui/base-archive.block-ui.component';
 import { ImageBlockUiComponent } from './eac/image.block-ui/image.block-ui.component';
 import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui.component';
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
@@ -50,6 +49,9 @@ import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 import { MatTab, MatTabGroup } from '@angular/material/tabs';
+import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
+import { ArchiveItemEditDialogComponent } from './common/archive-item-edit.dialog/archive-item-edit.dialog.component';
+import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
 
 @NgModule({
   declarations: [
@@ -61,6 +63,8 @@ import { MatTab, MatTabGroup } from '@angular/material/tabs';
     BlockActionsComponent,
     ObjViewerComponent,
     ViewModeToolbarComponent,
+    ArchiveItemEditDialogComponent,
+    ArchiveDelegateItemTypeDialogComponent,
 
     // common data blocks
     NumberBlockUiComponent,
@@ -72,9 +76,9 @@ import { MatTab, MatTabGroup } from '@angular/material/tabs';
     SubByteCompoundBlockUiComponent,
     DelegateBlockUiComponent,
     AngleBlockUiComponent,
+    ArchiveBlockUiComponent,
 
     // common nfs data blocks
-    BaseArchiveBlockUiComponent,
     ImageBlockUiComponent,
     PaletteBlockUiComponent,
     FontBlockUiComponent,

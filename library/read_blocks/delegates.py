@@ -75,9 +75,12 @@ class DelegateBlock(DataBlock):
     def get_choice_index_by_class_name(self, class_name):
         return [x.__class__.__name__ for x in self.possible_blocks].index(class_name)
 
-    def new_data(self):
-        return {'choice_index': 0,
-                'data': self.possible_blocks[0].new_data()}
+    def new_data(self, patch = None):
+        if patch is None:
+            patch = {}
+        choice_index = patch.get('choice_index', 0)
+        return {'choice_index': choice_index,
+                'data': self.possible_blocks[choice_index].new_data()}
 
     def serializer_class(self):
         from serializers import DelegateBlockSerializer
@@ -142,8 +145,7 @@ def _enum_lookup(ctx, enum_field, fallback_index):
     try:
         return [name for (_, name) in ctx.relative_block(enum_field).enum_names].index(ctx.data(enum_field))
     except Exception:
-        if config.general_config().print_errors:
-            traceback.print_exc()
+        traceback.print_exc()
         return fallback_index
 
 
