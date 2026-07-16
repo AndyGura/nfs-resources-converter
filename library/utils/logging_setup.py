@@ -69,7 +69,7 @@ def setup_logging(redirect_stdout=False):
     
     if _file_handler is None:
         try:
-            # Create a rotating file handler (50MB limit, 5 backups)
+            # Create a rotating file handler (1MB limit, 5 backups)
             # Use a simpler FileHandler for worker processes to avoid rotation conflicts on Windows
             import multiprocessing
             is_main_process = multiprocessing.current_process().name == 'MainProcess'
@@ -77,7 +77,7 @@ def setup_logging(redirect_stdout=False):
             if is_main_process:
                 _file_handler = RotatingFileHandler(
                     LOG_FILE_PATH,
-                    maxBytes=50 * 1024 * 1024,
+                    maxBytes=1024 * 1024,
                     backupCount=5,
                     encoding='utf-8'
                 )
