@@ -44,7 +44,6 @@ export class ConfigComponent implements OnInit {
     this.configForm = this.formBuilder.group({
       blender_executable: [''],
       ffmpeg_executable: [''],
-      print_errors: [false],
       print_blender_log: [false],
     });
   }

@@ -609,8 +609,7 @@ class TrkMapSerializer(BaseFileSerializer):
             def get_texture(tex):
                 return shpi_aliases[texture_map[tex]['texture_number']], texture_map[tex]['alignment']
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
             def get_texture(tex):
                 return f"{tex:04}", 0
@@ -768,8 +767,7 @@ for obj in bpy.context.selected_objects:
             from serializers import ShpiArchiveSerializer
             ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
         # export scenes
         return export_scenes(scenes, path, self.settings)
@@ -794,8 +792,7 @@ class FrdMapSerializer(BaseFileSerializer):
                 except IndexError:
                     return f"{tex:04}", 0
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
             def get_texture(tex):
                 return f"{tex:04}", 0
@@ -906,8 +903,7 @@ for obj in bpy.context.selected_objects:
             from serializers import ShpiArchiveSerializer
             ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
         except Exception:
-            if general_config.print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
 
         # export scenes
         return export_scenes(scenes, path, self.settings)

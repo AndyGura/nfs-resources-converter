@@ -30,8 +30,7 @@ def export_file(base_input_path, path, out_path):
                 rel_path = path.split('/')[-1]
         serializer.serialize(data, f'{out_path}/{rel_path}', id=name, block=block)
     except Exception as ex:
-        if general_config.print_errors:
-            traceback.print_exc()
+        traceback.print_exc()
         return ex
 
 

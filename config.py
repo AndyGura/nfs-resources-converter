@@ -51,7 +51,6 @@ class ConfigManager:
             SECTION_GENERAL: {
                 "blender_executable": "blender",
                 "ffmpeg_executable": "ffmpeg",
-                "print_errors": False,
                 "print_blender_log": False,
                 "recent_files": [],
                 "show_hidden_fields": False,
@@ -246,7 +245,6 @@ def general_config(patch: Dict = None) -> ClassDict:
     config = {
         "blender_executable": get_config(SECTION_GENERAL, "blender_executable"),
         "ffmpeg_executable": get_config(SECTION_GENERAL, "ffmpeg_executable"),
-        "print_errors": get_config(SECTION_GENERAL, "print_errors"),
         "print_blender_log": get_config(SECTION_GENERAL, "print_blender_log"),
         "recent_files": get_config(SECTION_GENERAL, "recent_files"),
         "show_hidden_fields": get_config(SECTION_GENERAL, "show_hidden_fields"),

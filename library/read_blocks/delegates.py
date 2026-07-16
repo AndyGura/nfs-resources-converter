@@ -145,8 +145,7 @@ def _enum_lookup(ctx, enum_field, fallback_index):
     try:
         return [name for (_, name) in ctx.relative_block(enum_field).enum_names].index(ctx.data(enum_field))
     except Exception:
-        if config.general_config().print_errors:
-            traceback.print_exc()
+        traceback.print_exc()
         return fallback_index
 
 

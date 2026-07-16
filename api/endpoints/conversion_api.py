@@ -88,8 +88,7 @@ class ConversionAPI:
             serializer.serialize(data, f'{out_path}/{rel_path}', id=name, block=block)
             return None
         except Exception as ex:
-            if config.general_config().print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
             return ex
         finally:
             clear_file_cache(path)

@@ -72,8 +72,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                                                        id=join_id(id, 'children', name, 'item', 'data')))
                     save_image_names[file_name] = True
             except Exception as ex:
-                if general_config.print_errors:
-                    traceback.print_exc()
+                traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if not self.settings.images__save_images_only:
             with open(path_join(path, 'positions.txt'), 'w') as f:
@@ -198,8 +197,7 @@ class WwwwArchiveSerializer(BaseFileSerializer):
                 output.extend(serializer.serialize(item_data, path_join(path, name), block=item_block,
                                                    id=join_id(id, 'children', str(i), 'item', 'data')))
             except Exception as ex:
-                if general_config.print_errors:
-                    traceback.print_exc()
+                traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
             with open(path_join(path, 'skipped.txt'), 'w') as f:
@@ -231,8 +229,7 @@ class SoundBankSerializer(BaseFileSerializer):
                 serializer = serializers.get_serializer(item_block, item)
                 output.extend(serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', name)))
             except Exception as ex:
-                if general_config.print_errors:
-                    traceback.print_exc()
+                traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
             with open(path_join(path, 'skipped.txt'), 'w') as f:
@@ -272,8 +269,7 @@ class BigfArchiveSerializer(BaseFileSerializer):
                                                    id=join_id(id, 'children', str(i), 'item', 'data')))
                 save_image_names[file_name] = True
             except Exception as ex:
-                if general_config.print_errors:
-                    traceback.print_exc()
+                traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
         if skipped_resources:
             with open(path_join(path, 'skipped.txt'), 'w') as f:
