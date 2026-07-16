@@ -1,6 +1,8 @@
 from abc import ABC
 from typing import Dict, List, Tuple, Any, TypedDict, Union
 
+from library.utils.class_property import class_property
+
 from library.context import ReadContext, WriteContext
 from library.exceptions import BlockDefinitionException, DataIntegrityException
 from library.read_blocks.basic import DataBlock, DataBlockWithChildren
@@ -262,8 +264,8 @@ class BitFlagsBlock(SubByteCompoundBlock):
 
 
 class CompoundBlockFields(ABC):
-    @classmethod
-    @property
+
+    @class_property
     def fields(cls) -> List[Tuple[str, DataBlock]]:
         try:
             return cls.__fields_cache
@@ -271,6 +273,7 @@ class CompoundBlockFields(ABC):
             cls.__fields_cache = [(key, value)
                                   for (key, value) in cls.__dict__.items()
                                   if isinstance(value, DataBlock) or (type(value) is tuple
+                                                                      and len(value) > 0
                                                                       and isinstance(value[0], DataBlock))]
             return cls.__fields_cache
 

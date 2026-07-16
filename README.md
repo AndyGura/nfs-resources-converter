@@ -58,7 +58,7 @@ You can use pre-built installer from the [Releases page](https://github.com/Andy
 
 If you want to run the project from source (required for Linux):
 
-0) Install Python >=3.9; <=3.12 and pip
+0) Install a fresh version of python (the project uses 3.14.6) and pip
 1) Install dependencies `pip install -r requirements.txt`
 2) Run the application: `python run.py`
 
