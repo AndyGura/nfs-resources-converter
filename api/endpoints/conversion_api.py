@@ -126,6 +126,9 @@ class ConversionAPI:
             if processes == 0:
                 processes = cpu_count()
 
+            import logging
+            logging.info(f"Starting conversion of {self.total_files} files using {processes} processes")
+
             with Pool(processes=processes, initializer=setup_logging, initargs=(is_stdout_redirected(),)) as pool:
                 args_list = [(base_input_path, f, output_path, custom_settings) for f in files_to_open]
                 results = []

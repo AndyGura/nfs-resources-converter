@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import threading
 from logging.handlers import RotatingFileHandler
@@ -69,17 +70,33 @@ def setup_logging(redirect_stdout=False):
     if _file_handler is None:
         try:
             # Create a rotating file handler (50MB limit, 5 backups)
-            _file_handler = RotatingFileHandler(
-                LOG_FILE_PATH,
-                maxBytes=50 * 1024 * 1024,
-                backupCount=5,
-                encoding='utf-8'
-            )
-            _file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            # Use a simpler FileHandler for worker processes to avoid rotation conflicts on Windows
+            import multiprocessing
+            is_main_process = multiprocessing.current_process().name == 'MainProcess'
+            
+            if is_main_process:
+                _file_handler = RotatingFileHandler(
+                    LOG_FILE_PATH,
+                    maxBytes=50 * 1024 * 1024,
+                    backupCount=5,
+                    encoding='utf-8'
+                )
+            else:
+                _file_handler = logging.FileHandler(
+                    LOG_FILE_PATH,
+                    encoding='utf-8'
+                )
+                
+            _file_handler.setFormatter(logging.Formatter('%(asctime)s - %(process)d - %(levelname)s - %(message)s'))
             
             # Configure root logger
             root_logger.setLevel(logging.INFO)
             root_logger.addHandler(_file_handler)
+            
+            if is_main_process:
+                logging.info(f"Logging initialized for main process (PID: {os.getpid()})")
+            else:
+                logging.info(f"Logging initialized for worker process (PID: {os.getpid()})")
         except Exception as e:
             # Fallback to basic logging if file handler fails
             logging.basicConfig(level=logging.INFO)
@@ -104,10 +121,8 @@ def setup_logging(redirect_stdout=False):
     # Redirect sys.stdout/stderr to root logger
     # Note: we use the root logger directly to avoid recursion issues with specialized loggers
     # and to ensure everything is captured.
-    if sys.stdout is not None:
-        sys.stdout = LoggerWriter(logging.info, _original_stdout)
-    if sys.stderr is not None:
-        sys.stderr = LoggerWriter(logging.error, _original_stderr)
+    sys.stdout = LoggerWriter(logging.info, _original_stdout)
+    sys.stderr = LoggerWriter(logging.error, _original_stderr)
 
 def is_stdout_redirected():
     """Returns True if stdout redirection is enabled."""

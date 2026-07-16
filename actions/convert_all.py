@@ -45,6 +45,8 @@ def convert_all(path, out_path):
         files_to_open = [str(path).replace('\\', '/')]
 
     processes = cpu_count() if conversion_config.multiprocess_processes_count == 0 else conversion_config.multiprocess_processes_count
+    import logging
+    logging.info(f"Starting conversion of {len(files_to_open)} files using {processes} processes")
     with Pool(processes=processes, initializer=setup_logging, initargs=(is_stdout_redirected(),)) as pool:
         pbar = tqdm(total=len(files_to_open))
         results = [pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update()) for
