@@ -12,6 +12,11 @@ SECTION_CONVERSION = "Conversion"
 CONFIG_FILE_NAME = "nfs-resources-converter-settings.ini"
 CONFIG_FILE_PATH = os.path.join(os.path.expanduser("~"), CONFIG_FILE_NAME)
 
+# Define log file path
+LOG_FILE_NAME = "nfs-resources-converter-logs.log"
+LOG_FILE_PATH = os.path.join(os.path.expanduser("~"), LOG_FILE_NAME)
+
+
 # Function to get the config file location
 def get_config_file_location():
     """

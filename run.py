@@ -4,6 +4,8 @@ import pathlib
 import sys
 from enum import Enum
 
+from library.utils.logging_setup import setup_logging
+
 
 class Action(Enum):
     convert = 'convert'
@@ -16,6 +18,7 @@ class Action(Enum):
 
 
 if __name__ == "__main__":
+    setup_logging()
     # check if first argument is a valid action. If not, it is a file
     action = None
     if len(sys.argv) > 1:

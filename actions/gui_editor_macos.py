@@ -11,6 +11,7 @@ import webview
 
 from api.api import API
 from api.bridge import bridge
+from library.utils.logging_setup import setup_logging
 
 # Port of the auxiliary static HTTP server used only in development mode (see
 # ``run_gui_editor``). It matches the ``target`` in ``frontend/src/proxy.conf.json``
@@ -446,6 +447,9 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     static_path = static_dir.name
     dev_mode = bool(dev_server_url)
     httpd = None
+
+    if not dev_mode:
+        setup_logging(redirect_stdout=True)
 
     if dev_mode:
         # Development mode. The UI itself is served (with live reload and source
