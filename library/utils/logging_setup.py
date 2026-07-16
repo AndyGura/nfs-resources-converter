@@ -1,30 +1,53 @@
 import logging
 import sys
+import threading
 from logging.handlers import RotatingFileHandler
 from config import LOG_FILE_PATH
 
 class LoggerWriter:
-    def __init__(self, level):
+    _local = threading.local()
+
+    def __init__(self, level, original_stream=None):
         self.level = level
+        self.original_stream = original_stream
         self.buffer = []
 
     def write(self, message):
         if message:
-            # Add to buffer and split by newlines, keeping the ends to know if we have a full line
-            lines = ( "".join(self.buffer) + message ).splitlines(keepends=True)
-            self.buffer = []
-            for line in lines:
-                if line.endswith('\n') or line.endswith('\r'):
-                    # Log full lines without the trailing newline, but preserving leading spaces
-                    self.level(line.rstrip('\n\r'))
-                else:
-                    # Keep partial line in buffer
-                    self.buffer.append(line)
+            # Prevent recursion if logging calls write to redirected stdout/stderr
+            if getattr(self._local, 'is_logging', False):
+                if self.original_stream and self.original_stream is not sys.stdout and self.original_stream is not sys.stderr:
+                    try:
+                        self.original_stream.write(message)
+                    except (AttributeError, IOError):
+                        pass
+                return
+
+            self._local.is_logging = True
+            try:
+                # Add to buffer and split by newlines, keeping the ends to know if we have a full line
+                lines = ( "".join(self.buffer) + message ).splitlines(keepends=True)
+                self.buffer = []
+                for line in lines:
+                    if line.endswith('\n') or line.endswith('\r'):
+                        # Log full lines without the trailing newline, but preserving leading spaces
+                        self.level(line.rstrip('\n\r'))
+                    else:
+                        # Keep partial line in buffer
+                        self.buffer.append(line)
+            finally:
+                self._local.is_logging = False
 
     def flush(self):
+        if getattr(self._local, 'is_logging', False):
+            return
         if self.buffer:
-            self.level("".join(self.buffer))
-            self.buffer = []
+            self._local.is_logging = True
+            try:
+                self.level("".join(self.buffer))
+                self.buffer = []
+            finally:
+                self._local.is_logging = False
 
 _file_handler = None
 _original_stdout = sys.stdout
@@ -73,15 +96,18 @@ def setup_logging(redirect_stdout=False):
     
     if not redirect_stdout:
         # If not suppressing, add a StreamHandler that writes to the ORIGINAL stdout
-        console_handler = logging.StreamHandler(_original_stdout)
-        console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-        root_logger.addHandler(console_handler)
+        if _original_stdout is not None:
+            console_handler = logging.StreamHandler(_original_stdout)
+            console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+            root_logger.addHandler(console_handler)
     
     # Redirect sys.stdout/stderr to root logger
     # Note: we use the root logger directly to avoid recursion issues with specialized loggers
     # and to ensure everything is captured.
-    sys.stdout = LoggerWriter(logging.info)
-    sys.stderr = LoggerWriter(logging.error)
+    if sys.stdout is not None:
+        sys.stdout = LoggerWriter(logging.info, _original_stdout)
+    if sys.stderr is not None:
+        sys.stderr = LoggerWriter(logging.error, _original_stderr)
 
 def is_stdout_redirected():
     """Returns True if stdout redirection is enabled."""
