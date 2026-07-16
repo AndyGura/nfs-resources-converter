@@ -185,8 +185,7 @@ class WwwwBlock(ArchiveBlock):
             try:
                 child['item'] = self.item_block.unpack(ctx=self_ctx, name=str(i), read_bytes_amount=length)
             except Exception:
-                if general_config().print_errors:
-                    traceback.print_exc()
+                traceback.print_exc()
                 ctx.buffer.seek(offset)
                 child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
         ctx.buffer.seek(end_pos)
@@ -318,8 +317,7 @@ class BigfBlock(ArchiveBlock):
                 child['item'] = self.item_block.unpack(ctx=self_ctx, name=f"{descr_index}_{alias}",
                                                        read_bytes_amount=length)
             except Exception:
-                if general_config().print_errors:
-                    traceback.print_exc()
+                traceback.print_exc()
                 ctx.buffer.seek(offset)
                 child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
         if res.get('length') is not None and ctx.buffer.tell() < block_start + res['length']:

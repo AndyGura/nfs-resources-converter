@@ -9,6 +9,7 @@ from tqdm import tqdm
 import config
 from library import require_file
 from library.utils import format_exception, path_join
+from library.utils.logging_setup import setup_logging, is_stdout_redirected
 from serializers import get_serializer
 
 general_config = config.general_config()
@@ -29,8 +30,7 @@ def export_file(base_input_path, path, out_path):
                 rel_path = path.split('/')[-1]
         serializer.serialize(data, f'{out_path}/{rel_path}', id=name, block=block)
     except Exception as ex:
-        if general_config.print_errors:
-            traceback.print_exc()
+        traceback.print_exc()
         return ex
 
 
@@ -45,7 +45,9 @@ def convert_all(path, out_path):
         files_to_open = [str(path).replace('\\', '/')]
 
     processes = cpu_count() if conversion_config.multiprocess_processes_count == 0 else conversion_config.multiprocess_processes_count
-    with Pool(processes=processes) as pool:
+    import logging
+    logging.info(f"Starting conversion of {len(files_to_open)} files using {processes} processes")
+    with Pool(processes=processes, initializer=setup_logging, initargs=(is_stdout_redirected(),)) as pool:
         pbar = tqdm(total=len(files_to_open))
         results = [pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update()) for
                    f in files_to_open]

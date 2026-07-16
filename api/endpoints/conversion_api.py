@@ -11,6 +11,7 @@ import config
 from library import require_file
 from library.loader import clear_file_cache
 from library.utils import format_exception, path_join
+from library.utils.logging_setup import setup_logging, is_stdout_redirected
 from serializers import get_serializer
 
 
@@ -87,8 +88,7 @@ class ConversionAPI:
             serializer.serialize(data, f'{out_path}/{rel_path}', id=name, block=block)
             return None
         except Exception as ex:
-            if config.general_config().print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
             return ex
         finally:
             clear_file_cache(path)
@@ -126,7 +126,10 @@ class ConversionAPI:
             if processes == 0:
                 processes = cpu_count()
 
-            with Pool(processes=processes) as pool:
+            import logging
+            logging.info(f"Starting conversion of {self.total_files} files using {processes} processes")
+
+            with Pool(processes=processes, initializer=setup_logging, initargs=(is_stdout_redirected(),)) as pool:
                 args_list = [(base_input_path, f, output_path, custom_settings) for f in files_to_open]
                 results = []
                 for args in args_list:

@@ -5,6 +5,7 @@ import tempfile
 from string import Template
 
 from library.utils import path_join
+from library.utils.logging_setup import run_command_and_log
 
 __blender_script_template = Template("""
 import json
@@ -177,5 +178,5 @@ if __name__ == "__main__":
     script_file.write(script)
     script_file.flush()
     script_file.close()
-    os.system(f"blender --python {script_file.name} --background")
+    run_command_and_log(f"blender --python {script_file.name} --background")
     os.unlink(script_file.name)

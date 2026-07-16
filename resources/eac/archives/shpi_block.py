@@ -169,8 +169,7 @@ class ShpiBlock(ArchiveBlock):
             try:
                 child['item'] = self.item_block.unpack(ctx=self_ctx, name=f"{descr_index}_{alias}", read_bytes_amount=length)
             except Exception:
-                if general_config().print_errors:
-                    traceback.print_exc()
+                traceback.print_exc()
                 ctx.buffer.seek(offset)
                 child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
             # Try to read optional extra block after 8-bit bitmap data

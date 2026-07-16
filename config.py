@@ -12,6 +12,11 @@ SECTION_CONVERSION = "Conversion"
 CONFIG_FILE_NAME = "nfs-resources-converter-settings.ini"
 CONFIG_FILE_PATH = os.path.join(os.path.expanduser("~"), CONFIG_FILE_NAME)
 
+# Define log file path
+LOG_FILE_NAME = "nfs-resources-converter-logs.log"
+LOG_FILE_PATH = os.path.join(os.path.expanduser("~"), LOG_FILE_NAME)
+
+
 # Function to get the config file location
 def get_config_file_location():
     """
@@ -46,7 +51,6 @@ class ConfigManager:
             SECTION_GENERAL: {
                 "blender_executable": "blender",
                 "ffmpeg_executable": "ffmpeg",
-                "print_errors": False,
                 "print_blender_log": False,
                 "recent_files": [],
                 "show_hidden_fields": False,
@@ -241,7 +245,6 @@ def general_config(patch: Dict = None) -> ClassDict:
     config = {
         "blender_executable": get_config(SECTION_GENERAL, "blender_executable"),
         "ffmpeg_executable": get_config(SECTION_GENERAL, "ffmpeg_executable"),
-        "print_errors": get_config(SECTION_GENERAL, "print_errors"),
         "print_blender_log": get_config(SECTION_GENERAL, "print_blender_log"),
         "recent_files": get_config(SECTION_GENERAL, "recent_files"),
         "show_hidden_fields": get_config(SECTION_GENERAL, "show_hidden_fields"),

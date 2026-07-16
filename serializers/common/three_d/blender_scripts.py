@@ -2,15 +2,9 @@ import os
 import tempfile
 
 import config
+from library.utils.logging_setup import run_command_and_log
 
 general_config = config.general_config()
-
-
-def get_log_throwaway_suffix():
-    if os.name == 'nt':
-        return " >NUL 2>&1"
-    else:
-        return " >/dev/null 2>&1"
 
 
 def get_blender_save_script(out_blend_name=None):
@@ -35,7 +29,5 @@ os.chdir("{working_dir}")
     script_file.flush()
     script_file.close()
     command = f'"{general_config.blender_executable}" --python {script_file.name} --background'
-    if not general_config.print_blender_log:
-        command += get_log_throwaway_suffix()
-    os.system(command)
+    run_command_and_log(command, capture_output=general_config.print_blender_log)
     os.unlink(script_file.name)

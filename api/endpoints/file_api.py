@@ -95,8 +95,7 @@ class FileAPI:
             self.current_file_data = data
             self.current_file_block = block
         except Exception as ex:
-            if general_config().print_errors:
-                traceback.print_exc()
+            traceback.print_exc()
             self.current_file_data = {
                 'error_class': ex.__class__.__name__,
                 'error_text': str(ex),
