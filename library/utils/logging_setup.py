@@ -86,3 +86,41 @@ def setup_logging(redirect_stdout=False):
 def is_stdout_redirected():
     """Returns True if stdout redirection is enabled."""
     return _redirect_stdout_enabled
+
+def run_command_and_log(command, capture_output=True, **kwargs):
+    """
+    Runs a command and logs its output to the logging system by writing to sys.stdout.
+    This ensures that the output is captured by the LoggerWriter if redirection is active,
+    or printed to the console otherwise.
+    
+    Args:
+        command: The command to run (list or string).
+        capture_output: If True, stdout and stderr will be captured and logged.
+                        If False, they will be redirected to DEVNULL.
+        **kwargs: Additional arguments for subprocess.Popen/run.
+    """
+    import subprocess
+    shell = isinstance(command, str)
+    if capture_output:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            shell=shell,
+            bufsize=1,
+            universal_newlines=True,
+            **kwargs
+        )
+        if process.stdout:
+            for line in process.stdout:
+                sys.stdout.write(line)
+        return process.wait()
+    else:
+        return subprocess.run(
+            command,
+            shell=shell,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **kwargs
+        ).returncode
