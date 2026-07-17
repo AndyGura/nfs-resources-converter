@@ -62,7 +62,7 @@ def deep_equal(a: Any, b: Any) -> bool:
 
 
 class TestGamesDirectory(unittest.TestCase):
-    @unittest.skip
+
     def test_all_game_files_should_remain_the_same(self):
         """
         Test that goes through the entire ./games/ directory, reads each file, writes it back to a bytes object,
@@ -100,7 +100,7 @@ class TestGamesDirectory(unittest.TestCase):
         all_files = [x for x in all_files if x[-2:].upper() not in ['.0', '.O']]
 
         # tmp
-        # all_files = [x for x in all_files if x[-4:].upper() == '.FSH']
+        all_files = [x for x in all_files if x[-12:].upper() == 'GEOMETRY.BIN']
 
         total_files = len(all_files)
 

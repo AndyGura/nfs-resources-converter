@@ -56,8 +56,8 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     static_path = static_dir.name
     dev_mode = bool(dev_server_url)
 
-    if not dev_mode:
-        setup_logging(redirect_stdout=True)
+    # if not dev_mode:
+    #     setup_logging(redirect_stdout=True)
 
     src = _get_frontend_dist_path()
     if not dev_mode:
