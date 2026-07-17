@@ -2,8 +2,8 @@
 Total files tested: 39
 Files read successfully: 39
 Files written successfully: 39
-Files read again successfully: 39
-Files passed comparison test: 39
+Files read again successfully: 38
+Files passed comparison test: 38
 
 --- File Extension Read Success Rates (Test 1) ---
 .BIN: 100.00%
@@ -12,10 +12,10 @@ Files passed comparison test: 39
 .BIN: 100.00%
 
 --- File Extension Read-Again Success Rates (Test 3) ---
-.BIN: 100.00%
+.BIN: 97.44%
 
 --- File Extension Comparison Success Rates (Test 4) ---
-.BIN: 100.00%
+.BIN: 97.44%
 
 --- Time Spent ---
-Total time: 00:00:24.17
+Total time: 00:03:51.13

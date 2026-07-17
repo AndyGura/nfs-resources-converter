@@ -1,10 +1,12 @@
 from .nfsu import (
     NfsuVec3,
+    NfsuVertex,
     ZeroChunk,
     UnknownChunk,
     Chunk80034020,
     NfsuMeshChunk,
     NfsuMeshFacesChunk,
+    MeshVerticesChunk,
     Chunk00134BXX,
     Chunk80134100,
     Chunk00134002,

@@ -52,6 +52,7 @@ import { MatTab, MatTabGroup } from '@angular/material/tabs';
 import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
 import { ArchiveItemEditDialogComponent } from './common/archive-item-edit.dialog/archive-item-edit.dialog.component';
 import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
+import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.block-ui/nfsu-bin-geometry.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -92,6 +93,7 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
     TrkMapBlockUiComponent,
     FrdMapBlockUiComponent,
     CrpGeometryBlockUiComponent,
+    NfsuBinGeometryBlockUiComponent,
   ],
   imports: [
     CommonModule,

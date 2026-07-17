@@ -47,12 +47,14 @@ class NfsuMeshChunk(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_49_00))
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload')) + 20),
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload')) + 28),
             {'usage': 'io,doc'})
-        payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - 20)
+        payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - 28)
+        faces_amount = IntegerBlock(length=4)
+        unk_v = IntegerBlock(length=4, value_validator=Eq(0))
         unk_w = IntegerBlock(length=4, value_validator=Eq(0))
         unk_x = IntegerBlock(length=4, value_validator=Eq(0))
-        vertex_amount = IntegerBlock(length=4) # evidence: in most cases equals to max index in index_table + 1
+        vertex_amount = IntegerBlock(length=4)
         unk_y = IntegerBlock(length=4, value_validator=Eq(0))
         unk_z = IntegerBlock(length=4, value_validator=Eq(0))
 
@@ -61,15 +63,50 @@ class NfsuMeshFacesChunk(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = IntegerBlock(length=4, value_validator=Eq(0x00_13_4B_03))
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('index_table')) * 2),
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('faces')) * 6 + len(ctx.data('elevens'))),
             {'usage': 'io,doc'})
-        index_table = ArrayBlock(child=IntegerBlock(length=2),
-                                 length=lambda ctx: int(ctx.data('chunk_length') / 2))
+        # some 0x11 values, unknown reason for adding them
+        elevens = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - ctx.data('../0/data/faces_amount') * 6)
+        faces = ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=2), length=3),
+                           length=lambda ctx: ctx.data('../0/data/faces_amount'))
+
+
+class NfsuVertex(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = Point3D(child=DecimalBlock(length=4))
+        unk0 = IntegerBlock(length=4)
+        unk1 = IntegerBlock(length=4)
+        unk2 = IntegerBlock(length=4)
+        unk3 = IntegerBlock(length=4)
+        u = DecimalBlock(length=4)
+        v = DecimalBlock(length=4) # hmm, Bin2Ase renders different values, though x,y,z,u are identical
+
+
+class MeshVerticesChunk(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        chunk_id = IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_4B_01))
+        chunk_length = (
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('vertices')) * 36 + len(ctx.data('elevens'))),
+            {'usage': 'io,doc'})
+        # some 0x11 values, unknown reason for adding them
+        elevens = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - ctx.data('../0/data/vertex_amount') * 36, allow_negative_length=True)
+        vertices = ArrayBlock(child=NfsuVertex(), length=lambda ctx: ctx.data('../0/data/vertex_amount'))
+
+    # FIXME SUPRA SUPRA_STYLE02_HEADLIGHT_C fails! Reports 114 vertices, but there is not enough data. Although bin2ase returns 114 vertices correctly, with different values
+    # Apparently this particular mesh has 24 bytes per vertex, not 36. What is missing?
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        pos_backup = ctx.buffer.tell()
+        data = super().read(ctx, name, read_bytes_amount)
+        if len(data['vertices']) * 36 > data['chunk_length']:
+            ctx.buffer.seek(pos_backup + 8)
+            raw_payload = ctx.buffer.read(data['chunk_length'])
+            print('####')
+        return data
 
 
 class Chunk00134BXX(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        index = IntegerBlock(length=1, value_validator=Or([1, 2, 3]))
+        index = IntegerBlock(length=1, value_validator=Or([2, 3]))
         chunk_id = IntegerBlock(length=3, is_signed=False, value_validator=Eq(0x00_13_4B))
         chunk_length = (
             IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
@@ -90,6 +127,7 @@ class Chunk80134100(DeclarativeCompoundBlock):
                                 child=DelegateBlock(possible_blocks=[
                                     NfsuMeshChunk(),
                                     NfsuMeshFacesChunk(),
+                                    MeshVerticesChunk(),
                                     Chunk00134BXX(),
                                     # UnknownChunk(),
                                 ],
@@ -124,7 +162,7 @@ class Chunk00134003(DeclarativeCompoundBlock):
                          programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
             {'usage': 'io,doc'})
         items = ArrayBlock(child=CompoundBlock(fields=[
-            ('value', DecimalBlock(length=4), {}),
+            ('value', IntegerBlock(length=4), {}),
             ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
         ]), length=lambda ctx: int(ctx.data('chunk_length') / 8))
 
@@ -184,7 +222,7 @@ class Chunk00134013(DeclarativeCompoundBlock):
                          programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
             {'usage': 'io,doc'})
         items = ArrayBlock(child=CompoundBlock(fields=[
-            ('value', DecimalBlock(length=4), {}),
+            ('value', IntegerBlock(length=4), {}),
             ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
         ]), length=lambda ctx: int(ctx.data('chunk_length') / 8))
 
@@ -303,9 +341,11 @@ def determine_chunks_class(ctx: ReadContext):
         class_name = 'NfsuMeshFacesChunk'
     elif id_hex == '00134900':
         class_name = 'NfsuMeshChunk'
+    elif id_hex == '00134B01':
+        class_name = 'MeshVerticesChunk'
     elif id_hex.startswith('001340') and not id_hex in ['00134002', '00134003', '00134011', '00134012', '00134013']:
         class_name = 'Chunk001340XX'
-    elif id_hex.startswith('00134B'):
+    elif id_hex.startswith('00134B') and not id_hex in ['00134B01']:
         class_name = 'Chunk00134BXX'
     else:
         class_name = 'Chunk' + id_hex
@@ -328,3 +368,9 @@ class NfsuBinGeometry(DeclarativeCompoundBlock):
                                                                  # UnknownChunk(),
                                                                  ],
                                                 choice_index=lambda ctx, **_: determine_chunks_class(ctx)))
+
+    def serializer_class(self):
+        from serializers.geometries import NfsuBinGeometrySerializer
+        return NfsuBinGeometrySerializer
+
+

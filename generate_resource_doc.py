@@ -519,6 +519,7 @@ EXPORT_RESOURCES = {
                 blackbox.geometries.Chunk80034020(),
                 blackbox.geometries.NfsuMeshChunk(),
                 blackbox.geometries.NfsuMeshFacesChunk(),
+                blackbox.geometries.MeshVerticesChunk(),
                 blackbox.geometries.Chunk00134BXX(),
                 blackbox.geometries.Chunk80134100(),
                 blackbox.geometries.Chunk00134002(),
@@ -532,6 +533,7 @@ EXPORT_RESOURCES = {
                 blackbox.geometries.Chunk80134001(),
                 blackbox.geometries.Chunk80134020(),
                 blackbox.geometries.NfsuVec3(),
+                blackbox.geometries.NfsuVertex(),
             ],
             # 'Maps': [
             # ],

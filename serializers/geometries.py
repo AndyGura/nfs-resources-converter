@@ -367,3 +367,35 @@ class CrpGeometrySerializer(BaseFileSerializer):
                     mesh.extend(part_mesh)
 
         return export_scenes([scene], path, self.settings)
+
+
+class NfsuBinGeometrySerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        super().serialize(data, path)
+
+        scene = Scene()
+        scene.name = 'body'
+        scene.obj_name = 'geometry'
+        scene.sub_meshes = []
+
+        for c in data['chunks']:
+            if c['data']['chunk_id'] != 0x80_13_40_10:
+                continue
+            mesh_main_chunk = next(x for x in c['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_40_11)
+            details_sub_chunk = next(x for x in c['data']['sub_chunks'] if x['data']['chunk_id'] == 0x80_13_41_00)
+
+            mesh_name = mesh_main_chunk['data']['mesh_name']
+            vertices = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_01)['data']['vertices']
+            faces = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_03)['data']['faces']
+
+            mesh = SubMesh()
+            mesh.name = mesh_name
+            mesh.vertices = [[v['position']['x'], v['position']['y'], v['position']['z']] for v in vertices]
+            mesh.polygons = faces
+            scene.sub_meshes.append(mesh)
+
+        return export_scenes([scene], path, self.settings)
