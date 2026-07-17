@@ -14,3 +14,5 @@
 
 - [NFS 6 Hot Pursuit 2 file specs](NFS6.md)
 
+- [NFS Underground file specs](NFSU.md)
+

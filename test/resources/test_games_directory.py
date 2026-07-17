@@ -64,6 +64,7 @@ def deep_equal(a: Any, b: Any) -> bool:
 class TestGamesDirectory(unittest.TestCase):
 
     def test_all_game_files_should_remain_the_same(self):
+        all_data = []
         """
         Test that goes through the entire ./games/ directory, reads each file, writes it back to a bytes object,
         and compares the output with the input. It prints progress information during the process and handles
@@ -91,7 +92,7 @@ class TestGamesDirectory(unittest.TestCase):
             "compare_success": 0
         })
 
-        games_dir = "../../games"
+        games_dir = "games"
         all_files = self._get_all_files(games_dir)
         all_files = [x for x in all_files if x[-4:].upper() not in ['.EXE', '.DLL', '.INF', '.INV', '.PIF', '.TXT', '.CFG',
                                                                     '.ICO', '.ID0', '.ID1', '.ID2', '.NAM', '.TIL', '.ENG',
@@ -116,6 +117,7 @@ class TestGamesDirectory(unittest.TestCase):
             try:
                 # Test 1: Read the file
                 (name, block, data) = require_file(file_path)
+                all_data.append(data)
                 # Add checkmark to indicate successful read
                 sys.stdout.write("✓")
                 sys.stdout.flush()
@@ -340,6 +342,16 @@ class TestGamesDirectory(unittest.TestCase):
             stats_file.write(f"Total time: {int(hours):02}:{int(minutes):02}:{seconds:.2f}\n")
 
         print(f"\nStatistics exported to: {stats_file_path}")
+
+        # for data in all_data:
+        #     for chunk in data['chunks']:
+        #         if chunk['choice_index'] != 1:
+        #             continue
+        #         c = chunk['data']
+        #         if len(c['payload2']) > 300:
+        #             continue
+        #         print(c["mesh_name"], c["vertex_count"], c["payload2"])
+        #         print()
 
     def _get_all_files(self, directory: str) -> List[str]:
         """

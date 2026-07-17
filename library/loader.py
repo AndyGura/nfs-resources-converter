@@ -128,7 +128,7 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             from resources.eac.maps import TriMap
             return TriMap
         elif header_bytes[0] == 0x00 and header_bytes[1] == 0x40 and header_bytes[2] == 0x13 and header_bytes[3] == 0x80:
-            from resources.eac.geometries.nfsu import NfsuBinGeometry
+            from resources.blackbox.geometries.nfsu import NfsuBinGeometry
             return NfsuBinGeometry
 
     except IndexError:

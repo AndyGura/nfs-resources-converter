@@ -11,16 +11,7 @@ from library.read_blocks import (CompoundBlock,
                                  OptionalBlock)
 from library.read_blocks.strings import LengthPrefixedUtf8Block, UTF8Block
 from library.utils.docs import add_doc_numbers
-from resources.eac import (archives,
-                           bitmaps,
-                           fonts,
-                           misc,
-                           geometries,
-                           maps,
-                           audios,
-                           configs,
-                           car_specs)
-
+from resources import eac, blackbox
 
 def render_value_doc_str(value: str) -> str:
     return str(value).replace('*', '\\*')
@@ -78,287 +69,287 @@ EXPORT_RESOURCES = {
         'title': 'TNFSSE (PC) file specs',
         'file_list': f"""**\\*INFO** track settings with unknown purpose. That's a plain text file with some values, no problem to edit manually
 
-**\\*.AS4**, **\\*.ASF**, **\\*.EAS** audio + loop settings. {render_type(audios.AsfAudio())}
+**\\*.AS4**, **\\*.ASF**, **\\*.EAS** audio + loop settings. {render_type(eac.audios.AsfAudio())}
 
-**\\*.BNK** sound bank. {render_type(archives.SoundBank())}
+**\\*.BNK** sound bank. {render_type(eac.archives.SoundBank())}
 
-**\\*.CFM** car 3D model. {render_type(archives.WwwwBlock())} with 4 entries:
-- {render_type(geometries.OripGeometry())} high-poly 3D model
-- {render_type(archives.ShpiBlock())} textures for high-poly model
-- {render_type(geometries.OripGeometry())} low-poly 3D model
-- {render_type(archives.ShpiBlock())} textures for low-poly model
+**\\*.CFM** car 3D model. {render_type(eac.archives.WwwwBlock())} with 4 entries:
+- {render_type(eac.geometries.OripGeometry())} high-poly 3D model
+- {render_type(eac.archives.ShpiBlock())} textures for high-poly model
+- {render_type(eac.geometries.OripGeometry())} low-poly 3D model
+- {render_type(eac.archives.ShpiBlock())} textures for low-poly model
 
-**\\*.FAM** track textures, props, skybox. {render_type(archives.WwwwBlock())} with 4 entries:
-- {render_type(archives.WwwwBlock())} (background) contains few {render_type(archives.ShpiBlock())} items, terrain textures
-- {render_type(archives.WwwwBlock())} (foreground) contains few {render_type(archives.ShpiBlock())} items, prop textures
-- {render_type(archives.ShpiBlock())} (skybox) contains horizon texture
-- {render_type(archives.WwwwBlock())} (props) contains a series of consecutive {render_type(geometries.OripGeometry())} + {render_type(archives.ShpiBlock())} items, 3D props
+**\\*.FAM** track textures, props, skybox. {render_type(eac.archives.WwwwBlock())} with 4 entries:
+- {render_type(eac.archives.WwwwBlock())} (background) contains few {render_type(eac.archives.ShpiBlock())} items, terrain textures
+- {render_type(eac.archives.WwwwBlock())} (foreground) contains few {render_type(eac.archives.ShpiBlock())} items, prop textures
+- {render_type(eac.archives.ShpiBlock())} (skybox) contains horizon texture
+- {render_type(eac.archives.WwwwBlock())} (props) contains a series of consecutive {render_type(eac.geometries.OripGeometry())} + {render_type(eac.archives.ShpiBlock())} items, 3D props
 
-**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
-**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.PBS** car physics. {render_type(car_specs.CarPerformanceSpec())}, [compressed](eac_compressions.md)
+**\\*.PBS** car physics. {render_type(eac.car_specs.CarPerformanceSpec())}, [compressed](eac_compressions.md)
 
-**\\*.PDN** car characteristic for unknown purpose. {render_type(car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
+**\\*.PDN** car characteristic for unknown purpose. {render_type(eac.car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
 
-**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
 **\\*.TGV** video, I just use ffmpeg to convert it
 
-**\\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(maps.TriMap())}
+**\\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(eac.maps.TriMap())}
 
-**GAMEDATA\\CONFIG\\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(configs.TnfsConfigDat())}""",
+**GAMEDATA\\CONFIG\\CONFIG.DAT** Player name, best times, whether warrior car unlocked etc. {render_type(eac.configs.TnfsConfigDat())}""",
         'blocks': {
             'Archives': [
-                archives.ShpiBlock(),
-                archives.PaletteReference(),
-                archives.WwwwBlock(),
-                archives.SoundBank(),
+                eac.archives.ShpiBlock(),
+                eac.archives.PaletteReference(),
+                eac.archives.WwwwBlock(),
+                eac.archives.SoundBank(),
             ],
             'Geometries': [
-                geometries.OripGeometry(),
-                geometries.OripPolygon(),
-                geometries.OripTextureName(),
-                geometries.RenderOrderBlock(),
+                eac.geometries.OripGeometry(),
+                eac.geometries.OripPolygon(),
+                eac.geometries.OripTextureName(),
+                eac.geometries.RenderOrderBlock(),
             ],
             'Maps': [
-                maps.TriMap(),
-                maps.RoadSplinePoint(),
-                maps.PropDescr(),
-                maps.MapProp(),
-                maps.TerrainEntry(),
-                maps.AIEntry(),
-                maps.ModelPropDescrData(),
-                maps.BitmapPropDescrData(),
-                maps.TwoSidedBitmapPropDescrData(),
+                eac.maps.TriMap(),
+                eac.maps.RoadSplinePoint(),
+                eac.maps.PropDescr(),
+                eac.maps.MapProp(),
+                eac.maps.TerrainEntry(),
+                eac.maps.AIEntry(),
+                eac.maps.ModelPropDescrData(),
+                eac.maps.BitmapPropDescrData(),
+                eac.maps.TwoSidedBitmapPropDescrData(),
             ],
             'Physics': [
-                car_specs.CarPerformanceSpec(),
-                car_specs.CarSimplifiedPerformanceSpec(),
+                eac.car_specs.CarPerformanceSpec(),
+                eac.car_specs.CarSimplifiedPerformanceSpec(),
             ],
             'Images': [
-                bitmaps.EacImage(),
-                bitmaps.EacPalette(),
+                eac.bitmaps.EacImage(),
+                eac.bitmaps.EacPalette(),
             ],
             'Fonts': [
-                fonts.FfnFont(),
-                fonts.GlyphDefinition(),
-                fonts.KerningItem(),
+                eac.fonts.FfnFont(),
+                eac.fonts.GlyphDefinition(),
+                eac.fonts.KerningItem(),
             ],
             'Audio': [
-                audios.AsfAudio(),
-                audios.EacsAudioFile(),
-                audios.SoundBankHeaderEntry(),
-                audios.EacsAudioHeader(),
+                eac.audios.AsfAudio(),
+                eac.audios.EacsAudioFile(),
+                eac.audios.SoundBankHeaderEntry(),
+                eac.audios.EacsAudioHeader(),
             ],
             'Misc': [
-                configs.TnfsConfigDat(),
-                configs.TrackStats(),
-                configs.BestRaceRecord(),
+                eac.configs.TnfsConfigDat(),
+                eac.configs.TrackStats(),
+                eac.configs.BestRaceRecord(),
             ]
         },
     },
     'nfs2': {
         'file_name': 'NFS2.md',
         'title': 'NFS2 file specs',
-        'file_list': f"""**\\*.COL** track additional data. {render_type(maps.MapColFile())}
+        'file_list': f"""**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
         
-**\\*.GEO** car 3D model. {render_type(geometries.GeoGeometry())}
+**\\*.GEO** car 3D model. {render_type(eac.geometries.GeoGeometry())}
         
-**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
-**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.MSK** archive with some data. {render_type(archives.BigfBlock())}
+**\\*.MSK** archive with some data. {render_type(eac.archives.BigfBlock())}
 
-**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\\*.TRK** main track file. {render_type(maps.TrkMap())}
+**\\*.TRK** main track file. {render_type(eac.maps.TrkMap())}
 
 **\\*.UV** video, I just use ffmpeg to convert it
 
-**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
-                archives.ShpiBlock(),
-                archives.PaletteReference(),
-                archives.BigfBlock(),
-                archives.BigfItemDescriptionBlock(),
+                eac.archives.ShpiBlock(),
+                eac.archives.PaletteReference(),
+                eac.archives.BigfBlock(),
+                eac.archives.BigfItemDescriptionBlock(),
             ],
             'Geometries': [
-                geometries.GeoGeometry(),
-                geometries.GeoMesh(),
-                geometries.GeoPolygon(),
+                eac.geometries.GeoGeometry(),
+                eac.geometries.GeoMesh(),
+                eac.geometries.GeoPolygon(),
             ],
             'Maps': [
                 # TRK
-                maps.TrkMap(),
-                maps.TrkSuperBlock(),
-                maps.TrkBlock(),
+                eac.maps.TrkMap(),
+                eac.maps.TrkSuperBlock(),
+                eac.maps.TrkBlock(),
                 # COL
-                maps.MapColFile(),
-                maps.ColExtraBlock(),
-                maps.TexturesMapExtraDataRecord(),
-                maps.PolygonMapExtraDataRecord(),
-                maps.MedianExtraDataRecord(),
-                maps.AnimatedPropPosition(),
-                maps.AnimatedPropPositionFrame(),
-                maps.PropExtraDataRecord(),
-                maps.PropDescriptionExtraDataRecord(),
-                maps.LanesExtraDataRecord(),
-                maps.RoadVectorsExtraDataRecord(),
-                maps.CollisionExtraDataRecord(),
-                maps.ColPolygon(),
+                eac.maps.MapColFile(),
+                eac.maps.ColExtraBlock(),
+                eac.maps.TexturesMapExtraDataRecord(),
+                eac.maps.PolygonMapExtraDataRecord(),
+                eac.maps.MedianExtraDataRecord(),
+                eac.maps.AnimatedPropPosition(),
+                eac.maps.AnimatedPropPositionFrame(),
+                eac.maps.PropExtraDataRecord(),
+                eac.maps.PropDescriptionExtraDataRecord(),
+                eac.maps.LanesExtraDataRecord(),
+                eac.maps.RoadVectorsExtraDataRecord(),
+                eac.maps.CollisionExtraDataRecord(),
+                eac.maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],
             'Images': [
-                bitmaps.EacImage(),
-                bitmaps.EacPalette(),
+                eac.bitmaps.EacImage(),
+                eac.bitmaps.EacPalette(),
             ],
             'Fonts': [
-                fonts.FfnFont(),
-                fonts.GlyphDefinition(),
-                fonts.KerningItem(),
+                eac.fonts.FfnFont(),
+                eac.fonts.GlyphDefinition(),
+                eac.fonts.KerningItem(),
             ],
             # 'Audio': [
             # ],
             'Misc': [
-                misc.ShpiText(),
+                eac.misc.ShpiText(),
             ]
         },
     },
     'nfs2se': {
         'file_name': 'NFS2_SE.md',
         'title': 'NFS2SE file specs',
-        'file_list': f"""**\\*.COL** track additional data. {render_type(maps.MapColFile())}
+        'file_list': f"""**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
         
-**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
-**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\\*.TRK** main track file. {render_type(maps.TrkMap())}
+**\\*.TRK** main track file. {render_type(eac.maps.TrkMap())}
 
 **\\*.UV** video, I just use ffmpeg to convert it
 
-**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
-                archives.ShpiBlock(),
-                archives.PaletteReference(),
-                archives.BigfBlock(),
-                archives.BigfItemDescriptionBlock(),
+                eac.archives.ShpiBlock(),
+                eac.archives.PaletteReference(),
+                eac.archives.BigfBlock(),
+                eac.archives.BigfItemDescriptionBlock(),
             ],
             'Geometries': [
-                geometries.GeoGeometry(),
-                geometries.GeoMesh(),
-                geometries.GeoPolygon(),
+                eac.geometries.GeoGeometry(),
+                eac.geometries.GeoMesh(),
+                eac.geometries.GeoPolygon(),
             ],
             'Maps': [
                 # TRK
-                maps.TrkMap(),
-                maps.TrkSuperBlock(),
-                maps.TrkBlock(),
+                eac.maps.TrkMap(),
+                eac.maps.TrkSuperBlock(),
+                eac.maps.TrkBlock(),
                 # COL
-                maps.MapColFile(),
-                maps.ColExtraBlock(),
-                maps.TexturesMapExtraDataRecord(),
-                maps.PolygonMapExtraDataRecord(),
-                maps.MedianExtraDataRecord(),
-                maps.AnimatedPropPosition(),
-                maps.AnimatedPropPositionFrame(),
-                maps.PropExtraDataRecord(),
-                maps.PropDescriptionExtraDataRecord(),
-                maps.LanesExtraDataRecord(),
-                maps.RoadVectorsExtraDataRecord(),
-                maps.CollisionExtraDataRecord(),
-                maps.ColPolygon(),
+                eac.maps.MapColFile(),
+                eac.maps.ColExtraBlock(),
+                eac.maps.TexturesMapExtraDataRecord(),
+                eac.maps.PolygonMapExtraDataRecord(),
+                eac.maps.MedianExtraDataRecord(),
+                eac.maps.AnimatedPropPosition(),
+                eac.maps.AnimatedPropPositionFrame(),
+                eac.maps.PropExtraDataRecord(),
+                eac.maps.PropDescriptionExtraDataRecord(),
+                eac.maps.LanesExtraDataRecord(),
+                eac.maps.RoadVectorsExtraDataRecord(),
+                eac.maps.CollisionExtraDataRecord(),
+                eac.maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],
             'Images': [
-                bitmaps.EacImage(),
-                bitmaps.EacPalette(),
+                eac.bitmaps.EacImage(),
+                eac.bitmaps.EacPalette(),
             ],
             'Fonts': [
-                fonts.FfnFont(),
-                fonts.GlyphDefinition(),
-                fonts.KerningItem(),
+                eac.fonts.FfnFont(),
+                eac.fonts.GlyphDefinition(),
+                eac.fonts.KerningItem(),
             ],
             # 'Audio': [
             # ],
             'Misc': [
-                misc.ShpiText(),
+                eac.misc.ShpiText(),
             ]
         },
     },
     'nfs3': {
         'file_name': 'NFS3.md',
         'title': 'NFS 3 Hot Pursuit file specs',
-        'file_list': f"""**\\*.COL** track additional data. {render_type(maps.MapColFile())}
+        'file_list': f"""**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
         
-**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
-**\\*.FRD** main track file. {render_type(maps.FrdMap())}
+**\\*.FRD** main track file. {render_type(eac.maps.FrdMap())}
 
-**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
-                archives.ShpiBlock(),
-                archives.BigfBlock(),
-                archives.BigfItemDescriptionBlock(),
+                eac.archives.ShpiBlock(),
+                eac.archives.BigfBlock(),
+                eac.archives.BigfItemDescriptionBlock(),
             ],
             # 'Geometries': [
             # ],
             'Maps': [
                 # FRD
-                maps.FrdMap(),
-                maps.FrdBlock(),
-                maps.FrdPositionBlock(),
-                maps.FrdBlockPolygonData(),
-                maps.FrdBlockVroadData(),
-                maps.FrdPolyBlock(),
-                maps.FrdPolygonsBlock(),
-                maps.FrdPolygonRecord(),
-                maps.FrdPolyObjBlock(),
-                maps.FrdPolyObjPolygonsBlock(),
-                maps.ExtraObjectBlock(),
-                maps.ExtraObjectDataCrossType1(),
-                maps.AnimData(),
-                maps.ExtraObjectDataCrossType4(),
-                maps.TextureBlock(),
+                eac.maps.FrdMap(),
+                eac.maps.FrdBlock(),
+                eac.maps.FrdPositionBlock(),
+                eac.maps.FrdBlockPolygonData(),
+                eac.maps.FrdBlockVroadData(),
+                eac.maps.FrdPolyBlock(),
+                eac.maps.FrdPolygonsBlock(),
+                eac.maps.FrdPolygonRecord(),
+                eac.maps.FrdPolyObjBlock(),
+                eac.maps.FrdPolyObjPolygonsBlock(),
+                eac.maps.ExtraObjectBlock(),
+                eac.maps.ExtraObjectDataCrossType1(),
+                eac.maps.AnimData(),
+                eac.maps.ExtraObjectDataCrossType4(),
+                eac.maps.TextureBlock(),
                 # COL
-                maps.MapColFile(),
-                maps.ColExtraBlock(),
-                maps.TexturesMapExtraDataRecord(),
-                maps.PolygonMapExtraDataRecord(),
-                maps.MedianExtraDataRecord(),
-                maps.AnimatedPropPosition(),
-                maps.AnimatedPropPositionFrame(),
-                maps.PropExtraDataRecord(),
-                maps.PropDescriptionExtraDataRecord(),
-                maps.LanesExtraDataRecord(),
-                maps.RoadVectorsExtraDataRecord(),
-                maps.CollisionExtraDataRecord(),
-                maps.ColPolygon(),
+                eac.maps.MapColFile(),
+                eac.maps.ColExtraBlock(),
+                eac.maps.TexturesMapExtraDataRecord(),
+                eac.maps.PolygonMapExtraDataRecord(),
+                eac.maps.MedianExtraDataRecord(),
+                eac.maps.AnimatedPropPosition(),
+                eac.maps.AnimatedPropPositionFrame(),
+                eac.maps.PropExtraDataRecord(),
+                eac.maps.PropDescriptionExtraDataRecord(),
+                eac.maps.LanesExtraDataRecord(),
+                eac.maps.RoadVectorsExtraDataRecord(),
+                eac.maps.CollisionExtraDataRecord(),
+                eac.maps.ColPolygon(),
             ],
             # 'Physics': [
             # ],
             'Images': [
-                bitmaps.EacImage(),
-                bitmaps.EacPalette(),
+                eac.bitmaps.EacImage(),
+                eac.bitmaps.EacPalette(),
             ],
             'Fonts': [
-                fonts.FfnFont(),
-                fonts.GlyphDefinition(),
-                fonts.KerningItem(),
+                eac.fonts.FfnFont(),
+                eac.fonts.GlyphDefinition(),
+                eac.fonts.KerningItem(),
             ],
             # 'Audio': [
             # ],
@@ -369,20 +360,20 @@ EXPORT_RESOURCES = {
     'nfs4': {
         'file_name': 'NFS4.md',
         'title': 'NFS 4 High Stakes file specs',
-        'file_list': f"""**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        'file_list': f"""**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
         
-**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
-**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.QFS** image archive. {render_type(archives.ShpiBlock())}, [compressed](eac_compressions.md)
+**\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
-                archives.ShpiBlock(),
-                archives.BigfBlock(),
-                archives.BigfItemDescriptionBlock(),
+                eac.archives.ShpiBlock(),
+                eac.archives.BigfBlock(),
+                eac.archives.BigfItemDescriptionBlock(),
             ],
             # 'Geometries': [
             # ],
@@ -391,13 +382,13 @@ EXPORT_RESOURCES = {
             # 'Physics': [
             # ],
             'Images': [
-                bitmaps.EacImage(),
-                bitmaps.EacPalette(),
+                eac.bitmaps.EacImage(),
+                eac.bitmaps.EacPalette(),
             ],
             'Fonts': [
-                fonts.FfnFont(),
-                fonts.GlyphDefinition(),
-                fonts.KerningItem(),
+                eac.fonts.FfnFont(),
+                eac.fonts.GlyphDefinition(),
+                eac.fonts.KerningItem(),
             ],
             # 'Audio': [
             # ],
@@ -408,70 +399,70 @@ EXPORT_RESOURCES = {
     'nfs5': {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
-        'file_list': f"""**\\*.crp** geometry file. {render_type(geometries.CrpGeometry())}, [compressed](eac_compressions.md)
+        'file_list': f"""**\\*.crp** geometry file. {render_type(eac.geometries.CrpGeometry())}, [compressed](eac_compressions.md)
         
-**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
-**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.ENV** image archive. {render_type(archives.ShpiBlock())}
+**\\*.ENV** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
-                archives.ShpiBlock(),
-                archives.BigfBlock(),
-                archives.BigfItemDescriptionBlock(),
+                eac.archives.ShpiBlock(),
+                eac.archives.BigfBlock(),
+                eac.archives.BigfItemDescriptionBlock(),
             ],
             'Geometries': [
-                geometries.nfs5.CrpGeometry(),
+                eac.geometries.nfs5.CrpGeometry(),
 
-                geometries.nfs5.ArticlePart(),
-                geometries.nfs5.TextPart2(),
-                geometries.nfs5.TextPart4(),
-                geometries.nfs5.MaterialPart(),
-                geometries.nfs5.FSHPart(),
-                geometries.nfs5.CullingPart(),
-                geometries.nfs5.EffectPart(),
-                geometries.nfs5.NormalPart(),
-                geometries.nfs5.TrianglePart(),
-                geometries.nfs5.TransformationPart(),
-                geometries.nfs5.UVPart(),
-                geometries.nfs5.VertexPart(),
-                geometries.nfs5.UnkPart2(),
-                geometries.nfs5.UnkPart4(),
+                eac.geometries.nfs5.ArticlePart(),
+                eac.geometries.nfs5.TextPart2(),
+                eac.geometries.nfs5.TextPart4(),
+                eac.geometries.nfs5.MaterialPart(),
+                eac.geometries.nfs5.FSHPart(),
+                eac.geometries.nfs5.CullingPart(),
+                eac.geometries.nfs5.EffectPart(),
+                eac.geometries.nfs5.NormalPart(),
+                eac.geometries.nfs5.TrianglePart(),
+                eac.geometries.nfs5.TransformationPart(),
+                eac.geometries.nfs5.UVPart(),
+                eac.geometries.nfs5.VertexPart(),
+                eac.geometries.nfs5.UnkPart2(),
+                eac.geometries.nfs5.UnkPart4(),
 
-                geometries.nfs5.MaterialPartData(),
-                geometries.nfs5.CullingPartData(),
-                geometries.nfs5.CullingInfoRow(),
+                eac.geometries.nfs5.MaterialPartData(),
+                eac.geometries.nfs5.CullingPartData(),
+                eac.geometries.nfs5.CullingInfoRow(),
 
-                geometries.nfs5.EffectPartData(),
+                eac.geometries.nfs5.EffectPartData(),
 
-                geometries.nfs5.NormalPartData(),
-                geometries.nfs5.NormalInfoRow(),
+                eac.geometries.nfs5.NormalPartData(),
+                eac.geometries.nfs5.NormalInfoRow(),
 
-                geometries.nfs5.TrianglePartData(),
-                geometries.nfs5.TriangleInfoRowBase(),
-                geometries.nfs5.IndexRow(),
+                eac.geometries.nfs5.TrianglePartData(),
+                eac.geometries.nfs5.TriangleInfoRowBase(),
+                eac.geometries.nfs5.IndexRow(),
 
-                geometries.nfs5.UVData(),
-                geometries.nfs5.UVInfoRow(),
+                eac.geometries.nfs5.UVData(),
+                eac.geometries.nfs5.UVInfoRow(),
 
-                geometries.nfs5.VertexData(),
-                geometries.nfs5.VertexInfoRow(),
+                eac.geometries.nfs5.VertexData(),
+                eac.geometries.nfs5.VertexInfoRow(),
             ],
             # 'Maps': [
             # ],
             # 'Physics': [
             # ],
             'Images': [
-                bitmaps.EacImage(),
-                bitmaps.EacPalette(),
+                eac.bitmaps.EacImage(),
+                eac.bitmaps.EacPalette(),
             ],
             'Fonts': [
-                fonts.FfnFont(),
-                fonts.GlyphDefinition(),
-                fonts.KerningItem(),
+                eac.fonts.FfnFont(),
+                eac.fonts.GlyphDefinition(),
+                eac.fonts.KerningItem(),
             ],
             # 'Audio': [
             # ],
@@ -482,16 +473,16 @@ EXPORT_RESOURCES = {
     'nfs6': {
         'file_name': 'NFS6.md',
         'title': 'NFS 6 Hot Pursuit 2 file specs',
-        'file_list': f"""**\\*.FFN** bitmap font. {render_type(fonts.FfnFont())}
+        'file_list': f"""**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
-**\\*.FSH** image archive. {render_type(archives.ShpiBlock())}
+**\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.VIV** archive with some data. {render_type(archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
-                archives.ShpiBlock(),
-                archives.BigfBlock(),
-                archives.BigfItemDescriptionBlock(),
+                eac.archives.ShpiBlock(),
+                eac.archives.BigfBlock(),
+                eac.archives.BigfItemDescriptionBlock(),
             ],
             # 'Geometries': [
             # ],
@@ -500,14 +491,56 @@ EXPORT_RESOURCES = {
             # 'Physics': [
             # ],
             'Images': [
-                bitmaps.EacImage(),
-                bitmaps.EacPalette(),
+                eac.bitmaps.EacImage(),
+                eac.bitmaps.EacPalette(),
             ],
             'Fonts': [
-                fonts.FfnFont(),
-                fonts.GlyphDefinition(),
-                fonts.KerningItem(),
+                eac.fonts.FfnFont(),
+                eac.fonts.GlyphDefinition(),
+                eac.fonts.KerningItem(),
             ],
+            # 'Audio': [
+            # ],
+            # 'Misc': [
+            # ]
+        },
+    },
+    'nfsu': {
+        'file_name': 'NFSU.md',
+        'title': 'NFS Underground file specs',
+        'file_list': f"""Cars\\**\\GEOMETRY.BIN** car geometry. {render_type(blackbox.geometries.NfsuBinGeometry())}""",
+        'blocks': {
+            # 'Archives': [
+            # ],
+            'Geometries': [
+                blackbox.geometries.NfsuBinGeometry(),
+                blackbox.geometries.ZeroChunk(),
+                blackbox.geometries.UnknownChunk(),
+                blackbox.geometries.Chunk80034020(),
+                blackbox.geometries.NfsuMeshChunk(),
+                blackbox.geometries.NfsuMeshFacesChunk(),
+                blackbox.geometries.Chunk00134BXX(),
+                blackbox.geometries.Chunk80134100(),
+                blackbox.geometries.Chunk00134002(),
+                blackbox.geometries.Chunk00134003(),
+                blackbox.geometries.Chunk00134011(),
+                blackbox.geometries.Chunk00134012(),
+                blackbox.geometries.Chunk00134013(),
+                blackbox.geometries.Chunk001340XX(),
+                blackbox.geometries.Chunk80134008(),
+                blackbox.geometries.NfsuMeshDescriptorChunk(),
+                blackbox.geometries.Chunk80134001(),
+                blackbox.geometries.Chunk80134020(),
+                blackbox.geometries.NfsuVec3(),
+            ],
+            # 'Maps': [
+            # ],
+            # 'Physics': [
+            # ],
+            # 'Images': [
+            # ],
+            # 'Fonts': [
+            # ],
             # 'Audio': [
             # ],
             # 'Misc': [
