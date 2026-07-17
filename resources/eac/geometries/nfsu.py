@@ -4,7 +4,8 @@ from library.context import ReadContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  IntegerBlock, BytesBlock, ArrayBlock, DelegateBlock,
                                  )
-from library.read_blocks.misc.value_validators import Eq
+from library.read_blocks.misc.value_validators import Eq, Or
+from library.read_blocks.strings import NullTerminatedUTF8Block
 
 
 class ZeroChunk(DeclarativeCompoundBlock):
@@ -24,13 +25,30 @@ class Chunk80134001(DeclarativeCompoundBlock):
         payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
 
 
+# NfsuMeshDescriptorBlock ?
 class Chunk80134010(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_10))
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
+            IntegerBlock(length=4, is_signed=False,
+                         programmatic_value=lambda ctx: len(ctx.data('payload')) + 157 + len(ctx.data('mesh_name'))),
             {'usage': 'io,doc'})
-        payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
+        unk0 = IntegerBlock(length=4, value_validator=Eq(0x00_13_40_11))
+        unk1 = IntegerBlock(length=4, value_validator=Eq(0x00_00_00_B0))
+        unk2 = IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00))
+        unk3 = IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00))
+        unk4 = IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00))
+        unk6 = IntegerBlock(length=2, value_validator=Eq(0x00_13))
+        unk5 = IntegerBlock(length=2, value_validator=Or([0x00_40, 0x00_00]))
+        descriptor_metadata = BytesBlock(length=108)
+        unk_U = IntegerBlock(length=4, value_validator=Eq(0x3F_80_00_00))
+        unk_V = IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00))
+        unk_W = IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00))
+        unk_X = IntegerBlock(length=4, value_validator=Eq(0x00_12_F8_00))
+        unk_Y = IntegerBlock(length=4, value_validator=Eq(0x00_12_F8_00))
+        unk_Z = IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00))
+        mesh_name = NullTerminatedUTF8Block(length=None)
+        payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - 157 - len(ctx.data('mesh_name')))
 
 
 class Chunk80134020(DeclarativeCompoundBlock):
