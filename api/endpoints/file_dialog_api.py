@@ -57,7 +57,7 @@ class FileDialogAPI:
             return filenames
         import webview
         selection = window.create_file_dialog(
-            webview.OPEN_DIALOG,
+            webview.FileDialog.OPEN,
             allow_multiple=multiple,
         )
         if not selection:
@@ -136,7 +136,7 @@ class FileDialogAPI:
                     initialfile = file_name
 
         result = window.create_file_dialog(
-            webview.SAVE_DIALOG,
+            webview.FileDialog.SAVE,
             directory=initialdir,
             save_filename=initialfile,
         )
@@ -159,7 +159,7 @@ class FileDialogAPI:
             root.destroy()
             return directory or ''
         import webview
-        selection = window.create_file_dialog(webview.FOLDER_DIALOG)
+        selection = window.create_file_dialog(webview.FileDialog.FOLDER)
         if not selection:
             return ''
         if isinstance(selection, (list, tuple)):

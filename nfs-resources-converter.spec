@@ -32,7 +32,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['viztracer'],
+    excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -70,10 +70,12 @@ coll = COLLECT(
 )
 app = BUNDLE(
     coll,
-    name=f'NFS Resources Converter-{__version__}.app',
+    name='NFS Resources Converter.app',
     icon='frontend/dist/gui/favicon.ico',
     bundle_identifier='com.andygura.nfs-resources-converter',
     info_plist={
+        'CFBundleShortVersionString': __version__,
+        'CFBundleVersion': __version__,
         'CFBundleDocumentTypes': [
             {
                 'CFBundleTypeName': entry['name'],
