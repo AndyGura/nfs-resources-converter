@@ -76,6 +76,10 @@ export class ApiDelegateImplService {
     return this.wrapCall('open_file_with_system_app', path);
   }
 
+  public async openUrl(url: string): Promise<void> {
+    return this.wrapCall('open_url', url);
+  }
+
   public async saveFile(): Promise<void> {
     const current = this.openedResource$.getValue();
     if (!current) return;

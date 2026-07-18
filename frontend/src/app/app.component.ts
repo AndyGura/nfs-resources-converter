@@ -118,15 +118,15 @@ export class AppComponent implements OnInit {
   }
 
   openHomePage() {
-    window.open('https://github.com/AndyGura/nfs-resources-converter', '_blank');
+    this.api.openUrl('https://github.com/AndyGura/nfs-resources-converter').then();
   }
 
   openDocs() {
-    window.open('https://github.com/AndyGura/nfs-resources-converter/blob/main/resources/README.md', '_blank');
+    this.api.openUrl('https://github.com/AndyGura/nfs-resources-converter/blob/main/resources/README.md').then();
   }
 
   openBmac() {
-    window.open('https://www.buymeacoffee.com/andygura', '_blank');
+    this.api.openUrl('https://www.buymeacoffee.com/andygura').then();
   }
 
   formatChange(change: ChangeEntry): string {

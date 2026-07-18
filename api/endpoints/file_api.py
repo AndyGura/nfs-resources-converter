@@ -119,6 +119,16 @@ class FileAPI:
                 path = path[1:]
             start_file(path_join(self.api.static_path, path))
 
+    def open_url(self, url: str):
+        """
+        Open a URL in the default system browser.
+
+        Args:
+            url: The URL to open
+        """
+        import webbrowser
+        webbrowser.open(url)
+
     def close_file(self) -> Dict[str, Any]:
         """
         Close the current file and dispose it from cache.
