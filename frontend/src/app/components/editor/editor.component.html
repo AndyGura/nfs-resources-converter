@@ -1,13 +1,13 @@
 @if (resourceError) {
   <div id="error-spinner-wrapper">
-    <mat-form-field appearance="fill" id="error-message">
+    <div id="error-message">
       <div class="fallback-container">
         <mat-icon color="warn">warning</mat-icon>
         <span
           class="message"
           [innerHTML]="(resourceError.class ? resourceError.class + ': ' : '') + resourceError.message"></span>
       </div>
-    </mat-form-field>
+    </div>
   </div>
 }
 @if (_resourceData === undefined && !resourceError) {
