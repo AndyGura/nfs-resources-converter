@@ -162,6 +162,10 @@ class FileAPI:
             file.write(bts)
         ChangesService.on_file_saved()
         clear_file_cache(path)
+        (name, block, data) = require_file(path)
+        self.current_file_name = name
+        self.current_file_data = data
+        self.current_file_block = block
         return self.render_data(self.current_file_data)
 
     def create_new_file(self, path: str, format_name: str):
