@@ -59,16 +59,31 @@ class NfsuMeshChunk(DeclarativeCompoundBlock):
         unk_z = IntegerBlock(length=4, value_validator=Eq(0))
 
 
+def peek_elevens_length(ctx):
+    i = 0
+    while ctx.buffer.read(1) == b'\x11':
+        i += 1
+    ctx.buffer.seek(-i - 1, SEEK_CUR)
+    return i
+
+
 class NfsuMeshFacesChunk(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = IntegerBlock(length=4, value_validator=Eq(0x00_13_4B_03))
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('faces')) * 6 + len(ctx.data('elevens'))),
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('faces')) * 6 + len(ctx.data('elevens')) + len(ctx.data('padding'))),
             {'usage': 'io,doc'})
         # some 0x11 values, unknown reason for adding them
-        elevens = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - ctx.data('../0/data/faces_amount') * 6)
+        elevens = BytesBlock(length=lambda ctx: peek_elevens_length(ctx))
         faces = ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=2), length=3),
                            length=lambda ctx: ctx.data('../0/data/faces_amount'))
+        padding = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - ctx.data('../0/data/faces_amount') * 6 - len(ctx.data('elevens')))
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        if data['elevens'] != b'\x11' * len(data['elevens']):
+            raise ValueError(f'Invalid elevens data in chunk NfsuMeshFacesChunk: {data["elevens"]}')
+        return data
 
 
 class NfsuVertex(DeclarativeCompoundBlock):
@@ -97,6 +112,8 @@ class MeshVerticesChunk(DeclarativeCompoundBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         pos_backup = ctx.buffer.tell()
         data = super().read(ctx, name, read_bytes_amount)
+        if data['elevens'] != b'\x11' * len(data['elevens']):
+            raise ValueError(f'Invalid elevens data in chunk MeshVerticesChunk: {data["elevens"]}')
         if len(data['vertices']) * 36 > data['chunk_length']:
             ctx.buffer.seek(pos_backup + 8)
             raw_payload = ctx.buffer.read(data['chunk_length'])

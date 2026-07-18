@@ -1,6 +1,7 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
+import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 
 @Component({
   selector: 'app-nfsu-bin-geometry-block-ui',
@@ -44,6 +45,34 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
       this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
   }
+
+
+  public readonly previewViewFilters: ViewFilterOpts[] = [
+    {
+      name: 'LOD',
+      filterGroups: [
+        'A',
+        'B',
+        'C',
+        'D',
+        '?',
+      ],
+      checkedIndex: 0,
+      pickFunction: object => {
+        switch (object.name.substring(object.name.length - 2)) {
+          case '_A':
+            return 0;
+          case '_B':
+            return 1;
+          case '_C':
+            return 2;
+          case '_D':
+            return 3;
+        }
+        return 4;
+      },
+    },
+  ];
 
   ngOnDestroy(): void {
     this.destroyed$.next();
