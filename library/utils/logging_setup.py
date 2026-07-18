@@ -50,9 +50,17 @@ class LoggerWriter:
             finally:
                 self._local.is_logging = False
 
+is_frozen = getattr(sys, 'frozen', False)
+is_windows = sys.platform.startswith('win')
+is_windows_built_app = is_frozen and is_windows
+
 _file_handler = None
-_original_stdout = sys.stdout
-_original_stderr = sys.stderr
+if is_windows_built_app:
+    _original_stdout = None
+    _original_stderr = None
+else:
+    _original_stdout = sys.stdout
+    _original_stderr = sys.stderr
 _redirect_stdout_enabled = False
 
 def setup_logging(redirect_stdout=False):
@@ -111,8 +119,13 @@ def setup_logging(redirect_stdout=False):
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
             root_logger.removeHandler(handler)
     
-    if not redirect_stdout:
-        # If not suppressing, add a StreamHandler that writes to the ORIGINAL stdout
+    # Determine whether to add a console handler:
+    # - If we are launched via python command (not frozen), we always want to see all logs in the console.
+    # - If we are frozen (built app) on Windows, we should NEVER write to the console as it breaks.
+    # - For other frozen apps, we only write to the console if redirection is not requested.
+    should_add_console = (not redirect_stdout and not is_windows_built_app) or (not is_frozen)
+    
+    if should_add_console:
         if _original_stdout is not None:
             console_handler = logging.StreamHandler(_original_stdout)
             console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
