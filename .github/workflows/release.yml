@@ -114,10 +114,10 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           pyinstaller nfs-resources-converter.spec
-          # This creates "NFS Resources Converter-${{ needs.release.outputs.version }}.app" in dist/
+          # This creates "NFS Resources Converter.app" in dist/
           # Keep only the .app in a clean staging dir so the DMG doesn't include the raw COLLECT folder
           mkdir -p dmg-staging
-          cp -R "dist/NFS Resources Converter-${{ needs.release.outputs.version }}.app" dmg-staging/
+          cp -R "dist/NFS Resources Converter.app" dmg-staging/
           # Create DMG
           brew install create-dmg
           create-dmg \
@@ -125,8 +125,8 @@ jobs:
             --window-pos 200 120 \
             --window-size 800 400 \
             --icon-size 100 \
-            --icon "NFS Resources Converter-${{ needs.release.outputs.version }}.app" 200 190 \
-            --hide-extension "NFS Resources Converter-${{ needs.release.outputs.version }}.app" \
+            --icon "NFS Resources Converter.app" 200 190 \
+            --hide-extension "NFS Resources Converter.app" \
             --app-drop-link 600 185 \
             "dist/nfs-resources-converter-macos-${{ needs.release.outputs.version }}.dmg" \
             "dmg-staging/"
