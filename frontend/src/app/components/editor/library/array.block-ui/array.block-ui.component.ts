@@ -157,15 +157,52 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
   arrayTableColumns: ArrayTableColumn[] | null = null;
 
   private checkIfTable(): void {
+    this.tableColumns = null;
+    this.arrayTableColumns = null;
     const childSchema = this.resourceSchema?.child_schema;
     if (!childSchema) {
       return;
     }
-    const mro = childSchema.block_class_mro || '';
+
     const isWhitelisted = (className: string) => {
       return this.tableBlockTypeWhitelist.some(w => className.startsWith(w + '__'));
     };
 
+    const getArrayLength = (arrSchema: BlockSchema, arrays?: any[]): number | undefined => {
+      if (typeof arrSchema.length === 'number') {
+        return arrSchema.length;
+      }
+      return undefined;
+    };
+
+    const getCompoundSubFields = (compSchema: BlockSchema): any[] | null => {
+      const fields = compSchema.fields || [];
+      const uiFields = fields
+        .map((f: any, i: number) => ({ ...f, index: i }))
+        .filter((f: any) => !f.usage || f.usage === 'everywhere' || f.usage.includes('ui'));
+      if (uiFields.length === 0) return null;
+
+      const subFields: any[] = [];
+      for (const f of uiFields) {
+        const nestedMro = f.schema.block_class_mro || '';
+        if (isWhitelisted(nestedMro)) {
+          subFields.push({
+            key: f.name,
+            index: f.index,
+            readonly: f.schema.value_validator?.type === 'eq',
+            description: f.description,
+            schema: f.schema,
+          });
+        } else {
+          return null; // Nested compounds or arrays are not allowed inside subfields (limit to 2 levels)
+        }
+      }
+      return subFields;
+    };
+
+    const mro = childSchema.block_class_mro || '';
+
+    // Case 1: Rows are primitives
     if (isWhitelisted(mro)) {
       this.tableColumns = ['index', 'data'];
       this.arrayTableColumns = [
@@ -176,59 +213,134 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
           readonly: childSchema.value_validator?.type === 'eq',
         },
       ];
-    } else if (mro.includes('CompoundBlock__')) {
+      return;
+    }
+
+    // Case 2: Rows are ArrayBlocks (2D arrays or arrays of compounds)
+    if (mro.includes('ArrayBlock__')) {
+      const innerChildSchema = childSchema.child_schema;
+      if (!innerChildSchema) return;
+      const innerMro = innerChildSchema.block_class_mro || '';
+
+      const innerLength = getArrayLength(childSchema, this.resourceData);
+      if (innerLength !== undefined && innerLength > 0 && innerLength <= 32) {
+        // Elements of the array can be primitive
+        if (isWhitelisted(innerMro)) {
+          this.arrayTableColumns = [];
+          for (let idx = 0; idx < innerLength; idx++) {
+            this.arrayTableColumns.push({
+              key: idx.toString(),
+              index: idx,
+              schema: innerChildSchema,
+              readonly: innerChildSchema.value_validator?.type === 'eq',
+            });
+          }
+          this.tableColumns = ['index', ...this.arrayTableColumns.map(f => f.key)];
+          return;
+        }
+        // Elements of the array can be compound
+        if (innerMro.includes('CompoundBlock__')) {
+          const subFields = getCompoundSubFields(innerChildSchema);
+          if (subFields) {
+            this.arrayTableColumns = [];
+            for (let idx = 0; idx < innerLength; idx++) {
+              this.arrayTableColumns.push({
+                key: idx.toString(),
+                index: idx,
+                schema: innerChildSchema,
+                subFields: subFields.map(sf => ({ ...sf })), // deep-ish clone to avoid sharing same subfields across columns
+                readonly: false,
+              });
+            }
+            this.tableColumns = ['index', ...this.arrayTableColumns.map(f => f.key)];
+            return;
+          }
+        }
+      }
+      return;
+    }
+
+    // Case 3: Rows are CompoundBlocks (compounds of primitives, compounds of compounds, or compounds of arrays)
+    if (mro.includes('CompoundBlock__')) {
       const fields = childSchema.fields || [];
       const uiFields = fields
         .map((f: any, i: number) => ({ ...f, index: i }))
         .filter((f: any) => !f.usage || f.usage === 'everywhere' || f.usage.includes('ui'));
+      if (uiFields.length === 0) return;
 
-      const isNestedWhitelisted = (f: any) => {
+      const columns: ArrayTableColumn[] = [];
+
+      for (const f of uiFields) {
         const nestedMro = f.schema.block_class_mro || '';
-        if (isWhitelisted(nestedMro)) {
-          return true;
-        }
-        if (nestedMro.includes('CompoundBlock__')) {
-          const subFields = (f.schema.fields || []).filter(
-            (sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'),
-          );
-          return subFields.length > 0 && subFields.every((sf: any) => isWhitelisted(sf.schema.block_class_mro || ''));
-        }
-        return false;
-      };
 
-      const allChildrenWhitelisted = uiFields.every(isNestedWhitelisted);
-      if (allChildrenWhitelisted && uiFields.length > 0) {
-        this.arrayTableColumns = uiFields.map((f: any) => {
-          const nestedMro = f.schema.block_class_mro || '';
-          if (nestedMro.includes('CompoundBlock__')) {
-            const subFields = (f.schema.fields || [])
-              .map((sf: any, i: number) => ({ ...sf, index: i }))
-              .filter((sf: any) => !sf.usage || sf.usage === 'everywhere' || sf.usage.includes('ui'));
-            return {
-              key: f.name,
-              index: f.index,
-              description: f.description,
-              subFields: subFields.map((sf: any) => ({
-                key: sf.name,
-                index: sf.index,
-                readonly: sf.schema.value_validator?.type === 'eq',
-                description: sf.description,
-                schema: sf.schema,
-              })),
-              readonly: false, // compound itself isn't editable as a single value
-              schema: f.schema,
-            };
-          }
-          return {
+        // Subcase 3a: Field is primitive
+        if (isWhitelisted(nestedMro)) {
+          columns.push({
             key: f.name,
             index: f.index,
             readonly: f.schema.value_validator?.type === 'eq',
             description: f.description,
             schema: f.schema,
-          };
-        });
-        this.tableColumns = ['index', ...this.arrayTableColumns!.map(f => f.key)];
+          });
+        }
+        // Subcase 3b: Field is compound of primitives
+        else if (nestedMro.includes('CompoundBlock__')) {
+          const subFields = getCompoundSubFields(f.schema);
+          if (subFields) {
+            columns.push({
+              key: f.name,
+              index: f.index,
+              description: f.description,
+              subFields: subFields,
+              readonly: false,
+              schema: f.schema,
+            });
+          } else {
+            return; // Not simple if compound nested field cannot be simplified
+          }
+        }
+        // Subcase 3c: Field is array of primitives (e.g. array_comp_array)
+        else if (nestedMro.includes('ArrayBlock__')) {
+          const innerChildSchema = f.schema.child_schema;
+          if (!innerChildSchema) return;
+          const innerMro = innerChildSchema.block_class_mro || '';
+
+          if (isWhitelisted(innerMro)) {
+            const fieldArrays = this.resourceData
+              ? this.resourceData.map(row => (row ? row[f.name] : undefined))
+              : undefined;
+            const innerLength = getArrayLength(f.schema, fieldArrays);
+            if (innerLength !== undefined && innerLength > 0 && innerLength <= 32) {
+              const subFields: any[] = [];
+              for (let idx = 0; idx < innerLength; idx++) {
+                subFields.push({
+                  key: idx.toString(),
+                  index: idx,
+                  readonly: innerChildSchema.value_validator?.type === 'eq',
+                  schema: innerChildSchema,
+                });
+              }
+              columns.push({
+                key: f.name,
+                index: f.index,
+                description: f.description,
+                subFields: subFields,
+                readonly: false,
+                schema: f.schema,
+              });
+            } else {
+              return; // Invalid or too long array
+            }
+          } else {
+            return; // Non-primitive elements inside array field
+          }
+        } else {
+          return; // Unknown or complex field type
+        }
       }
+
+      this.arrayTableColumns = columns;
+      this.tableColumns = ['index', ...columns.map(f => f.key)];
     }
   }
 
