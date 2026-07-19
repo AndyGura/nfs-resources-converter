@@ -5,6 +5,7 @@ import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
 import { ArrayTableColumn, DataTableComponent } from '../../common/data-table/data-table.component';
+import { blockClassStr } from '../../../../utils/block_class_str';
 
 @Component({
   selector: 'app-array-block-ui',
@@ -264,6 +265,14 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
         this.cdr.markForCheck();
       }, 2000) as any as number;
     }
+  }
+
+  itemLabel(index: number) {
+    let label = index.toString();
+    if (this.resourceSchema && this.resourceSchema.block_class_mro.includes('DelegateBlock__')) {
+      label += ` (${blockClassStr(this.resourceSchema.possible_resource_schemas[this.resourceData![index].choice_index])})`;
+    }
+    return label;
   }
 
   onPageIndexChange(event: number) {

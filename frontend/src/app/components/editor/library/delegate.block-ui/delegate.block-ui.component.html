@@ -1,6 +1,10 @@
 @if (resourceId && resourceData) {
   @if (!hideName && resourceName) {
-    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above"
+      >{{
+        resourceName + ' (' + blockClassStr(resourceSchema.possible_resource_schemas[resourceData.choice_index]) + ')'
+      }}
+    </mat-label>
   }
   <!-- TODO usually this does not work. Is it needed anywhere at all? -->
   <!--  <div id='resource-type-container'>-->
