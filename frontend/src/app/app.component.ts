@@ -23,6 +23,9 @@ import { Title } from '@angular/platform-browser';
 export class AppComponent implements OnInit {
   readonly isProduction = environment.production;
 
+  public isUndoing = false;
+  public isRedoing = false;
+
   constructor(
     readonly mainService: MainService,
     readonly api: ApiDelegateService,
@@ -92,12 +95,26 @@ export class AppComponent implements OnInit {
     }
   }
 
-  undo() {
-    this.changes.undo().then();
+  async undo() {
+    this.isUndoing = true;
+    this.cdr.markForCheck();
+    try {
+      await this.changes.undo();
+    } finally {
+      this.isUndoing = false;
+      this.cdr.markForCheck();
+    }
   }
 
-  redo() {
-    this.changes.redo().then();
+  async redo() {
+    this.isRedoing = true;
+    this.cdr.markForCheck();
+    try {
+      await this.changes.redo();
+    } finally {
+      this.isRedoing = false;
+      this.cdr.markForCheck();
+    }
   }
 
   toggleUnknownsVisibility() {
