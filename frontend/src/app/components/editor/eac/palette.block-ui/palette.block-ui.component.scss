@@ -1,3 +1,9 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
+}
+
 #colors-container {
   display: flex;
   flex-wrap: wrap;

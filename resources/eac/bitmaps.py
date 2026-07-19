@@ -405,12 +405,14 @@ class EacPalette(DeclarativeCompoundBlock):
                 {'is_unknown': True})
         num_colors = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
-                      {'description': 'Amount of colors'})
+                      {'usage': 'io,doc',
+                       'description': 'Amount of colors'})
         unk1 = (BytesBlock(length=2),
                 {'is_unknown': True})
         num_colors1 = (IntegerBlock(length=2,
                                     programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
-                       {'description': 'Always equals to num_colors?'})
+                       {'usage': 'io,doc',
+                        'description': 'Always equals to num_colors?'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (EnumLookupDelegateBlock(enum_field='resource_id',
