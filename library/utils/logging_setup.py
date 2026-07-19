@@ -1,9 +1,20 @@
 import logging
 import os
+import reprlib
 import sys
 import threading
 from logging.handlers import RotatingFileHandler
+
 from config import LOG_FILE_PATH
+
+R = reprlib.Repr()
+R.maxlevel = 5
+R.maxlist = 20
+R.maxtuple = 20
+R.maxset = 20
+R.maxdict = 20
+R.maxstring = 500
+
 
 class LoggerWriter:
     _local = threading.local()
@@ -27,7 +38,7 @@ class LoggerWriter:
             self._local.is_logging = True
             try:
                 # Add to buffer and split by newlines, keeping the ends to know if we have a full line
-                lines = ( "".join(self.buffer) + message ).splitlines(keepends=True)
+                lines = ("".join(self.buffer) + message).splitlines(keepends=True)
                 self.buffer = []
                 for line in lines:
                     if line.endswith('\n') or line.endswith('\r'):
@@ -50,10 +61,20 @@ class LoggerWriter:
             finally:
                 self._local.is_logging = False
 
+
+is_frozen = getattr(sys, 'frozen', False)
+is_windows = sys.platform.startswith('win')
+is_windows_built_app = is_frozen and is_windows
+
 _file_handler = None
-_original_stdout = sys.stdout
-_original_stderr = sys.stderr
+if is_windows_built_app:
+    _original_stdout = None
+    _original_stderr = None
+else:
+    _original_stdout = sys.stdout
+    _original_stderr = sys.stderr
 _redirect_stdout_enabled = False
+
 
 def setup_logging(redirect_stdout=False):
     """
@@ -66,14 +87,14 @@ def setup_logging(redirect_stdout=False):
     global _file_handler, _original_stdout, _original_stderr, _redirect_stdout_enabled
     _redirect_stdout_enabled = redirect_stdout
     root_logger = logging.getLogger()
-    
+
     if _file_handler is None:
         try:
             # Create a rotating file handler (1MB limit, 5 backups)
             # Use a simpler FileHandler for worker processes to avoid rotation conflicts on Windows
             import multiprocessing
             is_main_process = multiprocessing.current_process().name == 'MainProcess'
-            
+
             if is_main_process:
                 _file_handler = RotatingFileHandler(
                     LOG_FILE_PATH,
@@ -86,13 +107,13 @@ def setup_logging(redirect_stdout=False):
                     LOG_FILE_PATH,
                     encoding='utf-8'
                 )
-                
+
             _file_handler.setFormatter(logging.Formatter('%(asctime)s - %(process)d - %(levelname)s - %(message)s'))
-            
+
             # Configure root logger
             root_logger.setLevel(logging.INFO)
             root_logger.addHandler(_file_handler)
-            
+
             if is_main_process:
                 logging.info(f"Logging initialized for main process (PID: {os.getpid()})")
             else:
@@ -105,28 +126,35 @@ def setup_logging(redirect_stdout=False):
 
     # Handle stdout/stderr redirection
     # We always redirect to capture prints in the log file
-    
+
     # Remove all existing StreamHandlers to avoid duplicates or loops
     for handler in root_logger.handlers[:]:
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
             root_logger.removeHandler(handler)
-    
-    if not redirect_stdout:
-        # If not suppressing, add a StreamHandler that writes to the ORIGINAL stdout
+
+    # Determine whether to add a console handler:
+    # - If we are launched via python command (not frozen), we always want to see all logs in the console.
+    # - If we are frozen (built app) on Windows, we should NEVER write to the console as it breaks.
+    # - For other frozen apps, we only write to the console if redirection is not requested.
+    should_add_console = (not redirect_stdout and not is_windows_built_app) or (not is_frozen)
+
+    if should_add_console:
         if _original_stdout is not None:
             console_handler = logging.StreamHandler(_original_stdout)
             console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
             root_logger.addHandler(console_handler)
-    
+
     # Redirect sys.stdout/stderr to root logger
     # Note: we use the root logger directly to avoid recursion issues with specialized loggers
     # and to ensure everything is captured.
     sys.stdout = LoggerWriter(logging.info, _original_stdout)
     sys.stderr = LoggerWriter(logging.error, _original_stderr)
 
+
 def is_stdout_redirected():
     """Returns True if stdout redirection is enabled."""
     return _redirect_stdout_enabled
+
 
 def run_command_and_log(command, capture_output=True, **kwargs):
     """

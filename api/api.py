@@ -47,6 +47,7 @@ class API:
         bridge.expose(self.file_api.on_angular_ready)
         bridge.expose(self.file_api.open_file)
         bridge.expose(self.file_api.open_file_with_system_app)
+        bridge.expose(self.file_api.open_url)
         bridge.expose(self.file_api.save_file)
         bridge.expose(self.file_api.create_new_file)
         bridge.expose(self.file_api.close_file)

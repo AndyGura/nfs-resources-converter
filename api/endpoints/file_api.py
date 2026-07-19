@@ -119,6 +119,16 @@ class FileAPI:
                 path = path[1:]
             start_file(path_join(self.api.static_path, path))
 
+    def open_url(self, url: str):
+        """
+        Open a URL in the default system browser.
+
+        Args:
+            url: The URL to open
+        """
+        import webbrowser
+        webbrowser.open(url)
+
     def close_file(self) -> Dict[str, Any]:
         """
         Close the current file and dispose it from cache.
@@ -152,6 +162,10 @@ class FileAPI:
             file.write(bts)
         ChangesService.on_file_saved()
         clear_file_cache(path)
+        (name, block, data) = require_file(path)
+        self.current_file_name = name
+        self.current_file_data = data
+        self.current_file_block = block
         return self.render_data(self.current_file_data)
 
     def create_new_file(self, path: str, format_name: str):
