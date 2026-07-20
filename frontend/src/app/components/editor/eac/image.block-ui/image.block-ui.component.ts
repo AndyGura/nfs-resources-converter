@@ -271,7 +271,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
     const formPatch: any = {};
     if (newFormatSmpl === 'rgba') {
       if (currentFormatSmpl === 'rgba') {
-        formPatch['output_colors'] = 'transparent-white'; // this variable is unused when converting rgba -> rgba
+        formPatch['output_colors'] = 'use palette'; // this variable is unused when converting rgba -> rgba
       }
       formPatch['color_mode'] = newFormat;
     }

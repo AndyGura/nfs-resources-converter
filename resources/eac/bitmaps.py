@@ -1,10 +1,10 @@
 from copy import deepcopy
 from functools import lru_cache
 from io import BytesIO
-from math import ceil
 from typing import Tuple, Any, Dict
 
 import numpy as np
+from math import ceil
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DataBlock,
@@ -148,6 +148,7 @@ class EacImage(DeclarativeCompoundBlock):
                             'id': 'color_mode',
                             'title': 'Color mode',
                             'type': 'enum_string',
+                            'default': '32Bit color format bitmap',
                             'choices': ['16Bit_4444 color format bitmap',
                                         '16Bit_0565 color format bitmap',
                                         '16Bit_1555 color format bitmap',
@@ -158,7 +159,8 @@ class EacImage(DeclarativeCompoundBlock):
                             'id': 'output_colors',
                             'title': 'Output colors',
                             'type': 'enum_string',
-                            'choices': ['transparent-white', 'black-white']
+                            'default': 'use palette',
+                            'choices': ['use palette', 'transparent-white', 'black-white']
                         }
                     ],
                 }
@@ -368,7 +370,7 @@ class EacImage(DeclarativeCompoundBlock):
         read_data['resource_id'] = target_color_format
         return
 
-    def action_convert_to_rgba(self, read_data, color_mode, output_colors, **kwargs):
+    def action_convert_to_rgba(self, read_data, color_mode, output_colors, id, **kwargs):
         current_color_format = read_data['resource_id']
         target_color_format = color_mode
         new_bitmap8 = []
@@ -378,17 +380,40 @@ class EacImage(DeclarativeCompoundBlock):
                     pxl = read_data['bitmap'][j][i]
                     new_bitmap8.append(pxl & 0xff)
         elif current_color_format == '8Bit':
-            new_bitmap8 = read_data['bitmap']
+            if output_colors == 'use palette':
+                from eac.utils import determine_palette_for_8_bit_bitmap
+                (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(self, read_data, id)
+                bitmap = []
+                if palette_block is None:
+                    new_bitmap8 = read_data['bitmap']
+                else:
+                    palette_colors = [c for c in palette_data['colors']['data']]
+                    if palette_data['last_color_transparent']:
+                        palette_colors[255] = 0
+                    for index in read_data['bitmap']:
+                        try:
+                            bitmap.append(palette_colors[index])
+                        except IndexError:
+                            bitmap.append(0)
+                    native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
+                                                      bitmap)
+                    read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'],
+                                                                   read_data['height'],
+                                                                   native)
+            else:
+                new_bitmap8 = read_data['bitmap']
         else:
             native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
                                               read_data['bitmap'])
             read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'], read_data['height'],
                                                            native)
         if new_bitmap8:
-            if output_colors == 'transparent-white':
+            if output_colors in ['transparent-white', 'use palette']:
                 read_data['bitmap'] = [x | 0xffffff00 for x in new_bitmap8]
             elif output_colors == 'black-white':
                 read_data['bitmap'] = [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap8]
+            else:
+                raise ValueError(f'Unknown output_colors value: {output_colors}')
         read_data['resource_id'] = target_color_format
 
 
