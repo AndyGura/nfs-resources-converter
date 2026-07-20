@@ -4,16 +4,26 @@
       mat-icon-button
       [matTooltip]="'Deserialize from ' + (resource?.schema?.serialization?.file_type || 'common format')"
       [class.mat-icon-button-sm-32]="size === 'small'"
+      [disabled]="isDeserializing"
       (click)="deserialize()">
-      <mat-icon fontIcon="upload"></mat-icon>
+      @if (!isDeserializing) {
+        <mat-icon fontIcon="upload"></mat-icon>
+      } @else {
+        <mat-spinner mode="indeterminate" diameter="24" color="accent"></mat-spinner>
+      }
     </button>
   }
   <button
     mat-icon-button
     [matTooltip]="'Serialize to ' + (resource?.schema?.serialization?.file_type || 'common format')"
     [class.mat-icon-button-sm-32]="size === 'small'"
+    [disabled]="isSerializing"
     (click)="serialize()">
-    <mat-icon fontIcon="download"></mat-icon>
+    @if (!isSerializing) {
+      <mat-icon fontIcon="download"></mat-icon>
+    } @else {
+      <mat-spinner mode="indeterminate" diameter="24" color="accent"></mat-spinner>
+    }
   </button>
 }
 @if (!hideCustomActions && customActions.length > 0) {
@@ -21,8 +31,13 @@
     mat-icon-button
     [matMenuTriggerFor]="customActionsMenu"
     matTooltip="Run custom action"
+    [disabled]="isCustomActionRunning"
     [class.mat-icon-button-sm-32]="size === 'small'">
-    <mat-icon fontIcon="bolt"></mat-icon>
+    @if (!isCustomActionRunning) {
+      <mat-icon fontIcon="bolt"></mat-icon>
+    } @else {
+      <mat-spinner mode="indeterminate" diameter="24" color="accent"></mat-spinner>
+    }
   </button>
 }
 

@@ -54,11 +54,24 @@ You can use pre-built installer from the [Releases page](https://github.com/Andy
 1. Download `nfs-resources-converter-windows-setup-<version>`.
 2. Run the installer to install the application and set up file associations (`*.fsh`, `*.fam`, `*.qfs`, `*.tri` etc.).
 
+#### Running app (Windows/macOS Security Warnings):
+Since the pre-built application is unsigned, you may encounter security warnings when running it for the first time on Windows or macOS:
+
+- **Windows (SmartScreen)**:
+  1. If you see the "Windows protected your PC" screen, click **More info**.
+  2. Click **Run anyway** to start the app.
+
+- **macOS (Gatekeeper)**:
+  1. Locate the app in **Finder** (do not open it from Launchpad).
+  2. Right-click (or Control-click) the app icon and select **Open** from the context menu.
+  3. In the warning dialog that appears, click **Open**.
+  4. *Alternatively*, if the app is blocked, go to **System Settings > Privacy & Security**, scroll down to the **Security** section, and click **Open Anyway** next to the blocked app.
+
 ### Development Mode (Recommended for Linux)
 
 If you want to run the project from source (required for Linux):
 
-0) Install Python >=3.9; <=3.12 and pip
+0) Install a fresh version of python (the project uses 3.14.6) and pip
 1) Install dependencies `pip install -r requirements.txt`
 2) Run the application: `python run.py`
 

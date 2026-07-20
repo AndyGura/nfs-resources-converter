@@ -49,7 +49,7 @@
         <div class="item-wrapper">
           @if (!disabled) {
             <div class="item-header">
-              <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+              <span class="item-index">#{{ itemLabel(pageIndex * pageSize + i) }}</span>
               <div class="item-actions">
                 <button
                   mat-icon-button
@@ -81,7 +81,7 @@
           }
           @if (disabled) {
             <div class="item-header">
-              <span class="item-index">#{{ pageIndex * pageSize + i }}</span>
+              <span class="item-index">#{{ itemLabel(pageIndex * pageSize + i) }}</span>
             </div>
           }
           <app-editor

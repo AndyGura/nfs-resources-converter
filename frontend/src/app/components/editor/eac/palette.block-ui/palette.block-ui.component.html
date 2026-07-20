@@ -32,7 +32,7 @@
   @for (color of resourceData?.colors.data; track color; let i = $index) {
     <div
       class="color-box"
-      [ngStyle]="{ 'background-color': '#' + lpad(color.toString(16), '0', 8) }"
+      [style.--color-fill]="getColorGradient(color)"
       [matTooltip]="i + ': #' + color.toString(16)"
       (click)="onColorClicked($any($event.currentTarget!), i)"></div>
   }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, ViewChild } from '@angular/core';
 import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema } from '../../types';
 import { joinId } from '../../../../utils/join-id';
@@ -9,6 +9,7 @@ import { ArchiveItemEditDialogComponent } from '../../common/archive-item-edit.d
 import { ArchiveDelegateItemTypeDialogComponent } from '../../common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
 import { firstValueFrom } from 'rxjs';
 import { blockClassStr } from '../../../../utils/block_class_str';
+import { MatSelectionList } from '@angular/material/list';
 
 type ArchiveChildData = {
   alias: string | null;
@@ -31,6 +32,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 }> {
   childSchema: BlockSchema | undefined;
   supportsAliases: boolean = false;
+
+  @ViewChild(MatSelectionList)
+  private list!: MatSelectionList;
 
   override get resourceSchema(): BlockSchema | undefined {
     return super.resourceSchema;
@@ -58,12 +62,7 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   override set resourceData(value: { [key: string]: BlockData; children: ArchiveChildData[] } | undefined) {
     super.resourceData = value;
-    if (
-      !this.selectedValue ||
-      (this.selectedValue !== '___headers___' && !value?.children.includes(this.selectedValue[1]))
-    ) {
-      this.selectedValue = value?.children?.length ? [0, value.children[0]] : '___headers___';
-    }
+    this.updateSelectionOnDataChange();
   }
 
   selectedValue: [number, ArchiveChildData] | '___headers___' | null = null;
@@ -73,29 +72,52 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   override onExternalChanges() {
     super.onExternalChanges();
-    if (this.selectedValue === '___headers___') {
-      return;
-    }
-    if (this.resourceData && this.selectedValue) {
-      if (!this.resourceData.children.includes(this.selectedValue[1])) {
-        if (this.resourceData.children.length == 0) {
-          this.selectedValue = '___headers___';
-        } else {
-          if (this.selectedValue[1].alias != null) {
-            for (const c of this.resourceData.children) {
-              if (c.alias == this.selectedValue[1].alias) {
-                this.selectedValue = [this.resourceData.children.indexOf(c), c];
-                return;
-              }
-            }
+    this.updateSelectionOnDataChange();
+  }
+
+  private updateSelectionOnDataChange() {
+    this.selectedValue = this.getSelectionAfterDataChange(this.selectedValue);
+    this.cdr.markForCheck();
+    // UI fix for mat list selection indicator
+    if (this.selectedValue) {
+      queueMicrotask(() => {
+        if (this.selectedValue) {
+          let listOpt = this.list.options.get(this.selectedValue === '___headers___' ? 0 : this.selectedValue![0] + 1);
+          if (listOpt) {
+            listOpt.selected = true;
           }
-          let index = Math.min(this.selectedValue[0], this.resourceData.children.length - 1);
-          this.selectedValue = [index, this.resourceData.children[index]];
         }
-      } else if (this.resourceData.children[this.selectedValue[0]] !== this.selectedValue[1]) {
-        this.selectedValue = [this.selectedValue[0], this.resourceData.children[this.selectedValue[0]]];
+      });
+    }
+  }
+
+  private getSelectionAfterDataChange(
+    lastSelectedValue: [number, ArchiveChildData] | '___headers___' | null,
+  ): [number, ArchiveChildData] | '___headers___' | null {
+    const value = super.resourceData;
+    if (!value) return null;
+    if (!lastSelectedValue) {
+      if (value.children.length == 0) return '___headers___';
+      return [0, value.children[0]];
+    }
+    if (lastSelectedValue === '___headers___') {
+      return lastSelectedValue;
+    }
+    if (value.children.length > lastSelectedValue[0] && value.children[lastSelectedValue[0]] === lastSelectedValue[1]) {
+      return lastSelectedValue;
+    }
+    for (const c of value.children) {
+      if (
+        c === lastSelectedValue[1] ||
+        (lastSelectedValue[1].alias !== null &&
+          lastSelectedValue[1].alias !== undefined &&
+          c.alias === lastSelectedValue[1].alias)
+      ) {
+        return [value.children.indexOf(c), c];
       }
     }
+    let index = Math.min(lastSelectedValue[0], value.children.length - 1);
+    return [index, value.children[index]];
   }
 
   onDoubleClick(childIndex: number) {

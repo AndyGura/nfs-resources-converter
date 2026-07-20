@@ -78,6 +78,10 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).openFileWithSystemApp(path);
   }
 
+  public async openUrl(url: string): Promise<void> {
+    return (await this.getImpl()).openUrl(url);
+  }
+
   public async saveFile(): Promise<void> {
     return (await this.getImpl()).saveFile();
   }

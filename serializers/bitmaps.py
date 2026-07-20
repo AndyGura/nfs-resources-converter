@@ -57,7 +57,10 @@ class ImageSerializer(BaseFileSerializer):
         data['resource_id'] = '32Bit color format bitmap'
         data['width'] = image.width
         data['height'] = image.height
-        bitmap = [(x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3] for x in list(image_rgba.getdata())]
+        bitmap = [
+            (r << 24) | (g << 16) | (b << 8) | a
+            for (r, g, b, a) in image_rgba.get_flattened_data()
+        ]
         data['bitmap'] = bitmap
         return data
 

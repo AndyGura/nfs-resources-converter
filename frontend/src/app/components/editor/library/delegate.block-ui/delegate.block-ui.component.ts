@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
 import { BlockData } from '../../types';
+import { blockClassStr } from '../../../../utils/block_class_str';
 
 type DelegateBlockData = { choice_index: number; data: BlockData };
 
@@ -27,4 +28,5 @@ export class DelegateBlockUiComponent extends SubscribableGuiComponent<DelegateB
 
   // protected readonly blockClassStr = blockClassStr;
   protected readonly joinId = joinId;
+  protected readonly blockClassStr = blockClassStr;
 }
