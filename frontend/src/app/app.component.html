@@ -22,11 +22,27 @@
         }
       </mat-menu>
     }
-    <button mat-icon-button (click)="undo()" [disabled]="!(changes.isUndoAvailable$ | async)" matTooltip="Undo">
-      <mat-icon fontIcon="undo"></mat-icon>
+    <button
+      mat-icon-button
+      (click)="undo()"
+      [disabled]="!(changes.isUndoAvailable$ | async) || isUndoing"
+      matTooltip="Undo">
+      @if (!isUndoing) {
+        <mat-icon fontIcon="undo"></mat-icon>
+      } @else {
+        <mat-spinner mode="indeterminate" [diameter]="24" color="accent"></mat-spinner>
+      }
     </button>
-    <button mat-icon-button (click)="redo()" [disabled]="!(changes.isRedoAvailable$ | async)" matTooltip="Redo">
-      <mat-icon fontIcon="redo"></mat-icon>
+    <button
+      mat-icon-button
+      (click)="redo()"
+      [disabled]="!(changes.isRedoAvailable$ | async) || isRedoing"
+      matTooltip="Redo">
+      @if (!isRedoing) {
+        <mat-icon fontIcon="redo"></mat-icon>
+      } @else {
+        <mat-spinner mode="indeterminate" [diameter]="24" color="accent"></mat-spinner>
+      }
     </button>
     <button
       mat-icon-button
@@ -122,12 +138,26 @@
   </mat-menu>
   <button mat-button [matMenuTriggerFor]="editMenu">Edit</button>
   <mat-menu #editMenu="matMenu">
-    <button mat-menu-item (click)="undo()" [disabled]="!(changes.isUndoAvailable$ | async)">
-      <mat-icon>undo</mat-icon>
+    <button mat-menu-item (click)="undo()" [disabled]="!(changes.isUndoAvailable$ | async) || isUndoing">
+      @if (!isUndoing) {
+        <mat-icon>undo</mat-icon>
+      } @else {
+        <mat-progress-spinner
+          [diameter]="24"
+          mode="indeterminate"
+          style="margin-right: 16px; display: inline-block; vertical-align: middle"></mat-progress-spinner>
+      }
       <span>Undo</span>
     </button>
-    <button mat-menu-item (click)="redo()" [disabled]="!(changes.isRedoAvailable$ | async)">
-      <mat-icon>redo</mat-icon>
+    <button mat-menu-item (click)="redo()" [disabled]="!(changes.isRedoAvailable$ | async) || isRedoing">
+      @if (!isRedoing) {
+        <mat-icon>redo</mat-icon>
+      } @else {
+        <mat-progress-spinner
+          [diameter]="24"
+          mode="indeterminate"
+          style="margin-right: 16px; display: inline-block; vertical-align: middle"></mat-progress-spinner>
+      }
       <span>Redo</span>
     </button>
   </mat-menu>

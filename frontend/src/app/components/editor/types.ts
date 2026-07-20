@@ -56,5 +56,5 @@ export type CustomActionArgument = { id: string; title: string } & (
   | { type: 'number'; default?: number }
   | { type: 'string'; default?: string }
   | { type: 'bool'; default?: boolean }
-  | { type: 'enum_string'; choices: string[] }
+  | { type: 'enum_string'; choices: string[]; default?: string }
 );

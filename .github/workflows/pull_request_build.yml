@@ -4,7 +4,7 @@ on:
     types: [synchronize, opened, reopened]
 
 jobs:
-  build:
+  backend-tests:
     runs-on: ubuntu-22.04
 
     steps:
@@ -21,5 +21,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Run backend tests
+        env:
+          PYTHONPATH: resources
         run: python -m unittest
+
+  frontend-tests:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test -- --watch=false --no-progress --browsers=ChromeHeadless

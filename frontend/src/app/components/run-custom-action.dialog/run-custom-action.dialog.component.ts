@@ -38,7 +38,7 @@ export class RunCustomActionDialogComponent {
       if (arg.type === 'file_output') {
         defaultValue = data.resourceName + arg.file_name_suffix;
       } else if (arg.type === 'enum_string') {
-        defaultValue = arg.choices[0] || '';
+        defaultValue = arg.default || arg.choices[0] || '';
       } else if (arg.type === 'bool') {
         defaultValue = !!arg.default;
       } else if (arg.type === 'number') {

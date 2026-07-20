@@ -69,13 +69,13 @@ class ResourceAPI:
         action_func = getattr(res_block, f'action_{action["method"]}')
 
         if action.get('is_pure', False):
-            action_func(name=name, read_data=read_data, **args)
+            action_func(name=name, read_data=read_data, id=resource_id, **args)
             return
 
         # Snapshot the data before the action runs, so we can diff it afterwards and record
         # the mutations as changes in the changes model and notify the frontend.
         before = copy.deepcopy(read_data)
-        action_func(name=name, read_data=read_data, **args)
+        action_func(name=name, read_data=read_data, id=resource_id, **args)
         changes = self._diff_to_changes(resource_id, before, read_data)
         if changes:
             # the action already applied the mutations to read_data in place
