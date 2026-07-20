@@ -564,7 +564,7 @@ class EacPalette(DeclarativeCompoundBlock):
             inverted_rgb = rgb ^ 0xFFFFFF
             read_data['colors']['data'][i] = (inverted_rgb << 8) | alpha
 
-    def action_convert_format(self, read_data, color_mode, **kwargs):
+    def action_convert_format(self, read_data, color_mode, id, **kwargs):
         current_color_format = read_data['resource_id']
         target_color_format = color_mode
         if current_color_format == target_color_format:
@@ -572,3 +572,5 @@ class EacPalette(DeclarativeCompoundBlock):
         native = self._colors_internal_to_native(target_color_format, read_data['colors']['data'])
         read_data['colors']['data'] = self._colors_native_to_internal(target_color_format, native)
         read_data['resource_id'] = target_color_format
+        read_data['last_color_transparent'] = not read_data['resource_id'].startswith('32Bit') and len(
+            read_data['colors']['data']) >= 256 and 'SLIDES/' not in id

@@ -12,6 +12,7 @@ from library.read_blocks import (CompoundBlock,
                                  BytesBlock, LengthPrefixedArrayBlock)
 from library.read_blocks.archives import ArchiveBlock
 from library.read_blocks.misc.value_validators import Eq
+from library.utils.id import join_id
 from resources.eac.bitmaps import EacImage, EacPalette
 from resources.eac.misc import ShpiText
 
@@ -215,7 +216,7 @@ class ShpiBlock(ArchiveBlock):
         del data['data_bytes']
         return ret
 
-    def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, num_colors, **kwargs):
+    def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, num_colors, id, **kwargs):
         # notes for future:
 
         # TNFS CFM files: last 6 colors are special for cars:
@@ -246,17 +247,26 @@ class ShpiBlock(ArchiveBlock):
         total_height = sum(img.height for img in images)
         master_image = Image.new("RGB", (max_width, total_height), (0, 0, 0))
         current_y = 0
+        contain_transparency = False
         for img in images:
             rgb = Image.new("RGB", img.size, (0, 0, 0))
             rgb.paste(img.convert("RGB"), mask=img.getchannel("A"))
             master_image.paste(rgb, (0, current_y))
             current_y += img.height
+            if not contain_transparency:
+                contain_transparency = img.getextrema()[3][0] < 255
+
+        reserved_colors = 0
+        if contain_transparency:
+            reserved_colors += 1
+
         reference_palette_img = master_image.quantize(
-            colors=255,
+            colors=256 - reserved_colors,
             method=Image.Quantize.FASTOCTREE
         )
-        rgba_palette_data = reference_palette_img.getpalette("RGBA")[:(num_colors - 1) * 4]
-        rgba_palette_data += [0, 0, 0, 0]
+        rgba_palette_data = reference_palette_img.getpalette("RGBA")[:(num_colors - reserved_colors) * 4]
+        if contain_transparency:
+            rgba_palette_data += [0, 255, 0, 0]
         rgb_palette_data = []
         for i in range(0, len(rgba_palette_data), 4):
             rgb_palette_data.extend(rgba_palette_data[i:i + 3])
@@ -268,14 +278,15 @@ class ShpiBlock(ArchiveBlock):
             rgb.paste(img.convert("RGB"), mask=alpha)
             q_img = rgb.quantize(palette=dummy_palette_img)
             data = bytearray(q_img.tobytes())
-            alpha_data = alpha.load()
-            w, h = img.size
-            k = 0
-            for y in range(h):
-                for x in range(w):
-                    if alpha_data[x, y] == 0:
-                        data[k] = 255
-                    k += 1
+            if contain_transparency:
+                alpha_data = alpha.load()
+                w, h = img.size
+                k = 0
+                for y in range(h):
+                    for x in range(w):
+                        if alpha_data[x, y] == 0:
+                            data[k] = 255
+                        k += 1
 
             q_img = Image.frombytes("P", img.size, bytes(data))
             q_img.putpalette(rgba_palette_data, "RGBA")
@@ -300,7 +311,7 @@ class ShpiBlock(ArchiveBlock):
             }
         })
         if palette_type != '32Bit color format palette':
-            EacPalette().action_convert_format(pal, palette_type)
+            EacPalette().action_convert_format(pal, palette_type, id=join_id(id, 'children', '0', 'item', 'data'))
 
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer
