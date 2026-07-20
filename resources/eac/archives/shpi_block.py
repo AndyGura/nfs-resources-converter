@@ -2,7 +2,6 @@ import traceback
 from io import SEEK_CUR
 from typing import Dict
 
-from config import general_config
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (CompoundBlock,
                                  DeclarativeCompoundBlock,
@@ -167,7 +166,8 @@ class ShpiBlock(ArchiveBlock):
             else:
                 ctx.buffer.seek(offset)
             try:
-                child['item'] = self.item_block.unpack(ctx=self_ctx, name=f"{descr_index}_{alias}", read_bytes_amount=length)
+                child['item'] = self.item_block.unpack(ctx=self_ctx, name=f"{descr_index}_{alias}",
+                                                       read_bytes_amount=length)
             except Exception:
                 traceback.print_exc()
                 ctx.buffer.seek(offset)

@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
 import { MatSelectChange } from '@angular/material/select';
 import { CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
 import { parseColorInputValue } from '../../../../utils/parse-color-input-value';
+import { auditTime, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-palette-block-ui',
@@ -13,14 +14,37 @@ import { parseColorInputValue } from '../../../../utils/parse-color-input-value'
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class PaletteBlockUiComponent extends SubscribableGuiComponent {
+export class PaletteBlockUiComponent extends SubscribableGuiComponent implements AfterViewInit {
   @ViewChild('colorInput') colorInput!: ElementRef<HTMLInputElement>;
 
   readonly customActionService = inject(CustomActionService);
 
+  valueChange$: Subject<[number, number]> = new Subject<[number, number]>();
+  destroyed$: Subject<void> = new Subject<void>();
+
+  ngAfterViewInit(): void {
+    this.valueChange$.pipe(takeUntil(this.destroyed$), auditTime(150)).subscribe(([index, value]) => {
+      this.onValueSet(value, 'colors', 'data', index);
+    });
+  }
+
+  override ngOnDestroy() {
+    super.ngOnDestroy();
+    this.destroyed$.next();
+    this.destroyed$.complete();
+    this.valueChange$.complete();
+  }
+
   lpad(str: string, padString: string, length: number) {
     while (str.length < length) str = padString + str;
     return str;
+  }
+
+  getColorGradient(color: number) {
+    const hex = this.lpad(color.toString(16), '0', 8);
+    const solid = '#' + hex.substring(0, 6);
+    const full = '#' + hex;
+    return `linear-gradient(135deg, ${solid} 50%, ${full} 50%)`;
   }
 
   private selectedIndex: number | null = null;
@@ -52,7 +76,7 @@ export class PaletteBlockUiComponent extends SubscribableGuiComponent {
     const alpha = color & 0xff;
     const value = parseColorInputValue(raw, alpha);
     if (value === null) return;
-    this.onValueSet(value, 'colors', 'data', this.selectedIndex);
+    this.valueChange$.next([this.selectedIndex, value]);
   }
 
   async addColor() {
