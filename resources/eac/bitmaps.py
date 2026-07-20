@@ -381,7 +381,7 @@ class EacImage(DeclarativeCompoundBlock):
                     new_bitmap8.append(pxl & 0xff)
         elif current_color_format == '8Bit':
             if output_colors == 'use palette':
-                from eac.utils import determine_palette_for_8_bit_bitmap
+                from resources.eac.utils import determine_palette_for_8_bit_bitmap
                 (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(self, read_data, id)
                 bitmap = []
                 if palette_block is None:
