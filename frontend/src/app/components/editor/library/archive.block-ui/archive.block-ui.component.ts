@@ -58,12 +58,8 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   override set resourceData(value: { [key: string]: BlockData; children: ArchiveChildData[] } | undefined) {
     super.resourceData = value;
-    if (
-      !this.selectedValue ||
-      (this.selectedValue !== '___headers___' && !value?.children.includes(this.selectedValue[1]))
-    ) {
-      this.selectedValue = value?.children?.length ? [0, value.children[0]] : '___headers___';
-    }
+    this.selectedValue = this.updateSelectionOnDataChange();
+    this.cdr.markForCheck();
   }
 
   selectedValue: [number, ArchiveChildData] | '___headers___' | null = null;
@@ -73,29 +69,38 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   override onExternalChanges() {
     super.onExternalChanges();
-    if (this.selectedValue === '___headers___') {
-      return;
+    this.selectedValue = this.updateSelectionOnDataChange();
+    this.cdr.markForCheck();
+  }
+
+  private updateSelectionOnDataChange(): [number, ArchiveChildData] | '___headers___' | null {
+    const value = super.resourceData;
+    if (!value) return null;
+    if (!this.selectedValue) {
+      if (value.children.length == 0) return '___headers___';
+      return [0, value.children[0]];
     }
-    if (this.resourceData && this.selectedValue) {
-      if (!this.resourceData.children.includes(this.selectedValue[1])) {
-        if (this.resourceData.children.length == 0) {
-          this.selectedValue = '___headers___';
-        } else {
-          if (this.selectedValue[1].alias != null) {
-            for (const c of this.resourceData.children) {
-              if (c.alias == this.selectedValue[1].alias) {
-                this.selectedValue = [this.resourceData.children.indexOf(c), c];
-                return;
-              }
-            }
-          }
-          let index = Math.min(this.selectedValue[0], this.resourceData.children.length - 1);
-          this.selectedValue = [index, this.resourceData.children[index]];
-        }
-      } else if (this.resourceData.children[this.selectedValue[0]] !== this.selectedValue[1]) {
-        this.selectedValue = [this.selectedValue[0], this.resourceData.children[this.selectedValue[0]]];
+    if (this.selectedValue === '___headers___') {
+      return this.selectedValue;
+    }
+    if (
+      value.children.length > this.selectedValue[0] &&
+      value.children[this.selectedValue[0]] === this.selectedValue[1]
+    ) {
+      return this.selectedValue;
+    }
+    for (const c of value.children) {
+      if (
+        c === this.selectedValue[1] ||
+        (this.selectedValue[1].alias !== null &&
+          this.selectedValue[1].alias !== undefined &&
+          c.alias === this.selectedValue[1].alias)
+      ) {
+        return [value.children.indexOf(c), c];
       }
     }
+    let index = Math.min(this.selectedValue[0], value.children.length - 1);
+    return [index, value.children[index]];
   }
 
   onDoubleClick(childIndex: number) {

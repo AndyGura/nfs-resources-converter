@@ -314,9 +314,11 @@ export class ChangesService {
   }
 
   public unsubscribeComponent(resourceId: string, component: SubscribableGuiComponent) {
-    this._cdrSubscribers[resourceId] = this._cdrSubscribers[resourceId].filter(c => c !== component);
-    if (this._cdrSubscribers[resourceId].length === 0) {
-      delete this._cdrSubscribers[resourceId];
+    if (this._cdrSubscribers[resourceId]) {
+      this._cdrSubscribers[resourceId] = this._cdrSubscribers[resourceId].filter(c => c !== component);
+      if (this._cdrSubscribers[resourceId].length === 0) {
+        delete this._cdrSubscribers[resourceId];
+      }
     }
   }
 }
