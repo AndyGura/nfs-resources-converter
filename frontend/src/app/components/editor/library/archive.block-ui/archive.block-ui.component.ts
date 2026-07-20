@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, ViewChild } from '@angular/core';
 import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema } from '../../types';
 import { joinId } from '../../../../utils/join-id';
@@ -9,6 +9,7 @@ import { ArchiveItemEditDialogComponent } from '../../common/archive-item-edit.d
 import { ArchiveDelegateItemTypeDialogComponent } from '../../common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
 import { firstValueFrom } from 'rxjs';
 import { blockClassStr } from '../../../../utils/block_class_str';
+import { MatSelectionList } from '@angular/material/list';
 
 type ArchiveChildData = {
   alias: string | null;
@@ -31,6 +32,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 }> {
   childSchema: BlockSchema | undefined;
   supportsAliases: boolean = false;
+
+  @ViewChild(MatSelectionList)
+  private list!: MatSelectionList;
 
   override get resourceSchema(): BlockSchema | undefined {
     return super.resourceSchema;
@@ -58,8 +62,7 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   override set resourceData(value: { [key: string]: BlockData; children: ArchiveChildData[] } | undefined) {
     super.resourceData = value;
-    this.selectedValue = this.updateSelectionOnDataChange();
-    this.cdr.markForCheck();
+    this.updateSelectionOnDataChange();
   }
 
   selectedValue: [number, ArchiveChildData] | '___headers___' | null = null;
@@ -69,37 +72,51 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   override onExternalChanges() {
     super.onExternalChanges();
-    this.selectedValue = this.updateSelectionOnDataChange();
-    this.cdr.markForCheck();
+    this.updateSelectionOnDataChange();
   }
 
-  private updateSelectionOnDataChange(): [number, ArchiveChildData] | '___headers___' | null {
+  private updateSelectionOnDataChange() {
+    this.selectedValue = this.getSelectionAfterDataChange(this.selectedValue);
+    this.cdr.markForCheck();
+    // UI fix for mat list selection indicator
+    if (this.selectedValue) {
+      queueMicrotask(() => {
+        if (this.selectedValue) {
+          let listOpt = this.list.options.get(this.selectedValue === '___headers___' ? 0 : this.selectedValue![0] + 1);
+          if (listOpt) {
+            listOpt.selected = true;
+          }
+        }
+      });
+    }
+  }
+
+  private getSelectionAfterDataChange(
+    lastSelectedValue: [number, ArchiveChildData] | '___headers___' | null,
+  ): [number, ArchiveChildData] | '___headers___' | null {
     const value = super.resourceData;
     if (!value) return null;
-    if (!this.selectedValue) {
+    if (!lastSelectedValue) {
       if (value.children.length == 0) return '___headers___';
       return [0, value.children[0]];
     }
-    if (this.selectedValue === '___headers___') {
-      return this.selectedValue;
+    if (lastSelectedValue === '___headers___') {
+      return lastSelectedValue;
     }
-    if (
-      value.children.length > this.selectedValue[0] &&
-      value.children[this.selectedValue[0]] === this.selectedValue[1]
-    ) {
-      return this.selectedValue;
+    if (value.children.length > lastSelectedValue[0] && value.children[lastSelectedValue[0]] === lastSelectedValue[1]) {
+      return lastSelectedValue;
     }
     for (const c of value.children) {
       if (
-        c === this.selectedValue[1] ||
-        (this.selectedValue[1].alias !== null &&
-          this.selectedValue[1].alias !== undefined &&
-          c.alias === this.selectedValue[1].alias)
+        c === lastSelectedValue[1] ||
+        (lastSelectedValue[1].alias !== null &&
+          lastSelectedValue[1].alias !== undefined &&
+          c.alias === lastSelectedValue[1].alias)
       ) {
         return [value.children.indexOf(c), c];
       }
     }
-    let index = Math.min(this.selectedValue[0], value.children.length - 1);
+    let index = Math.min(lastSelectedValue[0], value.children.length - 1);
     return [index, value.children[index]];
   }
 

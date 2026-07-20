@@ -13,6 +13,7 @@ import { MatSelectChange } from '@angular/material/select';
   standalone: false,
 })
 export class ImageBlockUiComponent extends SubscribableGuiComponent implements AfterViewInit {
+  imageNeedsUpdate$ = new Subject<void>();
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   loading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
@@ -24,7 +25,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   override set resourceId(value: string | undefined) {
     if (super.resourceId === value) return;
     super.resourceId = value;
-    this.reloadImage();
+    this.imageNeedsUpdate$.next();
   }
 
   override get resourceData(): BlockData {
@@ -35,29 +36,10 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   override set resourceData(value: BlockData) {
     if (value === super.resourceData) return;
     super.resourceData = value;
-    this.reloadImage();
+    this.imageNeedsUpdate$.next();
   }
 
   @ViewChild('imageContainer') imageContainer?: ElementRef<HTMLDivElement>;
-
-  private reloadImage() {
-    this.imageUrl$.next(null);
-    if (this.resourceId) {
-      setTimeout(() => this.fitZoom(), 0);
-      this.loading$.next(true);
-      this.mainService.api
-        .serializeResource(this.resourceId)
-        .then(paths => {
-          let url = paths.find(x => x.endsWith('.png'));
-          if (!url) {
-            this.imageUrl$.next(null);
-          } else {
-            this.imageUrl$.next(url + '?ts=' + Date.now());
-          }
-        })
-        .finally(() => this.loading$.next(false));
-    }
-  }
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
   zoom = 100;
@@ -92,21 +74,40 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   readonly customActionService = inject(CustomActionService);
 
   async ngAfterViewInit() {
+    this.imageNeedsUpdate$.pipe(takeUntil(this.destroyed$), debounceTime(20)).subscribe(() => {
+      this.imageUrl$.next(null);
+      if (this.resourceId) {
+        setTimeout(() => this.fitZoom(), 0);
+        this.loading$.next(true);
+        this.mainService.api
+          .serializeResource(this.resourceId)
+          .then(paths => {
+            let url = paths.find(x => x.endsWith('.png'));
+            if (!url) {
+              this.imageUrl$.next(null);
+            } else {
+              this.imageUrl$.next(url + '?ts=' + Date.now());
+            }
+          })
+          .finally(() => this.loading$.next(false));
+      }
+    });
     this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
         filter(x => !!((this.resourceId && x.startsWith(this.resourceId)) || x.includes('colors/data'))),
-        debounceTime(50),
       )
       .subscribe(() => {
-        this.reloadImage();
+        this.imageNeedsUpdate$.next();
       });
+    this.imageNeedsUpdate$.next();
   }
 
   override ngOnDestroy(): void {
     super.ngOnDestroy();
     this.destroyed$.next();
     this.destroyed$.complete();
+    this.imageNeedsUpdate$.complete();
   }
 
   zoomIn() {
