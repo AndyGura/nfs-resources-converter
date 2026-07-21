@@ -109,21 +109,9 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
         elif resource_id == 0x7C:
             from resources.eac.archives import PaletteReference
             return PaletteReference
-        # QFS1
-        # if resource_id & 0b0001_0000:
-        elif header_bytes[1] == 0xfb and (resource_id & 0b1111_1110) == 0x10:
-            from resources.eac.archives import RefPackBlock
-            return RefPackBlock
-        # AL2.QFS
-        elif header_bytes[1] == 0xfb and resource_id == 0b0100_0110:
-            from resources.eac.archives import Qfs2Block
-            return Qfs2Block
-        # AL1.QFS
-        elif header_bytes[1] == 0xfb and resource_id in [0b0011_0000, 0b0011_0010, 0b0011_0100, 0b0011_0001,
-                                                         0b0011_0011,
-                                                         0b0011_0101]:
-            from resources.eac.archives import Qfs3Block
-            return Qfs3Block
+        elif header_bytes[1] == 0xfb:
+            from resources.eac.archives import EacCompressedBlock
+            return EacCompressedBlock
         elif resource_id == 0x11:
             from resources.eac.maps import TriMap
             return TriMap

@@ -95,6 +95,10 @@ class ReadContext(BaseContext):
         self.read_start_offset = buffer.tell() if buffer is not None else None
         self.read_bytes_amount = read_bytes_amount
 
+    @classmethod
+    def from_bytes(cls, b, **kwargs):
+        return cls(buffer=BytesIO(b), read_bytes_amount=len(b), **kwargs)
+
 
 class WriteContext(BaseContext):
 

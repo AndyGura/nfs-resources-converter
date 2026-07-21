@@ -1,6 +1,5 @@
 from io import BufferedReader, SEEK_CUR, BytesIO
 
-from library.utils.buffer_utils import read_byte
 from resources.eac.compressions.base import BaseCompressionAlgorithm
 
 
@@ -30,23 +29,23 @@ class RefPackCompression(BaseCompressionAlgorithm):
 
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int):
         uncompressed: bytearray = bytearray()
-        use_4_bytes, contains_compressed_size = self._parse_archive_flags(read_byte(buffer))
-        hdr2 = read_byte(buffer)
+        use_4_bytes, contains_compressed_size = self._parse_archive_flags(buffer.read(1)[0])
+        hdr2 = buffer.read(1)[0]
         if hdr2 != 0xfb:
             raise ValueError("Invalid RefPack file header")
-        output_length = (read_byte(buffer) << 16) + (read_byte(buffer) << 8) + read_byte(buffer)
+        output_length = (buffer.read(1)[0] << 16) + (buffer.read(1)[0] << 8) + buffer.read(1)[0]
         bytes_used = 5
         if contains_compressed_size:
             buffer.seek(3, SEEK_CUR)
             bytes_used = 8
-        pack_code = read_byte(buffer)
+        pack_code = buffer.read(1)[0]
         bytes_used = bytes_used + 1
         last_uncompressed_len = -1
         while pack_code < 0xFC:
             if last_uncompressed_len == len(uncompressed):
                 raise ValueError(f'Error while unpacking QFS archive: infinite loop detected')
             last_uncompressed_len = len(uncompressed)
-            pack_a, pack_b = read_byte(buffer), read_byte(buffer)
+            pack_a, pack_b = buffer.read(1)[0], buffer.read(1)[0]
             bytes_used = bytes_used + 2
             if not (pack_code & 0x80):
                 length = pack_code & 3
@@ -64,7 +63,7 @@ class RefPackCompression(BaseCompressionAlgorithm):
                 length = (pack_code & 0x3f) + 4
                 self._reuse_bytes_in_output(buffer, uncompressed, length, offset)
             elif not pack_code & 0x20:
-                pack_c = read_byte(buffer)
+                pack_c = buffer.read(1)[0]
                 length = pack_code & 3
                 self._copy_bytes_to_output(buffer, uncompressed, length)
                 bytes_used = bytes_used + length + 1
@@ -76,7 +75,7 @@ class RefPackCompression(BaseCompressionAlgorithm):
                 buffer.seek(-2, SEEK_CUR)
                 self._copy_bytes_to_output(buffer, uncompressed, length)
                 bytes_used = bytes_used + length - 2
-            pack_code = read_byte(buffer)
+            pack_code = buffer.read(1)[0]
             bytes_used = bytes_used + 1
         if bytes_used < input_length and len(uncompressed) < output_length:
             self._copy_bytes_to_output(buffer, uncompressed, input_length - bytes_used)

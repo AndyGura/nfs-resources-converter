@@ -1,10 +1,8 @@
 import traceback
 from copy import deepcopy
-from io import BytesIO, SEEK_CUR
-from os.path import getsize
+from io import SEEK_CUR
 from typing import Dict
 
-from config import general_config
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DeclarativeCompoundBlock,
                                  UTF8Block,
@@ -16,81 +14,8 @@ from library.read_blocks.archives import ArchiveBlock
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
-from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
 from .shpi_block import ShpiBlock, PaletteReference
-
-
-class CompressedBlock(AutoDetectBlock):
-
-    @property
-    def algorithm(self):
-        return None
-
-    def __init__(self, **kwargs):
-        from resources.eac.geometries import CrpGeometry
-        super().__init__(possible_blocks=[ShpiBlock(),
-                                          CarSimplifiedPerformanceSpec(),
-                                          CarPerformanceSpec(),
-                                          CrpGeometry()],
-                         **kwargs)
-
-    @property
-    def schema(self) -> Dict:
-        return {**super().schema,
-            'custom_actions': [
-                {
-                    'method': 'save_uncompressed',
-                    'title': 'Save uncompressed data',
-                    'description': 'Saved uncompressed binary data to a new file',
-                    'is_pure': True,
-                    'args': [
-                        {'id': 'file_path', 'title': 'File path', 'type': 'file_output',
-                         'file_name_suffix': '_uncompressed'}
-                    ],
-                }
-            ]}
-
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        uncompressed_bytes = self.algorithm(ctx.buffer, read_bytes_amount)
-        # with open(name + "_uncompressed.bin", "wb") as f:
-        #     f.write(uncompressed_bytes)
-        uncompressed = BytesIO(uncompressed_bytes)
-        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
-        self_ctx.buffer = uncompressed
-        self_ctx.data = {'uncompressed': None}
-        res = super().read(ctx=self_ctx, name='uncompressed', read_bytes_amount=len(uncompressed_bytes))
-        return res
-
-    def action_save_uncompressed(self, name, file_path, **kwargs):
-        # we do not store compressed buffer in the context, so read file again
-        with open(name, 'rb', buffering=100 * 1024 * 1024) as bdata:
-            uncompressed_bytes = self.algorithm(bdata, getsize(name))
-            with open(file_path, 'wb') as f:
-                f.write(uncompressed_bytes)
-
-
-class RefPackBlock(CompressedBlock):
-
-    @property
-    def algorithm(self):
-        from resources.eac.compressions.ref_pack import RefPackCompression
-        return RefPackCompression().uncompress
-
-
-class Qfs2Block(CompressedBlock):
-
-    @property
-    def algorithm(self):
-        from resources.eac.compressions.qfs2 import Qfs2Compression
-        return Qfs2Compression().uncompress
-
-
-class Qfs3Block(CompressedBlock):
-
-    @property
-    def algorithm(self):
-        from resources.eac.compressions.qfs3 import Qfs3Compression
-        return Qfs3Compression().uncompress
+from .compressed_block import EacCompressedBlock
 
 
 class WwwwBlock(ArchiveBlock):
@@ -246,9 +171,7 @@ class BigfBlock(ArchiveBlock):
         super().__init__(item_block=AutoDetectBlock(possible_blocks=[
             GeoGeometry(),
             ShpiBlock(),
-            RefPackBlock(),
-            Qfs2Block(),
-            Qfs3Block(),
+            EacCompressedBlock(),
             self,
             BytesBlock(
                 length=(lambda ctx: next(x
