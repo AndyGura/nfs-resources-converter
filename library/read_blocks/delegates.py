@@ -92,7 +92,7 @@ class DelegateBlock(DataBlock):
             # cut off the documentation
             (delegated_block_index, _) = delegated_block_index
         if callable(delegated_block_index):
-            delegated_block_index = delegated_block_index(ctx, name=name)
+            delegated_block_index = delegated_block_index(ctx, name=name, read_bytes_amount=read_bytes_amount)
         return {
             'choice_index': delegated_block_index,
             'data': self.possible_blocks[delegated_block_index].unpack(ctx, name, read_bytes_amount)
@@ -123,7 +123,7 @@ class AutoDetectBlock(DelegateBlock):
             'choice_index': 'Auto-detect'
         }
 
-    def detect(self, ctx, name=None):
+    def detect(self, ctx, name=None, read_bytes_amount=None):
         from library import probe_block_class
         file_path = ctx.ctx_path
         if name and not file_path.endswith(name):
@@ -131,11 +131,13 @@ class AutoDetectBlock(DelegateBlock):
         try:
             block_class = probe_block_class(ctx.buffer,
                                             file_path=file_path,
+                                            length=read_bytes_amount,
                                             resources_to_pick=[x.__class__ for x in self.possible_blocks])
         except NotImplementedError:
             block_class = None
         for (i, block) in enumerate(self.possible_blocks):
-            if isinstance(block, block_class) if block_class else isinstance(block, BytesBlock):
+            # we match BytesBlock by class name, because some blocks like TargeImage are subclasses of BytesBlock
+            if isinstance(block, block_class) if block_class else block.__class__.__name__ == 'BytesBlock':
                 return i
         raise DataIntegrityException(ctx=ctx,
                                      message='Expectation failed for auto-detect block while reading: class not found')

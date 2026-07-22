@@ -458,7 +458,7 @@ class TrianglePartData(DeclarativeCompoundBlock):
         info_rows = ArrayBlock(length=lambda ctx: ctx.data('num_info_rows'),
                                child=DelegateBlock(
                                    possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
-                                   choice_index=lambda ctx, name: determine_triangle_info_row_type(ctx, name)))
+                                   choice_index=lambda ctx, name, **_: determine_triangle_info_row_type(ctx, name)))
         index_rows = ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'), child=IndexRow())
         index_table = (ArrayBlock(length=lambda ctx: ctx.data('../num_data'), child=IntegerBlock(length=1)),
                        {'description': 'Vertex index table'})

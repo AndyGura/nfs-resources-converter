@@ -7,7 +7,14 @@ from library.read_blocks import DataBlock
 
 # this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
 # performance, because we spawn process per file, and it doesn't need to load all those classes every time
-def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
+def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length = None):
+    header_bytes = buffer.read(4)
+    buffer.seek(-len(header_bytes), SEEK_CUR)
+    try:
+        header_str = header_bytes.decode('utf8')
+    except UnicodeDecodeError:
+        header_str = None
+
     if file_path:
         if file_path.endswith('.BNK'):
             from resources.eac.archives import SoundBank
@@ -117,17 +124,22 @@ def _find_block_class(file_path: str, header_str: str, header_bytes: bytes):
             return TriMap
     except IndexError:
         pass
+    if length is not None and length >= 18:
+        buffer_pos = buffer.tell()
+        try:
+            buffer.seek(length - 18, SEEK_CUR)
+            if buffer.read(16).decode('utf-8') == 'TRUEVISION-XFILE':
+                from resources.common.bitmaps import TargaImage
+                return TargaImage
+        except Exception:
+            pass
+        finally:
+            buffer.seek(buffer_pos)
     return None
 
 
-def probe_block_class(binary_file: [BufferedReader, BytesIO], file_path: str = None, resources_to_pick=None):
-    header_bytes = binary_file.read(4)
-    binary_file.seek(-len(header_bytes), SEEK_CUR)
-    try:
-        header_str = header_bytes.decode('utf8')
-    except UnicodeDecodeError:
-        header_str = None
-    block_class = _find_block_class(file_path, header_str, header_bytes)
+def probe_block_class(binary_file: [BufferedReader, BytesIO], file_path: str = None, length=None, resources_to_pick=None):
+    block_class = _find_block_class(binary_file, file_path, length)
     if block_class and (not resources_to_pick or block_class in resources_to_pick):
         return block_class
     raise NotImplementedError('Don`t have parser for such resource')
@@ -179,11 +191,12 @@ def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
     (block, data) = files_cache.get(name, (None, None))
     if block is None or data is None:
         with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
-            block_class = probe_block_class(bdata, path)
+            file_size = getsize(path)
+            block_class = probe_block_class(bdata, path, file_size)
             block = block_class()
             DataBlock.root_read_ctx.buffer = bdata
             DataBlock.root_read_ctx.read_start_offset = 0
-            DataBlock.root_read_ctx.read_bytes_amount = getsize(path)
-            data = block.unpack(DataBlock.root_read_ctx, name=name, read_bytes_amount=getsize(path))
+            DataBlock.root_read_ctx.read_bytes_amount = file_size
+            data = block.unpack(DataBlock.root_read_ctx, name=name, read_bytes_amount=file_size)
             files_cache[name] = (block, data)
     return name, block, data

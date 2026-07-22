@@ -89,9 +89,13 @@ class SerializationAPI:
         # Snapshot the data before applying the deserialized result, so we can diff it
         # afterwards and record the mutations as changes in the changes model and notify
         # the frontend (same approach as run_custom_action).
-        before = copy.deepcopy(resource)
-        resource.clear()
-        resource.update(updated_data)
+        if isinstance(resource, bytes):
+            before = resource
+            resource = updated_data
+        else:
+            before = copy.deepcopy(resource)
+            resource.clear()
+            resource.update(updated_data)
         changes = self.api.resource_api._diff_to_changes(id, before, resource)
         if changes:
             # the mutations have already been applied to resource in place

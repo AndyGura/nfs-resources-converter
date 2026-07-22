@@ -1,0 +1,76 @@
+@if (resourceId) {
+  <div class="header">
+    @if (resourceData) {
+      <div class="stats">
+        @if (!hideName && resourceName) {
+          <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }} </mat-label>
+        }
+        @for (stat of customStats; track $index) {
+          <span class="stat-item">
+            <i class="stat-label">{{ stat.label }}:</i> {{ stat.value }}
+          </span>
+        }
+        <span class="stat-item"> <i class="stat-label">Size:</i> {{ imageWidth || 0 }}x{{ imageHeight || 0 }} </span>
+      </div>
+    }
+    <div class="actions">
+      <button mat-icon-button (click)="zoomOut()" title="Zoom Out">
+        <mat-icon>zoom_out</mat-icon>
+      </button>
+      <mat-slider [min]="minZoomLog" [max]="maxZoomLog" step="0.01" [discrete]="false" title="Zoom">
+        <input matSliderThumb [(ngModel)]="sliderValue" />
+      </mat-slider>
+      <button mat-icon-button (click)="zoomIn()" title="Zoom In">
+        <mat-icon>zoom_in</mat-icon>
+      </button>
+      <button mat-stroked-button (click)="resetZoom()" title="Reset to 100%">100%</button>
+      <button mat-stroked-button (click)="fitZoom()" title="Fit to view">Fit</button>
+      <span class="zoom-level">{{ zoom }}%</span>
+    </div>
+  </div>
+}
+
+<div class="preview-wrapper">
+  <div
+    class="image-container"
+    #imageContainer
+    (wheel)="onWheel($event)"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp()"
+    (mouseleave)="onMouseLeave()"
+    [class.panning]="isPanning"
+    [style.height]="'calc(' + height + ' - 5rem - 2px)'"
+    [style.max-height]="'calc(' + height + ' - 5rem - 2px)'">
+    @if (imageUrl$ | async; as imageUrl) {
+      <img
+        [src]="imageUrl"
+        [style.width.px]="((imageWidth || 0) * zoom) / 100"
+        [style.height.px]="((imageHeight || 0) * zoom) / 100"
+        draggable="false"
+        (dragstart)="(false)"
+        (load)="onImageLoad($event)" />
+    }
+    @if (!(imageUrl$ | async)) {
+      <div
+        class="image-placeholder"
+        [style.width.px]="((imageWidth || 0) * zoom) / 100"
+        [style.height.px]="((imageHeight || 0) * zoom) / 100"></div>
+    }
+    @if (loading$ | async) {
+      <div class="loading-spinner">
+        <mat-spinner mode="indeterminate" [diameter]="32" color="accent"></mat-spinner>
+      </div>
+    }
+  </div>
+  @if (!hideBlockActions && resourceId) {
+    <app-block-actions
+      [resource]="{
+        id: resourceId,
+        name: resourceName!,
+        data: resourceData,
+        schema: resourceSchema,
+      }"
+      [hideCustomActions]="hideCustomActions"></app-block-actions>
+  }
+</div>

@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import List
 
 from PIL import Image
@@ -63,6 +64,39 @@ class ImageSerializer(BaseFileSerializer):
         ]
         data['bitmap'] = bitmap
         return data
+
+
+class TargaImageSerializer(BaseFileSerializer):
+
+    def ui_serialization(self):
+        return {
+            'file_type': 'png',
+            'is_directory': False,
+            'output_file_name_suffix': '.png',
+            'reversible': True,
+            'reversible_settings_patch': {}
+        }
+
+    def serialize(self, data: bytes, path: str, id=None, block=None, **kwargs) -> List[str]:
+        super().serialize(data, path, id=id, block=block)
+        file_path = escape_chars(path)
+        if not file_path.endswith('.png'):
+            file_path += '.png'
+        tga_image = Image.open(BytesIO(data))
+        tga_image_rgba = tga_image.convert('RGBA')
+        tga_image_rgba.save(file_path)
+        return [file_path]
+
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
+        if len(file_paths) == 0:
+            raise Exception('No image file provided to TargaImageSerializer')
+        if len(file_paths) != 1:
+            raise Exception('TargaImageSerializer can only deserialize one file at once')
+        image = Image.open(file_paths[0])
+        image_rgba = image.convert('RGBA')
+        tga_buffer = BytesIO()
+        image_rgba.save(tga_buffer, format='TGA')
+        return tga_buffer.getvalue()
 
 
 class PaletteSerializer(BaseFileSerializer):

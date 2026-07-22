@@ -52,6 +52,8 @@ import { MatTab, MatTabGroup } from '@angular/material/tabs';
 import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
 import { ArchiveItemEditDialogComponent } from './common/archive-item-edit.dialog/archive-item-edit.dialog.component';
 import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
+import { TargaImageBlockUiComponent } from './common/targa-image.block-ui/targa-image.block-ui.component';
+import { ImageViewerComponent } from './common/image-viewer/image-viewer.component';
 
 @NgModule({
   declarations: [
@@ -65,6 +67,7 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
     ViewModeToolbarComponent,
     ArchiveItemEditDialogComponent,
     ArchiveDelegateItemTypeDialogComponent,
+    ImageViewerComponent,
 
     // common data blocks
     NumberBlockUiComponent,
@@ -77,6 +80,7 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
     DelegateBlockUiComponent,
     AngleBlockUiComponent,
     ArchiveBlockUiComponent,
+    TargaImageBlockUiComponent,
 
     // common nfs data blocks
     ImageBlockUiComponent,

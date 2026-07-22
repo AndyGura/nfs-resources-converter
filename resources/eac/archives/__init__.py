@@ -16,6 +16,7 @@ from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from .shpi_block import ShpiBlock, PaletteReference
 from .compressed_block import EacCompressedBlock
+from ...common.bitmaps.targa_image import TargaImage
 
 
 class WwwwBlock(ArchiveBlock):
@@ -172,6 +173,7 @@ class BigfBlock(ArchiveBlock):
             GeoGeometry(),
             ShpiBlock(),
             EacCompressedBlock(),
+            TargaImage(),
             self,
             BytesBlock(
                 length=(lambda ctx: next(x
@@ -201,7 +203,8 @@ class BigfBlock(ArchiveBlock):
                                       'in previous block. Possible item types:'
                                       '<br/>- [GeoGeometry](#geogeometry)'
                                       '<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file'
-                                      '<br/>- [BigfBlock](#bigfblock)'})
+                                      '<br/>- [BigfBlock](#bigfblock)'
+                                      '<br/>- pure TGA image'})
         children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
