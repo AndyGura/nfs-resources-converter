@@ -2,8 +2,8 @@
 Total files tested: 8292
 Files read successfully: 3805
 Files written successfully: 3650
-Files read again successfully: 3088
-Files passed comparison test: 1425
+Files read again successfully: 2868
+Files passed comparison test: 1395
 
 --- File Extension Read Success Rates (Test 1) ---
 .FSH: 100.00%
@@ -86,7 +86,6 @@ INFO: 0.00%
 .AST: 0.00%
 
 --- File Extension Read-Again Success Rates (Test 3) ---
-.FSH: 100.00%
 .FFN: 100.00%
 .FSB: 100.00%
 .EAS: 100.00%
@@ -99,11 +98,12 @@ INFO: 0.00%
 .COL: 100.00%
 .PFN: 100.00%
 .ENV: 100.00%
-.QFS: 99.13%
+.FSH: 98.03%
 .TRK: 88.89%
+.QFS: 88.19%
 .CFM: 74.36%
 .TRI: 58.82%
-.VIV: 43.90%
+.VIV: 36.85%
 .PBS: 33.33%
 .FAM: 29.49%
 .ART: 12.50%
@@ -140,7 +140,7 @@ INFO: 0.00%
 .TRK: 83.33%
 .CFM: 74.36%
 .TRI: 58.82%
-.VIV: 43.66%
+.VIV: 36.62%
 .FAM: 29.49%
 .FSB: 20.00%
 .BNK: 3.86%
@@ -166,4 +166,4 @@ INFO: 0.00%
 .AST: 0.00%
 
 --- Time Spent ---
-Total time: 00:45:40.69
+Total time: 02:38:2.09

@@ -1,5 +1,8 @@
+from heapq import nsmallest, nlargest
 from io import BufferedReader, SEEK_CUR, BytesIO
+from time import time
 
+from library.utils.douby_linked_list import DoublyLinkedList
 from resources.eac.compressions.base import BaseCompressionAlgorithm
 
 
@@ -50,30 +53,108 @@ class Qfs2Compression(BaseCompressionAlgorithm):
         return bytes(uncompressed)
 
     def compress(self, buffer: [BufferedReader, BytesIO], input_length: int):
-        data = buffer.read(input_length)
-        symbols = [bytes([b]) for b in data]
+        # FIXME games/nfs1/FRONTEND/ART/CHECK/GRAPHICS.QFS when compressed becomes bigger!!!
+        # FIXME games/nfs1/FRONTEND/ART/JOYCAL.QFS when uncompressed returns different result!!!
 
+        # constants; middle ground between speed and compression ratio
+        passes = 8
+        pairs_per_pass = 10
+
+        start_time = time()
+        data_dll = DoublyLinkedList.from_list(buffer.read(input_length))
+        # TODO test if other escape ints supported on real NFS. Some files have many of them, and after compression they take more space than uncompressed
+        escape_int = 0xFF
         patterns = {}
-        escape_byte = b'\xff'
-        # TODO actual compression
-        # patterns = {
-        #     b'\x01': (b'\x82', b'\x03', None)
-        # }
+
+        def build_frequency_map():
+            freq_array = [0] * 256
+            freq_array_2 = [0] * (256 * 256)
+            node = data_dll.head
+            while node and node.next:
+                # escape characters and patter ids are already escaped
+                if node.data == escape_int:
+                    if node.next:
+                        node = node.next.next
+                        continue
+                    else:
+                        break
+                freq_array[node.data] += 1
+                if node.next.data != escape_int:
+                    freq_array_2[(node.data << 8) | (node.next.data)] += 1
+                node = node.next
+            return (
+                nsmallest(256, (x for x in enumerate(freq_array) if x[0] != escape_int), key=lambda item: item[1]),
+                nlargest(256, (x for x in enumerate(freq_array_2) if x[1] > 0), key=lambda item: item[1]),
+            )
+
+        def replace_pattern_in_data(replacements):
+            len_delta = 0
+            node = data_dll.head
+            while node:
+                node_next = node.next
+                for (pattern, left, right) in replacements:
+                    if node.data == pattern:
+                        data_dll.insert(escape_int, node.prev, node)
+                        len_delta += 1
+                        node = node_next
+                        break
+                    elif (node_next is not None and node.data == left and node_next.data == right):
+                        data_dll.insert(pattern, node.prev, node_next.next)
+                        len_delta -= 1
+                        node = node_next.next
+                        break
+                else:
+                    node = node_next
+            return len_delta
+
+        # escape "escape character"
+        for node in data_dll.nodes():
+            if node.data == escape_int:
+                data_dll.insert(escape_int, node.prev, node)
+
+        for p in range(passes):
+            (frequency_map, frequency_map_2) = build_frequency_map()
+            locked_values = set()
+            this_pass_replacements = []
+            for _ in range(pairs_per_pass):
+                if len(frequency_map_2) == 0:
+                    break
+                (pattern_id, lfreq) = frequency_map.pop(0)
+                try:
+                    while (pattern_id in locked_values or pattern_id in patterns):
+                        (pattern_id, lfreq) = frequency_map.pop(0)
+                except IndexError:
+                    # exhausted list of indexes
+                    break
+                locked_values.add(pattern_id)
+                (most_frequent_pair, pfreq) = frequency_map_2.pop(0)
+                if (pfreq < (3 + lfreq) * 16):
+                    break
+                (left, right) = most_frequent_pair >> 8, most_frequent_pair & 0xff
+                if left in locked_values or right in locked_values:
+                    continue
+                locked_values.add(left)
+                locked_values.add(right)
+                patterns[pattern_id] = (left, right)
+                this_pass_replacements.append((pattern_id, left, right))
+            saved_bytes_this_pass = -replace_pattern_in_data(this_pass_replacements)
+            if saved_bytes_this_pass < input_length // 100:
+                break
 
         compressed = bytearray()
         compressed.append(0b0100_0110)
         compressed.append(0xfb)
         compressed.extend(input_length.to_bytes(3, byteorder='big'))
-        compressed.extend(escape_byte)
+        compressed.append(escape_int)
         compressed.append(len(patterns))
-        for pattern_id, (left, right, _) in patterns.items():
-            compressed.extend(pattern_id)
-            compressed.extend(left)
-            compressed.extend(right)
-        for symbol in symbols:
-            if symbol in patterns or symbol == escape_byte:
-                compressed.extend(escape_byte)
-            compressed.extend(symbol)
-        compressed.extend(b'\xff')
+        for pattern_id, (left, right) in patterns.items():
+            compressed.append(pattern_id)
+            compressed.append(left)
+            compressed.append(right)
+        for item in data_dll.items():
+            compressed.append(item)
+        compressed.append(0xFF)
+
+        print(f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds')
 
         return bytes(compressed)
