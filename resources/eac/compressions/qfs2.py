@@ -53,10 +53,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                 f'Error while unpacking QFS archive: expected length {output_length}, actual length: {len(uncompressed)}')
         return bytes(uncompressed)
 
-    def compress(self, buffer: [BufferedReader, BytesIO], input_length: int):
-        # FIXME games/nfs1/FRONTEND/ART/CHECK/GRAPHICS.QFS when compressed becomes bigger!!!
-        # FIXME games/nfs1/FRONTEND/ART/JOYCAL.QFS when uncompressed returns different result!!!
-
+    def compress(self, buffer: [BufferedReader, BytesIO], input_length: int, hardcoded_patterns=None):
         # constants; middle ground between speed and compression ratio
         passes = 8
         pairs_per_pass = 10
@@ -85,7 +82,8 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     freq_array_2[(node.data << 8) | (node.next.data)] += 1
                 node = node.next
             return (
-                nsmallest(256, (x for x in enumerate(freq_array) if x[0] not in [escape_int, terminate_int]), key=lambda item: item[1]),
+                nsmallest(256, (x for x in enumerate(freq_array) if x[0] not in [escape_int, terminate_int]),
+                          key=lambda item: item[1]),
                 nlargest(256, (x for x in enumerate(freq_array_2) if x[1] > 0), key=lambda item: item[1]),
             )
 
@@ -93,6 +91,9 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             len_delta = 0
             node = data_dll.head
             while node:
+                if node.data == escape_int:
+                    node = node.next.next
+                    continue
                 node_next = node.next
                 for (pattern, left, right) in replacements:
                     if node.data == pattern:
@@ -114,33 +115,49 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             if node.data == escape_int:
                 data_dll.insert(escape_int, node.prev, node)
 
+        # when we create pattern X = YZ, we never allow to use Y or Z as pattern id, since
+        # if we then define Y = AB, original X will produce ABZ
+        forbidden_pattern_ids = set()
+        forbidden_pattern_ids.add(escape_int)
+        forbidden_pattern_ids.add(terminate_int)
+
         for p in range(passes):
-            (frequency_map, frequency_map_2) = build_frequency_map()
-            locked_values = set()
-            this_pass_replacements = []
-            for _ in range(pairs_per_pass):
-                if len(frequency_map_2) == 0:
-                    break
-                (pattern_id, lfreq) = frequency_map.pop(0)
+            if hardcoded_patterns is None:
+                (frequency_map, frequency_map_2) = build_frequency_map()
+                pass_locked_values = set()
+                this_pass_replacements = []
+                for _ in range(pairs_per_pass):
+                    if len(frequency_map_2) == 0:
+                        break
+                    (pattern_id, lfreq) = frequency_map.pop(0)
+                    try:
+                        while (
+                                pattern_id in forbidden_pattern_ids or pattern_id in pass_locked_values or pattern_id in patterns):
+                            (pattern_id, lfreq) = frequency_map.pop(0)
+                    except IndexError:
+                        # exhausted list of indexes
+                        break
+                    pass_locked_values.add(pattern_id)
+                    (most_frequent_pair, pfreq) = frequency_map_2.pop(0)
+                    if (pfreq < (3 + lfreq) * 16):
+                        break
+                    (left, right) = most_frequent_pair >> 8, most_frequent_pair & 0xff
+                    if left in pass_locked_values or right in pass_locked_values:
+                        continue
+                    pass_locked_values.add(left)
+                    pass_locked_values.add(right)
+                    forbidden_pattern_ids.add(left)
+                    forbidden_pattern_ids.add(right)
+                    this_pass_replacements.append((pattern_id, left, right))
+            else:
                 try:
-                    while (pattern_id in locked_values or pattern_id in patterns or pattern_id == 0):
-                        (pattern_id, lfreq) = frequency_map.pop(0)
+                    this_pass_replacements = hardcoded_patterns[p]
                 except IndexError:
-                    # exhausted list of indexes
-                    break
-                locked_values.add(pattern_id)
-                (most_frequent_pair, pfreq) = frequency_map_2.pop(0)
-                if (pfreq < (3 + lfreq) * 16):
-                    break
-                (left, right) = most_frequent_pair >> 8, most_frequent_pair & 0xff
-                if left in locked_values or right in locked_values:
-                    continue
-                locked_values.add(left)
-                locked_values.add(right)
-                patterns[pattern_id] = (left, right)
-                this_pass_replacements.append((pattern_id, left, right))
+                    this_pass_replacements = []
+            for (pid, l, r) in this_pass_replacements:
+                patterns[pid] = (l, r)
             saved_bytes_this_pass = -replace_pattern_in_data(this_pass_replacements)
-            if saved_bytes_this_pass < input_length // 100:
+            if hardcoded_patterns is not None and saved_bytes_this_pass < input_length // 100:
                 break
 
         compressed = bytearray()
@@ -158,6 +175,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
         compressed.append(escape_int)
         compressed.append(terminate_int)
 
-        print(f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds')
+        print(
+            f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds')
 
         return bytes(compressed)

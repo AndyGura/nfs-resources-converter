@@ -25,6 +25,21 @@ class TestEacCompressedBlock(unittest.TestCase):
                          'Decompressed ASM data does not match original data')
         self.assertEqual(mock_data, decompressed['data'], 'Decompressed data does not match original data')
 
+    def test_qfs2_escaping_recursive_patterns_issue(self):
+        # real part of file that was broken with first iteration of qfs2 algo, at the offset where something went wrong
+        original_data = b'\x00\xee\x00\x00\x00\x00\x00\x17'
+        # real patterns, generated for given file when scanned fully
+        patterns = [[(0xee, 0x0, 0x0)], [(0x9e, 0xee, 0xee)]]
+        # the problem is following:
+        # 1) we replace 0x00-s with 0xee and escape existing 0xee's: \xee\x00\x00\x00\x00 -> \xff\xee\xee\xee
+        # 2) now we replace 0xee-s with 0x9e, but we have to skip escaped 0xee: \xff\xee\xee\xee -> \xff\xee\x9e
+        compressed = Qfs2Compression().compress(BytesIO(original_data), len(original_data), hardcoded_patterns=patterns)
+        self.assertEqual(compressed,
+                         b'F\xfb\x00\x00\x08\xff\x02\xee\x00\x00\x9e\xee\xee\x00\xff\xee\x9e\x00\x17\xff\x00')
+
+        decompressed = Qfs2Compression().uncompress(BytesIO(compressed), len(compressed))
+        self.assertEqual(original_data, decompressed)
+
     def test_qfs2_asm_decompression(self):
         parser_py = Qfs2Compression()
         parser_asm = Qfs2ASMCompression()
