@@ -21,10 +21,9 @@ class TestEacCompressedBlock(unittest.TestCase):
 
         decompressed_asm = Qfs2ASMCompression().uncompress(BytesIO(compressed), len(compressed))
         decompressed = block.unpack(ReadContext.from_bytes(compressed), read_bytes_amount=len(compressed))
-        # FIXME what is that extra 0x00 produced by ASM decompressor?
-        self.assertEqual(mock_data + b'\x00', bytes(decompressed_asm),
+        self.assertEqual(mock_data, bytes(decompressed_asm),
                          'Decompressed ASM data does not match original data')
-        self.assertEqual(mock_data + b'\x00', decompressed['data'], 'Decompressed data does not match original data')
+        self.assertEqual(mock_data, decompressed['data'], 'Decompressed data does not match original data')
 
     def test_qfs2_asm_decompression(self):
         parser_py = Qfs2Compression()
@@ -136,15 +135,18 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
         self.define_variable('write_pointer', 0, 4)  # write pointer
 
         if not self.loc_4A96E4():
-            if not self.loc_4A972E():
-                self.loc_4A9746()
+            if not self.is_without_file_size():
+                self.seek_3()
             self.loc_4A9749()
             while self.clear_patterns_index_table():
                 pass
+
+            # read patterns metadata
             if not self.loc_4A9794():
                 self.loc_4A97B1()
                 while self.fill_patterns_index_table():
                     pass
+
             while True:
                 if self.is_using_pattern():
                     # pattern index is in dl now
@@ -164,8 +166,8 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
                         self.append_al_to_result_do_not_inc_write_pointer()
                 else:
                     self.insert_plain_value()
-        self.loc_4A98C8()
-        return self.asm_virtual_memory[input_length + 0x1000:self.get_value('write_pointer')[0] + 1]
+        self.cleanup()
+        return self.asm_virtual_memory[input_length + 0x1000:self.get_value('write_pointer')[0]]
 
     def insert_qfs2_pattern(self):
         self.run_block("""
@@ -213,9 +215,9 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
                  mov     [esp+31Ch+var_14], esi
                  mov     ds:dword_53034C, eax
                  test    edx, edx
-                 jz      loc_4A98C8 """)
+                 jz      cleanup """)
 
-    def loc_4A972E(self):
+    def is_without_file_size(self):
         return self.run_block(""" xor     eax, eax
                  lea     ebx, [edx+1]
                  mov     al, [edx]
@@ -227,10 +229,8 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
                  cmp     eax, 47FBh
                  jnz     short loc_4A9749 """)
 
-    def loc_4A9746(self):
-        return self.run_block(""" add     ebx, 3
-
- """)
+    def seek_3(self):
+        return self.run_block(""" add     ebx, 3""")
 
     def loc_4A9749(self):
         return self.run_block("""  
@@ -395,13 +395,13 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
                  mov     dl, [ebx]
                  inc     ebx
                  test    edx, edx
-                 jz      short loc_4A98C8""")
+                 jz      short cleanup""")
 
     def loc_4A98BF(self):
         return self.run_block("""inc     ecx
                  mov     [ecx-1], dl""")
 
-    def loc_4A98C8(self):
+    def cleanup(self):
         return self.run_block("""
                  mov     eax, [esp+31Ch+var_14]
                  mov     write_pointer, ecx

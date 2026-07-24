@@ -22,7 +22,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
         hdr2 = buffer.read(1)[0]
         if hdr2 != 0xfb:
             raise ValueError("Invalid QFS2 file header")
-        output_length = int.from_bytes(buffer.read(3), byteorder='big') + 1
+        output_length = int.from_bytes(buffer.read(3), byteorder='big')
         value_indicator = buffer.read(1)[0]
         patterns_count = buffer.read(1)[0]
         patterns = {}
@@ -37,6 +37,9 @@ class Qfs2Compression(BaseCompressionAlgorithm):
         while buffer.tell() - start_offset < input_length:
             if use_value:
                 value = buffer.read(1)
+                # terminate char faced
+                if value == b'\x00':
+                    break
                 use_value = False
                 uncompressed.extend(value)
             else:
@@ -45,11 +48,9 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     use_value = True
                 else:
                     uncompressed.extend(value)
-        if len(uncompressed) > output_length:
+        if len(uncompressed) != output_length:
             raise ValueError(
                 f'Error while unpacking QFS archive: expected length {output_length}, actual length: {len(uncompressed)}')
-        while len(uncompressed) < output_length:
-            uncompressed.extend(b'\x00')
         return bytes(uncompressed)
 
     def compress(self, buffer: [BufferedReader, BytesIO], input_length: int):
@@ -62,6 +63,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
 
         start_time = time()
         data_dll = DoublyLinkedList.from_list(buffer.read(input_length))
+        terminate_int = 0x00
         # TODO test if other escape ints supported on real NFS. Some files have many of them, and after compression they take more space than uncompressed
         escape_int = 0xFF
         patterns = {}
@@ -83,7 +85,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     freq_array_2[(node.data << 8) | (node.next.data)] += 1
                 node = node.next
             return (
-                nsmallest(256, (x for x in enumerate(freq_array) if x[0] != escape_int), key=lambda item: item[1]),
+                nsmallest(256, (x for x in enumerate(freq_array) if x[0] not in [escape_int, terminate_int]), key=lambda item: item[1]),
                 nlargest(256, (x for x in enumerate(freq_array_2) if x[1] > 0), key=lambda item: item[1]),
             )
 
@@ -121,7 +123,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     break
                 (pattern_id, lfreq) = frequency_map.pop(0)
                 try:
-                    while (pattern_id in locked_values or pattern_id in patterns):
+                    while (pattern_id in locked_values or pattern_id in patterns or pattern_id == 0):
                         (pattern_id, lfreq) = frequency_map.pop(0)
                 except IndexError:
                     # exhausted list of indexes
@@ -153,7 +155,8 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             compressed.append(right)
         for item in data_dll.items():
             compressed.append(item)
-        compressed.append(0xFF)
+        compressed.append(escape_int)
+        compressed.append(terminate_int)
 
         print(f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds')
 
