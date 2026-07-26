@@ -6,7 +6,7 @@
 
 [✓] FSH image archives
 
-[ ] QFS image archives (compressed)
+[✓] QFS image archives (compressed)
 
 [ ] PDN, PBS car characteristics (compressed)
 
