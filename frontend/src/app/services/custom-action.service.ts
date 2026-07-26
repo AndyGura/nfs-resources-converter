@@ -23,6 +23,12 @@ export class CustomActionService {
     formPatch: any = {},
     runImmediately: boolean = false,
   ): Promise<boolean> {
+    if (action.idDepth) {
+      for (let i = 0; i < action.idDepth; i++) {
+        resourceId = resourceId.substring(0, Math.max(resourceId.lastIndexOf('/'), resourceId.lastIndexOf('__')));
+      }
+    }
+
     if (runImmediately) {
       for (const { id } of action.args) {
         if (formPatch[id] === undefined) {

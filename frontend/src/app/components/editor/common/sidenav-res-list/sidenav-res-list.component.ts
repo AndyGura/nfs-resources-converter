@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { NavigationService } from '../../../../services/navigation.service';
 import { Resource, ResourceError } from '../../types';
 import { joinId } from '../../../../utils/join-id';
 import { fileFormatIcon } from '../../../../utils/file-format-icon';
@@ -35,12 +34,6 @@ export class SidenavResListComponent {
 
   get keys(): string[] {
     return Object.keys(this.resources);
-  }
-
-  constructor(private readonly navigation: NavigationService) {}
-
-  onDoubleClick(key: string) {
-    this.navigation.navigateToId(this.resources[key]!.id);
   }
 
   protected readonly joinId = joinId;

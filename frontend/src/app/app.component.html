@@ -2,7 +2,6 @@
   <mat-toolbar color="primary">
     <ng-container *ngTemplateOutlet="appMenu"></ng-container>
     <span class="flex-spacer"></span>
-    <app-block-actions [resource]="this.mainService.resource$ | async"></app-block-actions>
     <mat-divider vertical></mat-divider>
     @if (!isProduction) {
       <button mat-button [matMenuTriggerFor]="stagedChangesMenu">
@@ -60,15 +59,10 @@
     </button>
   </mat-toolbar>
   <div id="viewport">
-    @if (!(navigation.resourceToRender$ | async)?.schema?.hide_navigation_bar) {
-      <app-navigation-bar></app-navigation-bar>
-    }
     <div id="content-wrapper">
       <div class="scroll-bounds-snapper"></div>
       <app-editor
-        [resourceOrError]="
-          (navigation.resourceToRender$ | async) || (mainService.resource$ | async) || (mainService.error$ | async)
-        "
+        [resourceOrError]="(mainService.resource$ | async) || (mainService.error$ | async)"
         [hideName]="true"></app-editor>
       <div class="scroll-bounds-snapper"></div>
     </div>

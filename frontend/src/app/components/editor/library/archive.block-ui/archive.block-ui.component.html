@@ -23,10 +23,7 @@
     </mat-list-option>
     <div class="list-label">Children</div>
     @for (child of resourceData.children; track i; let i = $index) {
-      <mat-list-option
-        [value]="[i, child]"
-        [selected]="selectedValue && selectedValue[1] == child"
-        (dblclick)="onDoubleClick(i)">
+      <mat-list-option [value]="[i, child]" [selected]="selectedValue && selectedValue[1] == child">
         <mat-icon matListItemIcon class="type-icon">{{ childIcon(child) }}</mat-icon>
         <div class="option-content">
           <span class="key-label" [class.no-alias]="supportsAliases && !child.alias">{{

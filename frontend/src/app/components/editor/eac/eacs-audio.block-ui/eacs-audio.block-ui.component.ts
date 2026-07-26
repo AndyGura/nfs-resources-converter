@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, OnChanges, SimpleChanges } from '@angular/core';
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject } from 'rxjs';
-import { NavigationService } from '../../../../services/navigation.service';
 
 @Component({
   selector: 'app-eacs-audio-block-ui',
@@ -12,8 +11,6 @@ import { NavigationService } from '../../../../services/navigation.service';
 })
 export class EacsAudioBlockUiComponent extends GuiComponent implements OnChanges {
   audioUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
-
-  readonly navigation = inject(NavigationService);
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {

@@ -10,13 +10,5 @@
   row-gap: 1rem;
   box-sizing: border-box;
 
-  --image-viewer-height: calc(#{variables.$viewport-height} * 0.8);
-}
-
-mat-form-field {
-  width: 100%;
-}
-
-app-compound-block-ui {
-  place-self: flex-start;
+  --image-viewer-height: calc(#{variables.$viewport-height} - #{variables.$viewport-padding} * 2);
 }
