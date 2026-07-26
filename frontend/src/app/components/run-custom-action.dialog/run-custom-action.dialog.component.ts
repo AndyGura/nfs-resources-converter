@@ -1,7 +1,8 @@
 import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { CustomAction } from '../editor/types';
+import { CustomAction, CustomActionArgument } from '../editor/types';
+import { MainService } from '../../services/main.service';
 
 export interface RunCustomActionDialogData {
   action: CustomAction;
@@ -23,6 +24,7 @@ export class RunCustomActionDialogComponent {
     public dialogRef: MatDialogRef<RunCustomActionDialogComponent>,
     private fb: FormBuilder,
     @Inject(MAT_DIALOG_DATA) public data: RunCustomActionDialogData,
+    private mainService: MainService,
   ) {
     const formData: any = {};
     for (const arg of data.action.args) {
@@ -35,9 +37,7 @@ export class RunCustomActionDialogComponent {
         validators.push(Validators.pattern(/^\d+(\.\d+)?$/)); // Allow integers and decimals
       }
       let defaultValue: string | boolean = '';
-      if (arg.type === 'file_output') {
-        defaultValue = data.resourceName + arg.file_name_suffix;
-      } else if (arg.type === 'enum_string') {
+      if (arg.type === 'enum_string') {
         defaultValue = arg.default || arg.choices[0] || '';
       } else if (arg.type === 'bool') {
         defaultValue = !!arg.default;
@@ -73,6 +73,16 @@ export class RunCustomActionDialogComponent {
         return 'text'; // We'll use text input for file paths
       default:
         return 'text';
+    }
+  }
+
+  async selectOutputFile(arg: CustomActionArgument) {
+    if (arg.type === 'file_output') {
+      const nameHint = this.data.resourceName + (arg.file_name_suffix || '');
+      const path = await this.mainService.api.saveFileDialog(nameHint);
+      if (path) {
+        this.argsForm.get(arg.id)?.setValue(path);
+      }
     }
   }
 }
