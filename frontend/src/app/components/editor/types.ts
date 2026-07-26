@@ -49,6 +49,9 @@ export type CustomAction = {
   description: string;
   is_pure: boolean;
   args: CustomActionArgument[];
+  // frontend-only feature. If it is set, it means that target id of resource should be `idDepth` levels higher than given.
+  // example: action on resource a__b/c/d with idDepth 1 should be called on resource with id a__b/c
+  idDepth?: number;
 };
 
 export type CustomActionArgument = { id: string; title: string } & (
