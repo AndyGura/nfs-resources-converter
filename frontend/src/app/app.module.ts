@@ -4,7 +4,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { ApiDelegateService } from './services/api/api-delegate.service';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -19,9 +18,7 @@ import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dial
 import { MatDialogModule } from '@angular/material/dialog';
 import { RunCustomActionDialogComponent } from './components/run-custom-action.dialog/run-custom-action.dialog.component';
 import { ErrorDialogComponent } from './components/error.dialog/error.dialog.component';
-import { NavigationBarComponent } from './components/navigation-bar/navigation-bar.component';
 import { EditorModule } from './components/editor/editor.module';
-import { NavigationBarModule } from './components/navigation-bar/navigation-bar.module';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -45,7 +42,6 @@ import { NewFileDialogComponent } from './components/new-file.dialog/new-file.di
     CommonModule,
     BrowserModule,
     AppRoutingModule,
-    BrowserAnimationsModule,
     MatToolbarModule,
     MatSnackBarModule,
     MatDividerModule,
@@ -62,9 +58,7 @@ import { NewFileDialogComponent } from './components/new-file.dialog/new-file.di
     MatProgressBarModule,
     MatProgressSpinnerModule,
     ReactiveFormsModule,
-    NavigationBarComponent,
     EditorModule,
-    NavigationBarModule,
     ConverterComponent,
     ConfigComponent,
   ],

@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, ViewChild } from '@angular/core';
 import { SubscribableGuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
-import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema, Resource } from '../../types';
 
 import { ArrayTableColumn, DataTableComponent } from '../../common/data-table/data-table.component';
@@ -97,10 +96,6 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
     this.updatePagedData();
     this.dataTable?.markForCheck();
     super.onExternalChanges();
-  }
-
-  constructor(public readonly navigation: NavigationService) {
-    super();
   }
 
   async addItem() {

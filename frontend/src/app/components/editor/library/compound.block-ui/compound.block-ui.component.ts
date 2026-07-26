@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { SubscribableGuiComponent } from '../../gui.component';
 import { MainService } from '../../../../services/main.service';
 import { BehaviorSubject } from 'rxjs';
-import { NavigationService } from '../../../../services/navigation.service';
 import { joinId } from '../../../../utils/join-id';
 import { BlockData, BlockSchema } from '../../types';
 
@@ -76,12 +75,7 @@ export class CompoundBlockUiComponent extends SubscribableGuiComponent<{ [key: s
     return item.index;
   }
 
-  constructor(
-    public readonly main: MainService,
-    public readonly navigation: NavigationService,
-  ) {
-    super();
-  }
+  public readonly main = inject(MainService);
 
   protected readonly joinId = joinId;
 }
