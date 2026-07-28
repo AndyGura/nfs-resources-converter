@@ -1,9 +1,7 @@
 from io import BytesIO, SEEK_CUR
-from os.path import getsize
 from typing import Dict
 
 from library.context import ReadContext, WriteContext
-from library.loader import id_to_path
 from library.read_blocks import (AutoDetectBlock,
                                  BytesBlock)
 from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
@@ -72,11 +70,8 @@ class EacCompressedBlock(AutoDetectBlock):
         compressed = compression.compress(BytesIO(uncompressed_bytes), len(uncompressed_bytes))
         return compressed
 
-    def action_save_uncompressed(self, name, file_path, **kwargs):
-        # FIXME qfs can be part of bigfblock, does not work
-        input_file_path = id_to_path(name)
-        with open(input_file_path, 'rb', buffering=100 * 1024 * 1024) as bdata:
-            compression = self._detect_compression(bdata)
-            uncompressed_bytes = compression.uncompress(bdata, getsize(input_file_path))
-            with open(file_path, 'wb') as f:
-                f.write(uncompressed_bytes)
+    def action_save_uncompressed(self, read_data, file_path, **kwargs):
+        inner_block = self.possible_blocks[read_data['choice_index']]
+        res = inner_block.write(read_data['data'])
+        with open(file_path, 'wb') as f:
+            f.write(res)
