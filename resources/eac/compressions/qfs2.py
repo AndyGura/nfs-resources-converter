@@ -111,9 +111,12 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             return len_delta
 
         # escape "escape character"
+        escape_chars_count = 0
         for node in data_dll.nodes():
             if node.data == escape_int:
+                escape_chars_count += 1
                 data_dll.insert(escape_int, node.prev, node)
+        print(f"Escaping bytes added: {escape_chars_count}")
 
         # when we create pattern X = YZ, we never allow to use Y or Z as pattern id, since
         # if we then define Y = AB, original X will produce ABZ
@@ -149,6 +152,9 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     forbidden_pattern_ids.add(left)
                     forbidden_pattern_ids.add(right)
                     this_pass_replacements.append((pattern_id, left, right))
+                if len(this_pass_replacements) == 0:
+                    print(f"Pass {p}: No replace patterns found.")
+                    break
             else:
                 try:
                     this_pass_replacements = hardcoded_patterns[p]
@@ -157,7 +163,9 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             for (pid, l, r) in this_pass_replacements:
                 patterns[pid] = (l, r)
             saved_bytes_this_pass = -replace_pattern_in_data(this_pass_replacements)
-            if hardcoded_patterns is not None and saved_bytes_this_pass < input_length // 100:
+            print(f"Pass {p}: {saved_bytes_this_pass} bytes saved. Replaced patterns: {len(this_pass_replacements)}")
+            if hardcoded_patterns is None and saved_bytes_this_pass < input_length // 200:
+                print("Saved less than 0.5% of input length, breaking.")
                 break
 
         compressed = bytearray()
