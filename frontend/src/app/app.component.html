@@ -192,6 +192,15 @@
       <mat-icon>support</mat-icon>
       <span>Support me</span>
     </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="reportBug()">
+      <mat-icon>bug_report</mat-icon>
+      <span>Report a bug</span>
+    </button>
+    <button mat-menu-item (click)="requestFeature()">
+      <mat-icon>lightbulb</mat-icon>
+      <span>Request a feature</span>
+    </button>
     @if (mainService.api.version$ | async; as version) {
       <span class="app-version">v{{ version }}</span>
     }

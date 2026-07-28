@@ -144,6 +144,22 @@ export class AppComponent implements OnInit {
     this.api.openUrl('https://www.buymeacoffee.com/andygura').then();
   }
 
+  reportBug() {
+    this.api
+      .openUrl(
+        'https://github.com/AndyGura/nfs-resources-converter/issues/new?labels=bug&title=New+bug+report&body=Describe+the+problem+here',
+      )
+      .then();
+  }
+
+  requestFeature() {
+    this.api
+      .openUrl(
+        'https://github.com/AndyGura/nfs-resources-converter/issues/new?labels=enhancement&title=Feature+request&body=Describe+here+the+wanted+feature+or+which+new+format+support+should+be+added+or+improved',
+      )
+      .then();
+  }
+
   formatChange(change: ChangeEntry): string {
     let renderId = change.id;
     const doubleUnderscoreIndex = renderId.lastIndexOf('__');
