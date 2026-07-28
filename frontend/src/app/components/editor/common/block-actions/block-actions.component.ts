@@ -125,7 +125,7 @@ export class BlockActionsComponent {
     this.isCustomActionRunning = true;
     this.cdr.markForCheck();
     try {
-      await this.customActionService.runCustomAction(this.resource.id, this.resource.name, action);
+      await this.customActionService.runCustomAction(this.resource.id, action);
     } finally {
       this.isCustomActionRunning = false;
       this.cdr.markForCheck();

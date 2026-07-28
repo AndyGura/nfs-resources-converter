@@ -104,13 +104,7 @@ export class PaletteBlockUiComponent extends SubscribableGuiComponent implements
     if (!this._resourceData || this._resourceData.resource_id === newFormat) return;
     const action = this.resourceSchema.custom_actions.find((a: CustomAction) => a.method === 'convert_format')!;
     const formPatch: any = { color_mode: newFormat };
-    const done = await this.customActionService.runCustomAction(
-      this.resourceId!,
-      this.resourceName!,
-      action,
-      formPatch,
-      true,
-    );
+    const done = await this.customActionService.runCustomAction(this.resourceId!, action, formPatch, true);
     if (!done) {
       // restore value in the input
       event.source.value = this.resourceData.resource_id;

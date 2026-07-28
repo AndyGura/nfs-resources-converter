@@ -25,7 +25,7 @@ FILE_ASSOCIATIONS = [
     # {"extension": "msk", "name": "MSK Archive File"},
     # {"extension": "pbs", "name": "PBS Car Physics File"},
     # {"extension": "pdn", "name": "PDN Car Characteristic File"},
-    # {"extension": "qfs", "name": "QFS Compressed Image Archive File"},
+    {"extension": "qfs", "name": "QFS Compressed Image Archive File"},
     # {"extension": "tgv", "name": "TGV Video File"},
     # {"extension": "tri", "name": "TRI Track File"},
     # {"extension": "trk", "name": "TRK Track File"},
