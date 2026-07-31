@@ -376,8 +376,8 @@ export class ArrayBlockUiComponent extends SubscribableGuiComponent {
 
   itemLabel(index: number) {
     let label = index.toString();
-    if (this.resourceSchema && this.resourceSchema.block_class_mro.includes('DelegateBlock__')) {
-      label += ` (${blockClassStr(this.resourceSchema.possible_resource_schemas[this.resourceData![index].choice_index])})`;
+    if (this.resourceSchema?.child_schema?.block_class_mro.includes('DelegateBlock__')) {
+      label += ` (${blockClassStr(this.resourceSchema.child_schema.possible_resource_schemas[this.resourceData![index].choice_index])})`;
     }
     return label;
   }

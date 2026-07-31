@@ -126,9 +126,10 @@ class Chunk00134BXX(DeclarativeCompoundBlock):
         index = IntegerBlock(length=1, value_validator=Or([2, 3]))
         chunk_id = IntegerBlock(length=3, is_signed=False, value_validator=Eq(0x00_13_4B))
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload')) + len(ctx.data('elevens'))),
             {'usage': 'io,doc'})
-        payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length'))
+        elevens = BytesBlock(length=lambda ctx: peek_elevens_length(ctx))
+        payload = BytesBlock(length=lambda ctx: ctx.data('chunk_length') - len(ctx.data('elevens')))
 
 
 class Chunk80134100(DeclarativeCompoundBlock):
