@@ -4,7 +4,6 @@ import { MainService } from './services/main.service';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from './components/confirm.dialog/confirm.dialog.component';
 import { firstValueFrom } from 'rxjs';
-import { NavigationService } from './services/navigation.service';
 import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
 import { NewFileDialogComponent } from './components/new-file.dialog/new-file.dialog.component';
@@ -31,7 +30,6 @@ export class AppComponent implements OnInit {
     readonly api: ApiDelegateService,
     readonly changes: ChangesService,
     readonly dialog: MatDialog,
-    readonly navigation: NavigationService,
     private readonly snackBar: MatSnackBar,
     private readonly cdr: ChangeDetectorRef,
     private readonly titleService: Title,

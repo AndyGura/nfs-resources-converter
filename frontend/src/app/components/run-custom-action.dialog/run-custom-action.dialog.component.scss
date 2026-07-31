@@ -6,4 +6,18 @@ form {
   .action-arg-checkbox {
     margin-bottom: 16px;
   }
+
+  .arg-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    mat-form-field {
+      flex: 1;
+    }
+
+    .file-output-button {
+      margin-top: 4px;
+    }
+  }
 }

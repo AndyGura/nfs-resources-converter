@@ -1,6 +1,8 @@
+from heapq import nsmallest, nlargest
 from io import BufferedReader, SEEK_CUR, BytesIO
+from time import time
 
-from library.utils import read_byte, read_3int
+from library.utils.douby_linked_list import DoublyLinkedList
 from resources.eac.compressions.base import BaseCompressionAlgorithm
 
 
@@ -13,16 +15,16 @@ class Qfs2Compression(BaseCompressionAlgorithm):
         return value
 
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int):
+        start_offset = buffer.tell()
         uncompressed: bytearray = bytearray()
         # skip header
         buffer.seek(1, SEEK_CUR)
-        hdr2 = read_byte(buffer)
+        hdr2 = buffer.read(1)[0]
         if hdr2 != 0xfb:
             raise ValueError("Invalid QFS2 file header")
-        output_length = read_3int(buffer, byteorder='big')
-        value_indicator = read_byte(buffer)
-        patterns_count = read_byte(buffer)
-        bytes_used = 7
+        output_length = int.from_bytes(buffer.read(3), byteorder='big')
+        value_indicator = buffer.read(1)[0]
+        patterns_count = buffer.read(1)[0]
         patterns = {}
         for i in range(0, patterns_count):
             pattern_id = buffer.read(1)
@@ -31,21 +33,149 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             if pattern_id in patterns.keys():
                 raise Exception('Duplicate id in QFS2 patterns')
             patterns[pattern_id] = value1 + value2
-            bytes_used = bytes_used + 3
         use_value = False
-        while bytes_used < input_length:
+        while buffer.tell() - start_offset < input_length:
             if use_value:
                 value = buffer.read(1)
+                # terminate char faced
+                if value == b'\x00':
+                    break
                 use_value = False
+                uncompressed.extend(value)
             else:
                 value = self._read_value(buffer, patterns)
-            if int.from_bytes(value, byteorder='little') == value_indicator:
-                use_value = True
-            else:
-                uncompressed.extend(value)
-            bytes_used = bytes_used + 1
-
-        if output_length > len(uncompressed):
+                if int.from_bytes(value, byteorder='little') == value_indicator:
+                    use_value = True
+                else:
+                    uncompressed.extend(value)
+        if len(uncompressed) != output_length:
             raise ValueError(
                 f'Error while unpacking QFS archive: expected length {output_length}, actual length: {len(uncompressed)}')
         return bytes(uncompressed)
+
+    def compress(self, buffer: [BufferedReader, BytesIO], input_length: int, hardcoded_patterns=None):
+        # constants; middle ground between speed and compression ratio
+        passes = 8
+        pairs_per_pass = 10
+
+        start_time = time()
+        data_dll = DoublyLinkedList.from_list(buffer.read(input_length))
+        terminate_int = 0x00
+        # TODO test if other escape ints supported on real NFS. Some files have many of them, and after compression they take more space than uncompressed
+        escape_int = 0xFF
+        patterns = {}
+
+        def build_frequency_map():
+            freq_array = [0] * 256
+            freq_array_2 = [0] * (256 * 256)
+            node = data_dll.head
+            while node and node.next:
+                # escape characters and patter ids are already escaped
+                if node.data == escape_int:
+                    if node.next:
+                        node = node.next.next
+                        continue
+                    else:
+                        break
+                freq_array[node.data] += 1
+                if node.next.data != escape_int:
+                    freq_array_2[(node.data << 8) | (node.next.data)] += 1
+                node = node.next
+            return (
+                nsmallest(256, (x for x in enumerate(freq_array) if x[0] not in [escape_int, terminate_int]),
+                          key=lambda item: item[1]),
+                nlargest(256, (x for x in enumerate(freq_array_2) if x[1] > 0), key=lambda item: item[1]),
+            )
+
+        def replace_pattern_in_data(replacements):
+            len_delta = 0
+            node = data_dll.head
+            while node:
+                if node.data == escape_int:
+                    node = node.next.next
+                    continue
+                node_next = node.next
+                for (pattern, left, right) in replacements:
+                    if node.data == pattern:
+                        data_dll.insert(escape_int, node.prev, node)
+                        len_delta += 1
+                        node = node_next
+                        break
+                    elif (node_next is not None and node.data == left and node_next.data == right):
+                        data_dll.insert(pattern, node.prev, node_next.next)
+                        len_delta -= 1
+                        node = node_next.next
+                        break
+                else:
+                    node = node_next
+            return len_delta
+
+        # escape "escape character"
+        for node in data_dll.nodes():
+            if node.data == escape_int:
+                data_dll.insert(escape_int, node.prev, node)
+
+        # when we create pattern X = YZ, we never allow to use Y or Z as pattern id, since
+        # if we then define Y = AB, original X will produce ABZ
+        forbidden_pattern_ids = set()
+        forbidden_pattern_ids.add(escape_int)
+        forbidden_pattern_ids.add(terminate_int)
+
+        for p in range(passes):
+            if hardcoded_patterns is None:
+                (frequency_map, frequency_map_2) = build_frequency_map()
+                pass_locked_values = set()
+                this_pass_replacements = []
+                for _ in range(pairs_per_pass):
+                    if len(frequency_map_2) == 0:
+                        break
+                    (pattern_id, lfreq) = frequency_map.pop(0)
+                    try:
+                        while (
+                                pattern_id in forbidden_pattern_ids or pattern_id in pass_locked_values or pattern_id in patterns):
+                            (pattern_id, lfreq) = frequency_map.pop(0)
+                    except IndexError:
+                        # exhausted list of indexes
+                        break
+                    pass_locked_values.add(pattern_id)
+                    (most_frequent_pair, pfreq) = frequency_map_2.pop(0)
+                    if (pfreq < (3 + lfreq) * 16):
+                        break
+                    (left, right) = most_frequent_pair >> 8, most_frequent_pair & 0xff
+                    if left in pass_locked_values or right in pass_locked_values:
+                        continue
+                    pass_locked_values.add(left)
+                    pass_locked_values.add(right)
+                    forbidden_pattern_ids.add(left)
+                    forbidden_pattern_ids.add(right)
+                    this_pass_replacements.append((pattern_id, left, right))
+            else:
+                try:
+                    this_pass_replacements = hardcoded_patterns[p]
+                except IndexError:
+                    this_pass_replacements = []
+            for (pid, l, r) in this_pass_replacements:
+                patterns[pid] = (l, r)
+            saved_bytes_this_pass = -replace_pattern_in_data(this_pass_replacements)
+            if hardcoded_patterns is not None and saved_bytes_this_pass < input_length // 100:
+                break
+
+        compressed = bytearray()
+        compressed.append(0b0100_0110)
+        compressed.append(0xfb)
+        compressed.extend(input_length.to_bytes(3, byteorder='big'))
+        compressed.append(escape_int)
+        compressed.append(len(patterns))
+        for pattern_id, (left, right) in patterns.items():
+            compressed.append(pattern_id)
+            compressed.append(left)
+            compressed.append(right)
+        for item in data_dll.items():
+            compressed.append(item)
+        compressed.append(escape_int)
+        compressed.append(terminate_int)
+
+        print(
+            f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds')
+
+        return bytes(compressed)

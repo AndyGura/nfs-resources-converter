@@ -24,10 +24,11 @@
     [resourceOrError]="{
       id: joinId(resourceId, 'data'),
       name: resourceName || '',
-      schema: resourceSchema.possible_resource_schemas[resourceData.choice_index],
+      schema: getChildSchema(),
       data: resourceData.data,
     }"
     [hideName]="true"
+    [hideBlockActions]="hideBlockActions"
     [disabled]="disabled"></app-editor>
   <!--  [hideBlockActions]="true"-->
 }

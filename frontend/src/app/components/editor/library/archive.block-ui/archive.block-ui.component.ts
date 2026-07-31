@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject, ViewChild } from '@angular/core';
-import { NavigationService } from '../../../../services/navigation.service';
 import { BlockData, BlockSchema } from '../../types';
 import { joinId } from '../../../../utils/join-id';
 import { fileFormatIcon } from '../../../../utils/file-format-icon';
@@ -67,7 +66,6 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   selectedValue: [number, ArchiveChildData] | '___headers___' | null = null;
 
-  private readonly navigation = inject(NavigationService);
   private readonly dialog = inject(MatDialog);
 
   override onExternalChanges() {
@@ -118,10 +116,6 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     }
     let index = Math.min(lastSelectedValue[0], value.children.length - 1);
     return [index, value.children[index]];
-  }
-
-  onDoubleClick(childIndex: number) {
-    this.navigation.navigateToId(joinId(this.resourceId || '', `children/${childIndex}/item`));
   }
 
   async addItem() {

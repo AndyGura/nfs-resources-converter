@@ -11,6 +11,7 @@ const iconMap: Record<string, string> = {
   FfnFont: 'text_fields',
 
   EacImage: 'image',
+  TargaImage: 'image',
 
   EacPalette: 'palette',
 

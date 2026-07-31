@@ -4,7 +4,6 @@ import { BehaviorSubject } from 'rxjs';
 import { ArrayBlockUiComponent } from './array.block-ui.component';
 import { MainService } from '../../../../services/main.service';
 import { ChangesService } from '../../../../services/changes.service';
-import { NavigationService } from '../../../../services/navigation.service';
 import { BlockSchema } from '../../types';
 
 describe('ArrayBlockUiComponent', () => {
@@ -12,7 +11,6 @@ describe('ArrayBlockUiComponent', () => {
   let fixture: ComponentFixture<ArrayBlockUiComponent>;
   let mockMainService: any;
   let mockChangesService: any;
-  let mockNavigationService: any;
 
   beforeEach(async () => {
     mockMainService = {
@@ -26,19 +24,11 @@ describe('ArrayBlockUiComponent', () => {
       appendChanges: jasmine.createSpy('appendChanges').and.returnValue(Promise.resolve()),
     };
 
-    mockNavigationService = {
-      navigationPath$: new BehaviorSubject<string[]>([]),
-      resourceToRender$: new BehaviorSubject<any | null>(null),
-      navigateToId: jasmine.createSpy('navigateToId'),
-      navigateBack: jasmine.createSpy('navigateBack'),
-    };
-
     await TestBed.configureTestingModule({
       declarations: [ArrayBlockUiComponent],
       providers: [
         { provide: MainService, useValue: mockMainService },
         { provide: ChangesService, useValue: mockChangesService },
-        { provide: NavigationService, useValue: mockNavigationService },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();

@@ -1,9 +1,5 @@
 @if (resourceId && resourceName && !hideName) {
-  <h2
-    id="title"
-    [matTooltip]="resourceDescription || ''"
-    matTooltipPosition="above"
-    (click)="navigation.navigateToId(resourceId)">
+  <h2 id="title" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
     {{ resourceName }}
   </h2>
 }
