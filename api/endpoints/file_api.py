@@ -190,7 +190,7 @@ class FileAPI:
         elif format_name.lower() == 'qfs':
             from resources.eac.archives import EacCompressedBlock
             block = EacCompressedBlock()
-            data = block.new_data({ 'choice_index': 0 })
+            data = block.new_data({ 'choice_index': block.get_choice_index_by_class_name('ShpiBlock') })
         else:
             raise Exception(f'Unsupported format: {format_name}')
 
