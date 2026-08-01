@@ -31,7 +31,7 @@ export class DelegateBlockUiComponent extends SubscribableGuiComponent<DelegateB
     let schema = structuredClone(this.resourceSchema.possible_resource_schemas[this.resourceData.choice_index]);
     if (this.resourceSchema.custom_actions?.length) {
       schema.custom_actions = [
-        ...schema.custom_actions,
+        ...(schema.custom_actions || []),
         ...this.resourceSchema.custom_actions.map((a: CustomAction) => ({
           ...a,
           idDepth: a.idDepth ? a.idDepth + 1 : 1,
