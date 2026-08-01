@@ -11,8 +11,9 @@ import { fileFormatIcon } from '../../utils/file-format-icon';
 })
 export class NewFileDialogComponent {
   public formats = [
-    { id: 'ffn', name: 'FFN font', blockClass: 'FfnFont' },
-    { id: 'fsh', name: 'FSH image archive', blockClass: 'ShpiBlock' },
+    { id: 'ffn', description: 'FFN font', iconBlockClass: 'FfnFont' },
+    { id: 'fsh', description: 'FSH image archive', iconBlockClass: 'ShpiBlock' },
+    { id: 'qfs', description: 'QFS image archive', iconBlockClass: 'ShpiBlock' },
   ];
   public selectedFormat = 'ffn';
 

@@ -291,7 +291,7 @@ class ShpiBlock(ArchiveBlock):
             q_img = Image.frombytes("P", img.size, bytes(data))
             q_img.putpalette(rgba_palette_data, "RGBA")
             child['item']['data']['resource_id'] = '8Bit'
-            child['item']['data']['bitmap'] = list(q_img.getdata())
+            child['item']['data']['bitmap'] = list(q_img.get_flattened_data())
         pal = EacPalette().new_data()
         pal['resource_id'] = '32Bit color format palette'
         pal['colors']['data'] = [

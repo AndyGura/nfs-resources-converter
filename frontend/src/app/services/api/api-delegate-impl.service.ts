@@ -119,8 +119,8 @@ export class ApiDelegateImplService {
     return this.wrapCall('retrieve_value', id);
   }
 
-  public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
-    return this.wrapCall('run_custom_action', name, action, args);
+  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
+    return this.wrapCall('run_custom_action', id, action, args);
   }
 
   public async getNewItemData(id: string, patch: any = {}): Promise<any> {

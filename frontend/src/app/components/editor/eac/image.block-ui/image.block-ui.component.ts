@@ -74,13 +74,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
         formPatch['channel'] = ''; // this variable is unused when converting 8bit -> 4bit
       }
     }
-    const done = await this.customActionService.runCustomAction(
-      this.resourceId!,
-      this.resourceName!,
-      action,
-      formPatch,
-      true,
-    );
+    const done = await this.customActionService.runCustomAction(this.resourceId!, action, formPatch, true);
     if (!done) {
       // restore value in the input
       event.source.value = this.resourceData.resource_id;

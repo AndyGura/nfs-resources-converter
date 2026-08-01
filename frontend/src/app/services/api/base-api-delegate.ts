@@ -99,8 +99,8 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).retrieveValue(id);
   }
 
-  public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
-    return (await this.getImpl()).runCustomAction(name, action, args);
+  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
+    return (await this.getImpl()).runCustomAction(id, action, args);
   }
 
   public async getNewItemData(id: string, patch: any = {}): Promise<any> {

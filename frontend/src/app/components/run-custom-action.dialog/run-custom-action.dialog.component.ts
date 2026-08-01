@@ -3,10 +3,11 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CustomAction, CustomActionArgument } from '../editor/types';
 import { MainService } from '../../services/main.service';
+import { lastIdPart } from '../../utils/join-id';
 
 export interface RunCustomActionDialogData {
   action: CustomAction;
-  resourceName: string;
+  resourceId: string;
   formPatch?: any;
 }
 
@@ -78,7 +79,14 @@ export class RunCustomActionDialogComponent {
 
   async selectOutputFile(arg: CustomActionArgument) {
     if (arg.type === 'file_output') {
-      const nameHint = this.data.resourceName + (arg.file_name_suffix || '');
+      let resId = this.data.resourceId;
+      let nameHint = lastIdPart(resId);
+      // filter out delegate block internals
+      while (nameHint == 'data') {
+        resId = resId.substring(0, resId.length - nameHint.length);
+        nameHint = lastIdPart(resId);
+      }
+      nameHint += arg.file_name_suffix || '';
       const path = await this.mainService.api.saveFileDialog(nameHint);
       if (path) {
         this.argsForm.get(arg.id)?.setValue(path);
