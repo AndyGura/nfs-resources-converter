@@ -5,5 +5,5 @@ Exec=nfs-resources-converter %f
 Icon=/usr/share/icons/hicolor/256x256/apps/nfs-resources-converter.ico
 Type=Application
 Categories=Development;
-MimeType=application/x-ffn;application/x-fsh;
+MimeType=application/x-ffn;application/x-fsh;application/x-qfs;
 Terminal=false

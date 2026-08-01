@@ -9,4 +9,8 @@
     <comment>FSH Image Archive File</comment>
     <glob pattern="*.fsh"/>
   </mime-type>
+  <mime-type type="application/x-qfs">
+    <comment>QFS Compressed Image Archive File</comment>
+    <glob pattern="*.qfs"/>
+  </mime-type>
 </mime-info>

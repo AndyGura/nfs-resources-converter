@@ -30,6 +30,9 @@ jobs:
       - name: Generate resources documentation
         run: python generate_resource_doc.py
 
+      - name: Generate build configurations
+        run: python generate_build_configs.py
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -55,9 +58,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add frontend
           git add resources/*.md
+          git add nfs-resources-converter-mime.xml nfs-resources-converter.desktop windows-installer.filetypes.iss
           if git diff --cached --quiet; then
             echo "No changes to commit, skipping"
           else
-            git commit -m "chore: build frontend and generate documentation [skip ci]"
+            git commit -m "chore: build frontend and generate documentation and build configs [skip ci]"
             git push
           fi
