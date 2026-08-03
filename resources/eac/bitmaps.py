@@ -15,8 +15,9 @@ from library.read_blocks import (DataBlock,
                                  ArrayBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
+                                 OptionalBlock,
                                  )
-from library.utils import transform_bitness, extract_number
+from library.utils import transform_bitness, extract_number, is_power_of_two
 from resources.eac.fields.misc import Point2D
 
 
@@ -55,6 +56,15 @@ def get_bitmap_len(resource_id, width, height):
         return width * height
     else:
         return 0
+
+def mipmap_pixel_count(width: int, height: int) -> int:
+    """Return the total number of pixels in all mipmap levels excluding the base level."""
+    total = 0
+    while width > 1 or height > 1:
+        width = max(1, width // 2)
+        height = max(1, height // 2)
+        total += width * height
+    return total
 
 
 class EacImage(DeclarativeCompoundBlock):
@@ -96,6 +106,10 @@ class EacImage(DeclarativeCompoundBlock):
                                   '- even in different QFS file (TNFS, CONTROL directory).<br/>'
                                   'Color model is selected according to `resource_id` field. Color models are '
                                   'described [here](eac_colors.md)'})
+        mipmaps = OptionalBlock(child=BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+                                criteria=(lambda ctx, **_: (is_power_of_two(ctx.data('width'))
+                                                           and is_power_of_two(ctx.data('height'))
+                                                           and ctx.read_bytes_remaining >= mipmap_pixel_count(ctx.data('width'), ctx.data('height'))), 'if dimensions are powers of two and has extra space with size >= sum of all mipmaps sizes'))
 
     @property
     def schema(self) -> Dict:
@@ -273,6 +287,8 @@ class EacImage(DeclarativeCompoundBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         data['bitmap'] = self._native_to_internal(data['resource_id'], data['width'], data['height'], data['bitmap'])
+        if data['mipmaps']:
+            data['mipmaps'] = self._native_to_internal(data['resource_id'], data['width'], data['height'], data['mipmaps'])
         return data
 
     # TODO add test which fails now:

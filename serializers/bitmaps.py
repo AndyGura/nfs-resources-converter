@@ -19,33 +19,55 @@ class ImageSerializer(BaseFileSerializer):
             'reversible_settings_patch': {}
         }
 
+    def _transform_to_rgba(self, resource_id, data, palette_colors):
+        if resource_id.startswith('8Bit'):
+            bitmap = []
+            for index in data:
+                try:
+                    bitmap.append(palette_colors[index])
+                except IndexError:
+                    bitmap.append(0)
+            return bitmap
+        elif resource_id.startswith('4Bit'):
+            return [item for row in data for item in row]
+        else:
+            return data
+
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id=id, block=block)
+
+        palette_colors = []
         if data['resource_id'].startswith('8Bit'):
-            (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
-            bitmap = []
-            if palette_block is None:
+            (_, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
+            if palette_data is None:
                 palette_colors = [0xffffff00 | i for i in range(256)]
             else:
                 palette_colors = [c for c in palette_data['colors']['data']]
                 if palette_data['last_color_transparent']:
                     palette_colors[255] = 0
-            for index in data['bitmap']:
-                try:
-                    bitmap.append(palette_colors[index])
-                except IndexError:
-                    bitmap.append(0)
-        elif data['resource_id'].startswith('4Bit'):
-            bitmap = [item for row in data['bitmap'] for item in row]
-        else:
-            bitmap = data['bitmap']
+
         file_path = escape_chars(path)
         if not file_path.endswith('.png'):
             file_path += '.png'
+        saved_files = [file_path]
+        bitmap = self._transform_to_rgba(data['resource_id'], data['bitmap'], palette_colors)
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(file_path)
-        return [file_path]
+        if data['mipmaps']:
+            mipmaps_data = self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
+            (width, height) = (data['width'], data['height'])
+            offset = 0
+            while min(width, height) > 1:
+                width //= 2
+                height //= 2
+                mipmap_path = f'{file_path}_{width}_{height}.png'
+                Image.frombytes('RGBA',
+                                (width, height),
+                                bytes().join([c.to_bytes(4, 'big') for c in mipmaps_data[offset:offset+width*height]])).save(mipmap_path)
+                saved_files.append(mipmap_path)
+                offset += width*height
+        return saved_files
 
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
         if len(file_paths) == 0:

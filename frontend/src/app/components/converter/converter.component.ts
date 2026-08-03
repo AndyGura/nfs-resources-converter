@@ -58,6 +58,7 @@ export class ConverterComponent implements OnInit {
       output_path: ['', Validators.required],
       multiprocess_processes_count: [0],
       images__save_images_only: [false],
+      images__save_mipmaps: [false],
       maps__save_as_chunked: [false],
       maps__save_invisible_wall_collisions: [false],
       maps__save_terrain_collisions: [false],

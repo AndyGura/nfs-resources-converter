@@ -9,7 +9,7 @@ from serializers.archives import ShpiArchiveSerializer
 class TestShpiArchiveSerializer(unittest.TestCase):
     def test_duplicate_aliases_serialization(self):
         serializer = ShpiArchiveSerializer()
-        serializer.patch_settings({'images__save_images_only': True})
+        serializer.patch_settings({'images__save_images_only': True, 'images__save_mipmaps': False})
 
         shpi_block = ShpiBlock()
         image_block = EacImage()
