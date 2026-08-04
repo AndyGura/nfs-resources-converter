@@ -68,6 +68,17 @@ def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
     return total
 
 
+def mipmaps_presence_criteria(ctx, **kwargs):
+    if not is_power_of_two(ctx.data('width')) or not is_power_of_two(ctx.data('height')):
+        return False
+    if isinstance(ctx, ReadContext):
+        return ctx.read_bytes_remaining >= mipmaps_byte_len(ctx.data('resource_id'),
+                                                            ctx.data('width'),
+                                                            ctx.data('height'))
+    else:
+        return ctx.data('mipmaps') is not None
+
+
 class EacImage(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (EnumByteBlock(enum_names=[(0x7A, '4Bit'),
@@ -111,11 +122,7 @@ class EacImage(DeclarativeCompoundBlock):
             OptionalBlock(child=BytesBlock(
                 length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
                         '(1/4 + 1/16 + 1/64 + ...) * width * height * pixel_byteness')),
-                          criteria=(lambda ctx, **_: (is_power_of_two(ctx.data('width'))
-                                                      and is_power_of_two(ctx.data('height'))
-                                                      and ctx.read_bytes_remaining >= mipmaps_byte_len(
-                                      ctx.data('resource_id'), ctx.data('width'), ctx.data('height'))),
-                                    'dimensions are powers of two and sufficient extra space')),
+                criteria=(mipmaps_presence_criteria, 'dimensions are powers of two and sufficient extra space')),
             {'usage': 'io,doc',
              'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
 
@@ -324,7 +331,8 @@ class EacImage(DeclarativeCompoundBlock):
         copied = deepcopy(data)
         copied['bitmap'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['bitmap'])
         if copied['mipmaps']:
-            copied['mipmaps'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['mipmaps'])
+            copied['mipmaps'] = self._internal_to_native(data['resource_id'], data['width'], data['height'],
+                                                         data['mipmaps'])
         return super().write(copied, ctx, name)
 
     def serializer_class(self):
