@@ -121,7 +121,7 @@ class EacImage(DeclarativeCompoundBlock):
         mipmaps = (
             OptionalBlock(child=BytesBlock(
                 length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
-                        '(1/4 + 1/16 + 1/64 + ...) * width * height * pixel_byteness')),
+                        '(1/4 + 1/16 + 1/64 + etc) * width * height * pixel_byteness')),
                 criteria=(mipmaps_presence_criteria, 'dimensions are powers of two and sufficient extra space')),
             {'usage': 'io,doc',
              'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
