@@ -30,6 +30,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             'reversible': True,
             'reversible_settings_patch': {
                 'images__save_images_only': True,
+                'images__save_mipmaps': False,
             }
         }
 

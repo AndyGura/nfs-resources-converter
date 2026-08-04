@@ -102,6 +102,59 @@
       }
     }
   }
+
+  .mipmap-toolbar {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    display: flex;
+    gap: 1px;
+    background-color: #333333;
+    padding: 2px;
+    border-radius: 4px;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+
+    .separator {
+      width: 1px;
+      background-color: #555555;
+      margin: 4px 2px;
+    }
+
+    button {
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+      color: white;
+      min-width: 28px;
+      height: 28px;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .mm-label {
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      &:hover {
+        background-color: #444444;
+      }
+
+      &.selected {
+        background-color: #4a90e2;
+      }
+    }
+  }
 }
 
 .image-container {

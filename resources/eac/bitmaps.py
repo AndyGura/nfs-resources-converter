@@ -15,8 +15,9 @@ from library.read_blocks import (DataBlock,
                                  ArrayBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
+                                 OptionalBlock,
                                  )
-from library.utils import transform_bitness, extract_number
+from library.utils import transform_bitness, extract_number, is_power_of_two
 from resources.eac.fields.misc import Point2D
 
 
@@ -55,6 +56,27 @@ def get_bitmap_len(resource_id, width, height):
         return width * height
     else:
         return 0
+
+
+def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
+    """Return the total number of bytes in all mipmap levels excluding the base level."""
+    total = 0
+    while width > 1 or height > 1:
+        width = max(1, width // 2)
+        height = max(1, height // 2)
+        total += get_bitmap_len(resource_id, width, height)
+    return total
+
+
+def mipmaps_presence_criteria(ctx, **kwargs):
+    if not is_power_of_two(ctx.data('width')) or not is_power_of_two(ctx.data('height')):
+        return False
+    if isinstance(ctx, ReadContext):
+        return ctx.read_bytes_remaining >= mipmaps_byte_len(ctx.data('resource_id'),
+                                                            ctx.data('width'),
+                                                            ctx.data('height'))
+    else:
+        return ctx.data('mipmaps') is not None
 
 
 class EacImage(DeclarativeCompoundBlock):
@@ -96,6 +118,13 @@ class EacImage(DeclarativeCompoundBlock):
                                   '- even in different QFS file (TNFS, CONTROL directory).<br/>'
                                   'Color model is selected according to `resource_id` field. Color models are '
                                   'described [here](eac_colors.md)'})
+        mipmaps = (
+            OptionalBlock(child=BytesBlock(
+                length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
+                        '(1/4 + 1/16 + 1/64 + etc) * width * height * pixel_byteness')),
+                criteria=(mipmaps_presence_criteria, 'dimensions are powers of two and sufficient extra space')),
+            {'usage': 'io,doc',
+             'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
 
     @property
     def schema(self) -> Dict:
@@ -168,17 +197,29 @@ class EacImage(DeclarativeCompoundBlock):
         }
 
     def new_data(self, patch=None):
-        data = super().new_data()
-        data['width'] = 1
-        data['height'] = 1
-        data['bitmap'] = [[0]]
+        data = super().new_data(patch)
+        if data['width'] == 0 or data['height'] == 0:
+            data['width'] = 1
+            data['height'] = 1
+            if data['resource_id'].startswith('4Bit'):
+                data['bitmap'] = [[0]]
+            else:
+                data['bitmap'] = [0]
         return data
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         length = super().estimate_packed_size(data, ctx)
         # original assumes length if bitmap == length of array, which is not true
         length -= len(data['bitmap'])
-        length += get_bitmap_len(data['resource_id'], data['width'], data['height'])
+        width, height = data['width'], data['height']
+        length += get_bitmap_len(data['resource_id'], width, height)
+        if data['mipmaps']:
+            # same for mipmaps
+            length -= len(data['mipmaps'])
+            while width > 1 or height > 1:
+                width = max(1, width // 2)
+                height = max(1, height // 2)
+                length += get_bitmap_len(data['resource_id'], width, height)
         return length
 
     def _native_to_internal(self, resource_id, width, height, bd):
@@ -273,6 +314,9 @@ class EacImage(DeclarativeCompoundBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         data['bitmap'] = self._native_to_internal(data['resource_id'], data['width'], data['height'], data['bitmap'])
+        if data['mipmaps']:
+            data['mipmaps'] = self._native_to_internal(data['resource_id'], data['width'], data['height'],
+                                                       data['mipmaps'])
         return data
 
     # TODO add test which fails now:
@@ -286,6 +330,9 @@ class EacImage(DeclarativeCompoundBlock):
     def write(self, data, ctx: WriteContext = None, name: str = ''):
         copied = deepcopy(data)
         copied['bitmap'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['bitmap'])
+        if copied['mipmaps']:
+            copied['mipmaps'] = self._internal_to_native(data['resource_id'], data['width'], data['height'],
+                                                         data['mipmaps'])
         return super().write(copied, ctx, name)
 
     def serializer_class(self):

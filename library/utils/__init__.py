@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from .path_join import path_join
+from .number_utils import is_power_of_two
 
 
 def format_exception(ex):

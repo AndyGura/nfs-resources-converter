@@ -62,6 +62,10 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   imageWidth?: number;
   imageHeight?: number;
 
+  mainImageUrl: string | null = null;
+  mipmaps: { level: number; url: string }[] = [];
+  currentMipmapLevel: number | null = null;
+
   @ViewChild('imageContainer') imageContainer?: ElementRef<HTMLDivElement>;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
@@ -119,17 +123,30 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
     this.imageUrl$.next(null);
     this.imageWidth = undefined;
     this.imageHeight = undefined;
+    this.mainImageUrl = null;
+    this.mipmaps = [];
+    this.currentMipmapLevel = null;
     if (this.resourceId) {
       setTimeout(() => this.fitZoom(), 0);
       this.loading$.next(true);
       this.mainService.api
-        .serializeResource(this.resourceId)
+        .serializeResource(this.resourceId, null, { images__save_mipmaps: true })
         .then(paths => {
-          let url = paths.find(x => x.endsWith('.png'));
+          const mipmapRegex = /_mm_(\d+)\.png$/;
+          this.mipmaps = paths
+            .filter(x => mipmapRegex.test(x))
+            .map(x => {
+              const res = mipmapRegex.exec(x)!;
+              return { level: parseInt(res[1]), url: x };
+            })
+            .sort((a, b) => a.level - b.level);
+          let url = paths.find(x => !mipmapRegex.test(x) && x.endsWith('.png'));
           if (!url) {
+            this.mainImageUrl = null;
             this.imageUrl$.next(null);
           } else {
-            this.imageUrl$.next(url + '?ts=' + Date.now());
+            this.mainImageUrl = url + '?ts=' + Date.now();
+            this.imageUrl$.next(this.mainImageUrl);
           }
         })
         .catch(() => this.imageUrl$.next(null))
@@ -138,6 +155,19 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
           this.cdr.markForCheck();
         });
     }
+  }
+
+  setMipmapLevel(level: number | null) {
+    this.currentMipmapLevel = level;
+    if (level === null) {
+      this.imageUrl$.next(this.mainImageUrl);
+    } else {
+      const mipmap = this.mipmaps.find(m => m.level === level);
+      if (mipmap) {
+        this.imageUrl$.next(mipmap.url + '?ts=' + Date.now());
+      }
+    }
+    this.cdr.markForCheck();
   }
 
   onImageLoad(event: Event) {
