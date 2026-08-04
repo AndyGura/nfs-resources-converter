@@ -54,19 +54,21 @@ class ImageSerializer(BaseFileSerializer):
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(file_path)
-        if data['mipmaps']:
+        if data['mipmaps'] and self.settings.images__save_mipmaps:
             mipmaps_data = self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
             (width, height) = (data['width'], data['height'])
             offset = 0
+            mipmap_index = 0
             while min(width, height) > 1:
                 width //= 2
                 height //= 2
-                mipmap_path = f'{file_path}_{width}_{height}.png'
+                mipmap_path = f'{file_path[:-4]}_mm_{mipmap_index}.png'
                 Image.frombytes('RGBA',
                                 (width, height),
                                 bytes().join([c.to_bytes(4, 'big') for c in mipmaps_data[offset:offset+width*height]])).save(mipmap_path)
                 saved_files.append(mipmap_path)
                 offset += width*height
+                mipmap_index += 1
         return saved_files
 
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):

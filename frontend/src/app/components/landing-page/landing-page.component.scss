@@ -60,8 +60,18 @@ p {
   overflow-y: auto;
 }
 
-.recent-files-list button {
-  margin: 0.25rem 0;
-  text-align: left;
-  justify-content: flex-start;
+.recent-files-list .recent-file-item {
+  display: flex;
+
+  button {
+    margin: 0.25rem 0;
+  }
+
+  .item-button {
+    text-align: left;
+    justify-content: flex-start;
+    flex-grow: 1;
+  }
 }
+
+
