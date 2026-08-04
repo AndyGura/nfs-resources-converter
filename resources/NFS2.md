@@ -1,6 +1,6 @@
 # **NFS2 file specs** #
 
-*Last time updated: 2026-08-03 22:49:41.271326+00:00*
+*Last time updated: 2026-08-04 15:48:04.382604+00:00*
 
 
 # **Info by file extensions** #
@@ -273,7 +273,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **pivot** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Seems like x coordinate is not used at all. y coordinate is used in horizon textures in TNFS FAM files: higher value = image as horizon will be put higher on the screen. Seems to affect only open tracks |
 | 12 | **position** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Bitmap position on screen. Used for menu/dash sprites. Unknown for others |
 | 16 | **bitmap** | width \* height \* pixel_byteness | Bytes | Pixel color table. For 8Bit bitmap each value represents an index of color in the attached palette. Palette can be stored: <br/>- right after 8Bit image<br/>- as !pal/!PAL in the same SHPI<br/>- in a different SHPI before this one (if it is WWWW archive)<br/>- even in different QFS file (TNFS, CONTROL directory).<br/>Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md) |
-| 16 + width \* height \* pixel_byteness | **mipmaps** | 0..up to end of block | Optional (if if dimensions are powers of two and has extra space with size >= sum of all mipmaps sizes): Bytes | - |
+| 16 + width \* height \* pixel_byteness | **mipmaps** | 0..(1/4 + 1/16 + 1/64 + etc) \* width \* height \* pixel_byteness | Optional (if dimensions are powers of two and sufficient extra space): Bytes | Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order. |
 ### **EacPalette** ###
 #### **Size**: 16..? bytes ####
 #### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black: thy are reserved for cop car siren ####

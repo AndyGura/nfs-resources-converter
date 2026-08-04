@@ -33,10 +33,7 @@
 <div class="preview-wrapper">
   @if (mipmaps.length > 0) {
     <div class="mipmap-toolbar">
-      <button
-        [class.selected]="currentMipmapLevel === null"
-        (click)="setMipmapLevel(null)"
-        title="Main Image">
+      <button [class.selected]="currentMipmapLevel === null" (click)="setMipmapLevel(null)" title="Main Image">
         <mat-icon>image</mat-icon>
       </button>
       <div class="separator"></div>
