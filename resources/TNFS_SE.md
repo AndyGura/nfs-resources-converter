@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-08-10 13:19:59.075986+00:00*
+*Last time updated: 2026-08-10 13:49:22.932783+00:00*
 
 
 # **Info by file extensions** #
@@ -61,8 +61,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. Probably a reference to palette which should be used, that's why named so ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
-| 1 | **unk0** | 3 | Bytes. Always == b'\x00\x00\x00' | Unknown purpose |
+| 0 | **resource_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x7c | Resource ID |
 | 4 | **num_unk1** | 4 | 4-bytes unsigned integer (little endian) | Length of unk1 array |
 | 8 | **unk1** | num_unk1\*8 | Array of `num_unk1` items<br/>Item size: 8 bytes<br/>Item type: Bytes | Unknown purpose |
 ### **WwwwBlock** ###
