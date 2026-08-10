@@ -28,7 +28,7 @@ class PaletteReference(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7C)),
                        {'description': 'Resource ID'})
-        unk0 = (BytesBlock(length=3),
+        unk0 = (BytesBlock(length=3, value_validator=Eq(b'\x00\x00\x00')),
                 {'is_unknown': True})
         unk1 = (LengthPrefixedArrayBlock(length_block=(IntegerBlock(length=4)),
                                          child=BytesBlock(length=8)),
