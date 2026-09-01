@@ -18,6 +18,7 @@ import { NumberBlockUiComponent } from './library/number.block-ui/number.block-u
 import { StringBlockUiComponent } from './library/string.block-ui/string.block-ui.component';
 import { ArrayBlockUiComponent } from './library/array.block-ui/array.block-ui.component';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
+import { TrailingOptionalBlockUiComponent } from './library/trailing-optional.block-ui/trailing-optional.block-ui.component';
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
@@ -61,6 +62,7 @@ export class EditorComponent implements OnDestroy {
     CompoundBlock: CompoundBlockUiComponent,
     SubByteCompoundBlock: SubByteCompoundBlockUiComponent,
     DelegateBlock: DelegateBlockUiComponent,
+    TrailingOptionalBlock: TrailingOptionalBlockUiComponent,
 
     // common
     TargaImage: TargaImageBlockUiComponent,

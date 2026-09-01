@@ -107,6 +107,10 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).getNewItemData(id, patch);
   }
 
+  public async getTrailingOptionalFieldData(id: string): Promise<any> {
+    return (await this.getImpl()).getTrailingOptionalFieldData(id);
+  }
+
   // Serialization API
   public async serializeResource(
     blockId: string,
