@@ -127,6 +127,10 @@ export class ApiDelegateImplService {
     return this.wrapCall('get_new_item_data', id, patch);
   }
 
+  public async getTrailingOptionalFieldData(id: string): Promise<any> {
+    return this.wrapCall('get_trailing_optional_field_data', id);
+  }
+
   // Serialization API
   public async serializeResource(
     blockId: string,

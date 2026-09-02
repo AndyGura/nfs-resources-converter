@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 
 from library import require_resource
 from library.changes_service import ChangesService
-from library.read_blocks.optional import OptionalBlock
+from library.read_blocks.optional import OptionalBlock, TrailingOptionalBlock
 from library.utils.id import join_id
 from serializers.misc.json_utils import convert_bytes, serialize_exceptions
 
@@ -151,3 +151,21 @@ class ResourceAPI:
         if hasattr(res_block, 'child'):
             return self.render_data(res_block.child.new_data(patch))
         return None
+
+    def get_trailing_optional_field_data(self, resource_id: str) -> Any:
+        """
+        Get freshly-created data for a `TrailingOptionalBlock` field itself (as opposed to
+        `get_new_item_data`, which creates a new *item* for a container found under an optional
+        field). Used by the GUI's presence checkbox when the user turns a currently-absent
+        (`None`) trailing field on.
+
+        Args:
+            resource_id: ID of the `TrailingOptionalBlock` field
+
+        Returns:
+            `child.new_data()` for that field, or `None` if it isn't a `TrailingOptionalBlock`
+        """
+        (_, res_block, _) = require_resource(resource_id)[0]
+        if not isinstance(res_block, TrailingOptionalBlock):
+            return None
+        return self.render_data(res_block.child.new_data())

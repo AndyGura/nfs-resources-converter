@@ -1,0 +1,27 @@
+@if (resourceId) {
+  @if (!hideName && resourceName) {
+    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
+      {{ resourceName }}
+    </mat-label>
+  }
+  <mat-checkbox
+    [checked]="isPresent"
+    [disabled]="!!disabled"
+    [matTooltip]="'Normally present when: ' + (resourceSchema.criteria || '')"
+    matTooltipPosition="above"
+    (change)="setPresent($event.checked)">
+    Present
+  </mat-checkbox>
+  @if (isPresent) {
+    <app-editor
+      [resourceOrError]="{
+        id: resourceId,
+        name: resourceName || '',
+        schema: resourceSchema.child_schema,
+        data: resourceData,
+      }"
+      [hideName]="true"
+      [hideBlockActions]="hideBlockActions"
+      [disabled]="disabled"></app-editor>
+  }
+}
