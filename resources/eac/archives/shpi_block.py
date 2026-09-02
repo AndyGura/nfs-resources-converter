@@ -158,20 +158,6 @@ class ShpiBlock(ArchiveBlock):
                 traceback.print_exc()
                 ctx.buffer.seek(offset)
                 child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
-            # Try to read optional extra block after 8-bit bitmap data
-            if self_ctx.data('shpi_dir') != 'WRAP' and isinstance(child['item']['data'], dict) and child['item'][
-                'data'].get(
-                'resource_id') == '8Bit':
-                extra_abs = offset + child['item']['data']['block_size']
-                next_abs = abs_offsets[i + 1][2] if i < len(abs_offsets) - 1 else None
-                if child['item']['data']['block_size'] > 0 and (next_abs is None or extra_abs < next_abs):
-                    extra_child = {'item': None, 'alias': None, 'pre_offset_payload': b'', 'post_offset_payload': b''}
-                    children_map[descr_index].append(extra_child)
-                    if extra_abs > ctx.buffer.tell():
-                        extra_child['pre_offset_payload'] = ctx.buffer.read(extra_abs - ctx.buffer.tell())
-                    else:
-                        ctx.buffer.seek(extra_abs)
-                    extra_child['item'] = self.item_block.unpack(ctx=self_ctx, name=f'extra_{descr_index}')
         if res.get('length') is not None and ctx.buffer.tell() < block_start + res['length']:
             diff = block_start + res['length'] - ctx.buffer.tell()
             children_map[abs_offsets[-1][0]][-1]['post_offset_payload'] = ctx.buffer.read(diff)

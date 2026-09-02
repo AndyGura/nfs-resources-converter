@@ -15,7 +15,7 @@ from library.read_blocks import (DataBlock,
                                  ArrayBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
-                                 OptionalBlock,
+                                 TrailingOptionalBlock,
                                  LengthPrefixedArrayBlock,
                                  )
 from library.read_blocks.misc.value_validators import Eq
@@ -151,17 +151,16 @@ class EacImage(DeclarativeCompoundBlock):
                                   '- even in different QFS file (TNFS, CONTROL directory).<br/>'
                                   'Color model is selected according to `resource_id` field. Color models are '
                                   'described [here](eac_colors.md)'})
-        unk_7c = (OptionalBlock(child=PaletteReference(),
-                                criteria=(unk_7c_presence_criteria, '')),
+        unk_7c = (TrailingOptionalBlock(child=PaletteReference(),
+                                        criteria=(unk_7c_presence_criteria, '')),
                   {'description': 'Unknown data with id 0x7C',
                    'is_unknown': True})
         mipmaps = (
-            OptionalBlock(child=BytesBlock(
+            TrailingOptionalBlock(child=BytesBlock(
                 length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
                         '(1/4 + 1/16 + 1/64 + etc) * width * height * pixel_byteness')),
                 criteria=(mipmaps_presence_criteria, 'dimensions are powers of two and sufficient extra space')),
-            {'usage': 'io,doc',
-             'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
+            {'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
 
     @property
     def schema(self) -> Dict:
@@ -351,7 +350,7 @@ class EacImage(DeclarativeCompoundBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         data['bitmap'] = self._native_to_internal(data['resource_id'], data['width'], data['height'], data['bitmap'])
-        if data['mipmaps']:
+        if data.get('mipmaps'):
             data['mipmaps'] = self._native_to_internal(data['resource_id'], data['width'], data['height'],
                                                        data['mipmaps'])
         return data

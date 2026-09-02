@@ -54,7 +54,7 @@ class ImageSerializer(BaseFileSerializer):
         Image.frombytes('RGBA',
                         (data['width'], data['height']),
                         bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(file_path)
-        if data['mipmaps'] and self.settings.images__save_mipmaps:
+        if data.get('mipmaps') and self.settings.images__save_mipmaps:
             mipmaps_data = self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
             (width, height) = (data['width'], data['height'])
             offset = 0
