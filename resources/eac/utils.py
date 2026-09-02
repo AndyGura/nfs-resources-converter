@@ -1,4 +1,4 @@
-from resources.eac.archives import ShpiBlock, WwwwBlock, PaletteReference
+from resources.eac.archives import ShpiBlock, WwwwBlock
 from resources.eac.bitmaps import EacPalette
 
 

@@ -8,7 +8,7 @@ import serializers
 from library.exceptions import DataIntegrityException
 from library.utils import format_exception, path_join
 from library.utils.id import join_id
-from resources.eac.archives import ShpiBlock, PaletteReference
+from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import EacImage, EacPalette
 from resources.eac.geometries import OripGeometry
 from serializers import BaseFileSerializer
@@ -43,8 +43,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         unaliased_idx = 0
         output = []
         for i, (name, item_data, item_block) in enumerate(items):
-            if isinstance(item_block, PaletteReference):
-                continue
             if name is None:
                 # that's a resource, assigned to the previous bitmap
                 if i > 0 and items[i - 1][0] is not None:

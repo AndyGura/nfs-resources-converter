@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import lru_cache
-from io import BytesIO
+from io import BytesIO, SEEK_CUR
 from typing import Tuple, Any, Dict
 
 import numpy as np
@@ -16,7 +16,9 @@ from library.read_blocks import (DataBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
                                  OptionalBlock,
+                                 LengthPrefixedArrayBlock,
                                  )
+from library.read_blocks.misc.value_validators import Eq
 from library.utils import transform_bitness, extract_number, is_power_of_two
 from resources.eac.fields.misc import Point2D
 
@@ -68,6 +70,20 @@ def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
     return total
 
 
+def unk_7c_presence_criteria(ctx, **kwargs):
+    if isinstance(ctx, ReadContext):
+        if ctx.read_bytes_remaining < 8:
+            return False
+        raw = ctx.buffer.read(4)
+        try:
+            rid = int.from_bytes(raw, byteorder="little", signed=False)
+            return rid == 0x7C
+        finally:
+            ctx.buffer.seek(-4, SEEK_CUR)
+    else:
+        return ctx.data('unk') is not None
+
+
 def mipmaps_presence_criteria(ctx, **kwargs):
     if not is_power_of_two(ctx.data('width')) or not is_power_of_two(ctx.data('height')):
         return False
@@ -77,6 +93,23 @@ def mipmaps_presence_criteria(ctx, **kwargs):
                                                             ctx.data('height'))
     else:
         return ctx.data('mipmaps') is not None
+
+
+class PaletteReference(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=4, value_validator=Eq(0x7C)),
+                       {'description': 'Resource ID'})
+        unk1 = (LengthPrefixedArrayBlock(length_block=(IntegerBlock(length=4)),
+                                         child=BytesBlock(length=8)),
+                {'is_unknown': True})
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
+                                 'Probably a reference to palette which should be used, that\'s why named so',
+        }
 
 
 class EacImage(DeclarativeCompoundBlock):
@@ -118,6 +151,10 @@ class EacImage(DeclarativeCompoundBlock):
                                   '- even in different QFS file (TNFS, CONTROL directory).<br/>'
                                   'Color model is selected according to `resource_id` field. Color models are '
                                   'described [here](eac_colors.md)'})
+        unk_7c = (OptionalBlock(child=PaletteReference(),
+                                criteria=(unk_7c_presence_criteria, '')),
+                  {'description': 'Unknown data with id 0x7C',
+                   'is_unknown': True})
         mipmaps = (
             OptionalBlock(child=BytesBlock(
                 length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),

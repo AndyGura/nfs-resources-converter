@@ -24,23 +24,6 @@ def determine_shpi_length(ctx):
         return ctx.data('length') - 16 - 8 * ctx.data('num_items')
 
 
-class PaletteReference(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=4, value_validator=Eq(0x7C)),
-                       {'description': 'Resource ID'})
-        unk1 = (LengthPrefixedArrayBlock(length_block=(IntegerBlock(length=4)),
-                                         child=BytesBlock(length=8)),
-                {'is_unknown': True})
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
-                                 'Probably a reference to palette which should be used, that\'s why named so',
-        }
-
-
 class ShpiBlock(ArchiveBlock):
 
     @property
@@ -83,7 +66,6 @@ class ShpiBlock(ArchiveBlock):
         super().__init__(item_block=AutoDetectBlock(possible_blocks=[
             EacImage(),
             EacPalette(),
-            PaletteReference(),
             ShpiText(),
             BytesBlock(length=(lambda ctx: next(x for x in (
                 x['offset'] - ctx.local_buffer_pos

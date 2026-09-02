@@ -15,7 +15,7 @@ from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.common.bitmaps.targa_image import TargaImage
-from .shpi_block import ShpiBlock, PaletteReference
+from .shpi_block import ShpiBlock
 from .compressed_block import EacCompressedBlock
 
 

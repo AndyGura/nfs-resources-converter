@@ -113,9 +113,6 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
         elif resource_id == 0x6F:
             from resources.eac.misc import ShpiText
             return ShpiText
-        elif resource_id == 0x7C:
-            from resources.eac.archives import PaletteReference
-            return PaletteReference
         elif header_bytes[1] == 0xfb:
             from resources.eac.archives import EacCompressedBlock
             return EacCompressedBlock
