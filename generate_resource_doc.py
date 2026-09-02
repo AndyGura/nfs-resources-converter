@@ -112,7 +112,6 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
-                archives.PaletteReference(),
                 archives.WwwwBlock(),
                 archives.SoundBank(),
             ],
@@ -140,6 +139,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -182,7 +182,6 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
-                archives.PaletteReference(),
                 archives.BigfBlock(),
                 archives.BigfItemDescriptionBlock(),
             ],
@@ -216,6 +215,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -248,7 +248,6 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 archives.ShpiBlock(),
-                archives.PaletteReference(),
                 archives.BigfBlock(),
                 archives.BigfItemDescriptionBlock(),
             ],
@@ -282,6 +281,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -354,6 +354,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -393,6 +394,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -467,6 +469,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
@@ -502,6 +505,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 bitmaps.EacImage(),
                 bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
             ],
             'Fonts': [
                 fonts.FfnFont(),
