@@ -6,7 +6,6 @@ from typing import Tuple, Any, Dict
 import numpy as np
 from math import ceil
 
-from eac.misc import ShpiText
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DataBlock,
                                  DeclarativeCompoundBlock,
@@ -20,6 +19,7 @@ from library.read_blocks import (DataBlock,
                                  LengthPrefixedArrayBlock, OptionalBlock, Padding,
                                  )
 from library.read_blocks.misc.value_validators import Eq
+from library.read_blocks.strings import LengthPrefixedUtf8Block
 from library.utils import transform_bitness, extract_number, is_power_of_two
 from resources.eac.fields.misc import Point2D
 
@@ -146,6 +146,31 @@ class PaletteReference(DeclarativeCompoundBlock):
             'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
                                  'Probably a reference to palette which should be used, that\'s why named so',
         }
+
+
+
+
+
+class ShpiText(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'An entry, which sometimes can be seen in the SHPI archive block after bitmap, '
+                                 'contains some text. The purpose is unclear',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x6F)),
+                       {'description': 'Resource ID'})
+        unk = (BytesBlock(length=3),
+               {'is_unknown': True})
+        text = LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4))
+
+    def serializer_class(self):
+        from serializers import ShpiTextSerializer
+        return ShpiTextSerializer
 
 
 class EacPalette(DeclarativeCompoundBlock):

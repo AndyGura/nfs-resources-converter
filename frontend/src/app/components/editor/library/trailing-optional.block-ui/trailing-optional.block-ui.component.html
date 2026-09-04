@@ -1,16 +1,19 @@
 @if (resourceId) {
-  @if (!hideName && resourceName) {
-    <mat-label [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-      {{ resourceName }}
-    </mat-label>
-  }
   <mat-checkbox
     [checked]="isPresent"
     [disabled]="!!disabled"
-    [matTooltip]="'Normally present when: ' + (resourceSchema.criteria || '')"
+    [matTooltip]="
+      (resourceDescription ? resourceDescription + ' ' : '') +
+      'Normally present when: ' +
+      (resourceSchema.criteria || '')
+    "
     matTooltipPosition="above"
     (change)="setPresent($event.checked)">
-    Present
+    @if (!hideName && resourceName) {
+      {{ resourceName }}
+    } @else {
+      Present
+    }
   </mat-checkbox>
   @if (isPresent) {
     <app-editor

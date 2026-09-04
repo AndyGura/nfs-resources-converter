@@ -3,11 +3,9 @@ from typing import List
 
 from PIL import Image
 
-from eac.bitmaps import EacPalette
-from eac.misc import ShpiText
+from eac.bitmaps import EacPalette, ShpiText
 from resources.eac.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
-from serializers.misc_serializers import ShpiTextSerializer
 from serializers.misc.path_utils import escape_chars
 
 
@@ -200,3 +198,12 @@ class PaletteSerializer(BaseFileSerializer):
         data['resource_id'] = new_resource_id
         data['colors']['data'] = colors
         return data
+
+
+class ShpiTextSerializer(BaseFileSerializer):
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        super().serialize(data, path)
+        with open(f'{path}.txt', 'w') as file:
+            file.write(data['text'])
+        return [f'{path}.txt']

@@ -110,9 +110,6 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
         # TODO Bitmap32Bit1010102
         # elif resource_id == 0x6A:
         #     pass
-        elif resource_id == 0x6F:
-            from resources.eac.misc import ShpiText
-            return ShpiText
         elif header_bytes[1] == 0xfb:
             from resources.eac.archives import EacCompressedBlock
             return EacCompressedBlock
