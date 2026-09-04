@@ -49,7 +49,9 @@
 
 @if (showEmbeddedPalettesArray && !(mainService.hideHiddenFields$ | async)) {
   <div class="embedded-palettes-array">
-    <h3 matTooltip="Additional embedded palettes found after the primary one, purpose unknown" matTooltipPosition="above">
+    <h3
+      matTooltip="Additional embedded palettes found after the primary one, purpose unknown"
+      matTooltipPosition="above">
       Extra embedded palettes ({{ embeddedPaletteCount }}/3)
     </h3>
     @for (slot of embeddedPaletteSlots; track $index) {

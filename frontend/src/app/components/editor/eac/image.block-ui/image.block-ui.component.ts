@@ -91,11 +91,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   }
 
   // Fields rendered by bespoke UI below rather than by the generic compound field list.
-  private static readonly BASE_FIELD_BLACKLIST = [
-    'resource_id',
-    ...EMBEDDED_PALETTE_EXTRA_FIELDS,
-    'mipmaps',
-  ];
+  private static readonly BASE_FIELD_BLACKLIST = ['resource_id', ...EMBEDDED_PALETTE_EXTRA_FIELDS, 'mipmaps'];
   private static readonly NON_8BIT_FIELD_BLACKLIST = [
     ...ImageBlockUiComponent.BASE_FIELD_BLACKLIST,
     'embedded_palette',
