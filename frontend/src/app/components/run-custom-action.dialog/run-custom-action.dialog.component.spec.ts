@@ -15,7 +15,13 @@ describe('RunCustomActionDialogComponent', () => {
     description: '',
     is_pure: false,
     args: [
-      { id: 'channel', title: 'Channel', type: 'enum_string', default: 'generate embedded palette', choices: ['generate embedded palette', 'alpha'] },
+      {
+        id: 'channel',
+        title: 'Channel',
+        type: 'enum_string',
+        default: 'generate embedded palette',
+        choices: ['generate embedded palette', 'alpha'],
+      },
       {
         id: 'palette_type',
         title: 'Palette type',
