@@ -32,7 +32,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 'images__save_image_positions': False,
                 'images__save_palettes': False,
                 'images__save_mipmaps': False,
-                'images__save_embedded_palette': False
+                'images__save_embedded_palette': False,
+                'images__save_texts': False,
             }
         }
 

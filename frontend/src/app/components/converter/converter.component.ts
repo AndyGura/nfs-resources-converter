@@ -61,6 +61,7 @@ export class ConverterComponent implements OnInit {
       images__save_palettes: [false],
       images__save_mipmaps: [false],
       images__save_embedded_palette: [false],
+      images__save_texts: [false],
       maps__save_as_chunked: [false],
       maps__save_invisible_wall_collisions: [false],
       maps__save_terrain_collisions: [false],

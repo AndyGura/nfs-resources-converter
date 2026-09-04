@@ -14,14 +14,12 @@ from library.read_blocks.archives import ArchiveBlock
 from library.read_blocks.misc.value_validators import Eq
 from library.utils.id import join_id
 from resources.eac.bitmaps import EacImage, EacPalette
-from resources.eac.misc import ShpiText
 
 
 def determine_shpi_length(ctx):
-    try:
-        return ctx.read_bytes_remaining
-    except Exception:
+    if ctx.read_bytes_remaining is None:
         return ctx.data('length') - 16 - 8 * ctx.data('num_items')
+    return ctx.read_bytes_remaining
 
 
 class ShpiBlock(ArchiveBlock):
@@ -66,7 +64,6 @@ class ShpiBlock(ArchiveBlock):
         super().__init__(item_block=AutoDetectBlock(possible_blocks=[
             EacImage(),
             EacPalette(),
-            ShpiText(),
             BytesBlock(length=(lambda ctx: next(x for x in (
                 x['offset'] - ctx.local_buffer_pos
                 for x in (sorted(ctx.data('items_descr'), key=lambda x: x['offset'])
@@ -105,9 +102,7 @@ class ShpiBlock(ArchiveBlock):
                                          'defined in `items_descr` block. Between them there can be non-indexed '
                                          'entries (palettes and texts). Possible item types:'
                                          '<br/>- [EacImage](#eacimage)'
-                                         '<br/>- [EacPalette](#eacpalette)'
-                                         '<br/>- [PaletteReference](#palettereference)'
-                                         '<br/>- [ShpiText](#shpitext)'})
+                                         '<br/>- [EacPalette](#eacpalette)'})
         children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
     def new_data(self, patch=None):
@@ -207,7 +202,7 @@ class ShpiBlock(ArchiveBlock):
         serializer = self.serializer_class()()
         serializer.patch_settings(
             {'images__save_image_positions': False, 'images__save_palettes': False, 'images__save_mipmaps': False,
-             'images__save_embedded_palette': False})
+             'images__save_embedded_palette': False, 'images__save_texts': False})
         serializer.serialize(data=read_data, path=tmp_dir.name, block=self, id=name)
 
         bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')

@@ -6,6 +6,7 @@ from typing import Tuple, Any, Dict
 import numpy as np
 from math import ceil
 
+from eac.misc import ShpiText
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (DataBlock,
                                  DeclarativeCompoundBlock,
@@ -74,7 +75,7 @@ def unk_7c_presence_criteria(ctx, **kwargs):
     if isinstance(ctx, ReadContext):
         if ctx.data('resource_id') != '8Bit':
             return False
-        if ctx.read_bytes_remaining < 8:
+        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 8:
             return False
         raw = ctx.buffer.read(4)
         try:
@@ -90,7 +91,7 @@ def eac_palette_presence_criteria(ctx, **kwargs):
     if isinstance(ctx, ReadContext):
         if ctx.data('resource_id') != '8Bit':
             return False
-        if ctx.read_bytes_remaining < 16:
+        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 16:
             return False
         raw = ctx.buffer.read(1)
         try:
@@ -102,7 +103,23 @@ def eac_palette_presence_criteria(ctx, **kwargs):
         return ctx.data('embedded_palette') is not None
 
 
+def shpi_text_presence_criteria(ctx, **kwargs):
+    if isinstance(ctx, ReadContext):
+        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 5:
+            return False
+        raw = ctx.buffer.read(1)
+        try:
+            rid = int.from_bytes(raw, signed=False)
+            return rid == 0x6F
+        finally:
+            ctx.buffer.seek(-1, SEEK_CUR)
+    else:
+        return ctx.data('text') is not None
+
+
 def mipmaps_presence_criteria(ctx, **kwargs):
+    if ctx.read_bytes_remaining is None:
+        return False
     if not is_power_of_two(ctx.data('width')) or not is_power_of_two(ctx.data('height')):
         return False
     if isinstance(ctx, ReadContext):
@@ -151,7 +168,7 @@ class EacPalette(DeclarativeCompoundBlock):
         num_colors1 = (IntegerBlock(length=2,
                                     programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
                        {'usage': 'io,doc',
-                        'description': 'Always equals to num_colors?'})
+                        'description': 'Equals to num_colors, except for some CRP structures in NFS5'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (EnumLookupDelegateBlock(enum_field='resource_id',
@@ -256,8 +273,6 @@ class EacPalette(DeclarativeCompoundBlock):
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
-        if data.get('num_colors') is not None:
-            assert data['num_colors'] == data['num_colors1']
         # I'm not sure how game decides whether it should draw 255th color transparent or not.
         # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
         # TODO 16Bit_1555 color format palette has it's own alpha. Turn off last_color_transparent for it?
@@ -341,8 +356,25 @@ class EacImage(DeclarativeCompoundBlock):
         embedded_palette = (TrailingOptionalBlock(child=EacPalette(),
                                                   criteria=(eac_palette_presence_criteria,
                                                             '8-bit bitmap and palette header found')),
-                            {'description': 'Embedded palette, which should be asigned to this bitmap',
-                             'is_unknown': True})
+                            {'description': 'Embedded palette, which should be assigned to this bitmap (except for ga00 in TR2_001.FAM)'})
+        embedded_palette_2 = (TrailingOptionalBlock(child=EacPalette(),
+                                                    criteria=(eac_palette_presence_criteria,
+                                                              '8-bit bitmap and palette header found')),
+                              {'description': 'Possibly one more embedded palette, unknown reason',
+                               'is_unknown': True})
+        embedded_palette_3 = (TrailingOptionalBlock(child=EacPalette(),
+                                                    criteria=(eac_palette_presence_criteria,
+                                                              '8-bit bitmap and palette header found')),
+                              {'description': 'Possibly one more embedded palette, unknown reason',
+                               'is_unknown': True})
+        embedded_palette_4 = (TrailingOptionalBlock(child=EacPalette(),
+                                                    criteria=(eac_palette_presence_criteria,
+                                                              '8-bit bitmap and palette header found')),
+                              {'description': 'Possibly one more embedded palette, unknown reason',
+                               'is_unknown': True})
+        text = (TrailingOptionalBlock(child=ShpiText(),
+                                        criteria=(shpi_text_presence_criteria, '0x6F header found')),
+                  {'description': 'Shpi text'})
         mipmaps = (
             TrailingOptionalBlock(child=BytesBlock(
                 length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),

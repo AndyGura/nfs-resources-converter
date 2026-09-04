@@ -43,15 +43,14 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
 def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
     from library import require_resource
     palette_data, palette_block = None, None
-    if data['embedded_palette']:
-        return EacPalette(), data['embedded_palette']
-    elif id.rfind('__children') == -1 and id.rfind('/children') == -1:
-        return None, None
     shpi_id = id[:max(id.rfind('__children'), id.rfind('/children'))]
     (_, shpi_block, shpi_data), _ = require_resource(shpi_id)
     shpi_child = next(x for x in shpi_data['children'] if x['item']['data'] == data)
-    if (palette_block is None
-            or (shpi_child['alias'] == 'ga00' and 'TR2_001.FAM' in id)):
+    if data.get('embedded_palette') and not (shpi_child['alias'] == 'ga00' and 'TR2_001.FAM' in id):
+        return EacPalette(), data['embedded_palette']
+    elif id.rfind('__children') == -1 and id.rfind('/children') == -1:
+        return None, None
+    if palette_block is None:
         # try to use !pal from shpi
         palette_block, palette_data = _get_palette_from_shpi(shpi_block, shpi_data)
         # need to find the palette, it is a tricky part

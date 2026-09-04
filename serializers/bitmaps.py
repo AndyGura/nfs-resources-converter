@@ -4,8 +4,10 @@ from typing import List
 from PIL import Image
 
 from eac.bitmaps import EacPalette
+from eac.misc import ShpiText
 from resources.eac.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
+from serializers.misc_serializers import ShpiTextSerializer
 from serializers.misc.path_utils import escape_chars
 
 
@@ -72,13 +74,27 @@ class ImageSerializer(BaseFileSerializer):
                 saved_files.append(mipmap_path)
                 offset += width * height
                 mipmap_index += 1
-        if data.get('embedded_palette') and self.settings.images__save_embedded_palette:
+        if self.settings.images__save_embedded_palette:
             pal_serializer = PaletteSerializer()
-            pal_path = f'{file_path[:-4]}_pal.pal.txt'
-            pal_serializer.serialize(data['embedded_palette'], pal_path,
-                                     block=EacPalette(),
-                                     id=id + '/embedded_palette')
-            saved_files.append(pal_path)
+            for i in range(1, 5):
+                if i > 1:
+                    pal_path = f'{file_path[:-4]}_pal{i}.pal.txt'
+                    field_name = f'embedded_palette_{i}'
+                else:
+                    pal_path = f'{file_path[:-4]}_pal.pal.txt'
+                    field_name = f'embedded_palette'
+                if data.get(field_name):
+                    pal_serializer.serialize(data[field_name], pal_path,
+                                             block=EacPalette(),
+                                             id=id + field_name)
+                    saved_files.append(pal_path)
+        if self.settings.images__save_texts and data.get('text'):
+            text_serializer = ShpiTextSerializer()
+            text_path = f'{file_path[:-4]}_extra'
+            text_serializer.serialize(data['text'], text_path,
+                                     block=ShpiText(),
+                                     id=id + '/text')
+            saved_files.append(text_path)
         return saved_files
 
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):

@@ -14,6 +14,7 @@ export type ConversionConfig = {
   images__save_palettes: boolean;
   images__save_mipmaps: boolean;
   images__save_embedded_palette: boolean;
+  images__save_texts: boolean;
   maps__save_as_chunked: boolean;
   maps__save_invisible_wall_collisions: boolean;
   maps__save_terrain_collisions: boolean;
