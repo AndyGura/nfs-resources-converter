@@ -40,38 +40,42 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
     return palette_block, palette_data
 
 
-def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
+def determine_palette_for_8_bit_bitmap(block, data: dict, id: str):
     from library import require_resource
-    palette_data, palette_block = None, None
+    # if not is SHPI
+    if id.rfind('__children') == -1 and id.rfind('/children') == -1:
+        if data.get('embedded_palette'):
+            return EacPalette(), data['embedded_palette']
+        return None, None
+
     shpi_id = id[:max(id.rfind('__children'), id.rfind('/children'))]
     (_, shpi_block, shpi_data), _ = require_resource(shpi_id)
     shpi_child = next(x for x in shpi_data['children'] if x['item']['data'] == data)
     if data.get('embedded_palette') and not (shpi_child['alias'] == 'ga00' and 'TR2_001.FAM' in id):
         return EacPalette(), data['embedded_palette']
-    elif id.rfind('__children') == -1 and id.rfind('/children') == -1:
-        return None, None
-    if palette_block is None:
-        # try to use !pal from shpi
-        palette_block, palette_data = _get_palette_from_shpi(shpi_block, shpi_data)
-        # need to find the palette, it is a tricky part
-        # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
-        # sometimes better, sometimes worse, the difference is not much noticeable.
-        # In case of Autumn Valley fence texture, it totally breaks the picture.
-        # If ignore inline palettes in LN32 SHPI, DASH FSH will be broken ¯\_(ツ)_/¯
-        # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯
-        # autumn valley fence texture broken only in ETRACKFM and NTRACKFM
-        # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette,
-        # use previous available !pal. 7C bitmap resource data seems to not change as well :(
-        if not palette_block and '.FAM' in id:
-            (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[:shpi_id.rindex('children') - 1])
-            (palette_block, palette_data) = _get_palette_from_wwww(parent_id, parent_block, parent_data,
-                                                                   int(shpi_id.split('/')[-3]))
-        if palette_block is None and 'ART/CONTROL/' in id:
-            # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
-            from library import require_resource
-            (_, shpi_block, shpi_data), _ = require_resource(
-                '/'.join(id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS__data')
-            (palette_block, palette_data) = _get_palette_from_shpi(shpi_block, shpi_data)
+
+    # try to use !pal from shpi
+    palette_block, palette_data = _get_palette_from_shpi(shpi_block, shpi_data)
+    # need to find the palette, it is a tricky part
+    # For textures in FAM files, inline palettes appear to be almost the same as parent palette,
+    # sometimes better, sometimes worse, the difference is not much noticeable.
+    # In case of Autumn Valley fence texture, it totally breaks the picture.
+    # If ignore inline palettes in LN32 SHPI, DASH FSH will be broken ¯\_(ツ)_/¯
+    # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯
+    # autumn valley fence texture broken only in ETRACKFM and NTRACKFM
+    # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette,
+    # use previous available !pal. 7C bitmap resource data seems to not change as well :(
+    if not palette_block and '.FAM' in id:
+        (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[:shpi_id.rindex('children') - 1])
+        (palette_block, palette_data) = _get_palette_from_wwww(parent_id, parent_block, parent_data,
+                                                               int(shpi_id.split('/')[-3]))
+    if palette_block is None and 'ART/CONTROL/' in id:
+        # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
+        from library import require_resource
+        (_, shpi_block, shpi_data), _ = require_resource(
+            '/'.join(id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS__data')
+        (palette_block, palette_data) = _get_palette_from_shpi(shpi_block, shpi_data)
+
     return palette_block, palette_data
 
 
