@@ -119,6 +119,12 @@ class ShpiBlock(ArchiveBlock):
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         block_start = ctx.buffer.tell()
+
+        # read block length and use it here
+        ctx.buffer.seek(4, SEEK_CUR)
+        read_bytes_amount = self.field_blocks_map['length'].read(ctx)
+        ctx.buffer.seek(block_start)
+
         res = super().read(ctx, name, read_bytes_amount)
         end_pos = ctx.buffer.tell()
         ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
