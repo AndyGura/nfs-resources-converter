@@ -16,7 +16,7 @@ from library.read_blocks import (DataBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
                                  TrailingOptionalBlock,
-                                 LengthPrefixedArrayBlock,
+                                 LengthPrefixedArrayBlock, OptionalBlock, Padding,
                                  )
 from library.read_blocks.misc.value_validators import Eq
 from library.utils import transform_bitness, extract_number, is_power_of_two
@@ -72,6 +72,8 @@ def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
 
 def unk_7c_presence_criteria(ctx, **kwargs):
     if isinstance(ctx, ReadContext):
+        if ctx.data('resource_id') != '8Bit':
+            return False
         if ctx.read_bytes_remaining < 8:
             return False
         raw = ctx.buffer.read(4)
@@ -84,13 +86,30 @@ def unk_7c_presence_criteria(ctx, **kwargs):
         return ctx.data('unk') is not None
 
 
+def eac_palette_presence_criteria(ctx, **kwargs):
+    if isinstance(ctx, ReadContext):
+        if ctx.data('resource_id') != '8Bit':
+            return False
+        if ctx.read_bytes_remaining < 16:
+            return False
+        raw = ctx.buffer.read(1)
+        try:
+            rid = int.from_bytes(raw, signed=False)
+            return rid in [0x22, 0x24, 0x29, 0x2A, 0x2D]
+        finally:
+            ctx.buffer.seek(-1, SEEK_CUR)
+    else:
+        return ctx.data('embedded_palette') is not None
+
+
 def mipmaps_presence_criteria(ctx, **kwargs):
     if not is_power_of_two(ctx.data('width')) or not is_power_of_two(ctx.data('height')):
         return False
     if isinstance(ctx, ReadContext):
-        return ctx.read_bytes_remaining >= mipmaps_byte_len(ctx.data('resource_id'),
-                                                            ctx.data('width'),
-                                                            ctx.data('height'))
+        mipmaps_len = mipmaps_byte_len(ctx.data('resource_id'),
+                                       ctx.data('width'),
+                                       ctx.data('height'))
+        return mipmaps_len > 1 and ctx.read_bytes_remaining >= mipmaps_len
     else:
         return ctx.data('mipmaps') is not None
 
@@ -112,6 +131,165 @@ class PaletteReference(DeclarativeCompoundBlock):
         }
 
 
+class EacPalette(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (EnumByteBlock(enum_names=[(0x22, '24BitDos color format palette'),
+                                                 (0x24, '24Bit color format palette'),
+                                                 (0x29, '16Bit_0565 color format palette'),
+                                                 (0x2A, '32Bit color format palette'),
+                                                 # TODO colors 15-0 ? found here https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
+                                                 (0x2D, '16Bit_1555 color format palette')]),
+                       {'description': 'Resource ID'})
+        unk0 = (BytesBlock(length=3),
+                {'is_unknown': True})
+        num_colors = (IntegerBlock(length=2,
+                                   programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
+                      {'usage': 'io,doc',
+                       'description': 'Amount of colors'})
+        unk1 = (BytesBlock(length=2),
+                {'is_unknown': True})
+        num_colors1 = (IntegerBlock(length=2,
+                                    programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
+                       {'usage': 'io,doc',
+                        'description': 'Always equals to num_colors?'})
+        unk2 = (BytesBlock(length=6),
+                {'is_unknown': True})
+        colors = (EnumLookupDelegateBlock(enum_field='resource_id',
+                                          blocks=[
+                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
+                                                         child=IntegerBlock(length=3, byte_order='big')),
+                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
+                                                         child=IntegerBlock(length=3, byte_order='big')),
+                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
+                                                         child=IntegerBlock(length=2)),
+                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
+                                                         child=IntegerBlock(length=4)),
+                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
+                                                         child=IntegerBlock(length=2))
+                                          ]),
+                  {'description': 'Colors LUT. Color model is selected according to `resource_id` field. '
+                                  'Color models are described [here](eac_colors.md)'})
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'custom_actions': [
+                {
+                    'method': 'invert_colors',
+                    'title': 'Invert colors',
+                    'description': 'Inverts all colors',
+                    'is_pure': False,
+                    'args': [],
+                },
+                {
+                    'method': 'convert_format',
+                    'title': 'Convert color format',
+                    'description': 'Converts color format',
+                    'is_pure': False,
+                    'args': [{
+                        'id': 'color_mode',
+                        'title': 'Color mode',
+                        'type': 'enum_string',
+                        'choices': ['24BitDos color format palette',
+                                    '24Bit color format palette',
+                                    '16Bit_0565 color format palette',
+                                    '32Bit color format palette',
+                                    '16Bit_1555 color format palette']
+                    }],
+                }
+            ],
+            'block_description': 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, '
+                                 'meaning the index of color in LUT of assigned palette. Has special colors: '
+                                 '255th in most cases means transparent color, 254th in car textures is replaced by '
+                                 'tail light color, 250th - 253th in car textures are rendered black: thy are reserved '
+                                 'for cop car siren',
+        }
+
+    def new_data(self, patch=None):
+        return {**super().new_data(),
+                'last_color_transparent': False}
+
+    def serializer_class(self):
+        from serializers import PaletteSerializer
+        return PaletteSerializer
+
+    def get_child_block(self, name: str) -> 'DataBlock':
+        if name == 'last_color_transparent':
+            return None
+        return super().get_child_block(name)
+
+    def _colors_native_to_internal(self, resource_id, colors):
+        if resource_id == '24BitDos color format palette':
+            return [(x & 0x3F3F3F) << 10 | 255 for x in colors]
+        elif resource_id == '24Bit color format palette':
+            return [x << 8 | 0xFF for x in colors]
+        elif resource_id == '16Bit_0565 color format palette':
+            return [transform_color_bitness(x, 0, 5, 6, 5) for x in colors]
+        elif resource_id == '32Bit color format palette':
+            # ARGB => RGBA
+            return [(x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24 for x in colors]
+        elif resource_id == '16Bit_1555 color format palette':
+            return [transform_color_bitness(x, 1, 5, 5, 5) for x in colors]
+        else:
+            raise NotImplementedError(f"Palette resource ID {resource_id} is not supported")
+
+    def _colors_internal_to_native(self, resource_id, colors):
+        if resource_id == '24BitDos color format palette':
+            return [(x & 0xFCFCFC00) >> 10 for x in colors]
+        elif resource_id == '24Bit color format palette':
+            return [x >> 8 for x in colors]
+        elif resource_id == '16Bit_0565 color format palette':
+            return [revert_color_bitness(x, 0, 5, 6, 5) for x in colors]
+        elif resource_id == '32Bit color format palette':
+            # ARGB => RGBA
+            return [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in colors]
+        elif resource_id == '16Bit_1555 color format palette':
+            return [revert_color_bitness(x, 1, 5, 5, 5) for x in colors]
+        else:
+            raise NotImplementedError(f"Palette resource ID {resource_id} is not supported")
+
+    def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
+        if name == 'last_color_transparent':
+            return None, unpacked_data['last_color_transparent']
+        return super().get_child_block_with_data(unpacked_data, name)
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        if data.get('num_colors') is not None:
+            assert data['num_colors'] == data['num_colors1']
+        # I'm not sure how game decides whether it should draw 255th color transparent or not.
+        # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
+        # TODO 16Bit_1555 color format palette has it's own alpha. Turn off last_color_transparent for it?
+        data['last_color_transparent'] = not data['resource_id'].startswith('32Bit') and len(
+            data['colors']['data']) >= 256 and 'SLIDES/' not in ctx.ctx_path
+        data['colors']['data'] = self._colors_native_to_internal(data['resource_id'], data['colors']['data'])
+        return data
+
+    def write(self, data, ctx: WriteContext = None, name: str = ''):
+        copied = deepcopy(data)
+        copied['colors']['data'] = self._colors_internal_to_native(copied['resource_id'], copied['colors']['data'])
+        return super().write(copied, ctx, name)
+
+    def action_invert_colors(self, read_data, **kwargs):
+        for (i, color) in enumerate(read_data['colors']['data']):
+            rgb = (color >> 8) & 0xFFFFFF
+            alpha = color & 0xFF
+            inverted_rgb = rgb ^ 0xFFFFFF
+            read_data['colors']['data'][i] = (inverted_rgb << 8) | alpha
+
+    def action_convert_format(self, read_data, color_mode, id, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = color_mode
+        if current_color_format == target_color_format:
+            return
+        native = self._colors_internal_to_native(target_color_format, read_data['colors']['data'])
+        read_data['colors']['data'] = self._colors_native_to_internal(target_color_format, native)
+        read_data['resource_id'] = target_color_format
+        read_data['last_color_transparent'] = not read_data['resource_id'].startswith('32Bit') and len(
+            read_data['colors']['data']) >= 256 and 'SLIDES/' not in id
+
+
 class EacImage(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (EnumByteBlock(enum_names=[(0x7A, '4Bit'),
@@ -124,8 +302,10 @@ class EacImage(DeclarativeCompoundBlock):
                                                  (0x7F, '24Bit color format bitmap'),
                                                  (0x7D, '32Bit color format bitmap')]),
                        {'description': 'Resource ID'})
-        block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+<pixel_byteness>\\*width\\*height + trailing bytes length'})
+        # TODO use that in serialization logic to pick the correct palette everywhere
+        palette_offset = (IntegerBlock(length=3, is_signed=True),
+                          {'description': 'A local offset to the palette that should be used with this image (8Bit). '
+                                          'In case of zero, game searches for !pal or !PAL in the SHPI'})
         width = (IntegerBlock(length=2),
                  {'usage': 'io,doc',
                   'description': 'Bitmap width in pixels'})
@@ -151,16 +331,25 @@ class EacImage(DeclarativeCompoundBlock):
                                   '- even in different QFS file (TNFS, CONTROL directory).<br/>'
                                   'Color model is selected according to `resource_id` field. Color models are '
                                   'described [here](eac_colors.md)'})
+        pad = (OptionalBlock(child=Padding(to=lambda ctx: ctx.data('palette_offset'), is_global=False),
+                             criteria=lambda ctx: ctx.data('palette_offset') > 0),
+               {'description': 'Zeros in the end of block data'})
         unk_7c = (TrailingOptionalBlock(child=PaletteReference(),
-                                        criteria=(unk_7c_presence_criteria, '')),
+                                        criteria=(unk_7c_presence_criteria, '8-bit bitmap and 0x7C header found')),
                   {'description': 'Unknown data with id 0x7C',
                    'is_unknown': True})
+        embedded_palette = (TrailingOptionalBlock(child=EacPalette(),
+                                                  criteria=(eac_palette_presence_criteria,
+                                                            '8-bit bitmap and palette header found')),
+                            {'description': 'Embedded palette, which should be asigned to this bitmap',
+                             'is_unknown': True})
         mipmaps = (
             TrailingOptionalBlock(child=BytesBlock(
                 length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
                         '(1/4 + 1/16 + 1/64 + etc) * width * height * pixel_byteness')),
                 criteria=(mipmaps_presence_criteria, 'dimensions are powers of two and sufficient extra space')),
-            {'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
+            {
+                'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
 
     @property
     def schema(self) -> Dict:
@@ -498,162 +687,3 @@ class EacImage(DeclarativeCompoundBlock):
             else:
                 raise ValueError(f'Unknown output_colors value: {output_colors}')
         read_data['resource_id'] = target_color_format
-
-
-class EacPalette(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (EnumByteBlock(enum_names=[(0x22, '24BitDos color format palette'),
-                                                 (0x24, '24Bit color format palette'),
-                                                 (0x29, '16Bit_0565 color format palette'),
-                                                 (0x2A, '32Bit color format palette'),
-                                                 # TODO colors 15-0 ? found here https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
-                                                 (0x2D, '16Bit_1555 color format palette')]),
-                       {'description': 'Resource ID'})
-        unk0 = (BytesBlock(length=3),
-                {'is_unknown': True})
-        num_colors = (IntegerBlock(length=2,
-                                   programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
-                      {'usage': 'io,doc',
-                       'description': 'Amount of colors'})
-        unk1 = (BytesBlock(length=2),
-                {'is_unknown': True})
-        num_colors1 = (IntegerBlock(length=2,
-                                    programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
-                       {'usage': 'io,doc',
-                        'description': 'Always equals to num_colors?'})
-        unk2 = (BytesBlock(length=6),
-                {'is_unknown': True})
-        colors = (EnumLookupDelegateBlock(enum_field='resource_id',
-                                          blocks=[
-                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
-                                                         child=IntegerBlock(length=3, byte_order='big')),
-                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
-                                                         child=IntegerBlock(length=3, byte_order='big')),
-                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
-                                                         child=IntegerBlock(length=2)),
-                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
-                                                         child=IntegerBlock(length=4)),
-                                              ArrayBlock(length=lambda ctx: ctx.data('num_colors'),
-                                                         child=IntegerBlock(length=2))
-                                          ]),
-                  {'description': 'Colors LUT. Color model is selected according to `resource_id` field. '
-                                  'Color models are described [here](eac_colors.md)'})
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'custom_actions': [
-                {
-                    'method': 'invert_colors',
-                    'title': 'Invert colors',
-                    'description': 'Inverts all colors',
-                    'is_pure': False,
-                    'args': [],
-                },
-                {
-                    'method': 'convert_format',
-                    'title': 'Convert color format',
-                    'description': 'Converts color format',
-                    'is_pure': False,
-                    'args': [{
-                        'id': 'color_mode',
-                        'title': 'Color mode',
-                        'type': 'enum_string',
-                        'choices': ['24BitDos color format palette',
-                                    '24Bit color format palette',
-                                    '16Bit_0565 color format palette',
-                                    '32Bit color format palette',
-                                    '16Bit_1555 color format palette']
-                    }],
-                }
-            ],
-            'block_description': 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, '
-                                 'meaning the index of color in LUT of assigned palette. Has special colors: '
-                                 '255th in most cases means transparent color, 254th in car textures is replaced by '
-                                 'tail light color, 250th - 253th in car textures are rendered black: thy are reserved '
-                                 'for cop car siren',
-        }
-
-    def new_data(self, patch=None):
-        return {**super().new_data(),
-                'last_color_transparent': False}
-
-    def serializer_class(self):
-        from serializers import PaletteSerializer
-        return PaletteSerializer
-
-    def get_child_block(self, name: str) -> 'DataBlock':
-        if name == 'last_color_transparent':
-            return None
-        return super().get_child_block(name)
-
-    def _colors_native_to_internal(self, resource_id, colors):
-        if resource_id == '24BitDos color format palette':
-            return [(x & 0x3F3F3F) << 10 | 255 for x in colors]
-        elif resource_id == '24Bit color format palette':
-            return [x << 8 | 0xFF for x in colors]
-        elif resource_id == '16Bit_0565 color format palette':
-            return [transform_color_bitness(x, 0, 5, 6, 5) for x in colors]
-        elif resource_id == '32Bit color format palette':
-            # ARGB => RGBA
-            return [(x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24 for x in colors]
-        elif resource_id == '16Bit_1555 color format palette':
-            return [transform_color_bitness(x, 1, 5, 5, 5) for x in colors]
-        else:
-            raise NotImplementedError(f"Palette resource ID {resource_id} is not supported")
-
-    def _colors_internal_to_native(self, resource_id, colors):
-        if resource_id == '24BitDos color format palette':
-            return [(x & 0xFCFCFC00) >> 10 for x in colors]
-        elif resource_id == '24Bit color format palette':
-            return [x >> 8 for x in colors]
-        elif resource_id == '16Bit_0565 color format palette':
-            return [revert_color_bitness(x, 0, 5, 6, 5) for x in colors]
-        elif resource_id == '32Bit color format palette':
-            # ARGB => RGBA
-            return [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in colors]
-        elif resource_id == '16Bit_1555 color format palette':
-            return [revert_color_bitness(x, 1, 5, 5, 5) for x in colors]
-        else:
-            raise NotImplementedError(f"Palette resource ID {resource_id} is not supported")
-
-    def get_child_block_with_data(self, unpacked_data: dict, name: str) -> Tuple['DataBlock', Any]:
-        if name == 'last_color_transparent':
-            return None, unpacked_data['last_color_transparent']
-        return super().get_child_block_with_data(unpacked_data, name)
-
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        data = super().read(ctx, name, read_bytes_amount)
-        if data.get('num_colors') is not None:
-            assert data['num_colors'] == data['num_colors1']
-        # I'm not sure how game decides whether it should draw 255th color transparent or not.
-        # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
-        # TODO 16Bit_1555 color format palette has it's own alpha. Turn off last_color_transparent for it?
-        data['last_color_transparent'] = not data['resource_id'].startswith('32Bit') and len(
-            data['colors']['data']) >= 256 and 'SLIDES/' not in ctx.ctx_path
-        data['colors']['data'] = self._colors_native_to_internal(data['resource_id'], data['colors']['data'])
-        return data
-
-    def write(self, data, ctx: WriteContext = None, name: str = ''):
-        copied = deepcopy(data)
-        copied['colors']['data'] = self._colors_internal_to_native(copied['resource_id'], copied['colors']['data'])
-        return super().write(copied, ctx, name)
-
-    def action_invert_colors(self, read_data, **kwargs):
-        for (i, color) in enumerate(read_data['colors']['data']):
-            rgb = (color >> 8) & 0xFFFFFF
-            alpha = color & 0xFF
-            inverted_rgb = rgb ^ 0xFFFFFF
-            read_data['colors']['data'][i] = (inverted_rgb << 8) | alpha
-
-    def action_convert_format(self, read_data, color_mode, id, **kwargs):
-        current_color_format = read_data['resource_id']
-        target_color_format = color_mode
-        if current_color_format == target_color_format:
-            return
-        native = self._colors_internal_to_native(target_color_format, read_data['colors']['data'])
-        read_data['colors']['data'] = self._colors_native_to_internal(target_color_format, native)
-        read_data['resource_id'] = target_color_format
-        read_data['last_color_transparent'] = not read_data['resource_id'].startswith('32Bit') and len(
-            read_data['colors']['data']) >= 256 and 'SLIDES/' not in id

@@ -3,6 +3,7 @@ from typing import List
 
 from PIL import Image
 
+from eac.bitmaps import EacPalette
 from resources.eac.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
@@ -63,12 +64,21 @@ class ImageSerializer(BaseFileSerializer):
                 width //= 2
                 height //= 2
                 mipmap_path = f'{file_path[:-4]}_mm_{mipmap_index}.png'
-                Image.frombytes('RGBA',
-                                (width, height),
-                                bytes().join([c.to_bytes(4, 'big') for c in mipmaps_data[offset:offset+width*height]])).save(mipmap_path)
+                Image.frombytes(
+                    'RGBA',
+                    (width, height),
+                    bytes().join([c.to_bytes(4, 'big') for c in mipmaps_data[offset:offset + width * height]])
+                ).save(mipmap_path)
                 saved_files.append(mipmap_path)
-                offset += width*height
+                offset += width * height
                 mipmap_index += 1
+        if data.get('embedded_palette') and self.settings.images__save_embedded_palette:
+            pal_serializer = PaletteSerializer()
+            pal_path = f'{file_path[:-4]}_pal.pal.txt'
+            pal_serializer.serialize(data['embedded_palette'], pal_path,
+                                     block=EacPalette(),
+                                     id=id + '/embedded_palette')
+            saved_files.append(pal_path)
         return saved_files
 
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):

@@ -43,19 +43,13 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
 def determine_palette_for_8_bit_bitmap(block, data: dict, id: str) -> dict:
     from library import require_resource
     palette_data, palette_block = None, None
-    if id.rfind('__children') == -1 and id.rfind('/children') == -1:
+    if data['embedded_palette']:
+        return EacPalette(), data['embedded_palette']
+    elif id.rfind('__children') == -1 and id.rfind('/children') == -1:
         return None, None
     shpi_id = id[:max(id.rfind('__children'), id.rfind('/children'))]
     (_, shpi_block, shpi_data), _ = require_resource(shpi_id)
     shpi_child = next(x for x in shpi_data['children'] if x['item']['data'] == data)
-    shpi_child_index = shpi_data['children'].index(shpi_child)
-    # in most cases next item in the shpi is the palette without alias in the SHPI header,
-    # but I do not know how to interpret PaletteReference resource
-    if shpi_child_index < (len(shpi_data['children']) - 1) and shpi_data['children'][shpi_child_index + 1]['alias'] is None:
-        next_child = shpi_data['children'][shpi_child_index + 1]
-        next_item_block = shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[next_child['item']['choice_index']]
-        if isinstance(next_item_block, EacPalette):
-            palette_data, palette_block = next_child['item']['data'], next_item_block
     if (palette_block is None
             or (shpi_child['alias'] == 'ga00' and 'TR2_001.FAM' in id)):
         # try to use !pal from shpi

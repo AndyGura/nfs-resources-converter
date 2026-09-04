@@ -130,7 +130,7 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
       setTimeout(() => this.fitZoom(), 0);
       this.loading$.next(true);
       this.mainService.api
-        .serializeResource(this.resourceId, null, { images__save_mipmaps: true })
+        .serializeResource(this.resourceId, null, { images__save_mipmaps: true, images__save_embedded_palette: false })
         .then(paths => {
           const mipmapRegex = /_mm_(\d+)\.png$/;
           this.mipmaps = paths

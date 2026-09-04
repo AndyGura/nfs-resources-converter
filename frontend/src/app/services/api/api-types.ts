@@ -10,8 +10,10 @@ export type ConversionConfig = {
   multiprocess_processes_count: number;
   input_path: string;
   output_path: string;
-  images__save_images_only: boolean;
+  images__save_image_positions: boolean;
+  images__save_palettes: boolean;
   images__save_mipmaps: boolean;
+  images__save_embedded_palette: boolean;
   maps__save_as_chunked: boolean;
   maps__save_invisible_wall_collisions: boolean;
   maps__save_terrain_collisions: boolean;

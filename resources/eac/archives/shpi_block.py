@@ -135,7 +135,8 @@ class ShpiBlock(ArchiveBlock):
         ]
         # set lengthes
         for i in range(len(abs_offsets) - 1):
-            abs_offsets[i] = (abs_offsets[i][0], abs_offsets[i][1], abs_offsets[i][2], abs_offsets[i + 1][2] - abs_offsets[i][2])
+            abs_offsets[i] = (abs_offsets[i][0], abs_offsets[i][1], abs_offsets[i][2],
+                              abs_offsets[i + 1][2] - abs_offsets[i][2])
         if read_bytes_amount:
             abs_offsets[-1] = (abs_offsets[-1][0], abs_offsets[-1][1], abs_offsets[-1][2], end_pos - abs_offsets[-1][2])
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
@@ -204,7 +205,9 @@ class ShpiBlock(ArchiveBlock):
         import tempfile
         tmp_dir = tempfile.TemporaryDirectory()
         serializer = self.serializer_class()()
-        serializer.patch_settings({'images__save_images_only': True, 'images__save_mipmaps': False})
+        serializer.patch_settings(
+            {'images__save_image_positions': False, 'images__save_palettes': False, 'images__save_mipmaps': False,
+             'images__save_embedded_palette': False})
         serializer.serialize(data=read_data, path=tmp_dir.name, block=self, id=name)
 
         bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')

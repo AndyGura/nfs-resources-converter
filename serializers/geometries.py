@@ -46,6 +46,8 @@ class OripGeometrySerializer(BaseFileSerializer):
 
                 except (StopIteration, ValueError):
                     pass
+                except TypeError:
+                    print()
             model.vertex_uvs.append([block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'] * u_multiplier,
                                      block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier])
         return vertices_file_indices_map[model][index_3D]

@@ -29,8 +29,10 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             'output_file_name_suffix': None,
             'reversible': True,
             'reversible_settings_patch': {
-                'images__save_images_only': True,
+                'images__save_image_positions': False,
+                'images__save_palettes': False,
                 'images__save_mipmaps': False,
+                'images__save_embedded_palette': False
             }
         }
 
@@ -44,20 +46,12 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         output = []
         for i, (name, item_data, item_block) in enumerate(items):
             if name is None:
-                # that's a resource, assigned to the previous bitmap
-                if i > 0 and items[i - 1][0] is not None:
-                    suffix = 'extra'
-                    if isinstance(item_block, EacPalette):
-                        suffix = 'pal'
-                    name = f'{items[i - 1][0]}_{suffix}'
-                else:
-                    name = f'internal_{unaliased_idx}'
-                    unaliased_idx += 1
+                raise Exception(f'No alias for SHPI resource at index {i}')
             if isinstance(item_data, Exception):
                 skipped_resources.append((name, format_exception(item_data)))
                 continue
             try:
-                if not self.settings.images__save_images_only or isinstance(item_block, EacImage):
+                if self.settings.images__save_palettes or not isinstance(item_block, EacPalette):
                     serializer = serializers.get_serializer(item_block, item_data)
                     file_name = escape_chars(name).replace('/', '_')
                     if save_image_names.get(file_name):
@@ -73,7 +67,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             except Exception as ex:
                 traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
-        if not self.settings.images__save_images_only:
+        if self.settings.images__save_image_positions:
             with open(path_join(path, 'positions.txt'), 'w') as f:
                 for name, item in [(name, data) for name, data, block in items if isinstance(block, EacImage)]:
                     f.write(f"{name}: {item['position']['x']}, {item['position']['y']}\n")
