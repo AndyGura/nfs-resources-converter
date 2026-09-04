@@ -148,7 +148,26 @@ Add a `custom_actions` list to the block's `schema` (method name, title, descrip
 `args` — each arg has `id`/`title`/`type` where `type` ∈ `'string' | 'number' | 'bool' | 'enum_string'
 (+ 'choices') | 'file_output'`, optional `default`). Implement `action_<method>(self, read_data,
 **kwargs)` mutating `read_data` in place. See `convert_to_4bit`/`convert_to_8bit`/`convert_to_rgba`
-on `EacImage`, `invert_colors`/`convert_format` on `EacPalette`.
+on `EacImage`, `invert_colors`/`convert_format` on `EacPalette`. An arg can declare
+`'visible_when': {'arg': '<other id>', 'value': <value>}` to only show/require it in the run-action
+dialog while that sibling arg currently holds `value` (e.g. `convert_to_8bit`'s `palette_type` only
+matters when `channel == 'generate embedded palette'`) — the dialog handles the rest generically.
+
+A block whose *format* changes on write (an enum `resource_id`-like field picking how a payload is
+encoded) typically has other fields whose shape or presence depends on that same format - a
+same-shaped secondary chunk (`EacImage.mipmaps`, encoded the same way as `bitmap`) and/or trailing
+fields only ever populated for one format (`EacImage.embedded_palette*`, 8Bit-only). A conversion
+action must keep *all* of them in sync, not just the primary field: convert the secondary chunk
+through the identical transform, and null out now-inapplicable trailing fields - their write-time
+presence check may only look at "is it set", not at the new format, so stale data gets written
+anyway and misaligns everything read after it. `EacImage.action_convert_to_8bit`/`_to_4bit`/`_to_rgba`
+share `_clear_8bit_palette_fields` for the latter.
+
+`resources.eac.utils.quantize_images_to_8bit`/`build_8bit_palette` quantize one or more RGBA
+`PIL.Image`s onto one shared palette (reserving a genuinely-transparent entry for alpha-0 pixels)
+and build the resulting `EacPalette` - reuse them for any new from-RGBA-to-8Bit action instead of
+re-deriving a quantizer; `ShpiBlock.action_convert_to_8bit` and `EacImage.action_convert_to_8bit`
+both do.
 
 ### Archives (name/offset-indexed containers)
 
@@ -188,7 +207,10 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    use `block.unpack_from_bytes(data)` rather than building a bare `ReadContext` and calling
    `.read()`/`.unpack()` directly — the latter skips `read_bytes_amount` propagation, so anything
    gated on `ctx.read_bytes_remaining` (e.g. `TrailingOptionalBlock`'s default criteria) silently
-   reads as absent. Backend suite: `./.venv/bin/python -m unittest`.
+   reads as absent. When a conversion is genuinely lossy (e.g. any format down to 4Bit, which only
+   keeps 4 bits per channel), don't assert the round-tripped value equals the pre-write one -
+   assert it's stable after one write/read cycle instead (`twice = unpack(pack(once))`). Backend
+   suite: `./.venv/bin/python -m unittest`.
 7. **Smoke test** (optional but valuable for archive/container formats): drop a small real sample
    into `test/golden_corpus/` and run `test/test_gui_golden_corpus.sh`, which opens every corpus
    file through `run.py` — a cheap way to catch crashes across the whole known file zoo.

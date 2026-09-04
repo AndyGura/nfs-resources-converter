@@ -21,6 +21,7 @@ from library.read_blocks import (DataBlock,
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import LengthPrefixedUtf8Block
 from library.utils import transform_bitness, extract_number, is_power_of_two
+from library.utils.id import join_id
 from resources.eac.fields.misc import Point2D
 
 
@@ -448,7 +449,20 @@ class EacImage(DeclarativeCompoundBlock):
                             'id': 'channel',
                             'title': 'Channel',
                             'type': 'enum_string',
-                            'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
+                            'default': 'generate embedded palette',
+                            'choices': ['generate embedded palette', 'alpha', 'RGB', 'red', 'green', 'blue']
+                        },
+                        {
+                            'id': 'palette_type',
+                            'title': 'Palette type',
+                            'type': 'enum_string',
+                            'default': '32Bit color format palette',
+                            'visible_when': {'arg': 'channel', 'value': 'generate embedded palette'},
+                            'choices': ['24BitDos color format palette',
+                                        '24Bit color format palette',
+                                        '16Bit_0565 color format palette',
+                                        '32Bit color format palette',
+                                        '16Bit_1555 color format palette']
                         }
                     ],
                 },
@@ -602,10 +616,9 @@ class EacImage(DeclarativeCompoundBlock):
             raise NotImplementedError(f"Bitmap resource ID {resource_id} is not supported")
 
     def _mipmaps_native_to_internal(self, resource_id, width, height, bd):
-        """Like `_native_to_internal`, but for the `mipmaps` field: `bd` is a concatenation of
-        same-format bitmaps of decreasing size (w/2 x h/2, w/4 x h/4, ..., 1x1), so each level has
-        to be decoded with its own dimensions rather than the base bitmap's - that matters for
-        4Bit formats, whose decoding depends on `width` to know where rows start."""
+        """Like `_native_to_internal`, but `bd` is a concatenation of decreasing-size levels, so
+        each has to be decoded with its own dimensions rather than the base bitmap's - matters for
+        4Bit, whose decoding depends on `width` to know where rows start."""
         result = []
         offset = 0
         for (level_width, level_height) in mipmap_level_dims(width, height):
@@ -676,50 +689,92 @@ class EacImage(DeclarativeCompoundBlock):
         target_color_format = mode
         if current_color_format == target_color_format:
             return
-        elif current_color_format == '8Bit':
-            new_bitmap = []
-            for j in range(read_data['height']):
-                new_bitmap.append([])
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j * read_data['width'] + i]
-                    new_bitmap[j].append(0xffffff00 | pxl)
-            read_data['bitmap'] = new_bitmap
-        elif current_color_format.startswith('4Bit'):
-            pass
-        else:
-            if channel == 'RGB':
-                def transform(color):
-                    r = (color >> 24) & 0xFF
-                    g = (color >> 16) & 0xFF
-                    b = (color >> 8) & 0xFF
-                    return 0xffffff00 | ((r * 77 + g * 150 + b * 29) >> 8)
-            else:
-                (mask, offs) = self._get_channel_mask_offset(channel)
-
-                def transform(color):
-                    return 0xffffff00 | ((color & mask) >> offs)
-            new_bitmap = []
-            for j in range(read_data['height']):
-                new_bitmap.append([])
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j * read_data['width'] + i]
-                    new_bitmap[j].append(transform(pxl))
-            read_data['bitmap'] = new_bitmap
+        width, height = read_data['width'], read_data['height']
+        read_data['bitmap'] = self._convert_pixels_to_4bit(
+            read_data['bitmap'], current_color_format, channel, [(width, height)])
+        if read_data['mipmaps']:
+            read_data['mipmaps'] = self._convert_pixels_to_4bit(
+                read_data['mipmaps'], current_color_format, channel, list(mipmap_level_dims(width, height)))
+        if current_color_format == '8Bit':
+            self._clear_8bit_palette_fields(read_data)
         read_data['resource_id'] = target_color_format
         return
 
-    def action_convert_to_8bit(self, read_data, channel, **kwargs):
+    def _convert_pixels_to_4bit(self, pixels, current_color_format, channel, level_dims):
+        """Converts a flat `bitmap`/`mipmaps` pixel list into the row-shaped representation
+        `4Bit` formats use (rows per `level_dims`, see `mipmap_level_dims`)."""
+        if current_color_format.startswith('4Bit'):
+            return pixels  # already row-shaped
+        if current_color_format == '8Bit':
+            def transform(pxl):
+                return 0xffffff00 | pxl
+        elif channel == 'RGB':
+            def transform(color):
+                r = (color >> 24) & 0xFF
+                g = (color >> 16) & 0xFF
+                b = (color >> 8) & 0xFF
+                return 0xffffff00 | ((r * 77 + g * 150 + b * 29) >> 8)
+        else:
+            (mask, offs) = self._get_channel_mask_offset(channel)
+
+            def transform(color):
+                return 0xffffff00 | ((color & mask) >> offs)
+
+        transformed = [transform(pxl) for pxl in pixels]
+        rows = []
+        offset = 0
+        for (level_width, level_height) in level_dims:
+            for j in range(level_height):
+                rows.append(transformed[offset + j * level_width: offset + (j + 1) * level_width])
+            offset += level_width * level_height
+        return rows
+
+    def _clear_8bit_palette_fields(self, read_data):
+        """Clears the trailing palette fields that only apply to 8Bit bitmaps. Their write-time
+        presence check only looks at whether they're set, not `resource_id` (see
+        `eac_palette_presence_criteria`) - stale data here would get written anyway and misalign
+        everything read after it."""
+        read_data['embedded_palette'] = None
+        read_data['embedded_palette_2'] = None
+        read_data['embedded_palette_3'] = None
+        read_data['embedded_palette_4'] = None
+
+    def action_convert_to_8bit(self, read_data, channel, palette_type='32Bit color format palette', id=None, **kwargs):
         current_color_format = read_data['resource_id']
         target_color_format = '8Bit'
         if current_color_format == target_color_format:
             return
         elif current_color_format.startswith('4Bit'):
-            new_bitmap = []
-            for j in range(read_data['height']):
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j][i]
-                    new_bitmap.append(pxl & 0xff)
-            read_data['bitmap'] = new_bitmap
+            def to_index(pxl):
+                return pxl & 0xff
+
+            read_data['bitmap'] = [to_index(pxl) for row in read_data['bitmap'] for pxl in row]
+            if read_data['mipmaps']:
+                read_data['mipmaps'] = [to_index(pxl) for row in read_data['mipmaps'] for pxl in row]
+        elif channel == 'generate embedded palette':
+            from PIL import Image
+            from resources.eac.utils import quantize_images_to_8bit, build_8bit_palette
+
+            width, height = read_data['width'], read_data['height']
+
+            def to_image(pixels, w, h):
+                return Image.frombytes('RGBA', (w, h), b''.join(c.to_bytes(4, 'big') for c in pixels))
+
+            # Mip levels are quantized together with the base bitmap against one shared palette.
+            images = [to_image(read_data['bitmap'], width, height)]
+            if read_data['mipmaps']:
+                offset = 0
+                for (level_width, level_height) in mipmap_level_dims(width, height):
+                    count = level_width * level_height
+                    images.append(to_image(read_data['mipmaps'][offset:offset + count], level_width, level_height))
+                    offset += count
+
+            indices_per_image, packed_palette_colors = quantize_images_to_8bit(images)
+            read_data['bitmap'] = indices_per_image[0]
+            if read_data['mipmaps']:
+                read_data['mipmaps'] = [index for level_indices in indices_per_image[1:] for index in level_indices]
+            read_data['embedded_palette'] = build_8bit_palette(
+                packed_palette_colors, palette_type, id=join_id(id, 'embedded_palette'))
         else:
             if channel == 'RGB':
                 def transform(color):
@@ -733,63 +788,77 @@ class EacImage(DeclarativeCompoundBlock):
                 def transform(color):
                     return (color & mask) >> offs
             read_data['bitmap'] = [transform(pxl) for pxl in read_data['bitmap']]
+            if read_data['mipmaps']:
+                read_data['mipmaps'] = [transform(pxl) for pxl in read_data['mipmaps']]
         read_data['resource_id'] = target_color_format
         return
 
     def action_convert_to_rgba(self, read_data, color_mode, output_colors, id, **kwargs):
         current_color_format = read_data['resource_id']
         target_color_format = color_mode
+        width, height = read_data['width'], read_data['height']
+
+        # Resolved once and shared with the mipmap chain below - both index the same palette.
+        palette_colors = None
+        if current_color_format == '8Bit' and output_colors == 'use palette':
+            from resources.eac.utils import determine_palette_for_8_bit_bitmap
+            (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(self, read_data, id)
+            if palette_block is not None:
+                palette_colors = [c for c in palette_data['colors']['data']]
+                if palette_data['last_color_transparent']:
+                    palette_colors[255] = 0
+
+        read_data['bitmap'] = self._convert_pixels_to_rgba(
+            read_data['bitmap'], current_color_format, target_color_format, output_colors, width, height,
+            palette_colors)
+        if read_data['mipmaps']:
+            read_data['mipmaps'] = self._convert_pixels_to_rgba(
+                read_data['mipmaps'], current_color_format, target_color_format, output_colors, width, height,
+                palette_colors)
+        if current_color_format == '8Bit':
+            self._clear_8bit_palette_fields(read_data)
+        read_data['resource_id'] = target_color_format
+
+    def _convert_pixels_to_rgba(self, pixels, current_color_format, target_color_format, output_colors, width,
+                                height, palette_colors):
+        """Converts a `bitmap`/`mipmaps` pixel list from `current_color_format` to
+        `target_color_format`. `palette_colors`, when given, resolves 8Bit indices to real colors
+        for `output_colors == 'use palette'`."""
         new_bitmap8 = []
         if current_color_format.startswith('4Bit'):
-            for j in range(read_data['height']):
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j][i]
+            for row in pixels:
+                for pxl in row:
                     new_bitmap8.append(pxl & 0xff)
         elif current_color_format == '8Bit':
             if output_colors == 'use palette':
-                from resources.eac.utils import determine_palette_for_8_bit_bitmap
-                (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(self, read_data, id)
-                bitmap = []
-                if palette_block is None:
-                    new_bitmap8 = read_data['bitmap']
+                if palette_colors is None:
+                    new_bitmap8 = pixels
                 else:
-                    palette_colors = [c for c in palette_data['colors']['data']]
-                    if palette_data['last_color_transparent']:
-                        palette_colors[255] = 0
-                    for index in read_data['bitmap']:
+                    bitmap = []
+                    for index in pixels:
                         try:
                             bitmap.append(palette_colors[index])
                         except IndexError:
                             bitmap.append(0)
-                    native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
-                                                      bitmap)
-                    read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'],
-                                                                   read_data['height'],
-                                                                   native)
+                    native = self._internal_to_native(target_color_format, width, height, bitmap)
+                    return self._native_to_internal(target_color_format, width, height, native)
             else:
-                new_bitmap8 = read_data['bitmap']
+                new_bitmap8 = pixels
         else:
-            native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
-                                              read_data['bitmap'])
-            read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'], read_data['height'],
-                                                           native)
-        if new_bitmap8:
-            if output_colors in ['transparent-white', 'use palette']:
-                read_data['bitmap'] = [x | 0xffffff00 for x in new_bitmap8]
-            elif output_colors == 'black-white':
-                read_data['bitmap'] = [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap8]
-            else:
-                raise ValueError(f'Unknown output_colors value: {output_colors}')
-        read_data['resource_id'] = target_color_format
+            native = self._internal_to_native(target_color_format, width, height, pixels)
+            return self._native_to_internal(target_color_format, width, height, native)
+
+        if output_colors in ['transparent-white', 'use palette']:
+            return [x | 0xffffff00 for x in new_bitmap8]
+        elif output_colors == 'black-white':
+            return [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap8]
+        else:
+            raise ValueError(f'Unknown output_colors value: {output_colors}')
 
     def _downsample_mip_level(self, resource_id, width, height, values):
-        """Halves (rounding up) a level's dimensions, producing the next mipmap level in the same
-        internal-representation shape as `values` (a list of `width * height` values, or - for
-        4Bit formats - a list of `height` rows of `width` values each).
-
-        Palette indices (4Bit/8Bit) can't be blended, so they're point-sampled; color formats are
-        box-filtered (their internal representation packs channels as red<<24|green<<16|blue<<8|alpha,
-        see `transform_color_bitness`), which gives smoother results than point-sampling."""
+        """Produces the next mipmap level (half the dimensions, rounded up) in the same shape as
+        `values`. Palette indices (4Bit/8Bit) can't be blended, so they're point-sampled; color
+        formats are box-filtered instead."""
         is_4bit = resource_id.startswith('4Bit')
         new_width, new_height = max(1, width // 2), max(1, height // 2)
 

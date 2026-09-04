@@ -218,64 +218,13 @@ class ShpiBlock(ArchiveBlock):
         from PIL import Image
         images = [Image.open(path_join(tmp_dir.name, x['alias'] + '.png')) for x in read_data['children']]
 
-        max_width = max(img.width for img in images)
-        total_height = sum(img.height for img in images)
-        master_image = Image.new("RGB", (max_width, total_height), (0, 0, 0))
-        current_y = 0
-        contain_transparency = False
-        for img in images:
-            rgb = Image.new("RGB", img.size, (0, 0, 0))
-            rgb.paste(img.convert("RGB"), mask=img.getchannel("A"))
-            master_image.paste(rgb, (0, current_y))
-            current_y += img.height
-            if not contain_transparency:
-                contain_transparency = img.getextrema()[3][0] < 255
-
-        reserved_colors = 0
-        if contain_transparency:
-            reserved_colors += 1
-
-        reference_palette_img = master_image.quantize(
-            colors=256 - reserved_colors,
-            method=Image.Quantize.FASTOCTREE
-        )
-        rgba_palette_data = reference_palette_img.getpalette("RGBA")[:(num_colors - reserved_colors) * 4]
-        if contain_transparency:
-            rgba_palette_data += [0, 255, 0, 0]
-        rgb_palette_data = []
-        for i in range(0, len(rgba_palette_data), 4):
-            rgb_palette_data.extend(rgba_palette_data[i:i + 3])
-        dummy_palette_img = Image.new("P", (1, 1))
-        dummy_palette_img.putpalette(rgb_palette_data, "RGB")
-        for child, img in zip(read_data['children'], images):
-            alpha = img.getchannel("A")
-            rgb = Image.new("RGB", img.size, (0, 0, 0))
-            rgb.paste(img.convert("RGB"), mask=alpha)
-            q_img = rgb.quantize(palette=dummy_palette_img)
-            data = bytearray(q_img.tobytes())
-            if contain_transparency:
-                alpha_data = alpha.load()
-                w, h = img.size
-                k = 0
-                for y in range(h):
-                    for x in range(w):
-                        if alpha_data[x, y] == 0:
-                            data[k] = 255
-                        k += 1
-
-            q_img = Image.frombytes("P", img.size, bytes(data))
-            q_img.putpalette(rgba_palette_data, "RGBA")
+        from resources.eac.utils import quantize_images_to_8bit, build_8bit_palette
+        indices_per_image, packed_palette_colors = quantize_images_to_8bit(images, num_colors)
+        for child, indices in zip(read_data['children'], indices_per_image):
             child['item']['data']['resource_id'] = '8Bit'
-            child['item']['data']['bitmap'] = list(q_img.get_flattened_data())
-        pal = EacPalette().new_data()
-        pal['resource_id'] = '32Bit color format palette'
-        pal['colors']['data'] = [
-            (rgba_palette_data[i] << 24)
-            | (rgba_palette_data[i + 1] << 16)
-            | (rgba_palette_data[i + 2] << 8)
-            | rgba_palette_data[i + 3]
-            for i in range(0, len(rgba_palette_data), 4)
-        ]
+            child['item']['data']['bitmap'] = indices
+
+        pal = build_8bit_palette(packed_palette_colors, palette_type, id=join_id(id, 'children', '0', 'item', 'data'))
         read_data['children'].insert(0, {
             'pre_offset_payload': b'',
             'post_offset_payload': b'',
@@ -285,8 +234,6 @@ class ShpiBlock(ArchiveBlock):
                 'data': pal
             }
         })
-        if palette_type != '32Bit color format palette':
-            EacPalette().action_convert_format(pal, palette_type, id=join_id(id, 'children', '0', 'item', 'data'))
 
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer

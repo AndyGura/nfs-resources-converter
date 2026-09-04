@@ -53,7 +53,12 @@ export type CustomAction = {
   idDepth?: number;
 };
 
-export type CustomActionArgument = { id: string; title: string } & (
+export type CustomActionArgument = {
+  id: string;
+  title: string;
+  // Only shown/applicable while the sibling arg named `arg` currently holds `value`.
+  visible_when?: { arg: string; value: any };
+} & (
   | { type: 'file_output'; file_name_suffix: string }
   | { type: 'number'; default?: number }
   | { type: 'string'; default?: string }

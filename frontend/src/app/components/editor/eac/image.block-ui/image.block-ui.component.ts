@@ -8,8 +8,7 @@ import { ImageViewerComponent } from '../../common/image-viewer/image-viewer.com
 import { joinId } from '../../../../utils/join-id';
 import { ChangeEntry } from '../../../../services/changes.service';
 
-// The extra embedded palettes, beyond the primary `embedded_palette`, that TrailingOptionalBlock
-// fields hold on `EacImage`. Treated in the GUI as a max-3-length array (see class doc below).
+// The extra embedded palette fields on `EacImage`, treated in the GUI as a max-3-length array.
 const EMBEDDED_PALETTE_EXTRA_FIELDS = ['embedded_palette_2', 'embedded_palette_3', 'embedded_palette_4'];
 
 const isPowerOfTwo = (n: number | undefined): boolean => !!n && n > 0 && (n & (n - 1)) === 0;
@@ -75,7 +74,8 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
       formPatch['color_mode'] = newFormat;
     }
     if (newFormatSmpl === '8bit' && currentFormatSmpl === '4bit') {
-      formPatch['channel'] = ''; // this variable is unused when converting 4bit -> 8bit
+      formPatch['channel'] = ''; // both variables are unused when converting 4bit -> 8bit
+      formPatch['palette_type'] = '';
     }
     if (newFormatSmpl === '4bit') {
       formPatch['mode'] = newFormat;
@@ -98,18 +98,14 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   ];
 
   get fieldBlacklist(): string[] {
-    // embedded_palette only ever gets populated for 8Bit bitmaps - hide the (always-unchecked)
-    // row entirely for other formats instead of showing a checkbox that can never be checked.
+    // embedded_palette only applies to 8Bit bitmaps - hide it entirely otherwise.
     return this.resourceData?.resource_id === '8Bit'
       ? ImageBlockUiComponent.BASE_FIELD_BLACKLIST
       : ImageBlockUiComponent.NON_8BIT_FIELD_BLACKLIST;
   }
 
-  // --- Mipmaps checkbox -----------------------------------------------------------------------
-  // `mipmaps` is rendered as a plain checkbox instead of the generic TrailingOptionalBlock UI:
-  // unchecking is the generic "clear to absent" behavior, checking triggers the `generate_mipmaps`
-  // custom action so the backend can compute the mip chain from the current bitmap.
-
+  // Unchecking clears `mipmaps` generically; checking runs `generate_mipmaps` so the backend
+  // computes the mip chain from the current bitmap.
   get mipmapsPresent(): boolean {
     return this.resourceData?.mipmaps !== null && this.resourceData?.mipmaps !== undefined;
   }
@@ -130,11 +126,8 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
     this.cdr.markForCheck();
   }
 
-  // --- Extra embedded palettes (embedded_palette_2/3/4) as a max-3-length array ----------------
-  // Only meaningful for 8Bit bitmaps, and only once the primary `embedded_palette` is present -
-  // the format writes the first palette it finds into `embedded_palette`, so these can never be
-  // populated while it's absent.
-
+  // The format writes the first palette it finds into `embedded_palette`, so the extra ones can
+  // never be populated while it's absent.
   get showEmbeddedPalettesArray(): boolean {
     return this.resourceData?.resource_id === '8Bit' && !!this.resourceData?.embedded_palette;
   }
@@ -188,8 +181,7 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
     this.applyEmbeddedPaletteSlots(slots);
   }
 
-  // Applies a full replacement of the 3 slots as a single undoable bundle, emitting a `set` only
-  // for the fields that actually changed.
+  // Replaces all 3 slots as a single undoable bundle.
   private applyEmbeddedPaletteSlots(newSlots: (BlockData | null)[]): void {
     if (!this.resourceId) return;
     const oldSlots = this.embeddedPaletteSlots;
