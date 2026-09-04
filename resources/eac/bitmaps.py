@@ -61,14 +61,17 @@ def get_bitmap_len(resource_id, width, height):
         return 0
 
 
-def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
-    """Return the total number of bytes in all mipmap levels excluding the base level."""
-    total = 0
+def mipmap_level_dims(width: int, height: int):
+    """Yield (level_width, level_height) for each mipmap level, from w/2 x h/2 down to 1x1."""
     while width > 1 or height > 1:
         width = max(1, width // 2)
         height = max(1, height // 2)
-        total += get_bitmap_len(resource_id, width, height)
-    return total
+        yield width, height
+
+
+def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
+    """Return the total number of bytes in all mipmap levels excluding the base level."""
+    return sum(get_bitmap_len(resource_id, w, h) for (w, h) in mipmap_level_dims(width, height))
 
 
 def unk_7c_presence_criteria(ctx, **kwargs):
@@ -474,6 +477,14 @@ class EacImage(DeclarativeCompoundBlock):
                             'choices': ['use palette', 'transparent-white', 'black-white']
                         }
                     ],
+                },
+                {
+                    'method': 'generate_mipmaps',
+                    'title': 'Generate mipmaps',
+                    'description': 'Generates mipmap levels from the current bitmap (only possible when width and '
+                                   'height are both powers of two).',
+                    'is_pure': False,
+                    'args': [],
                 }
             ]
         }
@@ -498,10 +509,7 @@ class EacImage(DeclarativeCompoundBlock):
         if data['mipmaps']:
             # same for mipmaps
             length -= len(data['mipmaps'])
-            while width > 1 or height > 1:
-                width = max(1, width // 2)
-                height = max(1, height // 2)
-                length += get_bitmap_len(data['resource_id'], width, height)
+            length += mipmaps_byte_len(data['resource_id'], width, height)
         return length
 
     def _native_to_internal(self, resource_id, width, height, bd):
@@ -593,12 +601,41 @@ class EacImage(DeclarativeCompoundBlock):
         else:
             raise NotImplementedError(f"Bitmap resource ID {resource_id} is not supported")
 
+    def _mipmaps_native_to_internal(self, resource_id, width, height, bd):
+        """Like `_native_to_internal`, but for the `mipmaps` field: `bd` is a concatenation of
+        same-format bitmaps of decreasing size (w/2 x h/2, w/4 x h/4, ..., 1x1), so each level has
+        to be decoded with its own dimensions rather than the base bitmap's - that matters for
+        4Bit formats, whose decoding depends on `width` to know where rows start."""
+        result = []
+        offset = 0
+        for (level_width, level_height) in mipmap_level_dims(width, height):
+            level_len = get_bitmap_len(resource_id, level_width, level_height)
+            level_data = self._native_to_internal(resource_id, level_width, level_height,
+                                                  bd[offset:offset + level_len])
+            result.extend(level_data)
+            offset += level_len
+        return result
+
+    def _mipmaps_internal_to_native(self, resource_id, width, height, data):
+        """Inverse of `_mipmaps_native_to_internal`."""
+        result = b''
+        offset = 0
+        is_4bit = resource_id.startswith('4Bit')
+        for (level_width, level_height) in mipmap_level_dims(width, height):
+            # 4Bit internal data is a list of rows (one row per pixel row); every other format is
+            # a flat list of one entry per pixel.
+            level_count = level_height if is_4bit else level_width * level_height
+            level_data = data[offset:offset + level_count]
+            result += self._internal_to_native(resource_id, level_width, level_height, level_data)
+            offset += level_count
+        return result
+
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
         data['bitmap'] = self._native_to_internal(data['resource_id'], data['width'], data['height'], data['bitmap'])
         if data.get('mipmaps'):
-            data['mipmaps'] = self._native_to_internal(data['resource_id'], data['width'], data['height'],
-                                                       data['mipmaps'])
+            data['mipmaps'] = self._mipmaps_native_to_internal(data['resource_id'], data['width'], data['height'],
+                                                                data['mipmaps'])
         return data
 
     # TODO add test which fails now:
@@ -613,8 +650,8 @@ class EacImage(DeclarativeCompoundBlock):
         copied = deepcopy(data)
         copied['bitmap'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['bitmap'])
         if copied['mipmaps']:
-            copied['mipmaps'] = self._internal_to_native(data['resource_id'], data['width'], data['height'],
-                                                         data['mipmaps'])
+            copied['mipmaps'] = self._mipmaps_internal_to_native(data['resource_id'], data['width'], data['height'],
+                                                                  data['mipmaps'])
         return super().write(copied, ctx, name)
 
     def serializer_class(self):
@@ -744,3 +781,51 @@ class EacImage(DeclarativeCompoundBlock):
             else:
                 raise ValueError(f'Unknown output_colors value: {output_colors}')
         read_data['resource_id'] = target_color_format
+
+    def _downsample_mip_level(self, resource_id, width, height, values):
+        """Halves (rounding up) a level's dimensions, producing the next mipmap level in the same
+        internal-representation shape as `values` (a list of `width * height` values, or - for
+        4Bit formats - a list of `height` rows of `width` values each).
+
+        Palette indices (4Bit/8Bit) can't be blended, so they're point-sampled; color formats are
+        box-filtered (their internal representation packs channels as red<<24|green<<16|blue<<8|alpha,
+        see `transform_color_bitness`), which gives smoother results than point-sampling."""
+        is_4bit = resource_id.startswith('4Bit')
+        new_width, new_height = max(1, width // 2), max(1, height // 2)
+
+        def get(x, y):
+            x, y = min(x, width - 1), min(y, height - 1)
+            return values[y][x] if is_4bit else values[y * width + x]
+
+        if is_4bit or resource_id == '8Bit':
+            samples = (lambda x, y: [get(2 * x, 2 * y)])
+        else:
+            samples = (lambda x, y: [get(2 * x + dx, 2 * y + dy) for dy in (0, 1) for dx in (0, 1)])
+
+        def pixel(x, y):
+            pixels = samples(x, y)
+            if len(pixels) == 1:
+                return pixels[0]
+            r = sum((p >> 24) & 0xFF for p in pixels) // len(pixels)
+            g = sum((p >> 16) & 0xFF for p in pixels) // len(pixels)
+            b = sum((p >> 8) & 0xFF for p in pixels) // len(pixels)
+            a = sum(p & 0xFF for p in pixels) // len(pixels)
+            return (r << 24) | (g << 16) | (b << 8) | a
+
+        if is_4bit:
+            return [[pixel(x, y) for x in range(new_width)] for y in range(new_height)]
+        return [pixel(x, y) for y in range(new_height) for x in range(new_width)]
+
+    def action_generate_mipmaps(self, read_data, **kwargs):
+        resource_id, width, height = read_data['resource_id'], read_data['width'], read_data['height']
+        if not is_power_of_two(width) or not is_power_of_two(height):
+            raise ValueError('Mipmaps can only be generated for images with power-of-two width and height')
+        if width == 1 and height == 1:
+            raise ValueError('A 1x1 image has no mipmap levels to generate')
+        mipmaps = []
+        level_values, level_width, level_height = read_data['bitmap'], width, height
+        while level_width > 1 or level_height > 1:
+            level_values = self._downsample_mip_level(resource_id, level_width, level_height, level_values)
+            level_width, level_height = max(1, level_width // 2), max(1, level_height // 2)
+            mipmaps.extend(level_values)
+        read_data['mipmaps'] = mipmaps
