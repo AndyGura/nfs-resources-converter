@@ -3,7 +3,7 @@ from typing import List
 
 from PIL import Image
 
-from eac.bitmaps import EacPalette, ShpiText
+from resources.eac.bitmaps import EacPalette, ShpiText
 from resources.eac.utils import determine_palette_for_8_bit_bitmap
 from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
