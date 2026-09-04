@@ -63,7 +63,6 @@ class FfnFontSerializer(BaseFileSerializer):
                                        'padding_0': data['padding_0'],
                                        'padding_1': data.get('padding_1'),
                                        'padding_2': data['padding_2'],
-                                       'padding_3': data['padding_3'],
                                        'remaining_bytes': data['remaining_bytes']})
             write_fnt_line('page', {'id': 0, 'file': 'bitmap.png'})
             write_fnt_line('chars', {'count': data['num_glyphs']})
@@ -171,8 +170,6 @@ class FfnFontSerializer(BaseFileSerializer):
                         'padding_1'] else b''
                 if 'padding_2' in custom_part:
                     data['padding_2'] = bytes.fromhex(str(custom_part['padding_2']))
-                if 'padding_3' in custom_part:
-                    data['padding_3'] = bytes.fromhex(str(custom_part['padding_3']))
                 if 'remaining_bytes' in custom_part:
                     data['remaining_bytes'] = bytes.fromhex(str(custom_part['remaining_bytes']))
             except StopIteration:

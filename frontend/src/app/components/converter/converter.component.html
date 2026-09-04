@@ -64,9 +64,31 @@
           <h3>Images Settings</h3>
           <div class="settings-group">
             <mat-checkbox
-              formControlName="images__save_images_only"
-              matTooltip="Skip saving palette and image positions">
-              Save Images Only
+              formControlName="images__save_image_positions"
+              matTooltip="Save image positions in SHPI output directory">
+              Save Image Positions
+            </mat-checkbox>
+          </div>
+          <div class="settings-group">
+            <mat-checkbox formControlName="images__save_palettes" matTooltip="Save palettes in SHPI output directory">
+              Save Palettes
+            </mat-checkbox>
+          </div>
+          <div class="settings-group">
+            <mat-checkbox formControlName="images__save_mipmaps" matTooltip="Save mipmaps as separate files">
+              Save Mipmaps
+            </mat-checkbox>
+          </div>
+          <div class="settings-group">
+            <mat-checkbox
+              formControlName="images__save_embedded_palette"
+              matTooltip="Save embedded palettes as separate files">
+              Save Embedded Palettes
+            </mat-checkbox>
+          </div>
+          <div class="settings-group">
+            <mat-checkbox formControlName="images__save_texts" matTooltip="Save additional texts as separate files">
+              Save Image Texts
             </mat-checkbox>
           </div>
           <mat-divider></mat-divider>

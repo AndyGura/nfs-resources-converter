@@ -15,7 +15,7 @@ from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
 from resources.common.bitmaps.targa_image import TargaImage
-from .shpi_block import ShpiBlock, PaletteReference
+from .shpi_block import ShpiBlock
 from .compressed_block import EacCompressedBlock
 
 
@@ -106,6 +106,10 @@ class WwwwBlock(ArchiveBlock):
             res['children'].append(child)
             if offset > ctx.buffer.tell():
                 child['pre_offset_payload'] = ctx.buffer.read(offset - ctx.buffer.tell())
+            elif offset == block_start:
+                # self-reference, ignore
+                child['item'] = {'choice_index': bytes_choice, 'data': b''}
+                continue
             else:
                 ctx.buffer.seek(offset)
             try:

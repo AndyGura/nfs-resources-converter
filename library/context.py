@@ -71,6 +71,8 @@ class ReadContext(BaseContext):
 
     @property
     def read_bytes_remaining(self):
+        if self.read_bytes_amount is None:
+            return None
         return self.read_bytes_amount - self.local_buffer_pos
 
     def get_or_create_child(self, name, block=None, read_bytes_amount=None, data=None):

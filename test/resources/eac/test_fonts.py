@@ -51,8 +51,11 @@ class TestFfnFont(unittest.TestCase):
             output_files = serializer.serialize(font_res, tmp, name, block)
             font_res2 = serializer.deserialize(output_files, name, block=block)
             (EacImage()).action_convert_to_8bit(font_res2['bitmap'], 'alpha')
-            # we don't set it as it is optional. In order to reconstruct this particular font exactly, we need to set it
-            font_res2['bitmap']['block_size'] = 51264
+            # we don't reconstruct it (yet). In order to reconstruct this particular font exactly, we need to set it
+            # TODO remove later?
+            font_res2['bitmap']['palette_offset'] = font_res['bitmap']['palette_offset']
+            font_res2['bitmap']['pad'] = font_res['bitmap']['pad']
+            font_res2['bitmap']['embedded_palette'] = font_res['bitmap']['embedded_palette']
         output = block.pack(font_res2, name=name)
         with open('test/golden_corpus/Arial12b.ffn', 'rb') as bdata:
             original = bdata.read()

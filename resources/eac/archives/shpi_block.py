@@ -14,33 +14,12 @@ from library.read_blocks.archives import ArchiveBlock
 from library.read_blocks.misc.value_validators import Eq
 from library.utils.id import join_id
 from resources.eac.bitmaps import EacImage, EacPalette
-from resources.eac.misc import ShpiText
 
 
 def determine_shpi_length(ctx):
-    try:
-        return ctx.read_bytes_remaining
-    except Exception:
+    if ctx.read_bytes_remaining is None:
         return ctx.data('length') - 16 - 8 * ctx.data('num_items')
-
-
-class PaletteReference(DeclarativeCompoundBlock):
-    class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7C)),
-                       {'description': 'Resource ID'})
-        unk0 = (BytesBlock(length=3, value_validator=Eq(b'\x00\x00\x00')),
-                {'is_unknown': True})
-        unk1 = (LengthPrefixedArrayBlock(length_block=(IntegerBlock(length=4)),
-                                         child=BytesBlock(length=8)),
-                {'is_unknown': True})
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
-                                 'Probably a reference to palette which should be used, that\'s why named so',
-        }
+    return ctx.read_bytes_remaining
 
 
 class ShpiBlock(ArchiveBlock):
@@ -85,8 +64,6 @@ class ShpiBlock(ArchiveBlock):
         super().__init__(item_block=AutoDetectBlock(possible_blocks=[
             EacImage(),
             EacPalette(),
-            PaletteReference(),
-            ShpiText(),
             BytesBlock(length=(lambda ctx: next(x for x in (
                 x['offset'] - ctx.local_buffer_pos
                 for x in (sorted(ctx.data('items_descr'), key=lambda x: x['offset'])
@@ -125,9 +102,7 @@ class ShpiBlock(ArchiveBlock):
                                          'defined in `items_descr` block. Between them there can be non-indexed '
                                          'entries (palettes and texts). Possible item types:'
                                          '<br/>- [EacImage](#eacimage)'
-                                         '<br/>- [EacPalette](#eacpalette)'
-                                         '<br/>- [PaletteReference](#palettereference)'
-                                         '<br/>- [ShpiText](#shpitext)'})
+                                         '<br/>- [EacPalette](#eacpalette)'})
         children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
     def new_data(self, patch=None):
@@ -144,6 +119,12 @@ class ShpiBlock(ArchiveBlock):
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         block_start = ctx.buffer.tell()
+
+        # read block length and use it here
+        ctx.buffer.seek(4, SEEK_CUR)
+        read_bytes_amount = self.field_blocks_map['length'].read(ctx)
+        ctx.buffer.seek(block_start)
+
         res = super().read(ctx, name, read_bytes_amount)
         end_pos = ctx.buffer.tell()
         ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
@@ -153,6 +134,12 @@ class ShpiBlock(ArchiveBlock):
             (i, x['name'], block_start + x['offset'], None)
             for i, x in sorted(list(enumerate(res['items_descr'])), key=lambda x: x[1]['offset'])
         ]
+        # set lengthes
+        for i in range(len(abs_offsets) - 1):
+            abs_offsets[i] = (abs_offsets[i][0], abs_offsets[i][1], abs_offsets[i][2],
+                              abs_offsets[i + 1][2] - abs_offsets[i][2])
+        if read_bytes_amount:
+            abs_offsets[-1] = (abs_offsets[-1][0], abs_offsets[-1][1], abs_offsets[-1][2], end_pos - abs_offsets[-1][2])
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         try:
             bytes_choice = self.item_block.get_choice_index_by_class_name('BytesBlock')
@@ -173,20 +160,6 @@ class ShpiBlock(ArchiveBlock):
                 traceback.print_exc()
                 ctx.buffer.seek(offset)
                 child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
-            # Try to read optional extra block after 8-bit bitmap data
-            if self_ctx.data('shpi_dir') != 'WRAP' and isinstance(child['item']['data'], dict) and child['item'][
-                'data'].get(
-                'resource_id') == '8Bit':
-                extra_abs = offset + child['item']['data']['block_size']
-                next_abs = abs_offsets[i + 1][2] if i < len(abs_offsets) - 1 else None
-                if child['item']['data']['block_size'] > 0 and (next_abs is None or extra_abs < next_abs):
-                    extra_child = {'item': None, 'alias': None, 'pre_offset_payload': b'', 'post_offset_payload': b''}
-                    children_map[descr_index].append(extra_child)
-                    if extra_abs > ctx.buffer.tell():
-                        extra_child['pre_offset_payload'] = ctx.buffer.read(extra_abs - ctx.buffer.tell())
-                    else:
-                        ctx.buffer.seek(extra_abs)
-                    extra_child['item'] = self.item_block.unpack(ctx=self_ctx, name=f'extra_{descr_index}')
         if res.get('length') is not None and ctx.buffer.tell() < block_start + res['length']:
             diff = block_start + res['length'] - ctx.buffer.tell()
             children_map[abs_offsets[-1][0]][-1]['post_offset_payload'] = ctx.buffer.read(diff)
@@ -233,7 +206,9 @@ class ShpiBlock(ArchiveBlock):
         import tempfile
         tmp_dir = tempfile.TemporaryDirectory()
         serializer = self.serializer_class()()
-        serializer.patch_settings({'images__save_images_only': True})
+        serializer.patch_settings(
+            {'images__save_image_positions': False, 'images__save_palettes': False, 'images__save_mipmaps': False,
+             'images__save_embedded_palette': False, 'images__save_texts': False})
         serializer.serialize(data=read_data, path=tmp_dir.name, block=self, id=name)
 
         bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')
@@ -243,64 +218,13 @@ class ShpiBlock(ArchiveBlock):
         from PIL import Image
         images = [Image.open(path_join(tmp_dir.name, x['alias'] + '.png')) for x in read_data['children']]
 
-        max_width = max(img.width for img in images)
-        total_height = sum(img.height for img in images)
-        master_image = Image.new("RGB", (max_width, total_height), (0, 0, 0))
-        current_y = 0
-        contain_transparency = False
-        for img in images:
-            rgb = Image.new("RGB", img.size, (0, 0, 0))
-            rgb.paste(img.convert("RGB"), mask=img.getchannel("A"))
-            master_image.paste(rgb, (0, current_y))
-            current_y += img.height
-            if not contain_transparency:
-                contain_transparency = img.getextrema()[3][0] < 255
-
-        reserved_colors = 0
-        if contain_transparency:
-            reserved_colors += 1
-
-        reference_palette_img = master_image.quantize(
-            colors=256 - reserved_colors,
-            method=Image.Quantize.FASTOCTREE
-        )
-        rgba_palette_data = reference_palette_img.getpalette("RGBA")[:(num_colors - reserved_colors) * 4]
-        if contain_transparency:
-            rgba_palette_data += [0, 255, 0, 0]
-        rgb_palette_data = []
-        for i in range(0, len(rgba_palette_data), 4):
-            rgb_palette_data.extend(rgba_palette_data[i:i + 3])
-        dummy_palette_img = Image.new("P", (1, 1))
-        dummy_palette_img.putpalette(rgb_palette_data, "RGB")
-        for child, img in zip(read_data['children'], images):
-            alpha = img.getchannel("A")
-            rgb = Image.new("RGB", img.size, (0, 0, 0))
-            rgb.paste(img.convert("RGB"), mask=alpha)
-            q_img = rgb.quantize(palette=dummy_palette_img)
-            data = bytearray(q_img.tobytes())
-            if contain_transparency:
-                alpha_data = alpha.load()
-                w, h = img.size
-                k = 0
-                for y in range(h):
-                    for x in range(w):
-                        if alpha_data[x, y] == 0:
-                            data[k] = 255
-                        k += 1
-
-            q_img = Image.frombytes("P", img.size, bytes(data))
-            q_img.putpalette(rgba_palette_data, "RGBA")
+        from resources.eac.utils import quantize_images_to_8bit, build_8bit_palette
+        indices_per_image, packed_palette_colors = quantize_images_to_8bit(images, num_colors)
+        for child, indices in zip(read_data['children'], indices_per_image):
             child['item']['data']['resource_id'] = '8Bit'
-            child['item']['data']['bitmap'] = list(q_img.get_flattened_data())
-        pal = EacPalette().new_data()
-        pal['resource_id'] = '32Bit color format palette'
-        pal['colors']['data'] = [
-            (rgba_palette_data[i] << 24)
-            | (rgba_palette_data[i + 1] << 16)
-            | (rgba_palette_data[i + 2] << 8)
-            | rgba_palette_data[i + 3]
-            for i in range(0, len(rgba_palette_data), 4)
-        ]
+            child['item']['data']['bitmap'] = indices
+
+        pal = build_8bit_palette(packed_palette_colors, palette_type, id=join_id(id, 'children', '0', 'item', 'data'))
         read_data['children'].insert(0, {
             'pre_offset_payload': b'',
             'post_offset_payload': b'',
@@ -310,8 +234,6 @@ class ShpiBlock(ArchiveBlock):
                 'data': pal
             }
         })
-        if palette_type != '32Bit color format palette':
-            EacPalette().action_convert_format(pal, palette_type, id=join_id(id, 'children', '0', 'item', 'data'))
 
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer

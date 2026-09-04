@@ -19,10 +19,15 @@
           <h3>Recent Files</h3>
           <div class="recent-files-list">
             @for (file of api.recentFiles$ | async; track file) {
-              <button mat-button (click)="openRecentFile(file)">
-                <mat-icon>history</mat-icon>
-                {{ getFileName(file) }}
-              </button>
+              <div class="recent-file-item">
+                <button mat-button class="item-button" (click)="openRecentFile(file)">
+                  <mat-icon>history</mat-icon>
+                  {{ getFileName(file) }}
+                </button>
+                <button mat-button (click)="openRecentFileLocation(file)">
+                  <mat-icon>folder_open</mat-icon>
+                </button>
+              </div>
             }
           </div>
         </div>

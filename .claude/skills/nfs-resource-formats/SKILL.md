@@ -134,13 +134,40 @@ GUI's live/unsaved-edits state — mutating it directly corrupts that), transfor
 (`_internal_to_native`), then `super().write(copied, ...)`. See `EacImage`/`EacPalette` in
 `resources/eac/bitmaps.py` for the full pattern, including per-color-format conversion tables.
 
+If a field's native bytes are actually a *concatenation of several same-format chunks of differing
+size* (e.g. `EacImage.mipmaps`: w/2×h/2, w/4×h/4, ..., 1×1 bitmaps back to back), don't feed the
+whole blob through the single-instance converter with the base dimensions — slice it per chunk and
+convert each with its own dimensions (`EacImage._mipmaps_native_to_internal`/
+`_mipmaps_internal_to_native`). Reusing the base dimensions happens to work for formats whose
+conversion is elementwise/shape-independent, but silently corrupts sub-byte-packed formats (4-bit)
+whose decoding depends on row width.
+
 ### Custom GUI actions
 
 Add a `custom_actions` list to the block's `schema` (method name, title, description, `is_pure`,
 `args` — each arg has `id`/`title`/`type` where `type` ∈ `'string' | 'number' | 'bool' | 'enum_string'
 (+ 'choices') | 'file_output'`, optional `default`). Implement `action_<method>(self, read_data,
 **kwargs)` mutating `read_data` in place. See `convert_to_4bit`/`convert_to_8bit`/`convert_to_rgba`
-on `EacImage`, `invert_colors`/`convert_format` on `EacPalette`.
+on `EacImage`, `invert_colors`/`convert_format` on `EacPalette`. An arg can declare
+`'visible_when': {'arg': '<other id>', 'value': <value>}` to only show/require it in the run-action
+dialog while that sibling arg currently holds `value` (e.g. `convert_to_8bit`'s `palette_type` only
+matters when `channel == 'generate embedded palette'`) — the dialog handles the rest generically.
+
+A block whose *format* changes on write (an enum `resource_id`-like field picking how a payload is
+encoded) typically has other fields whose shape or presence depends on that same format - a
+same-shaped secondary chunk (`EacImage.mipmaps`, encoded the same way as `bitmap`) and/or trailing
+fields only ever populated for one format (`EacImage.embedded_palette*`, 8Bit-only). A conversion
+action must keep *all* of them in sync, not just the primary field: convert the secondary chunk
+through the identical transform, and null out now-inapplicable trailing fields - their write-time
+presence check may only look at "is it set", not at the new format, so stale data gets written
+anyway and misaligns everything read after it. `EacImage.action_convert_to_8bit`/`_to_4bit`/`_to_rgba`
+share `_clear_8bit_palette_fields` for the latter.
+
+`resources.eac.utils.quantize_images_to_8bit`/`build_8bit_palette` quantize one or more RGBA
+`PIL.Image`s onto one shared palette (reserving a genuinely-transparent entry for alpha-0 pixels)
+and build the resulting `EacPalette` - reuse them for any new from-RGBA-to-8Bit action instead of
+re-deriving a quantizer; `ShpiBlock.action_convert_to_8bit` and `EacImage.action_convert_to_8bit`
+both do.
 
 ### Archives (name/offset-indexed containers)
 
@@ -176,7 +203,14 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    regenerate `resources/<GAME>.md`. **Never hand-edit the generated `.md` files.**
 6. **Test it**: `test/resources/eac/test_<area>.py` — build minimal bytes with `BytesIO`,
    `block.unpack(ReadContext(buf))`, assert fields, then assert `block.pack(data)` round-trips (see
-   `test/resources/eac/test_bitmaps.py`). Backend suite: `./.venv/bin/python -m unittest`.
+   `test/resources/eac/test_bitmaps.py`). For a full read/write round-trip of a *top-level* block,
+   use `block.unpack_from_bytes(data)` rather than building a bare `ReadContext` and calling
+   `.read()`/`.unpack()` directly — the latter skips `read_bytes_amount` propagation, so anything
+   gated on `ctx.read_bytes_remaining` (e.g. `TrailingOptionalBlock`'s default criteria) silently
+   reads as absent. When a conversion is genuinely lossy (e.g. any format down to 4Bit, which only
+   keeps 4 bits per channel), don't assert the round-tripped value equals the pre-write one -
+   assert it's stable after one write/read cycle instead (`twice = unpack(pack(once))`). Backend
+   suite: `./.venv/bin/python -m unittest`.
 7. **Smoke test** (optional but valuable for archive/container formats): drop a small real sample
    into `test/golden_corpus/` and run `test/test_gui_golden_corpus.sh`, which opens every corpus
    file through `run.py` — a cheap way to catch crashes across the whole known file zoo.
@@ -190,6 +224,28 @@ fields and even whole new formats built from existing primitives. Only add a bes
 image/3D-model/map/audio preview) when a rich visualization genuinely earns its keep — and note
 that registering one (`editor.module.ts` + `editor.component.ts`'s `DATA_BLOCK_COMPONENTS_MAP`) is
 the same mechanism whether generic or custom; see skill `read-block-framework` for the how-to.
+
+### Overriding a few fields inside an existing bespoke viewer
+
+A bespoke `*.block-ui` component doesn't have to render every field generically: exclude specific
+ones from `<app-compound-block-ui>`'s generic list via its `[fieldBlacklist]` input, then render
+custom interaction for them directly in the parent component/template instead. To gate visibility
+the same way `is_unknown` fields are (hidden unless the user toggles "show hidden fields"), check
+`mainService.hideHiddenFields$` yourself. See `ImageBlockUiComponent`
+(`frontend/src/app/components/editor/eac/image.block-ui/`), which replaces its `mipmaps` field with
+a plain checkbox (unchecking just clears the field generically; checking runs a custom GUI action -
+see "Custom GUI actions" above - to have the backend compute it) and presents three fixed `TrailingOptionalBlock`
+fields (`embedded_palette_2/3/4`) as a single max-3-length pseudo-array.
+
+When one user interaction should change several *discrete, independently-addressed* fields as one
+undo step (e.g. reordering across those three fixed fields), don't call `onValueSet`/
+`emitNewChange` once per field - each call is its own undo entry. Build a `ChangeEntry[]` of `'set'`
+ops (each with its own `id` from `joinId`) and emit them together as
+`emitNewChange({op: 'bundle', changes})` (see `font.block-ui.component.ts` for another example, and
+`ImageBlockUiComponent`'s `applyEmbeddedPaletteSlots`). To programmatically flip a
+`TrailingOptionalBlock` field from absent to present outside its own checkbox component, fetch
+`child.new_data()` via `mainService.getTrailingOptionalFieldData(fieldId)` rather than fabricating
+a value.
 
 ## Roadmap awareness
 

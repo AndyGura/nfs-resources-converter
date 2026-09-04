@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import lru_cache
-from io import BytesIO
+from io import BytesIO, SEEK_CUR
 from typing import Tuple, Any, Dict
 
 import numpy as np
@@ -15,8 +15,13 @@ from library.read_blocks import (DataBlock,
                                  ArrayBlock,
                                  EnumByteBlock,
                                  EnumLookupDelegateBlock,
+                                 TrailingOptionalBlock,
+                                 LengthPrefixedArrayBlock, OptionalBlock, Padding,
                                  )
-from library.utils import transform_bitness, extract_number
+from library.read_blocks.misc.value_validators import Eq
+from library.read_blocks.strings import LengthPrefixedUtf8Block
+from library.utils import transform_bitness, extract_number, is_power_of_two
+from library.utils.id import join_id
 from resources.eac.fields.misc import Point2D
 
 
@@ -57,364 +62,119 @@ def get_bitmap_len(resource_id, width, height):
         return 0
 
 
-class EacImage(DeclarativeCompoundBlock):
+def mipmap_level_dims(width: int, height: int):
+    """Yield (level_width, level_height) for each mipmap level, from w/2 x h/2 down to 1x1."""
+    while width > 1 or height > 1:
+        width = max(1, width // 2)
+        height = max(1, height // 2)
+        yield width, height
+
+
+def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
+    """Return the total number of bytes in all mipmap levels excluding the base level."""
+    return sum(get_bitmap_len(resource_id, w, h) for (w, h) in mipmap_level_dims(width, height))
+
+
+def unk_7c_presence_criteria(ctx, **kwargs):
+    if isinstance(ctx, ReadContext):
+        if ctx.data('resource_id') != '8Bit':
+            return False
+        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 8:
+            return False
+        raw = ctx.buffer.read(4)
+        try:
+            rid = int.from_bytes(raw, byteorder="little", signed=False)
+            return rid == 0x7C
+        finally:
+            ctx.buffer.seek(-4, SEEK_CUR)
+    else:
+        return ctx.data('unk') is not None
+
+
+def eac_palette_presence_criteria(ctx, **kwargs):
+    if isinstance(ctx, ReadContext):
+        if ctx.data('resource_id') != '8Bit':
+            return False
+        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 16:
+            return False
+        raw = ctx.buffer.read(1)
+        try:
+            rid = int.from_bytes(raw, signed=False)
+            return rid in [0x22, 0x24, 0x29, 0x2A, 0x2D]
+        finally:
+            ctx.buffer.seek(-1, SEEK_CUR)
+    else:
+        return ctx.data('embedded_palette') is not None
+
+
+def shpi_text_presence_criteria(ctx, **kwargs):
+    if isinstance(ctx, ReadContext):
+        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 5:
+            return False
+        raw = ctx.buffer.read(1)
+        try:
+            rid = int.from_bytes(raw, signed=False)
+            return rid == 0x6F
+        finally:
+            ctx.buffer.seek(-1, SEEK_CUR)
+    else:
+        return ctx.data('text') is not None
+
+
+def mipmaps_presence_criteria(ctx, **kwargs):
+    if ctx.read_bytes_remaining is None:
+        return False
+    if not is_power_of_two(ctx.data('width')) or not is_power_of_two(ctx.data('height')):
+        return False
+    if isinstance(ctx, ReadContext):
+        mipmaps_len = mipmaps_byte_len(ctx.data('resource_id'),
+                                       ctx.data('width'),
+                                       ctx.data('height'))
+        return mipmaps_len > 1 and ctx.read_bytes_remaining >= mipmaps_len
+    else:
+        return ctx.data('mipmaps') is not None
+
+
+class PaletteReference(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (EnumByteBlock(enum_names=[(0x7A, '4Bit'),
-                                                 (0x40, '4Bit PS1'),
-                                                 (0x6D, '16Bit_4444 color format bitmap'),
-                                                 (0x78, '16Bit_0565 color format bitmap'),
-                                                 (0x79, '4Bit (swapped)'),
-                                                 (0x7B, '8Bit'),
-                                                 (0x7E, '16Bit_1555 color format bitmap'),
-                                                 (0x7F, '24Bit color format bitmap'),
-                                                 (0x7D, '32Bit color format bitmap')]),
+        resource_id = (IntegerBlock(length=4, value_validator=Eq(0x7C)),
                        {'description': 'Resource ID'})
-        block_size = (IntegerBlock(length=3),
-                      {'description': 'Bitmap block size 16+<pixel_byteness>\\*width\\*height + trailing bytes length'})
-        width = (IntegerBlock(length=2),
-                 {'usage': 'io,doc',
-                  'description': 'Bitmap width in pixels'})
-        height = (IntegerBlock(length=2),
-                  {'usage': 'io,doc',
-                   'description': 'Bitmap height in pixels'})
-        pivot = (Point2D(child=IntegerBlock(length=2)),
-                 {'is_unknown': True,
-                  'description': 'Seems like x coordinate is not used at all. y coordinate is used in horizon '
-                                 'textures in TNFS FAM files: higher value = image as horizon will be put higher '
-                                 'on the screen. Seems to affect only open tracks'})
-        position = (Point2D(child=IntegerBlock(length=2)),
-                    {'description': 'Bitmap position on screen. Used for menu/dash sprites. Unknown for others'})
-        bitmap = (BytesBlock(
-            length=(lambda ctx: get_bitmap_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
-                    'width * height * pixel_byteness')),
-                  {'usage': 'io,doc',
-                   'description': 'Pixel color table. For 8Bit bitmap each value represents an index of color in the '
-                                  'attached palette. Palette can be stored: <br/>'
-                                  '- right after 8Bit image<br/>'
-                                  '- as !pal/!PAL in the same SHPI<br/>'
-                                  '- in a different SHPI before this one (if it is WWWW archive)<br/>'
-                                  '- even in different QFS file (TNFS, CONTROL directory).<br/>'
-                                  'Color model is selected according to `resource_id` field. Color models are '
-                                  'described [here](eac_colors.md)'})
+        unk1 = (LengthPrefixedArrayBlock(length_block=(IntegerBlock(length=4)),
+                                         child=BytesBlock(length=8)),
+                {'is_unknown': True})
 
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'custom_actions': [
-                {
-                    'method': 'convert_to_4bit',
-                    'title': 'Convert to 4bit',
-                    'description': 'Converts bitmap to 4bit format.',
-                    'is_pure': False,
-                    'args': [
-                        {
-                            'id': 'mode',
-                            'title': 'mode',
-                            'type': 'enum_string',
-                            'choices': ['4Bit',
-                                        '4Bit PS1',
-                                        '4Bit (swapped)']
-                        },
-                        {
-                            'id': 'channel',
-                            'title': 'Channel',
-                            'type': 'enum_string',
-                            'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
-                        }
-                    ],
-                },
-                {
-                    'method': 'convert_to_8bit',
-                    'title': 'Convert to 8bit',
-                    'description': 'Converts bitmap to 8bit format.',
-                    'is_pure': False,
-                    'args': [
-                        {
-                            'id': 'channel',
-                            'title': 'Channel',
-                            'type': 'enum_string',
-                            'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
-                        }
-                    ],
-                },
-                {
-                    'method': 'convert_to_rgba',
-                    'title': 'Convert to RGBA',
-                    'description': 'Converts bitmap to RGBA format.',
-                    'is_pure': False,
-                    'args': [
-                        {
-                            'id': 'color_mode',
-                            'title': 'Color mode',
-                            'type': 'enum_string',
-                            'default': '32Bit color format bitmap',
-                            'choices': ['16Bit_4444 color format bitmap',
-                                        '16Bit_0565 color format bitmap',
-                                        '16Bit_1555 color format bitmap',
-                                        '24Bit color format bitmap',
-                                        '32Bit color format bitmap']
-                        },
-                        {
-                            'id': 'output_colors',
-                            'title': 'Output colors',
-                            'type': 'enum_string',
-                            'default': 'use palette',
-                            'choices': ['use palette', 'transparent-white', 'black-white']
-                        }
-                    ],
-                }
-            ]
+            'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
+                                 'Probably a reference to palette which should be used, that\'s why named so',
         }
 
-    def new_data(self, patch=None):
-        data = super().new_data()
-        data['width'] = 1
-        data['height'] = 1
-        data['bitmap'] = [[0]]
-        return data
 
-    def estimate_packed_size(self, data, ctx: WriteContext = None):
-        length = super().estimate_packed_size(data, ctx)
-        # original assumes length if bitmap == length of array, which is not true
-        length -= len(data['bitmap'])
-        length += get_bitmap_len(data['resource_id'], data['width'], data['height'])
-        return length
 
-    def _native_to_internal(self, resource_id, width, height, bd):
-        if resource_id == '16Bit_4444 color format bitmap':
-            bitmap = np.frombuffer(bd, dtype='<u2')
-            return [transform_color_bitness(x, 4, 4, 4, 4) for x in bitmap]
-        elif resource_id == '16Bit_0565 color format bitmap':
-            bitmap = np.frombuffer(bd, dtype='<u2')
-            ret = []
-            for pxl in bitmap:
-                if pxl == 0x7c0:
-                    ret.append(0)  # transparent
-                else:
-                    ret.append(transform_color_bitness(pxl, 0, 5, 6, 5))
-            return ret
-        elif resource_id.startswith('4Bit'):
-            field = ArrayBlock(length=height,
-                               child=SubByteArrayBlock(bits_per_value=4,
-                                                       length=width,
-                                                       value_deserialize_func=(lambda x:
-                                                                               0xFFFFFF00
-                                                                               | transform_bitness(x, 4)),
-                                                       value_serialize_func=lambda x: (x & 0xFF) >> 4))
-            ret = field.unpack(ReadContext(BytesIO(bd)))
-            if resource_id == '4Bit (swapped)':
-                for row in ret:
-                    for i in range(0, len(row), 2):
-                        row[i], row[i + 1] = row[i + 1], row[i]
-            return ret
-        elif resource_id == '8Bit':
-            return list(bd)
-        elif resource_id == '16Bit_1555 color format bitmap':
-            bitmap = np.frombuffer(bd, dtype='<u2')
-            return [transform_color_bitness(x, 1, 5, 5, 5)
-                    for x in bitmap]
-        elif resource_id == '24Bit color format bitmap':
-            b4 = bytes(bd)
-            b = []
-            for i in range(0, len(b4), 3):
-                b.extend(b4[i:i + 3])
-                b.append(0)
-            bitmap = np.frombuffer(bytes(b), dtype='<u4')
-            return [int((x << 8) | 0xFF) for x in bitmap]
-        elif resource_id == '32Bit color format bitmap':
-            bitmap = np.frombuffer(bd, dtype='<u4')
-            # ARGB => RGBA
-            return [int((x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24) for x in bitmap]
-        else:
-            raise NotImplementedError(f"Bitmap resource ID {resource_id} is not supported")
 
-    def _internal_to_native(self, resource_id, width, height, bd):
-        if resource_id == '16Bit_4444 color format bitmap':
-            arr = [revert_color_bitness(x, 4, 4, 4, 4) for x in bd]
-            return np.asarray(arr, dtype='<u2').tobytes()
-        elif resource_id == '16Bit_0565 color format bitmap':
-            arr = []
-            for pxl in bd:
-                if (pxl & 0xff) < 128:
-                    # transparent
-                    arr.append(0x7c0)
-                else:
-                    arr.append(revert_color_bitness(pxl, 0, 5, 6, 5))
-            return np.asarray(arr, dtype='<u2').tobytes()
-        elif resource_id.startswith('4Bit'):
-            field = ArrayBlock(length=height,
-                               child=SubByteArrayBlock(bits_per_value=4,
-                                                       length=width,
-                                                       value_deserialize_func=(lambda x:
-                                                                               0xFFFFFF00
-                                                                               | transform_bitness(x, 4)),
-                                                       value_serialize_func=lambda x: (x & 0xFF) >> 4))
-            if resource_id == '4Bit (swapped)':
-                for row in bd:
-                    for i in range(0, len(row), 2):
-                        row[i], row[i + 1] = row[i + 1], row[i]
-            return field.pack(bd)
-        elif resource_id == '8Bit':
-            return bytes(bd)
-        elif resource_id == '16Bit_1555 color format bitmap':
-            arr = [revert_color_bitness(x, 1, 5, 5, 5) for x in bd]
-            return np.asarray(arr, dtype='<u2').tobytes()
-        elif resource_id == '24Bit color format bitmap':
-            b4 = np.asarray([x >> 8 for x in bd], dtype='<u4').tobytes()
-            return bytes([b for i, b in enumerate(b4) if i % 4 != 3])
-        elif resource_id == '32Bit color format bitmap':
-            # RGBA => ARGB
-            arr = [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in bd]
-            return np.asarray(arr, dtype='<u4').tobytes()
-        else:
-            raise NotImplementedError(f"Bitmap resource ID {resource_id} is not supported")
 
-    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        data = super().read(ctx, name, read_bytes_amount)
-        data['bitmap'] = self._native_to_internal(data['resource_id'], data['width'], data['height'], data['bitmap'])
-        return data
+class ShpiText(DeclarativeCompoundBlock):
 
-    # TODO add test which fails now:
-    # 1) Open FSH
-    # 2) Change color space
-    # 3) Save
-    # 4) Load updated binary
-    # 5) Change color space back
-    # 6) Save
-    # 7) Compare with original FSH
-    def write(self, data, ctx: WriteContext = None, name: str = ''):
-        copied = deepcopy(data)
-        copied['bitmap'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['bitmap'])
-        return super().write(copied, ctx, name)
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'An entry, which sometimes can be seen in the SHPI archive block after bitmap, '
+                                 'contains some text. The purpose is unclear',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x6F)),
+                       {'description': 'Resource ID'})
+        unk = (BytesBlock(length=3),
+               {'is_unknown': True})
+        text = LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4))
 
     def serializer_class(self):
-        from serializers import ImageSerializer
-        return ImageSerializer
-
-    def _get_channel_mask_offset(self, channel):
-        if channel == 'alpha':
-            (mask, offs) = (0xff, 0)
-        elif channel == 'red':
-            (mask, offs) = (0xff000000, 24)
-        elif channel == 'green':
-            (mask, offs) = (0xff0000, 16)
-        elif channel == 'blue':
-            (mask, offs) = (0xff00, 8)
-        else:
-            raise ValueError(f'Invalid channel: {channel}')
-        return mask, offs
-
-    def action_convert_to_4bit(self, read_data, mode, channel, **kwargs):
-        current_color_format = read_data['resource_id']
-        target_color_format = mode
-        if current_color_format == target_color_format:
-            return
-        elif current_color_format == '8Bit':
-            new_bitmap = []
-            for j in range(read_data['height']):
-                new_bitmap.append([])
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j * read_data['width'] + i]
-                    new_bitmap[j].append(0xffffff00 | pxl)
-            read_data['bitmap'] = new_bitmap
-        elif current_color_format.startswith('4Bit'):
-            pass
-        else:
-            if channel == 'RGB':
-                def transform(color):
-                    r = (color >> 24) & 0xFF
-                    g = (color >> 16) & 0xFF
-                    b = (color >> 8) & 0xFF
-                    return 0xffffff00 | ((r * 77 + g * 150 + b * 29) >> 8)
-            else:
-                (mask, offs) = self._get_channel_mask_offset(channel)
-
-                def transform(color):
-                    return 0xffffff00 | ((color & mask) >> offs)
-            new_bitmap = []
-            for j in range(read_data['height']):
-                new_bitmap.append([])
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j * read_data['width'] + i]
-                    new_bitmap[j].append(transform(pxl))
-            read_data['bitmap'] = new_bitmap
-        read_data['resource_id'] = target_color_format
-        return
-
-    def action_convert_to_8bit(self, read_data, channel, **kwargs):
-        current_color_format = read_data['resource_id']
-        target_color_format = '8Bit'
-        if current_color_format == target_color_format:
-            return
-        elif current_color_format.startswith('4Bit'):
-            new_bitmap = []
-            for j in range(read_data['height']):
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j][i]
-                    new_bitmap.append(pxl & 0xff)
-            read_data['bitmap'] = new_bitmap
-        else:
-            if channel == 'RGB':
-                def transform(color):
-                    r = (color >> 24) & 0xFF
-                    g = (color >> 16) & 0xFF
-                    b = (color >> 8) & 0xFF
-                    return (r * 77 + g * 150 + b * 29) >> 8
-            else:
-                (mask, offs) = self._get_channel_mask_offset(channel)
-
-                def transform(color):
-                    return (color & mask) >> offs
-            read_data['bitmap'] = [transform(pxl) for pxl in read_data['bitmap']]
-        read_data['resource_id'] = target_color_format
-        return
-
-    def action_convert_to_rgba(self, read_data, color_mode, output_colors, id, **kwargs):
-        current_color_format = read_data['resource_id']
-        target_color_format = color_mode
-        new_bitmap8 = []
-        if current_color_format.startswith('4Bit'):
-            for j in range(read_data['height']):
-                for i in range(read_data['width']):
-                    pxl = read_data['bitmap'][j][i]
-                    new_bitmap8.append(pxl & 0xff)
-        elif current_color_format == '8Bit':
-            if output_colors == 'use palette':
-                from resources.eac.utils import determine_palette_for_8_bit_bitmap
-                (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(self, read_data, id)
-                bitmap = []
-                if palette_block is None:
-                    new_bitmap8 = read_data['bitmap']
-                else:
-                    palette_colors = [c for c in palette_data['colors']['data']]
-                    if palette_data['last_color_transparent']:
-                        palette_colors[255] = 0
-                    for index in read_data['bitmap']:
-                        try:
-                            bitmap.append(palette_colors[index])
-                        except IndexError:
-                            bitmap.append(0)
-                    native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
-                                                      bitmap)
-                    read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'],
-                                                                   read_data['height'],
-                                                                   native)
-            else:
-                new_bitmap8 = read_data['bitmap']
-        else:
-            native = self._internal_to_native(target_color_format, read_data['width'], read_data['height'],
-                                              read_data['bitmap'])
-            read_data['bitmap'] = self._native_to_internal(target_color_format, read_data['width'], read_data['height'],
-                                                           native)
-        if new_bitmap8:
-            if output_colors in ['transparent-white', 'use palette']:
-                read_data['bitmap'] = [x | 0xffffff00 for x in new_bitmap8]
-            elif output_colors == 'black-white':
-                read_data['bitmap'] = [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap8]
-            else:
-                raise ValueError(f'Unknown output_colors value: {output_colors}')
-        read_data['resource_id'] = target_color_format
+        from serializers import ShpiTextSerializer
+        return ShpiTextSerializer
 
 
 class EacPalette(DeclarativeCompoundBlock):
@@ -437,7 +197,7 @@ class EacPalette(DeclarativeCompoundBlock):
         num_colors1 = (IntegerBlock(length=2,
                                     programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
                        {'usage': 'io,doc',
-                        'description': 'Always equals to num_colors?'})
+                        'description': 'Equals to num_colors, except for some CRP structures in NFS5'})
         unk2 = (BytesBlock(length=6),
                 {'is_unknown': True})
         colors = (EnumLookupDelegateBlock(enum_field='resource_id',
@@ -542,8 +302,6 @@ class EacPalette(DeclarativeCompoundBlock):
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
-        if data.get('num_colors') is not None:
-            assert data['num_colors'] == data['num_colors1']
         # I'm not sure how game decides whether it should draw 255th color transparent or not.
         # It appears that only qfs files in SLIDES/GSLIDES get broken if apply transparency to all bitmaps
         # TODO 16Bit_1555 color format palette has it's own alpha. Turn off last_color_transparent for it?
@@ -574,3 +332,569 @@ class EacPalette(DeclarativeCompoundBlock):
         read_data['resource_id'] = target_color_format
         read_data['last_color_transparent'] = not read_data['resource_id'].startswith('32Bit') and len(
             read_data['colors']['data']) >= 256 and 'SLIDES/' not in id
+
+
+class EacImage(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (EnumByteBlock(enum_names=[(0x7A, '4Bit'),
+                                                 (0x40, '4Bit PS1'),
+                                                 (0x6D, '16Bit_4444 color format bitmap'),
+                                                 (0x78, '16Bit_0565 color format bitmap'),
+                                                 (0x79, '4Bit (swapped)'),
+                                                 (0x7B, '8Bit'),
+                                                 (0x7E, '16Bit_1555 color format bitmap'),
+                                                 (0x7F, '24Bit color format bitmap'),
+                                                 (0x7D, '32Bit color format bitmap')]),
+                       {'description': 'Resource ID'})
+        # TODO use that in serialization logic to pick the correct palette everywhere
+        palette_offset = (IntegerBlock(length=3, is_signed=True),
+                          {'description': 'A local offset to the palette that should be used with this image (8Bit). '
+                                          'In case of zero, game searches for !pal or !PAL in the SHPI'})
+        width = (IntegerBlock(length=2),
+                 {'usage': 'io,doc',
+                  'description': 'Bitmap width in pixels'})
+        height = (IntegerBlock(length=2),
+                  {'usage': 'io,doc',
+                   'description': 'Bitmap height in pixels'})
+        pivot = (Point2D(child=IntegerBlock(length=2)),
+                 {'is_unknown': True,
+                  'description': 'Seems like x coordinate is not used at all. y coordinate is used in horizon '
+                                 'textures in TNFS FAM files: higher value = image as horizon will be put higher '
+                                 'on the screen. Seems to affect only open tracks'})
+        position = (Point2D(child=IntegerBlock(length=2)),
+                    {'description': 'Bitmap position on screen. Used for menu/dash sprites. Unknown for others'})
+        bitmap = (BytesBlock(
+            length=(lambda ctx: get_bitmap_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
+                    'width * height * pixel_byteness')),
+                  {'usage': 'io,doc',
+                   'description': 'Pixel color table. For 8Bit bitmap each value represents an index of color in the '
+                                  'attached palette. Palette can be stored: <br/>'
+                                  '- right after 8Bit image<br/>'
+                                  '- as !pal/!PAL in the same SHPI<br/>'
+                                  '- in a different SHPI before this one (if it is WWWW archive)<br/>'
+                                  '- even in different QFS file (TNFS, CONTROL directory).<br/>'
+                                  'Color model is selected according to `resource_id` field. Color models are '
+                                  'described [here](eac_colors.md)'})
+        pad = (OptionalBlock(child=Padding(to=lambda ctx: ctx.data('palette_offset'), is_global=False),
+                             criteria=lambda ctx: ctx.data('palette_offset') > 0),
+               {'description': 'Zeros in the end of block data'})
+        unk_7c = (TrailingOptionalBlock(child=PaletteReference(),
+                                        criteria=(unk_7c_presence_criteria, '8-bit bitmap and 0x7C header found')),
+                  {'description': 'Unknown data with id 0x7C',
+                   'is_unknown': True})
+        embedded_palette = (TrailingOptionalBlock(child=EacPalette(),
+                                                  criteria=(eac_palette_presence_criteria,
+                                                            '8-bit bitmap and palette header found')),
+                            {'description': 'Embedded palette, which should be assigned to this bitmap (except for ga00 in TR2_001.FAM)'})
+        embedded_palette_2 = (TrailingOptionalBlock(child=EacPalette(),
+                                                    criteria=(eac_palette_presence_criteria,
+                                                              '8-bit bitmap and palette header found')),
+                              {'description': 'Possibly one more embedded palette, unknown reason',
+                               'is_unknown': True})
+        embedded_palette_3 = (TrailingOptionalBlock(child=EacPalette(),
+                                                    criteria=(eac_palette_presence_criteria,
+                                                              '8-bit bitmap and palette header found')),
+                              {'description': 'Possibly one more embedded palette, unknown reason',
+                               'is_unknown': True})
+        embedded_palette_4 = (TrailingOptionalBlock(child=EacPalette(),
+                                                    criteria=(eac_palette_presence_criteria,
+                                                              '8-bit bitmap and palette header found')),
+                              {'description': 'Possibly one more embedded palette, unknown reason',
+                               'is_unknown': True})
+        text = (TrailingOptionalBlock(child=ShpiText(),
+                                        criteria=(shpi_text_presence_criteria, '0x6F header found')),
+                  {'description': 'Shpi text'})
+        mipmaps = (
+            TrailingOptionalBlock(child=BytesBlock(
+                length=(lambda ctx: mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height')),
+                        '(1/4 + 1/16 + 1/64 + etc) * width * height * pixel_byteness')),
+                criteria=(mipmaps_presence_criteria, 'dimensions are powers of two and sufficient extra space')),
+            {
+                'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'})
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'custom_actions': [
+                {
+                    'method': 'convert_to_4bit',
+                    'title': 'Convert to 4bit',
+                    'description': 'Converts bitmap to 4bit format.',
+                    'is_pure': False,
+                    'args': [
+                        {
+                            'id': 'mode',
+                            'title': 'mode',
+                            'type': 'enum_string',
+                            'choices': ['4Bit',
+                                        '4Bit PS1',
+                                        '4Bit (swapped)']
+                        },
+                        {
+                            'id': 'channel',
+                            'title': 'Channel',
+                            'type': 'enum_string',
+                            'choices': ['alpha', 'RGB', 'red', 'green', 'blue']
+                        }
+                    ],
+                },
+                {
+                    'method': 'convert_to_8bit',
+                    'title': 'Convert to 8bit',
+                    'description': 'Converts bitmap to 8bit format.',
+                    'is_pure': False,
+                    'args': [
+                        {
+                            'id': 'channel',
+                            'title': 'Channel',
+                            'type': 'enum_string',
+                            'default': 'generate embedded palette',
+                            'choices': ['generate embedded palette', 'alpha', 'RGB', 'red', 'green', 'blue']
+                        },
+                        {
+                            'id': 'palette_type',
+                            'title': 'Palette type',
+                            'type': 'enum_string',
+                            'default': '32Bit color format palette',
+                            'visible_when': {'arg': 'channel', 'value': 'generate embedded palette'},
+                            'choices': ['24BitDos color format palette',
+                                        '24Bit color format palette',
+                                        '16Bit_0565 color format palette',
+                                        '32Bit color format palette',
+                                        '16Bit_1555 color format palette']
+                        }
+                    ],
+                },
+                {
+                    'method': 'convert_to_rgba',
+                    'title': 'Convert to RGBA',
+                    'description': 'Converts bitmap to RGBA format.',
+                    'is_pure': False,
+                    'args': [
+                        {
+                            'id': 'color_mode',
+                            'title': 'Color mode',
+                            'type': 'enum_string',
+                            'default': '32Bit color format bitmap',
+                            'choices': ['16Bit_4444 color format bitmap',
+                                        '16Bit_0565 color format bitmap',
+                                        '16Bit_1555 color format bitmap',
+                                        '24Bit color format bitmap',
+                                        '32Bit color format bitmap']
+                        },
+                        {
+                            'id': 'output_colors',
+                            'title': 'Output colors',
+                            'type': 'enum_string',
+                            'default': 'use palette',
+                            'choices': ['use palette', 'transparent-white', 'black-white']
+                        }
+                    ],
+                },
+                {
+                    'method': 'generate_mipmaps',
+                    'title': 'Generate mipmaps',
+                    'description': 'Generates mipmap levels from the current bitmap (only possible when width and '
+                                   'height are both powers of two).',
+                    'is_pure': False,
+                    'args': [],
+                }
+            ]
+        }
+
+    def new_data(self, patch=None):
+        data = super().new_data(patch)
+        if data['width'] == 0 or data['height'] == 0:
+            data['width'] = 1
+            data['height'] = 1
+            if data['resource_id'].startswith('4Bit'):
+                data['bitmap'] = [[0]]
+            else:
+                data['bitmap'] = [0]
+        return data
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        length = super().estimate_packed_size(data, ctx)
+        # original assumes length if bitmap == length of array, which is not true
+        length -= len(data['bitmap'])
+        width, height = data['width'], data['height']
+        length += get_bitmap_len(data['resource_id'], width, height)
+        if data['mipmaps']:
+            # same for mipmaps
+            length -= len(data['mipmaps'])
+            length += mipmaps_byte_len(data['resource_id'], width, height)
+        return length
+
+    def _native_to_internal(self, resource_id, width, height, bd):
+        if resource_id == '16Bit_4444 color format bitmap':
+            bitmap = np.frombuffer(bd, dtype='<u2')
+            return [transform_color_bitness(x, 4, 4, 4, 4) for x in bitmap]
+        elif resource_id == '16Bit_0565 color format bitmap':
+            bitmap = np.frombuffer(bd, dtype='<u2')
+            ret = []
+            for pxl in bitmap:
+                if pxl == 0x7c0:
+                    ret.append(0)  # transparent
+                else:
+                    ret.append(transform_color_bitness(pxl, 0, 5, 6, 5))
+            return ret
+        elif resource_id.startswith('4Bit'):
+            field = ArrayBlock(length=height,
+                               child=SubByteArrayBlock(bits_per_value=4,
+                                                       length=width,
+                                                       value_deserialize_func=(lambda x:
+                                                                               0xFFFFFF00
+                                                                               | transform_bitness(x, 4)),
+                                                       value_serialize_func=lambda x: (x & 0xFF) >> 4))
+            ret = field.unpack(ReadContext(BytesIO(bd)))
+            if resource_id == '4Bit (swapped)':
+                for row in ret:
+                    for i in range(0, len(row), 2):
+                        row[i], row[i + 1] = row[i + 1], row[i]
+            return ret
+        elif resource_id == '8Bit':
+            return list(bd)
+        elif resource_id == '16Bit_1555 color format bitmap':
+            bitmap = np.frombuffer(bd, dtype='<u2')
+            return [transform_color_bitness(x, 1, 5, 5, 5)
+                    for x in bitmap]
+        elif resource_id == '24Bit color format bitmap':
+            b4 = bytes(bd)
+            b = []
+            for i in range(0, len(b4), 3):
+                b.extend(b4[i:i + 3])
+                b.append(0)
+            bitmap = np.frombuffer(bytes(b), dtype='<u4')
+            return [int((x << 8) | 0xFF) for x in bitmap]
+        elif resource_id == '32Bit color format bitmap':
+            bitmap = np.frombuffer(bd, dtype='<u4')
+            # ARGB => RGBA
+            return [int((x & 0x00_ff_ff_ff) << 8 | (x & 0xff_00_00_00) >> 24) for x in bitmap]
+        else:
+            raise NotImplementedError(f"Bitmap resource ID {resource_id} is not supported")
+
+    def _internal_to_native(self, resource_id, width, height, bd):
+        if resource_id == '16Bit_4444 color format bitmap':
+            arr = [revert_color_bitness(x, 4, 4, 4, 4) for x in bd]
+            return np.asarray(arr, dtype='<u2').tobytes()
+        elif resource_id == '16Bit_0565 color format bitmap':
+            arr = []
+            for pxl in bd:
+                if (pxl & 0xff) < 128:
+                    # transparent
+                    arr.append(0x7c0)
+                else:
+                    arr.append(revert_color_bitness(pxl, 0, 5, 6, 5))
+            return np.asarray(arr, dtype='<u2').tobytes()
+        elif resource_id.startswith('4Bit'):
+            field = ArrayBlock(length=height,
+                               child=SubByteArrayBlock(bits_per_value=4,
+                                                       length=width,
+                                                       value_deserialize_func=(lambda x:
+                                                                               0xFFFFFF00
+                                                                               | transform_bitness(x, 4)),
+                                                       value_serialize_func=lambda x: (x & 0xFF) >> 4))
+            if resource_id == '4Bit (swapped)':
+                for row in bd:
+                    for i in range(0, len(row), 2):
+                        row[i], row[i + 1] = row[i + 1], row[i]
+            return field.pack(bd)
+        elif resource_id == '8Bit':
+            return bytes(bd)
+        elif resource_id == '16Bit_1555 color format bitmap':
+            arr = [revert_color_bitness(x, 1, 5, 5, 5) for x in bd]
+            return np.asarray(arr, dtype='<u2').tobytes()
+        elif resource_id == '24Bit color format bitmap':
+            b4 = np.asarray([x >> 8 for x in bd], dtype='<u4').tobytes()
+            return bytes([b for i, b in enumerate(b4) if i % 4 != 3])
+        elif resource_id == '32Bit color format bitmap':
+            # RGBA => ARGB
+            arr = [(x & 0xff_ff_ff_00) >> 8 | (x & 0xff) << 24 for x in bd]
+            return np.asarray(arr, dtype='<u4').tobytes()
+        else:
+            raise NotImplementedError(f"Bitmap resource ID {resource_id} is not supported")
+
+    def _mipmaps_native_to_internal(self, resource_id, width, height, bd):
+        """Like `_native_to_internal`, but `bd` is a concatenation of decreasing-size levels, so
+        each has to be decoded with its own dimensions rather than the base bitmap's - matters for
+        4Bit, whose decoding depends on `width` to know where rows start."""
+        result = []
+        offset = 0
+        for (level_width, level_height) in mipmap_level_dims(width, height):
+            level_len = get_bitmap_len(resource_id, level_width, level_height)
+            level_data = self._native_to_internal(resource_id, level_width, level_height,
+                                                  bd[offset:offset + level_len])
+            result.extend(level_data)
+            offset += level_len
+        return result
+
+    def _mipmaps_internal_to_native(self, resource_id, width, height, data):
+        """Inverse of `_mipmaps_native_to_internal`."""
+        result = b''
+        offset = 0
+        is_4bit = resource_id.startswith('4Bit')
+        for (level_width, level_height) in mipmap_level_dims(width, height):
+            # 4Bit internal data is a list of rows (one row per pixel row); every other format is
+            # a flat list of one entry per pixel.
+            level_count = level_height if is_4bit else level_width * level_height
+            level_data = data[offset:offset + level_count]
+            result += self._internal_to_native(resource_id, level_width, level_height, level_data)
+            offset += level_count
+        return result
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        data = super().read(ctx, name, read_bytes_amount)
+        data['bitmap'] = self._native_to_internal(data['resource_id'], data['width'], data['height'], data['bitmap'])
+        if data.get('mipmaps'):
+            data['mipmaps'] = self._mipmaps_native_to_internal(data['resource_id'], data['width'], data['height'],
+                                                                data['mipmaps'])
+        return data
+
+    # TODO add test which fails now:
+    # 1) Open FSH
+    # 2) Change color space
+    # 3) Save
+    # 4) Load updated binary
+    # 5) Change color space back
+    # 6) Save
+    # 7) Compare with original FSH
+    def write(self, data, ctx: WriteContext = None, name: str = ''):
+        copied = deepcopy(data)
+        copied['bitmap'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['bitmap'])
+        if copied['mipmaps']:
+            copied['mipmaps'] = self._mipmaps_internal_to_native(data['resource_id'], data['width'], data['height'],
+                                                                  data['mipmaps'])
+        return super().write(copied, ctx, name)
+
+    def serializer_class(self):
+        from serializers import ImageSerializer
+        return ImageSerializer
+
+    def _get_channel_mask_offset(self, channel):
+        if channel == 'alpha':
+            (mask, offs) = (0xff, 0)
+        elif channel == 'red':
+            (mask, offs) = (0xff000000, 24)
+        elif channel == 'green':
+            (mask, offs) = (0xff0000, 16)
+        elif channel == 'blue':
+            (mask, offs) = (0xff00, 8)
+        else:
+            raise ValueError(f'Invalid channel: {channel}')
+        return mask, offs
+
+    def action_convert_to_4bit(self, read_data, mode, channel, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = mode
+        if current_color_format == target_color_format:
+            return
+        width, height = read_data['width'], read_data['height']
+        read_data['bitmap'] = self._convert_pixels_to_4bit(
+            read_data['bitmap'], current_color_format, channel, [(width, height)])
+        if read_data['mipmaps']:
+            read_data['mipmaps'] = self._convert_pixels_to_4bit(
+                read_data['mipmaps'], current_color_format, channel, list(mipmap_level_dims(width, height)))
+        if current_color_format == '8Bit':
+            self._clear_8bit_palette_fields(read_data)
+        read_data['resource_id'] = target_color_format
+        return
+
+    def _convert_pixels_to_4bit(self, pixels, current_color_format, channel, level_dims):
+        """Converts a flat `bitmap`/`mipmaps` pixel list into the row-shaped representation
+        `4Bit` formats use (rows per `level_dims`, see `mipmap_level_dims`)."""
+        if current_color_format.startswith('4Bit'):
+            return pixels  # already row-shaped
+        if current_color_format == '8Bit':
+            def transform(pxl):
+                return 0xffffff00 | pxl
+        elif channel == 'RGB':
+            def transform(color):
+                r = (color >> 24) & 0xFF
+                g = (color >> 16) & 0xFF
+                b = (color >> 8) & 0xFF
+                return 0xffffff00 | ((r * 77 + g * 150 + b * 29) >> 8)
+        else:
+            (mask, offs) = self._get_channel_mask_offset(channel)
+
+            def transform(color):
+                return 0xffffff00 | ((color & mask) >> offs)
+
+        transformed = [transform(pxl) for pxl in pixels]
+        rows = []
+        offset = 0
+        for (level_width, level_height) in level_dims:
+            for j in range(level_height):
+                rows.append(transformed[offset + j * level_width: offset + (j + 1) * level_width])
+            offset += level_width * level_height
+        return rows
+
+    def _clear_8bit_palette_fields(self, read_data):
+        """Clears the trailing palette fields that only apply to 8Bit bitmaps. Their write-time
+        presence check only looks at whether they're set, not `resource_id` (see
+        `eac_palette_presence_criteria`) - stale data here would get written anyway and misalign
+        everything read after it."""
+        read_data['embedded_palette'] = None
+        read_data['embedded_palette_2'] = None
+        read_data['embedded_palette_3'] = None
+        read_data['embedded_palette_4'] = None
+
+    def action_convert_to_8bit(self, read_data, channel, palette_type='32Bit color format palette', id=None, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = '8Bit'
+        if current_color_format == target_color_format:
+            return
+        elif current_color_format.startswith('4Bit'):
+            def to_index(pxl):
+                return pxl & 0xff
+
+            read_data['bitmap'] = [to_index(pxl) for row in read_data['bitmap'] for pxl in row]
+            if read_data['mipmaps']:
+                read_data['mipmaps'] = [to_index(pxl) for row in read_data['mipmaps'] for pxl in row]
+        elif channel == 'generate embedded palette':
+            from PIL import Image
+            from resources.eac.utils import quantize_images_to_8bit, build_8bit_palette
+
+            width, height = read_data['width'], read_data['height']
+
+            def to_image(pixels, w, h):
+                return Image.frombytes('RGBA', (w, h), b''.join(c.to_bytes(4, 'big') for c in pixels))
+
+            # Mip levels are quantized together with the base bitmap against one shared palette.
+            images = [to_image(read_data['bitmap'], width, height)]
+            if read_data['mipmaps']:
+                offset = 0
+                for (level_width, level_height) in mipmap_level_dims(width, height):
+                    count = level_width * level_height
+                    images.append(to_image(read_data['mipmaps'][offset:offset + count], level_width, level_height))
+                    offset += count
+
+            indices_per_image, packed_palette_colors = quantize_images_to_8bit(images)
+            read_data['bitmap'] = indices_per_image[0]
+            if read_data['mipmaps']:
+                read_data['mipmaps'] = [index for level_indices in indices_per_image[1:] for index in level_indices]
+            read_data['embedded_palette'] = build_8bit_palette(
+                packed_palette_colors, palette_type, id=join_id(id, 'embedded_palette'))
+        else:
+            if channel == 'RGB':
+                def transform(color):
+                    r = (color >> 24) & 0xFF
+                    g = (color >> 16) & 0xFF
+                    b = (color >> 8) & 0xFF
+                    return (r * 77 + g * 150 + b * 29) >> 8
+            else:
+                (mask, offs) = self._get_channel_mask_offset(channel)
+
+                def transform(color):
+                    return (color & mask) >> offs
+            read_data['bitmap'] = [transform(pxl) for pxl in read_data['bitmap']]
+            if read_data['mipmaps']:
+                read_data['mipmaps'] = [transform(pxl) for pxl in read_data['mipmaps']]
+        read_data['resource_id'] = target_color_format
+        return
+
+    def action_convert_to_rgba(self, read_data, color_mode, output_colors, id, **kwargs):
+        current_color_format = read_data['resource_id']
+        target_color_format = color_mode
+        width, height = read_data['width'], read_data['height']
+
+        # Resolved once and shared with the mipmap chain below - both index the same palette.
+        palette_colors = None
+        if current_color_format == '8Bit' and output_colors == 'use palette':
+            from resources.eac.utils import determine_palette_for_8_bit_bitmap
+            (palette_block, palette_data) = determine_palette_for_8_bit_bitmap(self, read_data, id)
+            if palette_block is not None:
+                palette_colors = [c for c in palette_data['colors']['data']]
+                if palette_data['last_color_transparent']:
+                    palette_colors[255] = 0
+
+        read_data['bitmap'] = self._convert_pixels_to_rgba(
+            read_data['bitmap'], current_color_format, target_color_format, output_colors, width, height,
+            palette_colors)
+        if read_data['mipmaps']:
+            read_data['mipmaps'] = self._convert_pixels_to_rgba(
+                read_data['mipmaps'], current_color_format, target_color_format, output_colors, width, height,
+                palette_colors)
+        if current_color_format == '8Bit':
+            self._clear_8bit_palette_fields(read_data)
+        read_data['resource_id'] = target_color_format
+
+    def _convert_pixels_to_rgba(self, pixels, current_color_format, target_color_format, output_colors, width,
+                                height, palette_colors):
+        """Converts a `bitmap`/`mipmaps` pixel list from `current_color_format` to
+        `target_color_format`. `palette_colors`, when given, resolves 8Bit indices to real colors
+        for `output_colors == 'use palette'`."""
+        new_bitmap8 = []
+        if current_color_format.startswith('4Bit'):
+            for row in pixels:
+                for pxl in row:
+                    new_bitmap8.append(pxl & 0xff)
+        elif current_color_format == '8Bit':
+            if output_colors == 'use palette':
+                if palette_colors is None:
+                    new_bitmap8 = pixels
+                else:
+                    bitmap = []
+                    for index in pixels:
+                        try:
+                            bitmap.append(palette_colors[index])
+                        except IndexError:
+                            bitmap.append(0)
+                    native = self._internal_to_native(target_color_format, width, height, bitmap)
+                    return self._native_to_internal(target_color_format, width, height, native)
+            else:
+                new_bitmap8 = pixels
+        else:
+            native = self._internal_to_native(target_color_format, width, height, pixels)
+            return self._native_to_internal(target_color_format, width, height, native)
+
+        if output_colors in ['transparent-white', 'use palette']:
+            return [x | 0xffffff00 for x in new_bitmap8]
+        elif output_colors == 'black-white':
+            return [(x << 24) | (x << 16) | (x << 8) | 0xff for x in new_bitmap8]
+        else:
+            raise ValueError(f'Unknown output_colors value: {output_colors}')
+
+    def _downsample_mip_level(self, resource_id, width, height, values):
+        """Produces the next mipmap level (half the dimensions, rounded up) in the same shape as
+        `values`. Palette indices (4Bit/8Bit) can't be blended, so they're point-sampled; color
+        formats are box-filtered instead."""
+        is_4bit = resource_id.startswith('4Bit')
+        new_width, new_height = max(1, width // 2), max(1, height // 2)
+
+        def get(x, y):
+            x, y = min(x, width - 1), min(y, height - 1)
+            return values[y][x] if is_4bit else values[y * width + x]
+
+        if is_4bit or resource_id == '8Bit':
+            samples = (lambda x, y: [get(2 * x, 2 * y)])
+        else:
+            samples = (lambda x, y: [get(2 * x + dx, 2 * y + dy) for dy in (0, 1) for dx in (0, 1)])
+
+        def pixel(x, y):
+            pixels = samples(x, y)
+            if len(pixels) == 1:
+                return pixels[0]
+            r = sum((p >> 24) & 0xFF for p in pixels) // len(pixels)
+            g = sum((p >> 16) & 0xFF for p in pixels) // len(pixels)
+            b = sum((p >> 8) & 0xFF for p in pixels) // len(pixels)
+            a = sum(p & 0xFF for p in pixels) // len(pixels)
+            return (r << 24) | (g << 16) | (b << 8) | a
+
+        if is_4bit:
+            return [[pixel(x, y) for x in range(new_width)] for y in range(new_height)]
+        return [pixel(x, y) for y in range(new_height) for x in range(new_width)]
+
+    def action_generate_mipmaps(self, read_data, **kwargs):
+        resource_id, width, height = read_data['resource_id'], read_data['width'], read_data['height']
+        if not is_power_of_two(width) or not is_power_of_two(height):
+            raise ValueError('Mipmaps can only be generated for images with power-of-two width and height')
+        if width == 1 and height == 1:
+            raise ValueError('A 1x1 image has no mipmap levels to generate')
+        mipmaps = []
+        level_values, level_width, level_height = read_data['bitmap'], width, height
+        while level_width > 1 or level_height > 1:
+            level_values = self._downsample_mip_level(resource_id, level_width, level_height, level_values)
+            level_width, level_height = max(1, level_width // 2), max(1, level_height // 2)
+            mipmaps.extend(level_values)
+        read_data['mipmaps'] = mipmaps

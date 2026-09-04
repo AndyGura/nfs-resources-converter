@@ -1,4 +1,4 @@
-export function deepEqual(obj1: any, obj2: any): boolean {
+export function deepEqual(obj1: any, obj2: any, seen = new Map<any, any>()): boolean {
   // Check for primitive equality (and handle null/undefined)
   if (obj1 === obj2) return true;
 
@@ -6,6 +6,12 @@ export function deepEqual(obj1: any, obj2: any): boolean {
   if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) {
     return false;
   }
+
+  // Handle circular references
+  if (seen.has(obj1)) {
+    return seen.get(obj1) === obj2;
+  }
+  seen.set(obj1, obj2);
 
   // Get keys of both objects
   const keys1 = Object.keys(obj1);
@@ -16,7 +22,7 @@ export function deepEqual(obj1: any, obj2: any): boolean {
 
   // Recursively compare each key and value
   for (const key of keys1) {
-    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key], seen)) {
       return false;
     }
   }
