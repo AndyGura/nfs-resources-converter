@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-config',
@@ -25,6 +26,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     MatDialogModule,
   ],
 })
@@ -32,6 +34,8 @@ export class ConfigComponent implements OnInit {
   configForm: FormGroup;
   testingBlender = false;
   testingFFmpeg = false;
+  detectingBlender = false;
+  detectingFFmpeg = false;
   blenderTestResult: { success: boolean; message: string } | null = null;
   ffmpegTestResult: { success: boolean; message: string } | null = null;
 
@@ -74,6 +78,38 @@ export class ConfigComponent implements OnInit {
       this.ffmpegTestResult = { success: false, message: 'Error testing FFmpeg path' };
     } finally {
       this.testingFFmpeg = false;
+    }
+  }
+
+  async autoDetectBlenderPath() {
+    this.detectingBlender = true;
+    this.blenderTestResult = null;
+    try {
+      const result = await this.api.detectExecutablePath('blender');
+      if (result.path) {
+        this.configForm.patchValue({ blender_executable: result.path });
+      }
+      this.blenderTestResult = { success: result.success, message: result.message };
+    } catch (error) {
+      this.blenderTestResult = { success: false, message: 'Error auto-detecting Blender path' };
+    } finally {
+      this.detectingBlender = false;
+    }
+  }
+
+  async autoDetectFFmpegPath() {
+    this.detectingFFmpeg = true;
+    this.ffmpegTestResult = null;
+    try {
+      const result = await this.api.detectExecutablePath('ffmpeg');
+      if (result.path) {
+        this.configForm.patchValue({ ffmpeg_executable: result.path });
+      }
+      this.ffmpegTestResult = { success: result.success, message: result.message };
+    } catch (error) {
+      this.ffmpegTestResult = { success: false, message: 'Error auto-detecting FFmpeg path' };
+    } finally {
+      this.detectingFFmpeg = false;
     }
   }
 

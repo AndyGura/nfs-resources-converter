@@ -9,7 +9,7 @@ import {
   ResourceError,
 } from '../../components/editor/types';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
-import { ConversionConfig, GeneralConfig } from './api-types';
+import { ConversionConfig, ExecutableDetectionResult, ExecutableKind, GeneralConfig } from './api-types';
 import { findNestedObjects } from '../../utils/find-nested-object';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
@@ -175,6 +175,14 @@ export class ApiDelegateImplService {
 
   public async testExecutable(executablePath: string): Promise<any> {
     return this.wrapCall('test_executable', executablePath);
+  }
+
+  public async detectExecutablePath(kind: ExecutableKind): Promise<ExecutableDetectionResult> {
+    return this.wrapCall('detect_executable_path', kind);
+  }
+
+  public async isFirstRun(): Promise<boolean> {
+    return this.wrapCall('is_first_run');
   }
 
   // Changes API

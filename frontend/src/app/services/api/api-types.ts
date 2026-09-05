@@ -6,6 +6,14 @@ export type GeneralConfig = {
   show_hidden_fields: boolean;
 };
 
+export type ExecutableKind = 'blender' | 'ffmpeg';
+
+export type ExecutableDetectionResult = {
+  success: boolean;
+  path: string | null;
+  message: string;
+};
+
 export type ConversionConfig = {
   multiprocess_processes_count: number;
   input_path: string;
