@@ -77,8 +77,6 @@ def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
 
 def unk_7c_presence_criteria(ctx, **kwargs):
     if isinstance(ctx, ReadContext):
-        if ctx.data('resource_id') != '8Bit':
-            return False
         if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 8:
             return False
         raw = ctx.buffer.read(4)
@@ -379,7 +377,7 @@ class EacImage(DeclarativeCompoundBlock):
                              criteria=lambda ctx: ctx.data('palette_offset') > 0),
                {'description': 'Zeros in the end of block data'})
         unk_7c = (TrailingOptionalBlock(child=PaletteReference(),
-                                        criteria=(unk_7c_presence_criteria, '8-bit bitmap and 0x7C header found')),
+                                        criteria=(unk_7c_presence_criteria, '0x7C header found')),
                   {'description': 'Unknown data with id 0x7C',
                    'is_unknown': True})
         embedded_palette = (TrailingOptionalBlock(child=EacPalette(),
