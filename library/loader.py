@@ -2,7 +2,7 @@ from io import BufferedReader, BytesIO, SEEK_CUR
 from os.path import getsize
 from typing import Tuple
 
-from library.read_blocks import DataBlock
+from library.read_blocks import DataBlock, OptionalBlock
 
 
 # this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
@@ -158,7 +158,24 @@ def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str,
     (res_block, res) = (block, data)
     for key in resource_path:
         (res_block, res) = res_block.get_child_block_with_data(res, key)
+        res_block = _unwrap_present_optional(res_block, res)
     return (id, res_block, res), (file_id, block, data)
+
+
+def _unwrap_present_optional(res_block: "DataBlock", res) -> "DataBlock":
+    # Unlike DelegateBlock, an OptionalBlock/TrailingOptionalBlock doesn't wrap its child's data in
+    # a dedicated "data" field the frontend steps through - a present field's id and value are
+    # indistinguishable from its child's. So an id resolving to the wrapper itself, with the field
+    # actually present, really means the child: redirect there, since the wrapper doesn't carry the
+    # child's own read/write/action behavior (e.g. action_* methods used by run_custom_action).
+    # This is applied after every path segment (not only the last), so an optional field in the
+    # middle of a path (e.g. "a/opt_field/b") still resolves "b" against the actual child block.
+    # A `TrailingOptionalBlock` that's absent (`res is None`) is left alone - there's no child data
+    # to redirect to, and callers like `get_trailing_optional_field_data` rely on seeing the wrapper
+    # itself to offer the GUI's presence checkbox.
+    while isinstance(res_block, OptionalBlock) and res is not None:
+        res_block = res_block.child
+    return res_block
 
 
 # not shared between processes: in most cases if file requires another resource, it is in the same file, or it
