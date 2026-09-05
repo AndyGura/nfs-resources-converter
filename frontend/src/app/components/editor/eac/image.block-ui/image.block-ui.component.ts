@@ -111,7 +111,9 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   }
 
   get mipmapsAllowed(): boolean {
-    return isPowerOfTwo(this.resourceData?.width) && isPowerOfTwo(this.resourceData?.height);
+    let d = this.resourceData;
+    if (!d) return false;
+    return d.width > 1 && d.height > 1 && isPowerOfTwo(d.width) && isPowerOfTwo(d.height);
   }
 
   async onMipmapsToggle(checked: boolean): Promise<void> {

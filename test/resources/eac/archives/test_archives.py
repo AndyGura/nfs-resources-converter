@@ -40,6 +40,30 @@ class TestShpiBlock(unittest.TestCase):
         reread = block.unpack_from_bytes(packed)
         self.assertEqual(reread['children'][0]['item']['data']['colors']['data'], palette)
 
+    def test_convert_to_8bit_with_0565_palette_roundtrips(self):
+        block = ShpiBlock()
+        data = block.new_data()
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        img_data = EacImage().new_data()
+        img_data['resource_id'] = '32Bit color format bitmap'
+        img_data['width'] = 2
+        img_data['height'] = 2
+        img_data['bitmap'] = [(x * 0x60 << 24) | (y * 0x60 << 16) | 0xFF for y in range(2) for x in range(2)]
+        data['children'].append({
+            'pre_offset_payload': b'', 'post_offset_payload': b'', 'alias': 'img0',
+            'item': {'choice_index': image_choice, 'data': img_data},
+        })
+        # `action_convert_to_8bit` serializes children to PNGs first, so it needs a fully-shaped
+        # `read_data` - go through a real pack/unpack cycle rather than hand-building one.
+        data = block.unpack_from_bytes(block.pack(data, name='test'))
+
+        block.action_convert_to_8bit(data, name='test', palette_name='!pal',
+                                     palette_type='16Bit_0565 color format palette', num_colors=256, id='test_id')
+
+        packed = block.pack(data, name='test')
+        reread = block.unpack_from_bytes(packed)
+        self.assertEqual(reread['children'][0]['item']['data']['resource_id'], '16Bit_0565 color format palette')
+
     def test_fsh_should_remain_the_same(self):
         (name, block, fsh) = require_file('test/samples/VERTBST.FSH')
         output = block.pack(fsh, name=name)

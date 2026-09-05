@@ -138,7 +138,7 @@ class ShpiBlock(ArchiveBlock):
         for i in range(len(abs_offsets) - 1):
             abs_offsets[i] = (abs_offsets[i][0], abs_offsets[i][1], abs_offsets[i][2],
                               abs_offsets[i + 1][2] - abs_offsets[i][2])
-        if read_bytes_amount:
+        if read_bytes_amount and len(abs_offsets) > 0:
             abs_offsets[-1] = (abs_offsets[-1][0], abs_offsets[-1][1], abs_offsets[-1][2], end_pos - abs_offsets[-1][2])
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
         try:
