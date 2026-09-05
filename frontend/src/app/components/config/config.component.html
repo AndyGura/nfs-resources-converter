@@ -8,6 +8,20 @@
         <input matInput formControlName="blender_executable" placeholder="Path to Blender executable" />
         <mat-hint>Working terminal command or path to executable</mat-hint>
       </mat-form-field>
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="autoDetectBlenderPath()"
+        [disabled]="detectingBlender"
+        matTooltip="Search common install locations for Blender">
+        @if (!detectingBlender) {
+          <mat-icon>search</mat-icon>
+        }
+        @if (detectingBlender) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        Auto-detect
+      </button>
       <button mat-raised-button color="primary" (click)="testBlenderPath()" [disabled]="testingBlender">
         @if (!testingBlender) {
           <mat-icon>check_circle</mat-icon>
@@ -32,6 +46,20 @@
         <input matInput formControlName="ffmpeg_executable" placeholder="Path to FFmpeg executable" />
         <mat-hint>Working terminal command or path to executable</mat-hint>
       </mat-form-field>
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="autoDetectFFmpegPath()"
+        [disabled]="detectingFFmpeg"
+        matTooltip="Search common install locations for FFmpeg">
+        @if (!detectingFFmpeg) {
+          <mat-icon>search</mat-icon>
+        }
+        @if (detectingFFmpeg) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        Auto-detect
+      </button>
       <button mat-raised-button color="primary" (click)="testFFmpegPath()" [disabled]="testingFFmpeg">
         @if (!testingFFmpeg) {
           <mat-icon>check_circle</mat-icon>

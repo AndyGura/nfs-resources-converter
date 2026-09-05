@@ -11,6 +11,7 @@ import config
 from library import require_file
 from library.loader import clear_file_cache
 from library.utils import format_exception, path_join
+from library.utils.executable_detection import detect_blender_path, detect_ffmpeg_path
 from library.utils.logging_setup import setup_logging, is_stdout_redirected
 from serializers import get_serializer
 
@@ -70,6 +71,26 @@ class ConversionAPI:
             return {"success": False, "message": "Executable test timed out"}
         except Exception as e:
             return {"success": False, "message": f"Error testing executable: {str(e)}"}
+
+    def is_first_run(self) -> bool:
+        """Whether this is the very first time the app has been run on this machine."""
+        return config.is_first_run()
+
+    def detect_executable_path(self, kind: str) -> Dict[str, Any]:
+        """
+        Attempt to auto-detect the path to an executable, without touching stored config.
+
+        Args:
+            kind: "blender" or "ffmpeg"
+
+        Returns:
+            Dict with the detected path (or None) and a human-readable message
+        """
+        detector = detect_blender_path if kind == "blender" else detect_ffmpeg_path
+        path = detector()
+        if path:
+            return {"success": True, "path": path, "message": f"Found {kind} at: {path}"}
+        return {"success": False, "path": None, "message": f"Could not auto-detect {kind}. Please set the path manually."}
 
     def export_file(self, args):
         base_input_path, path, out_path, custom_settings = args

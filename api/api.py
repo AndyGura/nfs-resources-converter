@@ -69,6 +69,8 @@ class API:
         bridge.expose(self.conversion_api.patch_general_config)
         bridge.expose(self.conversion_api.patch_conversion_config)
         bridge.expose(self.conversion_api.test_executable)
+        bridge.expose(self.conversion_api.detect_executable_path)
+        bridge.expose(self.conversion_api.is_first_run)
 
         # Changes API
         bridge.expose(self.changes_api.get_revisions)

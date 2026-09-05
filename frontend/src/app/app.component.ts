@@ -10,6 +10,7 @@ import { NewFileDialogComponent } from './components/new-file.dialog/new-file.di
 import { environment } from '../environments/environment';
 import { ChangeEntry, ChangesService } from './services/changes.service';
 import { ApiDelegateService } from './services/api/api-delegate.service';
+import { GeneralConfig } from './services/api/api-types';
 import { Title } from '@angular/platform-browser';
 
 @Component({
@@ -43,6 +44,41 @@ export class AppComponent implements OnInit {
         this.titleService.setTitle('NFS Resources Converter');
       }
     });
+    this.autoDetectExecutablesOnFirstRun().then();
+  }
+
+  private async autoDetectExecutablesOnFirstRun() {
+    try {
+      if (!(await this.api.isFirstRun())) {
+        return;
+      }
+      const detectingSnackBar = this.snackBar.open('First run: looking for Blender and FFmpeg…', undefined, {
+        duration: 10000,
+      });
+      const [blenderResult, ffmpegResult] = await Promise.all([
+        this.api.detectExecutablePath('blender'),
+        this.api.detectExecutablePath('ffmpeg'),
+      ]);
+      detectingSnackBar.dismiss();
+
+      const patch: Partial<GeneralConfig> = {};
+      if (blenderResult.path) patch.blender_executable = blenderResult.path;
+      if (ffmpegResult.path) patch.ffmpeg_executable = ffmpegResult.path;
+      if (Object.keys(patch).length > 0) {
+        await this.api.patchGeneralConfig(patch);
+      }
+
+      const summary = [
+        blenderResult.path ? `Blender: ${blenderResult.path}` : `Blender not found`,
+        ffmpegResult.path ? `FFmpeg: ${ffmpegResult.path}` : `FFmpeg not found`,
+      ].join(' — ');
+      this.snackBar
+        .open(summary, 'Settings', { duration: 8000 })
+        .onAction()
+        .subscribe(() => this.openConfig());
+    } catch {
+      // best-effort only - the user can always configure the paths manually in Settings
+    }
   }
 
   async openFile() {

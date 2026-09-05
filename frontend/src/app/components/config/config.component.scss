@@ -1,6 +1,7 @@
 .form-row {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   margin-bottom: 24px;
   gap: 16px;
 }
