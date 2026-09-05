@@ -13,8 +13,7 @@
         color="primary"
         (click)="autoDetectBlenderPath()"
         [disabled]="detectingBlender"
-        matTooltip="Search common install locations for Blender"
-      >
+        matTooltip="Search common install locations for Blender">
         @if (!detectingBlender) {
           <mat-icon>search</mat-icon>
         }
@@ -52,8 +51,7 @@
         color="primary"
         (click)="autoDetectFFmpegPath()"
         [disabled]="detectingFFmpeg"
-        matTooltip="Search common install locations for FFmpeg"
-      >
+        matTooltip="Search common install locations for FFmpeg">
         @if (!detectingFFmpeg) {
           <mat-icon>search</mat-icon>
         }

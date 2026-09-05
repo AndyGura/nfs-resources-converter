@@ -72,7 +72,10 @@ export class AppComponent implements OnInit {
         blenderResult.path ? `Blender: ${blenderResult.path}` : `Blender not found`,
         ffmpegResult.path ? `FFmpeg: ${ffmpegResult.path}` : `FFmpeg not found`,
       ].join(' — ');
-      this.snackBar.open(summary, 'Settings', { duration: 8000 }).onAction().subscribe(() => this.openConfig());
+      this.snackBar
+        .open(summary, 'Settings', { duration: 8000 })
+        .onAction()
+        .subscribe(() => this.openConfig());
     } catch {
       // best-effort only - the user can always configure the paths manually in Settings
     }
