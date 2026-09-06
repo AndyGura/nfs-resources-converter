@@ -60,7 +60,26 @@ def run_gui_editor(file_path=None, dev_server_url=None):
         setup_logging(redirect_stdout=True)
 
     src = _get_frontend_dist_path()
-    if not dev_mode:
+    if dev_mode:
+        # eel.init() below learns which JS function names it may push to
+        # (``eel.<name>(...)`` from Python) by statically scanning .js files
+        # under static_path for literal ``eel.expose(...)`` text at call time
+        # -- it has no runtime handshake with the browser for this. In dev
+        # mode the real compiled JS (which contains the actual `eel.expose()`
+        # calls registered by ``api-delegate-impl.service.ts``) is served
+        # in-memory by the Angular dev server and never touches disk here, so
+        # there is nothing under static_path for the scan to find. Write a
+        # synthetic file pre-registering the same names instead: this only
+        # needs to satisfy Eel's static scan, since the real name -> JS
+        # function mapping is wired up separately, at runtime, in the
+        # browser's own copy of eel.js.
+        with open(os.path.join(static_path, '_eel_exposed.js'), 'w') as f:
+            f.write(
+                "eel.expose(null, 'open_arg_file');\n"
+                "eel.expose(null, 'update_conversion_progress');\n"
+                "eel.expose(null, 'on_append_changes');\n"
+            )
+    else:
         # Copy only eel.*.js first so Eel can pick up the client early, then the
         # rest of the production build below (mirrors the original behaviour).
         for f in glob.glob(os.path.join(src, "eel.*.js")):

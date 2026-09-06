@@ -40,15 +40,16 @@ A top `mat-toolbar` is always present. Its content depends on whether a resource
 Same File/Edit/Tools items are reachable from the toolbar icon buttons when a file is open (Undo,
 Redo, Save icons) — these mirror the menu items 1:1, same enablement rules. **Confirmed (live)**.
 
-### "Changes (n)" debug menu — Confirmed (code), currently effectively dead
+### "Changes (n)" debug menu — Confirmed (live)
 
-Guarded by `@if (!isProduction)` in the template. **`environment.ts` (the file used for *both* the
-default "development" Angular build config and, unless replaced, everything else) hardcodes
-`production: true`**, and no dev-specific environment file overrides it — see
-`KNOWN_ISSUES.md`. Net effect: this menu does not render in `ng serve` dev mode either, despite
-being written as a dev-only affordance. Never rely on it being visible; if you need the raw
-change list for debugging, read `ChangesService` state directly instead (e.g. via
-`api.getChanges()`/`getRevisions()` RPCs).
+Guarded by `@if (!isProduction)` in the template. `environment.ts` (the file used by the
+"development" Angular build config; the "production" config's `fileReplacements` swaps in
+`environment.prod.ts` instead) sets `production: false`, so this menu renders under `ng serve` dev
+mode — confirmed live: opening `test/golden_corpus/AL1.TRI` showed **"Changes (0)"** in the
+toolbar (see `KNOWN_ISSUES.md` KI-2, Fixed). It does not render in production builds
+(`environment.prod.ts` keeps `production: true`). If you need the raw change list outside dev
+mode, read `ChangesService` state directly instead (e.g. via `api.getChanges()`/`getRevisions()`
+RPCs).
 
 ## Landing Page (`app-landing-page`) — Confirmed (live)
 

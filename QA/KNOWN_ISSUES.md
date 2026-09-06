@@ -8,9 +8,21 @@ evidence of intent — leave it Suspected/Unclear instead.
 
 ## KI-1 — Convert Files fails in Linux `--dev` mode: `AttributeError: module 'eel' has no attribute 'update_conversion_progress'`
 
-**Status**: Confirmed bug (reproducible), but **scope is narrower than "the Converter is broken"**
-— see Root cause. Severity: **P2** (breaks a documented contributor workflow; does not obviously
-reach packaged/production builds — not yet verified against one, see Follow-up).
+**Status**: **Fixed** (2026-09-06). `actions/gui_editor_linux.py`'s `dev_mode` branch now writes a
+synthetic `_eel_exposed.js` file into `static_path` before `eel.init()`, containing literal
+`eel.expose(null, '<name>')` calls for all three JS-exposed names (`open_arg_file`,
+`update_conversion_progress`, `on_append_changes`) — this satisfies Eel's static text scan (see
+Root cause below) without depending on a `frontend/dist/gui` build existing, which dev mode
+doesn't require. Production's original early-copy-of-`eel.*.js` approach is unchanged.
+**Verified live** (Docker + Linux `--dev`, per `TEST_ENVIRONMENT.md`): Converter's Convert Files
+against `test/golden_corpus` now shows a live-updating progress bar ("31 / 32 files processed")
+with no `AttributeError` anywhere in the backend log — see `TEST_PLAN.md` C-3/C-4.
+
+<details>
+<summary>Original report</summary>
+
+**Severity** (at time of filing): **P2** (breaks a documented contributor workflow; does not
+obviously reach packaged/production builds — not yet verified against one, see Follow-up).
 
 **Reproduction** (see `TEST_ENVIRONMENT.md` for the full setup):
 1. Run the app per the README's Linux dev-mode instructions: `ng serve` (frontend) + `python
@@ -73,31 +85,50 @@ JS function by name in a plain JS object at call time, with no Python-side pre-r
   copy step (or an equivalent pre-registration) in the `dev_mode` branch of
   `actions/gui_editor_linux.py`.
 
+</details>
+
+**Remaining open follow-up** (not done as part of the fix): production-Linux and macOS/Windows
+dev-mode were not independently re-verified — the fix only touches the `dev_mode` branch, so
+production's already-working path is untouched, but a real end-to-end check on those other
+targets is still outstanding.
+
 ---
 
 ## KI-2 — `environment.production` is hardcoded `true` in both Angular environment files; no dev-mode override exists
 
-**Status**: Suspected bug (behavior is very likely unintentional, but no direct evidence of
-intent either way — filing as Suspected, not Confirmed).
+**Status**: **Fixed** (2026-09-06). `frontend/src/environments/environment.ts` (used as-is by the
+**development** build configuration; only the **production** configuration's `fileReplacements`
+swaps in `environment.prod.ts`) now sets `production: false`. `environment.prod.ts` is unchanged
+(`production: true`).
 
-**Observation**: `frontend/src/environments/environment.ts` (the file Angular's **development**
-build configuration uses as-is — only the **production** configuration's `fileReplacements` swaps
-in `environment.prod.ts`) contains `production: true`. `environment.prod.ts` also contains
-`production: true`. There is no `environment.development.ts` or equivalent providing `production:
+**Verified live** (Docker + Linux `--dev`, per `TEST_ENVIRONMENT.md`):
+- `typeof window.ng` is now `"object"` under `ng serve` (was `"undefined"` before the fix).
+- With a file open (`test/golden_corpus/AL1.TRI`), the toolbar now renders **"Changes (0)"** —
+  `AppComponent`'s dev-only staged-changes debug menu, previously dead in every build — see
+  `UI_MAP.md`.
+
+<details>
+<summary>Original report</summary>
+
+**Status** (at time of filing): Suspected bug (behavior was very likely unintentional, but no
+direct evidence of intent either way).
+
+**Observation**: `frontend/src/environments/environment.ts` contained `production: true`, same as
+`environment.prod.ts`, with no `environment.development.ts` or equivalent providing `production:
 false` for the dev build. Consequence, Confirmed (live): `window.ng` (Angular's dev-mode debug
-global, `ng.getComponent()` etc.) is unavailable even under `ng serve`, consistent with the app
+global, `ng.getComponent()` etc.) was unavailable even under `ng serve`, consistent with the app
 always running as if in production mode regardless of build configuration.
 
 **Impact on the product itself**: `AppComponent`'s dev-only **"Changes (n)"** staged-changes debug
-menu (`@if (!isProduction)` in `app.component.html`) can never render, in *any* build — see
-`UI_MAP.md`. Whatever this menu was meant to help debug currently has no UI path to it at all.
+menu (`@if (!isProduction)` in `app.component.html`) could never render, in *any* build — see
+`UI_MAP.md`. Whatever this menu was meant to help debug had no UI path to it at all.
 
 **Impact on testing**: Angular DevTools-style console introspection (`window.ng.getComponent(...)`)
-is unavailable for driving the app from a browser console; use the app's own exposed `eel.*` RPCs
-or real UI interaction instead (see `TEST_ENVIRONMENT.md`).
+was unavailable for driving the app from a browser console; the app's own exposed `eel.*` RPCs or
+real UI interaction were the workaround (see `TEST_ENVIRONMENT.md`) — `window.ng` now works too,
+so this workaround is no longer required, though it remains valid.
 
-**Not yet done**: confirming whether this is a known/accepted tradeoff (e.g. debug menu considered
-abandoned/not worth wiring up) — needs a product decision, don't assume either way.
+</details>
 
 ---
 

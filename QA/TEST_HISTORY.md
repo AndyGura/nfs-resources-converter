@@ -77,3 +77,54 @@ The Docker/Xvfb/xdotool recipe in `TEST_ENVIRONMENT.md` was built from scratch t
 QA tooling existed) and confirmed working end-to-end, including driving the real native file-open
 dialog rather than bypassing it. This is the reusable deliverable most likely to save the next
 agent significant time — start there.
+
+---
+
+## 2026-09-06 — KI-1/KI-2 fix pass
+
+**Commit**: fix applied on top of `1b8ac86` (branch `agent-testings`), not yet committed at time of
+this entry.
+
+**Environment**: same Docker/Xvfb/xdotool Linux dev-mode recipe as the baseline pass, rebuilt from
+`TEST_ENVIRONMENT.md` (container from the earlier pass was gone; image layer cache made rebuild
+fast). Neither Blender nor FFmpeg installed in the test environment.
+
+### Scope
+Fix KI-1 and KI-2 (from the baseline pass above), then re-verify both live rather than trusting the
+code read.
+
+### Changes made
+- **KI-1**: `actions/gui_editor_linux.py`'s `dev_mode` branch now writes a synthetic
+  `_eel_exposed.js` into `static_path` before `eel.init()`, with literal `eel.expose(null, '<name>')`
+  calls for `open_arg_file`/`update_conversion_progress`/`on_append_changes` — satisfies Eel's
+  static text scan without depending on a `frontend/dist/gui` build existing (which `ng serve` dev
+  mode never produces on disk, so the original follow-up idea of copying a real `eel.*.js` chunk
+  from there doesn't actually work in dev mode — confirmed this by reading `angular.json`'s
+  `development` config, which file-replaces `api-delegate.service.ts` with a variant that inlines
+  the `eel.expose()` calls directly into the main bundle rather than a separate lazy chunk).
+  Production's branch (still copies the real `eel.*.js` chunk early) is untouched.
+- **KI-2**: `frontend/src/environments/environment.ts` now sets `production: false`.
+  `environment.prod.ts` unchanged.
+
+### Verification (live, both confirmed fixed)
+- `typeof window.ng` → `"object"` under `ng serve` (was `"undefined"`).
+- Converter → Convert Files against `test/golden_corpus` (input) / a scratch temp dir (output):
+  progress bar advanced live to "31 / 32 files processed"; backend log had no `AttributeError` for
+  any of the three JS-exposed names. The one unconverted file landed in `skipped.txt` as expected
+  (existing per-file errors unrelated to this fix: `ffmpeg` binary absent in the test container,
+  one `.TRI` prop reference to a `.FAM` file not present in the pared-down golden corpus, and a few
+  pre-existing `_enum_lookup`/`ValueError` tracebacks in `library/read_blocks/delegates.py` — none
+  of these are new, all present in the corpus as documented in the baseline pass; not otherwise
+  investigated this pass since out of scope for KI-1/KI-2).
+- Opened `test/golden_corpus/AL1.TRI` via the real Open File button + native Tk dialog (not
+  bypassed): toolbar now shows **"Changes (0)"** — the dev-only debug menu that KI-2 said could
+  never render in any build.
+- Full backend suite (`./.venv/bin/python -m unittest`, 234 tests) and frontend suite (`npm run
+  test -- --watch=false --no-progress --browsers=ChromeHeadless`, 24 tests) both green after the
+  change.
+
+### Not verified (explicitly out of scope this pass)
+- Production Linux build (`ng build` + `python run.py`, no `--dev`) and macOS/Windows dev mode —
+  both untouched by this fix (only the Linux `dev_mode` branch changed), not independently
+  re-checked end-to-end.
+- KI-3 — untouched, not in scope this pass.
