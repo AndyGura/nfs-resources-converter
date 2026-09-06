@@ -6,7 +6,7 @@ from typing import List
 
 from library.utils import path_join
 from .blender_scripts import get_blender_save_script, run_blender
-from .build_blender_scene import construct_blender_export_script
+from .gg_web_engine_exporter import ensure_gg_web_engine_exporter_installed
 from .mesh import SubMesh
 
 
@@ -129,6 +129,13 @@ $extra_script
 
     if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:
         script = script_base
+        if settings.geometry__export_to_gg_web_engine:
+            # Installs/updates a local copy of gg-web-engine's own Blender exporter (see
+            # gg_web_engine_exporter.py) and makes it importable from the generated script below,
+            # instead of running a copy-pasted-and-drifting export routine.
+            gg_exporter_dir = ensure_gg_web_engine_exporter_installed().replace('\\', '/')
+            script += (f'\n\nimport sys\nsys.path.insert(0, "{gg_exporter_dir}")\n'
+                       'import exporter as gg_web_engine_exporter\n')
         for scene in scenes:
             script += '\n\n' + import_template.substitute({
                 'obj_file_path': f'{scene.obj_name}.obj' if not scene.skip_obj_export else '',
@@ -137,9 +144,11 @@ $extra_script
             })
             file_path = path_join(os.getcwd(), output_path, scene.name)
             if settings.geometry__export_to_gg_web_engine:
-                script += '\n' + construct_blender_export_script(
-                    file_name=file_path,
-                    export_materials='EXPORT' if scene.bake_textures else 'NONE')
+                gg_export_target = file_path.replace('\\', '/')
+                script += (
+                    f'\ngg_web_engine_exporter.export_glb_meta("{gg_export_target}", '
+                    f'export_materials={scene.bake_textures}, copyright="Gurakl Games")\n'
+                )
                 exported_files.append(file_path + '.glb')
                 exported_files.append(file_path + '.meta')
             if settings.geometry__save_blend:
