@@ -53,6 +53,7 @@ docs and a working GUI editor for free.
 | `actions/` | OS-integration entry points (convert all, open in GUI editor, uncompress) wired to file-manager context menus / installers. |
 | `test/` | unittest suite mirroring `library/`/`resources/`. `test/golden_corpus/` + `test/test_gui_golden_corpus.sh` = manual smoke test that opens every sample file through `run.py`. |
 | `docs/milestones.md` | AI-maintained roadmap of format coverage by game. |
+| `QA/` | QA knowledge base for testing the GUI application: application/UI maps, test strategy/plan, regression procedure, known issues, environment setup (incl. how to get a browser-automatable instance of the desktop GUI), and test history. Start at `QA/CLAUDE_QA_INSTRUCTIONS.md`. |
 | `generate_resource_doc.py` | Regenerates `resources/*.md` from block schemas. |
 
 ## Dev environment
