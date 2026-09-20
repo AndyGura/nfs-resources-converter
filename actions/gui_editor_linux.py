@@ -80,10 +80,19 @@ def run_gui_editor(file_path=None, dev_server_url=None):
                 "eel.expose(null, 'on_append_changes');\n"
             )
     else:
-        # Copy only eel.*.js first so Eel can pick up the client early, then the
-        # rest of the production build below (mirrors the original behaviour).
-        for f in glob.glob(os.path.join(src, "eel.*.js")):
-            shutil.copy2(f, static_path)
+        # Copy only the chunk(s) containing eel.expose(...) calls first, so
+        # eel.init()'s static scan below stays fast -- it parses every .js
+        # file under static_path, and doing that against the whole production
+        # build (megabytes of bundled JS) instead of this one small chunk
+        # adds ~10s to startup. The rest of the build is copied further down,
+        # right before eel.start(). This chunk used to be reliably named
+        # "eel.*.js" via a webpack magic comment; the esbuild-based build
+        # system doesn't support naming lazy chunks that way, so it no longer
+        # has a predictable filename -- find it by content instead.
+        for f in glob.glob(os.path.join(src, "*.js")):
+            with open(f, encoding='utf-8', errors='ignore') as fh:
+                if 'eel.expose(' in fh.read():
+                    shutil.copy2(f, static_path)
 
     api = API(static_path, file_path)
     # On Linux the shared backend bridge is driven by Eel: this registers every
