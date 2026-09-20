@@ -167,7 +167,7 @@ export class Nfs2CarMeshController {
         await sleep(50);
       }
       recolorImageSmart(
-        ot.source.data,
+        ot.source.data as HTMLImageElement,
         (data, i) => {
           if (data[i] + data[i + 2] < data[i + 1]) {
             const greenComponent = data[i + 1];
@@ -176,7 +176,7 @@ export class Nfs2CarMeshController {
             data[i + 2] = Math.min(Math.round((newBlue * greenComponent) / 255) + data[i + 2]);
           }
         },
-        dt.source.data,
+        dt.source.data as HTMLImageElement,
       );
       dt.needsUpdate = true;
     }
