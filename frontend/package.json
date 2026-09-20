@@ -37,13 +37,12 @@
     "@angular/compiler-cli": "^22.1.7",
     "@types/jasmine": "~6.0.0",
     "@types/three": "0.186.0",
-    "istanbul-lib-instrument": "^6.0.3",
     "jasmine-core": "~6.3.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.2.0",
+    "karma-jasmine-html-reporter": "~2.3.0",
     "prettier": "^3.9.8",
     "typescript": "~6.0.3"
   }
