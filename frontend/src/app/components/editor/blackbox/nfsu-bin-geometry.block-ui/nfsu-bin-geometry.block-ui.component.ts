@@ -46,17 +46,10 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
     }
   }
 
-
   public readonly previewViewFilters: ViewFilterOpts[] = [
     {
       name: 'LOD',
-      filterGroups: [
-        'A',
-        'B',
-        'C',
-        'D',
-        '?',
-      ],
+      filterGroups: ['A', 'B', 'C', 'D', '?'],
       checkedIndex: 0,
       pickFunction: object => {
         switch (object.name.substring(object.name.length - 2)) {
