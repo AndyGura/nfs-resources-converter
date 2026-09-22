@@ -37,6 +37,7 @@ import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geo
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
 import { TargaImageBlockUiComponent } from './common/targa-image.block-ui/targa-image.block-ui.component';
+import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.block-ui/nfsu-bin-geometry.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -90,6 +91,9 @@ export class EditorComponent implements OnDestroy {
 
     // NFS5-specific blocks
     CrpGeometry: CrpGeometryBlockUiComponent,
+
+    // NFSU-specific blocks
+    NfsuBinGeometry: NfsuBinGeometryBlockUiComponent,
   };
 
   _resourceId?: string;

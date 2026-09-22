@@ -55,6 +55,7 @@ import { ArchiveItemEditDialogComponent } from './common/archive-item-edit.dialo
 import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
 import { TargaImageBlockUiComponent } from './common/targa-image.block-ui/targa-image.block-ui.component';
 import { ImageViewerComponent } from './common/image-viewer/image-viewer.component';
+import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.block-ui/nfsu-bin-geometry.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -98,6 +99,7 @@ import { ImageViewerComponent } from './common/image-viewer/image-viewer.compone
     TrkMapBlockUiComponent,
     FrdMapBlockUiComponent,
     CrpGeometryBlockUiComponent,
+    NfsuBinGeometryBlockUiComponent,
   ],
   imports: [
     CommonModule,

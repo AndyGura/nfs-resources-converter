@@ -1,3 +1,6 @@
+import math
+
+
 def convert_bytes(data):
     if isinstance(data, bytes):
         return {"$bytes": list(data)}
@@ -5,6 +8,8 @@ def convert_bytes(data):
         return {key: convert_bytes(value) for key, value in data.items()}
     elif isinstance(data, list):
         return [convert_bytes(item) for item in data]
+    elif isinstance(data, float) and math.isnan(data):
+        return "NaN"
     else:
         return data
 
