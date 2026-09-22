@@ -1,6 +1,6 @@
 # **NFS Underground file specs** #
 
-*Last time updated: 2026-07-17 21:15:20.812838+00:00*
+*Last time updated: 2026-09-22 22:13:28.168097+00:00*
 
 
 # **Info by file extensions** #
@@ -42,39 +42,52 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
 | 8 | **payload** | chunk_length | Bytes | - |
 ### **NfsuMeshChunk** ###
-#### **Size**: 28..? bytes ####
+#### **Size**: 36..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134900 | - |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **payload** | chunk_length-20 | Bytes | - |
-| 8 + chunk_length-20 | **unk_w** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
-| 12 + chunk_length-20 | **unk_x** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
-| 16 + chunk_length-20 | **vertex_amount** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 20 + chunk_length-20 | **unk_y** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
-| 24 + chunk_length-20 | **unk_z** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
+| 8 | **payload** | chunk_length-28 | Bytes | - |
+| 8 + chunk_length-28 | **faces_amount** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 12 + chunk_length-28 | **unk_v** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
+| 16 + chunk_length-28 | **unk_w** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
+| 20 + chunk_length-28 | **unk_x** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
+| 24 + chunk_length-28 | **vertex_amount** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 28 + chunk_length-28 | **unk_y** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
+| 32 + chunk_length-28 | **unk_z** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
 ### **NfsuMeshFacesChunk** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134b03 | - |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **index_table** | custom_func\*2 | Array of `custom_func` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | - |
+| 8 | **elevens** | custom_func | Bytes | - |
+| 8 + custom_func | **faces** | (^0/data/faces_amount)\*6 | Array of `^0/data/faces_amount` items<br/>Item size: 6 bytes<br/>Item type: Array of `3` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | - |
+| 8 + custom_func + (^0/data/faces_amount)\*6 | **padding** | custom_func | Bytes | - |
+### **MeshVerticesChunk** ###
+#### **Size**: 8..? bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134b01 | - |
+| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 8 | **elevens** | chunk_length-(^0/data/vertex_amount)\*36 | Bytes | - |
+| 8 + chunk_length-(^0/data/vertex_amount)\*36 | **vertices** | (^0/data/vertex_amount)\*36 | Array of `^0/data/vertex_amount` items<br/>Item type: [NfsuVertex](#nfsuvertex) | - |
 ### **Chunk00134BXX** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **index** | 1 | 1-byte unsigned integer. One of ['0x1', '0x2', '0x3'] | - |
+| 0 | **index** | 1 | 1-byte unsigned integer. One of ['0x2', '0x3'] | - |
 | 1 | **chunk_id** | 3 | 3-bytes unsigned integer (little endian). Always == 0x134b | - |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **payload** | chunk_length | Bytes | - |
+| 8 | **elevens** | custom_func | Bytes | - |
+| 8 + custom_func | **payload** | custom_func | Bytes | - |
 ### **Chunk80134100** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x80134100 | - |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **sub_chunks** | custom_func\*8..? | Array of `custom_func` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuMeshChunk](#nfsumeshchunk)<br/>- [NfsuMeshFacesChunk](#nfsumeshfaceschunk)<br/>- [Chunk00134BXX](#chunk00134bxx) | - |
+| 8 | **sub_chunks** | custom_func\*8..? | Array of `custom_func` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuMeshChunk](#nfsumeshchunk)<br/>- [NfsuMeshFacesChunk](#nfsumeshfaceschunk)<br/>- [MeshVerticesChunk](#meshverticeschunk)<br/>- [Chunk00134BXX](#chunk00134bxx) | - |
 ### **Chunk00134002** ###
 #### **Size**: 136 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -99,7 +112,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134003 | - |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **items** | custom_func\*8 | Array of `custom_func` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
+| 8 | **items** | custom_func\*8 | Array of `custom_func` items<br/>Item size: 8 bytes<br/>Item type: Two 32-bit unsigned integers (little-endian): value, then unk (always 0) | - |
 ### **Chunk00134011** ###
 #### **Size**: 184 bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -136,14 +149,14 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134012 | - |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **items** | custom_func\*8 | Array of `custom_func` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
+| 8 | **items** | custom_func\*8 | Array of `custom_func` items<br/>Item size: 8 bytes<br/>Item type: Two 32-bit unsigned integers (little-endian): value, then unk (always 0) | - |
 ### **Chunk00134013** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134013 | - |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **items** | custom_func\*8 | Array of `custom_func` items<br/>Item type: [CompoundBlock](#compoundblock) | - |
+| 8 | **items** | custom_func\*8 | Array of `custom_func` items<br/>Item size: 8 bytes<br/>Item type: Two 32-bit unsigned integers (little-endian): value, then unk (always 0) | - |
 ### **Chunk001340XX** ###
 #### **Size**: 8..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -186,3 +199,14 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **vector** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | - |
 | 12 | **pad** | 4 | Float number (little-endian). Always == 0.0 | - |
+### **NfsuVertex** ###
+#### **Size**: 36 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | - |
+| 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 16 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 20 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 24 | **unk3** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 28 | **u** | 4 | Float number (little-endian) | - |
+| 32 | **v** | 4 | Float number (little-endian) | - |
