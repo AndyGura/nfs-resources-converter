@@ -182,7 +182,8 @@ class Chunk00134003(DeclarativeCompoundBlock):
         items = ArrayBlock(child=CompoundBlock(fields=[
             ('value', IntegerBlock(length=4), {}),
             ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
-        ]), length=lambda ctx: int(ctx.data('chunk_length') / 8))
+        ], inline_description="Two 32-bit unsigned integers (little-endian): value, then unk (always 0)"),
+            length=lambda ctx: int(ctx.data('chunk_length') / 8))
 
 
 class Chunk00134011(DeclarativeCompoundBlock):
@@ -229,7 +230,8 @@ class Chunk00134012(DeclarativeCompoundBlock):
         items = ArrayBlock(child=CompoundBlock(fields=[
             ('value', IntegerBlock(length=4), {}),
             ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
-        ]), length=lambda ctx: int(ctx.data('chunk_length') / 8))
+        ], inline_description="Two 32-bit unsigned integers (little-endian): value, then unk (always 0)"),
+            length=lambda ctx: int(ctx.data('chunk_length') / 8))
 
 
 class Chunk00134013(DeclarativeCompoundBlock):
@@ -242,7 +244,8 @@ class Chunk00134013(DeclarativeCompoundBlock):
         items = ArrayBlock(child=CompoundBlock(fields=[
             ('value', IntegerBlock(length=4), {}),
             ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
-        ]), length=lambda ctx: int(ctx.data('chunk_length') / 8))
+        ], inline_description="Two 32-bit unsigned integers (little-endian): value, then unk (always 0)"),
+            length=lambda ctx: int(ctx.data('chunk_length') / 8))
 
 
 
