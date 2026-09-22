@@ -144,11 +144,11 @@ def probe_block_class(binary_file: [BufferedReader, BytesIO], file_path: str = N
 
 
 def path_to_name(path: str) -> str:
-    return path.replace('\\', '/').replace(':', '---DRIVE')
+    return path.replace('\\', '/').replace(':', '---DRIVE').replace('__', '_%5F')
 
 
 def id_to_path(id: str) -> str:
-    return id.split('__')[0].replace('---DRIVE', ':')
+    return id.split('__')[0].replace('_%5F', '__').replace('---DRIVE', ':')
 
 
 def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str, "DataBlock", dict]]:
