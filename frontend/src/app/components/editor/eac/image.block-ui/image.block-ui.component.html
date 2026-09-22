@@ -22,6 +22,19 @@
       }
     </mat-select>
   </mat-form-field>
+
+  <mat-checkbox
+    [checked]="mipmapsPresent"
+    [disabled]="!!disabled || (!mipmapsPresent && !mipmapsAllowed)"
+    [matTooltip]="
+      mipmapsAllowed
+        ? 'Whether this bitmap carries mipmap levels. Checking it generates them from the current bitmap.'
+        : 'Mipmaps require power-of-two width and height'
+    "
+    matTooltipPosition="above"
+    (change)="onMipmapsToggle($event.checked)">
+    Mipmaps
+  </mat-checkbox>
 }
 
 <app-compound-block-ui
@@ -32,4 +45,64 @@
   [hideName]="true"
   [hideBlockActions]="true"
   [preferHorizontalLayout]="true"
-  [fieldBlacklist]="['resource_id']"></app-compound-block-ui>
+  [fieldBlacklist]="fieldBlacklist"></app-compound-block-ui>
+
+@if (showEmbeddedPalettesArray && !(mainService.hideHiddenFields$ | async)) {
+  <div class="embedded-palettes-array">
+    <h3
+      matTooltip="Additional embedded palettes found after the primary one, purpose unknown"
+      matTooltipPosition="above">
+      Extra embedded palettes ({{ embeddedPaletteCount }}/3)
+    </h3>
+    @for (slot of embeddedPaletteSlots; track $index) {
+      @if (slot !== null) {
+        <div class="item-wrapper">
+          <div class="item-header">
+            <span class="item-index">#{{ $index }}</span>
+            <div class="item-actions">
+              <button
+                mat-icon-button
+                color="primary"
+                [disabled]="!!disabled || $index === 0"
+                (click)="moveEmbeddedPaletteUp($index)"
+                matTooltip="Move up">
+                <mat-icon>arrow_upward</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="primary"
+                [disabled]="!!disabled || $index === embeddedPaletteCount - 1"
+                (click)="moveEmbeddedPaletteDown($index)"
+                matTooltip="Move down">
+                <mat-icon>arrow_downward</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                [disabled]="!!disabled"
+                (click)="removeEmbeddedPalette($index)"
+                matTooltip="Remove item">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+          <app-editor
+            [resourceOrError]="{
+              id: embeddedPaletteFieldId($index),
+              name: '' + $index,
+              schema: embeddedPaletteChildSchema,
+              data: slot,
+            }"
+            [hideName]="true"
+            [disabled]="disabled"></app-editor>
+        </div>
+      }
+    }
+    @if (!disabled && embeddedPaletteCount < 3) {
+      <button mat-button color="primary" (click)="addEmbeddedPalette()" class="add-item-button">
+        <mat-icon>add</mat-icon>
+        Add palette
+      </button>
+    }
+  </div>
+}

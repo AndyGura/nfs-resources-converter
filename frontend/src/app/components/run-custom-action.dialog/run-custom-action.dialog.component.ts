@@ -1,12 +1,13 @@
 import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 import { CustomAction, CustomActionArgument } from '../editor/types';
 import { MainService } from '../../services/main.service';
+import { lastIdPart } from '../../utils/join-id';
 
 export interface RunCustomActionDialogData {
   action: CustomAction;
-  resourceName: string;
+  resourceId: string;
   formPatch?: any;
 }
 
@@ -20,6 +21,9 @@ export interface RunCustomActionDialogData {
 export class RunCustomActionDialogComponent {
   readonly argsForm: FormGroup;
 
+  // Validators an arg would carry if unconditionally required, keyed by arg id.
+  private readonly argValidators = new Map<string, ValidatorFn[]>();
+
   constructor(
     public dialogRef: MatDialogRef<RunCustomActionDialogComponent>,
     private fb: FormBuilder,
@@ -32,10 +36,11 @@ export class RunCustomActionDialogComponent {
         formData[arg.id] = [data.formPatch[arg.id]];
         continue;
       }
-      const validators = [Validators.required];
+      const validators: ValidatorFn[] = [Validators.required];
       if (arg.type === 'number') {
         validators.push(Validators.pattern(/^\d+(\.\d+)?$/)); // Allow integers and decimals
       }
+      this.argValidators.set(arg.id, validators);
       let defaultValue: string | boolean = '';
       if (arg.type === 'enum_string') {
         defaultValue = arg.default || arg.choices[0] || '';
@@ -46,9 +51,26 @@ export class RunCustomActionDialogComponent {
       } else if (arg.type === 'string') {
         defaultValue = arg.default === undefined ? '' : arg.default;
       }
-      formData[arg.id] = [defaultValue, validators];
+      formData[arg.id] = [defaultValue, arg.visible_when ? [] : validators];
     }
     this.argsForm = this.fb.group(formData);
+    this.updateConditionalValidators();
+    this.argsForm.valueChanges.subscribe(() => this.updateConditionalValidators());
+  }
+
+  isArgVisible(arg: CustomActionArgument): boolean {
+    return !arg.visible_when || this.argsForm.get(arg.visible_when.arg)?.value === arg.visible_when.value;
+  }
+
+  // Keeps hidden `visible_when`-gated controls out of the validity check.
+  private updateConditionalValidators(): void {
+    for (const arg of this.data.action.args) {
+      if (!arg.visible_when) continue;
+      const control = this.argsForm.get(arg.id);
+      if (!control) continue;
+      control.setValidators(this.isArgVisible(arg) ? (this.argValidators.get(arg.id) ?? null) : null);
+      control.updateValueAndValidity({ emitEvent: false });
+    }
   }
 
   submit() {
@@ -78,7 +100,14 @@ export class RunCustomActionDialogComponent {
 
   async selectOutputFile(arg: CustomActionArgument) {
     if (arg.type === 'file_output') {
-      const nameHint = this.data.resourceName + (arg.file_name_suffix || '');
+      let resId = this.data.resourceId;
+      let nameHint = lastIdPart(resId);
+      // filter out delegate block internals
+      while (nameHint == 'data') {
+        resId = resId.substring(0, resId.length - nameHint.length);
+        nameHint = lastIdPart(resId);
+      }
+      nameHint += arg.file_name_suffix || '';
       const path = await this.mainService.api.saveFileDialog(nameHint);
       if (path) {
         this.argsForm.get(arg.id)?.setValue(path);

@@ -160,6 +160,10 @@ class EnumLookupDelegateBlock(DelegateBlock):
                          **kwargs)
         self.enum_field = enum_field
 
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        data['choice_index'] = _enum_lookup(ctx, self.enum_field, len(self.possible_blocks) - 1)
+        return super().estimate_packed_size(data, ctx)
+
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         data['choice_index'] = _enum_lookup(ctx, self.enum_field, len(self.possible_blocks) - 1)
         return super().write(data, ctx, name)

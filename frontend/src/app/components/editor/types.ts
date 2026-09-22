@@ -24,7 +24,6 @@ export type BlockSchema = {
     reversible: boolean;
     reversible_settings_patch: any;
   } | null;
-  hide_navigation_bar?: boolean;
   value_validator?: { type: 'eq'; expected_value: any } | { type: 'or'; possible_values: any[] };
   custom_actions?: CustomAction[];
 } & any;
@@ -54,7 +53,12 @@ export type CustomAction = {
   idDepth?: number;
 };
 
-export type CustomActionArgument = { id: string; title: string } & (
+export type CustomActionArgument = {
+  id: string;
+  title: string;
+  // Only shown/applicable while the sibling arg named `arg` currently holds `value`.
+  visible_when?: { arg: string; value: any };
+} & (
   | { type: 'file_output'; file_name_suffix: string }
   | { type: 'number'; default?: number }
   | { type: 'string'; default?: string }

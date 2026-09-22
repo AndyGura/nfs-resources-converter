@@ -79,4 +79,8 @@ export class MainService {
   public async getNewItemData(id: string, patch: any = {}): Promise<any> {
     return this.api.getNewItemData(id, patch);
   }
+
+  public async getTrailingOptionalFieldData(id: string): Promise<any> {
+    return this.api.getTrailingOptionalFieldData(id);
+  }
 }

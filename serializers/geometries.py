@@ -46,6 +46,8 @@ class OripGeometrySerializer(BaseFileSerializer):
 
                 except (StopIteration, ValueError):
                     pass
+                except TypeError:
+                    print()
             model.vertex_uvs.append([block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'] * u_multiplier,
                                      block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier])
         return vertices_file_indices_map[model][index_3D]
@@ -246,16 +248,17 @@ class CrpGeometrySerializer(BaseFileSerializer):
         super().serialize(data, path)
 
         misc_choice = block.field_blocks_map['common_parts'].child
-        fsh_parts = [x['data'] for x in data['common_parts'] if
+        fsh_parts = [(join_id(id, 'common_parts', str(i), 'data'), x['data'])
+                     for (i, x) in enumerate(data['common_parts']) if
                      x['choice_index'] == misc_choice.get_choice_index_by_class_name("FSHPart")]
         from serializers import ShpiArchiveSerializer
         shpi_block = ShpiBlock()
-        for fsh_part in fsh_parts:
+        for (fsh_part_id, fsh_part) in fsh_parts:
             assert fsh_part['num_data'] == 1
             fsh_data = fsh_part['data'][0]
             idx = fsh_part["idx"]
             ShpiArchiveSerializer().serialize(fsh_data, path_join(path, f'textures/{idx}/'),
-                                              join_id(id, f'fsh_parts/{idx}'), shpi_block)
+                                              join_id(fsh_part_id, 'data', '0'), shpi_block)
 
         scene = Scene()
         scene.name = 'body'

@@ -56,6 +56,7 @@ class API:
         bridge.expose(self.resource_api.retrieve_value)
         bridge.expose(self.resource_api.run_custom_action)
         bridge.expose(self.resource_api.get_new_item_data)
+        bridge.expose(self.resource_api.get_trailing_optional_field_data)
 
         # Serialization API
         bridge.expose(self.serialization_api.serialize_resource)
@@ -68,6 +69,8 @@ class API:
         bridge.expose(self.conversion_api.patch_general_config)
         bridge.expose(self.conversion_api.patch_conversion_config)
         bridge.expose(self.conversion_api.test_executable)
+        bridge.expose(self.conversion_api.detect_executable_path)
+        bridge.expose(self.conversion_api.is_first_run)
 
         # Changes API
         bridge.expose(self.changes_api.get_revisions)

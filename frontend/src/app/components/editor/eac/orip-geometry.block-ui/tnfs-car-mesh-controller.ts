@@ -155,7 +155,7 @@ export class TnfsCarMeshController {
       await sleep(50);
     }
     replaceColor(
-      this.originalTexWithTailLights.source.data,
+      this.originalTexWithTailLights.source.data as HTMLImageElement,
       this.tailLightsTexColor,
       newColor,
       this.texWithTailLightsImg,

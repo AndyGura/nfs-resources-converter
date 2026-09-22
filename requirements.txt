@@ -1,5 +1,5 @@
-numpy==2.5.1
+numpy==2.5.3
 pillow==12.3.0
-tqdm==4.68.4
+tqdm==4.70.1
 pywebview==6.2.1
 eel==0.18.2

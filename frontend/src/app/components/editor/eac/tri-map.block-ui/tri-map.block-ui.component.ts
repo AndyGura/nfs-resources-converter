@@ -256,7 +256,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
       prop.position = dummy.position;
       prop.rotation = dummy.rotation;
       if (isUnknown) {
-        this.unknownEntities.add(prop);
+        this.unknownEntities.add(prop as Entity3d);
         prop.visible = !this.hideUnknownEntities$.getValue();
       }
       this.world!.addEntity(prop);
@@ -300,7 +300,7 @@ export class Nfs1MapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>
       entity.position = dummy.position;
       entity.rotation = dummy.rotation;
       if (isUnknown) {
-        this.unknownEntities.add(entity);
+        this.unknownEntities.add(entity as Entity3d);
         entity.visible = !this.hideUnknownEntities$.getValue();
       }
       return entity;

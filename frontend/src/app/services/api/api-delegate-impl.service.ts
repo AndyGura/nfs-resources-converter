@@ -9,7 +9,7 @@ import {
   ResourceError,
 } from '../../components/editor/types';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
-import { ConversionConfig, GeneralConfig } from './api-types';
+import { ConversionConfig, ExecutableDetectionResult, ExecutableKind, GeneralConfig } from './api-types';
 import { findNestedObjects } from '../../utils/find-nested-object';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
@@ -119,12 +119,16 @@ export class ApiDelegateImplService {
     return this.wrapCall('retrieve_value', id);
   }
 
-  public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
-    return this.wrapCall('run_custom_action', name, action, args);
+  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
+    return this.wrapCall('run_custom_action', id, action, args);
   }
 
   public async getNewItemData(id: string, patch: any = {}): Promise<any> {
     return this.wrapCall('get_new_item_data', id, patch);
+  }
+
+  public async getTrailingOptionalFieldData(id: string): Promise<any> {
+    return this.wrapCall('get_trailing_optional_field_data', id);
   }
 
   // Serialization API
@@ -171,6 +175,14 @@ export class ApiDelegateImplService {
 
   public async testExecutable(executablePath: string): Promise<any> {
     return this.wrapCall('test_executable', executablePath);
+  }
+
+  public async detectExecutablePath(kind: ExecutableKind): Promise<ExecutableDetectionResult> {
+    return this.wrapCall('detect_executable_path', kind);
+  }
+
+  public async isFirstRun(): Promise<boolean> {
+    return this.wrapCall('is_first_run');
   }
 
   // Changes API

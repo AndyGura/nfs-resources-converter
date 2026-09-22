@@ -3,7 +3,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
 import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
-import { ConversionConfig, GeneralConfig } from './api-types';
+import { ConversionConfig, ExecutableDetectionResult, ExecutableKind, GeneralConfig } from './api-types';
 
 export abstract class BaseApiDelegateService {
   private _implPromise: Promise<any> | null = null;
@@ -99,12 +99,16 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).retrieveValue(id);
   }
 
-  public async runCustomAction(name: string, action: CustomAction, args: { [key: string]: any }) {
-    return (await this.getImpl()).runCustomAction(name, action, args);
+  public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
+    return (await this.getImpl()).runCustomAction(id, action, args);
   }
 
   public async getNewItemData(id: string, patch: any = {}): Promise<any> {
     return (await this.getImpl()).getNewItemData(id, patch);
+  }
+
+  public async getTrailingOptionalFieldData(id: string): Promise<any> {
+    return (await this.getImpl()).getTrailingOptionalFieldData(id);
   }
 
   // Serialization API
@@ -151,6 +155,14 @@ export abstract class BaseApiDelegateService {
 
   public async testExecutable(executablePath: string): Promise<any> {
     return (await this.getImpl()).testExecutable(executablePath);
+  }
+
+  public async detectExecutablePath(kind: ExecutableKind): Promise<ExecutableDetectionResult> {
+    return (await this.getImpl()).detectExecutablePath(kind);
+  }
+
+  public async isFirstRun(): Promise<boolean> {
+    return (await this.getImpl()).isFirstRun();
   }
 
   // Changes API

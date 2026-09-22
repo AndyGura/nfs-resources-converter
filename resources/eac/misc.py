@@ -1,31 +1,5 @@
-from typing import Dict
-
 from library.context import WriteContext, ReadContext
-from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, BytesBlock, UTF8Block
-from library.read_blocks.misc.value_validators import Eq
-from library.read_blocks.strings import LengthPrefixedUtf8Block
-
-
-class ShpiText(DeclarativeCompoundBlock):
-
-    @property
-    def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'block_description': 'An entry, which sometimes can be seen in the SHPI archive block after bitmap, '
-                                 'contains some text. The purpose is unclear',
-        }
-
-    class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x6F)),
-                       {'description': 'Resource ID'})
-        unk = (BytesBlock(length=3),
-               {'is_unknown': True})
-        text = LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4))
-
-    def serializer_class(self):
-        from serializers import ShpiTextSerializer
-        return ShpiTextSerializer
+from library.read_blocks import UTF8Block
 
 
 class DashDeclarationFile(UTF8Block):

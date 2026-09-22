@@ -18,7 +18,6 @@ export class CustomActionService {
 
   async runCustomAction(
     resourceId: string,
-    resourceName: string,
     action: CustomAction,
     formPatch: any = {},
     runImmediately: boolean = false,
@@ -41,7 +40,7 @@ export class CustomActionService {
     let args: any[] = [];
     if (!runImmediately) {
       const dialogRef = this.dialog.open(RunCustomActionDialogComponent, {
-        data: { action, resourceName, formPatch },
+        data: { action, resourceId, formPatch },
       });
       const dialogArgs: any[] | undefined = await firstValueFrom(dialogRef.afterClosed());
       if (!dialogArgs) {

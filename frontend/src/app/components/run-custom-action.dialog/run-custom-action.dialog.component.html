@@ -4,7 +4,7 @@
 </div>
 <form [formGroup]="argsForm">
   @for (arg of data.action.args; track arg) {
-    @if (data.formPatch?.[arg.id] === undefined) {
+    @if (data.formPatch?.[arg.id] === undefined && isArgVisible(arg)) {
       @if (arg.type === 'bool') {
         <mat-checkbox [formControlName]="arg.id" class="action-arg-checkbox">
           {{ arg.title }}

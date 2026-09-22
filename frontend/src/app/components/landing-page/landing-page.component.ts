@@ -42,6 +42,10 @@ export class LandingPageComponent {
     await this.api.openFile(path, true);
   }
 
+  async openRecentFileLocation(path: string) {
+    await this.api.openFileWithSystemApp(path.substring(0, Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))));
+  }
+
   getFileName(path: string): string {
     if (!path) return '';
     const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));

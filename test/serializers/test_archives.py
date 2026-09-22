@@ -9,7 +9,9 @@ from serializers.archives import ShpiArchiveSerializer
 class TestShpiArchiveSerializer(unittest.TestCase):
     def test_duplicate_aliases_serialization(self):
         serializer = ShpiArchiveSerializer()
-        serializer.patch_settings({'images__save_images_only': True})
+        serializer.patch_settings(
+            {'images__save_image_positions': False, 'images__save_palettes': False, 'images__save_mipmaps': False,
+             'images__save_embedded_palette': False, 'images__save_texts': False})
 
         shpi_block = ShpiBlock()
         image_block = EacImage()
@@ -41,19 +43,20 @@ class TestShpiArchiveSerializer(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Serialize
             serializer.serialize(shpi_data, tmp_dir, block=shpi_block, id="test_shpi")
-            
+
             # Check files saved
             files = os.listdir(tmp_dir)
             self.assertIn(f"{alias}.png", files)
             self.assertIn(f"{alias}0.png", files)
-            
+
             # Deserialize
             deserialized_data = serializer.deserialize([tmp_dir], block=shpi_block, id="test_shpi")
-            
+
             # Check aliases
             self.assertEqual(len(deserialized_data['children']), 2)
             self.assertEqual(deserialized_data['children'][0]['alias'], alias)
             self.assertEqual(deserialized_data['children'][1]['alias'], alias)
+
 
 if __name__ == '__main__':
     unittest.main()

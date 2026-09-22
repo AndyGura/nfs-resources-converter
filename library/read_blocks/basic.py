@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from io import SEEK_CUR
+from io import SEEK_CUR, BytesIO
 from typing import Dict, Any, Tuple
 
 from library.context import ReadContext, WriteContext, DocumentationContext
@@ -43,7 +43,7 @@ class DataBlock(ABC):
         return None, unpacked_data.get(name)
 
     # creates empty data
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
         raise BlockDefinitionException("Cannot generate new data for block.")
@@ -75,6 +75,10 @@ class DataBlock(ABC):
         v = self.read(ctx=ctx, name=name, read_bytes_amount=read_bytes_amount)
         self.validate_after_read(v, ctx, name)
         return v
+
+    ### final method, should never override. Shortcut for reading data from pure bytes
+    def unpack_from_bytes(self, b: bytes, name: str = ''):
+        return self.unpack(ReadContext(BytesIO(b)), name=name, read_bytes_amount=len(b))
 
     ### final method, should never override
     def pack(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
@@ -143,7 +147,7 @@ class BytesBlock(DataBlock):
             self_len = self_len(ctx)
         return self_len
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length

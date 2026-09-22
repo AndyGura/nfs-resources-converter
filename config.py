@@ -59,7 +59,11 @@ class ConfigManager:
                 "multiprocess_processes_count": 0,
                 "input_path": "",
                 "output_path": "",
-                "images__save_images_only": False,
+                "images__save_image_positions": False,
+                "images__save_palettes": False,
+                "images__save_mipmaps": False,
+                "images__save_embedded_palette": False,
+                "images__save_texts": False,
                 "maps__save_as_chunked": False,
                 "maps__save_invisible_wall_collisions": False,
                 "maps__save_terrain_collisions": False,
@@ -152,6 +156,12 @@ class ConfigManager:
         elif isinstance(default, float):
             return float(value)
         elif isinstance(default, list):
+            value = value.strip()
+            # Tolerate the literal "[]" that older versions of this file could persist for an
+            # empty list default (see create_default_config_file), so existing settings files
+            # self-heal instead of surfacing a bogus single item.
+            if value in ('', '[]'):
+                return []
             return value.split(',')
         elif isinstance(default, dict):
             # For dictionaries, we don't support conversion from string
@@ -174,7 +184,12 @@ class ConfigManager:
                     continue
 
                 if not self._config.has_option(section, key):
-                    self._config.set(section, key, str(value))
+                    if isinstance(value, list):
+                        # Store lists the same way `set()` does (comma-joined), so an empty list
+                        # round-trips back to [] instead of the literal string "[]"
+                        self._config.set(section, key, ','.join(value))
+                    else:
+                        self._config.set(section, key, str(value))
 
         with open(CONFIG_FILE_PATH, 'w') as config_file:
             self._config.write(config_file)
@@ -259,7 +274,11 @@ def conversion_config(patch: Dict = None) -> ClassDict:
         "multiprocess_processes_count": get_config(SECTION_CONVERSION, "multiprocess_processes_count"),
         "input_path": get_config(SECTION_CONVERSION, "input_path"),
         "output_path": get_config(SECTION_CONVERSION, "output_path"),
-        "images__save_images_only": get_config(SECTION_CONVERSION, "images__save_images_only"),
+        "images__save_image_positions": get_config(SECTION_CONVERSION, "images__save_image_positions"),
+        "images__save_palettes": get_config(SECTION_CONVERSION, "images__save_palettes"),
+        "images__save_mipmaps": get_config(SECTION_CONVERSION, "images__save_mipmaps"),
+        "images__save_embedded_palette": get_config(SECTION_CONVERSION, "images__save_embedded_palette"),
+        "images__save_texts": get_config(SECTION_CONVERSION, "images__save_texts"),
         "maps__save_as_chunked": get_config(SECTION_CONVERSION, "maps__save_as_chunked"),
         "maps__save_invisible_wall_collisions": get_config(SECTION_CONVERSION, "maps__save_invisible_wall_collisions"),
         "maps__save_terrain_collisions": get_config(SECTION_CONVERSION, "maps__save_terrain_collisions"),
@@ -274,6 +293,34 @@ def conversion_config(patch: Dict = None) -> ClassDict:
     return ClassDict.wrap(config)
 
 
-# Create default config file if it doesn't exist
-if not os.path.exists(CONFIG_FILE_PATH):
+# Whether this process is the very first run of the app (no settings file was found yet).
+# Captured before the default config file gets created below, so it stays accurate for the
+# rest of the process lifetime.
+_IS_FIRST_RUN = not os.path.exists(CONFIG_FILE_PATH)
+
+
+def is_first_run() -> bool:
+    """
+    Whether this is the first time the app has been run on this machine (no settings file existed
+    yet at process startup).
+
+    Returns:
+        bool: True on the very first run only
+    """
+    return _IS_FIRST_RUN
+
+
+# Create default config file if it doesn't exist. On this first run, try to auto-detect the
+# blender/ffmpeg executable paths so the user doesn't have to configure them manually.
+if _IS_FIRST_RUN:
+    from library.utils.executable_detection import detect_blender_path, detect_ffmpeg_path
+
+    detected_blender = detect_blender_path()
+    if detected_blender:
+        _config_manager._defaults[SECTION_GENERAL]["blender_executable"] = detected_blender
+
+    detected_ffmpeg = detect_ffmpeg_path()
+    if detected_ffmpeg:
+        _config_manager._defaults[SECTION_GENERAL]["ffmpeg_executable"] = detected_ffmpeg
+
     _config_manager.create_default_config_file()

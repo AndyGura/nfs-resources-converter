@@ -40,6 +40,35 @@ class TestEacCompressedBlock(unittest.TestCase):
         decompressed = Qfs2Compression().uncompress(BytesIO(compressed), len(compressed))
         self.assertEqual(original_data, decompressed)
 
+    # def test_qfs2_compression_efficiency(self):
+    #     import tempfile
+    #     import urllib.request
+    #     from eac.archives import ShpiBlock
+    #     from eac.bitmaps import EacImage
+    #     from serializers import ImageSerializer
+    #     shpi_block = ShpiBlock()
+    #     data = shpi_block.new_data()
+    #     data['children'].append({
+    #         'pre_offset_payload': b'',
+    #         'post_offset_payload': b'',
+    #         'alias': 'AAAA',
+    #         'item': {
+    #             'choice_index': shpi_block.item_block.get_choice_index_by_class_name('EacImage'),
+    #             'data': EacImage().new_data()
+    #         }
+    #     })
+    #     with tempfile.TemporaryDirectory() as tmpdir:
+    #         image_url = "https://picsum.photos/512/512?hmac=pJQXx7frJ1QUXHF_ysDKy3gb54RDtfk9C09G-iswhZE"
+    #         tmp_dir = tempfile.gettempdir()
+    #         image_path = os.path.join(tmp_dir, "sample_image.png")
+    #         urllib.request.urlretrieve(image_url, image_path)
+    #         data['children'][0]['item']['data'] = ImageSerializer().deserialize([image_path], block=EacImage())
+    #     # shpi_block.action_convert_to_8bit(data, '', '!pal', '32Bit color format palette', 256, '')
+    #     pure_data = shpi_block.write(data)
+    #     compressed = Qfs2Compression().compress(BytesIO(pure_data), len(pure_data))
+    #     decompressed = Qfs2Compression().uncompress(BytesIO(compressed), len(compressed))
+    #     self.assertEqual(pure_data, decompressed)
+
     def test_qfs2_asm_decompression(self):
         parser_py = Qfs2Compression()
         parser_asm = Qfs2ASMCompression()

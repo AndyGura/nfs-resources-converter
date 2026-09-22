@@ -11,6 +11,7 @@ import { BinaryBlockUiComponent } from './library/binary.block-ui/binary.block-u
 import { EnumBlockUiComponent } from './library/enum.block-ui/enum.block-ui.component';
 import { SubByteCompoundBlockUiComponent } from './library/sub-byte-compound.block-ui/sub-byte-compound.block-ui.component';
 import { DelegateBlockUiComponent } from './library/delegate.block-ui/delegate.block-ui.component';
+import { TrailingOptionalBlockUiComponent } from './library/trailing-optional.block-ui/trailing-optional.block-ui.component';
 import { AngleBlockUiComponent } from './eac/angle.block-ui/angle.block-ui.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -79,6 +80,7 @@ import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.bl
     CompoundBlockUiComponent,
     SubByteCompoundBlockUiComponent,
     DelegateBlockUiComponent,
+    TrailingOptionalBlockUiComponent,
     AngleBlockUiComponent,
     ArchiveBlockUiComponent,
     TargaImageBlockUiComponent,

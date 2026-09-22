@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library.context import ReadContext
+from library.context import ReadContext, WriteContext
 from library.read_blocks import (IntegerBlock,
                                  UTF8Block,
                                  DeclarativeCompoundBlock,
@@ -82,11 +82,24 @@ class KerningItem(DeclarativeCompoundBlock):
                  {'description': 'Code of right glyph'})
 
 
-def _block_size_delta(ctx):
-    if ctx.data('version') <= 101:
-        return len(ctx.data('padding_2'))
-    else:
-        return 0
+def calc_ffn_block_size(ctx):
+    # modified copy from compound block's estimate_packed_size
+    data = ctx.get_full_data()
+    block_ctx = WriteContext(data=data, block=ctx.block, parent=None)
+    res = 0
+    for name, field in ctx.block.field_blocks:
+        if name == 'padding_2' and ctx.data('version') <= 101:
+            continue
+        if name == 'bitmap' and data['bitmap']['embedded_palette']:
+            res += data['bitmap']['palette_offset'] - len(data['bitmap']['pad'])
+            continue
+
+        # fallback default compound block estimate_packed_size logic
+        usage = ctx.block.field_extras_map.get(name, {}).get('usage', 'everywhere')
+        if usage != 'everywhere' and 'io' not in usage:
+            continue
+        res += field.estimate_packed_size(data=data.get(name), ctx=block_ctx)
+    return res
 
 
 class FfnFont(DeclarativeCompoundBlock):
@@ -96,7 +109,6 @@ class FfnFont(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'serializable_to_disc': True,
-            'hide_navigation_bar': True,
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -105,13 +117,11 @@ class FfnFont(DeclarativeCompoundBlock):
                                                                'FntA'])),
                        {'description': 'Resource ID'})
         block_size = (IntegerBlock(length=4,
-                                   programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())
-                                                                  - len(ctx.data('remaining_bytes'))
-                                                                  - _block_size_delta(ctx)),
+                                   programmatic_value=lambda ctx: calc_ffn_block_size(ctx)),
                       {'usage': 'io,doc',
-                       'description': 'The length of this FFN block in bytes. Does not include "remaining_bytes" '
-                                      'length. For older versions (I set version <= 101, but it can be anywhere < 309), '
-                                      '"padding_2" length is not included as well'})
+                       'description': 'The length of this FFN block in bytes. Does not include bitmap embedded palette '
+                                      '(and padding to it after bitmap data). For older versions (I set version <= 101,'
+                                      ' but it can be anywhere up to < 309), "padding_2" length not included as well'})
         version = IntegerBlock(length=2, is_signed=False)
         num_glyphs = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('definitions'))),
@@ -171,9 +181,6 @@ class FfnFont(DeclarativeCompoundBlock):
                      {'is_unknown': True})
         bitmap = (EacImage(),
                   {'description': 'Font atlas bitmap data'})
-        padding_3 = (Padding(to=(lambda ctx: ctx.data('block_size') + _block_size_delta(ctx),
-                                 'block_size + padding_2 length (version <= 101)')),
-                     {'is_unknown': True})
         remaining_bytes = (BytesBlock(length=(lambda ctx: ctx.read_bytes_remaining,
                                               'remaining bytes')),
                            {'is_unknown': True})

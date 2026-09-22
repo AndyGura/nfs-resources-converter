@@ -108,7 +108,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             usage = self.field_extras_map.get(name, {}).get('usage', 'everywhere')
             if usage != 'everywhere' and 'io' not in usage:
                 continue
-            res[name] = field.unpack(ctx=self_ctx, name=name)
+            res[name] = field.unpack(ctx=self_ctx, name=name, read_bytes_amount=self_ctx.read_bytes_remaining)
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):

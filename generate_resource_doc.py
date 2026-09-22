@@ -103,7 +103,6 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 eac.archives.ShpiBlock(),
-                eac.archives.PaletteReference(),
                 eac.archives.WwwwBlock(),
                 eac.archives.SoundBank(),
             ],
@@ -131,6 +130,8 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
+                bitmaps.ShpiText(),
             ],
             'Fonts': [
                 eac.fonts.FfnFont(),
@@ -173,7 +174,6 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 eac.archives.ShpiBlock(),
-                eac.archives.PaletteReference(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
             ],
@@ -207,6 +207,8 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
+                bitmaps.ShpiText(),
             ],
             'Fonts': [
                 eac.fonts.FfnFont(),
@@ -215,9 +217,8 @@ EXPORT_RESOURCES = {
             ],
             # 'Audio': [
             # ],
-            'Misc': [
-                eac.misc.ShpiText(),
-            ]
+            # 'Misc': [
+            # ]
         },
     },
     'nfs2se': {
@@ -239,7 +240,6 @@ EXPORT_RESOURCES = {
         'blocks': {
             'Archives': [
                 eac.archives.ShpiBlock(),
-                eac.archives.PaletteReference(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
             ],
@@ -273,6 +273,8 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
+                bitmaps.ShpiText(),
             ],
             'Fonts': [
                 eac.fonts.FfnFont(),
@@ -281,9 +283,8 @@ EXPORT_RESOURCES = {
             ],
             # 'Audio': [
             # ],
-            'Misc': [
-                eac.misc.ShpiText(),
-            ]
+            # 'Misc': [
+            # ]
         },
     },
     'nfs3': {
@@ -345,6 +346,8 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
+                bitmaps.ShpiText(),
             ],
             'Fonts': [
                 eac.fonts.FfnFont(),
@@ -384,6 +387,8 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
+                bitmaps.ShpiText(),
             ],
             'Fonts': [
                 eac.fonts.FfnFont(),
@@ -458,6 +463,8 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
+                bitmaps.ShpiText(),
             ],
             'Fonts': [
                 eac.fonts.FfnFont(),
@@ -493,6 +500,8 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
+                bitmaps.PaletteReference(),
+                bitmaps.ShpiText(),
             ],
             'Fonts': [
                 eac.fonts.FfnFont(),

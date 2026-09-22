@@ -20,3 +20,42 @@ mat-form-field {
 app-compound-block-ui {
   place-self: flex-start;
 }
+
+.embedded-palettes-array {
+  width: 100%;
+
+  h3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .item-wrapper {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #fafafa;
+      padding: 0 8px;
+      margin-bottom: 4px;
+
+      .item-index {
+        font-weight: bold;
+        color: rgba(0, 0, 0, 0.54);
+      }
+
+      .item-actions {
+        display: flex;
+        align-items: center;
+      }
+    }
+  }
+}

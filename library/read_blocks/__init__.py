@@ -15,7 +15,7 @@ from .compound import (
     SubByteCompoundBlock,
     BitFlagsBlock,
 )
-from .optional import OptionalBlock
+from .optional import OptionalBlock, TrailingOptionalBlock
 from .numbers import (
     IntegerBlock,
     FixedPointBlock,
