@@ -781,21 +781,25 @@ class FrdMapSerializer(BaseFileSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id, block, **kwargs)
         from library import require_resource
+        # Unlike NFS2 (TRK/COL), terrain polygon "tex_id" in FRD is not an index into the COL
+        # texture map: it directly indexes the FRD file's own "texture_blocks" table, which in
+        # turn stores the real index of the texture in the QFS/SHPI archive
+        texture_blocks = data['texture_blocks']
         try:
-            (_, _, texture_map), _ = require_resource(id[:-3] + 'COL__extrablocks/0/data_records/data')
             (_, _, shpi_children), _ = require_resource(id[:-4] + '0.QFS__data/children')
             shpi_aliases = [x['alias'] for x in shpi_children if x['alias']]
 
             def get_texture(tex):
                 try:
-                    return shpi_aliases[texture_map[tex]['texture_number']], texture_map[tex]['alignment']
+                    texture_block = texture_blocks[tex]
+                    return shpi_aliases[texture_block['texture_id']], texture_block['corners']
                 except IndexError:
-                    return f"{tex:04}", 0
+                    return f"{tex:04}", None
         except Exception:
             traceback.print_exc()
 
             def get_texture(tex):
-                return f"{tex:04}", 0
+                return f"{tex:04}", None
         blocks = data['blocks']
         map_scene = Scene(name='map',
                           obj_name='map',
@@ -813,19 +817,10 @@ class FrdMapSerializer(BaseFileSerializer):
         }
         map_scene.curves.append(curve)
 
-        def get_uvs(alignment):
-            uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
-            if str(alignment).startswith('rotate_90'):
-                uvs = rotate_list(uvs, 1)
-            elif str(alignment).startswith('rotate_180'):
-                uvs = rotate_list(uvs, 2)
-            elif str(alignment).startswith('rotate_270'):
-                uvs = rotate_list(uvs, 3)
-            elif alignment == 'flip_h':
-                uvs = [uvs[1], uvs[0], uvs[3], uvs[2]]
-            elif alignment == 'flip_v':
-                uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
-            return uvs
+        def get_uvs(corners):
+            if corners is None:
+                return [[0, 1], [1, 1], [1, 0], [0, 0]]
+            return [[corners[i * 2], corners[i * 2 + 1]] for i in range(4)]
 
         chunks = []
         texture_names = set()
@@ -835,8 +830,8 @@ class FrdMapSerializer(BaseFileSerializer):
             model.name = f'block_{block_i}'
             pivot = block['position']
             for p in polygon_block['polygons'][0]['data']['data']:
-                texture_name, texture_alignment = get_texture(p['tex_id'])
-                uvs = get_uvs(texture_alignment)
+                texture_name, texture_corners = get_texture(p['tex_id'])
+                uvs = get_uvs(texture_corners)
                 base_idx = len(model.vertices)
                 for i, v_index in enumerate(p['vertices']):
                     v = block['vertices'][v_index]

@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-09-05 19:54:20.162224+00:00*
+*Last time updated: 2026-09-28 20:24:13.775419+00:00*
 
 
 # **Info by file extensions** #
@@ -62,9 +62,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks |
 | 32 | **blocks** | (num_blocks+1)\*1316..? | Array of `num_blocks+1` items<br/>Item type: [FrdBlock](#frdblock) | - |
 | 32 + (num_blocks+1)\*1316..? | **polygon_blocks** | (num_blocks+1)\*44..? | Array of `num_blocks+1` items<br/>Item type: [FrdPolyBlock](#frdpolyblock) | - |
-| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1))\*4..? | Array of `4*(num_blocks+1)` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [ExtraObjectBlock](#extraobjectblock) | - |
-| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4..? | **num_texture_blocks** | 4 | 4-bytes unsigned integer (little endian) | Length of texture_blocks array |
-| 36 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1))\*4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | - |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1)+1)\*4..? | Array of `4*(num_blocks+1)+1` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [ExtraObjectBlock](#extraobjectblock) | - |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1)+1)\*4..? | **num_texture_blocks** | 4 | 4-bytes unsigned integer (little endian) | Length of texture_blocks array |
+| 36 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1)+1)\*4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | - |
 ### **FrdBlock** ###
 #### **Size**: 1316..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -192,7 +192,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **width** | 2 | 2-bytes unsigned integer (little endian) | Texture width |
 | 2 | **height** | 2 | 2-bytes unsigned integer (little endian) | Texture height |
 | 4 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Blending related, hometown covered bridges godrays |
-| 8 | **corners** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | 4x planar coordinates == tiling? |
+| 8 | **corners** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | UV coordinates of the 4 polygon corners (u0, v0, u1, v1, u2, v2, u3, v3), in the same order as polygon vertices |
 | 40 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 44 | **is_lane** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0 (0x0): default<br/>1 (0x1): lane</details> | 1 if not a real texture (lane), 0 usually |
 | 45 | **texture_id** | 2 | 2-bytes unsigned integer (little endian) | index in QFS file |

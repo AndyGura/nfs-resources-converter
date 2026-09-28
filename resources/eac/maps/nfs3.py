@@ -208,10 +208,9 @@ class TextureBlock(DeclarativeCompoundBlock):
         unk0 = (IntegerBlock(length=4),
                 {'description': 'Blending related, hometown covered bridges godrays',
                  'is_unknown': True})
-        # TODO float
-        corners = (ArrayBlock(child=IntegerBlock(length=4), length=8),
-                   {'description': '4x planar coordinates == tiling?',
-                    'is_unknown': True})
+        corners = (ArrayBlock(child=DecimalBlock(length=4), length=8),
+                   {'description': 'UV coordinates of the 4 polygon corners (u0, v0, u1, v1, u2, v2, u3, v3), '
+                                   'in the same order as polygon vertices'})
         unk1 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         is_lane = (EnumByteBlock(enum_names=[(0, 'default'),
@@ -243,7 +242,7 @@ class FrdMap(DeclarativeCompoundBlock):
                                     length=lambda ctx: ctx.data('num_blocks') + 1)
         extraobject_blocks = ArrayBlock(child=LengthPrefixedArrayBlock(child=ExtraObjectBlock(),
                                                                        length_block=IntegerBlock(length=4)),
-                                        length=lambda ctx: 4 * (ctx.data('num_blocks') + 1))
+                                        length=lambda ctx: 4 * (ctx.data('num_blocks') + 1) + 1)
         texture_blocks = LengthPrefixedArrayBlock(child=TextureBlock(), length_block=IntegerBlock(length=4))
 
     def serializer_class(self):
