@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-09-28 20:24:13.775419+00:00*
+*Last time updated: 2026-09-29 06:59:16.732508+00:00*
 
 
 # **Info by file extensions** #
@@ -43,150 +43,165 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | Descriptions of items: offset, length and name of each of them |
 | 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock)<br/>- pure TGA image |
 ### **BigfItemDescriptionBlock** ###
 #### **Size**: 9..? bytes ####
+#### **Description**: Description of a single item of BIGF archive ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | Offset of item data, relative to BIGF block start |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | Length of item data in bytes |
+| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Item name (file name). Used as file name when the archive is unpacked |
 ## **Maps** ##
 ### **FrdMap** ###
 #### **Size**: 36..? bytes ####
-#### **Description**: Main track file ####
+#### **Description**: Main track file. The track is split into blocks (segments). Each block has its own vertex table ([FrdBlock](#frdblock)) and polygons at 3 levels of detail ([FrdPolyBlock](#frdpolyblock)). Standalone objects (billboards, animated objects) are stored as extra objects. Polygon textures are referenced through the `texture_blocks` table, which points to images in <track>0.QFS ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk** | 28 | Bytes | Unknown header |
-| 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks |
-| 32 | **blocks** | (num_blocks+1)\*1316..? | Array of `num_blocks+1` items<br/>Item type: [FrdBlock](#frdblock) | - |
-| 32 + (num_blocks+1)\*1316..? | **polygon_blocks** | (num_blocks+1)\*44..? | Array of `num_blocks+1` items<br/>Item type: [FrdPolyBlock](#frdpolyblock) | - |
-| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1)+1)\*4..? | Array of `4*(num_blocks+1)+1` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [ExtraObjectBlock](#extraobjectblock) | - |
+| 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of blocks. Block arrays below have `num_blocks + 1` items |
+| 32 | **blocks** | (num_blocks+1)\*1316..? | Array of `num_blocks+1` items<br/>Item type: [FrdBlock](#frdblock) | Track blocks: vertices, road data and object references of each track segment |
+| 32 + (num_blocks+1)\*1316..? | **polygon_blocks** | (num_blocks+1)\*44..? | Array of `num_blocks+1` items<br/>Item type: [FrdPolyBlock](#frdpolyblock) | Polygons of the track blocks, same index as in `blocks` |
+| 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44..? | **extraobject_blocks** | (4\*(num_blocks+1)+1)\*4..? | Array of `4*(num_blocks+1)+1` items<br/>Item size: 4..? bytes<br/>Item type: Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [ExtraObjectBlock](#extraobjectblock) | Chunks of extra objects (XOBJ): 4 chunks per track block (matching the 4 `polyobj` chunks of the block), followed by one global chunk with objects not attached to any block. Each chunk is prefixed with the amount of objects in it |
 | 32 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1)+1)\*4..? | **num_texture_blocks** | 4 | 4-bytes unsigned integer (little endian) | Length of texture_blocks array |
-| 36 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1)+1)\*4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | - |
+| 36 + (num_blocks+1)\*1316 + (num_blocks+1)\*44 + (4\*(num_blocks+1)+1)\*4..? | **texture_blocks** | num_texture_blocks\*47 | Array of `num_texture_blocks` items<br/>Item type: [TextureBlock](#textureblock) | Texture references table, used by all polygons of the track. Texture images are in <track>0.QFS |
 ### **FrdBlock** ###
 #### **Size**: 1316..? bytes ####
+#### **Description**: Track block: a segment of the track. Contains terrain vertices with shading, road orientation data and references to objects placed in this segment. Polygons of the block are stored separately, in the [FrdPolyBlock](#frdpolyblock) with the same index ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position of the block in the world |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position of the block in the world: a point on the road at the block start. Positions of all blocks form the track path |
 | 12 | **bounds** | 48 | Array of `4` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Block bounding rectangle |
-| 60 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Number of vertices |
-| 64 | **num_vertices_high** | 4 | 4-bytes unsigned integer (little endian) | Number of high-res vertices |
-| 68 | **num_vertices_low** | 4 | 4-bytes unsigned integer (little endian) | Number of low-res vertices |
-| 72 | **num_vertices_med** | 4 | 4-bytes unsigned integer (little endian) | Number of medium-res vertices |
-| 76 | **num_vertices_dup** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 80 | **num_vertices_obj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices. Coordinates are global |
-| 84 + num_vertices\*12 | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 84 + num_vertices\*12 + num_vertices\*4 | **neighbour_data** | 1200 | Array of `600` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 1284 + num_vertices\*12 + num_vertices\*4 | **num_start_pos** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1288 + num_vertices\*12 + num_vertices\*4 | **num_positions** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1292 + num_vertices\*12 + num_vertices\*4 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1296 + num_vertices\*12 + num_vertices\*4 | **num_vroad** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1300 + num_vertices\*12 + num_vertices\*4 | **num_xobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1304 + num_vertices\*12 + num_vertices\*4 | **num_polyobj** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1308 + num_vertices\*12 + num_vertices\*4 | **num_soundsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1312 + num_vertices\*12 + num_vertices\*4 | **num_lightsrc** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 | **positions** | num_positions\*8 | Array of `num_positions` items<br/>Item type: [FrdPositionBlock](#frdpositionblock) | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [FrdBlockPolygonData](#frdblockpolygondata) | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 | **vroad** | num_vroad\*12 | Array of `num_vroad` items<br/>Item type: [FrdBlockVroadData](#frdblockvroaddata) | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 | **xobj** | num_xobj\*20 | Array of `num_xobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 | **polyobj** | num_polyobj\*20 | Array of `num_polyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 | **soundsrc** | num_soundsrc\*16 | Array of `num_soundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + num_soundsrc\*16 | **lightsrc** | num_lightsrc\*16 | Array of `num_lightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Unknown purpose |
+| 60 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Total amount of vertices |
+| 64 | **num_vertices_high** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by high-res terrain polygons |
+| 68 | **num_vertices_low** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by low-res terrain polygons |
+| 72 | **num_vertices_med** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by medium-res terrain polygons |
+| 76 | **num_vertices_dup** | 4 | 4-bytes unsigned integer (little endian) | Equals to `num_vertices` |
+| 80 | **num_vertices_obj** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by per-block objects (polyobj)? |
+| 84 | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices. Coordinates are global (not relative to block position) |
+| 84 + num_vertices\*12 | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Per-vertex shading color, 32-bit ARGB (0xFFRRGGBB), one item per vertex |
+| 84 + num_vertices\*12 + num_vertices\*4 | **neighbour_data** | 1200 | Array of `600` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | 300 pairs of 16-bit values: (neighbouring block index, unknown). Unused pairs have index 0xFFFF |
+| 1284 + num_vertices\*12 + num_vertices\*4 | **num_start_pos** | 4 | 4-bytes unsigned integer (little endian) | Index of the first `positions` entry of this block among all blocks of the track (sum of `num_positions` of all previous blocks) |
+| 1288 + num_vertices\*12 + num_vertices\*4 | **num_positions** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `positions` |
+| 1292 + num_vertices\*12 + num_vertices\*4 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `polygons`. Equals to the amount of high-res track polygons (`polygons[4]` chunk of the [FrdPolyBlock](#frdpolyblock)) |
+| 1296 + num_vertices\*12 + num_vertices\*4 | **num_vroad** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `vroad` |
+| 1300 + num_vertices\*12 + num_vertices\*4 | **num_xobj** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `xobj` |
+| 1304 + num_vertices\*12 + num_vertices\*4 | **num_polyobj** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `polyobj` |
+| 1308 + num_vertices\*12 + num_vertices\*4 | **num_soundsrc** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `soundsrc` |
+| 1312 + num_vertices\*12 + num_vertices\*4 | **num_lightsrc** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `lightsrc` |
+| 1316 + num_vertices\*12 + num_vertices\*4 | **positions** | num_positions\*8 | Array of `num_positions` items<br/>Item type: [FrdPositionBlock](#frdpositionblock) | Groups of high-res track polygons ("rows" across the road) |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [FrdBlockPolygonData](#frdblockpolygondata) | Per-polygon data (road orientation reference + flags) for the high-res track polygons |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 | **vroad** | num_vroad\*12 | Array of `num_vroad` items<br/>Item type: [FrdBlockVroadData](#frdblockvroaddata) | Virtual road: orientation vectors of the road surface, referenced from `polygons` |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 | **xobj** | num_xobj\*20 | Array of `num_xobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | References to extra objects (XOBJ) placed in this block. Each 20-byte item: position (3 x 32-bit fixed point with 24 fraction bits), 16-bit unknown, 16-bit sequence number of the object among all extra objects of the track, 4 unknown bytes |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 | **polyobj** | num_polyobj\*20 | Array of `num_polyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | References to per-block objects (POLYOBJ). Each 20-byte item: 16-bit unknown, 8-bit type, 8-bit id, position (3 x 32-bit fixed point with 24 fraction bits), 8-bit cross index, 3 unknown bytes |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 | **soundsrc** | num_soundsrc\*16 | Array of `num_soundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit sound type |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + num_soundsrc\*16 | **lightsrc** | num_lightsrc\*16 | Array of `num_lightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit light type |
 ### **FrdPositionBlock** ###
 #### **Size**: 8 bytes ####
+#### **Description**: A group of consecutive high-res track polygons: a "row" of polygons across the road. A track block usually has 8 of them, together covering all polygons of the high-res track chunk ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **polygon** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 2 | **num_polygons** | 1 | 1-byte unsigned integer | - |
-| 3 | **unk** | 1 | 1-byte unsigned integer | - |
-| 4 | **extra_neighbor1** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 6 | **extra_neighbor2** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 0 | **polygon** | 2 | 2-bytes unsigned integer (little endian) | Index of the first polygon of this group in the high-res track polygon chunk (`polygons[4]` of the corresponding [FrdPolyBlock](#frdpolyblock)) |
+| 2 | **num_polygons** | 1 | 1-byte unsigned integer | Amount of polygons in this group |
+| 3 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 4 | **extra_neighbor1** | 2 | 2-bytes unsigned integer (little endian) | Extra neighbouring block index? 0xFFFF if none |
+| 6 | **extra_neighbor2** | 2 | 2-bytes unsigned integer (little endian) | Extra neighbouring block index? 0xFFFF if none |
 ### **FrdBlockPolygonData** ###
 #### **Size**: 8 bytes ####
+#### **Description**: Per-polygon data of the high-res track polygons: one record per polygon of `polygons[4]` chunk of the corresponding [FrdPolyBlock](#frdpolyblock) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **vroad_idx** | 1 | 1-byte unsigned integer | - |
-| 1 | **flags** | 1 | 1-byte unsigned integer | - |
+| 0 | **vroad_idx** | 1 | 1-byte unsigned integer | Index of entry in `vroad` array of the block: orientation of the road surface at this polygon |
+| 1 | **flags** | 1 | 1-byte unsigned integer | Polygon flags (road surface type, driveable etc.?) |
 | 2 | **unk** | 6 | Bytes | Unknown purpose |
 ### **FrdBlockVroadData** ###
 #### **Size**: 12 bytes ####
+#### **Description**: Virtual road entry: orientation of the road surface, referenced by index from `polygons[].vroad_idx` of the block ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | A normal vector of the surface |
 | 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | A forward vector of the surface |
 ### **FrdPolyBlock** ###
 #### **Size**: 44..? bytes ####
+#### **Description**: Polygons of a track block (the [FrdBlock](#frdblock) with the same index): 7 chunks of terrain polygons + 4 chunks of per-block objects ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **polygons** | 28..? | Array of `7` items<br/>Item type: [FrdPolygonsBlock](#frdpolygonsblock) | - |
-| 28..? | **polyobj** | 16..? | Array of `4` items<br/>Item type: [FrdPolyObjBlock](#frdpolyobjblock) | - |
+| 0 | **polygons** | 28..? | Array of `7` items<br/>Item type: [FrdPolygonsBlock](#frdpolygonsblock) | Terrain polygon chunks: 0 - low-res track, 1 - low-res misc (non-track), 2 - medium-res track, 3 - medium-res misc, 4 - high-res track, 5 - high-res misc, 6 - lanes (helper polygons, not rendered). Low/medium/high-res chunks are alternative levels of detail of the same terrain (roughly 1/4, 1/2 and full amount of polygons) |
+| 28..? | **polyobj** | 16..? | Array of `4` items<br/>Item type: [FrdPolyObjBlock](#frdpolyobjblock) | 4 chunks of per-block objects. Extra objects (XOBJ) referenced from chunk N are stored in `extraobject_blocks[4 * block_index + N]` of the track file |
 ### **FrdPolygonsBlock** ###
 #### **Size**: 4..? bytes ####
+#### **Description**: A chunk of terrain polygons of a track block ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord)<br/>- Bytes | This data is presented only if sz != 0 |
+| 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Amount of polygons in this chunk. 0 means the chunk is absent and no data follows |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord)<br/>- Bytes | Polygons. This data is presented only if sz != 0. The array length prefix duplicates `sz` |
 ### **FrdPolygonRecord** ###
 #### **Size**: 14 bytes ####
+#### **Description**: A single quad polygon of terrain or object ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **vertices** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | - |
-| 8 | **tex_id** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 10 | **tex_flags** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 12 | **flags** | 1 | 1-byte unsigned integer | - |
-| 13 | **unk** | 1 | 1-byte unsigned integer | - |
+| 0 | **vertices** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Indexes of the 4 vertices in the vertex table of the enclosing track block (terrain polygons) or extra object (object polygons) |
+| 8 | **tex_id** | 2 | 2-bytes unsigned integer (little endian) | Index of entry in `texture_blocks` table of the track file, which defines the real texture index in the QFS archive and UV coordinates of polygon corners |
+| 10 | **tex_flags** | 2 | 2-bytes unsigned integer (little endian) | Texture flags. Zero for terrain polygons, non-zero only in the lanes chunk |
+| 12 | **flags** | 1 | 1-byte unsigned integer | Usually 0, observed values 0x20, 0x30, 0x40 |
+| 13 | **unk** | 1 | 1-byte unsigned integer | Always 0xF9? |
 ### **FrdPolyObjBlock** ###
 #### **Size**: 4..? bytes ####
+#### **Description**: A chunk of per-block objects (POLYOBJ) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolyObjPolygonsBlock](#frdpolyobjpolygonsblock)<br/>- Bytes | This data is presented only if sz > 0 |
+| 0 | **sz** | 4 | 4-bytes unsigned integer (little endian) | Total amount of polygons of all objects in this chunk. 0 means the chunk is absent and no data follows |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolyObjPolygonsBlock](#frdpolyobjpolygonsblock)<br/>- Bytes | Objects. This data is presented only if sz > 0. The array length prefix is the amount of objects, including the XOBJ references (type == 4) |
 ### **FrdPolyObjPolygonsBlock** ###
 #### **Size**: 4..? bytes ####
+#### **Description**: Polygons of a single per-block object (POLYOBJ) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **type** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord)<br/>- Bytes | This data is presented only if type == 1 |
+| 0 | **type** | 4 | 4-bytes unsigned integer (little endian) | Object type: 1 - polygons follow; 4 - the object is an extra object (XOBJ), its geometry is stored in the corresponding chunk of `extraobject_blocks` and nothing follows here |
+| 4 | **data** | ? | One of types:<br/>- Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord)<br/>- Bytes | Polygons of the object. This data is presented only if type == 1 |
 ### **ExtraObjectBlock** ###
 #### **Size**: 36..? bytes ####
+#### **Description**: Extra object (XOBJ): a standalone mesh placed on the track, e.g. a billboard, a building or an animated object ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **cross_type** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **cross_no** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 0 | **cross_type** | 4 | 4-bytes unsigned integer (little endian) | Object type: 4 - static object, 3 - animated object |
+| 4 | **cross_no** | 4 | 4-bytes unsigned integer (little endian) | Object number |
 | 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 12 | **data** | 16..? | One of types:<br/>- [ExtraObjectDataCrossType4](#extraobjectdatacrosstype4)<br/>- [ExtraObjectDataCrossType1](#extraobjectdatacrosstype1) | - |
-| 28..? | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 32..? | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
-| 32 + num_vertices\*12..? | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | - |
+| 12 | **data** | 16..? | One of types:<br/>- [ExtraObjectDataCrossType4](#extraobjectdatacrosstype4)<br/>- [ExtraObjectDataCrossType1](#extraobjectdatacrosstype1) | Type-specific data (position or animation), block class picked according to `cross_type` |
+| 28..? | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices |
+| 32..? | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Vertices, relative to the object position (reference point for static objects, current keyframe position for animated ones) |
+| 32 + num_vertices\*12..? | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Per-vertex shading color, 32-bit ARGB (0xFFRRGGBB), one item per vertex |
 | 32 + num_vertices\*12 + num_vertices\*4..? | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Length of polygons array |
-| 36 + num_vertices\*12 + num_vertices\*4..? | **polygons** | num_polygons\*14 | Array of `num_polygons` items<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | - |
+| 36 + num_vertices\*12 + num_vertices\*4..? | **polygons** | num_polygons\*14 | Array of `num_polygons` items<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | Polygons of the object. Vertex indexes point to `vertices` of this object |
 ### **ExtraObjectDataCrossType1** ###
 #### **Size**: 24..? bytes ####
+#### **Description**: Extra data of an animated extra object (cross_type == 3) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unk** | 18 | Bytes | - |
-| 18 | **type** | 1 | 1-byte unsigned integer. Always == 0x3 | - |
-| 19 | **objno** | 1 | 1-byte unsigned integer | - |
-| 20 | **num_animdata** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 22 | **anim_delay** | 2 | 2-bytes unsigned integer (little endian) | - |
-| 24 | **animdata** | num_animdata\*20 | Array of `num_animdata` items<br/>Item type: [AnimData](#animdata) | - |
+| 0 | **unk** | 18 | Bytes | Unknown purpose |
+| 18 | **type** | 1 | 1-byte unsigned integer. Always == 0x3 | Animation type, always 3 |
+| 19 | **objno** | 1 | 1-byte unsigned integer | Object number |
+| 20 | **num_animdata** | 2 | 2-bytes unsigned integer (little endian) | Amount of keyframes |
+| 22 | **anim_delay** | 2 | 2-bytes unsigned integer (little endian) | Delay between keyframes (animation speed) |
+| 24 | **animdata** | num_animdata\*20 | Array of `num_animdata` items<br/>Item type: [AnimData](#animdata) | Animation keyframes. Object vertices are relative to the position of the current keyframe |
 ### **AnimData** ###
 #### **Size**: 20 bytes ####
+#### **Description**: Animation keyframe of an extra object ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
-| 12 | **od** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | - |
+| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Object position at this keyframe |
+| 12 | **od** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Object orientation at this keyframe, presumably a quaternion (x, y, z, w), where each component is 16-bit fixed point with 14 fraction bits (identity is [0, 0, 0, 16384]) |
 ### **ExtraObjectDataCrossType4** ###
 #### **Size**: 16 bytes ####
+#### **Description**: Extra data of a static extra object (cross_type == 4) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **pt_ref** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | - |
-| 12 | **anim_memory** | 4 | 4-bytes unsigned integer (little endian) | - |
+| 0 | **pt_ref** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Reference point: position of the object in the world. Object vertices are relative to it |
+| 12 | **anim_memory** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **TextureBlock** ###
 #### **Size**: 47 bytes ####
+#### **Description**: Texture reference. Polygons refer to items of this table by `tex_id`, the item defines the actual texture in the QFS archive and UV coordinates of the polygon corners ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **width** | 2 | 2-bytes unsigned integer (little endian) | Texture width |
@@ -195,9 +210,10 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **corners** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | UV coordinates of the 4 polygon corners (u0, v0, u1, v1, u2, v2, u3, v3), in the same order as polygon vertices |
 | 40 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 44 | **is_lane** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0 (0x0): default<br/>1 (0x1): lane</details> | 1 if not a real texture (lane), 0 usually |
-| 45 | **texture_id** | 2 | 2-bytes unsigned integer (little endian) | index in QFS file |
+| 45 | **texture_id** | 2 | 2-bytes unsigned integer (little endian) | Index of the texture in the track QFS archive (<track>0.QFS) |
 ### **MapColFile** ###
 #### **Size**: 16..? bytes ####
+#### **Description**: Track additional data (COL file), a list of extrablocks: textures map (used by polygons of the TRK file), track-wide props with their 3D models and collision data (road centre line for the physics engine) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "COLL" | Resource ID |
@@ -208,37 +224,41 @@ Did not find what you need or some given data is wrong? Please submit an
 | 16 + num_extrablocks\*4 | **extrablocks_bytes** | block_size-16-4\*num_extrablocks | Bytes | A part of block, where extra blocks data is located. Offsets are defined in previous "extrablock_offsets" field. Item type:<br/>- [ColExtraBlock](#colextrablock) |
 ### **ColExtraBlock** ###
 #### **Size**: 8..? bytes ####
+#### **Description**: A typed container of data records. The same structure is used for extrablocks inside TRK blocks and in the COL file; record type is defined by `type` ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Block size in bytes |
-| 4 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>2 (0x2): textures_map<br/>4 (0x4): block_numbers<br/>5 (0x5): polygon_map<br/>6 (0x6): median_polygons<br/>7 (0x7): props_7<br/>8 (0x8): prop_descriptions<br/>9 (0x9): lanes<br/>13 (0xd): road_vectors<br/>15 (0xf): collision_data<br/>18 (0x12): props_18<br/>19 (0x13): props_19</details> | Type of the data records |
+| 4 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>2 (0x2): textures_map<br/>4 (0x4): block_numbers<br/>5 (0x5): polygon_map<br/>6 (0x6): median_polygons<br/>7 (0x7): props_7<br/>8 (0x8): prop_descriptions<br/>9 (0x9): lanes<br/>13 (0xd): road_vectors<br/>15 (0xf): collision_data<br/>18 (0x12): props_18<br/>19 (0x13): props_19</details> | Type of the data records. textures_map, props_7, prop_descriptions and collision_data are found in COL file; polygon_map, block_numbers, median_polygons, props_18, prop_descriptions, lanes and road_vectors in TRK blocks |
 | 5 | **unk** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
 | 6 | **num_data_records** | 2 | 2-bytes unsigned integer (little endian) | Amount of data records |
-| 8 | **data_records** | ? | Type according to enum `type`:<br/>- Array of `num_data_records` items<br/>Item type: [TexturesMapExtraDataRecord](#texturesmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_data_records` items<br/>Item type: [PolygonMapExtraDataRecord](#polygonmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [MedianExtraDataRecord](#medianextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropDescriptionExtraDataRecord](#propdescriptionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [LanesExtraDataRecord](#lanesextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [RoadVectorsExtraDataRecord](#roadvectorsextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [CollisionExtraDataRecord](#collisionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Bytes | Data records |
+| 8 | **data_records** | ? | Type according to enum `type`:<br/>- Array of `num_data_records` items<br/>Item type: [TexturesMapExtraDataRecord](#texturesmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_data_records` items<br/>Item type: [PolygonMapExtraDataRecord](#polygonmapextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [MedianExtraDataRecord](#medianextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropDescriptionExtraDataRecord](#propdescriptionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [LanesExtraDataRecord](#lanesextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [RoadVectorsExtraDataRecord](#roadvectorsextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [CollisionExtraDataRecord](#collisionextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Array of `num_data_records` items<br/>Item type: [PropExtraDataRecord](#propextradatarecord)<br/>- Bytes | Data records, block class picked according to `type`. Records of unknown types are kept as raw bytes |
 ### **TexturesMapExtraDataRecord** ###
 #### **Size**: 10 bytes ####
+#### **Description**: Texture reference. Polygons of the track (TRK) and of props refer to items of this table by index, the item defines the actual texture in the QFS archive and its orientation on the polygon ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **texture_number** | 2 | 2-bytes unsigned integer (little endian) | Texture number in QFS file |
+| 0 | **texture_number** | 2 | 2-bytes unsigned integer (little endian) | Index of the texture in the track QFS file (<track>0.QFS) |
 | 2 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 3 | **alignment** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): rotate_180<br/>3 (0x3): rotate_270<br/>5 (0x5): normal<br/>9 (0x9): rotate_90<br/>16 (0x10): flip_v<br/>18 (0x12): rotate_270_2<br/>20 (0x14): flip_h<br/>24 (0x18): rotate_90_2</details> | Alignment data, which game uses instead of UV-s when rendering mesh.I use UV-s (0,1; 1,1; 1,0; 0,0) and modify them according to enum value names |
+| 3 | **alignment** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): rotate_180<br/>3 (0x3): rotate_270<br/>5 (0x5): normal<br/>9 (0x9): rotate_90<br/>16 (0x10): flip_v<br/>18 (0x12): rotate_270_2<br/>20 (0x14): flip_h<br/>24 (0x18): rotate_90_2</details> | Orientation of the texture on the polygon, which game uses instead of UV-s. The converter uses base UV-s (0,1), (1,1), (1,0), (0,0) for the 4 polygon vertices and modifies them according to the enum value: rotate_* shift them by 1, 2 or 3 vertices, flip_h/flip_v mirror them |
 | 4 | **luminosity** | 3 | Color RGB values | Luminosity color |
 | 7 | **black** | 3 | Color RGB values | Unknown, usually black |
 ### **PolygonMapExtraDataRecord** ###
 #### **Size**: 2 bytes ####
-#### **Description**: Polygon extra data. Number of items here == np1 * 2, but sometimes less. Why? ####
+#### **Description**: Polygon extra data: road surface orientation for a polygon of the block. Number of items here == np1 * 2, but sometimes less. Why? ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **vectors_idx** | 1 | 1-byte unsigned integer | An index of entry in road_vectors extrablock |
-| 1 | **car_behavior** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0 (0x0): unk0<br/>1 (0x1): unk1</details> | - |
+| 1 | **car_behavior** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0 (0x0): unk0<br/>1 (0x1): unk1</details> | Unknown purpose |
 ### **MedianExtraDataRecord** ###
 #### **Size**: 8 bytes ####
+#### **Description**: A record of median_polygons extrablock: references a polygon of the block, presumably marking it as a road median. Purpose is not confirmed ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **polygon_idx** | 1 | 1-byte unsigned integer | Polygon index |
 | 1 | **unk** | 7 | Bytes | Unknown purpose |
 ### **AnimatedPropPosition** ###
 #### **Size**: 4..? bytes ####
+#### **Description**: Animation of prop position: a sequence of keyframes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **num_frames** | 2 | 2-bytes unsigned integer (little endian) | An amount of frames |
@@ -246,32 +266,34 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **frames** | num_frames\*20 | Array of `num_frames` items<br/>Item type: [AnimatedPropPositionFrame](#animatedproppositionframe) | Animation frames |
 ### **AnimatedPropPositionFrame** ###
 #### **Size**: 20 bytes ####
+#### **Description**: A single keyframe of animated prop movement ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position in 3D space |
-| 12 | **unk0** | 8 | Bytes | Unknown purpose |
+| 12 | **unk0** | 8 | Bytes | Presumably object orientation at this keyframe |
 ### **PropExtraDataRecord** ###
 #### **Size**: 4..? bytes ####
-#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track ####
+#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track. Records of type props_18 (in TRK blocks) and props_7 (in COL file) have this structure; the 3D model itself is in the prop_descriptions extrablock of the same block/file ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size in bytes |
 | 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): static_prop<br/>3 (0x3): animated_prop</details> | Object type |
 | 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | An index of 3D model in "prop_descriptions" extrablock |
-| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | Object positioning in 3D space |
+| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | Object positioning in 3D space: a single point for static_prop, a sequence of keyframes for animated_prop (the converter places the prop at the first keyframe). Block class picked according to `type` |
 ### **PropDescriptionExtraDataRecord** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: 3D model ####
+#### **Description**: 3D model of a prop. Placed on the track by records of props_* extrablocks, which reference this model by index ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Block size in bytes |
 | 4 | **num_vertices** | 2 | 2-bytes unsigned integer (little endian) | Amount of vertices |
 | 6 | **num_polygons** | 2 | 2-bytes unsigned integer (little endian) | Amount of polygons |
-| 8 | **vertices** | num_vertices\*6 | Array of `num_vertices` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertices |
-| 8 + num_vertices\*6 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [ColPolygon](#colpolygon) | Polygons |
+| 8 | **vertices** | num_vertices\*6 | Array of `num_vertices` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Vertices, relative to the prop position |
+| 8 + num_vertices\*6 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [ColPolygon](#colpolygon) | Polygons. Textures are referenced through the textures_map of the COL file, the same way as for terrain polygons |
 | 8 + num_vertices\*6 + num_polygons\*8 | **padding** | block_size-local_offset | Bytes | Unused space |
 ### **LanesExtraDataRecord** ###
 #### **Size**: 4 bytes ####
+#### **Description**: A lane marker: ties a vertex and a polygon of the block terrain to a position on a lane ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **vertex_idx** | 1 | 1-byte unsigned integer | Vertex number (inside background 3D structure : 0 to nv1+nv8) |
@@ -280,13 +302,14 @@ Did not find what you need or some given data is wrong? Please submit an
 | 3 | **polygon_idx** | 1 | 1-byte unsigned integer | Polygon number (inside full-res background 3D structure : 0 to np1) |
 ### **RoadVectorsExtraDataRecord** ###
 #### **Size**: 12 bytes ####
-#### **Description**: Block with normal + forward vectors pair ####
+#### **Description**: Orientation of the road surface: normal + forward vectors pair. Referenced by index from polygon_map records ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | - |
-| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | - |
+| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | A normal vector of the road surface |
+| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | A forward vector of the road (direction of the track) |
 ### **CollisionExtraDataRecord** ###
 #### **Size**: 36 bytes ####
+#### **Description**: A point of the track collision spline (road centre line) with road orientation vectors and distances to the road borders. Used by the physics engine; there are 8 points per track block ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | A global position of track collision spline point. The unit is meter |
@@ -294,11 +317,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 15 | **forward** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A forward vector |
 | 18 | **right** | 3 | Point in 3D space (x,y,z), where each coordinate is: 8-bit real number (little-endian, signed), where last 7 bits is a fractional part, normalized | A right vector |
 | 21 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 22 | **block_idx** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 22 | **block_idx** | 2 | 2-bytes unsigned integer (little endian) | Index of the TRK block this point belongs to |
 | 24 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
 | 26 | **left_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | Distance to left track border in meters |
 | 28 | **right_border** | 2 | 16-bit real number (little-endian, not signed), where last 8 bits is a fractional part | Distance to right track border in meters |
-| 30 | **respawn_lat_pos** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 30 | **respawn_lat_pos** | 2 | 2-bytes unsigned integer (little endian) | Named by assumption (lateral position of car respawn). Values look like four packed 4-bit numbers, e.g. 0x1111, 0x1144, 0x1244 |
 | 32 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **ColPolygon** ###
 #### **Size**: 8 bytes ####
@@ -356,32 +379,34 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x6f | Resource ID |
 | 1 | **unk** | 3 | Bytes | Unknown purpose |
 | 4 | **len_text** | 4 | 4-bytes unsigned integer (little endian) | Length of 'text' utf8 block |
-| 8 | **text** | len_text | UTF-8 string | - |
+| 8 | **text** | len_text | UTF-8 string | Text contents |
 ## **Fonts** ##
 ### **FfnFont** ###
 #### **Size**: 48..? bytes ####
+#### **Description**: Bitmap font: a font atlas bitmap plus glyph definitions (position and size of each symbol in the atlas) and optional kerning table ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include bitmap embedded palette (and padding to it after bitmap data). For older versions (I set version <= 101, but it can be anywhere up to < 309), "padding_2" length not included as well |
-| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | Font format version. Defines the layout of glyph definitions (see [GlyphDefinition](#glyphdefinition)) |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | - |
-| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | - |
-| 18 | **ascent** | 1 | 1-byte unsigned integer | - |
-| 19 | **descent** | 1 | 1-byte unsigned integer | - |
+| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | Font flags: format of glyph definitions, encoding, layout and draw attributes |
+| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | Unknown purpose |
+| 18 | **ascent** | 1 | 1-byte unsigned integer | Distance from the baseline to the top of the glyphs in pixels. `ascent + descent` is the line height |
+| 19 | **descent** | 1 | 1-byte unsigned integer | Distance from the baseline to the bottom of the glyphs in pixels |
 | 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
 | 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
 | 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
 | definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*17 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
 | ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
-| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | Kerning pairs table |
 | ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
 | bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
 | ? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
 #### **Size**: 11..17 bytes ####
+#### **Description**: Glyph definition.<br/>- for FNT version < 200 has length 11 bytes.<br/>- for versions >= 200 and <= 309 - 12 bytes, last byte is padding.<br/>- for versions > 309 - 12th byte is num_kern.<br/>- for versions >= 321 it may be 16 bytes if "format" flag is set to 16-bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **code** | 2 | 2-bytes unsigned integer (little endian) | Code of symbol |
@@ -398,8 +423,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
 ### **KerningItem** ###
 #### **Size**: 4 bytes ####
+#### **Description**: Kerning pair: horizontal adjustment of the gap between two specific glyphs ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
-| 2 | **kerning** | 1 | 1-byte signed integer | - |
+| 2 | **kerning** | 1 | 1-byte signed integer | Kerning amount in pixels, added to the gap between the glyphs |
 | 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |
