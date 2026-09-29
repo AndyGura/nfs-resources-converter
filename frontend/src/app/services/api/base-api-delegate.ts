@@ -120,6 +120,14 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).serializeResource(blockId, path, settingsPatch);
   }
 
+  public async serializeResourceSilent(
+    blockId: string,
+    path: string | null = null,
+    settingsPatch: any = {},
+  ): Promise<string[]> {
+    return (await this.getImpl()).serializeResourceSilent(blockId, path, settingsPatch);
+  }
+
   public async deserializeResource(
     id: string,
     filePaths: string[],

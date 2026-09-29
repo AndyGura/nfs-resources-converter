@@ -32,6 +32,17 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
             from resources.eac.geometries import GeoGeometry
             return GeoGeometry
         elif file_path.upper().endswith('.FRD'):
+            if length is not None and length >= 36:
+                pos = buffer.tell()
+                try:
+                    buffer.seek(pos + 28)
+                    n_blocks = int.from_bytes(buffer.read(4), 'little', signed=False) + 1
+                    hs_magic = int.from_bytes(buffer.read(4), 'little', signed=True)
+                    if 1 < n_blocks <= 500 and (hs_magic + 7) // 8 == n_blocks:
+                        from resources.eac.maps.nfs4 import Nfs4FrdMap
+                        return Nfs4FrdMap
+                finally:
+                    buffer.seek(pos)
             from resources.eac.maps.nfs3 import FrdMap
             return FrdMap
     if header_str:

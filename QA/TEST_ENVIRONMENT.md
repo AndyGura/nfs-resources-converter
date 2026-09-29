@@ -97,6 +97,55 @@ gets real data back, but **does not update the Angular UI**, because the UI-side
 wrapper too. Use the real dialog-automation technique above whenever the test needs to assert
 anything about UI state, not just backend behavior.
 
+### Shortcut: driving it directly on the host, no Docker (when you just need one screenshot)
+
+The Docker recipe above is the right call for a real regression pass, but it's overkill for the
+common "I just changed a GUI component, show me it renders" case — you don't need a genuine Linux
+box for that, because `actions/gui_editor_linux.py` is **plain, platform-agnostic Python**: nothing
+in it actually depends on being on Linux, it just isn't the branch `run.py` dispatches to on
+macOS/Windows (that dispatch is a `sys.platform` check in `run.py`, not a capability difference).
+You can import and call it directly, on macOS or Windows, and get the exact same drivable
+`http://localhost:4200` tab as the Docker recipe, with no container at all:
+
+```bash
+# from the repo root, with the Angular dev server already running (npm run start, inside frontend/)
+./.venv/bin/python - <<'EOF'
+import actions.gui_editor_linux as g
+g.run_gui_editor('test/golden_corpus/SOME_FILE.EXT', dev_server_url='http://localhost:4200')
+EOF
+```
+
+This is **confirmed live** (used to verify the NFS4 track viewer end-to-end, screenshot included in
+that session). Two things to know before reaching for this:
+
+- **Passing a `file_path` auto-opens it — no dialog, no click needed.** `run_gui_editor` forwards it
+  into `API(static_path, file_path)`, which pushes it to the frontend via the same
+  `open_arg_file`/`on_angular_ready` handshake real file-association opens use, as soon as Angular
+  signals ready. This sidesteps the whole Tk/Xvfb/`xdotool` dance below entirely for the "just show
+  me this one file" case — only reach for the dialog-automation recipe if the scenario specifically
+  needs to exercise the Open/Save dialog itself.
+- **Port conflicts are your problem to solve, not the app's.** `_DEV_SERVER_PORT` in
+  `gui_editor_linux.py` (and `_DEV_STATIC_SERVER_PORT` in `gui_editor_macos.py`, if you ever do need
+  the native-window path for something) is hardcoded to `8000`, matching
+  `frontend/src/proxy.conf.json`'s proxy target — there's no env var or CLI override. If something
+  else on the host already owns 8000 (observed once: an unrelated `pocket-ic` process, nothing to do
+  with this repo), **don't edit either Python file** — monkeypatch the module attribute in your
+  throwaway script instead (`g._DEV_SERVER_PORT = 8001`), and temporarily point
+  `frontend/src/proxy.conf.json`'s two `target` values at the same port, restarting `ng serve` so it
+  picks up the change. Revert `proxy.conf.json` (`git checkout -- frontend/src/proxy.conf.json`)
+  once you're done — it's a tracked file and the port swap has no reason to survive your session.
+  Check for the conflict first with `lsof -nP -iTCP:8000 -sTCP:LISTEN`.
+
+**Don't bother with macOS `screencapture`/AppleScript for this.** The instinct, when you already
+have a live GUI window open via `python run.py --dev` (native pywebview path), is to just screenshot
+the window directly rather than bothering with the Eel/browser route above. In an agent sandbox this
+reliably dead-ends: `screencapture` fails outright (`could not create image from display` — no
+Screen Recording permission for the process), and `osascript -e 'tell application "System Events"
+...'` hangs waiting on an Accessibility permission prompt nothing can dismiss non-interactively.
+Neither permission can be granted headlessly. Skip straight to the no-Docker shortcut above instead
+of spending time on either — it gets you a real screenshot via the `computer` MCP tool's own
+capture, which needs no OS-level permission at all.
+
 ### Known friction with this setup
 
 - `computer` screenshot capture can hang (CDP `Page.captureScreenshot` times out) on a tab that

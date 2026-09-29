@@ -189,7 +189,18 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    extension (`file_path.endswith/upper().endswith`) and/or magic bytes (`header_str`/`resource_id`
    from the first bytes). Import the block class **locally inside the branch** (perf convention —
    see root `CLAUDE.md`).
-2. **Define it** under `resources/<vendor>/...py` using the blocks above.
+2. **Define it** under `resources/<vendor>/...py` using the blocks above. Give the top-level block
+   class a name that's unique **across every game's module**, not just within its own file - the
+   GUI picks a viewer component by walking `schema['block_class_mro']`, which is built from the
+   Python class's own `__name__` (`DataBlock.schema`, `library/read_blocks/basic.py`), with no
+   awareness of which module it came from. A same-named class in another game's module (e.g. two
+   different `class FrdMap(...)` for two different track formats, one per game) collides silently:
+   whichever viewer is registered for that name in `DATA_BLOCK_COMPONENTS_MAP` renders for *both*
+   formats, even though their `schema`/field shapes differ - no error, just a viewer fed data it
+   doesn't expect. Prefix per-game top-level classes that share a concept name with another game
+   (`Nfs4FrdMap`, not `FrdMap`, alongside NFS3's `FrdMap`) and verify with
+   `SomeBlock().schema['block_class_mro']` that it doesn't match an existing one before wiring up
+   a bespoke viewer for it.
 3. **Serialize it**: add a serializer class (subclass `BaseFileSerializer` from
    `serializers/base.py`) under `serializers/<area>.py`, implement `serialize()` (and
    `deserialize()`/`ui_serialization()` if it should round-trip from the GUI convert panel), return
@@ -224,6 +235,43 @@ fields and even whole new formats built from existing primitives. Only add a bes
 image/3D-model/map/audio preview) when a rich visualization genuinely earns its keep — and note
 that registering one (`editor.module.ts` + `editor.component.ts`'s `DATA_BLOCK_COMPONENTS_MAP`) is
 the same mechanism whether generic or custom; see skill `read-block-framework` for the how-to.
+
+### Reusing an existing 3D map/terrain viewer for a new per-game format
+
+If a new format is conceptually the same kind of thing an existing bespoke 3D viewer already
+renders (e.g. another game's track file, alongside `FrdMapBlockUiComponent`/`Nfs3MapWorldEntity` in
+`frontend/.../editor/eac/frd-map.block-ui/`), don't fork the whole component - the world/rendering
+class (`Nfs3MapWorldEntity` there, despite the name) is generic chunk-graph-of-OBJs-plus-QFS-texture
+machinery with no game-specific logic in it; import and reuse it as-is from a new sibling
+`*.block-ui` folder, only rewriting the thin wrapper component around it (see
+`Nfs4FrdMapBlockUiComponent` for a worked example - it differs from the NFS3 one only in where it
+reads each block's road-spline position from, since that game splits block headers into their own
+array instead of storing position inline per block).
+
+When adapting `onQfsSelected`-style code for the new wrapper, keep the
+`await this.mainService.api.serializeResource(qfsPath)` call even if you don't need anything from
+its return value. It looks like dead weight if you're only borrowing the sky-texture-loading half of
+the original method and dropping the rest, but the call has a load-bearing **side effect**: it's
+what makes the backend actually write the QFS archive's texture PNGs to disk (under
+`resources/<qfsPath>/`, which the dev-server proxy and production static server both serve), which
+`Nfs3MapWorldEntity.getTerrainMaterial` then loads by predicting that same path from the string
+alone - it never receives the call's return value. Drop the call and every terrain material silently
+falls back to the checkerboard placeholder texture with no error anywhere; the only symptom is a
+`console.warn('Problem with loading terrain material ...')` per texture, easy to miss unless you're
+watching the dev-server log (`read_console_messages`) while checking the live preview, not just the
+build/compile step.
+
+Don't assume the texture archive's path can always be derived purely from the FRD's own filename,
+either - a per-game/per-track naming quirk can mean the "obvious" derived path doesn't exist and the
+real texture archive is a *sibling* resource instead. NFS4 has exactly this: a reverse-direction
+track ("Trn.FRD") doesn't always ship its own archive, and its polygons reference the forward
+track's ("Tr.FRD") "Tr0.QFS" instead (see `_require_nfs4_texture_archive` in `serializers/maps.py`
+and the matching `qfsCandidates`/`loadQfsWithFallback` in `Nfs4FrdMapBlockUiComponent` - both try
+the derived path first and fall back to a same-directory sibling before giving up). When a wrapper
+needs to try more than one candidate path like this, use `mainService.api.serializeResourceSilent`
+(not `serializeResource`) for every attempt except the last - a miss on a *speculative* candidate is
+expected and shouldn't pop the global API-error dialog (`apiError$` in `BaseApiDelegateService`),
+only a failure of the final, no-more-fallbacks attempt should.
 
 ### Overriding a few fields inside an existing bespoke viewer
 

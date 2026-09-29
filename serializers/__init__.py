@@ -6,7 +6,7 @@ from .bitmaps import ImageSerializer, TargaImageSerializer, PaletteSerializer, S
 from .fonts import FfnFontSerializer
 from .geometries import OripGeometrySerializer, GeoGeometrySerializer, CrpGeometrySerializer
 from .json import JsonSerializer
-from .maps import TriMapSerializer, TrkMapSerializer, FrdMapSerializer
+from .maps import TriMapSerializer, TrkMapSerializer, FrdMapSerializer, Nfs4FrdMapSerializer
 from .videos import FfmpegSupportedVideoSerializer
 
 

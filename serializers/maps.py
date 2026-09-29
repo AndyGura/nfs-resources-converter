@@ -902,3 +902,171 @@ for obj in bpy.context.selected_objects:
 
         # export scenes
         return export_scenes(scenes, path, self.settings)
+
+
+# Polygon chunk field names that make up the visible terrain of a NFS4 track block. "lanes" and
+# the still-unidentified "misc" chunks 1-4 are deliberately excluded: lanes are non-rendered
+# helper polygons and the misc 1-4 chunks' purpose isn't known yet.
+NFS4_TERRAIN_POLYGON_CHUNKS = [
+    'polygons_low_res_track',
+    'polygons_low_res_misc',
+    'polygons_med_res_track',
+    'polygons_med_res_misc',
+    'polygons_high_res_track',
+    'polygons_high_res_misc',
+]
+
+
+def _require_nfs4_texture_archive(id):
+    # A NFS4 reverse-direction track ("Trn.FRD") doesn't always have its own texture archive -
+    # for some tracks (e.g. GT1, GT2, Park) only the forward track's "Tr0.QFS" exists on disk,
+    # and the reverse FRD's polygons reference texture indices into that same archive. Try the
+    # archive named after this FRD's own basename first, and fall back to the same path with a
+    # trailing "n" (the reverse-track marker) stripped before giving up.
+    from library import require_resource
+    dirpath, _, filename = id.rpartition('/')
+    prefix = f'{dirpath}/' if dirpath else ''
+    basename = filename[:-4]
+    candidates = [basename]
+    if basename[-1:].lower() == 'n':
+        candidates.append(basename[:-1])
+    last_error = None
+    for candidate in candidates:
+        try:
+            return require_resource(f'{prefix}{candidate}0.QFS__data')
+        except Exception as e:
+            last_error = e
+    raise last_error
+
+
+class Nfs4FrdMapSerializer(BaseFileSerializer):
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        super().serialize(data, path, id, block, **kwargs)
+        # Unlike NFS3, a NFS4 FRD polygon's texture field directly indexes the track's QFS/SHPI
+        # archive (no local texture table in the FRD itself), and no per-polygon UV corners are
+        # stored anywhere - every polygon is UV-mapped to the full 0..1 quad of its texture.
+        try:
+            (_, _, qfs_data), _ = _require_nfs4_texture_archive(id)
+            shpi_aliases = [x['alias'] for x in qfs_data['children'] if x['alias']]
+
+            def get_texture(tex):
+                try:
+                    return shpi_aliases[tex & 0x07FF]
+                except IndexError:
+                    return f"{tex & 0x07FF:04}"
+        except Exception:
+            traceback.print_exc()
+
+            def get_texture(tex):
+                return f"{tex & 0x07FF:04}"
+
+        blocks = data['blocks']
+        map_scene = Scene(name='map',
+                          obj_name='map',
+                          mtl_name='terrain',
+                          mtl_texture_path_func=lambda x: f'textures/{x}.png',
+                          skip_obj_export=self.settings.maps__save_as_chunked and not self.settings.maps__save_terrain_collisions)
+        scenes = [map_scene]
+
+        # add road spline to map scene
+        headers = data['blocks_headers']
+        curve = {
+            'name': 'road_path',
+            'closed': True,
+            'points': [[h['position']['x'], h['position']['z'], h['position']['y']] for h in headers],
+        }
+        map_scene.curves.append(curve)
+
+        def get_uvs(tex_flags):
+            uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
+            if tex_flags & 0x10:
+                uvs = [uvs[1], uvs[0], uvs[3], uvs[2]]
+            rotate_bits = (tex_flags >> 7) & 0x3
+            if rotate_bits:
+                uvs = rotate_list(uvs, rotate_bits)
+            return uvs
+
+        chunks = []
+        texture_names = set()
+        for block_i, (header, trk_block) in enumerate(zip(headers, blocks)):
+            model = Mesh()
+            model.name = f'block_{block_i}'
+            pivot = header['position']
+            for chunk_name in NFS4_TERRAIN_POLYGON_CHUNKS:
+                for p in trk_block[chunk_name]:
+                    texture_name = get_texture(p['texture'])
+                    uvs = get_uvs(p['tex_flags'])
+                    base_idx = len(model.vertices)
+                    for i, v_index in enumerate(p['vertices']):
+                        v = trk_block['vertices'][v_index]
+                        model.vertices.append([v['x'], v['y'], v['z']])
+                        model.vertex_uvs.append(uvs[i])
+                    model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
+                    model.texture_ids.append(texture_name)
+                    texture_names.add(texture_name)
+            sub_meshes = model.split_by_texture_ids()
+            chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
+        map_scene.mtl_texture_names = list(texture_names)
+
+        for chunk in chunks:
+            chunk[1] = (chunk[1][0], chunk[1][2], chunk[1][1])
+            for mesh in chunk[0]:
+                mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
+                mesh.change_axes(new_z='y', new_y='z')
+        if self.settings.maps__save_terrain_collisions:
+            terrain_mesh = SubMesh()
+            terrain_mesh.name = 'terrain_collision_mesh'
+            for i, (meshes, chunk_pos) in enumerate(chunks):
+                for mesh in meshes:
+                    terrain_mesh.extend(mesh)
+            terrain_mesh.collapse_vertices()
+            map_scene.sub_meshes.append(terrain_mesh)
+            map_scene.extra_script += """
+
+bpy.ops.object.select_all(action='DESELECT')
+is_active_set = False
+objects = [x for x in bpy.data.objects if x.name == "terrain_collision_mesh"]
+for object in objects:
+    object.select_set(True)
+    if not is_active_set:
+        bpy.context.view_layer.objects.active = object
+        is_active_set = True
+if len(objects) > 0:
+    bpy.ops.rigidbody.objects_add(type='PASSIVE')
+for obj in bpy.context.selected_objects:
+    obj.rigid_body.collision_shape = 'MESH' 
+    obj.hide_render = True
+    obj.display_type = 'WIRE'   
+ 
+            """
+        if self.settings.maps__save_as_chunked:
+            for i, (meshes, chunk_pos) in enumerate(chunks):
+                for mesh in meshes:
+                    mesh.pivot_offset = (mesh.pivot_offset[0] + chunk_pos[0],
+                                         mesh.pivot_offset[1] + chunk_pos[1],
+                                         mesh.pivot_offset[2] + chunk_pos[2])
+                scene = Scene(name=f'terrain_chunk_{i}',
+                              sub_meshes=meshes,
+                              obj_name=f'terrain_chunk_{i}',
+                              mtl_name='terrain',
+                              bake_textures=False,
+                              skip_mtl_export=True)
+                scenes.append(scene)
+        else:
+            for (meshes, _) in chunks:
+                map_scene.sub_meshes.extend(meshes)
+
+        # export QFS
+        try:
+            (shpi_id, shpi_block, shpi_data), _ = _require_nfs4_texture_archive(id)
+            from serializers import ShpiArchiveSerializer
+            ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
+        except Exception:
+            traceback.print_exc()
+
+        # export scenes
+        return export_scenes(scenes, path, self.settings)

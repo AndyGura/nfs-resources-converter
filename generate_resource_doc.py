@@ -371,7 +371,9 @@ EXPORT_RESOURCES = {
 
 **\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}
+
+**\\*.FRD** main track file. {render_type(eac.maps.Nfs4FrdMap())}""",
         'blocks': {
             'Archives': [
                 eac.archives.ShpiBlock(),
@@ -380,8 +382,23 @@ EXPORT_RESOURCES = {
             ],
             # 'Geometries': [
             # ],
-            # 'Maps': [
-            # ],
+            'Maps': [
+                eac.maps.Nfs4FrdMap(),
+                eac.maps.Nfs4VRoadBlock(),
+                eac.maps.Nfs4BlockCount(),
+                eac.maps.Nfs4NeighbourData(),
+                eac.maps.Nfs4TrkBlockHeader(),
+                eac.maps.Nfs4PolygonVroadData(),
+                eac.maps.Nfs4RefExtraObject(),
+                eac.maps.Nfs4RefExtraObject2(),
+                eac.maps.Nfs4XObjHeader(),
+                eac.maps.Nfs4AnimKeyframe(),
+                eac.maps.Nfs4AnimExtra(),
+                eac.maps.Nfs4SpecialExtra(),
+                eac.maps.Nfs4Polygon(),
+                eac.maps.Nfs4ExtraObject(),
+                eac.maps.Nfs4TrkBlock(),
+            ],
             # 'Physics': [
             # ],
             'Images': [
