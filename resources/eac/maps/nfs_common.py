@@ -8,9 +8,17 @@ from resources.eac.fields.misc import RGBBlock, Point3D
 
 
 class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'Texture reference. Polygons of the track (TRK) and of props refer to items of '
+                                     'this table by index, the item defines the actual texture in the QFS archive '
+                                     'and its orientation on the polygon'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         texture_number = (IntegerBlock(length=2, is_signed=False),
-                          {'description': 'Texture number in QFS file'})
+                          {'description': 'Index of the texture in the track QFS file (<track>0.QFS)'})
         unk = (IntegerBlock(length=1),
                {'is_unknown': True})
         alignment = (EnumByteBlock(enum_names=[(1, 'rotate_180'),
@@ -22,8 +30,10 @@ class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
                                                (20, 'flip_h'),
                                                (24, 'rotate_90_2'),
                                                ]),
-                     {'description': 'Alignment data, which game uses instead of UV-s when rendering mesh.'
-                                     'I use UV-s (0,1; 1,1; 1,0; 0,0) and modify them according to enum value names'})
+                     {'description': 'Orientation of the texture on the polygon, which game uses instead of UV-s. '
+                                     'The converter uses base UV-s (0,1), (1,1), (1,0), (0,0) for the 4 polygon '
+                                     'vertices and modifies them according to the enum value: rotate_* shift them '
+                                     'by 1, 2 or 3 vertices, flip_h/flip_v mirror them'})
         luminosity = (RGBBlock(),
                       {'description': 'Luminosity color'})
         black = (RGBBlock(),
@@ -36,17 +46,26 @@ class PolygonMapExtraDataRecord(DeclarativeCompoundBlock):
     @property
     def schema(self):
         return {**super().schema,
-                'block_description': 'Polygon extra data. Number of items here == np1 * 2, but sometimes less. Why?'}
+                'block_description': 'Polygon extra data: road surface orientation for a polygon of the block. Number '
+                                     'of items here == np1 * 2, but sometimes less. Why?'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         vectors_idx = (IntegerBlock(length=1, is_signed=False),
                        {'description': 'An index of entry in road_vectors extrablock'})
-        car_behavior = EnumByteBlock(enum_names=[(0, 'unk0'),
-                                                 (1, 'unk1'),
-                                                 ])
+        car_behavior = (EnumByteBlock(enum_names=[(0, 'unk0'),
+                                                  (1, 'unk1'),
+                                                  ]),
+                        {'is_unknown': True})
 
 
 class MedianExtraDataRecord(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'A record of median_polygons extrablock: references a polygon of the block, '
+                                     'presumably marking it as a road median. Purpose is not confirmed'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         polygon_idx = (IntegerBlock(length=1, is_signed=False),
                        {'description': 'Polygon index'})
@@ -55,14 +74,27 @@ class MedianExtraDataRecord(DeclarativeCompoundBlock):
 
 
 class AnimatedPropPositionFrame(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'A single keyframe of animated prop movement'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'description': 'Object position in 3D space'})
         unk0 = (BytesBlock(length=8),
-                {'is_unknown': True})
+                {'description': 'Presumably object orientation at this keyframe',
+                 'is_unknown': True})
 
 
 class AnimatedPropPosition(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'Animation of prop position: a sequence of keyframes'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         num_frames = (IntegerBlock(length=2, is_signed=False,
                                    programmatic_value=lambda ctx: len(ctx.data('frames'))),
@@ -78,7 +110,10 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
     @property
     def schema(self):
         return {**super().schema,
-                'block_description': '3D model placement (prop). Same 3D model can be used few times on the track'}
+                'block_description': '3D model placement (prop). Same 3D model can be used few times on the track. '
+                                     'Records of type props_18 (in TRK blocks) and props_7 (in COL file) have this '
+                                     'structure; the 3D model itself is in the prop_descriptions extrablock of the '
+                                     'same block/file'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         block_size = (IntegerBlock(length=2, is_signed=False,
@@ -95,7 +130,9 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
                                                 child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                                                 AnimatedPropPosition(),
                                                 BytesBlock(length=lambda ctx: ctx.data('block_size') - 4)]),
-                    {'description': 'Object positioning in 3D space'})
+                    {'description': 'Object positioning in 3D space: a single point for static_prop, a sequence of '
+                                    'keyframes for animated_prop (the converter places the prop at the first '
+                                    'keyframe). Block class picked according to `type`'})
 
 
 class ColPolygon(DeclarativeCompoundBlock):
@@ -119,7 +156,8 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
     @property
     def schema(self):
         return {**super().schema,
-                'block_description': '3D model'}
+                'block_description': '3D model of a prop. Placed on the track by records of props_* extrablocks, '
+                                     'which reference this model by index'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         block_size = (IntegerBlock(length=4, is_signed=False,
@@ -133,15 +171,23 @@ class PropDescriptionExtraDataRecord(DeclarativeCompoundBlock):
                         {'description': 'Amount of polygons'})
         vertices = (ArrayBlock(child=Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
                                length=lambda ctx: ctx.data('num_vertices')),
-                    {'description': 'Vertices'})
+                    {'description': 'Vertices, relative to the prop position'})
         polygons = (ArrayBlock(child=ColPolygon(),
                                length=lambda ctx: ctx.data('num_polygons')),
-                    {'description': 'Polygons'})
+                    {'description': 'Polygons. Textures are referenced through the textures_map of the COL file, '
+                                    'the same way as for terrain polygons'})
         padding = (BytesBlock(length=lambda ctx: ctx.data('block_size') - ctx.local_buffer_pos),
                    {'description': 'Unused space'})
 
 
 class LanesExtraDataRecord(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'A lane marker: ties a vertex and a polygon of the block terrain to a position '
+                                     'on a lane'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         vertex_idx = (IntegerBlock(length=1, is_signed=False),
                       {'description': 'Vertex number (inside background 3D structure : 0 to nv1+nv8)'})
@@ -158,14 +204,25 @@ class RoadVectorsExtraDataRecord(DeclarativeCompoundBlock):
     @property
     def schema(self):
         return {**super().schema,
-                'block_description': 'Block with normal + forward vectors pair'}
+                'block_description': 'Orientation of the road surface: normal + forward vectors pair. Referenced by '
+                                     'index from polygon_map records'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True), normalized=True)
-        forward = Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True), normalized=True)
+        normal = (Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True), normalized=True),
+                  {'description': 'A normal vector of the road surface'})
+        forward = (Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True), normalized=True),
+                   {'description': 'A forward vector of the road (direction of the track)'})
 
 
 class CollisionExtraDataRecord(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'A point of the track collision spline (road centre line) with road orientation '
+                                     'vectors and distances to the road borders. Used by the physics engine; there are '
+                                     '8 points per track block'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         position = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     {'description': 'A global position of track collision spline point. The unit is meter'})
@@ -177,19 +234,30 @@ class CollisionExtraDataRecord(DeclarativeCompoundBlock):
                  {'description': 'A right vector'})
         unk0 = (IntegerBlock(length=1),
                 {'is_unknown': True})
-        block_idx = IntegerBlock(length=2, is_signed=False)
+        block_idx = (IntegerBlock(length=2, is_signed=False),
+                     {'description': 'Index of the TRK block this point belongs to'})
         unk1 = (IntegerBlock(length=2),
                 {'is_unknown': True})
         left_border = (FixedPointBlock(length=2, is_signed=False, fraction_bits=8),
                        {'description': 'Distance to left track border in meters'})
         right_border = (FixedPointBlock(length=2, is_signed=False, fraction_bits=8),
                         {'description': 'Distance to right track border in meters'})
-        respawn_lat_pos = IntegerBlock(length=2, is_signed=False)
+        respawn_lat_pos = (IntegerBlock(length=2, is_signed=False),
+                           {'description': 'Named by assumption (lateral position of car respawn). Values look like '
+                                           'four packed 4-bit numbers, e.g. 0x1111, 0x1144, 0x1244',
+                            'is_unknown': True})
         unk2 = (IntegerBlock(length=4),
                 {'is_unknown': True})
 
 
 class ColExtraBlock(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'A typed container of data records. The same structure is used for extrablocks '
+                                     'inside TRK blocks and in the COL file; record type is defined by `type`'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         block_size = (IntegerBlock(length=4, is_signed=False,
                                    programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data())),
@@ -206,7 +274,9 @@ class ColExtraBlock(DeclarativeCompoundBlock):
                                           (18, 'props_18'),
                                           (19, 'props_19'),
                                           ]),
-                {'description': 'Type of the data records'})
+                {'description': 'Type of the data records. textures_map, props_7, prop_descriptions and '
+                                'collision_data are found in COL file; polygon_map, block_numbers, median_polygons, '
+                                'props_18, prop_descriptions, lanes and road_vectors in TRK blocks'})
         unk = (IntegerBlock(length=1, value_validator=Eq(0)),
                {'is_unknown': True})
         num_data_records = (IntegerBlock(length=2,
@@ -228,10 +298,19 @@ class ColExtraBlock(DeclarativeCompoundBlock):
                 ArrayBlock(child=PropExtraDataRecord(), length=lambda ctx: ctx.data('num_data_records')),
                 BytesBlock(length=lambda ctx: ctx.data('block_size') - 8)
             ]),
-                        {'description': 'Data records'})
+                        {'description': 'Data records, block class picked according to `type`. Records of unknown '
+                                        'types are kept as raw bytes'})
 
 
 class MapColFile(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self):
+        return {**super().schema,
+                'block_description': 'Track additional data (COL file), a list of extrablocks: textures map (used by '
+                                     'polygons of the TRK file), track-wide props with their 3D models and collision '
+                                     'data (road centre line for the physics engine)'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(length=4, value_validator=Eq('COLL')),
                        {'description': 'Resource ID'})
@@ -252,7 +331,8 @@ class MapColFile(DeclarativeCompoundBlock):
                             '<br/>- [ColExtraBlock](#colextrablock)',
              'usage': 'io,doc'})
         extrablocks = (ArrayBlock(length=(0, 'num_extrablocks'), child=ColExtraBlock()),
-                       {'description': 'Extrablocks',
+                       {'description': 'Extrablocks. The first one is always textures_map, which TRK polygons refer '
+                                       'to. Then typically prop_descriptions, props_7 and collision_data',
                         'usage': 'ui'})
 
     def serializer_class(self):

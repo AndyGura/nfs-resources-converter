@@ -230,16 +230,21 @@ class TerrainEntry(DeclarativeCompoundBlock):
                                      'nfsspecs.txt)'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = UTF8Block(length=4, value_validator=Eq('TRKD'))
-        block_length = IntegerBlock(length=4, is_signed=False)
-        block_number = IntegerBlock(length=4, is_signed=False, value_validator=Eq(0))
+        resource_id = (UTF8Block(length=4, value_validator=Eq('TRKD')),
+                       {'description': 'Resource ID'})
+        block_length = (IntegerBlock(length=4, is_signed=False),
+                        {'description': 'Block length in bytes'})
+        block_number = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0)),
+                        {'description': 'Block number, always 0'})
         unknown = (IntegerBlock(length=1, value_validator=Eq(0)),
                    {'is_unknown': True})
-        fence = SubByteCompoundBlock(length=1, schema=[
+        fence = (SubByteCompoundBlock(length=1, schema=[
             (1, 'has_left_fence', 'boolean', [], 'flag is add left fence'),
             (1, 'has_right_fence', 'boolean', [], 'flag is add right fence'),
             (6, 'texture_id', 'number', [], 'texture id'),
-        ])
+        ]),
+                 {'description': 'Fence settings: whether to build a fence on the left/right side of this chunk, and '
+                                 'the id of the fence texture (same id space as `texture_ids`)'})
         texture_ids = (ArrayBlock(child=IntegerBlock(length=1), length=10),
                        {'description': 'Texture ids to be used for terrain'})
         rows = (ArrayBlock(
@@ -324,21 +329,31 @@ class TriMap(DeclarativeCompoundBlock):
                                        "(num_chunks * 4), after them records filled with zeros. For opened "
                                        "tracks, finish line will be always located at spline point "
                                        "(num_chunks * 4 - 179)"})
-        ai_info = ArrayBlock(child=AIEntry(), length=600)
-        num_prop_descr = IntegerBlock(length=4, is_signed=False,
-                                      programmatic_value=lambda ctx: len(ctx.data('prop_descr')))
-        num_props = IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('props')))
-        objs_hdr = UTF8Block(length=4, value_validator=Eq('SJBO'))
+        ai_info = (ArrayBlock(child=AIEntry(), length=600),
+                   {'description': 'AI behaviour settings per terrain chunk. Always has 600 items, only the first '
+                                   '`num_chunks` are used'})
+        num_prop_descr = (IntegerBlock(length=4, is_signed=False,
+                                       programmatic_value=lambda ctx: len(ctx.data('prop_descr'))),
+                          {'description': 'Amount of prop descriptions'})
+        num_props = (IntegerBlock(length=4, is_signed=False,
+                                  programmatic_value=lambda ctx: len(ctx.data('props'))),
+                     {'description': 'Amount of props'})
+        objs_hdr = (UTF8Block(length=4, value_validator=Eq('SJBO')),
+                    {'description': 'Header of the props section'})
         unk1 = (IntegerBlock(length=4, value_validator=Eq(0x428c)),
                 {'is_unknown': True})
         unk2 = (IntegerBlock(length=4, value_validator=Eq(0)),
                 {'is_unknown': True})
-        prop_descr = ArrayBlock(child=PropDescr(),
-                                length=lambda ctx: ctx.data('num_prop_descr'))
-        props = ArrayBlock(child=MapProp(),
-                           length=lambda ctx: ctx.data('num_props'))
-        terrain = ArrayBlock(child=TerrainEntry(),
-                             length=lambda ctx: ctx.data('num_chunks'))
+        prop_descr = (ArrayBlock(child=PropDescr(),
+                                 length=lambda ctx: ctx.data('num_prop_descr')),
+                      {'description': 'Prop descriptions: 3D models, bitmaps and two-sided bitmaps, which can be '
+                                      'placed on the map'})
+        props = (ArrayBlock(child=MapProp(),
+                            length=lambda ctx: ctx.data('num_props')),
+                 {'description': 'Props placed on the map. Unused trailing items have `road_point_idx` == -1'})
+        terrain = (ArrayBlock(child=TerrainEntry(),
+                              length=lambda ctx: ctx.data('num_chunks')),
+                   {'description': 'Terrain chunks, one per 4 road spline points'})
 
     def serializer_class(self):
         from serializers import TriMapSerializer

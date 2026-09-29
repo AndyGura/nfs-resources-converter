@@ -364,16 +364,14 @@ EXPORT_RESOURCES = {
         'file_name': 'NFS4.md',
         'title': 'NFS 4 High Stakes file specs',
         'file_list': f"""**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
-        
-**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
+
+**\\*.FRD** main track file. {render_type(eac.maps.Nfs4FrdMap())}
 
 **\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
 **\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
-**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}
-
-**\\*.FRD** main track file. {render_type(eac.maps.Nfs4FrdMap())}""",
+**\\*.VIV** archive with some data. {render_type(eac.archives.BigfBlock())}""",
         'blocks': {
             'Archives': [
                 eac.archives.ShpiBlock(),

@@ -168,7 +168,8 @@ class ShpiText(DeclarativeCompoundBlock):
                        {'description': 'Resource ID'})
         unk = (BytesBlock(length=3),
                {'is_unknown': True})
-        text = LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4))
+        text = (LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4)),
+                {'description': 'Text contents'})
 
     def serializer_class(self):
         from serializers import ShpiTextSerializer

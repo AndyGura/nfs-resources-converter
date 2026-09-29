@@ -112,15 +112,24 @@ class TnfsConfigDat(DeclarativeCompoundBlock):
                                        "symbols, though some part of name will be cut off in the UI"})
         unk0 = (BytesBlock(length=139),
                 {'is_unknown': True})
-        city_stats = TrackStats()
-        coastal_stats = TrackStats()
-        alpine_stats = TrackStats()
-        rusty_springs_stats = TrackStats()
-        autumn_valley_stats = TrackStats()
-        burnt_sienna_stats = TrackStats()
-        vertigo_ridge_stats = TrackStats()
-        transtropolis_stats = TrackStats()
-        lost_vegas_stats = TrackStats()
+        city_stats = (TrackStats(),
+                      {'description': 'Best times and top speeds on City track'})
+        coastal_stats = (TrackStats(),
+                         {'description': 'Best times and top speeds on Coastal track'})
+        alpine_stats = (TrackStats(),
+                        {'description': 'Best times and top speeds on Alpine track'})
+        rusty_springs_stats = (TrackStats(),
+                               {'description': 'Best times and top speeds on Rusty Springs track'})
+        autumn_valley_stats = (TrackStats(),
+                               {'description': 'Best times and top speeds on Autumn Valley track'})
+        burnt_sienna_stats = (TrackStats(),
+                              {'description': 'Best times and top speeds on Burnt Sienna track'})
+        vertigo_ridge_stats = (TrackStats(),
+                               {'description': 'Best times and top speeds on Vertigo Ridge track'})
+        transtropolis_stats = (TrackStats(),
+                               {'description': 'Best times and top speeds on Transtropolis track'})
+        lost_vegas_stats = (TrackStats(),
+                            {'description': 'Best times and top speeds on Lost Vegas track'})
         unk1 = (BestRaceRecord(),
                 {'is_unknown': True})
         unk2 = (BytesBlock(length=177),

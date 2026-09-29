@@ -55,7 +55,9 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         unk = (ArrayBlock(child=IntegerBlock(length=4), length=10),
                {'is_unknown': True})
-        eacs_header = EacsAudioHeader()
+        eacs_header = (EacsAudioHeader(),
+                       {'description': 'EACS header. Its `wave_data_offset` points into the wave data region of the '
+                                       'sound bank file'})
 
 
 class EacsAudioFile(DeclarativeCompoundBlock):
@@ -73,7 +75,8 @@ class EacsAudioFile(DeclarativeCompoundBlock):
                 }]}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        header = EacsAudioHeader()
+        header = (EacsAudioHeader(),
+                  {'description': 'EACS header: sampling rate, resolution, channels, loop settings'})
         offset = (Padding(to=lambda ctx: ctx.data('header/wave_data_offset'),
                           is_global=True),
                   {'is_unknown': True})
@@ -135,8 +138,9 @@ class AsfAudio(DeclarativeCompoundBlock):
                                             ' to start of the file itself'})
         unk2 = (IntegerBlock(length=4),
                 {'is_unknown': True})
-        offset = Padding(to=(lambda ctx: ctx.data('wave_data_offset') + 40,
-                             'wave_data_offset + 40'))
+        offset = (Padding(to=(lambda ctx: ctx.data('wave_data_offset') + 40,
+                              'wave_data_offset + 40')),
+                  {'description': 'Padding between the header and wave data'})
         wave_data = (BytesBlock(length=(lambda ctx: min(ctx.read_bytes_remaining,
                                                         ctx.data('wave_data_length') * ctx.data('sound_resolution')),
                                         'min(`remaining file bytes`, `wave_data_length` * `sound_resolution`)')),
