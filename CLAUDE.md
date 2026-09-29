@@ -17,6 +17,8 @@ It's a "3-in-1" project — a single Python format definition simultaneously pro
 - Adding support for a *new game file format*, or new/unknown fields to an existing one, by
   composing existing blocks → skill `nfs-resource-formats` (has a cheat-sheet of every existing
   building block).
+- Porting *game logic* (a decompressor, codec, checksum) from an executable's IDA/Ghidra
+  disassembly, or verifying such a port → skill `asm-runner-porting`.
 
 ## The core idea
 
@@ -41,7 +43,8 @@ docs and a working GUI editor for free.
 | `library/context.py` | `ReadContext`/`WriteContext`/`DocumentationContext` passed through the block tree while reading/writing/documenting. |
 | `library/loader.py` | File-type auto-detection (`probe_block_class`) by extension/magic bytes; top-level `require_file`/`require_resource` with an in-process file cache. |
 | `library/changes_service.py` | Tracks unsaved GUI edits against the loaded data tree. |
-| `resources/eac/` | EA Canada format definitions built from `read_blocks` primitives (bitmaps, archives, fonts, audio, geometries, maps, car specs, compressions). Shared across many NFS titles. |
+| `library/utils/asm_runner.py` | 32-bit x86 snippet interpreter (IDA syntax) used to execute and progressively port disassembled game routines; production code never uses it, the ASM-driven decompressor twins in `test/resources/eac/archives/test_compressed_block.py` do. |
+| `resources/eac/` | EA Canada format definitions built from `read_blocks` primitives (bitmaps, archives, fonts, audio, geometries, maps, car specs). Shared across many NFS titles. `compressions/` holds the pure-Python decompressors (RefPack, QFS2, QFS3) behind `EacCompressedBlock`. |
 | `resources/eac/maps/`, `resources/eac/geometries/` | Per-game specializations (`tnfs.py`, `nfs2.py`, `nfs3.py`, `nfs5.py`, ...). |
 | `resources/common/` | Vendor-neutral formats reused as fallbacks (e.g. Targa image). |
 | `resources/blackbox/` | Blackbox-studio (later NFS titles) formats — thin/early. |
@@ -94,3 +97,5 @@ When you do:
 - Field extras dict (third tuple element in `Fields`) keys: `description`, `is_unknown`,
   `custom_offset`, `usage` (comma-separated subset of `ui`/`io`/`doc`, default = everywhere).
 - Nothing repo-specific overrides standard slash commands (`/code-review`, `/simplify`, etc.).
+- Real game files for broader validation live under the gitignored `games/<game>/` folders (e.g. every
+  QFS3-compressed file across nfs1/nfs2/nfs2se/nfs3), beyond the few samples in `test/samples/`.

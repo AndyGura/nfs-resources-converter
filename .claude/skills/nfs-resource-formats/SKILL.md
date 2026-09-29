@@ -18,7 +18,7 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 
 | Path | Contents |
 |---|---|
-| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (QFS/RefPack). |
+| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3 decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
 | `resources/eac/maps/{tnfs,nfs2,nfs3,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs5}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
 | `resources/blackbox/geometries/` | Blackbox-studio (later titles) formats — thin, early. |

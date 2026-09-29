@@ -21,7 +21,9 @@ uncompressed) and the game will still load it. According to the decompiled TNFS 
 with a valid QFS header the data is simply consumed **as is** (uncompressed), so an uncompressed payload is also a valid
 input (see [Uncompressed data](#uncompressed-data)).
 
-The header detection logic used by this converter can be found in [library/loader.py](../library/loader.py).
+[library/loader.py](../library/loader.py) routes any file whose second byte is `0xFB` to `EacCompressedBlock`;
+the per-algorithm choice from the first byte is made in
+[resources/eac/archives/compressed_block.py](eac/archives/compressed_block.py) (`_detect_compression`).
 
 ## RefPack (QFS1)
 - **Header**: `0x10FB` or `0x11FB`. First byte is a flags field, second byte is the magic `0xFB`.
@@ -45,15 +47,37 @@ The header detection logic used by this converter can be found in [library/loade
 - **Implementation**: [resources/eac/compressions/qfs2.py](eac/compressions/qfs2.py).
 
 ## QFS3 (AL1.QFS)
-- **Header**: `0x30FB` - `0x35FB`. The high bits of the first byte encode options:
-  - `0x100` bit (i.e. first byte `0x31`, `0x33`, `0x35`): a compressed-size field is present in the header.
-  - `0x32FB`: after decompression the output is post-processed with a single cumulative sum (delta filter).
-  - `0x34FB`: after decompression the output is post-processed with a double cumulative sum (double-delta filter).
-- **Description**: A Huffman + LZ scheme. The header is followed by Huffman code tables built from a bit-accurate
-  reader; the decoder then emits literals and back-references decoded through those tables. This implementation is a
-  Python translation of the original x86 assembly and is executed through a small register/memory emulator
-  (`AsmRunner`).
-- **Implementation**: [resources/eac/compressions/qfs3.py](eac/compressions/qfs3.py).
+- **Header**: `0x30FB` - `0x35FB`. The first byte is a flags field, the second byte is the magic `0xFB`:
+  - bit `0x01` (first byte `0x31`, `0x33`, `0x35`): a 3-byte (big-endian) compressed-size field follows the magic. It is
+    not needed for decoding.
+  - `0x32`: after decompression the output is post-processed with a single cumulative sum (delta filter).
+  - `0x34`: after decompression the output is post-processed with a double cumulative sum (double-delta filter).
+  - `0x30`: no post-processing.
+
+  Then come a 3-byte (big-endian) decompressed size and a 1-byte *escape symbol*. Everything after that is a single
+  MSB-first bit stream, not byte-aligned.
+- **Description**: Canonical Huffman coding of single bytes, plus an escape symbol for run-length repeats, literals and
+  the end marker. The bit stream consists of:
+  1. **Code lengths**: for code length 1, 2, 3, ... the number of symbols having that length, one *number* (see below)
+     each, until the code space is exhausted (the Kraft sum reaches 1, i.e. the tree is complete). Codes are assigned
+     canonically: by length, then in the order the symbols are listed.
+  2. **Symbols**: one entry per symbol, in canonical order. Each is a *number* + 1 = distance to the symbol from the
+     previous one, counted over byte values **not assigned yet**, cyclic over 0..255 (the walk starts before 0).
+  3. **Data**: Huffman codes, each producing one output byte, except the escape symbol, which is followed by a
+     *number* N:
+     - N > 0: repeat the last output byte N more times;
+     - N = 0, next bit 1: end of stream;
+     - N = 0, next bit 0: the next 8 bits are a literal byte (this is how the escape byte value itself is emitted).
+
+  **Numbers** use an Elias-gamma-like code: Z zero bits, a one bit, then Z + 2 value bits V;
+  number = 2^(Z+2) + V - 4. The smallest numbers 0..3 thus take 3 bits (`1xx`), 4..11 take 5 bits (`01xxx`), etc.
+
+  The decoded output is finally run through the delta filter selected by the header (`0x32`/`0x34`), if any. The
+  output length is known from the header, but decoding stops on the end marker, not on the byte count.
+- **Implementation**: [resources/eac/compressions/qfs3.py](eac/compressions/qfs3.py). The original x86 routine was
+  ported through the `AsmRunner` emulator; that register-level translation is kept as `Qfs3ASMCompression` in
+  [test/resources/eac/archives/test_compressed_block.py](../test/resources/eac/archives/test_compressed_block.py)
+  and compared against the pure Python decoder in tests.
 
 ## 4th algorithm (not implemented)
 - **Description**: A fourth `*FB` compression branch was found in the decompiled TNFS (DOS) executable. No resource in
