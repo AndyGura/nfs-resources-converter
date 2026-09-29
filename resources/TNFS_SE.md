@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-09-05 19:54:19.986213+00:00*
+*Last time updated: 2026-09-29 06:59:16.563391+00:00*
 
 
 # **Info by file extensions** #
@@ -104,21 +104,21 @@ Did not find what you need or some given data is wrong? Please submit an
 | 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28 + num_fxp*12` |
 | 100 | **unknowns1** | 12 | Bytes | Unknown purpose |
 | 112 | **polygons** | num_polygons\*12 | Array of `num_polygons` items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
-| 112 + num_polygons\*12 | **unk_uvs** | up to offset uvs_ptr | Padding bytes | - |
+| 112 + num_polygons\*12 | **unk_uvs** | up to offset uvs_ptr | Padding bytes | Padding up to `uvs_ptr`, normally empty |
 | uvs_ptr | **vertex_uvs** | num_uvs\*8 | Array of `num_uvs` items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in vmap |
-| uvs_ptr + num_uvs\*8 | **unk_tex_ids** | up to offset tex_ids_ptr | Padding bytes | - |
+| uvs_ptr + num_uvs\*8 | **unk_tex_ids** | up to offset tex_ids_ptr | Padding bytes | Padding up to `tex_ids_ptr`, normally empty |
 | tex_ids_ptr | **tex_ids** | num_tex_ids\*20 | Array of `num_tex_ids` items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
 | tex_ids_ptr + num_tex_ids\*20 | **offset** | up to offset tex_nmb_ptr | Padding bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
 | tex_nmb_ptr | **tex_nmb** | num_tex_nmb\*20 | Array of `num_tex_nmb` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| tex_nmb_ptr + num_tex_nmb\*20 | **unk_ren_ord** | up to offset ren_ord_ptr | Padding bytes | - |
+| tex_nmb_ptr + num_tex_nmb\*20 | **unk_ren_ord** | up to offset ren_ord_ptr | Padding bytes | Padding up to `ren_ord_ptr`, normally empty |
 | ren_ord_ptr | **render_order** | num_ren_ord\*28 | Array of `num_ren_ord` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
-| ren_ord_ptr + num_ren_ord\*28 | **unk_fxp** | up to offset fxp_ptr | Padding bytes | - |
+| ren_ord_ptr + num_ren_ord\*28 | **unk_fxp** | up to offset fxp_ptr | Padding bytes | Padding up to `fxp_ptr`, normally empty |
 | fxp_ptr | **fx_polys** | num_fxp\*12 | Array of `num_fxp` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Indexes of polygons which participate in visual effects such as engine smoke, dust particles, tyre trails? Presented in car CFM-s.  |
-| fxp_ptr + num_fxp\*12 | **unk_lbl** | up to offset lbl_ptr | Padding bytes | - |
+| fxp_ptr + num_fxp\*12 | **unk_lbl** | up to offset lbl_ptr | Padding bytes | Padding up to `lbl_ptr`, normally empty |
 | lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | Marks special polygons for the game, where it should change texture on runtime such as tyres, tail lights |
-| lbl_ptr + num_lbl\*12 | **unk_vrtx** | up to offset vrtx_ptr | Padding bytes | - |
+| lbl_ptr + num_lbl\*12 | **unk_vrtx** | up to offset vrtx_ptr | Padding bytes | Padding up to `vrtx_ptr`, normally empty |
 | vrtx_ptr | **vertices** | num_vrtx\*12 | One of types:<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. The unit is meter |
-| vrtx_ptr + num_vrtx\*12 | **unk_vmap** | up to offset vmap_ptr | Padding bytes | - |
+| vrtx_ptr + num_vrtx\*12 | **unk_vmap** | up to offset vmap_ptr | Padding bytes | Padding up to `vmap_ptr`, normally empty |
 | vmap_ptr | **vmap** | ? | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertices. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs |
 ### **OripPolygon** ###
 #### **Size**: 12 bytes ####
@@ -136,7 +136,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: A settings of the texture. From what is known, contains name of bitmap (not always a correct UTF-8) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **type** | 8 | Bytes | - |
+| 0 | **type** | 8 | Bytes | Unknown purpose |
 | 8 | **file_name** | 4 | UTF-8 string | Name of bitmap in SHPI block |
 | 12 | **unknown** | 8 | Bytes | Unknown purpose |
 ### **RenderOrderBlock** ###
@@ -165,15 +165,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | 40 | **rail_tex_id** | 4 | 4-bytes unsigned integer (little endian) | Do not know what is "railing". Doesn't look like a fence texture id, tested in TR1_001.FAM |
 | 44 | **lookup_table** | 2400 | Array of `600` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | 600 consequent numbers, each value is previous + 288. Looks like a space needed by the original NFS engine |
 | 2444 | **road_spline** | 86400 | Array of `2400` items<br/>Item type: [RoadSplinePoint](#roadsplinepoint) | Road spline is a series of points in 3D space, located at the center of road. Around this spline the track terrain mesh is built. TRI always has 2400 elements, however it uses only amount of vertices, equals to (num_chunks * 4), after them records filled with zeros. For opened tracks, finish line will be always located at spline point (num_chunks * 4 - 179) |
-| 88844 | **ai_info** | 1800 | Array of `600` items<br/>Item type: [AIEntry](#aientry) | - |
-| 90644 | **num_prop_descr** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 90648 | **num_props** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 90652 | **objs_hdr** | 4 | UTF-8 string. Always == "SJBO" | - |
+| 88844 | **ai_info** | 1800 | Array of `600` items<br/>Item type: [AIEntry](#aientry) | AI behaviour settings per terrain chunk. Always has 600 items, only the first `num_chunks` are used |
+| 90644 | **num_prop_descr** | 4 | 4-bytes unsigned integer (little endian) | Amount of prop descriptions |
+| 90648 | **num_props** | 4 | 4-bytes unsigned integer (little endian) | Amount of props |
+| 90652 | **objs_hdr** | 4 | UTF-8 string. Always == "SJBO" | Header of the props section |
 | 90656 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x428c | Unknown purpose |
 | 90660 | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 90664 | **prop_descr** | num_prop_descr\*16 | Array of `num_prop_descr` items<br/>Item type: [PropDescr](#propdescr) | - |
-| 90664 + num_prop_descr\*16 | **props** | num_props\*16 | Array of `num_props` items<br/>Item type: [MapProp](#mapprop) | - |
-| 90664 + num_prop_descr\*16 + num_props\*16 | **terrain** | num_chunks\*288 | Array of `num_chunks` items<br/>Item type: [TerrainEntry](#terrainentry) | - |
+| 90664 | **prop_descr** | num_prop_descr\*16 | Array of `num_prop_descr` items<br/>Item type: [PropDescr](#propdescr) | Prop descriptions: 3D models, bitmaps and two-sided bitmaps, which can be placed on the map |
+| 90664 + num_prop_descr\*16 | **props** | num_props\*16 | Array of `num_props` items<br/>Item type: [MapProp](#mapprop) | Props placed on the map. Unused trailing items have `road_point_idx` == -1 |
+| 90664 + num_prop_descr\*16 + num_props\*16 | **terrain** | num_chunks\*288 | Array of `num_chunks` items<br/>Item type: [TerrainEntry](#terrainentry) | Terrain chunks, one per 4 road spline points |
 ### **RoadSplinePoint** ###
 #### **Size**: 36 bytes ####
 #### **Description**: The description of one single point of road spline. Thank you jeff-1amstudios for your [OpenNFS1](https://github.com/jeff-1amstudios/OpenNFS1) project ####
@@ -217,11 +217,11 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: The terrain model around 4 spline points. It has good explanation in original [Denis Auroux NFS file specs](http://www.math.polytechnique.fr/cmat/auroux/nfs/nfsspecs.txt) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | UTF-8 string. Always == "TRKD" | - |
-| 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | - |
-| 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | - |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "TRKD" | Resource ID |
+| 4 | **block_length** | 4 | 4-bytes unsigned integer (little endian) | Block length in bytes |
+| 8 | **block_number** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Block number, always 0 |
 | 12 | **unknown** | 1 | 1-byte unsigned integer. Always == 0x0 | Unknown purpose |
-| 13 | **fence** | 1 | Sub-byte compound block:<br/>1-bit flag "has_left_fence"<br/>1-bit flag "has_right_fence"<br/>6-bits int "texture_id" | - |
+| 13 | **fence** | 1 | Sub-byte compound block:<br/>1-bit flag "has_left_fence"<br/>1-bit flag "has_right_fence"<br/>6-bits int "texture_id" | Fence settings: whether to build a fence on the left/right side of this chunk, and the id of the fence texture (same id space as `texture_ids`) |
 | 14 | **texture_ids** | 10 | Array of `10` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Texture ids to be used for terrain |
 | 24 | **rows** | 264 | Array of `4` items<br/>Item size: 66 bytes<br/>Item type: Array of `11` items<br/>Item size: 6 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 7 bits is a fractional part | Terrain vertex positions. The unit is meter |
 ### **AIEntry** ###
@@ -405,32 +405,34 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x6f | Resource ID |
 | 1 | **unk** | 3 | Bytes | Unknown purpose |
 | 4 | **len_text** | 4 | 4-bytes unsigned integer (little endian) | Length of 'text' utf8 block |
-| 8 | **text** | len_text | UTF-8 string | - |
+| 8 | **text** | len_text | UTF-8 string | Text contents |
 ## **Fonts** ##
 ### **FfnFont** ###
 #### **Size**: 48..? bytes ####
+#### **Description**: Bitmap font: a font atlas bitmap plus glyph definitions (position and size of each symbol in the atlas) and optional kerning table ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include bitmap embedded palette (and padding to it after bitmap data). For older versions (I set version <= 101, but it can be anywhere up to < 309), "padding_2" length not included as well |
-| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | Font format version. Defines the layout of glyph definitions (see [GlyphDefinition](#glyphdefinition)) |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | - |
-| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | - |
-| 18 | **ascent** | 1 | 1-byte unsigned integer | - |
-| 19 | **descent** | 1 | 1-byte unsigned integer | - |
+| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | Font flags: format of glyph definitions, encoding, layout and draw attributes |
+| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | Unknown purpose |
+| 18 | **ascent** | 1 | 1-byte unsigned integer | Distance from the baseline to the top of the glyphs in pixels. `ascent + descent` is the line height |
+| 19 | **descent** | 1 | 1-byte unsigned integer | Distance from the baseline to the bottom of the glyphs in pixels |
 | 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
 | 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
 | 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
 | definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*17 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
 | ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
-| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | Kerning pairs table |
 | ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
 | bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
 | ? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
 #### **Size**: 11..17 bytes ####
+#### **Description**: Glyph definition.<br/>- for FNT version < 200 has length 11 bytes.<br/>- for versions >= 200 and <= 309 - 12 bytes, last byte is padding.<br/>- for versions > 309 - 12th byte is num_kern.<br/>- for versions >= 321 it may be 16 bytes if "format" flag is set to 16-bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **code** | 2 | 2-bytes unsigned integer (little endian) | Code of symbol |
@@ -447,10 +449,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
 ### **KerningItem** ###
 #### **Size**: 4 bytes ####
+#### **Description**: Kerning pair: horizontal adjustment of the gap between two specific glyphs ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
-| 2 | **kerning** | 1 | 1-byte signed integer | - |
+| 2 | **kerning** | 1 | 1-byte signed integer | Kerning amount in pixels, added to the gap between the glyphs |
 | 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |
 ## **Audio** ##
 ### **AsfAudio** ###
@@ -470,14 +473,14 @@ Did not find what you need or some given data is wrong? Please submit an
 | 28 | **repeat_loop_length** | 4 | 4-bytes unsigned integer (little endian) | If play audio in loop, at this point we should rewind to repeat_loop_beginning. Should be multiplied by sound_resolution to calculate offset in bytes |
 | 32 | **wave_data_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of wave data start in current file, relative to start of the file itself |
 | 36 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 40 | **offset** | up to offset wave_data_offset + 40 | Padding bytes | - |
+| 40 | **offset** | up to offset wave_data_offset + 40 | Padding bytes | Padding between the header and wave data |
 | wave_data_offset + 40 | **wave_data** | min(`remaining file bytes`, `wave_data_length` \* `sound_resolution`) | Bytes | Wave data is here |
 ### **EacsAudioFile** ###
 #### **Size**: 32..? bytes ####
 #### **Description**: A file with single EACS audio entry ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **header** | 32 | [EacsAudioHeader](#eacsaudioheader) | - |
+| 0 | **header** | 32 | [EacsAudioHeader](#eacsaudioheader) | EACS header: sampling rate, resolution, channels, loop settings |
 | 32 | **offset** | up to offset header/wave_data_offset | Padding bytes | Unknown purpose |
 | header/wave_data_offset | **wave_data** | min(`remaining file bytes`, `header.wave_data_length` \* `header.sound_resolution`) | Bytes | Wave data is here. If header.sound_resolution == 1, contains signed bytes, else - unsigned |
 ### **SoundBankHeaderEntry** ###
@@ -486,7 +489,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk** | 40 | Array of `10` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 40 | **eacs_header** | 32 | [EacsAudioHeader](#eacsaudioheader) | - |
+| 40 | **eacs_header** | 32 | [EacsAudioHeader](#eacsaudioheader) | EACS header. Its `wave_data_offset` points into the wave data region of the sound bank file |
 ### **EacsAudioHeader** ###
 #### **Size**: 32 bytes ####
 #### **Description**: A header for EACS audio. It is almost identical to AsfAudio when it is the only sound in the file (*.EAS), but also can be included in single SoundBank file (*.BNK), which has multiple EACS headers and wave data located separately ####
@@ -510,15 +513,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **player_name** | 42 | UTF-8 string | Player name, leading with zeros. Though game allows to set name with as many as 8 characters, the game seems to work fine with name up to 42 symbols, though some part of name will be cut off in the UI |
 | 42 | **unk0** | 139 | Bytes | Unknown purpose |
-| 181 | **city_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 2848 | **coastal_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 5515 | **alpine_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 8182 | **rusty_springs_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 10849 | **autumn_valley_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 13516 | **burnt_sienna_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 16183 | **vertigo_ridge_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 18850 | **transtropolis_stats** | 2667 | [TrackStats](#trackstats) | - |
-| 21517 | **lost_vegas_stats** | 2667 | [TrackStats](#trackstats) | - |
+| 181 | **city_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on City track |
+| 2848 | **coastal_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Coastal track |
+| 5515 | **alpine_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Alpine track |
+| 8182 | **rusty_springs_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Rusty Springs track |
+| 10849 | **autumn_valley_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Autumn Valley track |
+| 13516 | **burnt_sienna_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Burnt Sienna track |
+| 16183 | **vertigo_ridge_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Vertigo Ridge track |
+| 18850 | **transtropolis_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Transtropolis track |
+| 21517 | **lost_vegas_stats** | 2667 | [TrackStats](#trackstats) | Best times and top speeds on Lost Vegas track |
 | 24184 | **unk1** | 39 | [BestRaceRecord](#bestracerecord) | Unknown purpose |
 | 24223 | **unk2** | 177 | Bytes | Unknown purpose |
 | 24400 | **unlocks_level** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>0 (0x0): none<br/>1 (0x1): warrior_vegas_mirror<br/>2 (0x2): warrior_vegas_mirror_rally</details> | Level of unlocked features: warrior car, lost vegas track, mirror track mode, rally track mode |
