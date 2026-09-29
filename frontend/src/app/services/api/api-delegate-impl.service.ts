@@ -140,6 +140,14 @@ export class ApiDelegateImplService {
     return this.wrapCall('serialize_resource', blockId, path, settingsPatch);
   }
 
+  public async serializeResourceSilent(
+    blockId: string,
+    path: string | null = null,
+    settingsPatch: any = {},
+  ): Promise<string[]> {
+    return this.wrapCallSilent('serialize_resource', blockId, path, settingsPatch);
+  }
+
   public async deserializeResource(
     id: string,
     filePaths: string[],
@@ -241,23 +249,34 @@ export class ApiDelegateImplService {
 
   private callQueue: Promise<any> = Promise.resolve();
 
+  private queuedEelCall(funcName: string, ...args: any[]): Promise<any> {
+    const previous = this.callQueue;
+    const current = (async () => {
+      try {
+        await previous;
+      } catch (e) {
+        // ignore
+      }
+      return await eel[funcName](...args)();
+    })();
+    this.callQueue = current;
+    return current;
+  }
+
   private async wrapCall(funcName: string, ...args: any[]): Promise<any> {
     try {
-      const previous = this.callQueue;
-      const current = (async () => {
-        try {
-          await previous;
-        } catch (e) {
-          // ignore
-        }
-        return await eel[funcName](...args)();
-      })();
-      this.callQueue = current;
-      return await current;
+      return await this.queuedEelCall(funcName, ...args);
     } catch (err: any) {
       this.apiError$.next(err.message || err.errorText || err.toString());
       throw err;
     }
+  }
+
+  // Like `wrapCall`, but doesn't surface a failure through the global `apiError$` dialog - for
+  // callers that treat a rejection as an expected, silently-handled outcome (e.g. probing which
+  // of several candidate resource paths actually exists) rather than a real error to report.
+  private async wrapCallSilent(funcName: string, ...args: any[]): Promise<any> {
+    return this.queuedEelCall(funcName, ...args);
   }
 
   private wrapHandler(subj: Subject<any>): (...args: any[]) => void {

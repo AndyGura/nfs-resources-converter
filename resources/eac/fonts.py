@@ -22,7 +22,7 @@ class GlyphDefinition(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'description': 'Glyph definition.<br/>'
+            'block_description': 'Glyph definition.<br/>'
                            '- for FNT version < 200 has length 11 bytes.<br/>'
                            '- for versions >= 200 and <= 309 - 12 bytes, last byte is padding.<br/>'
                            '- for versions > 309 - 12th byte is num_kern.<br/>'
@@ -74,10 +74,19 @@ class GlyphDefinition(DeclarativeCompoundBlock):
 
 
 class KerningItem(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Kerning pair: horizontal adjustment of the gap between two specific glyphs',
+        }
+
     class Fields(DeclarativeCompoundBlock.Fields):
         left = (IntegerBlock(length=2),
                 {'description': 'Code of left glyph'})
-        kerning = (IntegerBlock(length=1, is_signed=True))
+        kerning = (IntegerBlock(length=1, is_signed=True),
+                   {'description': 'Kerning amount in pixels, added to the gap between the glyphs'})
         right = (IntegerBlock(length=1),
                  {'description': 'Code of right glyph'})
 
@@ -109,6 +118,8 @@ class FfnFont(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'serializable_to_disc': True,
+            'block_description': 'Bitmap font: a font atlas bitmap plus glyph definitions (position and size of each '
+                                 'symbol in the atlas) and optional kerning table',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -122,12 +133,14 @@ class FfnFont(DeclarativeCompoundBlock):
                        'description': 'The length of this FFN block in bytes. Does not include bitmap embedded palette '
                                       '(and padding to it after bitmap data). For older versions (I set version <= 101,'
                                       ' but it can be anywhere up to < 309), "padding_2" length not included as well'})
-        version = IntegerBlock(length=2, is_signed=False)
+        version = (IntegerBlock(length=2, is_signed=False),
+                   {'description': 'Font format version. Defines the layout of glyph definitions (see '
+                                   '[GlyphDefinition](#glyphdefinition))'})
         num_glyphs = (IntegerBlock(length=2,
                                    programmatic_value=lambda ctx: len(ctx.data('definitions'))),
                       {'usage': 'io,doc',
                        'description': 'Amount of symbols, defined in this font'})
-        flags = SubByteCompoundBlock(length=4, schema=[
+        flags = (SubByteCompoundBlock(length=4, schema=[
             (13, 'pad', 'number', [], 'pad structure to 32 bits'),
             (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
             (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
@@ -141,10 +154,15 @@ class FfnFont(DeclarativeCompoundBlock):
             (1, 'outline', 'boolean', [], ''),
             (1, 'dropshadow', 'boolean', [], ''),
             (1, 'antialiased', 'boolean', [], ''),
-        ])
-        center = Point2D(child=IntegerBlock(length=1, is_signed=False))
-        ascent = IntegerBlock(length=1, is_signed=False)
-        descent = IntegerBlock(length=1, is_signed=False)
+        ]),
+                 {'description': 'Font flags: format of glyph definitions, encoding, layout and draw attributes'})
+        center = (Point2D(child=IntegerBlock(length=1, is_signed=False)),
+                  {'is_unknown': True})
+        ascent = (IntegerBlock(length=1, is_signed=False),
+                  {'description': 'Distance from the baseline to the top of the glyphs in pixels. '
+                                  '`ascent + descent` is the line height'})
+        descent = (IntegerBlock(length=1, is_signed=False),
+                   {'description': 'Distance from the baseline to the bottom of the glyphs in pixels'})
         definitions_ptr = (IntegerBlock(length=4,
                                         programmatic_value=lambda ctx: ctx.block.offset_to_child_when_packed(
                                             ctx.get_full_data(),
@@ -176,7 +194,8 @@ class FfnFont(DeclarativeCompoundBlock):
         kernings = (OptionalBlock(child=LengthPrefixedArrayBlock(child=KerningItem(),
                                                                  length_block=IntegerBlock(length=4)),
                                   criteria=lambda ctx: ctx.data('kernings_ptr') != 0
-                                                       or len(ctx.data('kernings') or []) != 0))
+                                                       or len(ctx.data('kernings') or []) != 0),
+                    {'description': 'Kerning pairs table'})
         padding_2 = (Padding(to=lambda ctx: ctx.data('bdata_ptr')),
                      {'is_unknown': True})
         bitmap = (EacImage(),

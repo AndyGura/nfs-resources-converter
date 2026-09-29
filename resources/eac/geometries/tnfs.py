@@ -78,7 +78,8 @@ class OripTextureName(DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        type = BytesBlock(length=8)
+        type = (BytesBlock(length=8),
+                {'is_unknown': True})
         file_name = (UTF8Block(length=4),
                      {'description': 'Name of bitmap in SHPI block'})
         unknown = (BytesBlock(length=8),
@@ -217,11 +218,13 @@ class OripGeometry(DeclarativeCompoundBlock):
                                length=lambda ctx: ctx.data('num_polygons')),
                     {'description': 'A block with polygons of the geometry. Probably should be a start point when '
                                     'building model from this file'})
-        unk_uvs = Padding(to=(lambda ctx: ctx.data('uvs_ptr'), 'uvs_ptr'))
+        unk_uvs = (Padding(to=(lambda ctx: ctx.data('uvs_ptr'), 'uvs_ptr')),
+                   {'description': 'Padding up to `uvs_ptr`, normally empty'})
         vertex_uvs = (ArrayBlock(child=OripVertexUV(),
                                  length=lambda ctx: ctx.data('num_uvs')),
                       {'description': 'A table of texture coordinates. Items are retrieved by index, located in vmap'})
-        unk_tex_ids = Padding(to=(lambda ctx: ctx.data('tex_ids_ptr'), 'tex_ids_ptr'))
+        unk_tex_ids = (Padding(to=(lambda ctx: ctx.data('tex_ids_ptr'), 'tex_ids_ptr')),
+                       {'description': 'Padding up to `tex_ids_ptr`, normally empty'})
         tex_ids = (ArrayBlock(child=OripTextureName(),
                               length=lambda ctx: ctx.data('num_tex_ids')),
                    {'description': 'A table of texture references. Items are retrieved by index, located in '
@@ -234,21 +237,25 @@ class OripGeometry(DeclarativeCompoundBlock):
         tex_nmb = (ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=1), length=20),
                               length=lambda ctx: ctx.data('num_tex_nmb')),
                    {'is_unknown': True})
-        unk_ren_ord = Padding(to=(lambda ctx: ctx.data('ren_ord_ptr'), 'ren_ord_ptr'))
+        unk_ren_ord = (Padding(to=(lambda ctx: ctx.data('ren_ord_ptr'), 'ren_ord_ptr')),
+                       {'description': 'Padding up to `ren_ord_ptr`, normally empty'})
         render_order = (ArrayBlock(child=RenderOrderBlock(),
                                    length=lambda ctx: ctx.data('num_ren_ord')),
                         {'description': 'Render order. The exact mechanism how it works is unknown'})
-        unk_fxp = Padding(to=(lambda ctx: ctx.data('fxp_ptr'), 'fxp_ptr'))
+        unk_fxp = (Padding(to=(lambda ctx: ctx.data('fxp_ptr'), 'fxp_ptr')),
+                   {'description': 'Padding up to `fxp_ptr`, normally empty'})
         fx_polys = (ArrayBlock(child=NamedIndex(),
                                length=lambda ctx: ctx.data('num_fxp')),
                     {'description': 'Indexes of polygons which participate in visual effects such as engine smoke, '
                                     'dust particles, tyre trails? Presented in car CFM-s. '})
-        unk_lbl = Padding(to=(lambda ctx: ctx.data('lbl_ptr'), 'lbl_ptr'))
+        unk_lbl = (Padding(to=(lambda ctx: ctx.data('lbl_ptr'), 'lbl_ptr')),
+                   {'description': 'Padding up to `lbl_ptr`, normally empty'})
         labels = (ArrayBlock(child=NamedIndex(),
                              length=lambda ctx: ctx.data('num_lbl')),
                   {'description': 'Marks special polygons for the game, where it should change texture on runtime such '
                                   'as tyres, tail lights'})
-        unk_vrtx = Padding(to=(lambda ctx: ctx.data('vrtx_ptr'), 'vrtx_ptr'))
+        unk_vrtx = (Padding(to=(lambda ctx: ctx.data('vrtx_ptr'), 'vrtx_ptr')),
+                    {'description': 'Padding up to `vrtx_ptr`, normally empty'})
         vertices = (DelegateBlock(choice_index=lambda ctx, **_: (0 if ctx.buffer.name.endswith('.CFM')
                                                                  else 1),
                                   possible_blocks=[
@@ -261,7 +268,8 @@ class OripGeometry(DeclarativeCompoundBlock):
                                   ]),
                     {'description': 'A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. '
                                     'The unit is meter'})
-        unk_vmap = Padding(to=(lambda ctx: ctx.data('vmap_ptr'), 'vmap_ptr'))
+        unk_vmap = (Padding(to=(lambda ctx: ctx.data('vmap_ptr'), 'vmap_ptr')),
+                    {'description': 'Padding up to `vmap_ptr`, normally empty'})
         vmap = (ArrayBlock(child=IntegerBlock(length=4),
                            length=(lambda ctx: floor(
                                (ctx.data('block_size') + ctx.read_start_offset - ctx.buffer.tell()) / 4), '?')),

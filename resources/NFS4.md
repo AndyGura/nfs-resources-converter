@@ -1,13 +1,13 @@
 # **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2026-09-05 19:54:20.212065+00:00*
+*Last time updated: 2026-09-29 06:59:16.780349+00:00*
 
 
 # **Info by file extensions** #
 
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
-        
-**\*.FFN** bitmap font. [FfnFont](#ffnfont)
+
+**\*.FRD** main track file. [Nfs4FrdMap](#nfs4frdmap)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
@@ -41,15 +41,210 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | Descriptions of items: offset, length and name of each of them |
 | 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock)<br/>- pure TGA image |
 ### **BigfItemDescriptionBlock** ###
 #### **Size**: 9..? bytes ####
+#### **Description**: Description of a single item of BIGF archive ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | Offset of item data, relative to BIGF block start |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | Length of item data in bytes |
+| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Item name (file name). Used as file name when the archive is unpacked |
+## **Maps** ##
+### **Nfs4FrdMap** ###
+#### **Size**: 44..? bytes ####
+#### **Description**: Main track file (NFS4 High Stakes). The track is split into blocks (segments): block headers with all counts come first, then block bodies with vertices, polygons at 3 levels of detail and objects. Polygon textures index the track QFS archive (<track>0.QFS) directly; UV-s are not stored, texture orientation is defined by polygon flags ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk** | 28 | Bytes | Unknown header |
+| 28 | **num_blocks** | 4 | 4-bytes unsigned integer (little endian) | Number of track blocks |
+| 32 | **num_vroad** | 4 | 4-bytes unsigned integer (little endian) | Number of virtual road entries |
+| 36 | **vroad** | num_vroad\*84 | Array of `num_vroad` items<br/>Item type: [Nfs4VRoadBlock](#nfs4vroadblock) | Virtual road (spline) data for the whole track, referenced by index from `blocks[].polygon_vroad_data` |
+| 36 + num_vroad\*84 | **blocks_headers** | (num_blocks+1)\*1512 | Array of `num_blocks+1` items<br/>Item type: [Nfs4TrkBlockHeader](#nfs4trkblockheader) | Metadata for every track block, incl. the counts used to size the corresponding entry of `blocks` |
+| 36 + num_vroad\*84 + (num_blocks+1)\*1512 | **blocks** | (num_blocks+1)\*0..? | Array of `num_blocks+1` items<br/>Item type: [Nfs4TrkBlock](#nfs4trkblock) | Track block geometry and extra data |
+| 36 + num_vroad\*84 + (num_blocks+1)\*1512 + (num_blocks+1)\*0..? | **num_global_objects_0** | 4 | 4-bytes unsigned integer (little endian) | Amount of objects in `global_objects_0` |
+| 40 + num_vroad\*84 + (num_blocks+1)\*1512 + (num_blocks+1)\*0..? | **global_objects_0** | 0..? | A group of extra (out-of-terrain) objects: e.g. billboards, animated objects, physics props | Extra objects not attached to any track block |
+| 40 + num_vroad\*84 + (num_blocks+1)\*1512 + (num_blocks+1)\*0..? | **num_global_objects_1** | 4 | 4-bytes unsigned integer (little endian) | Amount of objects in `global_objects_1` |
+| 44 + num_vroad\*84 + (num_blocks+1)\*1512 + (num_blocks+1)\*0..? | **global_objects_1** | 0..? | A group of extra (out-of-terrain) objects: e.g. billboards, animated objects, physics props | Extra objects not attached to any track block. Special/physics props (type 6) live here |
+### **Nfs4VRoadBlock** ###
+#### **Size**: 84 bytes ####
+#### **Description**: Virtual road entry: a point on the road centre line with orientation vectors of the road surface and distances to the road edges. Referenced by index from polygons of track blocks ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **ref_point** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | A point on the track surface this virtual road entry describes |
+| 12 | **normal** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | A normal vector of the road surface |
+| 24 | **forward** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | A forward vector, along the road direction |
+| 36 | **right** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | A right vector, across the road |
+| 48 | **left_wall** | 4 | Float number (little-endian) | Distance to the left wall/edge |
+| 52 | **right_wall** | 4 | Float number (little-endian) | Distance to the right wall/edge |
+| 56 | **unk0** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Unknown purpose |
+| 64 | **unk1** | 20 | Array of `5` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+### **Nfs4BlockCount** ###
+#### **Size**: 8 bytes ####
+#### **Description**: Amount of items in some array of the track block, paired with an unknown value ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **num** | 4 | 4-bytes unsigned integer (little endian) | Amount of items |
+| 4 | **unk** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+### **Nfs4NeighbourData** ###
+#### **Size**: 4 bytes ####
+#### **Description**: Reference to a neighbouring track block ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **block** | 2 | 2-bytes signed integer (little endian) | Neighbouring block index, or -1 |
+| 2 | **unk** | 2 | 2-bytes signed integer (little endian) | Unknown purpose |
+### **Nfs4TrkBlockHeader** ###
+#### **Size**: 1512 bytes ####
+#### **Description**: Metadata of a track block (segment of the track): position, bounds, neighbours and the counts which define sizes of all arrays in the [Nfs4TrkBlock](#nfs4trkblock) with the same index ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **polygon_chunk_sizes** | 44 | Array of `11` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Amount of polygons in each of the 11 polygon chunks (see Nfs4TrkBlock) of this block |
+| 44 | **polygon_chunk_sizes_dup** | 44 | Array of `11` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 88 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Total amount of vertices stored for this block |
+| 92 | **num_vertices_high** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by high-res terrain polygons |
+| 96 | **num_vertices_low** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by low-res terrain polygons |
+| 100 | **num_vertices_med** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by medium-res terrain polygons |
+| 104 | **num_vertices_dup** | 4 | 4-bytes unsigned integer (little endian) | Equals to `num_vertices` |
+| 108 | **num_vertices_obj** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by per-block objects? |
+| 112 | **unk0** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 120 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position of the block in the world: a point on the road at the block start. Positions of all blocks form the track path |
+| 132 | **bounds** | 48 | Array of `4` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Block bounding rectangle |
+| 180 | **neighbour_data** | 1200 | Array of `300` items<br/>Item type: [Nfs4NeighbourData](#nfs4neighbourdata) | Neighbouring blocks. Unused items have block index -1 |
+| 1380 | **object_chunk_counts** | 32 | Array of `4` items<br/>Item type: [Nfs4BlockCount](#nfs4blockcount) | Amount of extra objects in each of the 4 per-block extra object chunks (see Nfs4TrkBlock) |
+| 1412 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in `polygon_vroad_data` |
+| 1416 | **bounds_min** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Minimum corner of the axis-aligned bounding box of the block |
+| 1428 | **bounds_max** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Maximum corner of the axis-aligned bounding box of the block |
+| 1440 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 1444 | **num_positions** | 4 | 4-bytes unsigned integer (little endian) | Amount of position entries (groups of road polygons), usually 8 |
+| 1448 | **num_xobj** | 8 | [Nfs4BlockCount](#nfs4blockcount) | Amount of items in `xobj` |
+| 1456 | **num_polyobj** | 8 | [Nfs4BlockCount](#nfs4blockcount) | Amount of items in `xobj2` |
+| 1464 | **num_soundsrc** | 8 | [Nfs4BlockCount](#nfs4blockcount) | Amount of items in `soundsrc` |
+| 1472 | **num_lightsrc** | 8 | [Nfs4BlockCount](#nfs4blockcount) | Amount of items in `lightsrc` |
+| 1480 | **neighbors** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+### **Nfs4PolygonVroadData** ###
+#### **Size**: 24 bytes ####
+#### **Description**: Per-polygon road data of a track block: reference to the global virtual road entry plus orientation vectors of the surface at this polygon ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **hs_minmax** | 4 | Array of `4` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 4 | **flags** | 5 | Array of `5` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
+| 9 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 10 | **vroad_idx** | 2 | 2-bytes unsigned integer (little endian) | Index of the corresponding entry in the top-level `vroad` array |
+| 12 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | A normal vector of the surface |
+| 18 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part, normalized | A forward vector of the surface |
+### **Nfs4RefExtraObject** ###
+#### **Size**: 20 bytes ####
+#### **Description**: Reference to an extra object (XOBJ) placed in the track block ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Position of the object |
+| 12 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 14 | **global_index** | 2 | 2-bytes unsigned integer (little endian) | Sequence number of this object among all extra objects of the track |
+| 16 | **unk1** | 3 | Bytes | Unknown purpose |
+| 19 | **collision** | 1 | 1-byte unsigned integer | Unknown purpose |
+### **Nfs4RefExtraObject2** ###
+#### **Size**: 20 bytes ####
+#### **Description**: Reference to a per-block object (POLYOBJ) placed in the track block ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 2 | **type** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 3 | **id** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 4 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Position of the object |
+| 16 | **crossindex** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 17 | **unk1** | 3 | Bytes | Unknown purpose |
+### **Nfs4XObjHeader** ###
+#### **Size**: 52 bytes ####
+#### **Description**: Header of an extra object: type, position and the counts which define the sizes of the corresponding [Nfs4ExtraObject](#nfs4extraobject) arrays ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **type** | 4 | 4-bytes unsigned integer (little endian) | Object type. One of: 2, 4 (normal static object), 3 (animated object, has `anim_data`), 6 (special/physics prop, has `special_data`). Objects of type 6 are placed in global chunks of the track file, not in track blocks |
+| 4 | **index** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Object position |
+| 24 | **size** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 28 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 32 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices of the corresponding entry in `objects` |
+| 36 | **unk2** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 44 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Amount of polygons of the corresponding entry in `objects` |
+| 48 | **unk3** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+### **Nfs4AnimKeyframe** ###
+#### **Size**: 20 bytes ####
+#### **Description**: Animation keyframe of an extra object ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Object position at this keyframe |
+| 12 | **unk** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes signed integer (little endian) | Object orientation at this keyframe, presumably a quaternion (x, y, z, w), where each component is 16-bit fixed point with 14 fraction bits |
+### **Nfs4AnimExtra** ###
+#### **Size**: 8..? bytes ####
+#### **Description**: Animation of an extra object: a sequence of keyframes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 2 | **anim_type** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 3 | **anim_id** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 4 | **num_keyframes** | 2 | 2-bytes unsigned integer (little endian) | Amount of keyframes |
+| 6 | **delay** | 2 | 2-bytes unsigned integer (little endian) | Animation delay/period |
+| 8 | **keyframes** | num_keyframes\*20 | Array of `num_keyframes` items<br/>Item type: [Nfs4AnimKeyframe](#nfs4animkeyframe) | Animation keyframes |
+### **Nfs4SpecialExtra** ###
+#### **Size**: 72 bytes ####
+#### **Description**: Physics properties of a special extra object (movable prop, e.g. a barrel or a cone) ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **location** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position of the object. Equals to `pt` of the object header |
+| 12 | **mass** | 4 | Float number (little-endian) | Mass of the object |
+| 16 | **transform** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | 3x3 rotation/transform matrix |
+| 52 | **collision_dimensions** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Dimensions of the collision box of the object |
+| 64 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 68 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 70 | **unk2** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+### **Nfs4Polygon** ###
+#### **Size**: 13 bytes ####
+#### **Description**: A single quad polygon of terrain or extra object. UV coordinates are not stored: the texture is mapped to the whole polygon, oriented according to `tex_flags` ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **vertices** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Indexes of the 4 vertices in the vertex table of the enclosing track block (terrain polygons) or extra object (object polygons) |
+| 8 | **texture** | 2 | 2-bytes unsigned integer (little endian) | Bits 0-10: index of the texture in the track QFS archive (<file>0.QFS). Other bits: rendering flags |
+| 10 | **tex_flags** | 2 | 2-bytes unsigned integer (little endian) | UV orientation of the texture on this polygon. Base UV-s of the 4 vertices are (0,1), (1,1), (1,0), (0,0); bit 4 mirrors them horizontally, bits 7-8 rotate them by 90 degrees x value. Other bits unknown. |
+| 12 | **anim_flags** | 1 | 1-byte unsigned integer | Used for animated textures: length/period |
+### **Nfs4ExtraObject** ###
+#### **Size**: 0..? bytes ####
+#### **Description**: Extra object mesh: a standalone object placed on the track (billboard, animated object, physics prop). Type, position and array sizes are defined by the [Nfs4XObjHeader](#nfs4xobjheader) with the same index in the enclosing chunk ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **anim_data** | 0..? | Optional (if object_headers//type == 3): [Nfs4AnimExtra](#nfs4animextra) | Present when the corresponding `object_headers` entry has type == 3 (animated) |
+| 0..? | **special_data** | 0..72 | Optional (if object_headers//type == 6): [Nfs4SpecialExtra](#nfs4specialextra) | Present when the corresponding `object_headers` entry has type == 6 (special) |
+| 0..? | **vertices** | (object_headers//num_vertices)\*12 | Array of `object_headers//num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices, global coordinates |
+| (object_headers//num_vertices)\*12..? | **vertex_shading** | custom_func\*4 | Array of `custom_func` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Per-vertex shading color, 32-bit ARGB (0xFFRRGGBB), one item per vertex |
+| (object_headers//num_vertices)\*12 + custom_func\*4..? | **polygons** | (object_headers//num_polygons)\*13 | Array of `object_headers//num_polygons` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Polygons of this object |
+### **Nfs4TrkBlock** ###
+#### **Size**: 0..? bytes ####
+#### **Description**: Track block body: terrain vertices and polygons at 3 levels of detail, plus objects placed in this segment of the track. All array sizes come from the [Nfs4TrkBlockHeader](#nfs4trkblockheader) with the same index ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **vertices** | (blocks_headers//num_vertices)\*12 | Array of `blocks_headers//num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices, global coordinates |
+| (blocks_headers//num_vertices)\*12 | **vertex_shading** | custom_func\*4 | Array of `custom_func` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Per-vertex shading color, 32-bit ARGB (0xFFRRGGBB), one item per vertex |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 | **polygon_vroad_data** | (blocks_headers//num_polygons)\*24 | Array of `blocks_headers//num_polygons` items<br/>Item type: [Nfs4PolygonVroadData](#nfs4polygonvroaddata) | Per-polygon reference into the global `vroad` array, plus flags |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 | **xobj** | (blocks_headers//num_xobj/num)\*20 | Array of `blocks_headers//num_xobj/num` items<br/>Item type: [Nfs4RefExtraObject](#nfs4refextraobject) | References to extra objects placed in this block |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 | **xobj2** | (blocks_headers//num_polyobj/num)\*20 | Array of `blocks_headers//num_polyobj/num` items<br/>Item type: [Nfs4RefExtraObject2](#nfs4refextraobject2) | References to per-block objects placed in this block |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 | **soundsrc** | (blocks_headers//num_soundsrc/num)\*16 | Array of `blocks_headers//num_soundsrc/num` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit sound type |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 | **lightsrc** | (blocks_headers//num_lightsrc/num)\*16 | Array of `blocks_headers//num_lightsrc/num` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit light type |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 | **polygons_low_res_track** | (blocks_headers//polygon_chunk_sizes/0)\*13 | Array of `blocks_headers//polygon_chunk_sizes/0` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Low-res track polygons |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 | **polygons_low_res_misc** | (blocks_headers//polygon_chunk_sizes/1)\*13 | Array of `blocks_headers//polygon_chunk_sizes/1` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Low-res misc (non-track) polygons |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 | **polygons_med_res_track** | (blocks_headers//polygon_chunk_sizes/2)\*13 | Array of `blocks_headers//polygon_chunk_sizes/2` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Medium-res track polygons |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 | **polygons_med_res_misc** | (blocks_headers//polygon_chunk_sizes/3)\*13 | Array of `blocks_headers//polygon_chunk_sizes/3` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Medium-res misc (non-track) polygons |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 | **polygons_high_res_track** | (blocks_headers//polygon_chunk_sizes/4)\*13 | Array of `blocks_headers//polygon_chunk_sizes/4` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | High-res track polygons |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 | **polygons_high_res_misc** | (blocks_headers//polygon_chunk_sizes/5)\*13 | Array of `blocks_headers//polygon_chunk_sizes/5` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | High-res misc (non-track) polygons |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 | **lanes** | (blocks_headers//polygon_chunk_sizes/6)\*13 | Array of `blocks_headers//polygon_chunk_sizes/6` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Lane helper polygons, not meant to be rendered |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 | **polygons_high_res_misc_1** | (blocks_headers//polygon_chunk_sizes/7)\*13 | Array of `blocks_headers//polygon_chunk_sizes/7` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Additional polygon chunk, purpose unknown. Not rendered by the converter |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 + (blocks_headers//polygon_chunk_sizes/7)\*13 | **polygons_high_res_misc_2** | (blocks_headers//polygon_chunk_sizes/8)\*13 | Array of `blocks_headers//polygon_chunk_sizes/8` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Additional polygon chunk, purpose unknown. Not rendered by the converter |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 + (blocks_headers//polygon_chunk_sizes/7)\*13 + (blocks_headers//polygon_chunk_sizes/8)\*13 | **polygons_high_res_misc_3** | (blocks_headers//polygon_chunk_sizes/9)\*13 | Array of `blocks_headers//polygon_chunk_sizes/9` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Additional polygon chunk, purpose unknown. Not rendered by the converter |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 + (blocks_headers//polygon_chunk_sizes/7)\*13 + (blocks_headers//polygon_chunk_sizes/8)\*13 + (blocks_headers//polygon_chunk_sizes/9)\*13 | **polygons_high_res_misc_4** | (blocks_headers//polygon_chunk_sizes/10)\*13 | Array of `blocks_headers//polygon_chunk_sizes/10` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Additional polygon chunk, purpose unknown. Not rendered by the converter |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 + (blocks_headers//polygon_chunk_sizes/7)\*13 + (blocks_headers//polygon_chunk_sizes/8)\*13 + (blocks_headers//polygon_chunk_sizes/9)\*13 + (blocks_headers//polygon_chunk_sizes/10)\*13 | **extra_objects_0** | 0..? | A group of extra (out-of-terrain) objects: e.g. billboards, animated objects, physics props | Extra objects chunk #0 of this block. Amount of objects is `object_chunk_counts[0].num` of the block header |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 + (blocks_headers//polygon_chunk_sizes/7)\*13 + (blocks_headers//polygon_chunk_sizes/8)\*13 + (blocks_headers//polygon_chunk_sizes/9)\*13 + (blocks_headers//polygon_chunk_sizes/10)\*13..? | **extra_objects_1** | 0..? | A group of extra (out-of-terrain) objects: e.g. billboards, animated objects, physics props | Extra objects chunk #1 of this block. Amount of objects is `object_chunk_counts[1].num` of the block header |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 + (blocks_headers//polygon_chunk_sizes/7)\*13 + (blocks_headers//polygon_chunk_sizes/8)\*13 + (blocks_headers//polygon_chunk_sizes/9)\*13 + (blocks_headers//polygon_chunk_sizes/10)\*13..? | **extra_objects_2** | 0..? | A group of extra (out-of-terrain) objects: e.g. billboards, animated objects, physics props | Extra objects chunk #2 of this block. Amount of objects is `object_chunk_counts[2].num` of the block header |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 + (blocks_headers//polygon_chunk_sizes/2)\*13 + (blocks_headers//polygon_chunk_sizes/3)\*13 + (blocks_headers//polygon_chunk_sizes/4)\*13 + (blocks_headers//polygon_chunk_sizes/5)\*13 + (blocks_headers//polygon_chunk_sizes/6)\*13 + (blocks_headers//polygon_chunk_sizes/7)\*13 + (blocks_headers//polygon_chunk_sizes/8)\*13 + (blocks_headers//polygon_chunk_sizes/9)\*13 + (blocks_headers//polygon_chunk_sizes/10)\*13..? | **extra_objects_3** | 0..? | A group of extra (out-of-terrain) objects: e.g. billboards, animated objects, physics props | Extra objects chunk #3 of this block. Amount of objects is `object_chunk_counts[3].num` of the block header |
 ## **Images** ##
 ### **EacImage** ###
 #### **Size**: 16..? bytes ####
@@ -98,32 +293,34 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x6f | Resource ID |
 | 1 | **unk** | 3 | Bytes | Unknown purpose |
 | 4 | **len_text** | 4 | 4-bytes unsigned integer (little endian) | Length of 'text' utf8 block |
-| 8 | **text** | len_text | UTF-8 string | - |
+| 8 | **text** | len_text | UTF-8 string | Text contents |
 ## **Fonts** ##
 ### **FfnFont** ###
 #### **Size**: 48..? bytes ####
+#### **Description**: Bitmap font: a font atlas bitmap plus glyph definitions (position and size of each symbol in the atlas) and optional kerning table ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include bitmap embedded palette (and padding to it after bitmap data). For older versions (I set version <= 101, but it can be anywhere up to < 309), "padding_2" length not included as well |
-| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | Font format version. Defines the layout of glyph definitions (see [GlyphDefinition](#glyphdefinition)) |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | - |
-| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | - |
-| 18 | **ascent** | 1 | 1-byte unsigned integer | - |
-| 19 | **descent** | 1 | 1-byte unsigned integer | - |
+| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | Font flags: format of glyph definitions, encoding, layout and draw attributes |
+| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | Unknown purpose |
+| 18 | **ascent** | 1 | 1-byte unsigned integer | Distance from the baseline to the top of the glyphs in pixels. `ascent + descent` is the line height |
+| 19 | **descent** | 1 | 1-byte unsigned integer | Distance from the baseline to the bottom of the glyphs in pixels |
 | 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
 | 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
 | 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
 | definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*17 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
 | ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
-| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | Kerning pairs table |
 | ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
 | bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
 | ? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
 #### **Size**: 11..17 bytes ####
+#### **Description**: Glyph definition.<br/>- for FNT version < 200 has length 11 bytes.<br/>- for versions >= 200 and <= 309 - 12 bytes, last byte is padding.<br/>- for versions > 309 - 12th byte is num_kern.<br/>- for versions >= 321 it may be 16 bytes if "format" flag is set to 16-bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **code** | 2 | 2-bytes unsigned integer (little endian) | Code of symbol |
@@ -140,8 +337,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
 ### **KerningItem** ###
 #### **Size**: 4 bytes ####
+#### **Description**: Kerning pair: horizontal adjustment of the gap between two specific glyphs ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
-| 2 | **kerning** | 1 | 1-byte signed integer | - |
+| 2 | **kerning** | 1 | 1-byte signed integer | Kerning amount in pixels, added to the gap between the glyphs |
 | 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |

@@ -49,7 +49,8 @@ class GeoMesh(DeclarativeCompoundBlock):
         num_plgn = (IntegerBlock(length=4),
                     {'description': 'number of polygons in block'})
         pos = (Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
-               {'description': 'position of part in 3d space. The unit is meter'})
+               {'description': 'position of part in 3d space (pivot of the mesh, vertices are relative to it). The '
+                               'unit is meter'})
         unk0 = (IntegerBlock(length=4),
                 {'is_unknown': True})
         unk1 = (IntegerBlock(length=4),
@@ -77,7 +78,9 @@ class GeoGeometry(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': 'A set of 3D meshes, used for cars and props. Contains multiple meshes with '
-                                     'high details, medium and low LOD-s'}
+                                     'high details, medium and low LOD-s. Textures are in a separate QFS archive: '
+                                     '<name>.QFS next to the GEO file (NFS2), or CARMODEL/PC/<name>.QFS for GEO '
+                                     'items of CARDATA.VIV (NFS2SE)'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4),

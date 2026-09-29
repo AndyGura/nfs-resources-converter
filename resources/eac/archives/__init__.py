@@ -145,10 +145,19 @@ class WwwwBlock(ArchiveBlock):
 
 
 class BigfItemDescriptionBlock(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Description of a single item of BIGF archive'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
-        offset = IntegerBlock(length=4, byte_order='big')
-        length = IntegerBlock(length=4, byte_order='big')
-        name = NullTerminatedUTF8Block(length=8)
+        offset = (IntegerBlock(length=4, byte_order='big'),
+                  {'description': 'Offset of item data, relative to BIGF block start'})
+        length = (IntegerBlock(length=4, byte_order='big'),
+                  {'description': 'Length of item data in bytes'})
+        name = (NullTerminatedUTF8Block(length=8),
+                {'description': 'Item name (file name). Used as file name when the archive is unpacked'})
 
 
 class BigfBlock(ArchiveBlock):
@@ -200,7 +209,8 @@ class BigfBlock(ArchiveBlock):
                 {'is_unknown': True})
         items_descr = (ArrayBlock(length=lambda ctx: ctx.data('num_items'),
                                   child=BigfItemDescriptionBlock()),
-                       {'usage': 'io,doc'})
+                       {'usage': 'io,doc',
+                        'description': 'Descriptions of items: offset, length and name of each of them'})
         data_bytes = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
                       {'usage': 'io,doc',
                        'description': 'A part of block, where items data is located. Offsets and lengths are defined '

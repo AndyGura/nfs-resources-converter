@@ -192,8 +192,10 @@ class CullingPartData(DeclarativeCompoundBlock):
                 'block_description': 'Polygon culling rule?'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = Point3D(child=DecimalBlock(length=4), is_normalized=True)
-        threshold = DecimalBlock(length=4)
+        normal = (Point3D(child=DecimalBlock(length=4), is_normalized=True),
+                  {'description': 'Normalized direction vector (plane normal?)'})
+        threshold = (DecimalBlock(length=4),
+                     {'description': 'Threshold value (plane distance?)'})
 
 
 class CullingPart(DeclarativeCompoundBlock):
@@ -231,8 +233,9 @@ class TransformationPart(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': 'A part referencing to a transformation matrix. If exists, matrix should be '
-                                     'applied to the mesh. Matrix is a 4x4 matrix in row-major order, where each number '
-                                     'is stored as 4-bytes float number (little-endian).'}
+                                     'applied to the meshes of the same article with the same LOD. Matrix is a 4x4 '
+                                     'matrix in column-major order (elements 12, 13, 14 are the translation), where '
+                                     'each number is stored as 4-bytes float number (little-endian).'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         part_info = (SubByteCompoundBlock(length=2, schema=[
@@ -276,7 +279,10 @@ class VertexPart(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': 'A part referencing to an array of [VertexData](#vertexdata) blocks, representing'
-                                     ' mesh vertices'}
+                                     ' mesh vertices. Every vertex part of an article produces a separate mesh, '
+                                     'combined with the triangle, UV and transformation parts of the same LOD. For a '
+                                     'damaged part (damage == 8) vertex positions are offsets, which are added to '
+                                     'vertices of the undamaged part with the same LOD and animation index'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         part_info = (SubByteCompoundBlock(length=2, schema=[
@@ -338,9 +344,17 @@ class NormalPart(DeclarativeCompoundBlock):
 
 
 class UVData(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Texture coordinates of a vertex'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
-        u = DecimalBlock(length=4)
-        v = DecimalBlock(length=4)
+        u = (DecimalBlock(length=4),
+             {'description': 'U texture coordinate'})
+        v = (DecimalBlock(length=4),
+             {'description': 'V texture coordinate'})
 
 
 class UVPart(DeclarativeCompoundBlock):
@@ -373,6 +387,12 @@ class UVPart(DeclarativeCompoundBlock):
 
 
 class TriangleInfoRowBase(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Common prefix of the info rows of [TrianglePartData](#trianglepartdata)'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
         offset = (IntegerBlock(length=4), {'description': 'Offset in data'})
@@ -380,6 +400,12 @@ class TriangleInfoRowBase(DeclarativeCompoundBlock):
 
 
 class CullingInfoRow(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Info row referencing the culling data used by the triangle part'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
         offset = (IntegerBlock(length=4), {'description': 'Offset in culling data'})
@@ -390,9 +416,17 @@ class CullingInfoRow(DeclarativeCompoundBlock):
 
 
 class VertexInfoRow(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Info row referencing the vertex data used by the triangle part'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
-        offset = (IntegerBlock(length=4), {'description': 'Offset in vertex data'})
+        offset = (IntegerBlock(length=4), {'description': 'Offset in vertex data in bytes. offset / 16 is the index '
+                                                          'of the first vertex used by the part; it is added to all '
+                                                          'values of the vertex index table'})
         length_used = (IntegerBlock(length=2), {'description': 'Length of vertex data used'})
         unk1 = (BytesBlock(length=2), {'is_unknown': True})
         level_index = (IntegerBlock(length=2), {'description': 'Level index'})
@@ -400,6 +434,12 @@ class VertexInfoRow(DeclarativeCompoundBlock):
 
 
 class NormalInfoRow(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Info row referencing the normals data used by the triangle part'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
         offset = (IntegerBlock(length=4), {'description': 'Offset in normal data'})
@@ -410,6 +450,12 @@ class NormalInfoRow(DeclarativeCompoundBlock):
 
 
 class UVInfoRow(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Info row referencing the UV data used by the triangle part'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
         offset = (IntegerBlock(length=4), {'description': 'Offset in uv data'})
@@ -431,11 +477,19 @@ def determine_triangle_info_row_type(ctx, name):
 
 
 class IndexRow(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'Descriptor of an index stream (vertex indices or UV indices) of the triangle '
+                                     'part'}
+
     class Fields(DeclarativeCompoundBlock.Fields):
         idx = (IntegerBlock(length=2), {'description': 'Row index'})
         identifier = (UTF8Block(length=2),
                       {'description': 'Identifier "vI"|"Iv" – vertex index, "uI"|"Iu" - uv index'})
-        offset = (IntegerBlock(length=4), {'description': 'Offset of indices'})
+        offset = (IntegerBlock(length=4), {'description': 'Offset of indices: the position of the first index of this '
+                                                          'stream in the index tables'})
 
 
 class TrianglePartData(DeclarativeCompoundBlock):
@@ -443,7 +497,9 @@ class TrianglePartData(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'A description of mesh geometry (faces)'}
+                'block_description': 'A description of mesh geometry (faces): a triangle list. Every 3 consecutive '
+                                     'values of the vertex index table (starting from the offset of the first index '
+                                     'row) form a triangle; UV index table maps the same positions to UV-s'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         flags = (IntegerBlock(length=4), {'is_unknown': True, 'description': 'Info flags'})
@@ -455,15 +511,19 @@ class TrianglePartData(DeclarativeCompoundBlock):
                                                   'description': 'Number of info rows'})
         num_index_rows = (IntegerBlock(length=4), {'programmatic_value': lambda ctx: len(ctx.data('index_rows')),
                                                    'description': 'Number of index rows'})
-        info_rows = ArrayBlock(length=lambda ctx: ctx.data('num_info_rows'),
-                               child=DelegateBlock(
-                                   possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
-                                   choice_index=lambda ctx, name, **_: determine_triangle_info_row_type(ctx, name)))
-        index_rows = ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'), child=IndexRow())
+        info_rows = (ArrayBlock(length=lambda ctx: ctx.data('num_info_rows'),
+                                child=DelegateBlock(
+                                    possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
+                                    choice_index=lambda ctx, name, **_: determine_triangle_info_row_type(ctx, name))),
+                     {'description': 'Descriptors of the data streams used by this part. When there are 4 rows, they '
+                                     'are culling, normal, UV and vertex rows; when 3 - normal, UV and vertex rows'})
+        index_rows = (ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'), child=IndexRow()),
+                      {'description': 'Descriptors of the index streams: vertex indices and UV indices'})
         index_table = (ArrayBlock(length=lambda ctx: ctx.data('../num_data'), child=IntegerBlock(length=1)),
-                       {'description': 'Vertex index table'})
+                       {'description': 'Vertex index table. Every 3 consecutive values form a triangle'})
         uv_index_table = (ArrayBlock(length=lambda ctx: ctx.data('../num_data'), child=IntegerBlock(length=1)),
-                          {'description': 'UV index table'})
+                          {'description': 'UV index table: for every position of the vertex index table, index of '
+                                          'UV-s in the UV part of the same LOD'})
 
 
 class TrianglePart(DeclarativeCompoundBlock):
@@ -488,7 +548,7 @@ class TrianglePart(DeclarativeCompoundBlock):
         len = (IntegerBlock(length=3),
                {'description': 'Data length in bytes'})
         num_data = (IntegerBlock(length=4),
-                    {'description': 'Number of indices'})
+                    {'description': 'Number of indices (size of each index table in the data)'})
         offset = (IntegerBlock(length=4),
                   {'usage': 'io,doc',
                    'description': 'Data offset (Relative from current block offset)'})
@@ -657,7 +717,10 @@ class CrpGeometry(DeclarativeCompoundBlock):
                                      'and (possibly) UV-s, materials are not parsed yet. Contains many part blocks, '
                                      '16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed '
                                      'by raw data. Each part, except articles, have an offset and length of it\'s data,'
-                                     ' located in "raw_data" byte array'}
+                                     ' located in "raw_data" byte array. The converter builds one mesh per vertex part '
+                                     'of each article, named `<article name>_LOD<lod>_ai<animation index>`, using '
+                                     'triangle, UV and transformation parts of the article with the same LOD; '
+                                     'textures come from the FSH parts'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (UTF8Block(value_validator=Or([' raC', 'karT']), length=4),

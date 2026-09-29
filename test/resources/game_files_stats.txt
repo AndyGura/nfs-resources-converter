@@ -1,7 +1,7 @@
 --- Test Statistics ---
 Total files tested: 8293
-Files read successfully: 3812
-Files written successfully: 3657
+Files read successfully: 3882
+Files written successfully: 3686
 Files read again successfully: 3227
 Files passed comparison test: 1395
 
@@ -20,6 +20,7 @@ Files passed comparison test: 1395
 .QAL: 100.00%
 .ASF: 100.00%
 .MSK: 100.00%
+.FRD: 100.00%
 .EX_: 100.00%
 .DCT: 100.00%
 .AS4: 100.00%
@@ -35,11 +36,12 @@ INFO: 100.00%
 .FAM: 100.00%
 .PBS: 100.00%
 .AST: 100.00%
+.BAK: 100.00%
 .QFS: 99.19%
 .VIV: 97.65%
 .MUS: 97.22%
 .TRK: 88.89%
-.FRD: 23.68%
+.BIN: 13.64%
 .ART: 12.50%
 .FRE: 11.11%
 .SPA: 11.11%
@@ -64,6 +66,7 @@ INFO: 100.00%
 .QPL: 100.00%
 .QAL: 100.00%
 .MSK: 100.00%
+.FRD: 100.00%
 .EX_: 100.00%
 .AS4: 100.00%
 .EAS: 100.00%
@@ -78,7 +81,6 @@ INFO: 100.00%
 .QFS: 99.19%
 .VIV: 97.65%
 .TRK: 88.89%
-.FRD: 23.68%
 .ART: 12.50%
 .FRE: 11.11%
 .SPA: 11.11%
@@ -89,11 +91,13 @@ INFO: 100.00%
 .SPL: 0.99%
 .DAT: 0.70%
 .CAN: 0.62%
+.BIN: 0.00%
 .MUS: 0.00%
 .DCT: 0.00%
 .TGV: 0.00%
 INFO: 0.00%
 .AST: 0.00%
+.BAK: 0.00%
 
 --- File Extension Read-Again Success Rates (Test 3) ---
 .FSH: 100.00%
@@ -127,6 +131,7 @@ INFO: 0.00%
 .SPL: 0.99%
 .CAN: 0.62%
 .CRP: 0.00%
+.BIN: 0.00%
 .DAT: 0.00%
 .MUS: 0.00%
 .FRE: 0.00%
@@ -139,6 +144,7 @@ INFO: 0.00%
 .TGV: 0.00%
 INFO: 0.00%
 .AST: 0.00%
+.BAK: 0.00%
 
 --- File Extension Comparison Success Rates (Test 4) ---
 .ENV: 100.00%
@@ -160,6 +166,7 @@ INFO: 0.00%
 .FSB: 20.00%
 .BNK: 3.86%
 .CRP: 0.00%
+.BIN: 0.00%
 .DAT: 0.00%
 .SPL: 0.00%
 .QFS: 0.00%
@@ -184,6 +191,7 @@ INFO: 0.00%
 .PDN: 0.00%
 .PBS: 0.00%
 .AST: 0.00%
+.BAK: 0.00%
 
 --- Time Spent ---
-Total time: 00:31:38.94
+Total time: 00:33:28.23

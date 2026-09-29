@@ -364,8 +364,8 @@ EXPORT_RESOURCES = {
         'file_name': 'NFS4.md',
         'title': 'NFS 4 High Stakes file specs',
         'file_list': f"""**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
-        
-**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
+
+**\\*.FRD** main track file. {render_type(eac.maps.Nfs4FrdMap())}
 
 **\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
@@ -380,8 +380,23 @@ EXPORT_RESOURCES = {
             ],
             # 'Geometries': [
             # ],
-            # 'Maps': [
-            # ],
+            'Maps': [
+                eac.maps.Nfs4FrdMap(),
+                eac.maps.Nfs4VRoadBlock(),
+                eac.maps.Nfs4BlockCount(),
+                eac.maps.Nfs4NeighbourData(),
+                eac.maps.Nfs4TrkBlockHeader(),
+                eac.maps.Nfs4PolygonVroadData(),
+                eac.maps.Nfs4RefExtraObject(),
+                eac.maps.Nfs4RefExtraObject2(),
+                eac.maps.Nfs4XObjHeader(),
+                eac.maps.Nfs4AnimKeyframe(),
+                eac.maps.Nfs4AnimExtra(),
+                eac.maps.Nfs4SpecialExtra(),
+                eac.maps.Nfs4Polygon(),
+                eac.maps.Nfs4ExtraObject(),
+                eac.maps.Nfs4TrkBlock(),
+            ],
             # 'Physics': [
             # ],
             'Images': [

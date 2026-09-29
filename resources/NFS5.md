@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-09-05 19:54:20.239181+00:00*
+*Last time updated: 2026-09-29 06:59:16.834305+00:00*
 
 
 # **Info by file extensions** #
@@ -41,19 +41,20 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | - |
+| 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | Descriptions of items: offset, length and name of each of them |
 | 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock)<br/>- pure TGA image |
 ### **BigfItemDescriptionBlock** ###
 #### **Size**: 9..? bytes ####
+#### **Description**: Description of a single item of BIGF archive ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | - |
-| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | - |
+| 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | Offset of item data, relative to BIGF block start |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | Length of item data in bytes |
+| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Item name (file name). Used as file name when the archive is unpacked |
 ## **Geometries** ##
 ### **CrpGeometry** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: A set of 3D meshes, used for cars and tracks. Currently I parsed all geometries and (possibly) UV-s, materials are not parsed yet. Contains many part blocks, 16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed by raw data. Each part, except articles, have an offset and length of it's data, located in "raw_data" byte array ####
+#### **Description**: A set of 3D meshes, used for cars and tracks. Currently I parsed all geometries and (possibly) UV-s, materials are not parsed yet. Contains many part blocks, 16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed by raw data. Each part, except articles, have an offset and length of it's data, located in "raw_data" byte array. The converter builds one mesh per vertex part of each article, named `<article name>_LOD<lod>_ai<animation index>`, using triangle, UV and transformation parts of the article with the same LOD; textures come from the FSH parts ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['" raC"', '"karT"'] | Resource ID. " raC" ("Car ") for cars, "karT" for tracks |
@@ -158,11 +159,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 2 | **identifier** | 2 | UTF-8 string. Always == "rp" | Identifier |
 | 4 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
 | 5 | **len** | 3 | 3-bytes unsigned integer (little endian) | Data length in bytes |
-| 8 | **num_data** | 4 | 4-bytes unsigned integer (little endian) | Number of indices |
+| 8 | **num_data** | 4 | 4-bytes unsigned integer (little endian) | Number of indices (size of each index table in the data) |
 | 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Data offset (Relative from current block offset) |
 ### **TransformationPart** ###
 #### **Size**: 16 bytes ####
-#### **Description**: A part referencing to a transformation matrix. If exists, matrix should be applied to the mesh. Matrix is a 4x4 matrix in row-major order, where each number is stored as 4-bytes float number (little-endian). ####
+#### **Description**: A part referencing to a transformation matrix. If exists, matrix should be applied to the meshes of the same article with the same LOD. Matrix is a 4x4 matrix in column-major order (elements 12, 13, 14 are the translation), where each number is stored as 4-bytes float number (little-endian). ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
@@ -184,7 +185,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Data offset (Relative from current block offset) |
 ### **VertexPart** ###
 #### **Size**: 16 bytes ####
-#### **Description**: A part referencing to an array of [VertexData](#vertexdata) blocks, representing mesh vertices ####
+#### **Description**: A part referencing to an array of [VertexData](#vertexdata) blocks, representing mesh vertices. Every vertex part of an article produces a separate mesh, combined with the triangle, UV and transformation parts of the same LOD. For a damaged part (damage == 8) vertex positions are offsets, which are added to vertices of the undamaged part with the same LOD and animation index ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **part_info** | 2 | Sub-byte compound block (little endian):<br/>4-bits int "damage"<br/>8-bits int "animation_index"<br/>4-bits int "lod" | Part matching info. Part should be used with others that have same values |
@@ -229,10 +230,11 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Polygon culling rule? ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **normal** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | - |
-| 12 | **threshold** | 4 | Float number (little-endian) | - |
+| 0 | **normal** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Normalized direction vector (plane normal?) |
+| 12 | **threshold** | 4 | Float number (little-endian) | Threshold value (plane distance?) |
 ### **CullingInfoRow** ###
 #### **Size**: 16 bytes ####
+#### **Description**: Info row referencing the culling data used by the triangle part ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
@@ -267,6 +269,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 12 | **unk** | 4 | Float number (little-endian) | Unknown purpose |
 ### **NormalInfoRow** ###
 #### **Size**: 16 bytes ####
+#### **Description**: Info row referencing the normals data used by the triangle part ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
@@ -277,7 +280,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 14 | **unk2** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
 ### **TrianglePartData** ###
 #### **Size**: 48..? bytes ####
-#### **Description**: A description of mesh geometry (faces) ####
+#### **Description**: A description of mesh geometry (faces): a triangle list. Every 3 consecutive values of the vertex index table (starting from the offset of the first index row) form a triangle; UV index table maps the same positions to UV-s ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Info flags |
@@ -287,12 +290,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 24 | **unk_zeros** | 16 | Bytes | Unknown purpose |
 | 40 | **num_info_rows** | 4 | 4-bytes unsigned integer (little endian) | Number of info rows |
 | 44 | **num_index_rows** | 4 | 4-bytes unsigned integer (little endian) | Number of index rows |
-| 48 | **info_rows** | num_info_rows\*16 | Array of `num_info_rows` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [CullingInfoRow](#cullinginforow)<br/>- [NormalInfoRow](#normalinforow)<br/>- [UVInfoRow](#uvinforow)<br/>- [VertexInfoRow](#vertexinforow) | - |
-| 48 + num_info_rows\*16 | **index_rows** | num_index_rows\*8 | Array of `num_index_rows` items<br/>Item type: [IndexRow](#indexrow) | - |
-| 48 + num_info_rows\*16 + num_index_rows\*8 | **index_table** | ^num_data | Array of `^num_data` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Vertex index table |
-| 48 + num_info_rows\*16 + num_index_rows\*8 + ^num_data | **uv_index_table** | ^num_data | Array of `^num_data` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | UV index table |
+| 48 | **info_rows** | num_info_rows\*16 | Array of `num_info_rows` items<br/>Item size: 16 bytes<br/>Item type: One of types:<br/>- [CullingInfoRow](#cullinginforow)<br/>- [NormalInfoRow](#normalinforow)<br/>- [UVInfoRow](#uvinforow)<br/>- [VertexInfoRow](#vertexinforow) | Descriptors of the data streams used by this part. When there are 4 rows, they are culling, normal, UV and vertex rows; when 3 - normal, UV and vertex rows |
+| 48 + num_info_rows\*16 | **index_rows** | num_index_rows\*8 | Array of `num_index_rows` items<br/>Item type: [IndexRow](#indexrow) | Descriptors of the index streams: vertex indices and UV indices |
+| 48 + num_info_rows\*16 + num_index_rows\*8 | **index_table** | ^num_data | Array of `^num_data` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Vertex index table. Every 3 consecutive values form a triangle |
+| 48 + num_info_rows\*16 + num_index_rows\*8 + ^num_data | **uv_index_table** | ^num_data | Array of `^num_data` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | UV index table: for every position of the vertex index table, index of UV-s in the UV part of the same LOD |
 ### **TriangleInfoRowBase** ###
 #### **Size**: 10 bytes ####
+#### **Description**: Common prefix of the info rows of [TrianglePartData](#trianglepartdata) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
@@ -300,19 +304,22 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **length_used** | 2 | 2-bytes unsigned integer (little endian) | Length used |
 ### **IndexRow** ###
 #### **Size**: 8 bytes ####
+#### **Description**: Descriptor of an index stream (vertex indices or UV indices) of the triangle part ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **idx** | 2 | 2-bytes unsigned integer (little endian) | Row index |
 | 2 | **identifier** | 2 | UTF-8 string | Identifier "vI"|"Iv" – vertex index, "uI"|"Iu" - uv index |
-| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of indices |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of indices: the position of the first index of this stream in the index tables |
 ### **UVData** ###
 #### **Size**: 8 bytes ####
+#### **Description**: Texture coordinates of a vertex ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **u** | 4 | Float number (little-endian) | - |
-| 4 | **v** | 4 | Float number (little-endian) | - |
+| 0 | **u** | 4 | Float number (little-endian) | U texture coordinate |
+| 4 | **v** | 4 | Float number (little-endian) | V texture coordinate |
 ### **UVInfoRow** ###
 #### **Size**: 16 bytes ####
+#### **Description**: Info row referencing the UV data used by the triangle part ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
@@ -330,10 +337,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 12 | **unk** | 4 | Float number (little-endian) | Unknown purpose |
 ### **VertexInfoRow** ###
 #### **Size**: 16 bytes ####
+#### **Description**: Info row referencing the vertex data used by the triangle part ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset in vertex data |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset in vertex data in bytes. offset / 16 is the index of the first vertex used by the part; it is added to all values of the vertex index table |
 | 8 | **length_used** | 2 | 2-bytes unsigned integer (little endian) | Length of vertex data used |
 | 10 | **unk1** | 2 | Bytes | Unknown purpose |
 | 12 | **level_index** | 2 | 2-bytes unsigned integer (little endian) | Level index |
@@ -386,32 +394,34 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x6f | Resource ID |
 | 1 | **unk** | 3 | Bytes | Unknown purpose |
 | 4 | **len_text** | 4 | 4-bytes unsigned integer (little endian) | Length of 'text' utf8 block |
-| 8 | **text** | len_text | UTF-8 string | - |
+| 8 | **text** | len_text | UTF-8 string | Text contents |
 ## **Fonts** ##
 ### **FfnFont** ###
 #### **Size**: 48..? bytes ####
+#### **Description**: Bitmap font: a font atlas bitmap plus glyph definitions (position and size of each symbol in the atlas) and optional kerning table ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include bitmap embedded palette (and padding to it after bitmap data). For older versions (I set version <= 101, but it can be anywhere up to < 309), "padding_2" length not included as well |
-| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | - |
+| 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | Font format version. Defines the layout of glyph definitions (see [GlyphDefinition](#glyphdefinition)) |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
-| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | - |
-| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | - |
-| 18 | **ascent** | 1 | 1-byte unsigned integer | - |
-| 19 | **descent** | 1 | 1-byte unsigned integer | - |
+| 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | Font flags: format of glyph definitions, encoding, layout and draw attributes |
+| 16 | **center** | 2 | Point in 2D space (x,y), where each coordinate is: 1-byte unsigned integer | Unknown purpose |
+| 18 | **ascent** | 1 | 1-byte unsigned integer | Distance from the baseline to the top of the glyphs in pixels. `ascent + descent` is the line height |
+| 19 | **descent** | 1 | 1-byte unsigned integer | Distance from the baseline to the bottom of the glyphs in pixels |
 | 20 | **definitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to definitions block |
 | 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
 | 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
 | definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*17 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
 | ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
-| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | - |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | Kerning pairs table |
 | ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
 | bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
 | ? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
 #### **Size**: 11..17 bytes ####
+#### **Description**: Glyph definition.<br/>- for FNT version < 200 has length 11 bytes.<br/>- for versions >= 200 and <= 309 - 12 bytes, last byte is padding.<br/>- for versions > 309 - 12th byte is num_kern.<br/>- for versions >= 321 it may be 16 bytes if "format" flag is set to 16-bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **code** | 2 | 2-bytes unsigned integer (little endian) | Code of symbol |
@@ -428,8 +438,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
 ### **KerningItem** ###
 #### **Size**: 4 bytes ####
+#### **Description**: Kerning pair: horizontal adjustment of the gap between two specific glyphs ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
-| 2 | **kerning** | 1 | 1-byte signed integer | - |
+| 2 | **kerning** | 1 | 1-byte signed integer | Kerning amount in pixels, added to the gap between the glyphs |
 | 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |
