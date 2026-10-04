@@ -219,6 +219,7 @@ def _handle_macos_open_file(path):
             # Bring the app forward: the user just asked to open a document, so
             # the existing window should come to focus.
             import AppKit
+
             AppKit.NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
         except Exception:
             # If the live push fails for any reason, fall back to the buffered

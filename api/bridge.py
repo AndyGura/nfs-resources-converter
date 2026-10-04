@@ -75,6 +75,7 @@ class _WebviewBridge:
         pywebview window.
         """
         import eel
+
         self._eel = eel
         for func in self._exposed.values():
             eel.expose(func)
@@ -104,9 +105,7 @@ class _WebviewBridge:
             if window is None:
                 return None
             payload = json.dumps(list(args))
-            return window.evaluate_js(
-                f'window.__eel_call_exposed({json.dumps(name)}, {payload})'
-            )
+            return window.evaluate_js(f'window.__eel_call_exposed({json.dumps(name)}, {payload})')
 
         return _call_js
 

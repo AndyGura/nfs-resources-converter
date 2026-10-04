@@ -5,7 +5,6 @@ from serializers.maps import _require_nfs4_texture_archive
 
 
 class TestRequireNfs4TextureArchive(unittest.TestCase):
-
     def test_uses_own_archive_when_present(self):
         with patch('library.require_resource') as mock_require:
             mock_require.return_value = 'result'
@@ -28,8 +27,9 @@ class TestRequireNfs4TextureArchive(unittest.TestCase):
             mock_require.assert_called_with('games/nfs4/Data/Tracks/GT1/Tr0.QFS__data')
 
     def test_forward_track_has_no_fallback(self):
-        with patch('library.require_resource', side_effect=FileNotFoundError(2, 'No such file or directory')) \
-                as mock_require:
+        with patch(
+            'library.require_resource', side_effect=FileNotFoundError(2, 'No such file or directory')
+        ) as mock_require:
             with self.assertRaises(FileNotFoundError):
                 _require_nfs4_texture_archive('games/nfs4/Data/Tracks/GT1/Tr.frd')
             mock_require.assert_called_once_with('games/nfs4/Data/Tracks/GT1/Tr0.QFS__data')

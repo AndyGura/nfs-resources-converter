@@ -38,13 +38,13 @@ class NestedOptionalApiTestBlock(DeclarativeCompoundBlock):
     deeper (e.g. `a/opt_field`) - matching the GUI's `abc.fsh__a/opt_field/b` id shape, where the
     optional field sits in the middle of the path rather than at its end.
     """
+
     class Fields(DeclarativeCompoundBlock.Fields):
         marker = IntegerBlock(length=1)
         a = OptionalActionApiTestBlock()
 
 
 class TestGetTrailingOptionalFieldData(unittest.TestCase):
-
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.test_file_path = os.path.join(self.temp_dir.name, 'test.bin')
@@ -76,12 +76,12 @@ class TestGetTrailingOptionalFieldData(unittest.TestCase):
     def test_returns_new_child_data_for_absent_trailing_optional_field(self):
         open_res = self._write_and_open(bytes([0xFF]))  # no trailing data present
         self.assertIsNone(open_res['data']['trailing_field'])
-        result = self.resource_api.get_trailing_optional_field_data(f"{open_res['name']}__trailing_field")
+        result = self.resource_api.get_trailing_optional_field_data(f'{open_res["name"]}__trailing_field')
         self.assertEqual(result, 0)  # IntegerBlock.new_data() default
 
     def test_returns_none_for_a_non_optional_field(self):
         open_res = self._write_and_open(bytes([0xFF]))
-        result = self.resource_api.get_trailing_optional_field_data(f"{open_res['name']}__marker")
+        result = self.resource_api.get_trailing_optional_field_data(f'{open_res["name"]}__marker')
         self.assertIsNone(result)
 
 
@@ -130,7 +130,7 @@ class TestRunCustomActionOnOptionalField(unittest.TestCase):
     def test_run_custom_action_on_present_trailing_optional_field_delegates_to_child(self):
         # marker byte + child's 2-byte little-endian value (5), so the optional field is present
         open_res = self._write_and_open(bytes([0x01, 0x05, 0x00]))
-        resource_id = f"{open_res['name']}__optional_field"
+        resource_id = f'{open_res["name"]}__optional_field'
 
         self.resource_api.run_custom_action(resource_id, {'method': 'double_value'}, {})
 
@@ -181,7 +181,7 @@ class TestRunCustomActionOnNestedOptionalField(unittest.TestCase):
     def test_field_nested_under_a_present_optional_field_is_found(self):
         # outer marker + inner marker + child's 2-byte little-endian value (5)
         open_res = self._write_and_open(bytes([0x01, 0x01, 0x05, 0x00]))
-        resource_id = f"{open_res['name']}__a/optional_field/value"
+        resource_id = f'{open_res["name"]}__a/optional_field/value'
 
         (_, res_block, res), _ = library.require_resource(resource_id)
 
@@ -190,7 +190,7 @@ class TestRunCustomActionOnNestedOptionalField(unittest.TestCase):
 
     def test_run_custom_action_on_present_optional_field_nested_mid_path_delegates_to_child(self):
         open_res = self._write_and_open(bytes([0x01, 0x01, 0x05, 0x00]))
-        resource_id = f"{open_res['name']}__a/optional_field"
+        resource_id = f'{open_res["name"]}__a/optional_field'
 
         self.resource_api.run_custom_action(resource_id, {'method': 'double_value'}, {})
 

@@ -1,5 +1,5 @@
 class DLLNode:
-    __slots__ = ("data", "next", "prev")
+    __slots__ = ('data', 'next', 'prev')
 
     def __init__(self, data):
         self.data = data
@@ -8,7 +8,6 @@ class DLLNode:
 
 
 class DoublyLinkedList:
-
     @classmethod
     def from_iterable(cls, iterable):
         dll = cls()

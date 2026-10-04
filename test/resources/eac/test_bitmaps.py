@@ -8,14 +8,14 @@ class TestBitmap(unittest.TestCase):
     block = EacImage()
 
     def _gen_single_pixel_bitmap(self, resource_id, pixels_data):
-        return (bytes([resource_id])
-                + b'\x00\x00\x00\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-                + bytes(pixels_data))
+        return (
+            bytes([resource_id]) + b'\x00\x00\x00\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00' + bytes(pixels_data)
+        )
 
     def _gen_two_pixels_bitmap(self, resource_id, pixels_data):
-        return (bytes([resource_id])
-                + b'\x00\x00\x00\x02\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-                + bytes(pixels_data))
+        return (
+            bytes([resource_id]) + b'\x00\x00\x00\x02\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00' + bytes(pixels_data)
+        )
 
     def _get_serialized_pixel_data(self, data):
         return self.block.pack(data)[16:]
@@ -128,9 +128,9 @@ class TestPalette(unittest.TestCase):
     block = EacPalette()
 
     def _gen_single_color_palette(self, resource_id, color_data):
-        return (bytes([resource_id])
-                + b'\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00'
-                + bytes(color_data))
+        return (
+            bytes([resource_id]) + b'\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00' + bytes(color_data)
+        )
 
     def test_color_24bit_dos_should_be_translated_correctly(self):
         b = self._gen_single_color_palette(0x22, bytes([0b0010_1010, 0b0001_0100, 0b0011_1011]))
@@ -271,11 +271,11 @@ class TestConvertTo8Bit(unittest.TestCase):
     def test_generate_embedded_palette_respects_palette_type(self):
         bitmap = [((x * 16) << 24) | ((y * 16) << 16) | 0x64FF for y in range(4) for x in range(4)]
         block, data = _make_image('32Bit color format bitmap', 4, 4, bitmap)
-        block.action_convert_to_8bit(data, channel='generate embedded palette',
-                                     palette_type='16Bit_0565 color format palette', id='test/data')
+        block.action_convert_to_8bit(
+            data, channel='generate embedded palette', palette_type='16Bit_0565 color format palette', id='test/data'
+        )
         self.assertEqual(data['embedded_palette']['resource_id'], '16Bit_0565 color format palette')
-        self.assertEqual(_roundtrip(block, data)['embedded_palette']['resource_id'],
-                         '16Bit_0565 color format palette')
+        self.assertEqual(_roundtrip(block, data)['embedded_palette']['resource_id'], '16Bit_0565 color format palette')
 
     def test_generate_embedded_palette_quantizes_mipmaps_against_the_same_palette(self):
         # regression test: mipmaps used to be left as raw RGBA ints after this conversion, which
@@ -363,14 +363,16 @@ class TestConvertToRgba(unittest.TestCase):
         block, data = _make_image('8Bit', 4, 4, [(y * 4 + x) % 200 for y in range(4) for x in range(4)])
         palette = EacPalette().new_data()
         palette['resource_id'] = '32Bit color format palette'
-        palette['colors']['data'] = [((i * 3) % 256) << 24 | ((i * 5) % 256) << 16 | ((i * 7) % 256) << 8 | 255
-                                     for i in range(256)]
+        palette['colors']['data'] = [
+            ((i * 3) % 256) << 24 | ((i * 5) % 256) << 16 | ((i * 7) % 256) << 8 | 255 for i in range(256)
+        ]
         data['embedded_palette'] = palette
         block.action_generate_mipmaps(data)
         mipmap_indices = list(data['mipmaps'])
 
-        block.action_convert_to_rgba(data, color_mode='32Bit color format bitmap', output_colors='use palette',
-                                     id='test/data')
+        block.action_convert_to_rgba(
+            data, color_mode='32Bit color format bitmap', output_colors='use palette', id='test/data'
+        )
 
         self.assertEqual(data['resource_id'], '32Bit color format bitmap')
         self.assertEqual(data['mipmaps'], [palette['colors']['data'][i] for i in mipmap_indices])
@@ -387,6 +389,7 @@ class TestConvertToRgba(unittest.TestCase):
         palette['colors']['data'] = [0xFF0000FF] * 256
         data['embedded_palette'] = palette
 
-        block.action_convert_to_rgba(data, color_mode='32Bit color format bitmap', output_colors='black-white',
-                                     id='test/data')
+        block.action_convert_to_rgba(
+            data, color_mode='32Bit color format bitmap', output_colors='black-white', id='test/data'
+        )
         self.assertIsNone(data['embedded_palette'])

@@ -68,14 +68,21 @@ def generate_windows_filetypes() -> str:
         pid = prog_id(ext)
         lines.append('')
         lines.append(f'; .{ext}')
-        lines.append(f'Root: HKCR; Subkey: ".{ext}"; ValueType: string; ValueName: ""; '
-                     f'ValueData: "{pid}"; Flags: uninsdeletevalue')
-        lines.append(f'Root: HKCR; Subkey: "{pid}"; ValueType: string; ValueName: ""; '
-                     f'ValueData: "{name}"; Flags: uninsdeletekey')
-        lines.append(f'Root: HKCR; Subkey: "{pid}\\DefaultIcon"; ValueType: string; ValueName: ""; '
-                     f'ValueData: "{{app}}\\nfs-resources-converter-{{#AppVersion}}.exe,0"')
-        lines.append(f'Root: HKCR; Subkey: "{pid}\\shell\\open\\command"; ValueType: string; ValueName: ""; '
-                     f'ValueData: """{{app}}\\nfs-resources-converter-{{#AppVersion}}.exe"" ""%1"""')
+        lines.append(
+            f'Root: HKCR; Subkey: ".{ext}"; ValueType: string; ValueName: ""; '
+            f'ValueData: "{pid}"; Flags: uninsdeletevalue'
+        )
+        lines.append(
+            f'Root: HKCR; Subkey: "{pid}"; ValueType: string; ValueName: ""; ValueData: "{name}"; Flags: uninsdeletekey'
+        )
+        lines.append(
+            f'Root: HKCR; Subkey: "{pid}\\DefaultIcon"; ValueType: string; ValueName: ""; '
+            f'ValueData: "{{app}}\\nfs-resources-converter-{{#AppVersion}}.exe,0"'
+        )
+        lines.append(
+            f'Root: HKCR; Subkey: "{pid}\\shell\\open\\command"; ValueType: string; ValueName: ""; '
+            f'ValueData: """{{app}}\\nfs-resources-converter-{{#AppVersion}}.exe"" ""%1"""'
+        )
     return '\n'.join(lines) + '\n'
 
 

@@ -72,7 +72,7 @@ class Qfs3Compression(BaseCompressionAlgorithm):
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int) -> bytes:
         data = buffer.read(input_length) if input_length is not None else buffer.read()
         if len(data) < 2 or data[1] != 0xFB or (data[0] & 0xF8) != 0x30:
-            raise ValueError("Invalid QFS3 file header")
+            raise ValueError('Invalid QFS3 file header')
         flags = data[0]
         reader = _BitReader(data, pos=5 if flags & 0x01 else 2)
         output_length = reader.read(24)
@@ -104,7 +104,8 @@ class Qfs3Compression(BaseCompressionAlgorithm):
                 out.append(reader.read(8))
         if len(out) != output_length:
             raise ValueError(
-                f'Error while unpacking QFS3 archive: expected length {output_length}, actual length: {len(out)}')
+                f'Error while unpacking QFS3 archive: expected length {output_length}, actual length: {len(out)}'
+            )
 
         delta_passes = {0x30: 0, 0x32: 1, 0x34: 2}.get(flags & 0xFE, 0)
         for _ in range(delta_passes):
@@ -168,8 +169,8 @@ class Qfs3Compression(BaseCompressionAlgorithm):
             span = 1 << (max_length - length)
             for _ in range(count):
                 start = code * span
-                lut_symbol[start:start + span] = symbols[symbol_index:symbol_index + 1] * span
-                lut_length[start:start + span] = bytes([length]) * span
+                lut_symbol[start : start + span] = symbols[symbol_index : symbol_index + 1] * span
+                lut_length[start : start + span] = bytes([length]) * span
                 code += 1
                 symbol_index += 1
             code <<= 1

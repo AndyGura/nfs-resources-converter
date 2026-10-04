@@ -38,6 +38,7 @@ class FileDialogAPI:
             # as the app did before the pywebview migration.
             from tkinter import Tk
             from tkinter.filedialog import askopenfilename, askopenfilenames
+
             root = Tk()
             root.withdraw()
             root.update()
@@ -56,6 +57,7 @@ class FileDialogAPI:
             root.destroy()
             return filenames
         import webview
+
         selection = window.create_file_dialog(
             webview.FileDialog.OPEN,
             allow_multiple=multiple,
@@ -81,6 +83,7 @@ class FileDialogAPI:
             # No native web view (Linux/Eel): fall back to a Tk save dialog.
             from tkinter import Tk
             from tkinter.filedialog import asksaveasfilename
+
             root = Tk()
             root.withdraw()
             root.update()
@@ -153,12 +156,14 @@ class FileDialogAPI:
             # No native web view (Linux/Eel): fall back to a Tk directory dialog.
             import tkinter as tk
             from tkinter import filedialog
+
             root = tk.Tk()
             root.withdraw()
             directory = filedialog.askdirectory()
             root.destroy()
             return directory or ''
         import webview
+
         selection = window.create_file_dialog(webview.FileDialog.FOLDER)
         if not selection:
             return ''

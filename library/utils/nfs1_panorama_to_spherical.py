@@ -1,6 +1,7 @@
 def nfs1_panorama_to_spherical(track_id: str, file_name: str, out_file_name: str, pivot_y: int):
     from PIL import Image, ImageOps
     from numpy import average
+
     source = Image.open(file_name)
 
     out_half_width = 1024
@@ -48,19 +49,21 @@ def nfs1_panorama_to_spherical(track_id: str, file_name: str, out_file_name: str
     source_scaled = source.resize((int(source.size[0] * scale_x), int(source.size[1] * scale_y)), Image.LANCZOS)
 
     # INFO files have some values for top and bottom color, but I don't understand what exactly colors do they mean
-    top_line_color = tuple([int(x)
-                            for x in average(average(source.crop((0, 0, source.size[0], 1)), axis=0), axis=0)])
-    bottom_line_color = tuple([int(x)
-                               for x in average(average(source.crop((0,
-                                                                     source.size[1] - 1,
-                                                                     source.size[0],
-                                                                     source.size[1])), axis=0), axis=0)])
+    top_line_color = tuple([int(x) for x in average(average(source.crop((0, 0, source.size[0], 1)), axis=0), axis=0)])
+    bottom_line_color = tuple(
+        [
+            int(x)
+            for x in average(
+                average(source.crop((0, source.size[1] - 1, source.size[0], source.size[1])), axis=0), axis=0
+            )
+        ]
+    )
 
-    spherical = Image.new(source_scaled.mode, (out_half_width * 2, out_half_height * 2), 0xff000000)
-    spherical.paste(top_line_color, [0, 0,
-                                     spherical.size[0], int(pos_y + source_scaled.size[1] / 2)])
-    spherical.paste(bottom_line_color, [0, int(pos_y + source_scaled.size[1] / 2),
-                                        spherical.size[0], spherical.size[1]])
+    spherical = Image.new(source_scaled.mode, (out_half_width * 2, out_half_height * 2), 0xFF000000)
+    spherical.paste(top_line_color, [0, 0, spherical.size[0], int(pos_y + source_scaled.size[1] / 2)])
+    spherical.paste(
+        bottom_line_color, [0, int(pos_y + source_scaled.size[1] / 2), spherical.size[0], spherical.size[1]]
+    )
     spherical.paste(source_scaled, (out_half_width, pos_y))
     if mirror_x:
         source_scaled = ImageOps.mirror(source_scaled)

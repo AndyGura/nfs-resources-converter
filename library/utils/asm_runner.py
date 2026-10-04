@@ -5,7 +5,6 @@ from library.utils.virtual_asm_registers import AsmRegisters
 
 
 class AsmRunner(AsmRegisters, VirtualAsmFlags):
-
     def __init__(self, *args, asm_virtual_memory_size=1024 * 1024, **kwargs):  # 1mb may be enough for everyone :)
         super().__init__(*args, **kwargs)
         self.asm_virtual_memory = bytearray(asm_virtual_memory_size)
@@ -19,9 +18,9 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
         #     raise Exception('Not a register')
         value = self.__getattribute__(register_name)
         size = self._get_variable_size_in_bytes(register_name)
-        return (value
-                if (value & (1 << (size * 8 - 1))) == 0
-                else value - (1 << (size * 8)))  # 255 must be -1, 254 -> -2, so -value + 255
+        return (
+            value if (value & (1 << (size * 8 - 1))) == 0 else value - (1 << (size * 8))
+        )  # 255 must be -1, 254 -> -2, so -value + 255
 
     def memstore(self, offset, value: int, size: int):
         b = value.to_bytes(length=size, byteorder='little', signed=False)
@@ -29,7 +28,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
             self.asm_virtual_memory[offset + i] = b[i]
 
     def memread(self, offset, size: int):
-        return int.from_bytes(self.asm_virtual_memory[offset:offset + size], 'little', signed=False)
+        return int.from_bytes(self.asm_virtual_memory[offset : offset + size], 'little', signed=False)
 
     def _push(self, value: int):
         self.esp = self.esp - 4
@@ -174,14 +173,14 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
         return (value >> ((8 * size) - 1)) & 1
 
     def get_lsb(self, value):
-        return (value & 0x1)
+        return value & 0x1
 
     # returns if should jump after this command
     def run_command(self, command: str):
         # print('ASM: ', command)
         search = re.search('^(\w+)\s+([\w\d,\s\[\]+\-:*]+)(\s;.*)?$', command)
         if not search:
-            raise Exception(f"Cannot parse statement {command}")
+            raise Exception(f'Cannot parse statement {command}')
         operator = search.group(1)
         args: list[str] = [x.strip() for x in search.group(2).split(',')]
         if operator not in ['lea']:
@@ -197,16 +196,19 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
         elif operator == 'sub':
             result = values[0] - values[1]
             self.set_value(args[0], result, sizes[0])
-            self.set_flags("SUB", values[0], values[1], result, sizes[0])
+            self.set_flags('SUB', values[0], values[1], result, sizes[0])
         elif operator == 'add':
             result = values[0] + values[1]
             self.set_value(args[0], result, sizes[0])
-            self.set_flags("ADD", values[0], values[1], result, sizes[0])
+            self.set_flags('ADD', values[0], values[1], result, sizes[0])
         elif operator == 'mov' or operator == 'movzx':
-            self.set_value(args[0], self.get_value(args[1], force_size=self._get_variable_size_in_bytes(args[0]))[0],
-                           size=self._get_variable_size_in_bytes(args[1]))
+            self.set_value(
+                args[0],
+                self.get_value(args[1], force_size=self._get_variable_size_in_bytes(args[0]))[0],
+                size=self._get_variable_size_in_bytes(args[1]),
+            )
         elif operator == 'shl':
-            countmask = 0x1f
+            countmask = 0x1F
             result = values[0]
             tempcount = values[1] & countmask
             while tempcount:
@@ -215,11 +217,11 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
                 tempcount -= 1
             result = result & self.get_mask(sizes[0])
             self.set_value(args[0], result, sizes[0])
-            self.set_flags("SHL", values[0], values[1], result, sizes[0])
+            self.set_flags('SHL', values[0], values[1], result, sizes[0])
         elif operator == 'shr':
             result = values[0] >> values[1]
             self.set_value(args[0], result, sizes[0])
-            self.set_flags("SHR", values[0], values[1], result, sizes[0])
+            self.set_flags('SHR', values[0], values[1], result, sizes[0])
         elif operator in ['xor', 'or', 'and']:
             op2 = values[1] & self.get_mask(sizes[0])
             if operator == 'xor':
@@ -229,7 +231,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
             else:  # and
                 result = values[0] & op2
             self.set_value(args[0], result, sizes[0])
-            self.set_flags("LOGIC", values[0], values[1], result, sizes[0])
+            self.set_flags('LOGIC', values[0], values[1], result, sizes[0])
         elif operator == 'lea':
             assert args[1].startswith('[') and args[1].endswith(']')
             self.set_value(args[0], self.get_value(args[1][1:-1])[0])
@@ -237,22 +239,22 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
             result = values[0] + 1
             self.set_value(args[0], result)
             oldcf = self.CF
-            self.set_flags("INC", values[0], 1, result, sizes[0])
+            self.set_flags('INC', values[0], 1, result, sizes[0])
             self.CF = oldcf
         elif operator == 'dec':
             result = values[0] - 1
             self.set_value(args[0], result)
             oldcf = self.CF
-            self.set_flags("DEC", values[0], 1, result, sizes[0])
+            self.set_flags('DEC', values[0], 1, result, sizes[0])
             self.CF = oldcf
         elif operator == 'neg':
             result = -values[0]
             self.set_value(args[0], result, sizes[0])
-            self.set_flags("NEG", values[0], 0, result, sizes[0])
+            self.set_flags('NEG', values[0], 0, result, sizes[0])
         elif operator == 'test':
-            self.set_flags("LOGIC", values[0], values[1], values[0] & values[1], sizes[0])
+            self.set_flags('LOGIC', values[0], values[1], values[0] & values[1], sizes[0])
         elif operator == 'cmp':
-            self.set_flags("CMP", values[0], values[1], values[0] - values[1], sizes[0])
+            self.set_flags('CMP', values[0], values[1], values[0] - values[1], sizes[0])
         elif operator == 'call':
             sub_func = self.__getattribute__(args[0])
             self._push(1)
@@ -275,7 +277,7 @@ class AsmRunner(AsmRegisters, VirtualAsmFlags):
             size = sizes[0]
             op1value = values[0]
             op2value = values[1] & self.get_mask(size)
-            tempcount = (op2value & 0x1f) % (size * 8)
+            tempcount = (op2value & 0x1F) % (size * 8)
             if tempcount > 0:
                 while tempcount:
                     tempcf = self.get_msb(op1value, sizes[0])

@@ -71,11 +71,7 @@ class FileAPI:
             File data
         """
         if not path or not isinstance(path, str):
-            return {
-                'name': None,
-                'schema': None,
-                'data': None
-            }
+            return {'name': None, 'schema': None, 'data': None}
         try:
             if update_recent_files:
                 # Update recent files
@@ -108,7 +104,7 @@ class FileAPI:
         return {
             'name': self.current_file_name,
             'schema': convert_bytes(self.current_file_block.schema) if self.current_file_block else None,
-            'data': self.render_data(self.current_file_data)
+            'data': self.render_data(self.current_file_data),
         }
 
     def open_file_with_system_app(self, path: str):
@@ -127,6 +123,7 @@ class FileAPI:
             url: The URL to open
         """
         import webbrowser
+
         webbrowser.open(url)
 
     def close_file(self) -> Dict[str, Any]:
@@ -143,9 +140,9 @@ class FileAPI:
             self.current_file_data = None
             self.current_file_block = None
             ChangesService.clear()
-            return {"success": True, "message": f"File {file_name} closed and removed from cache"}
+            return {'success': True, 'message': f'File {file_name} closed and removed from cache'}
         else:
-            return {"success": False, "message": "No file is currently open"}
+            return {'success': False, 'message': 'No file is currently open'}
 
     def save_file(self, path: str) -> Dict:
         """
@@ -181,16 +178,19 @@ class FileAPI:
         """
         if format_name.lower() == 'ffn':
             from resources.eac.fonts import FfnFont
+
             block = FfnFont()
             data = block.new_data()
         elif format_name.lower() == 'fsh':
             from resources.eac.archives import ShpiBlock
+
             block = ShpiBlock()
             data = block.new_data()
         elif format_name.lower() == 'qfs':
             from resources.eac.archives import EacCompressedBlock
+
             block = EacCompressedBlock()
-            data = block.new_data({ 'choice_index': block.get_choice_index_by_class_name('ShpiBlock') })
+            data = block.new_data({'choice_index': block.get_choice_index_by_class_name('ShpiBlock')})
         else:
             raise Exception(f'Unsupported format: {format_name}')
 

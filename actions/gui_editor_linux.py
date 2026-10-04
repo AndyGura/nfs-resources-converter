@@ -89,7 +89,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
         # "eel.*.js" via a webpack magic comment; the esbuild-based build
         # system doesn't support naming lazy chunks that way, so it no longer
         # has a predictable filename -- find it by content instead.
-        for f in glob.glob(os.path.join(src, "*.js")):
+        for f in glob.glob(os.path.join(src, '*.js')):
             with open(f, encoding='utf-8', errors='ignore') as fh:
                 if 'eel.expose(' in fh.read():
                     shutil.copy2(f, static_path)
@@ -118,12 +118,14 @@ def run_gui_editor(file_path=None, dev_server_url=None):
             sys.exit(0)
 
         user_data_dir = os.path.join(tempfile.gettempdir(), 'eel_chrome_profile')
-        eel.start('index.html',
-                  port=0,
-                  close_callback=on_close,
-                  cmdline_args=[
-                      f'--user-data-dir={user_data_dir}',
-                      '--no-first-run',
-                  ])
+        eel.start(
+            'index.html',
+            port=0,
+            close_callback=on_close,
+            cmdline_args=[
+                f'--user-data-dir={user_data_dir}',
+                '--no-first-run',
+            ],
+        )
 
     static_dir.cleanup()

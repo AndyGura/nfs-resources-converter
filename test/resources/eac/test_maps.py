@@ -4,7 +4,6 @@ from library import require_file
 
 
 class TestTriMap(unittest.TestCase):
-
     def test_tri_should_remain_the_same(self):
         (name, block, tri) = require_file('test/samples/AL1.TRI')
         output = block.pack(tri, name=name)
@@ -12,11 +11,10 @@ class TestTriMap(unittest.TestCase):
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
-                self.assertEqual(x, output[i], f"Wrong value at index {i}")
+                self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
 
 class TestNfs4FrdMap(unittest.TestCase):
-
     def test_nfs4_frd_should_be_same_size_and_stable(self):
         (name, block, data) = require_file('test/samples/GT1.FRD')
         with open('test/samples/GT1.FRD', 'rb') as bdata:

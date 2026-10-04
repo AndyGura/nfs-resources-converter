@@ -3,7 +3,9 @@ from typing import Union, Callable, Dict, Any, Tuple, Optional
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.read_blocks.basic import DataBlock
 
-Criteria = Union[Callable[[Union[ReadContext, WriteContext]], bool], Tuple[Callable[[Union[ReadContext, WriteContext]], bool], str]]
+Criteria = Union[
+    Callable[[Union[ReadContext, WriteContext]], bool], Tuple[Callable[[Union[ReadContext, WriteContext]], bool], str]
+]
 
 
 class OptionalBlock(DataBlock):
@@ -23,6 +25,7 @@ class OptionalBlock(DataBlock):
     tree being written (`WriteContext` doesn't even expose it). Use `TrailingOptionalBlock` for
     that shape instead.
     """
+
     def __init__(self, child: DataBlock, criteria: Criteria, default_value=None, **kwargs):
         super().__init__(**kwargs)
         self.child = child
@@ -39,7 +42,7 @@ class OptionalBlock(DataBlock):
 
     @property
     def size_doc_str(self):
-        if re.fullmatch(r"^\d+\.\.[\d\\?]+$", self.child.size_doc_str):
+        if re.fullmatch(r'^\d+\.\.[\d\\?]+$', self.child.size_doc_str):
             return f'0..{self.child.size_doc_str.split("..")[1]}'
         return f'0..{self.child.size_doc_str}'
 
@@ -54,7 +57,7 @@ class OptionalBlock(DataBlock):
     def get_child_block_with_data(self, unpacked_data, name) -> Tuple['DataBlock', Any]:
         return self.child.get_child_block_with_data(unpacked_data, name)
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         return self.default_value
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -108,6 +111,7 @@ class TrailingOptionalBlock(OptionalBlock):
     editor) rather than transparently impersonating the child like `OptionalBlock` does, since a
     `None` value has to be toggleable by hand instead of just displayed.
     """
+
     def __init__(self, child: DataBlock, criteria: Optional[Criteria] = None, **kwargs):
         kwargs.pop('default_value', None)
         super().__init__(child=child, criteria=criteria or DEFAULT_TRAILING_CRITERIA, **kwargs)

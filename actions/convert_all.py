@@ -20,7 +20,7 @@ def export_file(base_input_path, path, out_path):
     try:
         (name, block, data) = require_file(path)
         serializer = get_serializer(block, data)
-        rel_path = path[len(base_input_path):]
+        rel_path = path[len(base_input_path) :]
         if not rel_path:
             is_dir = serializer.is_dir
             # DelegateBlock
@@ -44,13 +44,20 @@ def convert_all(path, out_path):
     else:
         files_to_open = [str(path).replace('\\', '/')]
 
-    processes = cpu_count() if conversion_config.multiprocess_processes_count == 0 else conversion_config.multiprocess_processes_count
+    processes = (
+        cpu_count()
+        if conversion_config.multiprocess_processes_count == 0
+        else conversion_config.multiprocess_processes_count
+    )
     import logging
-    logging.info(f"Starting conversion of {len(files_to_open)} files using {processes} processes")
+
+    logging.info(f'Starting conversion of {len(files_to_open)} files using {processes} processes')
     with Pool(processes=processes, initializer=setup_logging, initargs=(is_stdout_redirected(),)) as pool:
         pbar = tqdm(total=len(files_to_open))
-        results = [pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update()) for
-                   f in files_to_open]
+        results = [
+            pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update())
+            for f in files_to_open
+        ]
         results = list(result.get() for result in results)
     pbar.close()
 
@@ -62,7 +69,7 @@ def convert_all(path, out_path):
             path, name = '/'.join(name.split('/')[:-1]), name.split('/')[-1]
             skipped_map[path].append((name, format_exception(ex)))
         for path, skipped in skipped_map.items():
-            path_suffix = path[len(base_input_path):]
+            path_suffix = path[len(base_input_path) :]
             if path_suffix.startswith('/'):
                 path_suffix = path_suffix[1:]
             skipped_txt_output_path = path_join(out_path, path_suffix, 'skipped.txt')
@@ -70,7 +77,7 @@ def convert_all(path, out_path):
             skipped.sort(key=lambda x: x[0])
             with open(skipped_txt_output_path, 'w') as f:
                 for item in skipped:
-                    f.write("%s\t\t%s\n" % item)
+                    f.write('%s\t\t%s\n' % item)
 
     print(f'Finished. Execution time: {time.time() - start_time} seconds')
     print(f'Support me :) >>>  https://www.buymeacoffee.com/andygura <<<')

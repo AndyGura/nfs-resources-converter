@@ -3,9 +3,15 @@ from typing import Dict
 
 from library.context import ReadContext
 from library.exceptions import BlockDefinitionException
-from library.read_blocks import (DeclarativeCompoundBlock,
-                                 IntegerBlock, BytesBlock, ArrayBlock, DelegateBlock, DecimalBlock, CompoundBlock,
-                                 )
+from library.read_blocks import (
+    DeclarativeCompoundBlock,
+    IntegerBlock,
+    BytesBlock,
+    ArrayBlock,
+    DelegateBlock,
+    DecimalBlock,
+    CompoundBlock,
+)
 from library.read_blocks.misc.value_validators import Eq, Or
 from library.read_blocks.strings import UTF8Block
 from resources.eac.fields.misc import Point3D
@@ -14,112 +20,107 @@ from resources.eac.fields.misc import Point3D
 # Container chunks (id starting with 0x80) hold a sequence of child chunks as their payload.
 _CHUNK_ID_DESCR = 'Chunk ID'
 _CHUNK_LENGTH_DESCR = 'Length of the chunk payload in bytes (everything after this field)'
-_ELEVENS_DESCR = ('Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at '
-                  'an aligned offset')
+_ELEVENS_DESCR = (
+    'Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset'
+)
 
 
 class NfsuVec3(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A 3D vector padded to 16 bytes'}
+        return {**super().schema, 'block_description': 'A 3D vector padded to 16 bytes'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        vector = (Point3D(child=DecimalBlock(length=4)),
-                  {'description': 'Vector components'})
-        pad = (DecimalBlock(length=4, value_validator=Eq(0.0)),
-               {'description': 'Padding, always 0'})
+        vector = (Point3D(child=DecimalBlock(length=4)), {'description': 'Vector components'})
+        pad = (DecimalBlock(length=4, value_validator=Eq(0.0)), {'description': 'Padding, always 0'})
 
 
 class ZeroChunk(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Padding chunk with id 0: filler between meaningful chunks, used for alignment. '
-                                     'Payload has no meaning'}
+        return {
+            **super().schema,
+            'block_description': 'Padding chunk with id 0: filler between meaningful chunks, used for alignment. '
+            'Payload has no meaning',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0)),
-                    {'description': _CHUNK_ID_DESCR})
-        chunk_length = (IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
-                        {'description': _CHUNK_LENGTH_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')),
-                   {'usage': 'io,doc',
-                    'description': 'Filler bytes'})
+        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0)), {'description': _CHUNK_ID_DESCR})
+        chunk_length = (
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
+            {'description': _CHUNK_LENGTH_DESCR},
+        )
+        payload = (
+            BytesBlock(length=lambda ctx: ctx.data('chunk_length')),
+            {'usage': 'io,doc', 'description': 'Filler bytes'},
+        )
 
 
 # not found any of them yet. Keep for future needs
 class UnknownChunk(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Fallback for a chunk with an id not known to the parser: header + raw payload. '
-                                     'Currently not used, every chunk met in the files has a dedicated block'}
+        return {
+            **super().schema,
+            'block_description': 'Fallback for a chunk with an id not known to the parser: header + raw payload. '
+            'Currently not used, every chunk met in the files has a dedicated block',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (IntegerBlock(length=4, is_signed=False), {'description': _CHUNK_ID_DESCR})
         chunk_length = (
             IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')),
-                   {'description': 'Raw chunk payload'})
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')), {'description': 'Raw chunk payload'})
 
 
 class Chunk80034020(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'The last chunk of the file, purpose unknown'}
+        return {**super().schema, 'block_description': 'The last chunk of the file, purpose unknown'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_03_40_20)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_03_40_20)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
             IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')),
-                   {'is_unknown': True})
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')), {'is_unknown': True})
 
 
 class NfsuMeshChunk(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Mesh info chunk: amounts of faces and vertices of the mesh, used to read the '
-                                     'faces and vertices chunks of the same mesh data container'}
+        return {
+            **super().schema,
+            'block_description': 'Mesh info chunk: amounts of faces and vertices of the mesh, used to read the '
+            'faces and vertices chunks of the same mesh data container',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_49_00)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_49_00)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
             IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload')) + 28),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length') - 28),
-                   {'description': 'Unknown data, starts with 0x11 alignment filler bytes',
-                    'is_unknown': True})
-        faces_amount = (IntegerBlock(length=4),
-                        {'description': 'Amount of faces (triangles) of the mesh'})
-        unk_v = (IntegerBlock(length=4, value_validator=Eq(0)),
-                 {'is_unknown': True})
-        unk_w = (IntegerBlock(length=4, value_validator=Eq(0)),
-                 {'is_unknown': True})
-        unk_x = (IntegerBlock(length=4, value_validator=Eq(0)),
-                 {'is_unknown': True})
-        vertex_amount = (IntegerBlock(length=4),
-                         {'description': 'Amount of vertices of the mesh'})
-        unk_y = (IntegerBlock(length=4, value_validator=Eq(0)),
-                 {'is_unknown': True})
-        unk_z = (IntegerBlock(length=4, value_validator=Eq(0)),
-                 {'is_unknown': True})
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        payload = (
+            BytesBlock(length=lambda ctx: ctx.data('chunk_length') - 28),
+            {'description': 'Unknown data, starts with 0x11 alignment filler bytes', 'is_unknown': True},
+        )
+        faces_amount = (IntegerBlock(length=4), {'description': 'Amount of faces (triangles) of the mesh'})
+        unk_v = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
+        unk_w = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
+        unk_x = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
+        vertex_amount = (IntegerBlock(length=4), {'description': 'Amount of vertices of the mesh'})
+        unk_y = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
+        unk_z = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
 
 
 def peek_elevens_length(ctx):
@@ -131,28 +132,43 @@ def peek_elevens_length(ctx):
 
 
 class NfsuMeshFacesChunk(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Mesh faces: a triangle list. Amount of faces is defined by the mesh info chunk '
-                                     '(the first chunk of the same mesh data container)'}
+        return {
+            **super().schema,
+            'block_description': 'Mesh faces: a triangle list. Amount of faces is defined by the mesh info chunk '
+            '(the first chunk of the same mesh data container)',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00_13_4B_03)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00_13_4B_03)), {'description': _CHUNK_ID_DESCR})
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('faces')) * 6 + len(ctx.data('elevens')) + len(ctx.data('padding'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
+            IntegerBlock(
+                length=4,
+                is_signed=False,
+                programmatic_value=lambda ctx: (
+                    len(ctx.data('faces')) * 6 + len(ctx.data('elevens')) + len(ctx.data('padding'))
+                ),
+            ),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
         # some 0x11 values, unknown reason for adding them
-        elevens = (BytesBlock(length=lambda ctx: peek_elevens_length(ctx)),
-                   {'description': _ELEVENS_DESCR})
-        faces = (ArrayBlock(child=ArrayBlock(child=IntegerBlock(length=2), length=3),
-                            length=lambda ctx: ctx.data('../0/data/faces_amount')),
-                 {'description': 'Triangles: 3 vertex indexes each, pointing to the vertices chunk of the same mesh'})
-        padding = (BytesBlock(length=lambda ctx: ctx.data('chunk_length') - ctx.data('../0/data/faces_amount') * 6 - len(ctx.data('elevens'))),
-                   {'description': 'Padding to the end of the chunk'})
+        elevens = (BytesBlock(length=lambda ctx: peek_elevens_length(ctx)), {'description': _ELEVENS_DESCR})
+        faces = (
+            ArrayBlock(
+                child=ArrayBlock(child=IntegerBlock(length=2), length=3),
+                length=lambda ctx: ctx.data('../0/data/faces_amount'),
+            ),
+            {'description': 'Triangles: 3 vertex indexes each, pointing to the vertices chunk of the same mesh'},
+        )
+        padding = (
+            BytesBlock(
+                length=lambda ctx: (
+                    ctx.data('chunk_length') - ctx.data('../0/data/faces_amount') * 6 - len(ctx.data('elevens'))
+                )
+            ),
+            {'description': 'Padding to the end of the chunk'},
+        )
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
@@ -162,52 +178,50 @@ class NfsuMeshFacesChunk(DeclarativeCompoundBlock):
 
 
 class NfsuVertex(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A single mesh vertex with normal (36 bytes). The most common vertex layout'}
+        return {
+            **super().schema,
+            'block_description': 'A single mesh vertex with normal (36 bytes). The most common vertex layout',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        position = (Point3D(child=DecimalBlock(length=4)),
-                    {'description': 'Vertex position'})
-        unk0 = (IntegerBlock(length=4),
-                {'description': 'Presumably X component of the vertex normal, stored as 32-bit float',
-                 'is_unknown': True})
-        unk1 = (IntegerBlock(length=4),
-                {'description': 'Presumably Y component of the vertex normal, stored as 32-bit float',
-                 'is_unknown': True})
-        unk2 = (IntegerBlock(length=4),
-                {'description': 'Presumably Z component of the vertex normal, stored as 32-bit float',
-                 'is_unknown': True})
-        unk3 = (IntegerBlock(length=4),
-                {'description': 'Presumably vertex color, 32-bit ARGB',
-                 'is_unknown': True})
-        u = (DecimalBlock(length=4),
-             {'description': 'U texture coordinate'})
-        v = (DecimalBlock(length=4),  # hmm, Bin2Ase renders different values, though x,y,z,u are identical
-             {'description': 'V texture coordinate'})
+        position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Vertex position'})
+        unk0 = (
+            IntegerBlock(length=4),
+            {'description': 'Presumably X component of the vertex normal, stored as 32-bit float', 'is_unknown': True},
+        )
+        unk1 = (
+            IntegerBlock(length=4),
+            {'description': 'Presumably Y component of the vertex normal, stored as 32-bit float', 'is_unknown': True},
+        )
+        unk2 = (
+            IntegerBlock(length=4),
+            {'description': 'Presumably Z component of the vertex normal, stored as 32-bit float', 'is_unknown': True},
+        )
+        unk3 = (IntegerBlock(length=4), {'description': 'Presumably vertex color, 32-bit ARGB', 'is_unknown': True})
+        u = (DecimalBlock(length=4), {'description': 'U texture coordinate'})
+        v = (
+            DecimalBlock(length=4),  # hmm, Bin2Ase renders different values, though x,y,z,u are identical
+            {'description': 'V texture coordinate'},
+        )
 
 
 class NfsuVertexNoNormal(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A single mesh vertex without normal (24 bytes). Used by a few meshes, e.g. '
-                                     'SUPRA_STYLE02_HEADLIGHT_C. Same layout as the 36-byte vertex with the normal '
-                                     'omitted (Direct3D FVF order: position, diffuse color, texture coordinates)'}
+        return {
+            **super().schema,
+            'block_description': 'A single mesh vertex without normal (24 bytes). Used by a few meshes, e.g. '
+            'SUPRA_STYLE02_HEADLIGHT_C. Same layout as the 36-byte vertex with the normal '
+            'omitted (Direct3D FVF order: position, diffuse color, texture coordinates)',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        position = (Point3D(child=DecimalBlock(length=4)),
-                    {'description': 'Vertex position'})
-        unk3 = (IntegerBlock(length=4),
-                {'description': 'Presumably vertex color, 32-bit ARGB',
-                 'is_unknown': True})
-        u = (DecimalBlock(length=4),
-             {'description': 'U texture coordinate'})
-        v = (DecimalBlock(length=4),
-             {'description': 'V texture coordinate'})
+        position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Vertex position'})
+        unk3 = (IntegerBlock(length=4), {'description': 'Presumably vertex color, 32-bit ARGB', 'is_unknown': True})
+        u = (DecimalBlock(length=4), {'description': 'U texture coordinate'})
+        v = (DecimalBlock(length=4), {'description': 'V texture coordinate'})
 
 
 # Size in bytes of each vertex layout, in the order of MeshVerticesChunk.Fields.vertices possible blocks
@@ -223,36 +237,57 @@ def _vertex_layout_index(ctx):
 
 
 class MeshVerticesChunk(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Mesh vertices. Amount of vertices is defined by the mesh info chunk (the first '
-                                     'chunk of the same mesh data container). Vertex size (36 or 24 bytes) is '
-                                     'determined by the chunk length'}
+        return {
+            **super().schema,
+            'block_description': 'Mesh vertices. Amount of vertices is defined by the mesh info chunk (the first '
+            'chunk of the same mesh data container). Vertex size (36 or 24 bytes) is '
+            'determined by the chunk length',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_4B_01)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_4B_01)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: (len(ctx.data('vertices')['data'])
-                                                         * _NFSU_VERTEX_SIZES[ctx.data('vertices')['choice_index']]
-                                                         + len(ctx.data('elevens')))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
+            IntegerBlock(
+                length=4,
+                is_signed=False,
+                programmatic_value=lambda ctx: (
+                    len(ctx.data('vertices')['data']) * _NFSU_VERTEX_SIZES[ctx.data('vertices')['choice_index']]
+                    + len(ctx.data('elevens'))
+                ),
+            ),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
         # some 0x11 values, unknown reason for adding them
-        elevens = (BytesBlock(length=(lambda ctx: ctx.data('chunk_length')
-                                                  - ctx.data('../0/data/vertex_amount')
-                                                  * _NFSU_VERTEX_SIZES[_vertex_layout_index(ctx)],
-                                      'chunk_length - vertex_amount * vertex_size')),
-                   {'description': _ELEVENS_DESCR})
-        vertices = (DelegateBlock(possible_blocks=[
-            ArrayBlock(child=NfsuVertex(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
-            ArrayBlock(child=NfsuVertexNoNormal(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
-        ], choice_index=(lambda ctx, **_: _vertex_layout_index(ctx), 'depends on chunk_length')),
-                    {'description': 'Vertices. 36-byte vertices with normal, or 24-byte vertices without normal '
-                                    'if the chunk is too short for 36-byte ones'})
+        elevens = (
+            BytesBlock(
+                length=(
+                    lambda ctx: (
+                        ctx.data('chunk_length')
+                        - ctx.data('../0/data/vertex_amount') * _NFSU_VERTEX_SIZES[_vertex_layout_index(ctx)]
+                    ),
+                    'chunk_length - vertex_amount * vertex_size',
+                )
+            ),
+            {'description': _ELEVENS_DESCR},
+        )
+        vertices = (
+            DelegateBlock(
+                possible_blocks=[
+                    ArrayBlock(child=NfsuVertex(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
+                    ArrayBlock(child=NfsuVertexNoNormal(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
+                ],
+                choice_index=(lambda ctx, **_: _vertex_layout_index(ctx), 'depends on chunk_length'),
+            ),
+            {
+                'description': 'Vertices. 36-byte vertices with normal, or 24-byte vertices without normal '
+                'if the chunk is too short for 36-byte ones'
+            },
+        )
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
@@ -262,85 +297,114 @@ class MeshVerticesChunk(DeclarativeCompoundBlock):
 
 
 class Chunk00134BXX(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Unknown chunk of the mesh data container (id 0x00134B02). Observed payload '
-                                     'looks like 16-byte records: 3 floats + 32-bit integer'}
+        return {
+            **super().schema,
+            'block_description': 'Unknown chunk of the mesh data container (id 0x00134B02). Observed payload '
+            'looks like 16-byte records: 3 floats + 32-bit integer',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        index = (IntegerBlock(length=1, value_validator=Or([2, 3])),
-                 {'description': 'Lowest byte of the chunk id'})
-        chunk_id = (IntegerBlock(length=3, is_signed=False, value_validator=Eq(0x00_13_4B)),
-                    {'description': 'Upper 3 bytes of the chunk id'})
+        index = (IntegerBlock(length=1, value_validator=Or([2, 3])), {'description': 'Lowest byte of the chunk id'})
+        chunk_id = (
+            IntegerBlock(length=3, is_signed=False, value_validator=Eq(0x00_13_4B)),
+            {'description': 'Upper 3 bytes of the chunk id'},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload')) + len(ctx.data('elevens'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        elevens = (BytesBlock(length=lambda ctx: peek_elevens_length(ctx)),
-                   {'description': _ELEVENS_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length') - len(ctx.data('elevens'))),
-                   {'is_unknown': True})
+            IntegerBlock(
+                length=4,
+                is_signed=False,
+                programmatic_value=lambda ctx: len(ctx.data('payload')) + len(ctx.data('elevens')),
+            ),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        elevens = (BytesBlock(length=lambda ctx: peek_elevens_length(ctx)), {'description': _ELEVENS_DESCR})
+        payload = (
+            BytesBlock(length=lambda ctx: ctx.data('chunk_length') - len(ctx.data('elevens'))),
+            {'is_unknown': True},
+        )
 
 
 class Chunk80134100(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Mesh data container: holds the mesh info chunk (always first), vertices chunk '
-                                     'and faces chunk of a single mesh'}
+        return {
+            **super().schema,
+            'block_description': 'Mesh data container: holds the mesh info chunk (always first), vertices chunk '
+            'and faces chunk of a single mesh',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_41_00)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_41_00)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(ctx.data('sub_chunks'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        sub_chunks = (ArrayBlock(length=lambda ctx: determine_chunks_amount(ctx,
-                                                                            read_bytes_remaining_func=lambda
-                                                                                ctx: ctx.data('chunk_length')),
-                                 child=DelegateBlock(possible_blocks=[
-                                     NfsuMeshChunk(),
-                                     NfsuMeshFacesChunk(),
-                                     MeshVerticesChunk(),
-                                     Chunk00134BXX(),
-                                     # UnknownChunk(),
-                                 ],
-                                     choice_index=lambda ctx, **_: determine_chunks_class(ctx))),
-                      {'description': 'Child chunks, read until the payload is exhausted. Block class picked '
-                                      'according to the chunk id'})
+            IntegerBlock(
+                length=4,
+                is_signed=False,
+                programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(
+                    ctx.data('sub_chunks')
+                ),
+            ),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        sub_chunks = (
+            ArrayBlock(
+                length=lambda ctx: determine_chunks_amount(
+                    ctx, read_bytes_remaining_func=lambda ctx: ctx.data('chunk_length')
+                ),
+                child=DelegateBlock(
+                    possible_blocks=[
+                        NfsuMeshChunk(),
+                        NfsuMeshFacesChunk(),
+                        MeshVerticesChunk(),
+                        Chunk00134BXX(),
+                        # UnknownChunk(),
+                    ],
+                    choice_index=lambda ctx, **_: determine_chunks_class(ctx),
+                ),
+            ),
+            {
+                'description': 'Child chunks, read until the payload is exhausted. Block class picked '
+                'according to the chunk id'
+            },
+        )
 
 
 class Chunk00134002(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'File info: original path of the file and unknown values'}
+        return {**super().schema, 'block_description': 'File info: original path of the file and unknown values'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_02)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_02)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
             IntegerBlock(length=4, value_validator=Eq(128)),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
         unk_0 = (IntegerBlock(length=4), {'is_unknown': True})
         unk_1 = (IntegerBlock(length=4), {'is_unknown': True})
         unk_2 = (IntegerBlock(length=4), {'is_unknown': True})
-        unk_3 = (IntegerBlock(length=4),
-                 {'description': 'Amount of meshes in the file? Equals to the amount of items in the mesh ids chunk',
-                  'is_unknown': True})
-        file_path = (UTF8Block(length=56),
-                     {'description': 'Path of this file in the original development environment, e.g. '
-                                     '"..\\PC\\CD\\CARS\\S2000\\GEOMETRY.BIN"'})
-        unk = (UTF8Block(length=32),
-               {'description': 'Some name, e.g. "DEFAULT"',
-                'is_unknown': True})
+        unk_3 = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Amount of meshes in the file? Equals to the amount of items in the mesh ids chunk',
+                'is_unknown': True,
+            },
+        )
+        file_path = (
+            UTF8Block(length=56),
+            {
+                'description': 'Path of this file in the original development environment, e.g. '
+                '"..\\PC\\CD\\CARS\\S2000\\GEOMETRY.BIN"'
+            },
+        )
+        unk = (UTF8Block(length=32), {'description': 'Some name, e.g. "DEFAULT"', 'is_unknown': True})
         unk_4 = (IntegerBlock(length=4), {'is_unknown': True})
         unk_5 = (IntegerBlock(length=4), {'is_unknown': True})
         unk_6 = (IntegerBlock(length=4), {'is_unknown': True})
@@ -350,70 +414,77 @@ class Chunk00134002(DeclarativeCompoundBlock):
 
 
 class Chunk00134003(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'List of mesh ids contained in the file, one item per mesh descriptor chunk'}
+        return {
+            **super().schema,
+            'block_description': 'List of mesh ids contained in the file, one item per mesh descriptor chunk',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_03)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_03)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        items = (ArrayBlock(child=CompoundBlock(fields=[
-            ('value', IntegerBlock(length=4), {}),
-            ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
-        ], inline_description="Two 32-bit unsigned integers (little-endian): value, then unk (always 0)"),
-            length=lambda ctx: int(ctx.data('chunk_length') / 8)),
-                 {'description': 'Mesh ids: `value` equals to `mesh_id` of the corresponding mesh header chunk'})
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        items = (
+            ArrayBlock(
+                child=CompoundBlock(
+                    fields=[
+                        ('value', IntegerBlock(length=4), {}),
+                        ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {}),
+                    ],
+                    inline_description='Two 32-bit unsigned integers (little-endian): value, then unk (always 0)',
+                ),
+                length=lambda ctx: int(ctx.data('chunk_length') / 8),
+            ),
+            {'description': 'Mesh ids: `value` equals to `mesh_id` of the corresponding mesh header chunk'},
+        )
 
 
 class Chunk00134011(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Mesh header: id, name, bounding volume and flags of a single mesh'}
+        return {
+            **super().schema,
+            'block_description': 'Mesh header: id, name, bounding volume and flags of a single mesh',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4,  value_validator=Eq(0x00_13_40_11)),
-                    {'description': _CHUNK_ID_DESCR})
-        chunk_length = (IntegerBlock(length=4, value_validator=Eq(176)),
-                        {'usage': 'io,doc',
-                         'description': _CHUNK_LENGTH_DESCR})
+        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00_13_40_11)), {'description': _CHUNK_ID_DESCR})
+        chunk_length = (
+            IntegerBlock(length=4, value_validator=Eq(176)),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
         unk2 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
         unk3 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
         unk4 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
         unk5 = (IntegerBlock(length=2, value_validator=Eq(0x00_13)), {'is_unknown': True})
         unk6 = (IntegerBlock(length=2, value_validator=Or([0x00_40, 0x00_00])), {'is_unknown': True})
-        mesh_id = (IntegerBlock(length=4),
-                   {'description': 'Mesh id (hash), listed in the mesh ids chunk of the file'})
-        unk7 = (IntegerBlock(length=4),
-                {'description': 'Amount of faces? Equals to `faces_amount` of the mesh info chunk',
-                 'is_unknown': True})
-        mesh_flags = (IntegerBlock(length=4),  # maybe contains stream count / LOD / material count
-                      {'description': 'Mesh flags. Maybe contains stream count / LOD / material count',
-                       'is_unknown': True})
+        mesh_id = (IntegerBlock(length=4), {'description': 'Mesh id (hash), listed in the mesh ids chunk of the file'})
+        unk7 = (
+            IntegerBlock(length=4),
+            {'description': 'Amount of faces? Equals to `faces_amount` of the mesh info chunk', 'is_unknown': True},
+        )
+        mesh_flags = (
+            IntegerBlock(length=4),  # maybe contains stream count / LOD / material count
+            {'description': 'Mesh flags. Maybe contains stream count / LOD / material count', 'is_unknown': True},
+        )
         unk10 = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
-        bounding_box_min = (NfsuVec3(),
-                            {'description': 'Minimum corner of the axis-aligned bounding box of the mesh'})
-        bounding_box_max = (NfsuVec3(),
-                            {'description': 'Maximum corner of the axis-aligned bounding box of the mesh'})
-        obb_axis0 = (NfsuVec3(),
-                     {'description': 'First axis of the oriented bounding box'})
-        obb_axis1 = (NfsuVec3(),
-                     {'description': 'Second axis of the oriented bounding box'})
-        obb_axis2 = (NfsuVec3(),
-                     {'description': 'Third axis of the oriented bounding box'})
+        bounding_box_min = (NfsuVec3(), {'description': 'Minimum corner of the axis-aligned bounding box of the mesh'})
+        bounding_box_max = (NfsuVec3(), {'description': 'Maximum corner of the axis-aligned bounding box of the mesh'})
+        obb_axis0 = (NfsuVec3(), {'description': 'First axis of the oriented bounding box'})
+        obb_axis1 = (NfsuVec3(), {'description': 'Second axis of the oriented bounding box'})
+        obb_axis2 = (NfsuVec3(), {'description': 'Third axis of the oriented bounding box'})
 
         # is it a quaternion?
-        unk_float0 = (DecimalBlock(length=4),
-                      {'description': 'Is it a quaternion (with the next 3 floats)?',
-                       'is_unknown': True})
+        unk_float0 = (
+            DecimalBlock(length=4),
+            {'description': 'Is it a quaternion (with the next 3 floats)?', 'is_unknown': True},
+        )
         unk_float1 = (DecimalBlock(length=4), {'is_unknown': True})
         unk_float2 = (DecimalBlock(length=4), {'is_unknown': True})
         unk_U = (DecimalBlock(length=4, value_validator=Eq(1.0)), {'is_unknown': True})
@@ -423,80 +494,100 @@ class Chunk00134011(DeclarativeCompoundBlock):
         unk_X = (IntegerBlock(length=4, value_validator=Eq(0x00_12_F8_00)), {'is_unknown': True})
         unk_Y = (IntegerBlock(length=4, value_validator=Eq(0x00_12_F8_00)), {'is_unknown': True})
         unk_Z = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
-        mesh_name = (UTF8Block(length=28),
-                     {'description': 'Mesh name, e.g. "S2000_KIT08_FRONT_BUMPER_A". Used as the name of exported mesh'})
+        mesh_name = (
+            UTF8Block(length=28),
+            {'description': 'Mesh name, e.g. "S2000_KIT08_FRONT_BUMPER_A". Used as the name of exported mesh'},
+        )
 
 
 class Chunk00134012(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A list of 32-bit values (hashes) of the mesh, presumably texture ids'}
+        return {
+            **super().schema,
+            'block_description': 'A list of 32-bit values (hashes) of the mesh, presumably texture ids',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_12)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_12)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        items = (ArrayBlock(child=CompoundBlock(fields=[
-            ('value', IntegerBlock(length=4), {}),
-            ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
-        ], inline_description="Two 32-bit unsigned integers (little-endian): value, then unk (always 0)"),
-            length=lambda ctx: int(ctx.data('chunk_length') / 8)),
-                 {'description': 'Items',
-                  'is_unknown': True})
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        items = (
+            ArrayBlock(
+                child=CompoundBlock(
+                    fields=[
+                        ('value', IntegerBlock(length=4), {}),
+                        ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {}),
+                    ],
+                    inline_description='Two 32-bit unsigned integers (little-endian): value, then unk (always 0)',
+                ),
+                length=lambda ctx: int(ctx.data('chunk_length') / 8),
+            ),
+            {'description': 'Items', 'is_unknown': True},
+        )
 
 
 class Chunk00134013(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A list of 32-bit values (hashes) of the mesh, presumably shader/material ids'}
+        return {
+            **super().schema,
+            'block_description': 'A list of 32-bit values (hashes) of the mesh, presumably shader/material ids',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_13)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_40_13)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        items = (ArrayBlock(child=CompoundBlock(fields=[
-            ('value', IntegerBlock(length=4), {}),
-            ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {})
-        ], inline_description="Two 32-bit unsigned integers (little-endian): value, then unk (always 0)"),
-            length=lambda ctx: int(ctx.data('chunk_length') / 8)),
-                 {'description': 'Items',
-                  'is_unknown': True})
-
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('items')) * 8),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        items = (
+            ArrayBlock(
+                child=CompoundBlock(
+                    fields=[
+                        ('value', IntegerBlock(length=4), {}),
+                        ('unk', IntegerBlock(length=4, value_validator=Eq(0)), {}),
+                    ],
+                    inline_description='Two 32-bit unsigned integers (little-endian): value, then unk (always 0)',
+                ),
+                length=lambda ctx: int(ctx.data('chunk_length') / 8),
+            ),
+            {'description': 'Items', 'is_unknown': True},
+        )
 
 
 class Chunk001340XX(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Unknown chunk with id 0x001340XX, kept as raw bytes. Known ids: 0x00134004 in '
-                                     'the file info container (20-byte records per mesh, starting with mesh id); '
-                                     '0x00134017, 0x00134018, 0x00134019, 0x0013401A in mesh descriptors'}
+        return {
+            **super().schema,
+            'block_description': 'Unknown chunk with id 0x001340XX, kept as raw bytes. Known ids: 0x00134004 in '
+            'the file info container (20-byte records per mesh, starting with mesh id); '
+            '0x00134017, 0x00134018, 0x00134019, 0x0013401A in mesh descriptors',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        index = (IntegerBlock(length=1, value_validator=Or([4, 23, 24, 25, 0x1A])),
-                 {'description': 'Lowest byte of the chunk id'})
-        chunk_id = (IntegerBlock(length=3, is_signed=False, value_validator=Eq(0x00_13_40)),
-                    {'description': 'Upper 3 bytes of the chunk id'})
+        index = (
+            IntegerBlock(length=1, value_validator=Or([4, 23, 24, 25, 0x1A])),
+            {'description': 'Lowest byte of the chunk id'},
+        )
+        chunk_id = (
+            IntegerBlock(length=3, is_signed=False, value_validator=Eq(0x00_13_40)),
+            {'description': 'Upper 3 bytes of the chunk id'},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: len(ctx.data('payload'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')),
-                   {'is_unknown': True})
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')), {'is_unknown': True})
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
@@ -510,106 +601,135 @@ class Chunk001340XX(DeclarativeCompoundBlock):
 
 
 class Chunk80134008(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Unknown chunk of the file info container, usually empty'}
+        return {**super().schema, 'block_description': 'Unknown chunk of the file info container, usually empty'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_08)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_08)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: len(ctx.data('payload'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')),
-                   {'is_unknown': True})
+            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')), {'is_unknown': True})
 
 
 class NfsuMeshDescriptorChunk(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Mesh descriptor: everything about a single mesh (a car part). Contains the mesh '
-                                     'header chunk, lists of hashes and the mesh data container with vertices and '
-                                     'faces. The converter exports every descriptor as a separate mesh, named after '
-                                     '`mesh_name` of the header'}
+        return {
+            **super().schema,
+            'block_description': 'Mesh descriptor: everything about a single mesh (a car part). Contains the mesh '
+            'header chunk, lists of hashes and the mesh data container with vertices and '
+            'faces. The converter exports every descriptor as a separate mesh, named after '
+            '`mesh_name` of the header',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_10)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_10)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(
-                             ctx.data('sub_chunks'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        sub_chunks = (ArrayBlock(length=lambda ctx: determine_chunks_amount(ctx,
-                                                                            read_bytes_remaining_func=lambda
-                                                                                ctx: ctx.data('chunk_length')),
-                                 child=DelegateBlock(possible_blocks=[Chunk00134011(),
-                                                                      Chunk00134012(),
-                                                                      Chunk00134013(),
-                                                                      Chunk80134100(),
-                                                                      Chunk001340XX(),
-                                                                      # UnknownChunk(),
-                                                                      ],
-                                                     choice_index=lambda ctx, **_: determine_chunks_class(ctx))),
-                      {'description': 'Child chunks, read until the payload is exhausted. Block class picked '
-                                      'according to the chunk id'})
+            IntegerBlock(
+                length=4,
+                is_signed=False,
+                programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(
+                    ctx.data('sub_chunks')
+                ),
+            ),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        sub_chunks = (
+            ArrayBlock(
+                length=lambda ctx: determine_chunks_amount(
+                    ctx, read_bytes_remaining_func=lambda ctx: ctx.data('chunk_length')
+                ),
+                child=DelegateBlock(
+                    possible_blocks=[
+                        Chunk00134011(),
+                        Chunk00134012(),
+                        Chunk00134013(),
+                        Chunk80134100(),
+                        Chunk001340XX(),
+                        # UnknownChunk(),
+                    ],
+                    choice_index=lambda ctx, **_: determine_chunks_class(ctx),
+                ),
+            ),
+            {
+                'description': 'Child chunks, read until the payload is exhausted. Block class picked '
+                'according to the chunk id'
+            },
+        )
 
 
 class Chunk80134001(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'File info container: the first meaningful chunk of the file. Holds file info, '
-                                     'the list of mesh ids and a per-mesh table'}
+        return {
+            **super().schema,
+            'block_description': 'File info container: the first meaningful chunk of the file. Holds file info, '
+            'the list of mesh ids and a per-mesh table',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_01)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_01)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(ctx.data('sub_chunks'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
+            IntegerBlock(
+                length=4,
+                is_signed=False,
+                programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(
+                    ctx.data('sub_chunks')
+                ),
+            ),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
         # always 3 or 4 blocks
-        sub_chunks = (ArrayBlock(length=lambda ctx: determine_chunks_amount(ctx,
-                                                                            read_bytes_remaining_func=lambda
-                                                                                ctx: ctx.data('chunk_length')),
-                                 child=DelegateBlock(possible_blocks=[
-                                     Chunk00134002(),
-                                     Chunk00134003(),
-                                     Chunk001340XX(),
-                                     Chunk80134008(),
-                                     # UnknownChunk(),
-                                 ],
-                                     choice_index=lambda ctx, **_: determine_chunks_class(ctx))),
-                      {'description': 'Child chunks (always 3 or 4), read until the payload is exhausted. Block class '
-                                      'picked according to the chunk id'})
+        sub_chunks = (
+            ArrayBlock(
+                length=lambda ctx: determine_chunks_amount(
+                    ctx, read_bytes_remaining_func=lambda ctx: ctx.data('chunk_length')
+                ),
+                child=DelegateBlock(
+                    possible_blocks=[
+                        Chunk00134002(),
+                        Chunk00134003(),
+                        Chunk001340XX(),
+                        Chunk80134008(),
+                        # UnknownChunk(),
+                    ],
+                    choice_index=lambda ctx, **_: determine_chunks_class(ctx),
+                ),
+            ),
+            {
+                'description': 'Child chunks (always 3 or 4), read until the payload is exhausted. Block class '
+                'picked according to the chunk id'
+            },
+        )
 
 
 class Chunk80134020(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Unknown top-level chunk, kept as raw bytes'}
+        return {**super().schema, 'block_description': 'Unknown top-level chunk, kept as raw bytes'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_20)),
-                    {'description': _CHUNK_ID_DESCR})
+        chunk_id = (
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x80_13_40_20)),
+            {'description': _CHUNK_ID_DESCR},
+        )
         chunk_length = (
             IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload'))),
-            {'usage': 'io,doc',
-             'description': _CHUNK_LENGTH_DESCR})
-        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')),
-                   {'is_unknown': True})
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        payload = (BytesBlock(length=lambda ctx: ctx.data('chunk_length')), {'is_unknown': True})
 
 
 def determine_chunks_amount(ctx: ReadContext, read_bytes_remaining_func=None):
@@ -623,7 +743,7 @@ def determine_chunks_amount(ctx: ReadContext, read_bytes_remaining_func=None):
     while read_bytes_remaining > 0:
         num_chunks += 1
         ctx.buffer.seek(4, SEEK_CUR)
-        length = int.from_bytes(ctx.buffer.read(4), byteorder="little", signed=False)
+        length = int.from_bytes(ctx.buffer.read(4), byteorder='little', signed=False)
         ctx.buffer.seek(length, SEEK_CUR)
         read_bytes_remaining -= 8 + length
     # return buffer pointer to the original state
@@ -632,7 +752,7 @@ def determine_chunks_amount(ctx: ReadContext, read_bytes_remaining_func=None):
 
 
 def determine_chunks_class(ctx: ReadContext):
-    id = int.from_bytes(ctx.buffer.read(4), byteorder="little", signed=False)
+    id = int.from_bytes(ctx.buffer.read(4), byteorder='little', signed=False)
     ctx.buffer.seek(-4, SEEK_CUR)
     id_hex = hex(id).lstrip('0x').rjust(8, '0').upper()
     if id_hex == '00000000':
@@ -659,31 +779,43 @@ def determine_chunks_class(ctx: ReadContext):
 
 
 class NfsuBinGeometry(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Car geometry file (GEOMETRY.BIN). A sequence of chunks, each having 32-bit id '
-                                     'and 32-bit payload length; chunks with id starting with 0x80 are containers of '
-                                     'other chunks. The file starts with a file info container, followed by a mesh '
-                                     'descriptor per car part, interleaved with zero-id padding chunks'}
+        return {
+            **super().schema,
+            'block_description': 'Car geometry file (GEOMETRY.BIN). A sequence of chunks, each having 32-bit id '
+            'and 32-bit payload length; chunks with id starting with 0x80 are containers of '
+            'other chunks. The file starts with a file info container, followed by a mesh '
+            'descriptor per car part, interleaved with zero-id padding chunks',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        header = (IntegerBlock(length=4, value_validator=Eq(0x80134000)),
-                  {'description': 'Resource ID (chunk id of the whole file)'})
-        data_length = (IntegerBlock(length=4),
-                       {'description': 'Length of the rest of the file in bytes'})
-        chunks = (ArrayBlock(length=lambda ctx: determine_chunks_amount(ctx),
-                             child=DelegateBlock(possible_blocks=[ZeroChunk(),
-                                                                  NfsuMeshDescriptorChunk(),
-                                                                  Chunk80134001(),
-                                                                  Chunk80034020(),
-                                                                  # UnknownChunk(),
-                                                                  ],
-                                                 choice_index=lambda ctx, **_: determine_chunks_class(ctx))),
-                  {'description': 'Top-level chunks, read until the end of file. Block class picked according to the '
-                                  'chunk id'})
+        header = (
+            IntegerBlock(length=4, value_validator=Eq(0x80134000)),
+            {'description': 'Resource ID (chunk id of the whole file)'},
+        )
+        data_length = (IntegerBlock(length=4), {'description': 'Length of the rest of the file in bytes'})
+        chunks = (
+            ArrayBlock(
+                length=lambda ctx: determine_chunks_amount(ctx),
+                child=DelegateBlock(
+                    possible_blocks=[
+                        ZeroChunk(),
+                        NfsuMeshDescriptorChunk(),
+                        Chunk80134001(),
+                        Chunk80034020(),
+                        # UnknownChunk(),
+                    ],
+                    choice_index=lambda ctx, **_: determine_chunks_class(ctx),
+                ),
+            ),
+            {
+                'description': 'Top-level chunks, read until the end of file. Block class picked according to the '
+                'chunk id'
+            },
+        )
 
     def serializer_class(self):
         from serializers.geometries import NfsuBinGeometrySerializer
+
         return NfsuBinGeometrySerializer

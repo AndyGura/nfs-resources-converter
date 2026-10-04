@@ -64,7 +64,6 @@ class BaseContext:
 
 
 class ReadContext(BaseContext):
-
     @property
     def local_buffer_pos(self):
         return self.buffer.tell() - self.read_start_offset
@@ -83,15 +82,24 @@ class ReadContext(BaseContext):
             if read_bytes_amount is not None:
                 existing_child.read_bytes_amount = read_bytes_amount
             return existing_child
-        return ReadContext(buffer=self.buffer,
-                           data=data if data is not None else self.data(name),
-                           name=name,
-                           block=block or self.relative_block(name),
-                           parent=self,
-                           read_bytes_amount=read_bytes_amount)
+        return ReadContext(
+            buffer=self.buffer,
+            data=data if data is not None else self.data(name),
+            name=name,
+            block=block or self.relative_block(name),
+            parent=self,
+            read_bytes_amount=read_bytes_amount,
+        )
 
-    def __init__(self, buffer: [BufferedReader, BytesIO] = None, name: str = '', data=None, block=None, parent=None,
-                 read_bytes_amount=None):
+    def __init__(
+        self,
+        buffer: [BufferedReader, BytesIO] = None,
+        name: str = '',
+        data=None,
+        block=None,
+        parent=None,
+        read_bytes_amount=None,
+    ):
         super().__init__(name=name, data=data, block=block, parent=parent)
         self.buffer = buffer
         self.read_start_offset = buffer.tell() if buffer is not None else None
@@ -103,18 +111,15 @@ class ReadContext(BaseContext):
 
 
 class WriteContext(BaseContext):
-
     def get_or_create_child(self, name: str, block=None):
         existing_child = self.children.get('name')
         if existing_child:
             if block is not None:
                 existing_child.block = block
             return existing_child
-        return WriteContext(result=self.result,
-                            name=name,
-                            data=self.data(name),
-                            block=block or self.relative_block(name),
-                            parent=self)
+        return WriteContext(
+            result=self.result, name=name, data=self.data(name), block=block or self.relative_block(name), parent=self
+        )
 
     def __init__(self, result: bytes = b'', name: str = '', data=None, block=None, parent=None):
         super().__init__(name=name, data=data, block=block, parent=parent)
@@ -301,10 +306,9 @@ class DocumentationContext(BaseContext):
             if block is not None:
                 existing_child.block = block
             return existing_child
-        return DocumentationContext(name=name,
-                                    data=self.data(name),
-                                    block=block or self.relative_block(name),
-                                    parent=self)
+        return DocumentationContext(
+            name=name, data=self.data(name), block=block or self.relative_block(name), parent=self
+        )
 
     def data(self, local_path: str):
         return DocumentationCtxData(local_path.replace('../', '^'))

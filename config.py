@@ -5,16 +5,16 @@ from typing import Any, Dict
 from library.utils.class_dict import ClassDict
 
 # Define configuration sections
-SECTION_GENERAL = "General"
-SECTION_CONVERSION = "Conversion"
+SECTION_GENERAL = 'General'
+SECTION_CONVERSION = 'Conversion'
 
 # Define configuration file path
-CONFIG_FILE_NAME = "nfs-resources-converter-settings.ini"
-CONFIG_FILE_PATH = os.path.join(os.path.expanduser("~"), CONFIG_FILE_NAME)
+CONFIG_FILE_NAME = 'nfs-resources-converter-settings.ini'
+CONFIG_FILE_PATH = os.path.join(os.path.expanduser('~'), CONFIG_FILE_NAME)
 
 # Define log file path
-LOG_FILE_NAME = "nfs-resources-converter-logs.log"
-LOG_FILE_PATH = os.path.join(os.path.expanduser("~"), LOG_FILE_NAME)
+LOG_FILE_NAME = 'nfs-resources-converter-logs.log'
+LOG_FILE_PATH = os.path.join(os.path.expanduser('~'), LOG_FILE_NAME)
 
 
 # Function to get the config file location
@@ -49,29 +49,29 @@ class ConfigManager:
         """
         return {
             SECTION_GENERAL: {
-                "blender_executable": "blender",
-                "ffmpeg_executable": "ffmpeg",
-                "print_blender_log": False,
-                "recent_files": [],
-                "show_hidden_fields": False,
+                'blender_executable': 'blender',
+                'ffmpeg_executable': 'ffmpeg',
+                'print_blender_log': False,
+                'recent_files': [],
+                'show_hidden_fields': False,
             },
             SECTION_CONVERSION: {
-                "multiprocess_processes_count": 0,
-                "input_path": "",
-                "output_path": "",
-                "images__save_image_positions": False,
-                "images__save_palettes": False,
-                "images__save_mipmaps": False,
-                "images__save_embedded_palette": False,
-                "images__save_texts": False,
-                "maps__save_as_chunked": False,
-                "maps__save_invisible_wall_collisions": False,
-                "maps__save_terrain_collisions": False,
-                "maps__save_spherical_skybox_texture": True,
-                "maps__add_props_to_obj": True,
-                "geometry__save_obj": True,
-                "geometry__save_blend": True,
-                "geometry__export_to_gg_web_engine": False,
+                'multiprocess_processes_count': 0,
+                'input_path': '',
+                'output_path': '',
+                'images__save_image_positions': False,
+                'images__save_palettes': False,
+                'images__save_mipmaps': False,
+                'images__save_embedded_palette': False,
+                'images__save_texts': False,
+                'maps__save_as_chunked': False,
+                'maps__save_invisible_wall_collisions': False,
+                'maps__save_terrain_collisions': False,
+                'maps__save_spherical_skybox_texture': True,
+                'maps__add_props_to_obj': True,
+                'geometry__save_obj': True,
+                'geometry__save_blend': True,
+                'geometry__export_to_gg_web_engine': False,
             },
         }
 
@@ -99,7 +99,7 @@ class ConfigManager:
         Returns:
             Environment variable name
         """
-        return f"NFS_RESOURCES_CONVERTER_{section.upper()}_{key.upper()}"
+        return f'NFS_RESOURCES_CONVERTER_{section.upper()}_{key.upper()}'
 
     def get(self, section: str, key: str) -> Any:
         """
@@ -125,7 +125,7 @@ class ConfigManager:
             if self._config.has_option(section, key):
                 value = self._config.get(section, key)
                 return self._convert_value(value, default)
-        except (configparser.NoSectionError, configparser.NoOptionError):
+        except configparser.NoSectionError, configparser.NoOptionError:
             pass
 
         # Check defaults
@@ -250,7 +250,7 @@ def set_config(section: str, key: str, value: Any) -> None:
     # Update module attribute if it exists
     module_attr_name = key
     if section != SECTION_GENERAL:
-        module_attr_name = f"{section.lower()}__{key}"
+        module_attr_name = f'{section.lower()}__{key}'
 
     if module_attr_name in globals():
         globals()[module_attr_name] = value
@@ -258,11 +258,11 @@ def set_config(section: str, key: str, value: Any) -> None:
 
 def general_config(patch: Dict = None) -> ClassDict:
     config = {
-        "blender_executable": get_config(SECTION_GENERAL, "blender_executable"),
-        "ffmpeg_executable": get_config(SECTION_GENERAL, "ffmpeg_executable"),
-        "print_blender_log": get_config(SECTION_GENERAL, "print_blender_log"),
-        "recent_files": get_config(SECTION_GENERAL, "recent_files"),
-        "show_hidden_fields": get_config(SECTION_GENERAL, "show_hidden_fields"),
+        'blender_executable': get_config(SECTION_GENERAL, 'blender_executable'),
+        'ffmpeg_executable': get_config(SECTION_GENERAL, 'ffmpeg_executable'),
+        'print_blender_log': get_config(SECTION_GENERAL, 'print_blender_log'),
+        'recent_files': get_config(SECTION_GENERAL, 'recent_files'),
+        'show_hidden_fields': get_config(SECTION_GENERAL, 'show_hidden_fields'),
     }
     if patch:
         config = {**config, **patch}
@@ -271,22 +271,22 @@ def general_config(patch: Dict = None) -> ClassDict:
 
 def conversion_config(patch: Dict = None) -> ClassDict:
     config = {
-        "multiprocess_processes_count": get_config(SECTION_CONVERSION, "multiprocess_processes_count"),
-        "input_path": get_config(SECTION_CONVERSION, "input_path"),
-        "output_path": get_config(SECTION_CONVERSION, "output_path"),
-        "images__save_image_positions": get_config(SECTION_CONVERSION, "images__save_image_positions"),
-        "images__save_palettes": get_config(SECTION_CONVERSION, "images__save_palettes"),
-        "images__save_mipmaps": get_config(SECTION_CONVERSION, "images__save_mipmaps"),
-        "images__save_embedded_palette": get_config(SECTION_CONVERSION, "images__save_embedded_palette"),
-        "images__save_texts": get_config(SECTION_CONVERSION, "images__save_texts"),
-        "maps__save_as_chunked": get_config(SECTION_CONVERSION, "maps__save_as_chunked"),
-        "maps__save_invisible_wall_collisions": get_config(SECTION_CONVERSION, "maps__save_invisible_wall_collisions"),
-        "maps__save_terrain_collisions": get_config(SECTION_CONVERSION, "maps__save_terrain_collisions"),
-        "maps__save_spherical_skybox_texture": get_config(SECTION_CONVERSION, "maps__save_spherical_skybox_texture"),
-        "maps__add_props_to_obj": get_config(SECTION_CONVERSION, "maps__add_props_to_obj"),
-        "geometry__save_obj": get_config(SECTION_CONVERSION, "geometry__save_obj"),
-        "geometry__save_blend": get_config(SECTION_CONVERSION, "geometry__save_blend"),
-        "geometry__export_to_gg_web_engine": get_config(SECTION_CONVERSION, "geometry__export_to_gg_web_engine"),
+        'multiprocess_processes_count': get_config(SECTION_CONVERSION, 'multiprocess_processes_count'),
+        'input_path': get_config(SECTION_CONVERSION, 'input_path'),
+        'output_path': get_config(SECTION_CONVERSION, 'output_path'),
+        'images__save_image_positions': get_config(SECTION_CONVERSION, 'images__save_image_positions'),
+        'images__save_palettes': get_config(SECTION_CONVERSION, 'images__save_palettes'),
+        'images__save_mipmaps': get_config(SECTION_CONVERSION, 'images__save_mipmaps'),
+        'images__save_embedded_palette': get_config(SECTION_CONVERSION, 'images__save_embedded_palette'),
+        'images__save_texts': get_config(SECTION_CONVERSION, 'images__save_texts'),
+        'maps__save_as_chunked': get_config(SECTION_CONVERSION, 'maps__save_as_chunked'),
+        'maps__save_invisible_wall_collisions': get_config(SECTION_CONVERSION, 'maps__save_invisible_wall_collisions'),
+        'maps__save_terrain_collisions': get_config(SECTION_CONVERSION, 'maps__save_terrain_collisions'),
+        'maps__save_spherical_skybox_texture': get_config(SECTION_CONVERSION, 'maps__save_spherical_skybox_texture'),
+        'maps__add_props_to_obj': get_config(SECTION_CONVERSION, 'maps__add_props_to_obj'),
+        'geometry__save_obj': get_config(SECTION_CONVERSION, 'geometry__save_obj'),
+        'geometry__save_blend': get_config(SECTION_CONVERSION, 'geometry__save_blend'),
+        'geometry__export_to_gg_web_engine': get_config(SECTION_CONVERSION, 'geometry__export_to_gg_web_engine'),
     }
     if patch:
         config = {**config, **patch}
@@ -317,10 +317,10 @@ if _IS_FIRST_RUN:
 
     detected_blender = detect_blender_path()
     if detected_blender:
-        _config_manager._defaults[SECTION_GENERAL]["blender_executable"] = detected_blender
+        _config_manager._defaults[SECTION_GENERAL]['blender_executable'] = detected_blender
 
     detected_ffmpeg = detect_ffmpeg_path()
     if detected_ffmpeg:
-        _config_manager._defaults[SECTION_GENERAL]["ffmpeg_executable"] = detected_ffmpeg
+        _config_manager._defaults[SECTION_GENERAL]['ffmpeg_executable'] = detected_ffmpeg
 
     _config_manager.create_default_config_file()

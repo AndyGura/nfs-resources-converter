@@ -10,6 +10,7 @@ def join_id(base_id: str, *suffix_ids):
             res += '__' + suff
     return res
 
+
 def split_last_id_part(id: str) -> Tuple[str, str]:
     parts = id.split('/')
     if '__' in parts[-1]:

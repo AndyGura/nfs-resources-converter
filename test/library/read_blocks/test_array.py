@@ -10,7 +10,6 @@ from library.read_blocks.numbers import IntegerBlock
 
 
 class TestArray(unittest.TestCase):
-
     def test_array_unpack(self):
         field = ArrayBlock(length=3, child=IntegerBlock(length=1))
         val = field.unpack(ReadContext(BytesIO(bytes([92, 129, 13]))))
@@ -48,28 +47,33 @@ class TestArray(unittest.TestCase):
 
     def test_size_doc_str(self):
         field = ArrayBlock(length=3, child=IntegerBlock(length=1))
-        self.assertEqual(field.size_doc_str, "3")
+        self.assertEqual(field.size_doc_str, '3')
         field = ArrayBlock(length=3, child=IntegerBlock(length=2))
-        self.assertEqual(field.size_doc_str, "6")
+        self.assertEqual(field.size_doc_str, '6')
         field = ArrayBlock(length=lambda ctx: 5, child=IntegerBlock(length=1))
-        self.assertEqual(field.size_doc_str, "5")
-        field = ArrayBlock(length=(2, "2 items"), child=IntegerBlock(length=4))
-        self.assertEqual(field.size_doc_str, "2 items*4")
+        self.assertEqual(field.size_doc_str, '5')
+        field = ArrayBlock(length=(2, '2 items'), child=IntegerBlock(length=4))
+        self.assertEqual(field.size_doc_str, '2 items*4')
 
 
 class TestLengthPrefixedArray(unittest.TestCase):
-
     def test_array_unpack(self):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
         val = field.unpack(ReadContext(BytesIO(bytes([3, 92, 129, 13, 252]))))
         self.assertListEqual(val, [92, 129, 13])
 
     def test_array_unpack_different_length_block(self):
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='big'), child=IntegerBlock(length=1))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=4, byte_order='big'), child=IntegerBlock(length=1)
+        )
         self.assertListEqual(field.unpack(ReadContext(BytesIO(bytes([0, 0, 0, 2, 92, 129, 254])))), [92, 129])
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='little'), child=IntegerBlock(length=1))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=4, byte_order='little'), child=IntegerBlock(length=1)
+        )
         self.assertListEqual(field.unpack(ReadContext(BytesIO(bytes([2, 0, 0, 0, 92, 129, 254])))), [92, 129])
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1)
+        )
         self.assertListEqual(field.unpack(ReadContext(BytesIO(bytes([0, 0, 3, 92, 129, 254, 127])))), [92, 129, 254])
 
     def test_array_pack(self):
@@ -78,15 +82,23 @@ class TestLengthPrefixedArray(unittest.TestCase):
         self.assertEqual(data, bytes([3, 92, 129, 13]))
 
     def test_array_pack_different_length_block(self):
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='big'), child=IntegerBlock(length=1))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=4, byte_order='big'), child=IntegerBlock(length=1)
+        )
         self.assertEqual(field.pack([92, 129]), bytes([0, 0, 0, 2, 92, 129]))
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4, byte_order='little'), child=IntegerBlock(length=1))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=4, byte_order='little'), child=IntegerBlock(length=1)
+        )
         self.assertEqual(field.pack([92, 129]), bytes([2, 0, 0, 0, 92, 129]))
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=3, byte_order='big'), child=IntegerBlock(length=1)
+        )
         self.assertEqual(field.pack([92, 129, 13, 12, 15]), bytes([0, 0, 5, 92, 129, 13, 12, 15]))
 
     def test_array_value_validator(self):
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1), value_validator=Eq([10, 20, 30]))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=1), child=IntegerBlock(length=1), value_validator=Eq([10, 20, 30])
+        )
         field.unpack(ReadContext(BytesIO(bytes([3, 10, 20, 30]))))
         with self.assertRaises(DataIntegrityException):
             field.unpack(ReadContext(BytesIO(bytes([3, 90, 12, 30]))))
@@ -105,13 +117,19 @@ class TestLengthPrefixedArray(unittest.TestCase):
         self.assertEqual(field.estimate_packed_size([1, 2, 3]), 13)
 
     def test_estimate_packed_size_variable_child_length(self):
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=1), child=UTF8Block(length=lambda ctx: exec('raise Exception()'))
+        )
         self.assertEqual(field.estimate_packed_size(['abc', '0', 'qwerty']), 11)
 
     def test_offset_to_child_when_packed(self):
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=1), child=UTF8Block(length=lambda ctx: exec('raise Exception()'))
+        )
         self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 4)
-        field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=4), child=UTF8Block(length=lambda ctx: exec('raise Exception()')))
+        field = LengthPrefixedArrayBlock(
+            length_block=IntegerBlock(length=4), child=UTF8Block(length=lambda ctx: exec('raise Exception()'))
+        )
         self.assertEqual(field.offset_to_child_when_packed(['abc', '0', 'qwerty'], '1'), 7)
 
     def test_new_data(self):
@@ -121,11 +139,10 @@ class TestLengthPrefixedArray(unittest.TestCase):
 
     def test_size_doc_str(self):
         field = LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1))
-        self.assertEqual(field.size_doc_str, "1..?")
+        self.assertEqual(field.size_doc_str, '1..?')
 
 
 class TestSubByteArray(unittest.TestCase):
-
     def test_subbyte_array_unpack(self):
         field = SubByteArrayBlock(length=4, bits_per_value=6)
         val = field.unpack(ReadContext(BytesIO(bytes([253, 253, 253]))))
@@ -158,6 +175,6 @@ class TestSubByteArray(unittest.TestCase):
 
     def test_size_doc_str(self):
         field = SubByteArrayBlock(length=4, bits_per_value=6)
-        self.assertEqual(field.size_doc_str, "3")
+        self.assertEqual(field.size_doc_str, '3')
         field = SubByteArrayBlock(length=5, bits_per_value=5)
-        self.assertEqual(field.size_doc_str, "4")
+        self.assertEqual(field.size_doc_str, '4')

@@ -17,16 +17,15 @@ class TestText(DeclarativeCompoundBlock):
 
 
 class TestFrontendChangesWorkflow(unittest.TestCase):
-
     def setUp(self):
         # Create a temporary directory and a test.txt file inside it
         self.temp_dir = tempfile.TemporaryDirectory()
         self.test_file_path = os.path.join(self.temp_dir.name, 'test.txt')
-        
+
         # Write initial content to the text file
         with open(self.test_file_path, 'w', encoding='utf-8') as f:
-            f.write("Initial Content")
-            
+            f.write('Initial Content')
+
         # Instantiate APIs
         self.file_api = FileAPI(api=None)
         self.changes_api = ChangesAPI(api=None)
@@ -55,22 +54,14 @@ class TestFrontendChangesWorkflow(unittest.TestCase):
     def test_frontend_changes_save_workflow(self):
         # 1. Open the file
         open_res = self.file_api.open_file(self.test_file_path, update_recent_files=False)
-        self.assertEqual(open_res['data']['text'], "Initial Content")
+        self.assertEqual(open_res['data']['text'], 'Initial Content')
         self.assertIsInstance(self.file_api.current_file_block, TestText)
 
         # 2. Emit first change as frontend
-        change1 = {
-            'id': f"{open_res['name']}__text",
-            'op': 'set',
-            'newValue': 'First Change'
-        }
-        update_dict1 = {
-            'newLocalRevision': 1,
-            'newChanges': [change1],
-            'poppedChanges': 0
-        }
+        change1 = {'id': f'{open_res["name"]}__text', 'op': 'set', 'newValue': 'First Change'}
+        update_dict1 = {'newLocalRevision': 1, 'newChanges': [change1], 'poppedChanges': 0}
         self.changes_api.on_fe_update(update_dict1)
-        
+
         # Assert the local in-memory data got updated
         self.assertEqual(self.file_api.current_file_data['text'], 'First Change')
         self.assertEqual(ChangesService.local_revision, 1)
@@ -82,16 +73,8 @@ class TestFrontendChangesWorkflow(unittest.TestCase):
         self.assertEqual(saved_content1, 'First Change')
 
         # 4. Emit second change as frontend
-        change2 = {
-            'id': f"{open_res['name']}__text",
-            'op': 'set',
-            'newValue': 'Second Change'
-        }
-        update_dict2 = {
-            'newLocalRevision': 2,
-            'newChanges': [change2],
-            'poppedChanges': 0
-        }
+        change2 = {'id': f'{open_res["name"]}__text', 'op': 'set', 'newValue': 'Second Change'}
+        update_dict2 = {'newLocalRevision': 2, 'newChanges': [change2], 'poppedChanges': 0}
         self.changes_api.on_fe_update(update_dict2)
 
         # Assert the local in-memory data got updated

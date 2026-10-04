@@ -19,10 +19,10 @@ class Action(Enum):
         return self.value
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     multiprocessing.freeze_support()
     setup_logging()
-    logging.info("Application starting...")
+    logging.info('Application starting...')
     # check if first argument is a valid action. If not, it is a file
     action = None
     if len(sys.argv) > 1:
@@ -33,11 +33,38 @@ if __name__ == "__main__":
             pass
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=pathlib.Path, nargs='?', default=None, help='Input path')
-    parser.add_argument('--custom-command', type=str, required=False, help='Name of custom function to run (action "custom_command" only)')
-    parser.add_argument('--custom-command-args', nargs='*', required=False, default=[], help='Arguments for custom command (action "custom_command" only)')
-    parser.add_argument('--out', type=pathlib.Path, required=False, help='Output path for converted files (action "convert" only)', default='out/')
-    parser.add_argument('--dev', action='store_true', help='Run the GUI in development mode: load the Angular dev server (ng serve) inside the native window with developer tools enabled')
-    parser.add_argument('--dev-server', type=str, required=False, default='http://localhost:4200', help='Angular dev server URL used together with --dev (default: http://localhost:4200)')
+    parser.add_argument(
+        '--custom-command',
+        type=str,
+        required=False,
+        help='Name of custom function to run (action "custom_command" only)',
+    )
+    parser.add_argument(
+        '--custom-command-args',
+        nargs='*',
+        required=False,
+        default=[],
+        help='Arguments for custom command (action "custom_command" only)',
+    )
+    parser.add_argument(
+        '--out',
+        type=pathlib.Path,
+        required=False,
+        help='Output path for converted files (action "convert" only)',
+        default='out/',
+    )
+    parser.add_argument(
+        '--dev',
+        action='store_true',
+        help='Run the GUI in development mode: load the Angular dev server (ng serve) inside the native window with developer tools enabled',
+    )
+    parser.add_argument(
+        '--dev-server',
+        type=str,
+        required=False,
+        default='http://localhost:4200',
+        help='Angular dev server URL used together with --dev (default: http://localhost:4200)',
+    )
     args = parser.parse_args()
     if action is None:
         if args.file is not None and os.path.isdir(args.file):
@@ -57,16 +84,19 @@ if __name__ == "__main__":
         if not args.out:
             raise Exception('--out argument has to be provided for convert action')
         from actions.convert_all import convert_all
+
         convert_all(args.file, args.out)
     elif action == Action.show_settings:
         from config import get_config_file_location
-        print(f"Settings file location: {get_config_file_location()}")
+
+        print(f'Settings file location: {get_config_file_location()}')
     elif action == Action.uncompress:
         if args.file is None:
             raise Exception('file argument is required for uncompress action')
         if os.path.isdir(args.file):
             raise Exception('Cannot uncompress directory, use path to file')
         from actions.uncompress import uncompress_file
+
         uncompress_file(str(args.file))
     elif action == Action.custom_command:
         if args.file is None:
@@ -78,6 +108,7 @@ if __name__ == "__main__":
         if not args.out:
             raise Exception('--out argument has to be provided for custom command action')
         from library import require_file
+
         (name, block, resource) = require_file(str(args.file))
         action_func = getattr(block, f'action_{args.custom_command}')
         action_func(resource, *args.custom_command_args)

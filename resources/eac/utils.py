@@ -35,20 +35,22 @@ def _get_palette_from_wwww(wwww_id, wwww_block: WwwwBlock, wwww_data, max_index=
                 break
     if not palette_block and not skip_parent_check and 'children' in wwww_id:
         from library import require_resource
-        (parent_id, parent_block, parent_data), _ = require_resource(wwww_id[:wwww_id.rindex('children')])
+
+        (parent_id, parent_block, parent_data), _ = require_resource(wwww_id[: wwww_id.rindex('children')])
         return _get_palette_from_wwww(parent_id, parent_block, parent_data, max_index=int(wwww_id.split('/')[-3]))
     return palette_block, palette_data
 
 
 def determine_palette_for_8_bit_bitmap(block, data: dict, id: str):
     from library import require_resource
+
     # if not is SHPI
     if id.rfind('__children') == -1 and id.rfind('/children') == -1:
         if data.get('embedded_palette'):
             return EacPalette(), data['embedded_palette']
         return None, None
 
-    shpi_id = id[:max(id.rfind('__children'), id.rfind('/children'))]
+    shpi_id = id[: max(id.rfind('__children'), id.rfind('/children'))]
     (_, shpi_block, shpi_data), _ = require_resource(shpi_id)
     shpi_child = next(x for x in shpi_data['children'] if x['item']['data'] == data)
     if data.get('embedded_palette') and not (shpi_child['alias'] == 'ga00' and 'TR2_001.FAM' in id):
@@ -66,14 +68,17 @@ def determine_palette_for_8_bit_bitmap(block, data: dict, id: str):
     # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette,
     # use previous available !pal. 7C bitmap resource data seems to not change as well :(
     if not palette_block and '.FAM' in id:
-        (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[:shpi_id.rindex('children') - 1])
-        (palette_block, palette_data) = _get_palette_from_wwww(parent_id, parent_block, parent_data,
-                                                               int(shpi_id.split('/')[-3]))
+        (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[: shpi_id.rindex('children') - 1])
+        (palette_block, palette_data) = _get_palette_from_wwww(
+            parent_id, parent_block, parent_data, int(shpi_id.split('/')[-3])
+        )
     if palette_block is None and 'ART/CONTROL/' in id:
         # TNFS has QFS files without palette in this directory, and 7C bitmap resource data seems to not differ in this case :(
         from library import require_resource
+
         (_, shpi_block, shpi_data), _ = require_resource(
-            '/'.join(id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS__data')
+            '/'.join(id.split('__')[0].split('/')[:-1]) + '/CENTRAL.QFS__data'
+        )
         (palette_block, palette_data) = _get_palette_from_shpi(shpi_block, shpi_data)
 
     return palette_block, palette_data
@@ -96,12 +101,12 @@ def quantize_images_to_8bit(images, num_colors=256):
 
     max_width = max(img.width for img in images)
     total_height = sum(img.height for img in images)
-    master_image = Image.new("RGB", (max_width, total_height), (0, 0, 0))
+    master_image = Image.new('RGB', (max_width, total_height), (0, 0, 0))
     current_y = 0
     contain_transparency = False
     for img in images:
-        rgb = Image.new("RGB", img.size, (0, 0, 0))
-        rgb.paste(img.convert("RGB"), mask=img.getchannel("A"))
+        rgb = Image.new('RGB', img.size, (0, 0, 0))
+        rgb.paste(img.convert('RGB'), mask=img.getchannel('A'))
         master_image.paste(rgb, (0, current_y))
         current_y += img.height
         if not contain_transparency:
@@ -110,20 +115,20 @@ def quantize_images_to_8bit(images, num_colors=256):
     reserved_colors = 1 if contain_transparency else 0
 
     reference_palette_img = master_image.quantize(colors=256 - reserved_colors, method=Image.Quantize.FASTOCTREE)
-    rgba_palette_data = reference_palette_img.getpalette("RGBA")[:(num_colors - reserved_colors) * 4]
+    rgba_palette_data = reference_palette_img.getpalette('RGBA')[: (num_colors - reserved_colors) * 4]
     if contain_transparency:
         rgba_palette_data += [0, 255, 0, 0]
     rgb_palette_data = []
     for i in range(0, len(rgba_palette_data), 4):
-        rgb_palette_data.extend(rgba_palette_data[i:i + 3])
-    dummy_palette_img = Image.new("P", (1, 1))
-    dummy_palette_img.putpalette(rgb_palette_data, "RGB")
+        rgb_palette_data.extend(rgba_palette_data[i : i + 3])
+    dummy_palette_img = Image.new('P', (1, 1))
+    dummy_palette_img.putpalette(rgb_palette_data, 'RGB')
 
     indices_per_image = []
     for img in images:
-        alpha = img.getchannel("A")
-        rgb = Image.new("RGB", img.size, (0, 0, 0))
-        rgb.paste(img.convert("RGB"), mask=alpha)
+        alpha = img.getchannel('A')
+        rgb = Image.new('RGB', img.size, (0, 0, 0))
+        rgb.paste(img.convert('RGB'), mask=alpha)
         q_img = rgb.quantize(palette=dummy_palette_img)
         data = bytearray(q_img.tobytes())
         if contain_transparency:
@@ -135,12 +140,14 @@ def quantize_images_to_8bit(images, num_colors=256):
                     if alpha_data[x, y] == 0:
                         data[k] = 255
                     k += 1
-        q_img = Image.frombytes("P", img.size, bytes(data))
-        q_img.putpalette(rgba_palette_data, "RGBA")
+        q_img = Image.frombytes('P', img.size, bytes(data))
+        q_img.putpalette(rgba_palette_data, 'RGBA')
         indices_per_image.append(list(q_img.get_flattened_data()))
 
     packed_palette_colors = [
-        (rgba_palette_data[i] << 24) | (rgba_palette_data[i + 1] << 16) | (rgba_palette_data[i + 2] << 8)
+        (rgba_palette_data[i] << 24)
+        | (rgba_palette_data[i + 1] << 16)
+        | (rgba_palette_data[i + 2] << 8)
         | rgba_palette_data[i + 3]
         for i in range(0, len(rgba_palette_data), 4)
     ]

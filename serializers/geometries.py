@@ -16,14 +16,16 @@ class OripGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def _setup_vertex(self,
-                      model: SubMesh,
-                      block_data,
-                      vertices_file_indices_map,
-                      index_3D,
-                      index_2D,
-                      index_in_polygon,
-                      textures_shpi_data):
+    def _setup_vertex(
+        self,
+        model: SubMesh,
+        block_data,
+        vertices_file_indices_map,
+        index_3D,
+        index_2D,
+        index_in_polygon,
+        textures_shpi_data,
+    ):
         try:
             return vertices_file_indices_map[model][index_3D]
         except KeyError:
@@ -34,27 +36,30 @@ class OripGeometrySerializer(BaseFileSerializer):
         vertices_file_indices_map[model][index_3D] = len(model.vertices) - 1
         # setup texture coordinate
         if index_2D is None:
-            model.vertex_uvs.append([self.default_uvs[index_in_polygon][0],
-                                     self.default_uvs[index_in_polygon][1]])
+            model.vertex_uvs.append([self.default_uvs[index_in_polygon][0], self.default_uvs[index_in_polygon][1]])
         else:
             u_multiplier, v_multiplier = 1, 1
             if model.texture_id:
                 try:
                     c = next(x for x in textures_shpi_data['children'] if x['alias'] == model.texture_id)
-                    u_multiplier, v_multiplier = (1 / c['item']['data']['width'],
-                                                  1 / c['item']['data']['height'])
+                    u_multiplier, v_multiplier = (1 / c['item']['data']['width'], 1 / c['item']['data']['height'])
 
-                except (StopIteration, ValueError):
+                except StopIteration, ValueError:
                     pass
                 except TypeError:
                     print()
-            model.vertex_uvs.append([block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'] * u_multiplier,
-                                     block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier])
+            model.vertex_uvs.append(
+                [
+                    block_data['vertex_uvs'][block_data['vmap'][index_2D]]['u'] * u_multiplier,
+                    block_data['vertex_uvs'][block_data['vmap'][index_2D]]['v'] * v_multiplier,
+                ]
+            )
         return vertices_file_indices_map[model][index_3D]
 
     def require_shpi(self, id):
         # shpi is always next block
         from library import require_resource
+
         shpi_id = id.split('/')
         shpi_id[-3] = str(int(shpi_id[-3]) + 1)
         (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource('/'.join(shpi_id))
@@ -89,22 +94,28 @@ class OripGeometrySerializer(BaseFileSerializer):
             offset_2D = polygon['offset_2d']
 
             def _setup_polygon(offsets):
-                sub_model.polygons.append([self._setup_vertex(sub_model,
-                                                              data,
-                                                              vertices_file_indices_map,
-                                                              offset_3D + offset,
-                                                              (offset_2D + offset) if mapping['use_uv'] else None,
-                                                              offset,
-                                                              textures_shpi_data)
-                                           for offset in offsets])
+                sub_model.polygons.append(
+                    [
+                        self._setup_vertex(
+                            sub_model,
+                            data,
+                            vertices_file_indices_map,
+                            offset_3D + offset,
+                            (offset_2D + offset) if mapping['use_uv'] else None,
+                            offset,
+                            textures_shpi_data,
+                        )
+                        for offset in offsets
+                    ]
+                )
 
-            if (polygon_type & (0xff >> 5)) == 3:
+            if (polygon_type & (0xFF >> 5)) == 3:
                 # triangle
                 if mapping['two_sided'] or not mapping['flip_normal']:
                     _setup_polygon([0, 1, 2])
                 if mapping['two_sided'] or mapping['flip_normal']:
                     _setup_polygon([0, 2, 1])
-            elif (polygon_type & (0xff >> 5)) == 4:
+            elif (polygon_type & (0xFF >> 5)) == 4:
                 # quad
                 if mapping['two_sided'] or not mapping['flip_normal']:
                     _setup_polygon([0, 1, 2])
@@ -131,41 +142,44 @@ class OripGeometrySerializer(BaseFileSerializer):
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
         for c in textures_shpi_data['children']:
-            texture_block = \
-                textures_shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[
-                    c['item']['choice_index']]
+            texture_block = (
+                textures_shpi_block.field_blocks_map['children']
+                .child.field_blocks_map['item']
+                .possible_blocks[c['item']['choice_index']]
+            )
             if isinstance(texture_block, EacImage):
                 scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer
-        ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
-                                          textures_shpi_block)
+
+        ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id, textures_shpi_block)
         return export_scenes([scene], path, self.settings)
 
 
 class GeoGeometrySerializer(BaseFileSerializer):
-
     def __init__(self):
         super().__init__(is_dir=True)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         from library import require_resource
+
         if 'CARDATA.VIV' in id:
             # NFS2 SE
-            local_id = id[id.index('__children/') + 11:]
-            idx = int(local_id[:local_id.index('/')])
-            (_, _, viv_data), _ = require_resource(id[:id.find('__children')])
+            local_id = id[id.index('__children/') + 11 :]
+            idx = int(local_id[: local_id.index('/')])
+            (_, _, viv_data), _ = require_resource(id[: id.find('__children')])
             qfs_name = viv_data['children'][idx]['alias'].upper()
-            qfs_id = path_join(id[:id.find('CARDATA.VIV')], f'../../CARMODEL/PC/{qfs_name[:-4]}.QFS')
+            qfs_id = path_join(id[: id.find('CARDATA.VIV')], f'../../CARMODEL/PC/{qfs_name[:-4]}.QFS')
         else:
             # NFS2
             qfs_id = id[:-4] + '.QFS'
         (shpi_id, textures_shpi_block, textures_shpi_data), _ = require_resource(qfs_id)
         # unwrap QFS
         shpi_id += '__data'
-        (textures_shpi_block, textures_shpi_data) = textures_shpi_block.get_child_block_with_data(textures_shpi_data,
-                                                                                                  'data')
+        (textures_shpi_block, textures_shpi_data) = textures_shpi_block.get_child_block_with_data(
+            textures_shpi_data, 'data'
+        )
         if not textures_shpi_data or not isinstance(textures_shpi_block, ShpiBlock):
             raise DataIntegrityException('Cannot find QFS archive for GEO geometry')
         super().serialize(data, path)
@@ -183,10 +197,10 @@ class GeoGeometrySerializer(BaseFileSerializer):
             mesh.name = key
             mesh.vertices = [[v['x'], v['y'], v['z']] for v in part['vertices']]
             mesh.vertex_uvs = [[0, 0] for _ in range(len(mesh.vertices))]
-            mesh.polygons = [p['vertex_indices']
-                             if p['mapping']['flip_normal']
-                             else p['vertex_indices'][::-1]
-                             for p in part['polygons']]
+            mesh.polygons = [
+                p['vertex_indices'] if p['mapping']['flip_normal'] else p['vertex_indices'][::-1]
+                for p in part['polygons']
+            ]
             mesh.texture_ids = [p['texture_name'] for p in part['polygons']]
             mesh.pivot_offset = (-part['pos']['x'], -part['pos']['y'], -part['pos']['z'])
 
@@ -226,21 +240,22 @@ class GeoGeometrySerializer(BaseFileSerializer):
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
         for c in textures_shpi_data['children']:
-            texture_block = \
-                textures_shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks[
-                    c['item']['choice_index']]
+            texture_block = (
+                textures_shpi_block.field_blocks_map['children']
+                .child.field_blocks_map['item']
+                .possible_blocks[c['item']['choice_index']]
+            )
             if isinstance(texture_block, EacImage):
                 scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 
         from serializers import ShpiArchiveSerializer
-        ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id,
-                                          textures_shpi_block)
+
+        ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id, textures_shpi_block)
         return export_scenes([scene], path, self.settings)
 
 
 class CrpGeometrySerializer(BaseFileSerializer):
-
     def __init__(self):
         super().__init__(is_dir=True)
 
@@ -248,17 +263,21 @@ class CrpGeometrySerializer(BaseFileSerializer):
         super().serialize(data, path)
 
         misc_choice = block.field_blocks_map['common_parts'].child
-        fsh_parts = [(join_id(id, 'common_parts', str(i), 'data'), x['data'])
-                     for (i, x) in enumerate(data['common_parts']) if
-                     x['choice_index'] == misc_choice.get_choice_index_by_class_name("FSHPart")]
+        fsh_parts = [
+            (join_id(id, 'common_parts', str(i), 'data'), x['data'])
+            for (i, x) in enumerate(data['common_parts'])
+            if x['choice_index'] == misc_choice.get_choice_index_by_class_name('FSHPart')
+        ]
         from serializers import ShpiArchiveSerializer
+
         shpi_block = ShpiBlock()
-        for (fsh_part_id, fsh_part) in fsh_parts:
+        for fsh_part_id, fsh_part in fsh_parts:
             assert fsh_part['num_data'] == 1
             fsh_data = fsh_part['data'][0]
-            idx = fsh_part["idx"]
-            ShpiArchiveSerializer().serialize(fsh_data, path_join(path, f'textures/{idx}/'),
-                                              join_id(fsh_part_id, 'data', '0'), shpi_block)
+            idx = fsh_part['idx']
+            ShpiArchiveSerializer().serialize(
+                fsh_data, path_join(path, f'textures/{idx}/'), join_id(fsh_part_id, 'data', '0'), shpi_block
+            )
 
         scene = Scene()
         scene.name = 'body'
@@ -268,17 +287,14 @@ class CrpGeometrySerializer(BaseFileSerializer):
 
         # Identify choice indexes for part types
         choice = block.field_blocks_map['parts'].child
-        vertex_choice_index = choice.get_choice_index_by_class_name("VertexPart")
-        uv_choice_index = choice.get_choice_index_by_class_name("UVPart")
-        triangle_choice_index = choice.get_choice_index_by_class_name("TrianglePart")
-        transform_choice_index = choice.get_choice_index_by_class_name("TransformationPart")
-        name_choice_index = choice.get_choice_index_by_class_name("TextPart4")
+        vertex_choice_index = choice.get_choice_index_by_class_name('VertexPart')
+        uv_choice_index = choice.get_choice_index_by_class_name('UVPart')
+        triangle_choice_index = choice.get_choice_index_by_class_name('TrianglePart')
+        transform_choice_index = choice.get_choice_index_by_class_name('TransformationPart')
+        name_choice_index = choice.get_choice_index_by_class_name('TextPart4')
 
         def extract_vertices(part):
-            return [
-                [v['position']['x'], v['position']['y'], v['position']['z']]
-                for v in part['data']
-            ]
+            return [[v['position']['x'], v['position']['y'], v['position']['z']] for v in part['data']]
 
         def extract_uvs(len_vertices, indices, uv_indices, uv_part):
             res = []
@@ -286,7 +302,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
                 try:
                     uv_item = uv_part['data'][uv_indices[indices.index(vi)]]
                     res.append([uv_item['u'], uv_item['v']])
-                except (IndexError, ValueError):
+                except IndexError, ValueError:
                     res.append([0, 0])
             return res
 
@@ -294,7 +310,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
             num_data = part['num_data']
             try:
                 offset = part['data']['index_rows'][0]['offset']
-                indices = part['data']['index_table'][offset:offset + num_data]
+                indices = part['data']['index_table'][offset : offset + num_data]
                 # take into account VertexInfoRow
                 try:
                     vertex_info_row = next(x['data'] for x in part['data']['info_rows'] if x['choice_index'] == 3)
@@ -307,12 +323,12 @@ class CrpGeometrySerializer(BaseFileSerializer):
             except Exception:
                 return []
 
-        for (i, article) in enumerate(data['articles']):
+        for i, article in enumerate(data['articles']):
             names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
             if len(names) == 0:
-                name = "article_" + str(i)
+                name = 'article_' + str(i)
             else:
-                assert len(names) == 1, f"Inconsistent name parts amount found for part {i}"
+                assert len(names) == 1, f'Inconsistent name parts amount found for part {i}'
                 name = names[0]['data']
 
             v = [x['data'] for x in article['parts'] if x['choice_index'] == vertex_choice_index]
@@ -321,10 +337,9 @@ class CrpGeometrySerializer(BaseFileSerializer):
             t = [x['data'] for x in article['parts'] if x['choice_index'] == transform_choice_index]
 
             for vx in v:
-
-                lod_level = vx["part_info"]["lod"]
+                lod_level = vx['part_info']['lod']
                 try:
-                    transform_matrix = next(x for x in t if x["part_info"]["lod"] == lod_level)['data']
+                    transform_matrix = next(x for x in t if x['part_info']['lod'] == lod_level)['data']
                 except StopIteration:
                     transform_matrix = None
 
@@ -332,15 +347,19 @@ class CrpGeometrySerializer(BaseFileSerializer):
                 mesh.name = f'{name}_LOD{lod_level}_ai{vx["part_info"]["animation_index"]}'
                 # mesh.texture_id = "textures/2/bott.png"
                 scene.sub_meshes.append(mesh)
-                if vx["part_info"]["damage"] == 8:
+                if vx['part_info']['damage'] == 8:
                     mesh.name += '_damaged'
-                    fix_vertex_pos = next(x for x in v if x["part_info"]["lod"] == vx["part_info"]["lod"]
-                                          and x["part_info"]["animation_index"] == vx["part_info"]["animation_index"]
-                                          and x["part_info"]["damage"] == 0)
+                    fix_vertex_pos = next(
+                        x
+                        for x in v
+                        if x['part_info']['lod'] == vx['part_info']['lod']
+                        and x['part_info']['animation_index'] == vx['part_info']['animation_index']
+                        and x['part_info']['damage'] == 0
+                    )
                 else:
                     fix_vertex_pos = None
 
-                for trix in (x for x in tri if x["part_info"]["lod"] == lod_level):
+                for trix in (x for x in tri if x['part_info']['lod'] == lod_level):
                     part_mesh = SubMesh()
                     part_mesh.vertices = extract_vertices(vx)
                     if fix_vertex_pos is not None:
@@ -348,10 +367,11 @@ class CrpGeometrySerializer(BaseFileSerializer):
                         for j in range(len(part_mesh.vertices)):
                             for k in range(3):
                                 part_mesh.vertices[j][k] += fix[j][k]
-                    uvx = next(x for x in uv if x["part_info"]["lod"] == lod_level)
+                    uvx = next(x for x in uv if x['part_info']['lod'] == lod_level)
                     indices = extract_indices(trix)
-                    part_mesh.vertex_uvs = extract_uvs(len(part_mesh.vertices), indices, trix['data']['uv_index_table'],
-                                                       uvx)
+                    part_mesh.vertex_uvs = extract_uvs(
+                        len(part_mesh.vertices), indices, trix['data']['uv_index_table'], uvx
+                    )
                     part_mesh.polygons = [
                         [indices[i], indices[i + 1], indices[i + 2]]
                         for i in range(0, len(indices), 3)
@@ -359,12 +379,14 @@ class CrpGeometrySerializer(BaseFileSerializer):
                     ]
 
                     if transform_matrix is not None:
-                        part_mesh.apply_transform_matrix([
-                            [transform_matrix[0], transform_matrix[4], transform_matrix[8], transform_matrix[12]],
-                            [transform_matrix[1], transform_matrix[5], transform_matrix[9], transform_matrix[13]],
-                            [transform_matrix[2], transform_matrix[6], transform_matrix[10], transform_matrix[14]],
-                            [transform_matrix[3], transform_matrix[7], transform_matrix[11], transform_matrix[15]]
-                        ])
+                        part_mesh.apply_transform_matrix(
+                            [
+                                [transform_matrix[0], transform_matrix[4], transform_matrix[8], transform_matrix[12]],
+                                [transform_matrix[1], transform_matrix[5], transform_matrix[9], transform_matrix[13]],
+                                [transform_matrix[2], transform_matrix[6], transform_matrix[10], transform_matrix[14]],
+                                [transform_matrix[3], transform_matrix[7], transform_matrix[11], transform_matrix[15]],
+                            ]
+                        )
 
                     part_mesh.change_axes(new_y='z', new_z='y')
                     mesh.extend(part_mesh)
@@ -373,7 +395,6 @@ class CrpGeometrySerializer(BaseFileSerializer):
 
 
 class NfsuBinGeometrySerializer(BaseFileSerializer):
-
     def __init__(self):
         super().__init__(is_dir=True)
 
@@ -392,8 +413,12 @@ class NfsuBinGeometrySerializer(BaseFileSerializer):
             details_sub_chunk = next(x for x in c['data']['sub_chunks'] if x['data']['chunk_id'] == 0x80_13_41_00)
 
             mesh_name = mesh_main_chunk['data']['mesh_name']
-            vertices = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_01)['data']['vertices']['data']
-            faces = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_03)['data']['faces']
+            vertices = next(
+                x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_01
+            )['data']['vertices']['data']
+            faces = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_03)[
+                'data'
+            ]['faces']
 
             mesh = SubMesh()
             mesh.name = mesh_name

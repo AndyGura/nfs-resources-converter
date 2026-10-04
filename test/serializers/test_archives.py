@@ -10,47 +10,53 @@ class TestShpiArchiveSerializer(unittest.TestCase):
     def test_duplicate_aliases_serialization(self):
         serializer = ShpiArchiveSerializer()
         serializer.patch_settings(
-            {'images__save_image_positions': False, 'images__save_palettes': False, 'images__save_mipmaps': False,
-             'images__save_embedded_palette': False, 'images__save_texts': False})
+            {
+                'images__save_image_positions': False,
+                'images__save_palettes': False,
+                'images__save_mipmaps': False,
+                'images__save_embedded_palette': False,
+                'images__save_texts': False,
+            }
+        )
 
         shpi_block = ShpiBlock()
         image_block = EacImage()
 
         shpi_data = shpi_block.new_data()
         # Create two images with equal aliases (4 characters)
-        alias = "test"
+        alias = 'test'
         shpi_data['children'] = [
             {
                 'alias': alias,
                 'item': {
                     'choice_index': shpi_block.item_block.get_choice_index_by_class_name('EacImage'),
-                    'data': image_block.new_data()
+                    'data': image_block.new_data(),
                 },
                 'pre_offset_payload': b'',
-                'post_offset_payload': b''
+                'post_offset_payload': b'',
             },
             {
                 'alias': alias,
                 'item': {
                     'choice_index': shpi_block.item_block.get_choice_index_by_class_name('EacImage'),
-                    'data': image_block.new_data()
+                    'data': image_block.new_data(),
                 },
                 'pre_offset_payload': b'',
-                'post_offset_payload': b''
-            }
+                'post_offset_payload': b'',
+            },
         ]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Serialize
-            serializer.serialize(shpi_data, tmp_dir, block=shpi_block, id="test_shpi")
+            serializer.serialize(shpi_data, tmp_dir, block=shpi_block, id='test_shpi')
 
             # Check files saved
             files = os.listdir(tmp_dir)
-            self.assertIn(f"{alias}.png", files)
-            self.assertIn(f"{alias}0.png", files)
+            self.assertIn(f'{alias}.png', files)
+            self.assertIn(f'{alias}0.png', files)
 
             # Deserialize
-            deserialized_data = serializer.deserialize([tmp_dir], block=shpi_block, id="test_shpi")
+            deserialized_data = serializer.deserialize([tmp_dir], block=shpi_block, id='test_shpi')
 
             # Check aliases
             self.assertEqual(len(deserialized_data['children']), 2)

@@ -18,14 +18,14 @@ FILE_ASSOCIATIONS = [
     # {"extension": "eas", "name": "EAS Audio File"},
     # {"extension": "env", "name": "ENV Image Archive File"},
     # {"extension": "fam", "name": "FAM Archive File"},
-    {"extension": "ffn", "name": "FFN Bitmap Font File"},
+    {'extension': 'ffn', 'name': 'FFN Bitmap Font File'},
     # {"extension": "frd", "name": "FRD Track File"},
-    {"extension": "fsh", "name": "FSH Image Archive File"},
+    {'extension': 'fsh', 'name': 'FSH Image Archive File'},
     # {"extension": "geo", "name": "GEO Car 3D Model File"},
     # {"extension": "msk", "name": "MSK Archive File"},
     # {"extension": "pbs", "name": "PBS Car Physics File"},
     # {"extension": "pdn", "name": "PDN Car Characteristic File"},
-    {"extension": "qfs", "name": "QFS Compressed Image Archive File"},
+    {'extension': 'qfs', 'name': 'QFS Compressed Image Archive File'},
     # {"extension": "tgv", "name": "TGV Video File"},
     # {"extension": "tri", "name": "TRI Track File"},
     # {"extension": "trk", "name": "TRK Track File"},
@@ -36,8 +36,8 @@ FILE_ASSOCIATIONS = [
 
 
 def mime_type(ext: str) -> str:
-    return f"application/x-{ext}"
+    return f'application/x-{ext}'
 
 
 def prog_id(ext: str) -> str:
-    return f"NFSResourcesConverter.{ext}"
+    return f'NFSResourcesConverter.{ext}'

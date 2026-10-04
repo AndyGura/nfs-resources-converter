@@ -7,8 +7,7 @@ from library.read_blocks.basic import DataBlock
 
 
 class IntegerBlock(DataBlock):
-
-    def __init__(self, length: int, is_signed: bool = False, byte_order: Literal["little", "big"] = "little", **kwargs):
+    def __init__(self, length: int, is_signed: bool = False, byte_order: Literal['little', 'big'] = 'little', **kwargs):
         super().__init__(**kwargs)
         self.length = length
         self.is_signed = is_signed
@@ -16,8 +15,7 @@ class IntegerBlock(DataBlock):
 
     @property
     def schema(self) -> Dict:
-        descr = f'{self.length}-byte{"s" if self.length > 1 else ""} ' \
-                f'{"un" if not self.is_signed else ""}signed integer'
+        descr = f'{self.length}-byte{"s" if self.length > 1 else ""} {"un" if not self.is_signed else ""}signed integer'
         if self.length > 1:
             descr += f' ({self.byte_order} endian)'
         if self.value_validator is not None:
@@ -35,7 +33,7 @@ class IntegerBlock(DataBlock):
     def size_doc_str(self):
         return str(self.length)
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
         return 0
@@ -57,9 +55,11 @@ class FixedPointBlock(IntegerBlock):
     @property
     def schema(self) -> Dict:
         super_schema = super().schema
-        descr = (f'{self.length * 8}-bit real number ({self.byte_order}-endian, '
-                 f'{"" if self.is_signed else "not "}signed), where last {self.fraction_bits} '
-                 f'bits is a fractional part')
+        descr = (
+            f'{self.length * 8}-bit real number ({self.byte_order}-endian, '
+            f'{"" if self.is_signed else "not "}signed), where last {self.fraction_bits} '
+            f'bits is a fractional part'
+        )
         if self.value_validator is not None:
             descr += f'. {self.value_validator}'
         return {
@@ -78,15 +78,18 @@ class FixedPointBlock(IntegerBlock):
         return float(super().read(ctx, name, read_bytes_amount) / (1 << self.fraction_bits))
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        data = max(min(round(data * (1 << self.fraction_bits)),
-                       ((1 << (self.length * 8 - 1)) if self.is_signed else (1 << (self.length * 8))) - 1),
-                   -(1 << (self.length * 8 - 1)) if self.is_signed else 0)
+        data = max(
+            min(
+                round(data * (1 << self.fraction_bits)),
+                ((1 << (self.length * 8 - 1)) if self.is_signed else (1 << (self.length * 8))) - 1,
+            ),
+            -(1 << (self.length * 8 - 1)) if self.is_signed else 0,
+        )
         return super().write(data, ctx, name)
 
 
 class DecimalBlock(DataBlock):
-
-    def __init__(self, length: int, byte_order: Literal["little", "big"] = "little", **kwargs):
+    def __init__(self, length: int, byte_order: Literal['little', 'big'] = 'little', **kwargs):
         super().__init__(**kwargs)
         if length not in [4, 8]:
             raise Exception('DecimalsBlock supports only 4 or 8 bytes length')
@@ -107,7 +110,7 @@ class DecimalBlock(DataBlock):
     def size_doc_str(self):
         return str(self.length)
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         return 0.0
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -126,15 +129,15 @@ class DecimalBlock(DataBlock):
 
 
 class EnumByteBlock(IntegerBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'enum_names': self.enum_names,
-                'block_description': 'Enum of 256 possible values<br/><details><summary>Value names:</summary>'
-                                     + '<br/>'.join([f'{i} ({hex(i)}): {x}'
-                                                     for i, x in enumerate(self.enum_name_map)
-                                                     if x != str(i)]) + '</details>'}
+        return {
+            **super().schema,
+            'enum_names': self.enum_names,
+            'block_description': 'Enum of 256 possible values<br/><details><summary>Value names:</summary>'
+            + '<br/>'.join([f'{i} ({hex(i)}): {x}' for i, x in enumerate(self.enum_name_map) if x != str(i)])
+            + '</details>',
+        }
 
     def __init__(self, enum_names: List[Tuple[int, str]], raise_error_on_unknown=False, **kwargs):
         super().__init__(length=1, **kwargs)
@@ -144,7 +147,7 @@ class EnumByteBlock(IntegerBlock):
         for value, name in self.enum_names:
             self.enum_name_map[value] = name
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
         return self.enum_names[0][1]

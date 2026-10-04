@@ -7,7 +7,7 @@ from library.read_blocks import DataBlock, OptionalBlock
 
 # this looks like a mess, but it is intended to be like that: by using local imports we dramatically increase
 # performance, because we spawn process per file, and it doesn't need to load all those classes every time
-def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length = None):
+def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=None):
     header_bytes = buffer.read(4)
     buffer.seek(-len(header_bytes), SEEK_CUR)
     try:
@@ -18,18 +18,23 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
     if file_path:
         if file_path.endswith('.BNK'):
             from resources.eac.archives import SoundBank
+
             return SoundBank
         elif file_path.endswith('.PBS__uncompressed'):
             from resources.eac.car_specs import CarPerformanceSpec
+
             return CarPerformanceSpec
         elif file_path.endswith('.PDN__uncompressed'):
             from resources.eac.car_specs import CarSimplifiedPerformanceSpec
+
             return CarSimplifiedPerformanceSpec
         elif file_path.endswith('CONFIG.DAT'):
             from resources.eac.configs import TnfsConfigDat
+
             return TnfsConfigDat
         elif file_path.upper().endswith('.GEO'):
             from resources.eac.geometries import GeoGeometry
+
             return GeoGeometry
         elif file_path.upper().endswith('.FRD'):
             if length is not None and length >= 36:
@@ -40,56 +45,86 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
                     hs_magic = int.from_bytes(buffer.read(4), 'little', signed=True)
                     if 1 < n_blocks <= 500 and (hs_magic + 7) // 8 == n_blocks:
                         from resources.eac.maps.nfs4 import Nfs4FrdMap
+
                         return Nfs4FrdMap
                 finally:
                     buffer.seek(pos)
             from resources.eac.maps.nfs3 import FrdMap
+
             return FrdMap
     if header_str:
         if header_str in [' raC', 'karT']:
             from resources.eac.geometries import CrpGeometry
+
             return CrpGeometry
         elif file_path and header_str == '#ver' and file_path.endswith('INFO'):
             from resources.eac.misc import DashDeclarationFile
+
             return DashDeclarationFile
         elif header_str == '1SNh':
             from resources.eac.audios import AsfAudio
+
             return AsfAudio
         elif header_str in ['kVGT', 'SCHl']:
             from resources.eac.videos import FfmpegSupportedVideo
+
             return FfmpegSupportedVideo
         elif header_str == 'SHPI':
             from resources.eac.archives import ShpiBlock
+
             return ShpiBlock
         elif header_str == 'wwww':
             from resources.eac.archives import WwwwBlock
+
             return WwwwBlock
-        elif header_str in ['FNTF', 'FNTP', 'FNTS', 'FNTX', 'FNTM', 'FNTG', 'FNTA',
-                            'FntF', 'FntP', 'FntS', 'FntX', 'FntM', 'FntG', 'FntA']:
+        elif header_str in [
+            'FNTF',
+            'FNTP',
+            'FNTS',
+            'FNTX',
+            'FNTM',
+            'FNTG',
+            'FNTA',
+            'FntF',
+            'FntP',
+            'FntS',
+            'FntX',
+            'FntM',
+            'FntG',
+            'FntA',
+        ]:
             from resources.eac.fonts import FfnFont
+
             return FfnFont
         elif header_str == 'ORIP':
             from resources.eac.geometries import OripGeometry
+
             return OripGeometry
         elif header_str == 'EACS':
             from resources.eac.audios import EacsAudioFile
+
             return EacsAudioFile
         elif header_str == 'BIGF':
             from resources.eac.archives import BigfBlock
+
             return BigfBlock
         elif header_str == 'TRAC':
             from resources.eac.maps import TrkMap
+
             return TrkMap
         elif header_str == 'COLL':
             from resources.eac.maps import MapColFile
+
             return MapColFile
     try:
         resource_id = header_bytes[0]
         if resource_id in [0x22, 0x24, 0x29, 0x2A, 0x2D]:
             from resources.eac.bitmaps import EacPalette
+
             return EacPalette
         elif resource_id in [0x40, 0x6D, 0x78, 0x79, 0x7A, 0x7B, 0x7E, 0x7F, 0x7D]:
             from resources.eac.bitmaps import EacImage
+
             return EacImage
         # TODO PIXEL_PAL4_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
         # elif resource_id == 0x5C:
@@ -121,14 +156,19 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
         # TODO Bitmap32Bit1010102
         # elif resource_id == 0x6A:
         #     pass
-        elif header_bytes[1] == 0xfb:
+        elif header_bytes[1] == 0xFB:
             from resources.eac.archives import EacCompressedBlock
+
             return EacCompressedBlock
         elif resource_id == 0x11:
             from resources.eac.maps import TriMap
+
             return TriMap
-        elif header_bytes[0] == 0x00 and header_bytes[1] == 0x40 and header_bytes[2] == 0x13 and header_bytes[3] == 0x80:
+        elif (
+            header_bytes[0] == 0x00 and header_bytes[1] == 0x40 and header_bytes[2] == 0x13 and header_bytes[3] == 0x80
+        ):
             from resources.blackbox.geometries.nfsu import NfsuBinGeometry
+
             return NfsuBinGeometry
 
     except IndexError:
@@ -139,6 +179,7 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
             buffer.seek(length - 18, SEEK_CUR)
             if buffer.read(16).decode('utf-8') == 'TRUEVISION-XFILE':
                 from resources.common.bitmaps import TargaImage
+
                 return TargaImage
         except Exception:
             pass
@@ -147,7 +188,9 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length 
     return None
 
 
-def probe_block_class(binary_file: [BufferedReader, BytesIO], file_path: str = None, length=None, resources_to_pick=None):
+def probe_block_class(
+    binary_file: [BufferedReader, BytesIO], file_path: str = None, length=None, resources_to_pick=None
+):
     block_class = _find_block_class(binary_file, file_path, length)
     if block_class and (not resources_to_pick or block_class in resources_to_pick):
         return block_class
@@ -162,7 +205,7 @@ def id_to_path(id: str) -> str:
     return id.split('__')[0].replace('_%5F', '__').replace('---DRIVE', ':')
 
 
-def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str, "DataBlock", dict]]:
+def require_resource(id: str) -> Tuple[Tuple[str, 'DataBlock', dict], Tuple[str, 'DataBlock', dict]]:
     file_path = id_to_path(id)
     (file_id, block, data) = require_file(file_path)
     if not data:
@@ -177,7 +220,7 @@ def require_resource(id: str) -> Tuple[Tuple[str, "DataBlock", dict], Tuple[str,
     return (id, res_block, res), (file_id, block, data)
 
 
-def _unwrap_present_optional(res_block: "DataBlock", res) -> "DataBlock":
+def _unwrap_present_optional(res_block: 'DataBlock', res) -> 'DataBlock':
     # Unlike DelegateBlock, an OptionalBlock/TrailingOptionalBlock doesn't wrap its child's data in
     # a dedicated "data" field the frontend steps through - a present field's id and value are
     # indistinguishable from its child's. So an id resolving to the wrapper itself, with the field
@@ -206,13 +249,14 @@ def clear_file_cache(path: str):
         name = path_to_name(path)
         del files_cache[name]
         from library.read_blocks import DataBlock
+
         if name in DataBlock.root_read_ctx.children:
             del DataBlock.root_read_ctx.children[name]
     except KeyError:
         pass
 
 
-def require_file(path: str) -> Tuple[str, "DataBlock", dict]:
+def require_file(path: str) -> Tuple[str, 'DataBlock', dict]:
     name = path_to_name(path)
     (block, data) = files_cache.get(name, (None, None))
     if block is None or data is None:

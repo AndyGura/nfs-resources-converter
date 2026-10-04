@@ -11,19 +11,21 @@ from .mesh import SubMesh
 
 
 class Scene:
-    def __init__(self,
-                 name: str = 'scene',
-                 sub_meshes: List[SubMesh] = None,
-                 obj_name: str = 'geometry',
-                 mtl_name: str = 'material',
-                 bake_textures: bool = True,
-                 mtl_texture_names: List[str] = None,
-                 mtl_texture_path_func: Callable[[str], str] = lambda x: x,
-                 dummies: List[dict] = None,
-                 curves: List[dict] = None,
-                 extra_script: str = None,
-                 skip_obj_export: bool = False,
-                 skip_mtl_export: bool = False):
+    def __init__(
+        self,
+        name: str = 'scene',
+        sub_meshes: List[SubMesh] = None,
+        obj_name: str = 'geometry',
+        mtl_name: str = 'material',
+        bake_textures: bool = True,
+        mtl_texture_names: List[str] = None,
+        mtl_texture_path_func: Callable[[str], str] = lambda x: x,
+        dummies: List[dict] = None,
+        curves: List[dict] = None,
+        extra_script: str = None,
+        skip_obj_export: bool = False,
+        skip_mtl_export: bool = False,
+    ):
         self.name = name
         self.sub_meshes = sub_meshes or []
         self.obj_name = obj_name
@@ -33,7 +35,7 @@ class Scene:
         self.mtl_texture_path_func = mtl_texture_path_func
         self.dummies = dummies or []
         self.curves = curves or []
-        self.extra_script = extra_script or ""
+        self.extra_script = extra_script or ''
         self.skip_obj_export = skip_obj_export
         self.skip_mtl_export = skip_mtl_export
 
@@ -112,19 +114,20 @@ $extra_script
         if scene.dummies or scene.curves:
             file_path = path_join(output_path, f'{scene.obj_name}_extra.json')
             with open(file_path, 'w') as f:
-                f.write(json.dumps({
-                    'dummies': scene.dummies,
-                    'curves': scene.curves
-                }, indent=4, sort_keys=True))
+                f.write(json.dumps({'dummies': scene.dummies, 'curves': scene.curves}, indent=4, sort_keys=True))
             exported_files.append(file_path)
         if scene.mtl_name and not scene.skip_mtl_export:
             file_path = path_join(output_path, f'{scene.mtl_name}.mtl')
             with open(file_path, 'w') as f:
                 for texture_name in sorted(list({x for x in scene.mtl_texture_names})):
-                    f.write(mtl_entry_template.substitute({
-                        'texture_name': texture_name,
-                        'texture_path': scene.mtl_texture_path_func(texture_name),
-                    }))
+                    f.write(
+                        mtl_entry_template.substitute(
+                            {
+                                'texture_name': texture_name,
+                                'texture_path': scene.mtl_texture_path_func(texture_name),
+                            }
+                        )
+                    )
             exported_files.append(file_path)
 
     if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:
@@ -134,14 +137,17 @@ $extra_script
             # gg_web_engine_exporter.py) and makes it importable from the generated script below,
             # instead of running a copy-pasted-and-drifting export routine.
             gg_exporter_dir = ensure_gg_web_engine_exporter_installed().replace('\\', '/')
-            script += (f'\n\nimport sys\nsys.path.insert(0, "{gg_exporter_dir}")\n'
-                       'import exporter as gg_web_engine_exporter\n')
+            script += (
+                f'\n\nimport sys\nsys.path.insert(0, "{gg_exporter_dir}")\nimport exporter as gg_web_engine_exporter\n'
+            )
         for scene in scenes:
-            script += '\n\n' + import_template.substitute({
-                'obj_file_path': f'{scene.obj_name}.obj' if not scene.skip_obj_export else '',
-                'extras_file_path': f'{scene.obj_name}_extra.json',
-                'extra_script': scene.extra_script,
-            })
+            script += '\n\n' + import_template.substitute(
+                {
+                    'obj_file_path': f'{scene.obj_name}.obj' if not scene.skip_obj_export else '',
+                    'extras_file_path': f'{scene.obj_name}_extra.json',
+                    'extra_script': scene.extra_script,
+                }
+            )
             file_path = path_join(os.getcwd(), output_path, scene.name)
             if settings.geometry__export_to_gg_web_engine:
                 gg_export_target = file_path.replace('\\', '/')
@@ -157,7 +163,9 @@ $extra_script
         run_blender(path=output_path, script=script)
 
     if not settings.geometry__save_obj:
-        exported_files = [x for x in exported_files if not (x.endswith('.obj') or x.endswith('_extra.json') or x.endswith('.mtl'))]
+        exported_files = [
+            x for x in exported_files if not (x.endswith('.obj') or x.endswith('_extra.json') or x.endswith('.mtl'))
+        ]
         for scene in scenes:
             if not scene.skip_obj_export:
                 os.unlink(path_join(output_path, scene.obj_name + '.obj'))

@@ -6,7 +6,6 @@ from library.read_blocks.basic import DataBlock
 
 
 class UTF8Block(DataBlock):
-
     def __init__(self, length, **kwargs):
         super().__init__(**kwargs)
         self._length = length
@@ -16,11 +15,7 @@ class UTF8Block(DataBlock):
         descr = 'UTF-8 string'
         if self.value_validator:
             descr += f'. {self.value_validator}'
-        return {
-            **super().schema,
-            'block_description': descr,
-            'length': self.size_doc_str
-        }
+        return {**super().schema, 'block_description': descr, 'length': self.size_doc_str}
 
     # For auto-generated documentation only
     @property
@@ -53,10 +48,10 @@ class UTF8Block(DataBlock):
             return None
         return self_len
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
-        return ""
+        return ''
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None, resolved_length=None):
         self_len = self.resolve_length(ctx) if resolved_length is None else resolved_length
@@ -81,7 +76,6 @@ class UTF8Block(DataBlock):
 
 
 class LengthPrefixedUtf8Block(UTF8Block):
-
     def __init__(self, length_block: DataBlock, **kwargs):
         super().__init__(length=None, **kwargs)
         self.length_block = length_block
@@ -91,7 +85,7 @@ class LengthPrefixedUtf8Block(UTF8Block):
         return {
             **super().schema,
             'block_description': 'Utf-8 block, prefixed with length field',
-            'length_schema': self.length_block.schema
+            'length_schema': self.length_block.schema,
         }
 
     # For auto-generated documentation only
@@ -99,8 +93,8 @@ class LengthPrefixedUtf8Block(UTF8Block):
     def size_doc_str(self):
         return f'{self.length_block.size_doc_str}..?'
 
-    def new_data(self, patch = None):
-        return ""
+    def new_data(self, patch=None):
+        return ''
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
@@ -118,16 +112,17 @@ class LengthPrefixedUtf8Block(UTF8Block):
 
 
 class NullTerminatedUTF8Block(DataBlock):
-
     def __init__(self, length, **kwargs):
         super().__init__(**kwargs)
         self._length = length
 
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Null-terminated UTF-8 string. Ends with first occurrence of zero byte',
-                'length': self.size_doc_str}
+        return {
+            **super().schema,
+            'block_description': 'Null-terminated UTF-8 string. Ends with first occurrence of zero byte',
+            'length': self.size_doc_str,
+        }
 
     # For auto-generated documentation only
     @property
@@ -141,7 +136,7 @@ class NullTerminatedUTF8Block(DataBlock):
             if nxt == b'\00':
                 break
             res += nxt
-        return res.decode('utf-8', errors="ignore")
+        return res.decode('utf-8', errors='ignore')
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         return len(data) + 1

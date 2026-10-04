@@ -23,6 +23,7 @@ class FieldExtras(TypedDict, total=False):
            Possible values are: 'ui', 'io', 'doc' for GUI editor, reading/writing data, and documentation, respectively.
         -- None or 'everywhere' (default) — used in IO, UI, and docs; same as 'ui,io,doc'
     """
+
     description: str
     is_unknown: bool
     custom_offset: Union[int, str]
@@ -30,10 +31,8 @@ class FieldExtras(TypedDict, total=False):
 
 
 class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
-
     # accepts list of fields. Field should be declared as tuple (name, block, extras)
-    def __init__(self, fields: List[Tuple[str, DataBlock, FieldExtras]], inline_description: str = None,
-                 **kwargs):
+    def __init__(self, fields: List[Tuple[str, DataBlock, FieldExtras]], inline_description: str = None, **kwargs):
         super().__init__(**kwargs)
         self.fields = fields
         self.inline_description = inline_description
@@ -54,8 +53,11 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
                     'is_unknown': self.field_extras_map.get(name, {}).get('is_unknown', False),
                     'description': self.field_extras_map.get(name, {}).get('description', ''),
                     'usage': self.field_extras_map.get(name, {}).get('usage', 'everywhere'),
-                } for name, field in self.field_blocks
-            ] if self.fields else [],
+                }
+                for name, field in self.field_blocks
+            ]
+            if self.fields
+            else [],
         }
         if self.inline_description is not None:
             schema['inline_description'] = True
@@ -93,7 +95,7 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             acc = add_doc_numbers(acc, field_size_doc, show_expressions=False, produce_ranges=True)
         return acc
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         res = dict()
         if patch is None:
             patch = {}
@@ -131,8 +133,9 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
             if name == child_name:
                 return res
             res += field.estimate_packed_size(data=data.get(name), ctx=self_ctx)
-        raise DataIntegrityException(ctx=ctx, message=f'Cannot calculate offset to child "{child_name}". '
-                                                      f'Child with such name not found')
+        raise DataIntegrityException(
+            ctx=ctx, message=f'Cannot calculate offset to child "{child_name}". Child with such name not found'
+        )
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         self_ctx = WriteContext(data=data, name=name, block=self, parent=ctx)
@@ -146,7 +149,6 @@ class CompoundBlock(DataBlockWithChildren, DataBlock, ABC):
 
 
 class SubByteCompoundBlock(IntegerBlock):
-
     ### schema type: (size, alias, type, details, description)
     ### example 1: (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)')
     ### example 2: (1, 'is_damaged', 'boolean', [], 'Flag is damaged')
@@ -156,8 +158,9 @@ class SubByteCompoundBlock(IntegerBlock):
         self._schema_def = schema
         total_bits = sum(size for size, _, _, _, _ in schema)
         if total_bits != self.length * 8:
-            raise BlockDefinitionException(f"SubByteCompoundBlock schema total bits ({total_bits}) "
-                                           f"does not match length * 8 ({self.length * 8})")
+            raise BlockDefinitionException(
+                f'SubByteCompoundBlock schema total bits ({total_bits}) does not match length * 8 ({self.length * 8})'
+            )
 
     @property
     def schema(self) -> Dict:
@@ -180,17 +183,12 @@ class SubByteCompoundBlock(IntegerBlock):
             'block_description': block_description,
             'inline_description': True,
             'sub_byte_schema': [
-                {
-                    'size': size,
-                    'alias': alias,
-                    'type': type_name,
-                    'details': details,
-                    'description': description
-                } for size, alias, type_name, details, description in self._schema_def
-            ]
+                {'size': size, 'alias': alias, 'type': type_name, 'details': details, 'description': description}
+                for size, alias, type_name, details, description in self._schema_def
+            ],
         }
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         res = {}
         for size, alias, type_name, details, description in self._schema_def:
             if type_name == 'boolean':
@@ -239,15 +237,17 @@ class SubByteCompoundBlock(IntegerBlock):
             res |= (int_val & ((1 << size) - 1)) << current_bit
         return super().write(res, ctx, name)
 
-class BitFlagsBlock(SubByteCompoundBlock):
 
+class BitFlagsBlock(SubByteCompoundBlock):
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'flag_names': self.flag_name_map,
-                'block_description': f'{self.length * 8} flags container<br/><details><summary>flag names (from least to most significant)</summary>'
-                                     + '<br/>'.join(
-                    [f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)]) + '</details>'}
+        return {
+            **super().schema,
+            'flag_names': self.flag_name_map,
+            'block_description': f'{self.length * 8} flags container<br/><details><summary>flag names (from least to most significant)</summary>'
+            + '<br/>'.join([f'{i}: {x}' for i, x in enumerate(self.flag_name_map) if x != str(i)])
+            + '</details>',
+        }
 
     def __init__(self, flag_names: List[Tuple[int, str]], **kwargs):
         self.flag_names = flag_names
@@ -264,17 +264,17 @@ class BitFlagsBlock(SubByteCompoundBlock):
 
 
 class CompoundBlockFields(ABC):
-
     @class_property
     def fields(cls) -> List[Tuple[str, DataBlock]]:
         try:
             return cls.__fields_cache
         except AttributeError:
-            cls.__fields_cache = [(key, value)
-                                  for (key, value) in cls.__dict__.items()
-                                  if isinstance(value, DataBlock) or (type(value) is tuple
-                                                                      and len(value) > 0
-                                                                      and isinstance(value[0], DataBlock))]
+            cls.__fields_cache = [
+                (key, value)
+                for (key, value) in cls.__dict__.items()
+                if isinstance(value, DataBlock)
+                or (type(value) is tuple and len(value) > 0 and isinstance(value[0], DataBlock))
+            ]
             return cls.__fields_cache
 
 
@@ -283,6 +283,10 @@ class DeclarativeCompoundBlock(CompoundBlock):
         pass
 
     def __init__(self, **kwargs):
-        super().__init__(fields=[(name, *declaration) if type(declaration) is tuple else (name, declaration, {}) for
-                                 name, declaration
-                                 in self.__class__.Fields.fields], **kwargs)
+        super().__init__(
+            fields=[
+                (name, *declaration) if type(declaration) is tuple else (name, declaration, {})
+                for name, declaration in self.__class__.Fields.fields
+            ],
+            **kwargs,
+        )

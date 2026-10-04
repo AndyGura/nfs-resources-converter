@@ -8,7 +8,6 @@ from resources.eac.geometries.nfs5 import CrpGeometry
 
 
 class TestCrpGeometry(unittest.TestCase):
-
     @unittest.skip
     def test_crp_should_remain_the_same(self):
         compression = RefPackCompression()
@@ -24,4 +23,4 @@ class TestCrpGeometry(unittest.TestCase):
 
         self.assertEqual(len(uncompressed), len(output))
         for i, x in enumerate(uncompressed):
-            self.assertEqual(x, output[i], f"Wrong value at index {i}")
+            self.assertEqual(x, output[i], f'Wrong value at index {i}')

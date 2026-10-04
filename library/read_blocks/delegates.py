@@ -9,7 +9,6 @@ from library.utils.id import join_id
 
 
 class DelegateBlock(DataBlock):
-
     def __init__(self, possible_blocks: List[DataBlock], choice_index=None, **kwargs):
         super().__init__(**kwargs)
         self.possible_blocks = possible_blocks
@@ -75,15 +74,15 @@ class DelegateBlock(DataBlock):
     def get_choice_index_by_class_name(self, class_name):
         return [x.__class__.__name__ for x in self.possible_blocks].index(class_name)
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if patch is None:
             patch = {}
         choice_index = patch.get('choice_index', 0)
-        return {'choice_index': choice_index,
-                'data': self.possible_blocks[choice_index].new_data()}
+        return {'choice_index': choice_index, 'data': self.possible_blocks[choice_index].new_data()}
 
     def serializer_class(self):
         from serializers import DelegateBlockSerializer
+
         return DelegateBlockSerializer
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -95,7 +94,7 @@ class DelegateBlock(DataBlock):
             delegated_block_index = delegated_block_index(ctx, name=name, read_bytes_amount=read_bytes_amount)
         return {
             'choice_index': delegated_block_index,
-            'data': self.possible_blocks[delegated_block_index].unpack(ctx, name, read_bytes_amount)
+            'data': self.possible_blocks[delegated_block_index].unpack(ctx, name, read_bytes_amount),
         }
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -112,35 +111,35 @@ class DelegateBlock(DataBlock):
 
 
 class AutoDetectBlock(DelegateBlock):
-
     def __init__(self, **kwargs):
         super().__init__(choice_index=self.detect, **kwargs)
 
     @property
     def schema(self) -> Dict:
-        return {
-            **super().schema,
-            'choice_index': 'Auto-detect'
-        }
+        return {**super().schema, 'choice_index': 'Auto-detect'}
 
     def detect(self, ctx, name=None, read_bytes_amount=None):
         from library import probe_block_class
+
         file_path = ctx.ctx_path
         if name and not file_path.endswith(name):
             file_path = join_id(file_path, name)
         try:
-            block_class = probe_block_class(ctx.buffer,
-                                            file_path=file_path,
-                                            length=read_bytes_amount,
-                                            resources_to_pick=[x.__class__ for x in self.possible_blocks])
+            block_class = probe_block_class(
+                ctx.buffer,
+                file_path=file_path,
+                length=read_bytes_amount,
+                resources_to_pick=[x.__class__ for x in self.possible_blocks],
+            )
         except NotImplementedError:
             block_class = None
-        for (i, block) in enumerate(self.possible_blocks):
+        for i, block in enumerate(self.possible_blocks):
             # we match BytesBlock by class name, because some blocks like TargeImage are subclasses of BytesBlock
             if isinstance(block, block_class) if block_class else block.__class__.__name__ == 'BytesBlock':
                 return i
-        raise DataIntegrityException(ctx=ctx,
-                                     message='Expectation failed for auto-detect block while reading: class not found')
+        raise DataIntegrityException(
+            ctx=ctx, message='Expectation failed for auto-detect block while reading: class not found'
+        )
 
 
 def _enum_lookup(ctx, enum_field, fallback_index):
@@ -152,12 +151,15 @@ def _enum_lookup(ctx, enum_field, fallback_index):
 
 
 class EnumLookupDelegateBlock(DelegateBlock):
-
     def __init__(self, enum_field: str, blocks: List[DataBlock], **kwargs):
-        super().__init__(possible_blocks=blocks,
-                         choice_index=(lambda ctx, **_: _enum_lookup(ctx, enum_field, len(blocks) - 1),
-                                       f'According to enum {enum_field}'),
-                         **kwargs)
+        super().__init__(
+            possible_blocks=blocks,
+            choice_index=(
+                lambda ctx, **_: _enum_lookup(ctx, enum_field, len(blocks) - 1),
+                f'According to enum {enum_field}',
+            ),
+            **kwargs,
+        )
         self.enum_field = enum_field
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
@@ -167,5 +169,3 @@ class EnumLookupDelegateBlock(DelegateBlock):
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         data['choice_index'] = _enum_lookup(ctx, self.enum_field, len(self.possible_blocks) - 1)
         return super().write(data, ctx, name)
-
-
