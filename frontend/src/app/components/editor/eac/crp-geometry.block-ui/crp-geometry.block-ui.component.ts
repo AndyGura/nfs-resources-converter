@@ -37,7 +37,7 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
   }
 
   // mesh name: <article name>_LOD<lod>_ai<animation frame>[_<texture>][_damaged]
-  private static readonly MESH_NAME_REGEX = /^(.*_LOD\d+)_ai(\d+)(?:_.*?)?(_damaged)?$/;
+  private static readonly MESH_NAME_REGEX = /^(.*_LOD\d+)_ai(\d+)(?:_(?!damaged$).*?)?(_damaged)?$/;
 
   previewObjectGroupFunc(object: Object3D): string {
     const match = CrpGeometryBlockUiComponent.MESH_NAME_REGEX.exec(object.name);

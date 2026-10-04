@@ -208,11 +208,15 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    `serializers/__init__.py`.
    For 3D formats, give each `SubMesh` a `texture_id`, list those ids in `Scene.mtl_texture_names`
    and set `Scene.mtl_texture_path_func`; the exported `.mtl` then carries the textures to every
-   consumer (GUI OBJ preview, Blender, glb). `ImageSerializer().to_image(data, block, id)` returns a
+   consumer (GUI OBJ preview, Blender, glb). `Scene.mtl_texture_alpha_modes` (texture name ->
+   `'blend'` for translucent textures, `'cutout'` for alpha masks; `texture_alpha_mode(image)` in
+   `serializers/geometries.py` picks one from pixels) is written as an `alpha_mode` MTL statement,
+   which tells the GUI preview whether to blend the material; without it the preview blends
+   every textured material. `ImageSerializer().to_image(data, block, id)` returns a
    PIL image of any `EacImage` (palette resolved from `id`), e.g. to compose texture atlases (see
    `compose_texture_page` in `serializers/geometries.py` for NFS5 CRP texture pages). A texture
    file that sits next to the model (track `.fsh`, car `.tpg`) is loaded with
-   `require_resource(<sibling path>)`; unwrap `EacCompressedBlock` by re-requiring
+   `require_resource(path_to_name(<sibling path>))`; unwrap `EacCompressedBlock` by re-requiring
    `join_id(id, 'data')`. NFS5 car atlases overlap alternative image variants (roof, decals, ...):
    `crp_car_is_image_used` keeps those of the car's default `.tpg` `[styleN]`. CRP alpha is not
    transparency except for `CarWheel`/`CarWindow` materials, so other pages are written opaque

@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import tempfile
 import unittest
 from configparser import ConfigParser
@@ -12,6 +13,7 @@ from serializers.geometries import (
     crp_car_is_image_used,
     crp_car_texture_page_sources,
     crp_image_atlas_position,
+    texture_alpha_mode,
 )
 
 
@@ -43,6 +45,23 @@ class TestComposeTexturePage(unittest.TestCase):
         self.assertEqual(page.size, (32, 16))
         self.assertEqual(page.getpixel((5, 5)), (255, 0, 0, 255))
         self.assertEqual(page.getpixel((20, 5)), (0, 0, 255, 255))
+
+
+class TestTextureAlphaMode(unittest.TestCase):
+    def test_opaque_and_masked_textures_are_cutout(self):
+        image = Image.new('RGBA', (16, 16), (255, 0, 0, 255))
+        image.paste((0, 0, 0, 0), (0, 0, 8, 16))
+        self.assertEqual(texture_alpha_mode(image), 'cutout')
+
+    def test_anti_aliased_edges_are_cutout(self):
+        image = Image.new('RGBA', (16, 16), (255, 0, 0, 255))
+        image.paste((255, 0, 0, 128), (0, 0, 1, 16))
+        self.assertEqual(texture_alpha_mode(image), 'cutout')
+
+    def test_partial_alpha_is_blend(self):
+        image = Image.new('RGBA', (16, 16), (255, 0, 0, 255))
+        image.paste((255, 0, 0, 128), (0, 0, 4, 16))
+        self.assertEqual(texture_alpha_mode(image), 'blend')
 
 
 class TestCrpCarTexturePageSources(unittest.TestCase):
@@ -118,29 +137,55 @@ frontend=0
 
 
 class TestCrpGeometrySerializer(unittest.TestCase):
-    def test_car_meshes_get_texture_pages(self):
+    def _serialize(self, file_path, out):
         from library import require_file
         from serializers import get_serializer
 
-        name, block, data = require_file('test/samples/356b.crp')
+        name, block, data = require_file(file_path)
         serializer = get_serializer(block, data)
         serializer.patch_settings(
             {'geometry__save_obj': True, 'geometry__save_blend': False, 'geometry__export_to_gg_web_engine': False}
         )
+        serializer.serialize(data, out, id=name, block=block)
+
+    def test_car_meshes_get_texture_pages(self):
         with tempfile.TemporaryDirectory() as out:
-            serializer.serialize(data, out, id=name, block=block)
+            self._serialize('test/samples/356b.crp', out)
             # wheel and window materials keep the alpha channel, other pages are opaque
             for page, size in [('0', 256), ('1', 256), ('2', 256), ('3', 128), ('3_alpha', 128), ('4_alpha', 64)]:
                 with Image.open(os.path.join(out, 'textures', f'page_{page}.png')) as img:
                     self.assertEqual(img.size, (size, size))
             with open(os.path.join(out, 'material.mtl')) as f:
-                self.assertEqual(
-                    re.findall(r'newmtl (\S+)', f.read()),
-                    ['page_0', 'page_1', 'page_2', 'page_3', 'page_3_alpha', 'page_4_alpha'],
-                )
+                mtl = f.read()
+            self.assertEqual(
+                re.findall(r'newmtl (\S+)', mtl),
+                ['page_0', 'page_1', 'page_2', 'page_3', 'page_3_alpha', 'page_4_alpha'],
+            )
+            # only glass is translucent
+            self.assertEqual(
+                re.findall(r'alpha_mode (\S+)', mtl), ['cutout', 'cutout', 'cutout', 'cutout', 'cutout', 'blend']
+            )
             with open(os.path.join(out, 'geometry.obj')) as f:
                 obj = f.read()
             body_meshes = re.findall(r'\no (Body_LOD1_ai0[^\n]*)\n', obj)
             self.assertIn('Body_LOD1_ai0_page_0', body_meshes)
             self.assertIn('Body_LOD1_ai0_page_0_damaged', body_meshes)
             self.assertIn('usemtl page_0', obj)
+            # triangle part without vertex index row
+            self.assertIn('\no DecalDoorL_LOD6_ai0_page_0\n', obj)
+
+    def test_malformed_tpg_falls_back_to_default_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            # directory name has characters which are special in resource ids
+            car_dir = os.path.join(tmp, 'my__cars')
+            os.makedirs(car_dir)
+            shutil.copy('test/samples/356b.crp', car_dir)
+            with open(os.path.join(car_dir, '356b.tpg'), 'w') as f:
+                f.write('[tpage1.details]\nwidth=256.0\nheight=256\n[file1.details]\ntpage=\n')
+            out = os.path.join(tmp, 'out')
+            self._serialize(os.path.join(car_dir, '356b.crp'), out)
+            with open(os.path.join(out, 'material.mtl')) as f:
+                self.assertEqual(
+                    re.findall(r'newmtl (\S+)', f.read()),
+                    ['page_0', 'page_1', 'page_2', 'page_3', 'page_3_alpha', 'page_4_alpha'],
+                )

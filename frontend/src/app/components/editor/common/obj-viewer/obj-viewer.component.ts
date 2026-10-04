@@ -6,6 +6,7 @@ import {
   ElementRef,
   EventEmitter,
   Input,
+  NgZone,
   OnDestroy,
   Output,
   ViewChild,
@@ -150,65 +151,21 @@ export const setupNfs1Texture = (texture: Texture) => {
   texture.minFilter = NearestFilter;
 };
 
-const translucentImages = new WeakMap<object, boolean>();
 /**
- * Detects whether a texture image is translucent (e.g. glass): a large share of pixels with partial alpha.
- * Cut-out textures (alpha is 0 or 255 except anti-aliased edges) are not translucent.
+ * Alpha mode comes from "alpha_mode" statement of the material in MTL file. "blend" materials are translucent: they
+ * go to three.js transparent pass, without writing depth. "cutout" ones stay opaque and use alpha test, so they are
+ * depth-sorted correctly and don't disappear behind glass. Without the statement, textured materials are blended with
+ * alpha test and untextured ones stay as loaded (opaque, unless MTL sets opacity)
  */
-const isImageTranslucent = (image: CanvasImageSource & { width: number; height: number }): boolean => {
-  let res = translucentImages.get(image);
-  if (res === undefined) {
-    res = detectImageTranslucent(image);
-    translucentImages.set(image, res);
-  }
-  return res;
-};
-const detectImageTranslucent = (image: CanvasImageSource & { width: number; height: number }): boolean => {
-  const canvas = document.createElement('canvas');
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx || !canvas.width || !canvas.height) {
-    return false;
-  }
-  ctx.drawImage(image, 0, 0);
-  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  let partial = 0;
-  for (let i = 3; i < data.length; i += 4) {
-    if (data[i] > 16 && data[i] < 240) {
-      partial++;
-    }
-  }
-  return partial / (data.length / 4) > 0.2;
-};
-
-/**
- * Only translucent materials go to three.js transparent pass, without writing depth. Others stay opaque and use
- * alpha test, so they are depth-sorted correctly and don't disappear behind glass
- */
-const setupMaterialAlphaMode = (m: Material) => {
-  m.transparent = false;
-  const map: Texture | null = (m as any).map || null;
-  if (!map) {
-    return;
-  }
-  const apply = () => {
-    if (map.image && isImageTranslucent(map.image as HTMLImageElement)) {
-      m.transparent = true;
-      m.depthWrite = false;
-      m.needsUpdate = true;
-    }
-  };
-  if (map.image) {
-    apply();
-  } else {
-    // texture is still loading: check it once it gets uploaded
-    const onUpdate = map.onUpdate;
-    map.onUpdate = (texture: Texture) => {
-      map.onUpdate = onUpdate;
-      onUpdate?.(texture);
-      apply();
-    };
+const setupMaterialAlphaMode = (m: Material, alphaMode: string | undefined) => {
+  m.alphaTest = 0.5;
+  if (alphaMode === 'blend') {
+    m.transparent = true;
+    m.depthWrite = false;
+  } else if (alphaMode === 'cutout') {
+    m.transparent = false;
+  } else if ((m as any).map) {
+    m.transparent = true;
   }
 };
 
@@ -306,7 +263,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     return this.viewModeController?.viewMode || 'material';
   }
 
-  constructor(private readonly cdr: ChangeDetectorRef) {}
+  constructor(
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone,
+  ) {}
 
   private setupCameraController() {
     if (this.controller) {
@@ -401,14 +361,13 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
           if (x instanceof Mesh) {
             const materials: Material[] = x.material instanceof Array ? x.material : [x.material];
             for (const m of materials) {
-              m.alphaTest = 0.5;
               if (m instanceof MeshBasicMaterial && m.map) {
                 m.map.wrapS = ClampToEdgeWrapping;
                 m.map.wrapT = ClampToEdgeWrapping;
                 setupNfs1Texture(m.map);
                 m.map.needsUpdate = true;
               }
-              setupMaterialAlphaMode(m);
+              setupMaterialAlphaMode(m, (mtl.materialsInfo as any)[m.name]?.alpha_mode);
             }
           }
         });
@@ -540,7 +499,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   private updateAnimationTimer(): void {
     const isPlaying = !!this.uiGroups && Object.values(this.uiGroups).some(g => g.playing);
     if (isPlaying && !this.animationTimer) {
-      this.animationTimer = setInterval(() => this.animationTick(), 1000 / ANIMATION_FPS);
+      // ticks only switch visibility of three.js objects, no change detection needed
+      this.ngZone.runOutsideAngular(() => {
+        this.animationTimer = setInterval(() => this.animationTick(), 1000 / ANIMATION_FPS);
+      });
     } else if (!isPlaying && this.animationTimer) {
       clearInterval(this.animationTimer);
       this.animationTimer = null;
