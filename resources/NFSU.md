@@ -1,6 +1,6 @@
 # **NFS Underground file specs** #
 
-*Last time updated: 2026-09-29 06:59:16.901046+00:00*
+*Last time updated: 2026-10-04 13:00:42.665027+00:00*
 
 
 # **Info by file extensions** #
@@ -72,13 +72,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 + custom_func + (^0/data/faces_amount)\*6 | **padding** | custom_func | Bytes | Padding to the end of the chunk |
 ### **MeshVerticesChunk** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Mesh vertices. Amount of vertices is defined by the mesh info chunk (the first chunk of the same mesh data container) ####
+#### **Description**: Mesh vertices. Amount of vertices is defined by the mesh info chunk (the first chunk of the same mesh data container). Vertex size (36 or 24 bytes) is determined by the chunk length ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134b01 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **elevens** | chunk_length-(^0/data/vertex_amount)\*36 | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
-| 8 + chunk_length-(^0/data/vertex_amount)\*36 | **vertices** | (^0/data/vertex_amount)\*36 | Array of `^0/data/vertex_amount` items<br/>Item type: [NfsuVertex](#nfsuvertex) | Vertices |
+| 8 | **elevens** | chunk_length - vertex_amount \* vertex_size | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
+| 8 + chunk_length - vertex_amount \* vertex_size | **vertices** | ? | One of types:<br/>- Array of `^0/data/vertex_amount` items<br/>Item type: [NfsuVertex](#nfsuvertex)<br/>- Array of `^0/data/vertex_amount` items<br/>Item type: [NfsuVertexNoNormal](#nfsuvertexnonormal) | Vertices. 36-byte vertices with normal, or 24-byte vertices without normal if the chunk is too short for 36-byte ones |
 ### **Chunk00134BXX** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Unknown chunk of the mesh data container (id 0x00134B02). Observed payload looks like 16-byte records: 3 floats + 32-bit integer ####
@@ -221,7 +221,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 12 | **pad** | 4 | Float number (little-endian). Always == 0.0 | Padding, always 0 |
 ### **NfsuVertex** ###
 #### **Size**: 36 bytes ####
-#### **Description**: A single mesh vertex ####
+#### **Description**: A single mesh vertex with normal (36 bytes). The most common vertex layout ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex position |
@@ -231,3 +231,12 @@ Did not find what you need or some given data is wrong? Please submit an
 | 24 | **unk3** | 4 | 4-bytes unsigned integer (little endian) | Presumably vertex color, 32-bit ARGB |
 | 28 | **u** | 4 | Float number (little-endian) | U texture coordinate |
 | 32 | **v** | 4 | Float number (little-endian) | V texture coordinate |
+### **NfsuVertexNoNormal** ###
+#### **Size**: 24 bytes ####
+#### **Description**: A single mesh vertex without normal (24 bytes). Used by a few meshes, e.g. SUPRA_STYLE02_HEADLIGHT_C. Same layout as the 36-byte vertex with the normal omitted (Direct3D FVF order: position, diffuse color, texture coordinates) ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex position |
+| 12 | **unk3** | 4 | 4-bytes unsigned integer (little endian) | Presumably vertex color, 32-bit ARGB |
+| 16 | **u** | 4 | Float number (little-endian) | U texture coordinate |
+| 20 | **v** | 4 | Float number (little-endian) | V texture coordinate |

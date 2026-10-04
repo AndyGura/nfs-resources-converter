@@ -558,6 +558,7 @@ EXPORT_RESOURCES = {
                 blackbox.geometries.Chunk80134020(),
                 blackbox.geometries.NfsuVec3(),
                 blackbox.geometries.NfsuVertex(),
+                blackbox.geometries.NfsuVertexNoNormal(),
             ],
             # 'Maps': [
             # ],
