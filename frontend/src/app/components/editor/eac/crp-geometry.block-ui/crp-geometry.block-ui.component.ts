@@ -1,7 +1,18 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  inject,
+  OnChanges,
+  OnDestroy,
+  SimpleChanges,
+} from '@angular/core';
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { Object3D } from 'three';
+import { CrpCarMeshController } from './crp-car-mesh-controller';
 
 @Component({
   selector: 'app-crp-geometry-block-ui',
@@ -13,6 +24,10 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   isTrack$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+
+  customControls: ObjViewerCustomControl[] = [];
+
+  readonly cdr = inject(ChangeDetectorRef);
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -33,6 +48,40 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
       this.isTrack$.next(this.resourceData?.resource_id === 'karT');
       this.loadPreview().then();
     }
+  }
+
+  onObjectLoaded(obj: Object3D) {
+    this.customControls = [];
+    if (!this.isTrack$.value) {
+      try {
+        const meshController = new CrpCarMeshController(obj);
+        if (meshController.hasPaintedTextures) {
+          let timeout: number | null = null;
+          const setColor = (color: number) => {
+            if (timeout) {
+              clearTimeout(timeout);
+            }
+            timeout = setTimeout(() => (meshController.color = color), 50) as any as number;
+          };
+          this.customControls = [
+            {
+              title: 'NFS5 car features',
+              controls: [
+                {
+                  label: 'Car color',
+                  type: 'color',
+                  value: meshController.color,
+                  change: c => setColor(c),
+                },
+              ],
+            },
+          ];
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    this.cdr.markForCheck();
   }
 
   private serializerSettings = {
