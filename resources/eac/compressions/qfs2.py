@@ -7,7 +7,6 @@ from resources.eac.compressions.base import BaseCompressionAlgorithm
 
 
 class Qfs2Compression(BaseCompressionAlgorithm):
-
     def _read_value(self, buffer, patterns) -> bytes:
         value = buffer.read(1)
         if value in patterns.keys():
@@ -20,8 +19,8 @@ class Qfs2Compression(BaseCompressionAlgorithm):
         # skip header
         buffer.seek(1, SEEK_CUR)
         hdr2 = buffer.read(1)[0]
-        if hdr2 != 0xfb:
-            raise ValueError("Invalid QFS2 file header")
+        if hdr2 != 0xFB:
+            raise ValueError('Invalid QFS2 file header')
         output_length = int.from_bytes(buffer.read(3), byteorder='big')
         value_indicator = buffer.read(1)[0]
         patterns_count = buffer.read(1)[0]
@@ -50,7 +49,8 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     uncompressed.extend(value)
         if len(uncompressed) != output_length:
             raise ValueError(
-                f'Error while unpacking QFS archive: expected length {output_length}, actual length: {len(uncompressed)}')
+                f'Error while unpacking QFS archive: expected length {output_length}, actual length: {len(uncompressed)}'
+            )
         return bytes(uncompressed)
 
     def compress(self, buffer: [BufferedReader, BytesIO], input_length: int, hardcoded_patterns=None):
@@ -82,8 +82,11 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     freq_array_2[(node.data << 8) | (node.next.data)] += 1
                 node = node.next
             return (
-                nsmallest(256, (x for x in enumerate(freq_array) if x[0] not in [escape_int, terminate_int]),
-                          key=lambda item: item[1]),
+                nsmallest(
+                    256,
+                    (x for x in enumerate(freq_array) if x[0] not in [escape_int, terminate_int]),
+                    key=lambda item: item[1],
+                ),
                 nlargest(256, (x for x in enumerate(freq_array_2) if x[1] > 0), key=lambda item: item[1]),
             )
 
@@ -95,13 +98,13 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     node = node.next.next
                     continue
                 node_next = node.next
-                for (pattern, left, right) in replacements:
+                for pattern, left, right in replacements:
                     if node.data == pattern:
                         data_dll.insert(escape_int, node.prev, node)
                         len_delta += 1
                         node = node_next
                         break
-                    elif (node_next is not None and node.data == left and node_next.data == right):
+                    elif node_next is not None and node.data == left and node_next.data == right:
                         data_dll.insert(pattern, node.prev, node_next.next)
                         len_delta -= 1
                         node = node_next.next
@@ -116,7 +119,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             if node.data == escape_int:
                 escape_chars_count += 1
                 data_dll.insert(escape_int, node.prev, node)
-        print(f"Escaping bytes added: {escape_chars_count}")
+        print(f'Escaping bytes added: {escape_chars_count}')
 
         # when we create pattern X = YZ, we never allow to use Y or Z as pattern id, since
         # if we then define Y = AB, original X will produce ABZ
@@ -135,16 +138,19 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     (pattern_id, lfreq) = frequency_map.pop(0)
                     try:
                         while (
-                                pattern_id in forbidden_pattern_ids or pattern_id in pass_locked_values or pattern_id in patterns):
+                            pattern_id in forbidden_pattern_ids
+                            or pattern_id in pass_locked_values
+                            or pattern_id in patterns
+                        ):
                             (pattern_id, lfreq) = frequency_map.pop(0)
                     except IndexError:
                         # exhausted list of indexes
                         break
                     pass_locked_values.add(pattern_id)
                     (most_frequent_pair, pfreq) = frequency_map_2.pop(0)
-                    if (pfreq < (3 + lfreq) * 16):
+                    if pfreq < (3 + lfreq) * 16:
                         break
-                    (left, right) = most_frequent_pair >> 8, most_frequent_pair & 0xff
+                    (left, right) = most_frequent_pair >> 8, most_frequent_pair & 0xFF
                     if left in pass_locked_values or right in pass_locked_values:
                         continue
                     pass_locked_values.add(left)
@@ -153,24 +159,24 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                     forbidden_pattern_ids.add(right)
                     this_pass_replacements.append((pattern_id, left, right))
                 if len(this_pass_replacements) == 0:
-                    print(f"Pass {p}: No replace patterns found.")
+                    print(f'Pass {p}: No replace patterns found.')
                     break
             else:
                 try:
                     this_pass_replacements = hardcoded_patterns[p]
                 except IndexError:
                     this_pass_replacements = []
-            for (pid, l, r) in this_pass_replacements:
+            for pid, l, r in this_pass_replacements:
                 patterns[pid] = (l, r)
             saved_bytes_this_pass = -replace_pattern_in_data(this_pass_replacements)
-            print(f"Pass {p}: {saved_bytes_this_pass} bytes saved. Replaced patterns: {len(this_pass_replacements)}")
+            print(f'Pass {p}: {saved_bytes_this_pass} bytes saved. Replaced patterns: {len(this_pass_replacements)}')
             if hardcoded_patterns is None and saved_bytes_this_pass < input_length // 200:
-                print("Saved less than 0.5% of input length, breaking.")
+                print('Saved less than 0.5% of input length, breaking.')
                 break
 
         compressed = bytearray()
         compressed.append(0b0100_0110)
-        compressed.append(0xfb)
+        compressed.append(0xFB)
         compressed.extend(input_length.to_bytes(3, byteorder='big'))
         compressed.append(escape_int)
         compressed.append(len(patterns))
@@ -184,6 +190,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
         compressed.append(terminate_int)
 
         print(
-            f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds')
+            f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds'
+        )
 
         return bytes(compressed)

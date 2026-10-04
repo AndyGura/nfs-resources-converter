@@ -34,22 +34,22 @@ class ResourceSerializer(ABC):
 
 
 class DelegateBlockSerializer(ResourceSerializer):
-
     def is_dir(self, block, data):
         from serializers import get_serializer
+
         sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']
         serializer = get_serializer(sub_block, sub_data)
         return serializer.is_dir
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         from serializers import get_serializer
+
         sub_block, sub_data = block.possible_blocks[data['choice_index']], data['data']
         serializer = get_serializer(sub_block, sub_data)
         return serializer.serialize(sub_data, path=path, id=join_id(id, 'data'), block=sub_block)
 
 
 class BaseFileSerializer(ResourceSerializer):
-
     def __init__(self, is_dir=False):
         self.is_dir = is_dir
 
@@ -59,7 +59,6 @@ class BaseFileSerializer(ResourceSerializer):
 
 
 class PlainBinarySerializer(BaseFileSerializer):
-
     def __init__(self):
         super().__init__(is_dir=False)
 
@@ -69,12 +68,12 @@ class PlainBinarySerializer(BaseFileSerializer):
             'is_directory': False,
             'output_file_name_suffix': '.bin',
             'reversible': True,
-            'reversible_settings_patch': {}
+            'reversible_settings_patch': {},
         }
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         if path.endswith('/') or path.endswith('\\'):
-            path += id[id.rindex('/') + 1:]
+            path += id[id.rindex('/') + 1 :]
         super().serialize(data, path)
         output_path = f'{path}.bin'
         with open(output_path, 'wb') as file:

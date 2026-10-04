@@ -12,30 +12,29 @@ from resources.eac.compressions.ref_pack import RefPackCompression
 
 
 class TestEacCompressedBlock(unittest.TestCase):
-
     def test_should_compress_and_uncompress(self):
-        mock_data = "This is a test payload for compression".encode('utf-8') + b'\xFF\x28\x28'
+        mock_data = 'This is a test payload for compression'.encode('utf-8') + b'\xff\x28\x28'
         # mock_data = b'\xFF\x28\x28'
         block = EacCompressedBlock()
         compressed = block.pack({'data': mock_data, 'choice_index': block.get_choice_index_by_class_name('BytesBlock')})
 
         decompressed_asm = Qfs2ASMCompression().uncompress(BytesIO(compressed), len(compressed))
         decompressed = block.unpack(ReadContext.from_bytes(compressed), read_bytes_amount=len(compressed))
-        self.assertEqual(mock_data, bytes(decompressed_asm),
-                         'Decompressed ASM data does not match original data')
+        self.assertEqual(mock_data, bytes(decompressed_asm), 'Decompressed ASM data does not match original data')
         self.assertEqual(mock_data, decompressed['data'], 'Decompressed data does not match original data')
 
     def test_qfs2_escaping_recursive_patterns_issue(self):
         # real part of file that was broken with first iteration of qfs2 algo, at the offset where something went wrong
         original_data = b'\x00\xee\x00\x00\x00\x00\x00\x17'
         # real patterns, generated for given file when scanned fully
-        patterns = [[(0xee, 0x0, 0x0)], [(0x9e, 0xee, 0xee)]]
+        patterns = [[(0xEE, 0x0, 0x0)], [(0x9E, 0xEE, 0xEE)]]
         # the problem is following:
         # 1) we replace 0x00-s with 0xee and escape existing 0xee's: \xee\x00\x00\x00\x00 -> \xff\xee\xee\xee
         # 2) now we replace 0xee-s with 0x9e, but we have to skip escaped 0xee: \xff\xee\xee\xee -> \xff\xee\x9e
         compressed = Qfs2Compression().compress(BytesIO(original_data), len(original_data), hardcoded_patterns=patterns)
-        self.assertEqual(compressed,
-                         b'F\xfb\x00\x00\x08\xff\x02\xee\x00\x00\x9e\xee\xee\x00\xff\xee\x9e\x00\x17\xff\x00')
+        self.assertEqual(
+            compressed, b'F\xfb\x00\x00\x08\xff\x02\xee\x00\x00\x9e\xee\xee\x00\xff\xee\x9e\x00\x17\xff\x00'
+        )
 
         decompressed = Qfs2Compression().uncompress(BytesIO(compressed), len(compressed))
         self.assertEqual(original_data, decompressed)
@@ -154,7 +153,6 @@ class TestEacCompressedBlock(unittest.TestCase):
 
 
 class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
-
     # ebx is read pointer
     # ecx is write pointer
     # var_14 is value_indicator
@@ -163,7 +161,7 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
         # write compressed data to the beginning (almost)
         input_data = buffer.read(input_length)
         for i in range(input_length):
-            self.memstore(0x10 + i, int.from_bytes(input_data[i:i + 1], signed=False, byteorder='little'), size=1)
+            self.memstore(0x10 + i, int.from_bytes(input_data[i : i + 1], signed=False, byteorder='little'), size=1)
 
         # set stack pointer after input length + offset for script variables
         self.esp = input_length + 0x10 + 0x550
@@ -180,8 +178,9 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
         self.define_variable('var_18', -0x18, 4)
         self.define_variable('var_14', -0x14, 4)
         self.define_variable('original_esp_pointer', 0, 4)  # original function esp
-        self.define_variable('patterns_index_table_pointer', 0,
-                             4)  # ptr to var_11C, start of some 256 bytes index table, probably patterns
+        self.define_variable(
+            'patterns_index_table_pointer', 0, 4
+        )  # ptr to var_11C, start of some 256 bytes index table, probably patterns
         self.define_variable('ds:dword_53034C', 0, 4)  # ptr to var_21C, never reassigned
         self.define_variable('ds:dword_530348', 0, 4)
         self.define_variable('write_pointer', 0, 4)  # write pointer
@@ -219,7 +218,7 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
                 else:
                     self.insert_plain_value()
         self.cleanup()
-        return self.asm_virtual_memory[input_length + 0x1000:self.get_value('write_pointer')[0]]
+        return self.asm_virtual_memory[input_length + 0x1000 : self.get_value('write_pointer')[0]]
 
     def insert_qfs2_pattern(self):
         self.run_block("""
@@ -466,14 +465,13 @@ class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):
 
 
 class RefPackASMCompression(BaseCompressionAlgorithm, AsmRunner):
-
     # ebx is read pointer
     # ecx is write pointer
     # var_14 is value_indicator
     def uncompress(self, buffer: BufferedReader, input_length: int) -> bytes:
         input_data = buffer.read(input_length)
         for i in range(input_length):
-            self.memstore(0x500 + i, int.from_bytes(input_data[i:i + 1], signed=False, byteorder='little'), size=1)
+            self.memstore(0x500 + i, int.from_bytes(input_data[i : i + 1], signed=False, byteorder='little'), size=1)
 
         # set stack pointer after input length + offset for script variables
         self.esp = 0x50
@@ -492,7 +490,7 @@ class RefPackASMCompression(BaseCompressionAlgorithm, AsmRunner):
                     lea     ebx, [ebx+2]
                     and     al, 1
                     jz      short loc_4A825A"""):
-                self.run_block("lea     ebx, [ebx+3]")
+                self.run_block('lea     ebx, [ebx+3]')
             if not self.loc_4A825A():
                 self.run_block("""xor     ecx, ecx""")
                 while True:
@@ -575,7 +573,7 @@ class RefPackASMCompression(BaseCompressionAlgorithm, AsmRunner):
                         break
         end_cursor = self.edi
         self.loc_4A8326()
-        return self.asm_virtual_memory[500 * 1024:end_cursor]
+        return self.asm_virtual_memory[500 * 1024 : end_cursor]
 
     def loc_4A822C(self):
         return self.run_block("""
@@ -698,7 +696,6 @@ class RefPackASMCompression(BaseCompressionAlgorithm, AsmRunner):
 # stack-resident lookup tables are still accessed through the AsmRunner's virtual memory. Kept only as a regression
 # test for the AsmRunner and as a reference for how the pure-Python Qfs3Compression was derived from it.
 class Qfs3ASMCompression(BaseCompressionAlgorithm, AsmRunner):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, asm_virtual_memory_size=2 * 1024, **kwargs)
         self.output_length = 0
@@ -718,7 +715,7 @@ class Qfs3ASMCompression(BaseCompressionAlgorithm, AsmRunner):
             self.append_to_output(buffer, value)
 
     def read_next(self, buffer):
-        self.accumulator = (_qfs3_asm_read_short(buffer, 'big') | (self.accumulator << 16))
+        self.accumulator = _qfs3_asm_read_short(buffer, 'big') | (self.accumulator << 16)
 
     def accumulate_if_needed(self, buffer):
         if self.available_acc_bits < 0:
@@ -739,8 +736,8 @@ class Qfs3ASMCompression(BaseCompressionAlgorithm, AsmRunner):
 
         self.available_acc_bits = 0
         file_header = self.accumulator = _qfs3_asm_read_short(buffer, 'big')
-        if (file_header & 0xfb) != 0xfb:
-            raise ValueError("Invalid QFS3 file header")
+        if (file_header & 0xFB) != 0xFB:
+            raise ValueError('Invalid QFS3 file header')
         self.read_next(buffer)
         self.esi = self.accumulator << 16
         # if compressed size presented
@@ -814,7 +811,7 @@ class Qfs3ASMCompression(BaseCompressionAlgorithm, AsmRunner):
                     self.esi = self.esi << 16
                     self.accumulate_if_needed(buffer)
                     self.edx = (self.edx << 16) | self.ebx
-                self.edx += (1 << self.al)
+                self.edx += 1 << self.al
             else:
                 self.edx = self.esi >> 0x1D
                 self.available_acc_bits -= 3

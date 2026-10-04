@@ -5,6 +5,7 @@ Detection only ever inspects `PATH` and a handful of well-known install location
 never runs the executable. Callers (the GUI "Test" button, or `ConversionAPI.test_executable`) are
 responsible for verifying the returned path actually works.
 """
+
 import glob
 import os
 import shutil
@@ -38,56 +39,56 @@ def _first_working_candidate(candidates: List[str]) -> Optional[str]:
 
 
 def _ffmpeg_candidates() -> List[str]:
-    candidates = ["ffmpeg"]
-    if sys.platform == "win32":
+    candidates = ['ffmpeg']
+    if sys.platform == 'win32':
         candidates += [
-            "ffmpeg.exe",
-            r"C:\ffmpeg\bin\ffmpeg.exe",
-            os.path.expandvars(r"%ProgramFiles%\ffmpeg\bin\ffmpeg.exe"),
-            os.path.expandvars(r"%ProgramFiles(x86)%\ffmpeg\bin\ffmpeg.exe"),
-            os.path.expandvars(r"%ChocolateyInstall%\bin\ffmpeg.exe"),
-            r"C:\ProgramData\chocolatey\bin\ffmpeg.exe",
-            os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg*\ffmpeg*\bin\ffmpeg.exe"),
+            'ffmpeg.exe',
+            r'C:\ffmpeg\bin\ffmpeg.exe',
+            os.path.expandvars(r'%ProgramFiles%\ffmpeg\bin\ffmpeg.exe'),
+            os.path.expandvars(r'%ProgramFiles(x86)%\ffmpeg\bin\ffmpeg.exe'),
+            os.path.expandvars(r'%ChocolateyInstall%\bin\ffmpeg.exe'),
+            r'C:\ProgramData\chocolatey\bin\ffmpeg.exe',
+            os.path.expandvars(r'%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg*\ffmpeg*\bin\ffmpeg.exe'),
         ]
-    elif sys.platform == "darwin":
+    elif sys.platform == 'darwin':
         candidates += [
-            "/opt/homebrew/bin/ffmpeg",  # Apple Silicon Homebrew
-            "/usr/local/bin/ffmpeg",  # Intel Homebrew
-            "/opt/local/bin/ffmpeg",  # MacPorts
+            '/opt/homebrew/bin/ffmpeg',  # Apple Silicon Homebrew
+            '/usr/local/bin/ffmpeg',  # Intel Homebrew
+            '/opt/local/bin/ffmpeg',  # MacPorts
         ]
     else:
         candidates += [
-            "/usr/bin/ffmpeg",
-            "/usr/local/bin/ffmpeg",
-            "/snap/bin/ffmpeg",
-            "/var/lib/flatpak/exports/bin/org.freedesktop.Platform.ffmpeg-full",
+            '/usr/bin/ffmpeg',
+            '/usr/local/bin/ffmpeg',
+            '/snap/bin/ffmpeg',
+            '/var/lib/flatpak/exports/bin/org.freedesktop.Platform.ffmpeg-full',
         ]
     return candidates
 
 
 def _blender_candidates() -> List[str]:
-    candidates = ["blender"]
-    if sys.platform == "win32":
+    candidates = ['blender']
+    if sys.platform == 'win32':
         candidates += [
-            "blender.exe",
-            os.path.expandvars(r"%ProgramFiles%\Blender Foundation\Blender*\blender.exe"),
-            os.path.expandvars(r"%ProgramFiles(x86)%\Blender Foundation\Blender*\blender.exe"),
-            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Blender Foundation\Blender*\blender.exe"),
-            r"C:\Program Files\Steam\steamapps\common\Blender\blender.exe",
+            'blender.exe',
+            os.path.expandvars(r'%ProgramFiles%\Blender Foundation\Blender*\blender.exe'),
+            os.path.expandvars(r'%ProgramFiles(x86)%\Blender Foundation\Blender*\blender.exe'),
+            os.path.expandvars(r'%LOCALAPPDATA%\Programs\Blender Foundation\Blender*\blender.exe'),
+            r'C:\Program Files\Steam\steamapps\common\Blender\blender.exe',
         ]
-    elif sys.platform == "darwin":
+    elif sys.platform == 'darwin':
         candidates += [
-            "/Applications/Blender.app/Contents/MacOS/Blender",
-            "/Applications/Blender/Blender.app/Contents/MacOS/Blender",
-            "/Applications/Blender *.app/Contents/MacOS/Blender",
+            '/Applications/Blender.app/Contents/MacOS/Blender',
+            '/Applications/Blender/Blender.app/Contents/MacOS/Blender',
+            '/Applications/Blender *.app/Contents/MacOS/Blender',
         ]
     else:
         candidates += [
-            "/usr/bin/blender",
-            "/usr/local/bin/blender",
-            "/snap/bin/blender",
-            "/var/lib/flatpak/exports/bin/org.blender.Blender",
-            os.path.expanduser("~/.local/share/flatpak/exports/bin/org.blender.Blender"),
+            '/usr/bin/blender',
+            '/usr/local/bin/blender',
+            '/snap/bin/blender',
+            '/var/lib/flatpak/exports/bin/org.blender.Blender',
+            os.path.expanduser('~/.local/share/flatpak/exports/bin/org.blender.Blender'),
         ]
     return candidates
 

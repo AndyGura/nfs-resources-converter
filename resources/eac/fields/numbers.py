@@ -48,7 +48,7 @@ class Nfs1Angle14(AngleBlock, IntegerBlock):
             'max_value': float(math.pi * 2 * (super_schema['max_value'] & 0x3FFF) / 0x4000),
             'value_interval': float(math.pi * 2 * (super_schema['value_interval'] & 0x3FFF) / 0x4000),
             'block_description': 'EA games 14-bit angle (little-endian), where first 2 bits unused or have unknown'
-                                 ' data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees',
+            ' data. 0 means 0 degrees, 0x4000 (max value + 1) means 360 degrees',
         }
 
     def __init__(self, **kwargs):
@@ -64,7 +64,6 @@ class Nfs1Angle14(AngleBlock, IntegerBlock):
 
 
 class Nfs1TimeField(IntegerBlock):
-
     @property
     def schema(self) -> Dict:
         super_schema = super().schema
@@ -74,7 +73,8 @@ class Nfs1TimeField(IntegerBlock):
             'max_value': float(super_schema['max_value'] / 60),
             'value_interval': float(super_schema['value_interval'] / 60),
             'block_description': f'TNFS time field. {super_schema["block_description"]}, '
-                                 'equals to amount of ticks (amount of seconds * 60)'}
+            'equals to amount of ticks (amount of seconds * 60)',
+        }
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         return float(super().read(ctx, name, read_bytes_amount)) / 60

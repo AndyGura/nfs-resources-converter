@@ -4,8 +4,8 @@ from library.context import ReadContext
 from library.exceptions import BlockDefinitionException
 from library.read_blocks.compound import SubByteCompoundBlock, BitFlagsBlock
 
-class TestSubByteCompoundBlock(unittest.TestCase):
 
+class TestSubByteCompoundBlock(unittest.TestCase):
     def test_read_write_mixed(self):
         schema = [
             (1, 'has_left_fence', 'boolean', [], 'flag is add left fence'),
@@ -13,14 +13,14 @@ class TestSubByteCompoundBlock(unittest.TestCase):
             (6, 'texture_id', 'number', [], 'texture id'),
         ]
         block = SubByteCompoundBlock(length=1, schema=schema)
-        
+
         # Binary: 1 0 111111 (0xBF) -> left=True, right=False, texture=63
         data = bytes([0xBF])
         res = block.unpack(ReadContext(BytesIO(data)))
         self.assertEqual(res['has_left_fence'], True)
         self.assertEqual(res['has_right_fence'], False)
         self.assertEqual(res['texture_id'], 63)
-        
+
         # Write back
         packed = block.pack(res)
         self.assertEqual(packed, data)
@@ -31,16 +31,16 @@ class TestSubByteCompoundBlock(unittest.TestCase):
             (2, 'mode', 'enum', ['low', 'med', 'high', 'ultra'], 'mode of operation'),
         ]
         block = SubByteCompoundBlock(length=1, schema=schema)
-        
+
         # Binary: 000000 10 (0x02) -> mode='high'
         data = bytes([0x02])
         res = block.unpack(ReadContext(BytesIO(data)))
         self.assertEqual(res['mode'], 'high')
-        
+
         # Write back
         packed = block.pack(res)
         self.assertEqual(packed, data)
-        
+
         # Test ultra
         res['mode'] = 'ultra'
         packed = block.pack(res)
@@ -50,7 +50,7 @@ class TestSubByteCompoundBlock(unittest.TestCase):
         # 1 byte flags
         flags = [(0, 'flag0'), (2, 'flag2'), (7, 'flag7')]
         block = BitFlagsBlock(length=1, flag_names=flags)
-        
+
         # Binary: 10000101 (0x85)
         data = bytes([0x85])
         res = block.unpack(ReadContext(BytesIO(data)))
@@ -58,7 +58,7 @@ class TestSubByteCompoundBlock(unittest.TestCase):
         self.assertFalse(res['1'])
         self.assertTrue(res['flag2'])
         self.assertTrue(res['flag7'])
-        
+
         # Write back
         packed = block.pack(res)
         self.assertEqual(packed, data)
@@ -105,7 +105,7 @@ class TestSubByteCompoundBlock(unittest.TestCase):
         schema = [(7, 'too_short', 'number', [], 'too short')]
         with self.assertRaises(BlockDefinitionException):
             SubByteCompoundBlock(length=1, schema=schema)
-            
+
         # 1 byte, but schema defines 9 bits
         schema = [(9, 'too_long', 'number', [], 'too long')]
         with self.assertRaises(BlockDefinitionException):

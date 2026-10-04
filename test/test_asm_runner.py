@@ -4,7 +4,6 @@ from library.utils.asm_runner import AsmRunner
 
 
 class TestAsmRunner(unittest.TestCase):
-
     def test_push_pop(self):
         runner = AsmRunner(asm_virtual_memory_size=128)
         runner.esp = 16
@@ -340,8 +339,10 @@ class TestAsmRunner(unittest.TestCase):
             mov dl, 7Bh
             mov [ecx], dl
         """)
-        self.assertEqual(' '.join('{:02x}'.format(x) for x in runner.asm_virtual_memory),
-                         '4d 4d 4d 4d 4d 4d 4d 4d 7b 4d 4d 4d 4d 4d 4d 4d')
+        self.assertEqual(
+            ' '.join('{:02x}'.format(x) for x in runner.asm_virtual_memory),
+            '4d 4d 4d 4d 4d 4d 4d 4d 7b 4d 4d 4d 4d 4d 4d 4d',
+        )
 
     def test_jge(self):
         runner = AsmRunner(asm_virtual_memory_size=16)

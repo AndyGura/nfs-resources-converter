@@ -8,7 +8,6 @@ from serializers import BaseFileSerializer, ImageSerializer
 
 
 class FfnFontSerializer(BaseFileSerializer):
-
     def __init__(self):
         super().__init__(is_dir=True)
 
@@ -18,7 +17,7 @@ class FfnFontSerializer(BaseFileSerializer):
             'is_directory': False,
             'output_file_name_suffix': None,
             'reversible': True,
-            'reversible_settings_patch': {}
+            'reversible_settings_patch': {},
         }
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
@@ -40,38 +39,54 @@ class FfnFontSerializer(BaseFileSerializer):
                     parts.append(f'{key}={value}')
                 file.write(' '.join(parts) + '\n')
 
-            write_fnt_line('info', {'face': id.split('/')[-1],
-                                    'size': data['ascent'] + data['descent'],
-                                    'smooth': 1 if data['flags']['antialiased'] else 0,
-                                    'outline': 1 if data['flags']['outline'] else 0})
-            write_fnt_line('common', {'lineHeight': data['ascent'] + data['descent'],
-                                      'base': data['ascent']})
-            write_fnt_line('#custom', {'resource_id': data['resource_id'],
-                                       'version': data['version'],
-                                       'dropshadow': data['flags']['dropshadow'],
-                                       'vram': 1 if data['flags']['vram'] else 0,
-                                       'drawpad': data['flags']['drawpad'],
-                                       'baseline': data['flags']['baseline'],
-                                       'orientation': data['flags']['orientation'],
-                                       'direction': data['flags']['direction'],
-                                       'layoutpad': data['flags']['layoutpad'],
-                                       'encoding': data['flags']['encoding'],
-                                       'format': data['flags']['format'],
-                                       'pad': data['flags']['pad'],
-                                       'center_x': data['center']['x'],
-                                       'center_y': data['center']['y'],
-                                       'padding_0': data['padding_0'],
-                                       'padding_1': data.get('padding_1'),
-                                       'padding_2': data['padding_2'],
-                                       'remaining_bytes': data['remaining_bytes']})
+            write_fnt_line(
+                'info',
+                {
+                    'face': id.split('/')[-1],
+                    'size': data['ascent'] + data['descent'],
+                    'smooth': 1 if data['flags']['antialiased'] else 0,
+                    'outline': 1 if data['flags']['outline'] else 0,
+                },
+            )
+            write_fnt_line('common', {'lineHeight': data['ascent'] + data['descent'], 'base': data['ascent']})
+            write_fnt_line(
+                '#custom',
+                {
+                    'resource_id': data['resource_id'],
+                    'version': data['version'],
+                    'dropshadow': data['flags']['dropshadow'],
+                    'vram': 1 if data['flags']['vram'] else 0,
+                    'drawpad': data['flags']['drawpad'],
+                    'baseline': data['flags']['baseline'],
+                    'orientation': data['flags']['orientation'],
+                    'direction': data['flags']['direction'],
+                    'layoutpad': data['flags']['layoutpad'],
+                    'encoding': data['flags']['encoding'],
+                    'format': data['flags']['format'],
+                    'pad': data['flags']['pad'],
+                    'center_x': data['center']['x'],
+                    'center_y': data['center']['y'],
+                    'padding_0': data['padding_0'],
+                    'padding_1': data.get('padding_1'),
+                    'padding_2': data['padding_2'],
+                    'remaining_bytes': data['remaining_bytes'],
+                },
+            )
             write_fnt_line('page', {'id': 0, 'file': 'bitmap.png'})
             write_fnt_line('chars', {'count': data['num_glyphs']})
             for symbol in data['definitions']:
-                char_data = {'id': symbol['code'],
-                             'x': symbol['x'], 'y': symbol['y'], 'width': symbol['width'],
-                             'height': symbol['height'], 'xoffset': symbol['x_offset'],
-                             'yoffset': symbol['y_offset'], 'xadvance': symbol['advance'], 'page': 0,
-                             'chnl': 0}
+                char_data = {
+                    'id': symbol['code'],
+                    'x': symbol['x'],
+                    'y': symbol['y'],
+                    'width': symbol['width'],
+                    'height': symbol['height'],
+                    'xoffset': symbol['x_offset'],
+                    'yoffset': symbol['y_offset'],
+                    'xadvance': symbol['advance'],
+                    'page': 0,
+                    'chnl': 0,
+                }
                 if symbol.get('num_kern') is not None:
                     char_data['num_kern'] = symbol['num_kern']
                 if symbol.get('kern_index') is not None:
@@ -84,9 +99,9 @@ class FfnFontSerializer(BaseFileSerializer):
             if data.get('kernings'):
                 write_fnt_line('kernings', {'count': len(data['kernings'])})
                 for kerning in data['kernings']:
-                    write_fnt_line('kerning',
-                                   {'first': kerning['left'], 'second': kerning['right'],
-                                    'amount': kerning['kerning']})
+                    write_fnt_line(
+                        'kerning', {'first': kerning['left'], 'second': kerning['right'], 'amount': kerning['kerning']}
+                    )
         output.append(fnt_path)
         return output
 
@@ -98,8 +113,9 @@ class FfnFontSerializer(BaseFileSerializer):
 
         data = block.new_data()
         image_serializer = ImageSerializer()
-        data['bitmap'] = image_serializer.deserialize([x for x in file_paths if x.endswith('.png')],
-                                                      block=block.get_child_block('bitmap'))
+        data['bitmap'] = image_serializer.deserialize(
+            [x for x in file_paths if x.endswith('.png')], block=block.get_child_block('bitmap')
+        )
         with open(fnt_file_path) as f:
             lines = [l.rstrip() for l in f]
 
@@ -166,8 +182,9 @@ class FfnFontSerializer(BaseFileSerializer):
                 if 'padding_0' in custom_part:
                     data['padding_0'] = bytes.fromhex(str(custom_part['padding_0']))
                 if 'padding_1' in custom_part and custom_part['padding_1'] is not None:
-                    data['padding_1'] = bytes.fromhex(str(custom_part['padding_1'])) if custom_part[
-                        'padding_1'] else b''
+                    data['padding_1'] = (
+                        bytes.fromhex(str(custom_part['padding_1'])) if custom_part['padding_1'] else b''
+                    )
                 if 'padding_2' in custom_part:
                     data['padding_2'] = bytes.fromhex(str(custom_part['padding_2']))
                 if 'remaining_bytes' in custom_part:
@@ -197,9 +214,11 @@ class FfnFontSerializer(BaseFileSerializer):
             kerning_lines = [parse_fnt_char_line(l) for l in lines if l.startswith('kerning ')]
             data['kernings'] = []
             for values in kerning_lines:
-                data['kernings'].append({
-                    'left': values['first'],
-                    'right': values['second'],
-                    'kerning': values['amount'],
-                })
+                data['kernings'].append(
+                    {
+                        'left': values['first'],
+                        'right': values['second'],
+                        'kerning': values['amount'],
+                    }
+                )
         return data

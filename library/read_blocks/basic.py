@@ -25,7 +25,8 @@ class DataBlock(ABC):
     def schema(self) -> Dict:
         s = {
             'block_class_mro': '__'.join(
-                [x.__name__ for x in self.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
+                [x.__name__ for x in self.__class__.mro() if x.__name__ not in ['object', 'ABC']]
+            ),
             'block_description': '',
         }
         if self.value_validator:
@@ -46,7 +47,7 @@ class DataBlock(ABC):
     def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
-        raise BlockDefinitionException("Cannot generate new data for block.")
+        raise BlockDefinitionException('Cannot generate new data for block.')
 
     def serializer_class(self):
         return None
@@ -56,9 +57,11 @@ class DataBlock(ABC):
         pass
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        raise BlockDefinitionException(ctx=ctx, message='Cannot estimate packed size of data block ' +
-                                                        "__".join([x.__name__ for x in self.__class__.mro() if
-                                                                   x.__name__ not in ["object", "ABC"]]))
+        raise BlockDefinitionException(
+            ctx=ctx,
+            message='Cannot estimate packed size of data block '
+            + '__'.join([x.__name__ for x in self.__class__.mro() if x.__name__ not in ['object', 'ABC']]),
+        )
 
     @abstractmethod
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
@@ -66,9 +69,9 @@ class DataBlock(ABC):
 
     def validate_after_read(self, value, ctx: ReadContext = root_read_ctx, name: str = ''):
         if self.value_validator and not self.value_validator.validate(value):
-            raise DataIntegrityException(ctx=ctx, message=f'Expected {self.value_validator}, '
-                                                          f'found {represent_value_as_str(value)} '
-                                                          f'at {name}')
+            raise DataIntegrityException(
+                ctx=ctx, message=f'Expected {self.value_validator}, found {represent_value_as_str(value)} at {name}'
+            )
 
     ### final method, should never override
     def unpack(self, ctx: ReadContext = root_read_ctx, name: str = '', read_bytes_amount=None):
@@ -88,7 +91,6 @@ class DataBlock(ABC):
 
 
 class DataBlockWithChildren(ABC):
-
     ### get child block
     @abstractmethod
     def get_child_block(self, name: str) -> 'DataBlock':
@@ -104,7 +106,6 @@ class DataBlockWithChildren(ABC):
 
 
 class BytesBlock(DataBlock):
-
     def __init__(self, length, allow_negative_length=False, **kwargs):
         super().__init__(**kwargs)
         self._length = length
@@ -136,6 +137,7 @@ class BytesBlock(DataBlock):
 
     def serializer_class(self):
         from serializers import PlainBinarySerializer
+
         return PlainBinarySerializer
 
     def resolve_length(self, ctx):
@@ -190,11 +192,16 @@ class Padding(BytesBlock):
                 to_descr = '?'
         else:
             to_descr = str(to)
-        super().__init__(length=(
-            lambda ctx: (to_lambda(ctx) if callable(to_lambda) else to_lambda) -
-                        (ctx.buffer.tell() if is_global else ctx.local_buffer_pos),
-            f"up to offset {to_descr}"),
-            **kwargs)
+        super().__init__(
+            length=(
+                lambda ctx: (
+                    (to_lambda(ctx) if callable(to_lambda) else to_lambda)
+                    - (ctx.buffer.tell() if is_global else ctx.local_buffer_pos)
+                ),
+                f'up to offset {to_descr}',
+            ),
+            **kwargs,
+        )
         self.to = to
         self.to_descr = to_descr
         self.is_global = is_global

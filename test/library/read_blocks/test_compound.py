@@ -7,74 +7,91 @@ from library.read_blocks.misc.value_validators import Eq
 
 
 class TestCompound(unittest.TestCase):
-
     def test_unpack(self):
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=1), {}),
-            ('b', IntegerBlock(length=1), {}),
-        ])
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=1), {}),
+                ('b', IntegerBlock(length=1), {}),
+            ]
+        )
         val = field.unpack(ReadContext(BytesIO(bytes([92, 129]))))
         self.assertDictEqual(val, {'a': 92, 'b': 129})
 
     def test_pack(self):
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=1), {}),
-            ('b', IntegerBlock(length=1), {}),
-        ])
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=1), {}),
+                ('b', IntegerBlock(length=1), {}),
+            ]
+        )
         data = field.pack({'a': 92, 'b': 129})
         self.assertEqual(data, bytes([92, 129]))
 
     def test_get_child_block_with_data(self):
         child_block = IntegerBlock(length=1)
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=2), {}),
-            ('b', child_block, {}),
-        ])
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=2), {}),
+                ('b', child_block, {}),
+            ]
+        )
         block, data = field.get_child_block_with_data({'a': 123, 'b': 456}, 'b')
         self.assertEqual(block, child_block)
         self.assertEqual(data, 456)
 
     def test_estimate_packed_size(self):
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=2), {}),
-            ('b', UTF8Block(length=lambda ctx: exec('raise Exception()')), {}),
-        ])
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=2), {}),
+                ('b', UTF8Block(length=lambda ctx: exec('raise Exception()')), {}),
+            ]
+        )
         self.assertEqual(field.estimate_packed_size({'a': 123, 'b': '123qwerty'}), 11)
 
     def test_offset_to_child_when_packed(self):
-        field = CompoundBlock(fields=[
-            ('foo', UTF8Block(length=lambda ctx: exec('raise Exception()')), {}),
-            ('bar', IntegerBlock(length=2), {}),
-        ])
+        field = CompoundBlock(
+            fields=[
+                ('foo', UTF8Block(length=lambda ctx: exec('raise Exception()')), {}),
+                ('bar', IntegerBlock(length=2), {}),
+            ]
+        )
         self.assertEqual(field.offset_to_child_when_packed({'foo': 'test_str', 'bar': 2}, 'bar'), 8)
 
     def test_size_doc_str(self):
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=1), {}),
-            ('b', IntegerBlock(length=2), {}),
-        ])
-        self.assertEqual(field.size_doc_str, "3")
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=1), {}),
+                ('b', IntegerBlock(length=2), {}),
+            ]
+        )
+        self.assertEqual(field.size_doc_str, '3')
 
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=1), {}),
-            ('b', UTF8Block(length=lambda ctx: 5), {}),
-        ])
-        self.assertEqual(field.size_doc_str, "6")
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=1), {}),
+                ('b', UTF8Block(length=lambda ctx: 5), {}),
+            ]
+        )
+        self.assertEqual(field.size_doc_str, '6')
 
     def test_size_doc_str_usage(self):
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=1), {}),
-            ('b', IntegerBlock(length=2), {'usage': 'doc'}),  # excluded from IO
-        ])
-        self.assertEqual(field.size_doc_str, "1")
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=1), {}),
+                ('b', IntegerBlock(length=2), {'usage': 'doc'}),  # excluded from IO
+            ]
+        )
+        self.assertEqual(field.size_doc_str, '1')
 
     def test_size_doc_str_strip_expressions(self):
-        field = CompoundBlock(fields=[
-            ('a', IntegerBlock(length=1), {}),
-            ('len', IntegerBlock(length=1), {}),
-            ('b', UTF8Block(length=lambda ctx: ctx.data('len')), {}),
-        ])
-        self.assertEqual(field.size_doc_str, "2..?")
+        field = CompoundBlock(
+            fields=[
+                ('a', IntegerBlock(length=1), {}),
+                ('len', IntegerBlock(length=1), {}),
+                ('b', UTF8Block(length=lambda ctx: ctx.data('len')), {}),
+            ]
+        )
+        self.assertEqual(field.size_doc_str, '2..?')
 
 
 class SimpleBlock(DeclarativeCompoundBlock):
@@ -85,22 +102,25 @@ class SimpleBlock(DeclarativeCompoundBlock):
 
 class BindingBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        header = IntegerBlock(length=1, value_validator=Eq(2)), {'description': "Some header"}
-        len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
-               {'description': "A length of `val` array"})
+        header = IntegerBlock(length=1, value_validator=Eq(2)), {'description': 'Some header'}
+        len = (
+            IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
+            {'description': 'A length of `val` array'},
+        )
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
 
 
 class BindingBlockWithDoc(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        header = IntegerBlock(length=1, value_validator=Eq(2)), {'description': "Some header"}
-        len = (IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
-               {'description': "A length of `val` array"})
+        header = IntegerBlock(length=1, value_validator=Eq(2)), {'description': 'Some header'}
+        len = (
+            IntegerBlock(length=1, programmatic_value=lambda ctx: len(ctx.data('val'))),
+            {'description': 'A length of `val` array'},
+        )
         val = ArrayBlock(child=IntegerBlock(length=1), length=lambda ctx: ctx.data('len'))
 
 
 class TestDeclarativeCompound(unittest.TestCase):
-
     def test_unpack(self):
         field = SimpleBlock()
         val = field.unpack(ReadContext(BytesIO(bytes([92, 129]))))
@@ -189,12 +209,13 @@ class TestDeclarativeCompound(unittest.TestCase):
                                 'block_description': '1-byte unsigned integer',
                                 'min_value': 0,
                                 'max_value': 255,
-                                'value_interval': 1
-                        },
+                                'value_interval': 1,
+                            },
                         },
                         'is_unknown': False,
                         'usage': 'everywhere',
                         'description': '',
-                    }
-                ]
-            })
+                    },
+                ],
+            },
+        )

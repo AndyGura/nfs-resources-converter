@@ -14,13 +14,12 @@ class BaseMesh(ABC):
 
     def rotate_z(self, angle):
         c, s = math.cos(angle), math.sin(angle)
-        self.vertices = [[p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]]
-                         for p in self.vertices]
+        self.vertices = [[p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]] for p in self.vertices]
 
     def apply_transform_matrix(self, m: List[List[float]]):
         for v in [m, *m]:
             if len(v) != 4:
-                raise ValueError("Transform matrix must contain exactly 4 rows and columns")
+                raise ValueError('Transform matrix must contain exactly 4 rows and columns')
 
         transformed_vertices = []
         for vertex in self.vertices:
@@ -58,11 +57,14 @@ class BaseMesh(ABC):
                 value = -value
             return value
 
-        self.vertices = [[
-            get_value_from_vertex_list(v, new_x),
-            get_value_from_vertex_list(v, new_y),
-            get_value_from_vertex_list(v, new_z),
-        ] for v in self.vertices]
+        self.vertices = [
+            [
+                get_value_from_vertex_list(v, new_x),
+                get_value_from_vertex_list(v, new_y),
+                get_value_from_vertex_list(v, new_z),
+            ]
+            for v in self.vertices
+        ]
 
     # after deleting polygons should call this function
     def remove_orphaned_vertices(self):
@@ -78,16 +80,14 @@ class BaseMesh(ABC):
                 self.polygons[j] = [idx if idx <= removed_index else idx - 1 for idx in p]
 
     def extend(self, mesh: 'BaseMesh'):
-        v_offset = (self.pivot_offset[0] - mesh.pivot_offset[0],
-                    self.pivot_offset[1] - mesh.pivot_offset[1],
-                    self.pivot_offset[2] - mesh.pivot_offset[2])
+        v_offset = (
+            self.pivot_offset[0] - mesh.pivot_offset[0],
+            self.pivot_offset[1] - mesh.pivot_offset[1],
+            self.pivot_offset[2] - mesh.pivot_offset[2],
+        )
         v_index_surplus = len(self.vertices)
-        self.vertices.extend([
-            [v[0] + v_offset[0], v[1] + v_offset[1], v[2] + v_offset[2]] for v in mesh.vertices
-        ])
-        self.polygons.extend([
-            [v + v_index_surplus for v in p] for p in mesh.polygons
-        ])
+        self.vertices.extend([[v[0] + v_offset[0], v[1] + v_offset[1], v[2] + v_offset[2]] for v in mesh.vertices])
+        self.polygons.extend([[v + v_index_surplus for v in p] for p in mesh.polygons])
         self.vertex_uvs.extend(mesh.vertex_uvs)
 
     def collapse_vertices(self):
@@ -113,7 +113,7 @@ class BaseMesh(ABC):
                 for dy in [-1, 0, 1]:
                     for dz in [-1, 0, 1]:
                         neighbor_key = (key[0] + dx, key[1] + dy, key[2] + dz)
-                        for (j, vj) in grid[neighbor_key]:
+                        for j, vj in grid[neighbor_key]:
                             if abs(vi[0] - vj[0]) < 0.01 and abs(vi[1] - vj[1]) < 0.01 and abs(vi[2] - vj[2]) < 0.01:
                                 existing_v_index = j
                                 break
@@ -148,15 +148,21 @@ class SubMesh(BaseMesh):
         res = f'\n\no {self.name}'
         if mtllib is not None:
             res += f'\nmtllib {mtllib}'
-        res += '\n' + '\n'.join(['v ' + ' '.join(
-            [str(coordinates[i] - pivot_offset[i]) for i in range(3)]
-        ) for coordinates in self.vertices])
+        res += '\n' + '\n'.join(
+            [
+                'v ' + ' '.join([str(coordinates[i] - pivot_offset[i]) for i in range(3)])
+                for coordinates in self.vertices
+            ]
+        )
         res += '\n' + '\n'.join([f'vt {uv[0]} {1 - uv[1]}' for uv in self.vertex_uvs])
         if self.texture_id:
             res += '\nusemtl ' + self.texture_id
         res += '\n' + '\n'.join(
-            ['f ' + ' '.join([f'{x + face_index_increment}/{x + face_index_increment}' for x in polygon]) for polygon in
-             self.polygons])
+            [
+                'f ' + ' '.join([f'{x + face_index_increment}/{x + face_index_increment}' for x in polygon])
+                for polygon in self.polygons
+            ]
+        )
         return res, len(self.vertices)
 
 
@@ -211,7 +217,7 @@ class Mesh(BaseMesh):
         if len(sub_meshes) == 1:
             return sub_meshes[0][0].to_obj(face_index_increment, mtllib, pivot_offset)
         obj_texts = []
-        for (sub_model, _, _) in sub_meshes:
+        for sub_model, _, _ in sub_meshes:
             obj, fii = sub_model.to_obj(face_index_increment, mtllib, pivot_offset)
             obj_texts.append(obj)
             face_index_increment += fii
@@ -223,28 +229,37 @@ class Mesh(BaseMesh):
 
 
 class CubeMesh(SubMesh):
-
     def _build_mesh(self):
-        self.vertices = [(-self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
-                         (-self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
-                         (-self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
-                         (-self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2),
-                         (self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
-                         (self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
-                         (self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
-                         (self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2)]
+        self.vertices = [
+            (-self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
+            (-self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
+            (-self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
+            (-self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2),
+            (self.dimensions[0] / 2, -self.dimensions[1] / 2, -self.dimensions[2] / 2),
+            (self.dimensions[0] / 2, -self.dimensions[1] / 2, self.dimensions[2] / 2),
+            (self.dimensions[0] / 2, self.dimensions[1] / 2, -self.dimensions[2] / 2),
+            (self.dimensions[0] / 2, self.dimensions[1] / 2, self.dimensions[2] / 2),
+        ]
 
     def __init__(self, dimensions=(1, 1, 1), position=(0, 0, 0), **kwargs):
         super().__init__(**kwargs)
         self._dimensions = dimensions
         self._position = position
         self._build_mesh()
-        self.polygons = [(0, 1, 2), (2, 1, 3),
-                         (4, 6, 5), (5, 6, 7),
-                         (1, 0, 5), (5, 0, 4),
-                         (2, 6, 0), (0, 6, 4),
-                         (1, 5, 3), (3, 5, 7),
-                         (2, 3, 6), (6, 3, 7)]
+        self.polygons = [
+            (0, 1, 2),
+            (2, 1, 3),
+            (4, 6, 5),
+            (5, 6, 7),
+            (1, 0, 5),
+            (5, 0, 4),
+            (2, 6, 0),
+            (0, 6, 4),
+            (1, 5, 3),
+            (3, 5, 7),
+            (2, 3, 6),
+            (6, 3, 7),
+        ]
         self.vertex_uvs = [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0), (1, 0), (1, 1), (0, 1)]
         self.pivot_offset = (-self.position[0], -self.position[1], -self.position[2])
 

@@ -3,15 +3,16 @@ from typing import Dict
 
 from library.context import ReadContext
 from library.exceptions import BlockDefinitionException
-from library.read_blocks import (DeclarativeCompoundBlock,
-                                 UTF8Block,
-                                 IntegerBlock,
-                                 ArrayBlock,
-                                 BytesBlock,
-                                 DelegateBlock,
-                                 DecimalBlock,
-                                 SubByteCompoundBlock,
-                                 )
+from library.read_blocks import (
+    DeclarativeCompoundBlock,
+    UTF8Block,
+    IntegerBlock,
+    ArrayBlock,
+    BytesBlock,
+    DelegateBlock,
+    DecimalBlock,
+    SubByteCompoundBlock,
+)
 from library.read_blocks.misc.value_validators import Eq, Or
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.archives.shpi_block import ShpiBlock
@@ -19,379 +20,390 @@ from resources.eac.fields.misc import Point3D
 
 
 class UnkPart2(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Unknown part with index and 2-chars identifier'}
+        return {**super().schema, 'block_description': 'Unknown part with index and 2-chars identifier'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        idx = (IntegerBlock(length=2),
-               {'description': 'A part index of the same identifier (in the same article)'})
-        identifier = (
-            UTF8Block(length=2, value_validator=Or(['zd', 'ns', 'fd'])),
-            {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3),
-               {'description': 'Data length in bytes'})
-        unk1 = (IntegerBlock(length=4),
-                {'is_unknown': True})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (BytesBlock(length=lambda ctx: ctx.data('len')),
-                {'usage': 'ui'})
+        idx = (IntegerBlock(length=2), {'description': 'A part index of the same identifier (in the same article)'})
+        identifier = (UTF8Block(length=2, value_validator=Or(['zd', 'ns', 'fd'])), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (IntegerBlock(length=3), {'description': 'Data length in bytes'})
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (BytesBlock(length=lambda ctx: ctx.data('len')), {'usage': 'ui'})
 
 
 class UnkPart4(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Unknown part with 4-chars identifier'}
+        return {**super().schema, 'block_description': 'Unknown part with 4-chars identifier'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         identifier = (
-            UTF8Block(length=4, value_validator=Or(['esaB', 'PdnB', 'htMR', 'odnW', 'nAmC', 'cseD', 'DmiS', 'TmiS',
-                                                    ' siV', '', 'minA', 'tqnA'])),
-            {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3),
-               {'description': 'Data length in bytes'})
-        unk1 = (IntegerBlock(length=4),
-                {'is_unknown': True})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (BytesBlock(length=lambda ctx: ctx.data('len')),
-                {'usage': 'ui'})
+            UTF8Block(
+                length=4,
+                value_validator=Or(
+                    ['esaB', 'PdnB', 'htMR', 'odnW', 'nAmC', 'cseD', 'DmiS', 'TmiS', ' siV', '', 'minA', 'tqnA']
+                ),
+            ),
+            {'description': 'Identifier'},
+        )
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (IntegerBlock(length=3), {'description': 'Data length in bytes'})
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (BytesBlock(length=lambda ctx: ctx.data('len')), {'usage': 'ui'})
 
 
 class MaterialPartData(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A material, data structure is mostly unknown'}
+        return {**super().schema, 'block_description': 'A material, data structure is mostly unknown'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (BytesBlock(length=16), {'is_unknown': True})
         desc = (UTF8Block(length=16), {'description': 'Description'})
         unk1 = (BytesBlock(length=8), {'is_unknown': True})
-        tex_page_index = (IntegerBlock(length=4),
-                          {'description': 'Texture page index'})
+        tex_page_index = (IntegerBlock(length=4), {'description': 'Texture page index'})
         unk2 = (BytesBlock(length=0x10C), {'is_unknown': True})
 
 
 class MaterialPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to [MaterialPartData](#materialpartdata) block'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to [MaterialPartData](#materialpartdata) block',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        idx = (IntegerBlock(length=2),
-               {'description': 'A part index of the same identifier'})
-        identifier = (UTF8Block(length=2, value_validator=Eq("tm")),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3),
-               {'description': 'Data length in bytes'})
-        unk1 = (IntegerBlock(length=4),
-                {'is_unknown': True})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
+        idx = (IntegerBlock(length=2), {'description': 'A part index of the same identifier'})
+        identifier = (UTF8Block(length=2, value_validator=Eq('tm')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (IntegerBlock(length=3), {'description': 'Data length in bytes'})
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
         data = (MaterialPartData(), {'usage': 'ui'})
 
 
 class FSHPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to an array of [ShpiBlock](#shpiblock) blocks'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to an array of [ShpiBlock](#shpiblock) blocks',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        idx = (IntegerBlock(length=2),
-               {'description': 'A part index of the same identifier'})
-        identifier = (UTF8Block(length=2, value_validator=Eq("fs")),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: sum(ShpiBlock().estimate_packed_size(shpi, None)
-                                                                         for shpi in ctx.data('data'))),
-               {'usage': 'io,doc',
-                'description': 'Data length in bytes'})
-        num_data = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
-                    {'description': 'Number of SHPI blocks'})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (ArrayBlock(child=ShpiBlock(), length=lambda ctx: ctx.data('num_data')),
-                {'usage': 'ui'})
+        idx = (IntegerBlock(length=2), {'description': 'A part index of the same identifier'})
+        identifier = (UTF8Block(length=2, value_validator=Eq('fs')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (
+            IntegerBlock(
+                length=3,
+                programmatic_value=lambda ctx: sum(
+                    ShpiBlock().estimate_packed_size(shpi, None) for shpi in ctx.data('data')
+                ),
+            ),
+            {'usage': 'io,doc', 'description': 'Data length in bytes'},
+        )
+        num_data = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
+            {'description': 'Number of SHPI blocks'},
+        )
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (ArrayBlock(child=ShpiBlock(), length=lambda ctx: ctx.data('num_data')), {'usage': 'ui'})
 
 
 class TextPart2(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to text with index and 2-chars identifier'}
+        return {**super().schema, 'block_description': 'A part referencing to text with index and 2-chars identifier'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        idx = (IntegerBlock(length=2),
-               {'description': 'A part index of the same identifier (in the same article)'})
-        identifier = (UTF8Block(length=2, value_validator=Eq('ns')),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) + 1),
-               {'description': 'Data length in bytes, equals to `text length + 1` (0x00 terminating byte)'})
-        unk1 = (IntegerBlock(length=4),
-                {'is_unknown': True})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (NullTerminatedUTF8Block(length=None),
-                {'usage': 'ui'})
+        idx = (IntegerBlock(length=2), {'description': 'A part index of the same identifier (in the same article)'})
+        identifier = (UTF8Block(length=2, value_validator=Eq('ns')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (
+            IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) + 1),
+            {'description': 'Data length in bytes, equals to `text length + 1` (0x00 terminating byte)'},
+        )
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (NullTerminatedUTF8Block(length=None), {'usage': 'ui'})
 
 
 class TextPart4(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to text with 4-chars identifier'}
+        return {**super().schema, 'block_description': 'A part referencing to text with 4-chars identifier'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        identifier = (UTF8Block(length=4, value_validator=Or(['emaN', 'cseD'])),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) + 1),
-               {'description': 'Data length in bytes, equals to `text length + 1` (0x00 terminating byte)'})
-        unk1 = (IntegerBlock(length=4),
-                {'is_unknown': True})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (NullTerminatedUTF8Block(length=None),
-                {'usage': 'ui'})
+        identifier = (UTF8Block(length=4, value_validator=Or(['emaN', 'cseD'])), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (
+            IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) + 1),
+            {'description': 'Data length in bytes, equals to `text length + 1` (0x00 terminating byte)'},
+        )
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (NullTerminatedUTF8Block(length=None), {'usage': 'ui'})
 
 
 class CullingPartData(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Polygon culling rule?'}
+        return {**super().schema, 'block_description': 'Polygon culling rule?'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = (Point3D(child=DecimalBlock(length=4), is_normalized=True),
-                  {'description': 'Normalized direction vector (plane normal?)'})
-        threshold = (DecimalBlock(length=4),
-                     {'description': 'Threshold value (plane distance?)'})
+        normal = (
+            Point3D(child=DecimalBlock(length=4), is_normalized=True),
+            {'description': 'Normalized direction vector (plane normal?)'},
+        )
+        threshold = (DecimalBlock(length=4), {'description': 'Threshold value (plane distance?)'})
 
 
 class CullingPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to an array of [CullingPartData](#cullingpartdata) blocks'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to an array of [CullingPartData](#cullingpartdata) blocks',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (SubByteCompoundBlock(length=2, schema=[
-            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
-            (8, 'animation_index', 'number', [], 'animation index'),
-            (4, 'lod', 'number', [], 'Level of detail'),
-        ]),
-                     {'description': 'Part matching info. Part should be used with others that have same values'})
-        identifier = (UTF8Block(length=2, value_validator=Eq("n$")),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) * 16),
-               {'description': 'Data length in bytes'})
-        num_data = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
-                    {'description': 'Number of culling part data blocks'})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=CullingPartData()),
-                {'usage': 'ui'})
+        part_info = (
+            SubByteCompoundBlock(
+                length=2,
+                schema=[
+                    (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+                    (8, 'animation_index', 'number', [], 'animation index'),
+                    (4, 'lod', 'number', [], 'Level of detail'),
+                ],
+            ),
+            {'description': 'Part matching info. Part should be used with others that have same values'},
+        )
+        identifier = (UTF8Block(length=2, value_validator=Eq('n$')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (
+            IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) * 16),
+            {'description': 'Data length in bytes'},
+        )
+        num_data = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
+            {'description': 'Number of culling part data blocks'},
+        )
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=CullingPartData()), {'usage': 'ui'})
 
 
 class TransformationPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to a transformation matrix. If exists, matrix should be '
-                                     'applied to the meshes of the same article with the same LOD. Matrix is a 4x4 '
-                                     'matrix in column-major order (elements 12, 13, 14 are the translation), where '
-                                     'each number is stored as 4-bytes float number (little-endian).'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to a transformation matrix. If exists, matrix should be '
+            'applied to the meshes of the same article with the same LOD. Matrix is a 4x4 '
+            'matrix in column-major order (elements 12, 13, 14 are the translation), where '
+            'each number is stored as 4-bytes float number (little-endian).',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (SubByteCompoundBlock(length=2, schema=[
-            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
-            (8, 'animation_index', 'number', [], 'animation index'),
-            (4, 'lod', 'number', [], 'Level of detail'),
-        ]),
-                     {'description': 'Part matching info. Part should be used with others that have same values'})
-        identifier = (UTF8Block(length=2, value_validator=Eq('rt')),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, value_validator=Eq(0x40)),
-               {'description': 'Data length in bytes'})
-        unk_1 = (IntegerBlock(length=4),
-                 {'is_unknown': True,
-                  'description': 'Always 1? Number of Transformation Matrices?'})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (ArrayBlock(length=16, child=DecimalBlock(length=4)),
-                {'usage': 'ui'})
+        part_info = (
+            SubByteCompoundBlock(
+                length=2,
+                schema=[
+                    (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+                    (8, 'animation_index', 'number', [], 'animation index'),
+                    (4, 'lod', 'number', [], 'Level of detail'),
+                ],
+            ),
+            {'description': 'Part matching info. Part should be used with others that have same values'},
+        )
+        identifier = (UTF8Block(length=2, value_validator=Eq('rt')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (IntegerBlock(length=3, value_validator=Eq(0x40)), {'description': 'Data length in bytes'})
+        unk_1 = (
+            IntegerBlock(length=4),
+            {'is_unknown': True, 'description': 'Always 1? Number of Transformation Matrices?'},
+        )
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (ArrayBlock(length=16, child=DecimalBlock(length=4)), {'usage': 'ui'})
 
 
 class VertexData(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Represents single vertex'}
+        return {**super().schema, 'block_description': 'Represents single vertex'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        position = (Point3D(child=DecimalBlock(length=4)),
-                    {'description': 'Position'})
+        position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Position'})
         unk = (DecimalBlock(length=4), {'is_unknown': True})
 
 
 class VertexPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to an array of [VertexData](#vertexdata) blocks, representing'
-                                     ' mesh vertices. Every vertex part of an article produces a separate mesh, '
-                                     'combined with the triangle, UV and transformation parts of the same LOD. For a '
-                                     'damaged part (damage == 8) vertex positions are offsets, which are added to '
-                                     'vertices of the undamaged part with the same LOD and animation index'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to an array of [VertexData](#vertexdata) blocks, representing'
+            ' mesh vertices. Every vertex part of an article produces a separate mesh, '
+            'combined with the triangle, UV and transformation parts of the same LOD. For a '
+            'damaged part (damage == 8) vertex positions are offsets, which are added to '
+            'vertices of the undamaged part with the same LOD and animation index',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (SubByteCompoundBlock(length=2, schema=[
-            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
-            (8, 'animation_index', 'number', [], 'animation index'),
-            (4, 'lod', 'number', [], 'Level of detail'),
-        ]),
-                     {'description': 'Part matching info. Part should be used with others that have same values'})
-        identifier = (UTF8Block(length=2, value_validator=Eq("tv")),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) * 16),
-               {'usage': 'io,doc',
-                'description': 'Data length in bytes'})
-        num_vertices = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
-                        {'description': 'Number of vertices'})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (ArrayBlock(length=lambda ctx: ctx.data('num_vertices'), child=VertexData()),
-                {'usage': 'ui'})
+        part_info = (
+            SubByteCompoundBlock(
+                length=2,
+                schema=[
+                    (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+                    (8, 'animation_index', 'number', [], 'animation index'),
+                    (4, 'lod', 'number', [], 'Level of detail'),
+                ],
+            ),
+            {'description': 'Part matching info. Part should be used with others that have same values'},
+        )
+        identifier = (UTF8Block(length=2, value_validator=Eq('tv')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (
+            IntegerBlock(length=3, programmatic_value=lambda ctx: len(ctx.data('data')) * 16),
+            {'usage': 'io,doc', 'description': 'Data length in bytes'},
+        )
+        num_vertices = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
+            {'description': 'Number of vertices'},
+        )
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_vertices'), child=VertexData()), {'usage': 'ui'})
 
 
 class NormalPartData(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        normal = (Point3D(child=DecimalBlock(length=4)),
-                  {'description': 'Normal vector'})
+        normal = (Point3D(child=DecimalBlock(length=4)), {'description': 'Normal vector'})
         unk = (DecimalBlock(length=4), {'is_unknown': True})
 
 
 class NormalPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to an array of [NormalPartData](#normalpartdata) blocks, describing mesh normals'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to an array of [NormalPartData](#normalpartdata) blocks, describing mesh normals',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (SubByteCompoundBlock(length=2, schema=[
-            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
-            (8, 'animation_index', 'number', [], 'animation index'),
-            (4, 'lod', 'number', [], 'Level of detail'),
-        ]),
-                     {'description': 'Part matching info. Part should be used with others that have same values'})
-        identifier = (UTF8Block(length=2, value_validator=Eq('mn')),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.data('num_data') * 16),
-               {'description': 'Data length in bytes'})
-        num_data = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
-                    {'description': 'Number of normals'})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=NormalPartData()),
-                {'usage': 'ui'})
+        part_info = (
+            SubByteCompoundBlock(
+                length=2,
+                schema=[
+                    (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+                    (8, 'animation_index', 'number', [], 'animation index'),
+                    (4, 'lod', 'number', [], 'Level of detail'),
+                ],
+            ),
+            {'description': 'Part matching info. Part should be used with others that have same values'},
+        )
+        identifier = (UTF8Block(length=2, value_validator=Eq('mn')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (
+            IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.data('num_data') * 16),
+            {'description': 'Data length in bytes'},
+        )
+        num_data = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
+            {'description': 'Number of normals'},
+        )
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=NormalPartData()), {'usage': 'ui'})
 
 
 class UVData(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Texture coordinates of a vertex'}
+        return {**super().schema, 'block_description': 'Texture coordinates of a vertex'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        u = (DecimalBlock(length=4),
-             {'description': 'U texture coordinate'})
-        v = (DecimalBlock(length=4),
-             {'description': 'V texture coordinate'})
+        u = (DecimalBlock(length=4), {'description': 'U texture coordinate'})
+        v = (DecimalBlock(length=4), {'description': 'V texture coordinate'})
 
 
 class UVPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to an array of [UVData](#uvdata) blocks, representing texture coordinates'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to an array of [UVData](#uvdata) blocks, representing texture coordinates',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (SubByteCompoundBlock(length=2, schema=[
-            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
-            (8, 'animation_index', 'number', [], 'animation index'),
-            (4, 'lod', 'number', [], 'Level of detail'),
-        ]),
-                     {'description': 'Part matching info. Part should be used with others that have same values'})
-        identifier = (UTF8Block(length=2, value_validator=Eq('vu')),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.data('num_data') * 8),
-               {'description': 'Data length in bytes'})
-        num_data = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
-                    {'description': 'Amount of UVData blocks, equals to len / 8'})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
-        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=UVData()),
-                {'usage': 'ui'})
+        part_info = (
+            SubByteCompoundBlock(
+                length=2,
+                schema=[
+                    (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+                    (8, 'animation_index', 'number', [], 'animation index'),
+                    (4, 'lod', 'number', [], 'Level of detail'),
+                ],
+            ),
+            {'description': 'Part matching info. Part should be used with others that have same values'},
+        )
+        identifier = (UTF8Block(length=2, value_validator=Eq('vu')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (
+            IntegerBlock(length=3, programmatic_value=lambda ctx: ctx.data('num_data') * 8),
+            {'description': 'Data length in bytes'},
+        )
+        num_data = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('data'))),
+            {'description': 'Amount of UVData blocks, equals to len / 8'},
+        )
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
+        data = (ArrayBlock(length=lambda ctx: ctx.data('num_data'), child=UVData()), {'usage': 'ui'})
 
 
 class TriangleInfoRowBase(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Common prefix of the info rows of [TrianglePartData](#trianglepartdata)'}
+        return {
+            **super().schema,
+            'block_description': 'Common prefix of the info rows of [TrianglePartData](#trianglepartdata)',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
@@ -400,11 +412,12 @@ class TriangleInfoRowBase(DeclarativeCompoundBlock):
 
 
 class CullingInfoRow(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Info row referencing the culling data used by the triangle part'}
+        return {
+            **super().schema,
+            'block_description': 'Info row referencing the culling data used by the triangle part',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
@@ -416,17 +429,20 @@ class CullingInfoRow(DeclarativeCompoundBlock):
 
 
 class VertexInfoRow(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Info row referencing the vertex data used by the triangle part'}
+        return {**super().schema, 'block_description': 'Info row referencing the vertex data used by the triangle part'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
-        offset = (IntegerBlock(length=4), {'description': 'Offset in vertex data in bytes. offset / 16 is the index '
-                                                          'of the first vertex used by the part; it is added to all '
-                                                          'values of the vertex index table'})
+        offset = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Offset in vertex data in bytes. offset / 16 is the index '
+                'of the first vertex used by the part; it is added to all '
+                'values of the vertex index table'
+            },
+        )
         length_used = (IntegerBlock(length=2), {'description': 'Length of vertex data used'})
         unk1 = (BytesBlock(length=2), {'is_unknown': True})
         level_index = (IntegerBlock(length=2), {'description': 'Level index'})
@@ -434,11 +450,12 @@ class VertexInfoRow(DeclarativeCompoundBlock):
 
 
 class NormalInfoRow(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Info row referencing the normals data used by the triangle part'}
+        return {
+            **super().schema,
+            'block_description': 'Info row referencing the normals data used by the triangle part',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
@@ -450,11 +467,9 @@ class NormalInfoRow(DeclarativeCompoundBlock):
 
 
 class UVInfoRow(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Info row referencing the UV data used by the triangle part'}
+        return {**super().schema, 'block_description': 'Info row referencing the UV data used by the triangle part'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
@@ -477,29 +492,31 @@ def determine_triangle_info_row_type(ctx, name):
 
 
 class IndexRow(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Descriptor of an index stream (vertex indices or UV indices) of the triangle '
-                                     'part'}
+        return {
+            **super().schema,
+            'block_description': 'Descriptor of an index stream (vertex indices or UV indices) of the triangle part',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
         idx = (IntegerBlock(length=2), {'description': 'Row index'})
-        identifier = (UTF8Block(length=2),
-                      {'description': 'Identifier "vI"|"Iv" – vertex index, "uI"|"Iu" - uv index'})
-        offset = (IntegerBlock(length=4), {'description': 'Offset of indices: the position of the first index of this '
-                                                          'stream in the index tables'})
+        identifier = (UTF8Block(length=2), {'description': 'Identifier "vI"|"Iv" – vertex index, "uI"|"Iu" - uv index'})
+        offset = (
+            IntegerBlock(length=4),
+            {'description': 'Offset of indices: the position of the first index of this stream in the index tables'},
+        )
 
 
 class TrianglePartData(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A description of mesh geometry (faces): a triangle list. Every 3 consecutive '
-                                     'values of the vertex index table (starting from the offset of the first index '
-                                     'row) form a triangle; UV index table maps the same positions to UV-s'}
+        return {
+            **super().schema,
+            'block_description': 'A description of mesh geometry (faces): a triangle list. Every 3 consecutive '
+            'values of the vertex index table (starting from the offset of the first index '
+            'row) form a triangle; UV index table maps the same positions to UV-s',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
         flags = (IntegerBlock(length=4), {'is_unknown': True, 'description': 'Info flags'})
@@ -507,51 +524,73 @@ class TrianglePartData(DeclarativeCompoundBlock):
         unk0 = (IntegerBlock(length=2), {'is_unknown': True})
         unk_floats = (ArrayBlock(length=4, child=DecimalBlock(length=4)), {'is_unknown': True})
         unk_zeros = (BytesBlock(length=16), {'is_unknown': True})
-        num_info_rows = (IntegerBlock(length=4), {'programmatic_value': lambda ctx: len(ctx.data('info_rows')),
-                                                  'description': 'Number of info rows'})
-        num_index_rows = (IntegerBlock(length=4), {'programmatic_value': lambda ctx: len(ctx.data('index_rows')),
-                                                   'description': 'Number of index rows'})
-        info_rows = (ArrayBlock(length=lambda ctx: ctx.data('num_info_rows'),
-                                child=DelegateBlock(
-                                    possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
-                                    choice_index=lambda ctx, name, **_: determine_triangle_info_row_type(ctx, name))),
-                     {'description': 'Descriptors of the data streams used by this part. When there are 4 rows, they '
-                                     'are culling, normal, UV and vertex rows; when 3 - normal, UV and vertex rows'})
-        index_rows = (ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'), child=IndexRow()),
-                      {'description': 'Descriptors of the index streams: vertex indices and UV indices'})
-        index_table = (ArrayBlock(length=lambda ctx: ctx.data('../num_data'), child=IntegerBlock(length=1)),
-                       {'description': 'Vertex index table. Every 3 consecutive values form a triangle'})
-        uv_index_table = (ArrayBlock(length=lambda ctx: ctx.data('../num_data'), child=IntegerBlock(length=1)),
-                          {'description': 'UV index table: for every position of the vertex index table, index of '
-                                          'UV-s in the UV part of the same LOD'})
+        num_info_rows = (
+            IntegerBlock(length=4),
+            {'programmatic_value': lambda ctx: len(ctx.data('info_rows')), 'description': 'Number of info rows'},
+        )
+        num_index_rows = (
+            IntegerBlock(length=4),
+            {'programmatic_value': lambda ctx: len(ctx.data('index_rows')), 'description': 'Number of index rows'},
+        )
+        info_rows = (
+            ArrayBlock(
+                length=lambda ctx: ctx.data('num_info_rows'),
+                child=DelegateBlock(
+                    possible_blocks=[CullingInfoRow(), NormalInfoRow(), UVInfoRow(), VertexInfoRow()],
+                    choice_index=lambda ctx, name, **_: determine_triangle_info_row_type(ctx, name),
+                ),
+            ),
+            {
+                'description': 'Descriptors of the data streams used by this part. When there are 4 rows, they '
+                'are culling, normal, UV and vertex rows; when 3 - normal, UV and vertex rows'
+            },
+        )
+        index_rows = (
+            ArrayBlock(length=lambda ctx: ctx.data('num_index_rows'), child=IndexRow()),
+            {'description': 'Descriptors of the index streams: vertex indices and UV indices'},
+        )
+        index_table = (
+            ArrayBlock(length=lambda ctx: ctx.data('../num_data'), child=IntegerBlock(length=1)),
+            {'description': 'Vertex index table. Every 3 consecutive values form a triangle'},
+        )
+        uv_index_table = (
+            ArrayBlock(length=lambda ctx: ctx.data('../num_data'), child=IntegerBlock(length=1)),
+            {
+                'description': 'UV index table: for every position of the vertex index table, index of '
+                'UV-s in the UV part of the same LOD'
+            },
+        )
 
 
 class TrianglePart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to [TrianglePartData](#TrianglePartData) block, describes mesh faces'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to [TrianglePartData](#TrianglePartData) block, describes mesh faces',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (SubByteCompoundBlock(length=2, schema=[
-            (4, 'lod', 'number', [], 'Level of detail'),
-            (8, 'unk', 'number', [], 'unknown'),
-            (4, 'part_index', 'number', [], 'part index'),
-        ]),
-                     {'description': 'Part matching info. Part should be used with others that have same values'})
-        identifier = (UTF8Block(length=2, value_validator=Eq('rp')),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
+        part_info = (
+            SubByteCompoundBlock(
+                length=2,
+                schema=[
+                    (4, 'lod', 'number', [], 'Level of detail'),
+                    (8, 'unk', 'number', [], 'unknown'),
+                    (4, 'part_index', 'number', [], 'part index'),
+                ],
+            ),
+            {'description': 'Part matching info. Part should be used with others that have same values'},
+        )
+        identifier = (UTF8Block(length=2, value_validator=Eq('rp')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
         # TODO setup programmatic value for length fields. Here it should be (48 + data.num_info_rows*16 + data.num_index_rows*8 + num_data*2)
-        len = (IntegerBlock(length=3),
-               {'description': 'Data length in bytes'})
-        num_data = (IntegerBlock(length=4),
-                    {'description': 'Number of indices (size of each index table in the data)'})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
+        len = (IntegerBlock(length=3), {'description': 'Data length in bytes'})
+        num_data = (IntegerBlock(length=4), {'description': 'Number of indices (size of each index table in the data)'})
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
         data = (TrianglePartData(), {'usage': 'ui'})
 
 
@@ -574,69 +613,78 @@ class EffectPartData(DeclarativeCompoundBlock):
 
 
 class EffectPart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A part referencing to an array of [EffectPartData](#effectpartdata) blocks'}
+        return {
+            **super().schema,
+            'block_description': 'A part referencing to an array of [EffectPartData](#effectpartdata) blocks',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        part_info = (SubByteCompoundBlock(length=2, schema=[
-            (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
-            (8, 'animation_index', 'number', [], 'animation index'),
-            (4, 'lod', 'number', [], 'Level of detail'),
-        ]),
-                     {'description': 'Part matching info. Part should be used with others that have same values'})
-        identifier = (UTF8Block(length=2, value_validator=Eq('fe')),
-                      {'description': 'Identifier'})
-        unk0 = (IntegerBlock(length=1),
-                {'is_unknown': True})
-        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: 0x58),
-               {'description': 'Data length in bytes'})
-        unk1 = (IntegerBlock(length=4),
-                {'is_unknown': True})
-        offset = (IntegerBlock(length=4),
-                  {'usage': 'io,doc',
-                   'description': 'Data offset (Relative from current block offset)'})
+        part_info = (
+            SubByteCompoundBlock(
+                length=2,
+                schema=[
+                    (4, 'damage', 'number', [], 'Damage switch (0x8 means damaged)'),
+                    (8, 'animation_index', 'number', [], 'animation index'),
+                    (4, 'lod', 'number', [], 'Level of detail'),
+                ],
+            ),
+            {'description': 'Part matching info. Part should be used with others that have same values'},
+        )
+        identifier = (UTF8Block(length=2, value_validator=Eq('fe')), {'description': 'Identifier'})
+        unk0 = (IntegerBlock(length=1), {'is_unknown': True})
+        len = (IntegerBlock(length=3, programmatic_value=lambda ctx: 0x58), {'description': 'Data length in bytes'})
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        offset = (
+            IntegerBlock(length=4),
+            {'usage': 'io,doc', 'description': 'Data offset (Relative from current block offset)'},
+        )
         data = (EffectPartData(), {'usage': 'ui'})
 
 
 class PartBlock(DelegateBlock):
     def __init__(self, **kwargs):
-        super().__init__(possible_blocks=[TextPart4(),
-                                          CullingPart(),
-                                          TextPart2(),
-                                          EffectPart(),
-                                          NormalPart(),
-                                          TrianglePart(),
-                                          TransformationPart(),
-                                          UVPart(),
-                                          VertexPart(),
-                                          UnkPart4(),
-                                          UnkPart2()],
-                         choice_index=lambda ctx, **_: _determine_part_type(ctx),
-                         **kwargs)
+        super().__init__(
+            possible_blocks=[
+                TextPart4(),
+                CullingPart(),
+                TextPart2(),
+                EffectPart(),
+                NormalPart(),
+                TrianglePart(),
+                TransformationPart(),
+                UVPart(),
+                VertexPart(),
+                UnkPart4(),
+                UnkPart2(),
+            ],
+            choice_index=lambda ctx, **_: _determine_part_type(ctx),
+            **kwargs,
+        )
 
 
 class ArticlePart(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'Article is a single logical part of a car or track. Contains meshes of the same '
-                                     'entity for various levels of details, damage status, animation indexes etc.'}
+        return {
+            **super().schema,
+            'block_description': 'Article is a single logical part of a car or track. Contains meshes of the same '
+            'entity for various levels of details, damage status, animation indexes etc.',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(value_validator=Eq('itrA'), length=4),
-                       {'description': 'Resource ID'})
-        header_info = (IntegerBlock(length=4, value_validator=Eq(0x1A)),
-                       {'is_unknown': True})
-        num_parts = (IntegerBlock(length=4),
-                     {'description': 'An amount of parts, linked to this article'})
-        local_offset = (IntegerBlock(length=4),
-                        {'description': 'A local offset from the beginning of this article to the first linked part, '
-                                        'divided by 16. So the first part index in parts array for this article is: '
-                                        'local_offset + this article index - len(articles) - len(common_parts)'})
+        resource_id = (UTF8Block(value_validator=Eq('itrA'), length=4), {'description': 'Resource ID'})
+        header_info = (IntegerBlock(length=4, value_validator=Eq(0x1A)), {'is_unknown': True})
+        num_parts = (IntegerBlock(length=4), {'description': 'An amount of parts, linked to this article'})
+        local_offset = (
+            IntegerBlock(length=4),
+            {
+                'description': 'A local offset from the beginning of this article to the first linked part, '
+                'divided by 16. So the first part index in parts array for this article is: '
+                'local_offset + this article index - len(articles) - len(common_parts)'
+            },
+        )
         parts = (ArrayBlock(child=PartBlock(), length=(0, '?')), {'usage': 'ui'})
 
 
@@ -709,74 +757,104 @@ def determine_num_parts(ctx):
 
 
 class CrpGeometry(DeclarativeCompoundBlock):
-
     @property
     def schema(self) -> Dict:
-        return {**super().schema,
-                'block_description': 'A set of 3D meshes, used for cars and tracks. Currently I parsed all geometries '
-                                     'and (possibly) UV-s, materials are not parsed yet. Contains many part blocks, '
-                                     '16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed '
-                                     'by raw data. Each part, except articles, have an offset and length of it\'s data,'
-                                     ' located in "raw_data" byte array. The converter builds one mesh per vertex part '
-                                     'of each article, named `<article name>_LOD<lod>_ai<animation index>`, using '
-                                     'triangle, UV and transformation parts of the article with the same LOD; '
-                                     'textures come from the FSH parts'}
+        return {
+            **super().schema,
+            'block_description': 'A set of 3D meshes, used for cars and tracks. Currently I parsed all geometries '
+            'and (possibly) UV-s, materials are not parsed yet. Contains many part blocks, '
+            '16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed '
+            "by raw data. Each part, except articles, have an offset and length of it's data,"
+            ' located in "raw_data" byte array. The converter builds one mesh per vertex part '
+            'of each article, named `<article name>_LOD<lod>_ai<animation index>`, using '
+            'triangle, UV and transformation parts of the article with the same LOD; '
+            'textures come from the FSH parts',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (UTF8Block(value_validator=Or([' raC', 'karT']), length=4),
-                       {'description': 'Resource ID. " raC" ("Car ") for cars, "karT" for tracks'})
-        header_info = (IntegerBlock(length=4, programmatic_value=lambda ctx: 0x1A | (len(ctx.data('articles')) << 5)),
-                       {'description': 'Header info: 27 higher bits: number of articles; 5 lower bits: unknown, always '
-                                       'seems to be 0x1A'})
-        num_common_parts = (IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('common_parts'))),
-                            {'description': 'Number of common parts'})
-        articles_offset = (IntegerBlock(length=4, value_validator=Eq(1)),
-                           {'description': 'Offset to articles block / 16'})
-        articles = (ArrayBlock(child=ArticlePart(), length=(lambda ctx: ctx.data('header_info') >> 5)),
-                    {'description': 'Array of articles'})
-        common_parts = (ArrayBlock(child=DelegateBlock(possible_blocks=[TextPart4(),
-                                                                        MaterialPart(),
-                                                                        FSHPart(),
-                                                                        TextPart2(),
-                                                                        UnkPart4(),
-                                                                        UnkPart2(),
-                                                                        ],
-                                                       choice_index=lambda ctx, **_: determine_common_part_type(ctx)),
-                                   length=lambda ctx: ctx.data('num_common_parts')),
-                        {
-                            'description': 'Array of common parts. They are ordered by type (identifier). The order is:<br/>' +
-                                           '- "PdnB" - ?, cars only<br/>'
-                                           '- "nAmC" - camera animations? tracks only<br/>'
-                                           '- [TextPart4](#textpart4) "cseD" - seems to be a path to original development source file, tracks only<br/>'
-                                           '- "htMR" - ?<br/>'
-                                           '- "odnW" - ?, cars only<br/>'
-                                           '- "DmiS" - ?, tracks only<br/>'
-                                           '- "TmiS" - ?, tracks only<br/>'
-                                           '- " siV" - ?, tracks only<br/>'
-                                           '- [MaterialPart](#materialpart)<br/>'
-                                           '- [FSHPart](#fshpart)<br/>'
-                                           '- [TextPart2](#textpart2) "ns" - a path to fsh file with textures, tracks only'})
-        parts = (ArrayBlock(child=PartBlock(),
-                            length=(lambda ctx: determine_num_parts(ctx),
-                                    '1 + last referenced part index in articles data')),
-                 {'usage': 'io,doc',
-                  'description': 'Array of parts, ordered by article, for each article it is also ordered by type (identifier):<br/>'
-                                 '- "minA" - animations? tracks only<br/>'
-                                 '- "tqnA" - ?, tracks only<br/>'
-                                 '- [CullingPart](#cullingpart) - ?, cars only<br/>'
-                                 '- "esaB" - ?<br/>'
-                                 '- [TextPart4](#textpart4) "emaN" - name of the mesh<br/>'
-                                 '- "fd" - ?, tracks only<br/>'
-                                 '- [EffectPart](#effectpart) - ?<br/>'
-                                 '- "zd" - ?, cars only<br/>'
-                                 '- [NormalPart](#normalpart) - ?, cars only<br/>'
-                                 '- [TrianglePart](#trianglepart) - mesh indexes (faces)<br/>'
-                                 '- [TransformationPart](#transformationpart) - position/rotation of the mesh<br/>'
-                                 '- [UVPart](#uvpart) - vertex UV-s<br/>'
-                                 '- [VertexPart](#vertexpart) - vertices'})
-        raw_data = (BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
-                    {'usage': 'doc',
-                     'description': 'Raw data region, where part data is stored. Part data offset and lengthes are stored in the PartBlock.'})
+        resource_id = (
+            UTF8Block(value_validator=Or([' raC', 'karT']), length=4),
+            {'description': 'Resource ID. " raC" ("Car ") for cars, "karT" for tracks'},
+        )
+        header_info = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: 0x1A | (len(ctx.data('articles')) << 5)),
+            {
+                'description': 'Header info: 27 higher bits: number of articles; 5 lower bits: unknown, always '
+                'seems to be 0x1A'
+            },
+        )
+        num_common_parts = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('common_parts'))),
+            {'description': 'Number of common parts'},
+        )
+        articles_offset = (
+            IntegerBlock(length=4, value_validator=Eq(1)),
+            {'description': 'Offset to articles block / 16'},
+        )
+        articles = (
+            ArrayBlock(child=ArticlePart(), length=(lambda ctx: ctx.data('header_info') >> 5)),
+            {'description': 'Array of articles'},
+        )
+        common_parts = (
+            ArrayBlock(
+                child=DelegateBlock(
+                    possible_blocks=[
+                        TextPart4(),
+                        MaterialPart(),
+                        FSHPart(),
+                        TextPart2(),
+                        UnkPart4(),
+                        UnkPart2(),
+                    ],
+                    choice_index=lambda ctx, **_: determine_common_part_type(ctx),
+                ),
+                length=lambda ctx: ctx.data('num_common_parts'),
+            ),
+            {
+                'description': 'Array of common parts. They are ordered by type (identifier). The order is:<br/>'
+                + '- "PdnB" - ?, cars only<br/>'
+                '- "nAmC" - camera animations? tracks only<br/>'
+                '- [TextPart4](#textpart4) "cseD" - seems to be a path to original development source file, tracks only<br/>'
+                '- "htMR" - ?<br/>'
+                '- "odnW" - ?, cars only<br/>'
+                '- "DmiS" - ?, tracks only<br/>'
+                '- "TmiS" - ?, tracks only<br/>'
+                '- " siV" - ?, tracks only<br/>'
+                '- [MaterialPart](#materialpart)<br/>'
+                '- [FSHPart](#fshpart)<br/>'
+                '- [TextPart2](#textpart2) "ns" - a path to fsh file with textures, tracks only'
+            },
+        )
+        parts = (
+            ArrayBlock(
+                child=PartBlock(),
+                length=(lambda ctx: determine_num_parts(ctx), '1 + last referenced part index in articles data'),
+            ),
+            {
+                'usage': 'io,doc',
+                'description': 'Array of parts, ordered by article, for each article it is also ordered by type (identifier):<br/>'
+                '- "minA" - animations? tracks only<br/>'
+                '- "tqnA" - ?, tracks only<br/>'
+                '- [CullingPart](#cullingpart) - ?, cars only<br/>'
+                '- "esaB" - ?<br/>'
+                '- [TextPart4](#textpart4) "emaN" - name of the mesh<br/>'
+                '- "fd" - ?, tracks only<br/>'
+                '- [EffectPart](#effectpart) - ?<br/>'
+                '- "zd" - ?, cars only<br/>'
+                '- [NormalPart](#normalpart) - ?, cars only<br/>'
+                '- [TrianglePart](#trianglepart) - mesh indexes (faces)<br/>'
+                '- [TransformationPart](#transformationpart) - position/rotation of the mesh<br/>'
+                '- [UVPart](#uvpart) - vertex UV-s<br/>'
+                '- [VertexPart](#vertexpart) - vertices',
+            },
+        )
+        raw_data = (
+            BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+            {
+                'usage': 'doc',
+                'description': 'Raw data region, where part data is stored. Part data offset and lengthes are stored in the PartBlock.',
+            },
+        )
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)
@@ -786,33 +864,36 @@ class CrpGeometry(DeclarativeCompoundBlock):
         raw_data_offset = ctx.buffer.tell()
         raw_data_len = ctx.read_bytes_remaining
 
-        for (i, misc_part) in enumerate(data['common_parts']):
+        for i, misc_part in enumerate(data['common_parts']):
             misc_block = misc_part_block.possible_blocks[misc_part['choice_index']]
             data_block = misc_block.field_blocks_map.get('data')
             if not data_block:
                 continue
-            ctx.buffer.seek(raw_data_offset + misc_part['data']['offset']
-                            - 16 * (len(data['parts']) + len(data['common_parts']) - i))
-            misc_part['data']['data'] = data_block.read(self_ctx.child(f"common_parts/{i}"),
-                                                        'data',
-                                                        read_bytes_amount=misc_part['data']['len'])
+            ctx.buffer.seek(
+                raw_data_offset
+                + misc_part['data']['offset']
+                - 16 * (len(data['parts']) + len(data['common_parts']) - i)
+            )
+            misc_part['data']['data'] = data_block.read(
+                self_ctx.child(f'common_parts/{i}'), 'data', read_bytes_amount=misc_part['data']['len']
+            )
         part_block = self.field_blocks_map.get('parts').child
-        for (i, part) in enumerate(data['parts']):
+        for i, part in enumerate(data['parts']):
             block = part_block.possible_blocks[part['choice_index']]
             data_block = block.field_blocks_map.get('data')
             if not data_block:
                 continue
-            ctx.buffer.seek(raw_data_offset + part['data']['offset']
-                            - 16 * (len(data['parts']) - i))
-            part['data']['data'] = data_block.read(self_ctx.child(f"parts/{i}"),
-                                                   'data',
-                                                   read_bytes_amount=part['data']['len'])
-        for (i, article) in enumerate(data['articles']):
+            ctx.buffer.seek(raw_data_offset + part['data']['offset'] - 16 * (len(data['parts']) - i))
+            part['data']['data'] = data_block.read(
+                self_ctx.child(f'parts/{i}'), 'data', read_bytes_amount=part['data']['len']
+            )
+        for i, article in enumerate(data['articles']):
             offs = article['local_offset'] - len(data['articles']) - len(data['common_parts']) + i
-            article['parts'] = data['parts'][offs:offs + article['num_parts']]
+            article['parts'] = data['parts'][offs : offs + article['num_parts']]
         ctx.buffer.seek(raw_data_offset + raw_data_len)
         return data
 
     def serializer_class(self):
         from serializers import CrpGeometrySerializer
+
         return CrpGeometrySerializer

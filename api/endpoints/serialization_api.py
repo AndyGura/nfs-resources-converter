@@ -23,7 +23,7 @@ class SerializationAPI:
     def __init__(self, api):
         """
         Initialize the SerializationAPI endpoint.
-        
+
         Args:
             api: The main API instance
         """
@@ -32,10 +32,10 @@ class SerializationAPI:
     def render_data(self, data):
         """
         Render data for frontend consumption.
-        
+
         Args:
             data: The data to render
-            
+
         Returns:
             Rendered data
         """
@@ -44,13 +44,13 @@ class SerializationAPI:
     def serialize_resource(self, id: str, path=None, settings_patch=None) -> List[str]:
         """
         Serialize a resource.
-        
+
         Args:
             id: ID of the resource
             path: Path to save the serialized resource
             changes: Changes to apply
             settings_patch: Settings to patch
-            
+
         Returns:
             List of exported file paths
         """
@@ -68,18 +68,18 @@ class SerializationAPI:
         exported_file_paths = serializer.serialize(res, path, id, res_block) or []
         exported_file_paths = [x.replace('\\', '/') for x in exported_file_paths]
         if static_tmp_dir:
-            exported_file_paths = [x[len(self.api.static_path):] for x in exported_file_paths]
+            exported_file_paths = [x[len(self.api.static_path) :] for x in exported_file_paths]
         return exported_file_paths
 
-    def deserialize_resource(self, id: str, file_paths : List[str], extra_opts=None) -> Any:
+    def deserialize_resource(self, id: str, file_paths: List[str], extra_opts=None) -> Any:
         """
         Deserialize a resource.
-        
+
         Args:
             id: ID of the resource
             file_paths: List of file paths to use when deserializing
             extra_opts: Additional options for deserialization
-            
+
         Returns:
             The deserialized resource
         """
@@ -99,11 +99,15 @@ class SerializationAPI:
         changes = self.api.resource_api._diff_to_changes(id, before, resource)
         if changes:
             # the mutations have already been applied to resource in place
-            ChangesService.append_changes([{
-                'id': '',
-                'timestamp': int(time.time() * 1000),
-                'op': 'bundle',
-                'changes': changes,
-            }])
+            ChangesService.append_changes(
+                [
+                    {
+                        'id': '',
+                        'timestamp': int(time.time() * 1000),
+                        'op': 'bundle',
+                        'changes': changes,
+                    }
+                ]
+            )
         remove_file_or_directory(path_join(self.api.static_path, 'resources', *id.split('/')))
         return self.render_data(resource)

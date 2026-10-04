@@ -17,7 +17,6 @@ from serializers import get_serializer
 
 
 class ConversionAPI:
-
     def __init__(self, api):
         """Initialize the ConversionAPI."""
         self.api = api
@@ -31,12 +30,12 @@ class ConversionAPI:
         return config.conversion_config().to_dict()
 
     def patch_general_config(self, config_obj: Dict) -> Dict[str, Any]:
-        for (key, value) in config_obj.items():
+        for key, value in config_obj.items():
             config.set_config(config.SECTION_GENERAL, key, value)
         return config.general_config().to_dict()
 
     def patch_conversion_config(self, config_obj: Dict) -> Dict[str, Any]:
-        for (key, value) in config_obj.items():
+        for key, value in config_obj.items():
             config.set_config(config.SECTION_CONVERSION, key, value)
         return config.conversion_config().to_dict()
 
@@ -54,23 +53,23 @@ class ConversionAPI:
             # Try to run the executable with a simple command
             # For Blender, use --version
             # For FFmpeg, use -version
-            if "blender" in executable_path.lower():
-                cmd = [executable_path, "--version"]
+            if 'blender' in executable_path.lower():
+                cmd = [executable_path, '--version']
             else:  # Assume FFmpeg
-                cmd = [executable_path, "-version"]
+                cmd = [executable_path, '-version']
 
             # Run the command with a timeout
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
 
             # Check if the command was successful
             if result.returncode == 0:
-                return {"success": True, "message": "Executable test passed"}
+                return {'success': True, 'message': 'Executable test passed'}
             else:
-                return {"success": False, "message": f"Executable test failed: {result.stderr}"}
+                return {'success': False, 'message': f'Executable test failed: {result.stderr}'}
         except subprocess.TimeoutExpired:
-            return {"success": False, "message": "Executable test timed out"}
+            return {'success': False, 'message': 'Executable test timed out'}
         except Exception as e:
-            return {"success": False, "message": f"Error testing executable: {str(e)}"}
+            return {'success': False, 'message': f'Error testing executable: {str(e)}'}
 
     def is_first_run(self) -> bool:
         """Whether this is the very first time the app has been run on this machine."""
@@ -86,11 +85,15 @@ class ConversionAPI:
         Returns:
             Dict with the detected path (or None) and a human-readable message
         """
-        detector = detect_blender_path if kind == "blender" else detect_ffmpeg_path
+        detector = detect_blender_path if kind == 'blender' else detect_ffmpeg_path
         path = detector()
         if path:
-            return {"success": True, "path": path, "message": f"Found {kind} at: {path}"}
-        return {"success": False, "path": None, "message": f"Could not auto-detect {kind}. Please set the path manually."}
+            return {'success': True, 'path': path, 'message': f'Found {kind} at: {path}'}
+        return {
+            'success': False,
+            'path': None,
+            'message': f'Could not auto-detect {kind}. Please set the path manually.',
+        }
 
     def export_file(self, args):
         base_input_path, path, out_path, custom_settings = args
@@ -98,7 +101,7 @@ class ConversionAPI:
             (name, block, data) = require_file(path)
             serializer = get_serializer(block, data)
             serializer.patch_settings(custom_settings)
-            rel_path = path[len(base_input_path):]
+            rel_path = path[len(base_input_path) :]
             if not rel_path:
                 is_dir = serializer.is_dir
                 # DelegateBlock
@@ -114,14 +117,15 @@ class ConversionAPI:
         finally:
             clear_file_cache(path)
 
-    def convert_files(self, input_path: str, output_path: str, custom_settings: Dict[str, Any] = None) -> Dict[
-        str, Any]:
+    def convert_files(
+        self, input_path: str, output_path: str, custom_settings: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
         opened_file = self.api.file_api.current_file_name
         if opened_file:
             self.api.file_api.close_file()
         try:
             if not os.path.exists(input_path):
-                return {"success": False, "error": f"Input path does not exist: {input_path}"}
+                return {'success': False, 'error': f'Input path does not exist: {input_path}'}
 
             if not os.path.exists(output_path):
                 os.makedirs(output_path, exist_ok=True)
@@ -148,7 +152,8 @@ class ConversionAPI:
                 processes = cpu_count()
 
             import logging
-            logging.info(f"Starting conversion of {self.total_files} files using {processes} processes")
+
+            logging.info(f'Starting conversion of {self.total_files} files using {processes} processes')
 
             with Pool(processes=processes, initializer=setup_logging, initargs=(is_stdout_redirected(),)) as pool:
                 args_list = [(base_input_path, f, output_path, custom_settings) for f in files_to_open]
@@ -168,7 +173,7 @@ class ConversionAPI:
                     path, name = '/'.join(name.split('/')[:-1]), name.split('/')[-1]
                     skipped_map[path].append((name, format_exception(ex)))
                 for path, skipped in skipped_map.items():
-                    path_suffix = path[len(base_input_path):]
+                    path_suffix = path[len(base_input_path) :]
                     if path_suffix.startswith('/'):
                         path_suffix = path_suffix[1:]
                     skipped_txt_output_path = path_join(output_path, path_suffix, 'skipped.txt')
@@ -176,12 +181,12 @@ class ConversionAPI:
                     skipped.sort(key=lambda x: x[0])
                     with open(skipped_txt_output_path, 'w') as f:
                         for item in skipped:
-                            f.write("%s\t\t%s\n" % item)
+                            f.write('%s\t\t%s\n' % item)
             bridge.update_conversion_progress(self.total_files, self.total_files)
-            return {"success": True, "output_path": output_path}
+            return {'success': True, 'output_path': output_path}
         except Exception as e:
             traceback.print_exc()
-            return {"success": False, "error": str(e)}
+            return {'success': False, 'error': str(e)}
         finally:
             if opened_file:
                 self.api.file_api.open_file(opened_file, update_recent_files=False)

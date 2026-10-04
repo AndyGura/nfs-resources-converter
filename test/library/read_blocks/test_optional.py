@@ -2,23 +2,25 @@ import unittest
 from io import BytesIO
 
 from library.context import ReadContext, WriteContext
-from library.read_blocks import (DeclarativeCompoundBlock, IntegerBlock, OptionalBlock, TrailingOptionalBlock,
-                                 LengthPrefixedArrayBlock)
+from library.read_blocks import (
+    DeclarativeCompoundBlock,
+    IntegerBlock,
+    OptionalBlock,
+    TrailingOptionalBlock,
+    LengthPrefixedArrayBlock,
+)
 
 
 class OptionalTestBlock(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         has_optional = IntegerBlock(length=1)
         optional_field = OptionalBlock(
-            child=IntegerBlock(length=2),
-            criteria=lambda ctx: ctx.data('has_optional') == 1,
-            default_value=0
+            child=IntegerBlock(length=2), criteria=lambda ctx: ctx.data('has_optional') == 1, default_value=0
         )
         marker = IntegerBlock(length=1)
 
 
 class TestOptional(unittest.TestCase):
-
     def test_read_presented(self):
         block = OptionalTestBlock()
         # has_optional = 1, optional_field = 0x1234 (4660), marker = 0xFF (255)
@@ -40,11 +42,7 @@ class TestOptional(unittest.TestCase):
 
     def test_write_presented(self):
         block = OptionalTestBlock()
-        data = {
-            'has_optional': 1,
-            'optional_field': 4660,
-            'marker': 255
-        }
+        data = {'has_optional': 1, 'optional_field': 4660, 'marker': 255}
         packed = block.pack(data)
         self.assertEqual(packed, bytes([1, 0x34, 0x12, 0xFF]))
 
@@ -53,7 +51,7 @@ class TestOptional(unittest.TestCase):
         data = {
             'has_optional': 0,
             'optional_field': 4660,  # should be ignored
-            'marker': 255
+            'marker': 255,
         }
         packed = block.pack(data)
         self.assertEqual(packed, bytes([0, 0xFF]))
@@ -71,15 +69,24 @@ class TestOptional(unittest.TestCase):
         self.assertEqual(opt.size_doc_str, '0..2')
 
         from library.read_blocks.delegates import DelegateBlock
-        opt2 = OptionalBlock(child=DelegateBlock(possible_blocks=[IntegerBlock(length=2), IntegerBlock(length=4)]),
-                             criteria=lambda ctx: True)
+
+        opt2 = OptionalBlock(
+            child=DelegateBlock(possible_blocks=[IntegerBlock(length=2), IntegerBlock(length=4)]),
+            criteria=lambda ctx: True,
+        )
         self.assertEqual(opt2.size_doc_str, '0..4')
 
         from library.read_blocks.compound import CompoundBlock
-        opt2 = OptionalBlock(child=CompoundBlock(fields=[
-            ('a', IntegerBlock(length=4), {}),
-            ('b', OptionalBlock(child=IntegerBlock(length=4), criteria=None), {})
-        ]), criteria=lambda ctx: True)
+
+        opt2 = OptionalBlock(
+            child=CompoundBlock(
+                fields=[
+                    ('a', IntegerBlock(length=4), {}),
+                    ('b', OptionalBlock(child=IntegerBlock(length=4), criteria=None), {}),
+                ]
+            ),
+            criteria=lambda ctx: True,
+        )
         self.assertEqual(opt2.size_doc_str, '0..8')
 
     def test_schema(self):
@@ -93,8 +100,7 @@ class TestOptional(unittest.TestCase):
 
     def test_schema_custom_label(self):
         opt = OptionalBlock(
-            child=IntegerBlock(length=2),
-            criteria=(lambda ctx: ctx.data('has_optional') == 1, "has_optional is set")
+            child=IntegerBlock(length=2), criteria=(lambda ctx: ctx.data('has_optional') == 1, 'has_optional is set')
         )
         schema = opt.schema
         self.assertEqual(schema['criteria'], 'has_optional is set')
@@ -102,7 +108,7 @@ class TestOptional(unittest.TestCase):
     def test_should_automatically_have_default_value(self):
         field = OptionalBlock(
             child=LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1)),
-            criteria=lambda ctx: False
+            criteria=lambda ctx: False,
         )
         self.assertEqual(field.new_data(), [])
 
@@ -113,7 +119,7 @@ class TestOptional(unittest.TestCase):
                 # should use [] as default value automatically here
                 optional_field = OptionalBlock(
                     child=LengthPrefixedArrayBlock(length_block=IntegerBlock(length=1), child=IntegerBlock(length=1)),
-                    criteria=lambda ctx: ctx.data('has_optional') == 1
+                    criteria=lambda ctx: ctx.data('has_optional') == 1,
                 )
                 marker = IntegerBlock(length=1)
 
@@ -140,6 +146,7 @@ class TrailingOptionalTestBlock(DeclarativeCompoundBlock):
 def _looks_like_marker_byte(ctx, expected: int) -> bool:
     # peek at the next byte without consuming it - the read must be left untouched either way
     from io import SEEK_CUR
+
     peeked = ctx.buffer.read(1)
     ctx.buffer.seek(-len(peeked), SEEK_CUR)
     return len(peeked) == 1 and peeked[0] == expected
@@ -152,12 +159,11 @@ class SniffingTrailingOptionalTestBlock(DeclarativeCompoundBlock):
         # irrelevant to that decision, unlike a plain "N bytes remaining" check
         trailing_field = TrailingOptionalBlock(
             child=IntegerBlock(length=2),
-            criteria=(lambda ctx: _looks_like_marker_byte(ctx, 0xAA), 'next byte looks like 0xAA chunk')
+            criteria=(lambda ctx: _looks_like_marker_byte(ctx, 0xAA), 'next byte looks like 0xAA chunk'),
         )
 
 
 class TestTrailingOptional(unittest.TestCase):
-
     def test_read_presented(self):
         block = TrailingOptionalTestBlock()
         # marker, then 2 trailing bytes worth of space
@@ -227,10 +233,12 @@ class TestTrailingOptional(unittest.TestCase):
             class Fields(DeclarativeCompoundBlock.Fields):
                 chunk_a = TrailingOptionalBlock(
                     child=IntegerBlock(length=1),
-                    criteria=(lambda ctx: _looks_like_marker_byte(ctx, 0xAA), 'next byte is 0xAA'))
+                    criteria=(lambda ctx: _looks_like_marker_byte(ctx, 0xAA), 'next byte is 0xAA'),
+                )
                 chunk_b = TrailingOptionalBlock(
                     child=IntegerBlock(length=1),
-                    criteria=(lambda ctx: _looks_like_marker_byte(ctx, 0xBB), 'next byte is 0xBB'))
+                    criteria=(lambda ctx: _looks_like_marker_byte(ctx, 0xBB), 'next byte is 0xBB'),
+                )
 
         block = TwoChunksTestBlock()
 
@@ -282,7 +290,6 @@ class TestTrailingOptional(unittest.TestCase):
 
     def test_schema_custom_criteria_label(self):
         field = TrailingOptionalBlock(
-            child=IntegerBlock(length=2),
-            criteria=(lambda ctx: ctx.read_bytes_remaining >= 2, 'room for a checksum')
+            child=IntegerBlock(length=2), criteria=(lambda ctx: ctx.read_bytes_remaining >= 2, 'room for a checksum')
         )
         self.assertEqual(field.schema['criteria'], 'room for a checksum')

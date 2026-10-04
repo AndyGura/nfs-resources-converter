@@ -16,7 +16,7 @@ def register_maker(name):
 def child_register_maker(name, size_bytes, master_register, offset_bits):
     mask = ((1 << size_bytes * 8) - 1) << offset_bits
     reverse_mask = ((1 << 32) - 1) & ~mask
-    max_val = (1 << (size_bytes * 8) - 1)
+    max_val = 1 << (size_bytes * 8) - 1
 
     @property
     def prop(self):
@@ -26,8 +26,7 @@ def child_register_maker(name, size_bytes, master_register, offset_bits):
     @prop.setter
     def prop(self, value):
         value = value & ((1 << (size_bytes * 8)) - 1)
-        setattr(self, master_register,
-                (getattr(self, master_register) & reverse_mask) | (value << offset_bits))
+        setattr(self, master_register, (getattr(self, master_register) & reverse_mask) | (value << offset_bits))
 
     return prop
 
@@ -37,13 +36,32 @@ def create_asm_registers(classname):
         pass
 
     Class.__name__ = classname
-    setattr(Class, 'register_attrs', [
-        'esi', 'edi', 'esp', 'ebp',
-        'eax', 'ebx', 'ecx', 'edx',
-        'ax', 'bx', 'cx', 'dx',
-        'ah', 'bh', 'ch', 'dh',
-        'al', 'bl', 'cl', 'dl',
-    ])
+    setattr(
+        Class,
+        'register_attrs',
+        [
+            'esi',
+            'edi',
+            'esp',
+            'ebp',
+            'eax',
+            'ebx',
+            'ecx',
+            'edx',
+            'ax',
+            'bx',
+            'cx',
+            'dx',
+            'ah',
+            'bh',
+            'ch',
+            'dh',
+            'al',
+            'bl',
+            'cl',
+            'dl',
+        ],
+    )
     for key in ['esi', 'edi', 'esp', 'ebp']:
         setattr(Class, f'_{key}', 0)
         setattr(Class, key, register_maker(key))

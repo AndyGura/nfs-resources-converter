@@ -1,0 +1,7 @@
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+extend-exclude = ["frontend", "out", "games", ".reference-projects"]
+
+[tool.ruff.format]
+quote-style = "single"

@@ -10,14 +10,13 @@ from serializers.misc.path_utils import escape_chars
 
 
 class ImageSerializer(BaseFileSerializer):
-
     def ui_serialization(self):
         return {
             'file_type': 'png',
             'is_directory': False,
             'output_file_name_suffix': '.png',
             'reversible': True,
-            'reversible_settings_patch': {}
+            'reversible_settings_patch': {},
         }
 
     def _transform_to_rgba(self, resource_id, data, palette_colors):
@@ -41,7 +40,7 @@ class ImageSerializer(BaseFileSerializer):
         if data['resource_id'].startswith('8Bit'):
             (_, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
             if palette_data is None:
-                palette_colors = [0xffffff00 | i for i in range(256)]
+                palette_colors = [0xFFFFFF00 | i for i in range(256)]
             else:
                 palette_colors = [c for c in palette_data['colors']['data']]
                 if palette_data['last_color_transparent']:
@@ -52,9 +51,9 @@ class ImageSerializer(BaseFileSerializer):
             file_path += '.png'
         saved_files = [file_path]
         bitmap = self._transform_to_rgba(data['resource_id'], data['bitmap'], palette_colors)
-        Image.frombytes('RGBA',
-                        (data['width'], data['height']),
-                        bytes().join([c.to_bytes(4, 'big') for c in bitmap])).save(file_path)
+        Image.frombytes(
+            'RGBA', (data['width'], data['height']), bytes().join([c.to_bytes(4, 'big') for c in bitmap])
+        ).save(file_path)
         if data.get('mipmaps') and self.settings.images__save_mipmaps:
             mipmaps_data = self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
             (width, height) = (data['width'], data['height'])
@@ -67,7 +66,7 @@ class ImageSerializer(BaseFileSerializer):
                 Image.frombytes(
                     'RGBA',
                     (width, height),
-                    bytes().join([c.to_bytes(4, 'big') for c in mipmaps_data[offset:offset + width * height]])
+                    bytes().join([c.to_bytes(4, 'big') for c in mipmaps_data[offset : offset + width * height]]),
                 ).save(mipmap_path)
                 saved_files.append(mipmap_path)
                 offset += width * height
@@ -82,16 +81,12 @@ class ImageSerializer(BaseFileSerializer):
                     pal_path = f'{file_path[:-4]}_pal.pal.txt'
                     field_name = f'embedded_palette'
                 if data.get(field_name):
-                    pal_serializer.serialize(data[field_name], pal_path,
-                                             block=EacPalette(),
-                                             id=id + field_name)
+                    pal_serializer.serialize(data[field_name], pal_path, block=EacPalette(), id=id + field_name)
                     saved_files.append(pal_path)
         if self.settings.images__save_texts and data.get('text'):
             text_serializer = ShpiTextSerializer()
             text_path = f'{file_path[:-4]}_extra'
-            text_serializer.serialize(data['text'], text_path,
-                                     block=ShpiText(),
-                                     id=id + '/text')
+            text_serializer.serialize(data['text'], text_path, block=ShpiText(), id=id + '/text')
             saved_files.append(text_path)
         return saved_files
 
@@ -101,28 +96,24 @@ class ImageSerializer(BaseFileSerializer):
         if len(file_paths) != 1:
             raise Exception('ImageSerializer can only deserialize one file at once')
         image = Image.open(file_paths[0])
-        image_rgba = image.convert("RGBA")
+        image_rgba = image.convert('RGBA')
         data = block.new_data()
         data['resource_id'] = '32Bit color format bitmap'
         data['width'] = image.width
         data['height'] = image.height
-        bitmap = [
-            (r << 24) | (g << 16) | (b << 8) | a
-            for (r, g, b, a) in image_rgba.get_flattened_data()
-        ]
+        bitmap = [(r << 24) | (g << 16) | (b << 8) | a for (r, g, b, a) in image_rgba.get_flattened_data()]
         data['bitmap'] = bitmap
         return data
 
 
 class TargaImageSerializer(BaseFileSerializer):
-
     def ui_serialization(self):
         return {
             'file_type': 'png',
             'is_directory': False,
             'output_file_name_suffix': '.png',
             'reversible': True,
-            'reversible_settings_patch': {}
+            'reversible_settings_patch': {},
         }
 
     def serialize(self, data: bytes, path: str, id=None, block=None, **kwargs) -> List[str]:
@@ -148,14 +139,13 @@ class TargaImageSerializer(BaseFileSerializer):
 
 
 class PaletteSerializer(BaseFileSerializer):
-
     def ui_serialization(self):
         return {
             'file_type': 'txt',
             'is_directory': False,
             'output_file_name_suffix': '.pal.txt',
             'reversible': True,
-            'reversible_settings_patch': {}
+            'reversible_settings_patch': {},
         }
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
@@ -201,7 +191,6 @@ class PaletteSerializer(BaseFileSerializer):
 
 
 class ShpiTextSerializer(BaseFileSerializer):
-
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path)
         with open(f'{path}.txt', 'w') as file:

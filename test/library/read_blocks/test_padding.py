@@ -3,8 +3,8 @@ from io import BytesIO
 from library.context import ReadContext
 from library.read_blocks import DeclarativeCompoundBlock, IntegerBlock, Padding
 
-class TestPadding(unittest.TestCase):
 
+class TestPadding(unittest.TestCase):
     def test_padding_global_offset(self):
         class GlobalPaddingBlock(DeclarativeCompoundBlock):
             class Fields(DeclarativeCompoundBlock.Fields):
@@ -40,7 +40,7 @@ class TestPadding(unittest.TestCase):
                 outer_header = IntegerBlock(length=4)
                 inner = LocalPaddingInner()
 
-        # Buffer: 
+        # Buffer:
         # 0-4: outer_header
         # 4-6: inner.header (local 0-2)
         # 6-10: inner.padding (local 2-6)
@@ -50,7 +50,7 @@ class TestPadding(unittest.TestCase):
         block = LocalPaddingOuter()
         unpacked = block.unpack(ctx)
 
-        self.assertEqual(unpacked['outer_header'], 0xffffffff)
+        self.assertEqual(unpacked['outer_header'], 0xFFFFFFFF)
         self.assertEqual(unpacked['inner']['header'], 1)
         self.assertEqual(len(unpacked['inner']['padding']), 4)
         self.assertEqual(unpacked['inner']['data'], 2)
@@ -84,9 +84,9 @@ class TestPadding(unittest.TestCase):
         self.assertIn('up to offset 10', padding.size_doc_str)
 
     def test_padding_write(self):
-        # Padding should not write anything as it's a "skip" block conceptually, 
+        # Padding should not write anything as it's a "skip" block conceptually,
         # but it inherits from BytesBlock which writes data.
-        # Actually Padding is used for reading, but for writing it should 
+        # Actually Padding is used for reading, but for writing it should
         # probably be handled.
         padding = Padding(to=10)
         self.assertEqual(padding.write(b'\x00' * 5), b'\x00' * 5)
@@ -101,8 +101,9 @@ class TestPadding(unittest.TestCase):
         buf = BytesIO(b'\x00' * 10)
         ctx = ReadContext(buf)
         block = InvalidPaddingBlock()
-        
+
         from library.exceptions import BlockDefinitionException
+
         with self.assertRaises(BlockDefinitionException):
             block.unpack(ctx)
 
@@ -119,5 +120,5 @@ class TestPadding(unittest.TestCase):
         block = NegativePaddingBlock()
         unpacked = block.unpack(ctx)
 
-        self.assertEqual(buf.tell(), 6) # 5 + 1
+        self.assertEqual(buf.tell(), 6)  # 5 + 1
         self.assertEqual(unpacked['data'], ord('5'))

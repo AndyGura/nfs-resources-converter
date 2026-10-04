@@ -10,7 +10,6 @@ from library.utils.docs import multiply_doc_numbers
 
 
 class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
-
     def __init__(self, child: DataBlock, length, **kwargs):
         super().__init__(**kwargs)
         self.child = child
@@ -21,7 +20,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
         schema = {
             **super().schema,
             'block_description': f'Array of `{self.length_doc_str}` items',
-            'child_schema': self.child.schema
+            'child_schema': self.child.schema,
         }
         len = self._length
         if isinstance(len, tuple):
@@ -72,7 +71,7 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return self.child, unpacked_data[int(name)]
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length
@@ -122,7 +121,6 @@ class ArrayBlock(DataBlockWithChildren, DataBlock, ABC):
 
 # TODO maybe merge with LengthPrefixedUtf8Block, make abstract
 class LengthPrefixedArrayBlock(ArrayBlock):
-
     def __init__(self, length_block: DataBlock, **kwargs):
         super().__init__(length=None, **kwargs)
         self.length_block = length_block
@@ -132,7 +130,7 @@ class LengthPrefixedArrayBlock(ArrayBlock):
         return {
             **super().schema,
             'block_description': 'Array, prefixed with length field',
-            'length_schema': self.length_block.schema
+            'length_schema': self.length_block.schema,
         }
 
     # For auto-generated documentation only
@@ -140,7 +138,7 @@ class LengthPrefixedArrayBlock(ArrayBlock):
     def size_doc_str(self):
         return f'{self.length_block.size_doc_str}..?'
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         return []
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
@@ -168,13 +166,14 @@ class LengthPrefixedArrayBlock(ArrayBlock):
 
 
 class SubByteArrayBlock(DataBlock):
-
-    def __init__(self,
-                 length,
-                 bits_per_value: int,
-                 value_deserialize_func: callable = None,
-                 value_serialize_func: callable = None,
-                 **kwargs):
+    def __init__(
+        self,
+        length,
+        bits_per_value: int,
+        value_deserialize_func: callable = None,
+        value_serialize_func: callable = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._length = length
         self.bits_per_value = bits_per_value
@@ -195,7 +194,7 @@ class SubByteArrayBlock(DataBlock):
                 'value_interval': self.value_deserialize_func(1) - self.value_deserialize_func(0)
                 if self.value_deserialize_func
                 else 1,
-            }
+            },
         }
 
     # For auto-generated documentation only
@@ -232,7 +231,7 @@ class SubByteArrayBlock(DataBlock):
     def get_child_block_with_data(self, unpacked_data: list, name: str) -> Tuple['DataBlock', Any]:
         return None, unpacked_data[int(name)]
 
-    def new_data(self, patch = None):
+    def new_data(self, patch=None):
         if self.value_validator:
             return self.value_validator.new_data()
         self_len = self._length
@@ -246,9 +245,8 @@ class SubByteArrayBlock(DataBlock):
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         self_len = self.resolve_length(ctx)
         raw = ctx.buffer.read(ceil(self.bits_per_value * self_len / 8))
-        bitstring = "".join([bin(x)[2:].rjust(8, "0") for x in raw])
-        values = [int(bitstring[i * self.bits_per_value:(i + 1) * self.bits_per_value], 2)
-                  for i in range(self_len)]
+        bitstring = ''.join([bin(x)[2:].rjust(8, '0') for x in raw])
+        values = [int(bitstring[i * self.bits_per_value : (i + 1) * self.bits_per_value], 2) for i in range(self_len)]
         if self.value_deserialize_func:
             values = [self.value_deserialize_func(x) for x in values]
         return values
@@ -258,12 +256,12 @@ class SubByteArrayBlock(DataBlock):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         value_serialize_func = self.value_serialize_func if self.value_serialize_func else lambda x: x
-        bitstring = "".join(bin(value_serialize_func(item))[2:].rjust(self.bits_per_value, "0") for item in data)
+        bitstring = ''.join(bin(value_serialize_func(item))[2:].rjust(self.bits_per_value, '0') for item in data)
         padding = len(bitstring) % 8
         if padding != 0:
             bitstring += '0' * (8 - padding)
         byte_array = bytearray()
         for i in range(0, len(bitstring), 8):
-            byte = int(bitstring[i:i + 8], 2)
+            byte = int(bitstring[i : i + 8], 2)
             byte_array.append(byte)
         return bytes(byte_array)

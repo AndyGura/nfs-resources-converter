@@ -21,7 +21,7 @@ Welcome to the NFS Resources Converter project! To ensure smooth, reproducible, 
      ```
    - After creation, activate the virtual environment and install the required packages listed in `requirements.txt`:
      ```bash
-     ./.venv/bin/pip install -r requirements.txt
+     ./.venv/bin/pip install -r requirements.txt -r requirements-dev.txt
      ```
 
 3. **Running Code & Tests**:

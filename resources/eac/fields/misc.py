@@ -6,23 +6,20 @@ from library.read_blocks import IntegerBlock, CompoundBlock
 
 
 class Point2D(CompoundBlock):
-
     @property
     def schema(self) -> Dict:
         schema = super().schema
         return {
             **schema,
             'block_description': 'Point in 2D space (x,y), where each coordinate is: '
-                                 + schema['fields'][0]['schema']['block_description'] + (
-                                     ', normalized' if self.normalized else ''
-                                 ),
+            + schema['fields'][0]['schema']['block_description']
+            + (', normalized' if self.normalized else ''),
             'inline_description': True,
         }
 
     def __init__(self, child, normalized=False, **kwargs):
         self.normalized = normalized
-        super().__init__(fields=[('x', child, {}),
-                                 ('y', child, {})], **kwargs)
+        super().__init__(fields=[('x', child, {}), ('y', child, {})], **kwargs)
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         if self.normalized:
@@ -36,24 +33,20 @@ class Point2D(CompoundBlock):
 
 
 class Point3D(CompoundBlock):
-
     @property
     def schema(self) -> Dict:
         schema = super().schema
         return {
             **schema,
             'block_description': 'Point in 3D space (x,y,z), where each coordinate is: '
-                                 + schema['fields'][0]['schema']['block_description'] + (
-                                     ', normalized' if self.normalized else ''
-                                 ),
+            + schema['fields'][0]['schema']['block_description']
+            + (', normalized' if self.normalized else ''),
             'inline_description': True,
         }
 
     def __init__(self, child, normalized=False, **kwargs):
         self.normalized = normalized
-        super().__init__(fields=[('x', child, {}),
-                                 ('y', child, {}),
-                                 ('z', child, {})], **kwargs)
+        super().__init__(fields=[('x', child, {}), ('y', child, {}), ('z', child, {})], **kwargs)
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         if self.normalized:
@@ -68,19 +61,14 @@ class Point3D(CompoundBlock):
 
 
 class RGBBlock(CompoundBlock):
-
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': "Color RGB values",
+            'block_description': 'Color RGB values',
             'inline_description': True,
         }
 
     def __init__(self, **kwargs):
         child = IntegerBlock(length=1, is_signed=False)
-        super().__init__(fields=[('r', child, {}),
-                                 ('g', child, {}),
-                                 ('b', child, {})], **kwargs)
-
-
+        super().__init__(fields=[('r', child, {}), ('g', child, {}), ('b', child, {})], **kwargs)

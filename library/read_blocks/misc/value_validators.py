@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class ValueValidator(ABC):
-
     # for data validation after read
     @abstractmethod
     def validate(self, value) -> bool:
@@ -33,7 +32,6 @@ class ValueValidator(ABC):
 
 
 class Eq(ValueValidator):
-
     def __init__(self, expected_value):
         self.expected_value = expected_value
 
@@ -51,7 +49,6 @@ class Eq(ValueValidator):
 
 
 class Or(ValueValidator):
-
     def __init__(self, possible_values: list):
         self.possible_values = possible_values
 

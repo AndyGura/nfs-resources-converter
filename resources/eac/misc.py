@@ -3,12 +3,12 @@ from library.read_blocks import UTF8Block
 
 
 class DashDeclarationFile(UTF8Block):
-
     def __init__(self, **kwargs):
         super().__init__(length=0, **kwargs)
 
     def serializer_class(self):
         from serializers import JsonSerializer
+
         return JsonSerializer
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):

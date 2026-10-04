@@ -22,7 +22,7 @@ class ResourceAPI:
     def __init__(self, api):
         """
         Initialize the ResourceAPI endpoint.
-        
+
         Args:
             api: The main API instance
         """
@@ -31,10 +31,10 @@ class ResourceAPI:
     def render_data(self, data):
         """
         Render data for frontend consumption.
-        
+
         Args:
             data: The data to render
-            
+
         Returns:
             Rendered data
         """
@@ -43,10 +43,10 @@ class ResourceAPI:
     def retrieve_value(self, resource_id: str) -> Any:
         """
         Retrieve a value from a resource.
-        
+
         Args:
             resource_id: ID of the resource
-            
+
         Returns:
             The resource value
         """
@@ -56,12 +56,12 @@ class ResourceAPI:
     def run_custom_action(self, resource_id: str, action: Dict, args: Dict):
         """
         Run a custom action on a resource.
-        
+
         Args:
             resource_id: ID of the resource
             action: Action to run
             args: Arguments for the action
-            
+
         Returns:
             Result of the action
         """
@@ -79,12 +79,16 @@ class ResourceAPI:
         changes = self._diff_to_changes(resource_id, before, read_data)
         if changes:
             # the action already applied the mutations to read_data in place
-            ChangesService.append_changes([{
-                'id': '',
-                'timestamp': int(time.time() * 1000),
-                'op': 'bundle',
-                'changes': changes,
-            }])
+            ChangesService.append_changes(
+                [
+                    {
+                        'id': '',
+                        'timestamp': int(time.time() * 1000),
+                        'op': 'bundle',
+                        'changes': changes,
+                    }
+                ]
+            )
 
     def _diff_to_changes(self, base_id: str, old: Any, new: Any) -> List[Dict[str, Any]]:
         """
@@ -104,31 +108,35 @@ class ResourceAPI:
                 if len(n) > 0 and isinstance(n[0], (str, int, float, bool, type(None))):
                     too_different = False
                     changed_items = 0
-                    for (oi, ni) in enumerate(zip(o, n)):
+                    for oi, ni in enumerate(zip(o, n)):
                         if oi != ni:
                             changed_items += 1
                             if changed_items >= len(n) * 0.33:
                                 too_different = True
                                 break
                     if too_different:
-                        changes.append({
-                            'id': cur_id,
-                            'timestamp': timestamp,
-                            'op': 'set',
-                            'oldValue': o,
-                            'newValue': n,
-                        })
+                        changes.append(
+                            {
+                                'id': cur_id,
+                                'timestamp': timestamp,
+                                'op': 'set',
+                                'oldValue': o,
+                                'newValue': n,
+                            }
+                        )
                         return
                 for i, (oi, ni) in enumerate(zip(o, n)):
                     walk(join_id(cur_id, str(i)), oi, ni)
             else:
-                changes.append({
-                    'id': cur_id,
-                    'timestamp': timestamp,
-                    'op': 'set',
-                    'oldValue': o,
-                    'newValue': n,
-                })
+                changes.append(
+                    {
+                        'id': cur_id,
+                        'timestamp': timestamp,
+                        'op': 'set',
+                        'oldValue': o,
+                        'newValue': n,
+                    }
+                )
 
         walk(base_id, old, new)
         return changes
@@ -138,10 +146,10 @@ class ResourceAPI:
     def get_new_item_data(self, resource_id: str, patch) -> Any:
         """
         Get new item data for a resource.
-        
+
         Args:
             resource_id: ID of the resource
-            
+
         Returns:
             The new item data
         """

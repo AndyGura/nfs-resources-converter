@@ -7,7 +7,6 @@ from serializers.misc.json_utils import convert_bytes
 
 
 class ChangeExecutor:
-
     @classmethod
     def apply_change(cls, change):
         if change['op'] == 'bundle':
@@ -29,21 +28,27 @@ class ChangeExecutor:
                 parent_resource[id] = change['newValue']
         elif change['op'] == 'array_insert':
             print(
-                f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {R.repr(change["value"])}')
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {R.repr(change["value"])}'
+            )
             resource.insert(change['index'], change['value'])
         elif change['op'] == 'array_remove':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} remove item at index {change["index"]}')
             del resource[change['index']]
         elif change['op'] == 'array_swap':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} swap indexes {change["indexA"]} and {change["indexB"]}')
-            (resource[change['indexA']], resource[change['indexB']]) = (resource[change['indexB']],
-                                                                        resource[change['indexA']])
+            (resource[change['indexA']], resource[change['indexB']]) = (
+                resource[change['indexB']],
+                resource[change['indexA']],
+            )
         elif change['op'] == 'binary_delta':
             print(
-                f'✏️ {(parent_id + "__").split("__")[1]}/{id} binary delta at {change["index"]}: {R.repr(change["oldPart"])} -> {R.repr(change["newPart"])}')
-            parent_resource[id] = (parent_resource[id][:change['index']]
-                                   + bytes(change['newPart'])
-                                   + parent_resource[id][change['index'] + len(change['oldPart']):])
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} binary delta at {change["index"]}: {R.repr(change["oldPart"])} -> {R.repr(change["newPart"])}'
+            )
+            parent_resource[id] = (
+                parent_resource[id][: change['index']]
+                + bytes(change['newPart'])
+                + parent_resource[id][change['index'] + len(change['oldPart']) :]
+            )
         else:
             raise Exception(f'Unsupported operation: {change["op"]}')
 
@@ -71,18 +76,24 @@ class ChangeExecutor:
             del resource[change['index']]
         elif change['op'] == 'array_remove':
             print(
-                f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {R.repr(change["oldValue"])}')
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} insert item at index {change["index"]}: {R.repr(change["oldValue"])}'
+            )
             resource.insert(change['index'], change['oldValue'])
         elif change['op'] == 'array_swap':
             print(f'✏️ {(parent_id + "__").split("__")[1]}/{id} swap indexes {change["indexA"]} and {change["indexB"]}')
-            (resource[change['indexA']], resource[change['indexB']]) = (resource[change['indexB']],
-                                                                        resource[change['indexA']])
+            (resource[change['indexA']], resource[change['indexB']]) = (
+                resource[change['indexB']],
+                resource[change['indexA']],
+            )
         elif change['op'] == 'binary_delta':
             print(
-                f'✏️ {(parent_id + "__").split("__")[1]}/{id} binary delta at {change["index"]}: {R.repr(change["newPart"])} -> {R.repr(change["oldPart"])}')
-            parent_resource[id] = (parent_resource[id][:change['index']]
-                                   + bytes(change['oldPart'])
-                                   + parent_resource[id][change['index'] + len(change['newPart']):])
+                f'✏️ {(parent_id + "__").split("__")[1]}/{id} binary delta at {change["index"]}: {R.repr(change["newPart"])} -> {R.repr(change["oldPart"])}'
+            )
+            parent_resource[id] = (
+                parent_resource[id][: change['index']]
+                + bytes(change['oldPart'])
+                + parent_resource[id][change['index'] + len(change['newPart']) :]
+            )
         else:
             raise Exception(f'Unsupported operation: {change["op"]}')
 
@@ -121,7 +132,7 @@ class ChangesService:
     def append_changes(cls, changes):
         # here we expect appended changes to be already applied to the data
         if cls.local_revision < len(cls.changes):
-            cls.changes = cls.changes[:cls.local_revision]
+            cls.changes = cls.changes[: cls.local_revision]
         cls.changes.extend(changes)
         cls.local_revision = len(cls.changes)
         cls.ws_instance.on_append_changes(convert_bytes(changes))

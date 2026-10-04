@@ -5,7 +5,6 @@ from resources.eac.bitmaps import EacImage
 
 
 class TestFfnFont(unittest.TestCase):
-
     def test_old_ffn_should_remain_the_same(self):
         (name, block, font_res) = require_file('test/golden_corpus/GRAVER18.FFN')
         output = block.pack(font_res, name=name)
@@ -13,12 +12,13 @@ class TestFfnFont(unittest.TestCase):
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
-                self.assertEqual(x, output[i], f"Wrong value at index {i}")
+                self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
     def test_old_ffn_can_be_reconstructed_from_files(self):
         (name, block, font_res) = require_file('test/golden_corpus/GRAVER18.FFN')
         import tempfile
         from serializers import get_serializer
+
         serializer = get_serializer(block, font_res)
         self.assertTrue(serializer.ui_serialization()['reversible'])
         with tempfile.TemporaryDirectory() as tmp:
@@ -30,7 +30,7 @@ class TestFfnFont(unittest.TestCase):
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
-                self.assertEqual(x, output[i], f"Wrong value at index {i}")
+                self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
     def test_new_ffn_should_remain_the_same(self):
         (name, block, font_res) = require_file('test/golden_corpus/Arial12b.ffn')
@@ -39,12 +39,13 @@ class TestFfnFont(unittest.TestCase):
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
-                self.assertEqual(x, output[i], f"Wrong value at index {i}")
+                self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
     def test_new_ffn_can_be_reconstructed_from_files(self):
         (name, block, font_res) = require_file('test/golden_corpus/Arial12b.ffn')
         import tempfile
         from serializers import get_serializer
+
         serializer = get_serializer(block, font_res)
         self.assertTrue(serializer.ui_serialization()['reversible'])
         with tempfile.TemporaryDirectory() as tmp:
@@ -61,4 +62,4 @@ class TestFfnFont(unittest.TestCase):
             original = bdata.read()
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
-                self.assertEqual(x, output[i], f"Wrong value at index {i}")
+                self.assertEqual(x, output[i], f'Wrong value at index {i}')
