@@ -166,7 +166,7 @@ class NfsuVertex(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema,
-                'block_description': 'A single mesh vertex'}
+                'block_description': 'A single mesh vertex with normal (36 bytes). The most common vertex layout'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         position = (Point3D(child=DecimalBlock(length=4)),
@@ -189,38 +189,75 @@ class NfsuVertex(DeclarativeCompoundBlock):
              {'description': 'V texture coordinate'})
 
 
+class NfsuVertexNoNormal(DeclarativeCompoundBlock):
+
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema,
+                'block_description': 'A single mesh vertex without normal (24 bytes). Used by a few meshes, e.g. '
+                                     'SUPRA_STYLE02_HEADLIGHT_C. Same layout as the 36-byte vertex with the normal '
+                                     'omitted (Direct3D FVF order: position, diffuse color, texture coordinates)'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = (Point3D(child=DecimalBlock(length=4)),
+                    {'description': 'Vertex position'})
+        unk3 = (IntegerBlock(length=4),
+                {'description': 'Presumably vertex color, 32-bit ARGB',
+                 'is_unknown': True})
+        u = (DecimalBlock(length=4),
+             {'description': 'U texture coordinate'})
+        v = (DecimalBlock(length=4),
+             {'description': 'V texture coordinate'})
+
+
+# Size in bytes of each vertex layout, in the order of MeshVerticesChunk.Fields.vertices possible blocks
+_NFSU_VERTEX_SIZES = [36, 24]
+
+
+def _vertex_layout_index(ctx):
+    # The vertex layout is not stored explicitly (or not found yet): it is the one whose total vertices size
+    # fits into the chunk payload, the remainder being the 0x11 alignment filler (less than 16 bytes)
+    if ctx.data('chunk_length') >= ctx.data('../0/data/vertex_amount') * _NFSU_VERTEX_SIZES[0]:
+        return 0
+    return 1
+
+
 class MeshVerticesChunk(DeclarativeCompoundBlock):
 
     @property
     def schema(self) -> Dict:
         return {**super().schema,
                 'block_description': 'Mesh vertices. Amount of vertices is defined by the mesh info chunk (the first '
-                                     'chunk of the same mesh data container)'}
+                                     'chunk of the same mesh data container). Vertex size (36 or 24 bytes) is '
+                                     'determined by the chunk length'}
 
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = (IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_4B_01)),
                     {'description': _CHUNK_ID_DESCR})
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('vertices')) * 36 + len(ctx.data('elevens'))),
+            IntegerBlock(length=4, is_signed=False,
+                         programmatic_value=lambda ctx: (len(ctx.data('vertices')['data'])
+                                                         * _NFSU_VERTEX_SIZES[ctx.data('vertices')['choice_index']]
+                                                         + len(ctx.data('elevens')))),
             {'usage': 'io,doc',
              'description': _CHUNK_LENGTH_DESCR})
         # some 0x11 values, unknown reason for adding them
-        elevens = (BytesBlock(length=lambda ctx: ctx.data('chunk_length') - ctx.data('../0/data/vertex_amount') * 36, allow_negative_length=True),
+        elevens = (BytesBlock(length=(lambda ctx: ctx.data('chunk_length')
+                                                  - ctx.data('../0/data/vertex_amount')
+                                                  * _NFSU_VERTEX_SIZES[_vertex_layout_index(ctx)],
+                                      'chunk_length - vertex_amount * vertex_size')),
                    {'description': _ELEVENS_DESCR})
-        vertices = (ArrayBlock(child=NfsuVertex(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
-                    {'description': 'Vertices'})
+        vertices = (DelegateBlock(possible_blocks=[
+            ArrayBlock(child=NfsuVertex(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
+            ArrayBlock(child=NfsuVertexNoNormal(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
+        ], choice_index=(lambda ctx, **_: _vertex_layout_index(ctx), 'depends on chunk_length')),
+                    {'description': 'Vertices. 36-byte vertices with normal, or 24-byte vertices without normal '
+                                    'if the chunk is too short for 36-byte ones'})
 
-    # FIXME SUPRA SUPRA_STYLE02_HEADLIGHT_C fails! Reports 114 vertices, but there is not enough data. Although bin2ase returns 114 vertices correctly, with different values
-    # Apparently this particular mesh has 24 bytes per vertex, not 36. What is missing?
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
-        pos_backup = ctx.buffer.tell()
         data = super().read(ctx, name, read_bytes_amount)
         if data['elevens'] != b'\x11' * len(data['elevens']):
             raise ValueError(f'Invalid elevens data in chunk MeshVerticesChunk: {data["elevens"]}')
-        if len(data['vertices']) * 36 > data['chunk_length']:
-            ctx.buffer.seek(pos_backup + 8)
-            raw_payload = ctx.buffer.read(data['chunk_length'])
-            print('####')
         return data
 
 
@@ -260,7 +297,7 @@ class Chunk80134100(DeclarativeCompoundBlock):
                     {'description': _CHUNK_ID_DESCR})
         chunk_length = (
             IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: ctx.block.Fields.sub_chunks.estimate_packed_size(ctx.data('sub_chunks'))),
+                         programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(ctx.data('sub_chunks'))),
             {'usage': 'io,doc',
              'description': _CHUNK_LENGTH_DESCR})
         sub_chunks = (ArrayBlock(length=lambda ctx: determine_chunks_amount(ctx,
@@ -506,7 +543,7 @@ class NfsuMeshDescriptorChunk(DeclarativeCompoundBlock):
                     {'description': _CHUNK_ID_DESCR})
         chunk_length = (
             IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: ctx.block.Fields.sub_chunks.estimate_packed_size(
+                         programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(
                              ctx.data('sub_chunks'))),
             {'usage': 'io,doc',
              'description': _CHUNK_LENGTH_DESCR})
@@ -538,7 +575,7 @@ class Chunk80134001(DeclarativeCompoundBlock):
                     {'description': _CHUNK_ID_DESCR})
         chunk_length = (
             IntegerBlock(length=4, is_signed=False,
-                         programmatic_value=lambda ctx: ctx.block.Fields.sub_chunks.estimate_packed_size(ctx.data('sub_chunks'))),
+                         programmatic_value=lambda ctx: ctx.block.field_blocks_map['sub_chunks'].estimate_packed_size(ctx.data('sub_chunks'))),
             {'usage': 'io,doc',
              'description': _CHUNK_LENGTH_DESCR})
         # always 3 or 4 blocks

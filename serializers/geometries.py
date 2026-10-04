@@ -392,7 +392,7 @@ class NfsuBinGeometrySerializer(BaseFileSerializer):
             details_sub_chunk = next(x for x in c['data']['sub_chunks'] if x['data']['chunk_id'] == 0x80_13_41_00)
 
             mesh_name = mesh_main_chunk['data']['mesh_name']
-            vertices = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_01)['data']['vertices']
+            vertices = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_01)['data']['vertices']['data']
             faces = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_03)['data']['faces']
 
             mesh = SubMesh()
