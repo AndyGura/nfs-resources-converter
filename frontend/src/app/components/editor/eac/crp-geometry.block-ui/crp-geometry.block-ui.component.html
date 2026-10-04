@@ -2,8 +2,8 @@
   [paths]="previewPaths$ | async"
   [viewFilters]="previewViewFilters"
   [cameraControl]="(isTrack$ | async) ? 'free' : 'orbit'"
-  [customControls]="customControls"
-  (onObjectLoaded)="onObjectLoaded($event)"></app-obj-viewer>
+  [visibilityGroupFunction]="previewObjectGroupFunc"
+  [animationFrameFunction]="previewAnimationFrameFunc"></app-obj-viewer>
 <app-compound-block-ui
   [resourceId]="resourceId"
   [resourceName]="resourceName"

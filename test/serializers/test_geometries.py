@@ -8,6 +8,8 @@ from PIL import Image
 
 from serializers.geometries import (
     compose_texture_page,
+    crp_car_default_style,
+    crp_car_is_image_used,
     crp_car_texture_page_sources,
     crp_image_atlas_position,
 )
@@ -69,6 +71,52 @@ tpage=3
         self.assertEqual(crp_car_texture_page_sources([0, 1, 2], tpg), {0: 0, 1: 0, 3: 1, 2: 2})
 
 
+class TestCrpCarStyle(unittest.TestCase):
+    def setUp(self):
+        self.tpg = ConfigParser(strict=False, interpolation=None)
+        self.tpg.read_string(
+            """
+[style2]
+geometry1=8
+type1=1
+[style1]
+geometry1=8
+type1=3
+texture2=4
+type2=1
+[file1.top]
+geometry1=8
+type1=0
+[file1.top1]
+geometry1=8
+type1=3
+geometry2=8
+type2=4
+[file1.dec]
+texture1=4
+type1=1
+racedecal=1
+[file1.fro]
+frontend=0
+"""
+        )
+
+    def test_default_style_is_lowest_numbered(self):
+        self.assertEqual(crp_car_default_style(self.tpg), {('geometry', 8): 3, ('texture', 4): 1})
+
+    def test_no_styles(self):
+        self.assertEqual(crp_car_default_style(ConfigParser()), {})
+
+    def test_image_selection(self):
+        style = crp_car_default_style(self.tpg)
+        self.assertFalse(crp_car_is_image_used(self.tpg, 1, 'top', style))
+        self.assertTrue(crp_car_is_image_used(self.tpg, 1, 'top1', style))
+        self.assertFalse(crp_car_is_image_used(self.tpg, 1, 'dec', style))
+        self.assertFalse(crp_car_is_image_used(self.tpg, 1, 'fro', style))
+        self.assertTrue(crp_car_is_image_used(self.tpg, 1, 'sid', style))
+        self.assertTrue(crp_car_is_image_used(self.tpg, 1, 'top', {}))
+
+
 class TestCrpGeometrySerializer(unittest.TestCase):
     def test_car_meshes_get_texture_pages(self):
         from library import require_file
@@ -81,13 +129,14 @@ class TestCrpGeometrySerializer(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as out:
             serializer.serialize(data, out, id=name, block=block)
-            for page, size in [(0, 256), (1, 256), (2, 256), (3, 128), (4, 64), (8, 64)]:
+            # wheel and window materials keep the alpha channel, other pages are opaque
+            for page, size in [('0', 256), ('1', 256), ('2', 256), ('3', 128), ('3_alpha', 128), ('4_alpha', 64)]:
                 with Image.open(os.path.join(out, 'textures', f'page_{page}.png')) as img:
                     self.assertEqual(img.size, (size, size))
             with open(os.path.join(out, 'material.mtl')) as f:
                 self.assertEqual(
                     re.findall(r'newmtl (\S+)', f.read()),
-                    ['page_0', 'page_1', 'page_2', 'page_3', 'page_4', 'page_8'],
+                    ['page_0', 'page_1', 'page_2', 'page_3', 'page_3_alpha', 'page_4_alpha'],
                 )
             with open(os.path.join(out, 'geometry.obj')) as f:
                 obj = f.read()

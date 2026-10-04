@@ -271,10 +271,13 @@ def crp_image_atlas_position(image: dict) -> Tuple[int, int]:
     return _read_12_bit_signed(image['position']['x']), _read_12_bit_signed(image['position']['y'])
 
 
-def compose_texture_page(images: List[Tuple[Image.Image, int, int]], width: int = None, height: int = None):
-    """Composes images into one texture page. Images are given as (image, x, y). When images overlap (alternate
-    versions of the same texture, like "top" and "top1"), the first one wins. If page size is not provided, it is
-    the bounding box of all images, rounded up to a power of two"""
+def compose_texture_page(
+    images: List[Tuple[Image.Image, int, int]], width: int = None, height: int = None, keep_alpha: bool = True
+):
+    """Composes images into one texture page. Images are given as (image, x, y). When images overlap, the first one
+    wins. If page size is not provided, it is the bounding box of all images, rounded up to a power of two.
+    Without keep_alpha, images are drawn opaque, so alpha of the page only tells which pixels are covered by any
+    image"""
 
     def pow2(x):
         return 1 << max(0, int(x) - 1).bit_length()
@@ -285,6 +288,9 @@ def compose_texture_page(images: List[Tuple[Image.Image, int, int]], width: int 
         height = pow2(max([y + img.height for img, _, y in images] + [1]))
     page = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     for img, x, y in reversed(images):
+        if not keep_alpha:
+            img = img.copy()
+            img.putalpha(255)
         page.paste(img, (x, y))
     return page
 
@@ -315,6 +321,46 @@ def crp_car_texture_page_sources(fsh_indices: List[int], tpg: ConfigParser = Non
     return res
 
 
+def crp_car_default_style(tpg: ConfigParser) -> Dict[Tuple[str, int], int]:
+    """Variant selection of car's default style (the lowest-numbered [styleN] section of .tpg): maps
+    (slot kind, slot index) to variant type, e.g. ('geometry', 8) -> 3. Slots, not listed in the style, use type 0"""
+    styles = sorted(int(m.group(1)) for m in (re.fullmatch(r'style(\d+)', x) for x in tpg.sections()) if m is not None)
+    if not styles:
+        return {}
+    return dict(_crp_tpg_variant_entries(tpg, f'style{styles[0]}'))
+
+
+def _crp_tpg_variant_entries(tpg: ConfigParser, section: str) -> List[Tuple[Tuple[str, int], int]]:
+    """Reads (slot, type) entries of .tpg section, like "geometry1=5 type1=0" -> (('geometry', 5), 0)"""
+    res = []
+    for key, value in tpg.items(section):
+        match = re.fullmatch(r'(geometry|texture)(\d+)', key)
+        if match is None or not tpg.has_option(section, f'type{match.group(2)}'):
+            continue
+        res.append(((match.group(1), int(value)), tpg.getint(section, f'type{match.group(2)}')))
+    return res
+
+
+def crp_car_is_image_used(tpg: ConfigParser, file_index: int, alias: str, style: Dict[Tuple[str, int], int]) -> bool:
+    """Whether the image of car's FSH file (1-based .tpg file index) is drawn on the texture page for given style.
+    Images, described in .tpg section [file<N>.<alias>], are alternative variants: an image is used if any of its
+    (slot, type) entries is selected by the style. Showroom (frontend=1) variants are preferred over in-race ones,
+    race decals are skipped"""
+    section = f'file{file_index}.{alias.strip()}'
+    if not tpg.has_section(section):
+        return True
+    if tpg.has_option(section, 'frontend') and tpg.getint(section, 'frontend') != 1:
+        return False
+    if tpg.has_option(section, 'testdrive') and tpg.getint(section, 'testdrive') != 0:
+        return False
+    if tpg.has_option(section, 'racedecal') and tpg.getint(section, 'racedecal') != 0:
+        return False
+    entries = _crp_tpg_variant_entries(tpg, section)
+    if not entries:
+        return True
+    return any(style.get(slot, 0) == variant for slot, variant in entries)
+
+
 def _find_sibling_file(file_path: str, file_name: str) -> Optional[str]:
     directory = os.path.dirname(file_path) or '.'
     try:
@@ -331,11 +377,24 @@ class CrpGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def _load_car_textures(self, data, path, id, block) -> Dict[int, str]:
-        """Exports textures from FSH parts and composes texture pages. Returns texture page index -> name of
-        exported page texture"""
+    def _load_car_textures(self, data, path, id, block) -> Dict[int, Tuple[list, Optional[int], Optional[int]]]:
+        """Exports textures from FSH parts and prepares texture pages. Returns texture page index ->
+        (images with positions, page width, page height)"""
         from library.loader import id_to_path
         from serializers import ShpiArchiveSerializer, ImageSerializer
+
+        tpg = None
+        if id:
+            tpg_path = _find_sibling_file(
+                id_to_path(id), os.path.splitext(os.path.basename(id_to_path(id)))[0] + '.tpg'
+            )
+            if tpg_path:
+                tpg = ConfigParser(strict=False, interpolation=None)
+                try:
+                    tpg.read(tpg_path)
+                except Exception:
+                    tpg = None
+        style = crp_car_default_style(tpg) if tpg is not None else {}
 
         misc_choice = block.field_blocks_map['common_parts'].child
         fsh_choice_index = misc_choice.get_choice_index_by_class_name('FSHPart')
@@ -356,6 +415,8 @@ class CrpGeometrySerializer(BaseFileSerializer):
                 item_block = shpi_block.item_block.possible_blocks[child['item']['choice_index']]
                 if not isinstance(item_block, EacImage):
                     continue
+                if tpg is not None and not crp_car_is_image_used(tpg, fsh_part['idx'] + 1, child['alias'], style):
+                    continue
                 image = ImageSerializer().to_image(
                     child['item']['data'],
                     item_block,
@@ -364,28 +425,14 @@ class CrpGeometrySerializer(BaseFileSerializer):
                 images.append((image, *crp_image_atlas_position(child['item']['data'])))
             fsh_pages[fsh_part['idx']] = images
 
-        tpg = None
-        if id:
-            tpg_path = _find_sibling_file(
-                id_to_path(id), os.path.splitext(os.path.basename(id_to_path(id)))[0] + '.tpg'
-            )
-            if tpg_path:
-                tpg = ConfigParser(strict=False)
-                try:
-                    tpg.read(tpg_path)
-                except Exception:
-                    tpg = None
-
-        textures = {}
+        pages = {}
         for page_idx, fsh_idx in crp_car_texture_page_sources(list(fsh_pages.keys()), tpg).items():
             width = height = None
             section = f'tpage{page_idx + 1}.details'
             if tpg is not None and tpg.has_option(section, 'width') and tpg.has_option(section, 'height'):
                 width, height = tpg.getint(section, 'width'), tpg.getint(section, 'height')
-            name = f'page_{page_idx}'
-            compose_texture_page(fsh_pages[fsh_idx], width, height).save(path_join(path, f'textures/{name}.png'))
-            textures[page_idx] = name
-        return textures
+            pages[page_idx] = (fsh_pages[fsh_idx], width, height)
+        return pages
 
     def _load_track_textures(self, data, path, id, block, tags) -> Dict[int, str]:
         """Exports textures, referenced by materials, from FSH file(s) next to the track CRP. Returns material
@@ -448,18 +495,36 @@ class CrpGeometrySerializer(BaseFileSerializer):
             textures = self._load_track_textures(
                 data, path, id, block, {m['tex_page_index'] for m in materials.values()}
             )
-        else:
-            textures = self._load_car_textures(data, path, id, block)
 
-        def material_texture(material_index):
-            material = materials.get(material_index)
-            return textures.get(material['tex_page_index']) if material else None
+            def material_texture(material_index):
+                material = materials.get(material_index)
+                return textures.get(material['tex_page_index']) if material else None
+
+        else:
+            pages = self._load_car_textures(data, path, id, block)
+            textures = {}
+
+            def material_texture(material_index):
+                material = materials.get(material_index)
+                if not material or material['tex_page_index'] not in pages:
+                    return None
+                page_idx = material['tex_page_index']
+                # alpha channel of car textures means transparency only for wheels and windows. For other
+                # materials it is something else (probably a paint/reflection mask), so their page is drawn opaque
+                keep_alpha = any(x in material['desc'].split('\x00')[0] for x in ('Wheel', 'Window'))
+                name = f'page_{page_idx}' + ('_alpha' if keep_alpha else '')
+                if (page_idx, keep_alpha) not in textures:
+                    images, width, height = pages[page_idx]
+                    compose_texture_page(images, width, height, keep_alpha=keep_alpha).save(
+                        path_join(path, f'textures/{name}.png')
+                    )
+                    textures[(page_idx, keep_alpha)] = name
+                return name
 
         scene = Scene()
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.sub_meshes = []
-        scene.mtl_texture_names = list(textures.values())
         scene.mtl_texture_path_func = lambda name: f'textures/{name}.png'
 
         # Identify choice indexes for part types
@@ -567,7 +632,8 @@ class CrpGeometrySerializer(BaseFileSerializer):
                     mesh.name = mesh_name + (f'_{texture_id}' if texture_id else '')
                     if vx['part_info']['damage'] == 8:
                         mesh.name += '_damaged'
-                    mesh.texture_id = texture_id
+                    # explicit material, otherwise OBJ readers keep using the previous mesh's material
+                    mesh.texture_id = texture_id or 'untextured'
                     if transform_matrix is not None:
                         mesh.apply_transform_matrix(
                             [
@@ -580,6 +646,7 @@ class CrpGeometrySerializer(BaseFileSerializer):
                     mesh.change_axes(new_y='z', new_z='y')
                     scene.sub_meshes.append(mesh)
 
+        scene.mtl_texture_names = sorted({m.texture_id for m in scene.sub_meshes if m.texture_id != 'untextured'})
         return export_scenes([scene], path, self.settings)
 
 

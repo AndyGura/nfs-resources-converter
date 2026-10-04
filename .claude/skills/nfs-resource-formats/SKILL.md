@@ -213,7 +213,13 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    `compose_texture_page` in `serializers/geometries.py` for NFS5 CRP texture pages). A texture
    file that sits next to the model (track `.fsh`, car `.tpg`) is loaded with
    `require_resource(<sibling path>)`; unwrap `EacCompressedBlock` by re-requiring
-   `join_id(id, 'data')`.
+   `join_id(id, 'data')`. NFS5 car atlases overlap alternative image variants (roof, decals, ...):
+   `crp_car_is_image_used` keeps those of the car's default `.tpg` `[styleN]`. CRP alpha is not
+   transparency except for `CarWheel`/`CarWindow` materials, so other pages are written opaque
+   (`page_<n>.png` vs `page_<n>_alpha.png`). Meshes without a texture still need a material
+   (`untextured`), otherwise OBJ readers carry over the previous `usemtl`.
+   Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
+   into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
    file-manager association/icon in the installers.
 5. **Docs**: add/extend an entry in `generate_resource_doc.py`'s `EXPORT_RESOURCES[<game>]`

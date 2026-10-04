@@ -1,18 +1,8 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  inject,
-  OnChanges,
-  OnDestroy,
-  SimpleChanges,
-} from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
-import { CrpCarMeshController } from './crp-car-mesh-controller';
 
 @Component({
   selector: 'app-crp-geometry-block-ui',
@@ -24,10 +14,6 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   isTrack$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-
-  customControls: ObjViewerCustomControl[] = [];
-
-  readonly cdr = inject(ChangeDetectorRef);
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -50,38 +36,17 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
     }
   }
 
-  onObjectLoaded(obj: Object3D) {
-    this.customControls = [];
-    if (!this.isTrack$.value) {
-      try {
-        const meshController = new CrpCarMeshController(obj);
-        if (meshController.hasPaintedTextures) {
-          let timeout: number | null = null;
-          const setColor = (color: number) => {
-            if (timeout) {
-              clearTimeout(timeout);
-            }
-            timeout = setTimeout(() => (meshController.color = color), 50) as any as number;
-          };
-          this.customControls = [
-            {
-              title: 'NFS5 car features',
-              controls: [
-                {
-                  label: 'Car color',
-                  type: 'color',
-                  value: meshController.color,
-                  change: c => setColor(c),
-                },
-              ],
-            },
-          ];
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    this.cdr.markForCheck();
+  // mesh name: <article name>_LOD<lod>_ai<animation frame>[_<texture>][_damaged]
+  private static readonly MESH_NAME_REGEX = /^(.*_LOD\d+)_ai(\d+)(?:_.*?)?(_damaged)?$/;
+
+  previewObjectGroupFunc(object: Object3D): string {
+    const match = CrpGeometryBlockUiComponent.MESH_NAME_REGEX.exec(object.name);
+    return match ? match[1] + (match[3] || '') : object.name;
+  }
+
+  previewAnimationFrameFunc(object: Object3D): number | null {
+    const match = CrpGeometryBlockUiComponent.MESH_NAME_REGEX.exec(object.name);
+    return match ? +match[2] : null;
   }
 
   private serializerSettings = {

@@ -50,6 +50,17 @@ export type ViewFilterOpts = {
   pickFunction: (object: Object3D) => number;
 };
 
+type UiGroup = {
+  visible: boolean;
+  meshes: Object3D[];
+  // sorted animation frame numbers, empty if the group is not animated
+  frames: number[];
+  frame: number;
+  playing: boolean;
+};
+
+const ANIMATION_FPS = 15;
+
 class ViewFilter {
   private _meshes: Object3D[] = [];
 
@@ -185,6 +196,15 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
     this.rebuildUiGroups();
   }
 
+  private _animationFrameFunction: ((object: Object3D) => number | null) | null = null;
+  @Input()
+  /// meshes of the same visibility group with different frame numbers are frames of an animation:
+  /// the group shows one frame at a time and can be played
+  set animationFrameFunction(value: ((object: Object3D) => number | null) | null) {
+    this._animationFrameFunction = value;
+    this.rebuildUiGroups();
+  }
+
   @Input() customControls: ObjViewerCustomControl[] = [];
 
   _paths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
@@ -211,7 +231,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   meshes: Object3D[] = [];
   displayMeshes: Object3D[] = [];
-  uiGroups: { [prefix: string]: { visible: boolean; meshes: Object3D[] } } | null = null;
+  uiGroups: { [prefix: string]: UiGroup } | null = null;
+  // animation state of ui groups, kept when groups are rebuilt
+  private animationStates: { [prefix: string]: { frame: number; playing: boolean } } = {};
+  private animationTimer: any = null;
 
   ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
   viewModeController?: ViewModeController;
@@ -295,6 +318,8 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
           f.meshes = [];
         }
         this.uiGroups = null;
+        this.animationStates = {};
+        this.updateAnimationTimer();
         this.cdr.markForCheck();
       }
       if (paths) {
@@ -392,23 +417,18 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
 
   public toggleUiGroup(alias: string): void {
     if (!this.uiGroups) return;
-    let visible = !this.uiGroups[alias].visible;
-    for (const mesh of this.uiGroups[alias].meshes) {
-      mesh.visible = visible;
-    }
-    this.uiGroups[alias].visible = visible;
+    this.uiGroups[alias].visible = !this.uiGroups[alias].visible;
+    this.applyUiGroupVisibility(this.uiGroups[alias]);
   }
 
   public toggleUiGroupOnly(alias: string): void {
     if (!this.uiGroups) return;
-    for (const al in this.uiGroups) {
-      this.uiGroups[al].visible = al === alias;
-    }
     for (const m of this.displayMeshes) {
       m.visible = false;
     }
-    for (const m of this.uiGroups[alias].meshes) {
-      m.visible = true;
+    for (const al in this.uiGroups) {
+      this.uiGroups[al].visible = al === alias;
+      this.applyUiGroupVisibility(this.uiGroups[al]);
     }
   }
 
@@ -418,9 +438,7 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
       const newState = !allVisible;
       for (const group of Object.values(this.uiGroups)) {
         group.visible = newState;
-        for (const mesh of group.meshes) {
-          mesh.visible = newState;
-        }
+        this.applyUiGroupVisibility(group);
       }
     } else {
       const allVisible = this.displayMeshes.every(m => m.visible);
@@ -430,6 +448,52 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
       }
     }
     this.cdr.markForCheck();
+  }
+
+  public toggleUiGroupAnimation(alias: string): void {
+    if (!this.uiGroups) return;
+    const group = this.uiGroups[alias];
+    group.playing = !group.playing;
+    this.animationStates[alias] = { frame: group.frame, playing: group.playing };
+    if (!group.playing) {
+      // stop on the first frame
+      group.frame = group.frames[0];
+      this.animationStates[alias].frame = group.frame;
+      this.applyUiGroupVisibility(group);
+    }
+    this.updateAnimationTimer();
+    this.cdr.markForCheck();
+  }
+
+  private applyUiGroupVisibility(group: UiGroup): void {
+    for (const mesh of group.meshes) {
+      mesh.visible =
+        group.visible &&
+        (group.frames.length < 2 ||
+          !this._animationFrameFunction ||
+          this._animationFrameFunction(mesh) === group.frame);
+    }
+  }
+
+  private updateAnimationTimer(): void {
+    const isPlaying = !!this.uiGroups && Object.values(this.uiGroups).some(g => g.playing);
+    if (isPlaying && !this.animationTimer) {
+      this.animationTimer = setInterval(() => this.animationTick(), 1000 / ANIMATION_FPS);
+    } else if (!isPlaying && this.animationTimer) {
+      clearInterval(this.animationTimer);
+      this.animationTimer = null;
+    }
+  }
+
+  private animationTick(): void {
+    if (!this.uiGroups) return;
+    for (const alias in this.uiGroups) {
+      const group = this.uiGroups[alias];
+      if (!group.playing) continue;
+      group.frame = group.frames[(group.frames.indexOf(group.frame) + 1) % group.frames.length];
+      this.animationStates[alias].frame = group.frame;
+      this.applyUiGroupVisibility(group);
+    }
   }
 
   // TODO use set.intersection after upgrading typescript
@@ -464,14 +528,34 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
       for (const c of this.displayMeshes) {
         const groupId = this._visibilityGroupFunction(c);
         if (!this.uiGroups[groupId]) {
-          this.uiGroups[groupId] = { visible: true, meshes: [c] };
+          this.uiGroups[groupId] = { visible: true, meshes: [c], frames: [], frame: 0, playing: false };
         } else {
           this.uiGroups[groupId].meshes.push(c);
         }
       }
+      for (const alias in this.uiGroups) {
+        const group = this.uiGroups[alias];
+        if (this._animationFrameFunction) {
+          const frames = new Set<number>();
+          for (const mesh of group.meshes) {
+            const frame = this._animationFrameFunction(mesh);
+            if (frame !== null) {
+              frames.add(frame);
+            }
+          }
+          group.frames = Array.from(frames).sort((a, b) => a - b);
+        }
+        if (group.frames.length > 1) {
+          const state = this.animationStates[alias];
+          group.playing = !!state?.playing;
+          group.frame = state && group.frames.includes(state.frame) ? state.frame : group.frames[0];
+        }
+        this.applyUiGroupVisibility(group);
+      }
     } else {
       this.uiGroups = null;
     }
+    this.updateAnimationTimer();
     this.cdr.markForCheck();
   }
 
@@ -490,6 +574,10 @@ export class ObjViewerComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.animationTimer) {
+      clearInterval(this.animationTimer);
+      this.animationTimer = null;
+    }
     this.viewModeController?.dispose();
     this.destroyed$.next();
     this.destroyed$.complete();
