@@ -673,7 +673,9 @@ class CrpGeometrySerializer(BaseFileSerializer):
                     continue
 
                 for sub_mesh, _, _ in mesh.split_by_texture_ids():
-                    sub_mesh.name = mesh_name + (f'_{sub_mesh.texture_id}' if sub_mesh.texture_id != 'untextured' else '')
+                    sub_mesh.name = mesh_name + (
+                        f'_{sub_mesh.texture_id}' if sub_mesh.texture_id != 'untextured' else ''
+                    )
                     if vx['part_info']['damage'] == 8:
                         sub_mesh.name += '_damaged'
                     if transform_matrix is not None:
