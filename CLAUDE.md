@@ -64,6 +64,9 @@ docs and a working GUI editor for free.
 - Python **3.14**, venv at `./.venv` (see `AI_AGENTS.md`). Always invoke `./.venv/bin/python`.
 - Backend tests: `./.venv/bin/python -m unittest` (target one module with e.g.
   `-m unittest test.library.read_blocks.test_array`).
+- Python formatting: `./.venv/bin/ruff format .` (Ruff, config in `pyproject.toml`; dev deps in
+  `requirements-dev.txt`). Like prettier for the frontend, `.github/workflows/build-extras.yml` runs it
+  on every PR/push to main and commits the result, so it's never a blocking check.
 - Frontend: `cd frontend && npm install` once; `npm run start` for the dev server;
   CI-equivalent test run: `npm run test -- --watch=false --no-progress --browsers=ChromeHeadless`.
 - Run the app: `python run.py [path/to/file]`; `python run.py --dev` for the hot-reload GUI
