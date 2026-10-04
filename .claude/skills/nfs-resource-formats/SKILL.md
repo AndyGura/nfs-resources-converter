@@ -206,6 +206,14 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    `deserialize()`/`ui_serialization()` if it should round-trip from the GUI convert panel), return
    it from the block's `serializer_class()`, and import the new serializer class in
    `serializers/__init__.py`.
+   For 3D formats, give each `SubMesh` a `texture_id`, list those ids in `Scene.mtl_texture_names`
+   and set `Scene.mtl_texture_path_func`; the exported `.mtl` then carries the textures to every
+   consumer (GUI OBJ preview, Blender, glb). `ImageSerializer().to_image(data, block, id)` returns a
+   PIL image of any `EacImage` (palette resolved from `id`), e.g. to compose texture atlases (see
+   `compose_texture_page` in `serializers/geometries.py` for NFS5 CRP texture pages). A texture
+   file that sits next to the model (track `.fsh`, car `.tpg`) is loaded with
+   `require_resource(<sibling path>)`; unwrap `EacCompressedBlock` by re-requiring
+   `join_id(id, 'data')`.
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
    file-manager association/icon in the installers.
 5. **Docs**: add/extend an entry in `generate_resource_doc.py`'s `EXPORT_RESOURCES[<game>]`

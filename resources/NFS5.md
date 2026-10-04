@@ -1,6 +1,6 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-09-29 06:59:16.834305+00:00*
+*Last time updated: 2026-10-04 18:32:49.779796+00:00*
 
 
 # **Info by file extensions** #
@@ -54,7 +54,7 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Geometries** ##
 ### **CrpGeometry** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: A set of 3D meshes, used for cars and tracks. Currently I parsed all geometries and (possibly) UV-s, materials are not parsed yet. Contains many part blocks, 16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed by raw data. Each part, except articles, have an offset and length of it's data, located in "raw_data" byte array. The converter builds one mesh per vertex part of each article, named `<article name>_LOD<lod>_ai<animation index>`, using triangle, UV and transformation parts of the article with the same LOD; textures come from the FSH parts ####
+#### **Description**: A set of 3D meshes, used for cars and tracks. Materials are parsed only partially. Contains many part blocks, 16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed by raw data. Each part, except articles, have an offset and length of it's data, located in "raw_data" byte array. The converter builds one mesh per vertex part and texture of each article, named `<article name>_LOD<lod>_ai<animation index>_<texture>`, using triangle, UV and transformation parts of the article with the same LOD. Car textures: every FSH part is composed into a texture page (images are placed by their atlas position), material references the page by index; mapping of FSH parts to pages is described in car's .tpg file. Track textures: material references the texture by 4-char name in the FSH file, which name is stored in TextPart2 "ns" ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['" raC"', '"karT"'] | Resource ID. " raC" ("Car ") for cars, "karT" for tracks |
@@ -217,13 +217,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 12 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Data offset (Relative from current block offset) |
 ### **MaterialPartData** ###
 #### **Size**: 312 bytes ####
-#### **Description**: A material, data structure is mostly unknown ####
+#### **Description**: A material, data structure is mostly unknown. Triangle parts reference it by index (`idx` of [MaterialPart](#materialpart)) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 16 | Bytes | Unknown purpose |
 | 16 | **desc** | 16 | UTF-8 string | Description |
 | 32 | **unk1** | 8 | Bytes | Unknown purpose |
-| 40 | **tex_page_index** | 4 | 4-bytes unsigned integer (little endian) | Texture page index |
+| 40 | **tex_page_index** | 4 | 4-bytes unsigned integer (little endian) | Texture reference. Cars: 0-based texture page index (page N+1 in car's .tpg file, embedded FSH part with `idx` M is .tpg file M+1). Tracks: 4-char name of the texture in track's FSH file, stored as integer |
 | 44 | **unk2** | 268 | Bytes | Unknown purpose |
 ### **CullingPartData** ###
 #### **Size**: 16 bytes ####
@@ -356,7 +356,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
 | 8 | **pivot** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Seems like x coordinate is not used at all. y coordinate is used in horizon textures in TNFS FAM files: higher value = image as horizon will be put higher on the screen. Seems to affect only open tracks |
-| 12 | **position** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Bitmap position on screen. Used for menu/dash sprites. Unknown for others |
+| 12 | **position** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Bitmap position on screen. Used for menu/dash sprites. In NFS5 FSH files this is the position of the image in a texture page (atlas), which is used by CRP models: 12 lower bits of each coordinate are a signed value, 4 higher bits are flags (track textures have 6 or 7 in y flags for 64x64 or 128x128 images, likely the mipmap count) |
 | 16 | **bitmap** | width \* height \* pixel_byteness | Bytes | Pixel color table. For 8Bit bitmap each value represents an index of color in the attached palette. Palette can be stored: <br/>- right after 8Bit image<br/>- as !pal/!PAL in the same SHPI<br/>- in a different SHPI before this one (if it is WWWW archive)<br/>- even in different QFS file (TNFS, CONTROL directory).<br/>Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md) |
 | 16 + width \* height \* pixel_byteness | **pad** | 0..up to offset palette_offset | Optional (if palette_offset > 0): Padding bytes | Zeros in the end of block data |
 | 16 + width \* height \* pixel_byteness..16 + width \* height \* pixel_byteness + up to offset palette_offset | **unk_7c** | 0..? | Optional (if 0x7C header found): [PaletteReference](#palettereference) | Unknown data with id 0x7C |

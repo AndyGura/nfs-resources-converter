@@ -65,13 +65,24 @@ class UnkPart4(DeclarativeCompoundBlock):
 class MaterialPartData(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
-        return {**super().schema, 'block_description': 'A material, data structure is mostly unknown'}
+        return {
+            **super().schema,
+            'block_description': 'A material, data structure is mostly unknown. Triangle parts reference it by '
+            'index (`idx` of [MaterialPart](#materialpart))',
+        }
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (BytesBlock(length=16), {'is_unknown': True})
         desc = (UTF8Block(length=16), {'description': 'Description'})
         unk1 = (BytesBlock(length=8), {'is_unknown': True})
-        tex_page_index = (IntegerBlock(length=4), {'description': 'Texture page index'})
+        tex_page_index = (
+            IntegerBlock(length=4),
+            {
+                'description': "Texture reference. Cars: 0-based texture page index (page N+1 in car's .tpg "
+                'file, embedded FSH part with `idx` M is .tpg file M+1). Tracks: 4-char name of the '
+                "texture in track's FSH file, stored as integer"
+            },
+        )
         unk2 = (BytesBlock(length=0x10C), {'is_unknown': True})
 
 
@@ -761,14 +772,17 @@ class CrpGeometry(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'A set of 3D meshes, used for cars and tracks. Currently I parsed all geometries '
-            'and (possibly) UV-s, materials are not parsed yet. Contains many part blocks, '
+            'block_description': 'A set of 3D meshes, used for cars and tracks. Materials are parsed only partially. '
+            'Contains many part blocks, '
             '16-bytes each, splitted into 3 sections: articles, common_parts, parts, followed '
             "by raw data. Each part, except articles, have an offset and length of it's data,"
             ' located in "raw_data" byte array. The converter builds one mesh per vertex part '
-            'of each article, named `<article name>_LOD<lod>_ai<animation index>`, using '
-            'triangle, UV and transformation parts of the article with the same LOD; '
-            'textures come from the FSH parts',
+            'and texture of each article, named `<article name>_LOD<lod>_ai<animation index>_<texture>`, using '
+            'triangle, UV and transformation parts of the article with the same LOD. Car textures: every '
+            'FSH part is composed into a texture page (images are placed by their atlas position), '
+            "material references the page by index; mapping of FSH parts to pages is described in car's "
+            '.tpg file. Track textures: material references the texture by 4-char name in the FSH file, '
+            'which name is stored in TextPart2 "ns"',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):

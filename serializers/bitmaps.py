@@ -33,9 +33,7 @@ class ImageSerializer(BaseFileSerializer):
         else:
             return data
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
-        super().serialize(data, path, id=id, block=block)
-
+    def _get_palette_colors(self, data: dict, block, id) -> List[int]:
         palette_colors = []
         if data['resource_id'].startswith('8Bit'):
             (_, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
@@ -45,15 +43,26 @@ class ImageSerializer(BaseFileSerializer):
                 palette_colors = [c for c in palette_data['colors']['data']]
                 if palette_data['last_color_transparent']:
                     palette_colors[255] = 0
+        return palette_colors
+
+    def to_image(self, data: dict, block=None, id=None, palette_colors=None) -> Image.Image:
+        if palette_colors is None:
+            palette_colors = self._get_palette_colors(data, block, id)
+        bitmap = self._transform_to_rgba(data['resource_id'], data['bitmap'], palette_colors)
+        return Image.frombytes(
+            'RGBA', (data['width'], data['height']), bytes().join([c.to_bytes(4, 'big') for c in bitmap])
+        )
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        super().serialize(data, path, id=id, block=block)
+
+        palette_colors = self._get_palette_colors(data, block, id)
 
         file_path = escape_chars(path)
         if not file_path.endswith('.png'):
             file_path += '.png'
         saved_files = [file_path]
-        bitmap = self._transform_to_rgba(data['resource_id'], data['bitmap'], palette_colors)
-        Image.frombytes(
-            'RGBA', (data['width'], data['height']), bytes().join([c.to_bytes(4, 'big') for c in bitmap])
-        ).save(file_path)
+        self.to_image(data, palette_colors=palette_colors).save(file_path)
         if data.get('mipmaps') and self.settings.images__save_mipmaps:
             mipmaps_data = self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
             (width, height) = (data['width'], data['height'])

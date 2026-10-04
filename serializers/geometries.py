@@ -1,5 +1,10 @@
+import os
+import re
 from collections import defaultdict
-from typing import List
+from configparser import ConfigParser
+from typing import List, Tuple, Dict, Optional
+
+from PIL import Image
 
 from library.exceptions import DataIntegrityException
 from library.utils import path_join
@@ -255,35 +260,207 @@ class GeoGeometrySerializer(BaseFileSerializer):
         return export_scenes([scene], path, self.settings)
 
 
+def _read_12_bit_signed(value: int) -> int:
+    value &= 0xFFF
+    return value - 0x1000 if value & 0x800 else value
+
+
+def crp_image_atlas_position(image: dict) -> Tuple[int, int]:
+    """Position of an NFS5 FSH image inside its texture page: 12-bit signed x and y, packed into the low bits of
+    `EacImage.position` (high 4 bits of each coordinate are flags)"""
+    return _read_12_bit_signed(image['position']['x']), _read_12_bit_signed(image['position']['y'])
+
+
+def compose_texture_page(images: List[Tuple[Image.Image, int, int]], width: int = None, height: int = None):
+    """Composes images into one texture page. Images are given as (image, x, y). When images overlap (alternate
+    versions of the same texture, like "top" and "top1"), the first one wins. If page size is not provided, it is
+    the bounding box of all images, rounded up to a power of two"""
+
+    def pow2(x):
+        return 1 << max(0, int(x) - 1).bit_length()
+
+    if width is None:
+        width = pow2(max([x + img.width for img, x, _ in images] + [1]))
+    if height is None:
+        height = pow2(max([y + img.height for img, _, y in images] + [1]))
+    page = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    for img, x, y in reversed(images):
+        page.paste(img, (x, y))
+    return page
+
+
+def crp_car_texture_page_sources(fsh_indices: List[int], tpg: ConfigParser = None) -> Dict[int, int]:
+    """Maps texture page index (MaterialPartData.tex_page_index) to the index of the FSH part, which content is
+    drawn on that page. Uses car's .tpg file if available. Without it, uses the layout all NFS5 cars share:
+    FSH part N is file N+1 of .tpg, pages are: exterior (file 1), exterior copy, interior (file 2), extint (file 3),
+    glass (file 4), ..., price (file 8). Pages of remaining files (shadow, cabrio, driver suit/head...) are
+    taken from global game files, which are not part of the car"""
+    res = {}
+    if tpg is None:
+        for fsh_idx in fsh_indices:
+            res[0 if fsh_idx == 0 else fsh_idx + 1] = fsh_idx
+        if 0 in res:
+            res[1] = res[0]
+        return res
+    for fsh_idx in fsh_indices:
+        section = f'file{fsh_idx + 1}.details'
+        if tpg.has_option(section, 'tpage'):
+            res[tpg.getint(section, 'tpage') - 1] = fsh_idx
+    for section in tpg.sections():
+        match = re.fullmatch(r'tpage(\d+)\.details', section)
+        if match and tpg.has_option(section, 'sourcetpage'):
+            source_page = tpg.getint(section, 'sourcetpage') - 1
+            if source_page in res:
+                res[int(match.group(1)) - 1] = res[source_page]
+    return res
+
+
+def _find_sibling_file(file_path: str, file_name: str) -> Optional[str]:
+    directory = os.path.dirname(file_path) or '.'
+    try:
+        return next(path_join(directory, x) for x in os.listdir(directory) if x.lower() == file_name.lower())
+    except StopIteration, FileNotFoundError:
+        return None
+
+
+def _crp_texture_tag(value: int) -> str:
+    return value.to_bytes(4, 'little').decode('latin-1')
+
+
 class CrpGeometrySerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
-        super().serialize(data, path)
+    def _load_car_textures(self, data, path, id, block) -> Dict[int, str]:
+        """Exports textures from FSH parts and composes texture pages. Returns texture page index -> name of
+        exported page texture"""
+        from library.loader import id_to_path
+        from serializers import ShpiArchiveSerializer, ImageSerializer
 
         misc_choice = block.field_blocks_map['common_parts'].child
-        fsh_parts = [
-            (join_id(id, 'common_parts', str(i), 'data'), x['data'])
-            for (i, x) in enumerate(data['common_parts'])
-            if x['choice_index'] == misc_choice.get_choice_index_by_class_name('FSHPart')
-        ]
-        from serializers import ShpiArchiveSerializer
-
+        fsh_choice_index = misc_choice.get_choice_index_by_class_name('FSHPart')
         shpi_block = ShpiBlock()
-        for fsh_part_id, fsh_part in fsh_parts:
+        fsh_pages = {}
+        for i, x in enumerate(data['common_parts']):
+            if x['choice_index'] != fsh_choice_index:
+                continue
+            fsh_part = x['data']
             assert fsh_part['num_data'] == 1
             fsh_data = fsh_part['data'][0]
-            idx = fsh_part['idx']
+            fsh_data_id = join_id(id, 'common_parts', str(i), 'data', 'data', '0')
             ShpiArchiveSerializer().serialize(
-                fsh_data, path_join(path, f'textures/{idx}/'), join_id(fsh_part_id, 'data', '0'), shpi_block
+                fsh_data, path_join(path, f'textures/{fsh_part["idx"]}/'), fsh_data_id, shpi_block
             )
+            images = []
+            for child in fsh_data['children']:
+                item_block = shpi_block.item_block.possible_blocks[child['item']['choice_index']]
+                if not isinstance(item_block, EacImage):
+                    continue
+                image = ImageSerializer().to_image(
+                    child['item']['data'],
+                    item_block,
+                    join_id(fsh_data_id, 'children', child['alias'], 'item', 'data'),
+                )
+                images.append((image, *crp_image_atlas_position(child['item']['data'])))
+            fsh_pages[fsh_part['idx']] = images
+
+        tpg = None
+        if id:
+            tpg_path = _find_sibling_file(
+                id_to_path(id), os.path.splitext(os.path.basename(id_to_path(id)))[0] + '.tpg'
+            )
+            if tpg_path:
+                tpg = ConfigParser(strict=False)
+                try:
+                    tpg.read(tpg_path)
+                except Exception:
+                    tpg = None
+
+        textures = {}
+        for page_idx, fsh_idx in crp_car_texture_page_sources(list(fsh_pages.keys()), tpg).items():
+            width = height = None
+            section = f'tpage{page_idx + 1}.details'
+            if tpg is not None and tpg.has_option(section, 'width') and tpg.has_option(section, 'height'):
+                width, height = tpg.getint(section, 'width'), tpg.getint(section, 'height')
+            name = f'page_{page_idx}'
+            compose_texture_page(fsh_pages[fsh_idx], width, height).save(path_join(path, f'textures/{name}.png'))
+            textures[page_idx] = name
+        return textures
+
+    def _load_track_textures(self, data, path, id, block, tags) -> Dict[int, str]:
+        """Exports textures, referenced by materials, from FSH file(s) next to the track CRP. Returns material
+        texture tag (as integer) -> name of exported texture"""
+        from library import require_resource
+        from library.loader import id_to_path
+        from serializers import ImageSerializer
+
+        if not id:
+            return {}
+        misc_choice = block.field_blocks_map['common_parts'].child
+        text_choice_index = misc_choice.get_choice_index_by_class_name('TextPart2')
+        fsh_names = [x['data']['data'] for x in data['common_parts'] if x['choice_index'] == text_choice_index]
+        images = {}
+        for fsh_name in fsh_names:
+            fsh_path = _find_sibling_file(id_to_path(id), fsh_name)
+            if not fsh_path:
+                continue
+            (fsh_id, shpi_block, shpi_data), _ = require_resource(fsh_path)
+            # unwrap compressed file
+            while not isinstance(shpi_block, ShpiBlock) and isinstance(shpi_data, dict) and 'choice_index' in shpi_data:
+                (fsh_id, shpi_block, shpi_data), _ = require_resource(join_id(fsh_id, 'data'))
+            if not isinstance(shpi_block, ShpiBlock):
+                continue
+            for child in shpi_data['children']:
+                item_block = shpi_block.item_block.possible_blocks[child['item']['choice_index']]
+                if isinstance(item_block, EacImage) and child['alias'] not in images:
+                    images[child['alias']] = (
+                        child['item']['data'],
+                        item_block,
+                        join_id(fsh_id, 'children', child['alias'], 'item', 'data'),
+                    )
+        textures = {}
+        used_names = set()
+        for tag in tags:
+            alias = _crp_texture_tag(tag)
+            if alias not in images:
+                continue
+            name = re.sub(r'[^0-9A-Za-z_-]', '_', alias.strip()) or 'texture'
+            while name in used_names:
+                name += '_'
+            used_names.add(name)
+            image_data, image_block, image_id = images[alias]
+            ImageSerializer().to_image(image_data, image_block, image_id).save(path_join(path, f'textures/{name}.png'))
+            textures[tag] = name
+        return textures
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        super().serialize(data, path)
+        os.makedirs(path_join(path, 'textures'), exist_ok=True)
+
+        misc_choice = block.field_blocks_map['common_parts'].child
+        material_choice_index = misc_choice.get_choice_index_by_class_name('MaterialPart')
+        materials = {
+            x['data']['idx']: x['data']['data']
+            for x in data['common_parts']
+            if x['choice_index'] == material_choice_index
+        }
+        if data['resource_id'] == 'karT':
+            textures = self._load_track_textures(
+                data, path, id, block, {m['tex_page_index'] for m in materials.values()}
+            )
+        else:
+            textures = self._load_car_textures(data, path, id, block)
+
+        def material_texture(material_index):
+            material = materials.get(material_index)
+            return textures.get(material['tex_page_index']) if material else None
 
         scene = Scene()
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.sub_meshes = []
-        # scene.mtl_texture_names = ["textures/2/bott.png"]
+        scene.mtl_texture_names = list(textures.values())
+        scene.mtl_texture_path_func = lambda name: f'textures/{name}.png'
 
         # Identify choice indexes for part types
         choice = block.field_blocks_map['parts'].child
@@ -292,36 +469,34 @@ class CrpGeometrySerializer(BaseFileSerializer):
         triangle_choice_index = choice.get_choice_index_by_class_name('TrianglePart')
         transform_choice_index = choice.get_choice_index_by_class_name('TransformationPart')
         name_choice_index = choice.get_choice_index_by_class_name('TextPart4')
+        triangle_data_block = choice.possible_blocks[triangle_choice_index].field_blocks_map['data']
+        info_row_block = triangle_data_block.field_blocks_map['info_rows'].child
+        uv_info_row_choice_index = info_row_block.get_choice_index_by_class_name('UVInfoRow')
+        vertex_info_row_choice_index = info_row_block.get_choice_index_by_class_name('VertexInfoRow')
 
         def extract_vertices(part):
             return [[v['position']['x'], v['position']['y'], v['position']['z']] for v in part['data']]
 
-        def extract_uvs(len_vertices, indices, uv_indices, uv_part):
-            res = []
-            for vi in range(len_vertices):
-                try:
-                    uv_item = uv_part['data'][uv_indices[indices.index(vi)]]
-                    res.append([uv_item['u'], uv_item['v']])
-                except IndexError, ValueError:
-                    res.append([0, 0])
-            return res
-
-        def extract_indices(part):
-            num_data = part['num_data']
-            try:
-                offset = part['data']['index_rows'][0]['offset']
-                indices = part['data']['index_table'][offset : offset + num_data]
-                # take into account VertexInfoRow
-                try:
-                    vertex_info_row = next(x['data'] for x in part['data']['info_rows'] if x['choice_index'] == 3)
-                    vertex_index_offset = vertex_info_row['offset'] / 16
-                    if vertex_index_offset > 0:
-                        indices = [x + vertex_index_offset for x in indices]
-                except StopIteration:
-                    pass
-                return indices
-            except Exception:
+        def extract_triangle_corners(part):
+            """Returns list of (vertex index, uv index) for every triangle corner of the triangle part"""
+            index_rows = {x['identifier']: x['offset'] for x in part['data']['index_rows']}
+            if 'vI' not in index_rows:
                 return []
+            info_rows = {x['choice_index']: x['data'] for x in part['data']['info_rows']}
+            vertex_offset = (
+                info_rows[vertex_info_row_choice_index]['offset'] // 16
+                if vertex_info_row_choice_index in info_rows
+                else 0
+            )
+            uv_offset = (
+                info_rows[uv_info_row_choice_index]['offset'] // 8 if uv_info_row_choice_index in info_rows else 0
+            )
+            start = index_rows['vI']
+            num_data = part['num_data']
+            indices = part['data']['index_table'][start : start + num_data]
+            uv_indices = part['data']['uv_index_table'][start : start + num_data]
+            corners = [(vi + vertex_offset, uvi + uv_offset) for vi, uvi in zip(indices, uv_indices)]
+            return corners[: len(corners) - len(corners) % 3]
 
         for i, article in enumerate(data['articles']):
             names = [x['data'] for x in article['parts'] if x['choice_index'] == name_choice_index]
@@ -343,12 +518,9 @@ class CrpGeometrySerializer(BaseFileSerializer):
                 except StopIteration:
                     transform_matrix = None
 
-                mesh = SubMesh()
-                mesh.name = f'{name}_LOD{lod_level}_ai{vx["part_info"]["animation_index"]}'
-                # mesh.texture_id = "textures/2/bott.png"
-                scene.sub_meshes.append(mesh)
+                mesh_name = f'{name}_LOD{lod_level}_ai{vx["part_info"]["animation_index"]}'
+                vertices = extract_vertices(vx)
                 if vx['part_info']['damage'] == 8:
-                    mesh.name += '_damaged'
                     fix_vertex_pos = next(
                         x
                         for x in v
@@ -356,30 +528,48 @@ class CrpGeometrySerializer(BaseFileSerializer):
                         and x['part_info']['animation_index'] == vx['part_info']['animation_index']
                         and x['part_info']['damage'] == 0
                     )
-                else:
-                    fix_vertex_pos = None
+                    fix = extract_vertices(fix_vertex_pos)
+                    for j in range(len(vertices)):
+                        for k in range(3):
+                            vertices[j][k] += fix[j][k]
 
+                try:
+                    uvs = [[u['u'], u['v']] for u in next(x for x in uv if x['part_info']['lod'] == lod_level)['data']]
+                except StopIteration:
+                    uvs = []
+
+                # one sub-mesh per texture
+                texture_meshes = {}
                 for trix in (x for x in tri if x['part_info']['lod'] == lod_level):
-                    part_mesh = SubMesh()
-                    part_mesh.vertices = extract_vertices(vx)
-                    if fix_vertex_pos is not None:
-                        fix = extract_vertices(fix_vertex_pos)
-                        for j in range(len(part_mesh.vertices)):
-                            for k in range(3):
-                                part_mesh.vertices[j][k] += fix[j][k]
-                    uvx = next(x for x in uv if x['part_info']['lod'] == lod_level)
-                    indices = extract_indices(trix)
-                    part_mesh.vertex_uvs = extract_uvs(
-                        len(part_mesh.vertices), indices, trix['data']['uv_index_table'], uvx
-                    )
-                    part_mesh.polygons = [
-                        [indices[i], indices[i + 1], indices[i + 2]]
-                        for i in range(0, len(indices), 3)
-                        if i + 2 < len(indices)
-                    ]
+                    texture_id = material_texture(trix['data']['material_index'])
+                    if texture_id not in texture_meshes:
+                        texture_meshes[texture_id] = (SubMesh(), {})
+                    mesh, corner_map = texture_meshes[texture_id]
+                    polygon = []
+                    for corner in extract_triangle_corners(trix):
+                        if corner not in corner_map:
+                            vi, uvi = corner
+                            if vi >= len(vertices):
+                                corner_map[corner] = None
+                            else:
+                                corner_map[corner] = len(mesh.vertices)
+                                mesh.vertices.append(list(vertices[vi]))
+                                mesh.vertex_uvs.append(uvs[uvi] if uvi < len(uvs) else [0, 0])
+                        polygon.append(corner_map[corner])
+                        if len(polygon) == 3:
+                            if None not in polygon:
+                                mesh.polygons.append(polygon)
+                            polygon = []
 
+                for texture_id, (mesh, _) in texture_meshes.items():
+                    if not mesh.polygons:
+                        continue
+                    mesh.name = mesh_name + (f'_{texture_id}' if texture_id else '')
+                    if vx['part_info']['damage'] == 8:
+                        mesh.name += '_damaged'
+                    mesh.texture_id = texture_id
                     if transform_matrix is not None:
-                        part_mesh.apply_transform_matrix(
+                        mesh.apply_transform_matrix(
                             [
                                 [transform_matrix[0], transform_matrix[4], transform_matrix[8], transform_matrix[12]],
                                 [transform_matrix[1], transform_matrix[5], transform_matrix[9], transform_matrix[13]],
@@ -387,9 +577,8 @@ class CrpGeometrySerializer(BaseFileSerializer):
                                 [transform_matrix[3], transform_matrix[7], transform_matrix[11], transform_matrix[15]],
                             ]
                         )
-
-                    part_mesh.change_axes(new_y='z', new_z='y')
-                    mesh.extend(part_mesh)
+                    mesh.change_axes(new_y='z', new_z='y')
+                    scene.sub_meshes.append(mesh)
 
         return export_scenes([scene], path, self.settings)
 
