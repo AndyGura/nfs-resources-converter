@@ -55,6 +55,7 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
 import { TargaImageBlockUiComponent } from './common/targa-image.block-ui/targa-image.block-ui.component';
 import { ImageViewerComponent } from './common/image-viewer/image-viewer.component';
 import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.block-ui/nfsu-bin-geometry.block-ui.component';
+import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -98,6 +99,7 @@ import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.bl
     FceGeometryBlockUiComponent,
     CrpGeometryBlockUiComponent,
     NfsuBinGeometryBlockUiComponent,
+    EaglModelBlockUiComponent,
   ],
   imports: [
     CommonModule,

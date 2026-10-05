@@ -1,5 +1,6 @@
 import { Point3 } from '@gg-web-engine/core';
 import { ClampToEdgeWrapping, RepeatWrapping, Texture } from 'three';
+import { nfs6Route } from './nfs6-route';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { BlockData } from '../../types';
 import type { TrackEntity, TrackMapWorldEntity } from './track-map-world.entity';
@@ -22,17 +23,23 @@ export interface TrackSplineDetailPanel {
 // Per-game differences of the chunked track viewer (`TrackMapBlockUiComponent`). Everything else
 // (world, camera, sky, chunk streaming, fly-to, texture archive picker) is shared.
 export interface TrackMapAdapter {
-  // Terrain chunk positions, in game coordinates (Y up). One serialized `terrain_chunk_<i>.obj` per item
-  chunkPositions(data: BlockData): Point3[];
+  // Terrain chunk positions, in game coordinates (Y up). One serialized `terrain_chunk_<i>.obj` per item. When not
+  // set, positions are read from `terrain_chunks.json`, written by the serializer next to the chunks
+  chunkPositions?(data: BlockData): Point3[];
   // Road spline for the minimap and the "Spline item" fly-to. Defaults to the chunk positions
   splinePoints?(data: BlockData): TrackSplinePoint[];
   // Whether the last chunk connects to the first one. Defaults to true
   isClosed?(data: BlockData): boolean;
   // Texture archive file kind, shown in the picker ("QFS", "FAM")
-  textureArchiveKind: string;
+  textureArchiveKind?: string;
   // Glob patterns (wildcards in file name only, case-insensitive) of texture archives for this track,
   // most preferred first. Every match is offered in the picker and the first one is loaded
-  textureArchivePatterns(resourceId: string): string[];
+  textureArchivePatterns?(resourceId: string): string[];
+  // Terrain textures are written by the track serializer to `textures/<name>.png` next to the chunks, so there
+  // is no texture archive picker
+  bundledTextures?: boolean;
+  // Alpha test of terrain materials, for textures with alpha masks (foliage, fences)
+  terrainAlphaTest?: number;
   // Serializer settings patch used when exporting the texture archive
   textureArchiveSettings?: { [key: string]: any };
   // Whether the texture archive provides a spherical skybox texture
@@ -157,12 +164,29 @@ export const TNFS_TRACK_ADAPTER: TrackMapAdapter = {
   ],
 };
 
+// NFS6 race route (levelNN/aipaths.dat): one chunk per compartment ("compNN.o" listed in drvpath.ini), textures
+// come with the chunks
+export const NFS6_TRACK_ADAPTER: TrackMapAdapter = {
+  splinePoints: data => nfs6Route(data).points,
+  isClosed: data => nfs6Route(data).closed,
+  bundledTextures: true,
+  terrainAlphaTest: 0.5,
+  hasSkybox: false,
+  setupTerrainTexture: (texture: Texture) => {
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.colorSpace = 'srgb';
+    texture.anisotropy = 8;
+  },
+};
+
 // Keyed by block class name, as found in `BlockSchema.block_class_mro`
 export const TRACK_MAP_ADAPTERS: { [blockClass: string]: TrackMapAdapter } = {
   TriMap: TNFS_TRACK_ADAPTER,
   TrkMap: NFS2_TRACK_ADAPTER,
   FrdMap: NFS3_TRACK_ADAPTER,
   Nfs4FrdMap: NFS4_TRACK_ADAPTER,
+  Nfs6AiPaths: NFS6_TRACK_ADAPTER,
 };
 
 export function findTrackMapAdapter(blockClassMro: string | undefined): TrackMapAdapter | null {

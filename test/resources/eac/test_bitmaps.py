@@ -393,3 +393,62 @@ class TestConvertToRgba(unittest.TestCase):
             data, color_mode='32Bit color format bitmap', output_colors='black-white', id='test/data'
         )
         self.assertIsNone(data['embedded_palette'])
+
+
+class TestDxtBitmap(unittest.TestCase):
+    block = EacImage()
+
+    def _gen_4x4_bitmap(self, resource_id, pixels_data):
+        return (
+            bytes([resource_id]) + b'\x00\x00\x00\x04\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00' + bytes(pixels_data)
+        )
+
+    def test_dxt1_should_be_translated_correctly(self):
+        # c0 = pure red (0xF800), c1 = pure blue (0x001F), indices: row 0 = c0, row 1 = c1, row 2 = 2/3 c0 + 1/3 c1,
+        # row 3 = 1/3 c0 + 2/3 c1
+        b = self._gen_4x4_bitmap(0x60, bytes([0x00, 0xF8, 0x1F, 0x00, 0b00000000, 0b01010101, 0b10101010, 0xFF]))
+        data = self.block.unpack_from_bytes(b)
+        self.assertEqual(data['resource_id'], 'DXT1 compressed bitmap')
+        self.assertEqual(data['bitmap'][0], 0xFF0000FF)
+        self.assertEqual(data['bitmap'][4], 0x0000FFFF)
+        self.assertEqual(data['bitmap'][8], 0xAA0055FF)
+        self.assertEqual(data['bitmap'][12], 0x5500AAFF)
+
+    def test_dxt1_transparent_color_should_be_translated_correctly(self):
+        # c0 <= c1: 3 colors and transparent black
+        b = self._gen_4x4_bitmap(0x60, bytes([0x1F, 0x00, 0x00, 0xF8, 0xFF, 0xFF, 0xFF, 0xFF]))
+        data = self.block.unpack_from_bytes(b)
+        self.assertEqual(data['bitmap'][0], 0)
+
+    def test_dxt3_alpha_should_be_translated_correctly(self):
+        alpha = bytes([0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE])
+        color = bytes([0xFF, 0xFF, 0x00, 0x00, 0, 0, 0, 0])
+        data = self.block.unpack_from_bytes(self._gen_4x4_bitmap(0x61, alpha + color))
+        self.assertEqual(data['resource_id'], 'DXT3 compressed bitmap')
+        self.assertListEqual([x & 0xFF for x in data['bitmap']], [i * 17 for i in range(16)])
+        self.assertEqual(data['bitmap'][0] >> 8, 0xFFFFFF)
+
+    def test_dxt5_alpha_should_be_translated_correctly(self):
+        # a0 = 255, a1 = 0, all indices 1 (a1) except first pixel (index 0)
+        indices = sum(1 << (3 * i) for i in range(1, 16)).to_bytes(6, 'little')
+        alpha = bytes([0xFF, 0x00]) + indices
+        color = bytes([0xFF, 0xFF, 0x00, 0x00, 0, 0, 0, 0])
+        data = self.block.unpack_from_bytes(self._gen_4x4_bitmap(0x62, alpha + color))
+        self.assertEqual(data['resource_id'], 'DXT5 compressed bitmap')
+        self.assertEqual(data['bitmap'][0] & 0xFF, 0xFF)
+        self.assertEqual(data['bitmap'][1] & 0xFF, 0)
+
+    def test_unchanged_dxt_should_be_saved_as_is(self):
+        for resource_id, length in [(0x60, 8), (0x61, 16), (0x62, 16)]:
+            b = self._gen_4x4_bitmap(resource_id, bytes((i * 37 + 11) % 256 for i in range(length)))
+            data = self.block.unpack_from_bytes(b)
+            self.assertEqual(self.block.pack(data), b)
+
+    def test_changed_dxt_should_be_compressed(self):
+        for resource_id in [0x60, 0x61, 0x62]:
+            b = self._gen_4x4_bitmap(resource_id, bytes(16 if resource_id != 0x60 else 8))
+            data = self.block.unpack_from_bytes(b)
+            data['bitmap'] = [0xFF0000FF] * 8 + [0x0000FFFF] * 8
+            output = self.block.pack(data)
+            self.assertEqual(len(output), len(b))
+            self.assertListEqual(self.block.unpack_from_bytes(output)['bitmap'], data['bitmap'])

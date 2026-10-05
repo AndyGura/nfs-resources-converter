@@ -928,3 +928,146 @@ class Fce4GeometrySerializer(Fce3GeometrySerializer):
         if data['damaged_vertices'] != data['vertices']:
             return [('', 'vertices'), ('_damaged', 'damaged_vertices')]
         return [('', 'vertices')]
+
+
+def eagl_texture_archive_name(model_file_name: str) -> str:
+    """FSH file with textures of NFS6 EAGL model: "<x>g.o" uses "<x>.fsh" ("levelG.o" -> "level.fsh", "skyg.o" ->
+    "sky.fsh"), track compartments ("compNN.o") use "track.fsh" """
+    name = os.path.basename(model_file_name or '').lower()
+    if name.endswith('g.o') and not name.startswith('comp'):
+        return name[:-3] + '.fsh'
+    return 'track.fsh'
+
+
+def _find_bigf_child(archive_id: str, alias: str) -> Optional[str]:
+    from library import require_resource
+
+    (_, _, archive_data), _ = require_resource(archive_id)
+    for i, child in enumerate((archive_data or {}).get('children', [])):
+        if (child['alias'] or '').lower() == alias.lower():
+            return join_id(archive_id, 'children', str(i), 'item', 'data')
+    return None
+
+
+def find_eagl_texture_archive(id: str, model_file_name: str = None) -> Optional[Tuple[str, ShpiBlock, dict]]:
+    """Finds FSH file with textures of NFS6 EAGL model with given resource id: in the same BIGF archive (models in
+    "persist.viv"), next to the model file, or in "persist.viv" next to the model or in the parent folder (track
+    compartments in track folder, "levelG.o" in "levelNN" sub-folder). Returns (id, block, data) of SHPI or None"""
+    from library import require_resource
+    from library.loader import id_to_path, path_to_name
+
+    if not id:
+        return None
+    candidates = []
+    match = re.fullmatch(r'(.*?)(?:__|/)children/(\d+)/item/data', id)
+    if match:
+        (_, _, archive_data), _ = require_resource(match.group(1))
+        children = (archive_data or {}).get('children', [])
+        if model_file_name is None and int(match.group(2)) < len(children):
+            model_file_name = children[int(match.group(2))]['alias']
+        fsh_name = eagl_texture_archive_name(model_file_name)
+        candidates.append(lambda: _find_bigf_child(match.group(1), fsh_name))
+        file_path = id_to_path(id)
+    else:
+        file_path = id_to_path(id)
+        fsh_name = eagl_texture_archive_name(model_file_name or file_path)
+    directory = os.path.dirname(file_path)
+    candidates.append(lambda: (lambda p: path_to_name(p) if p else None)(_find_sibling_file(file_path, fsh_name)))
+    for folder in [directory, os.path.dirname(directory)]:
+        candidates.append(
+            lambda folder=folder: (lambda p: _find_bigf_child(path_to_name(p), fsh_name) if p else None)(
+                _find_sibling_file(path_join(folder, 'persist.viv'), 'persist.viv')
+            )
+        )
+    for candidate in candidates:
+        try:
+            fsh_id = candidate()
+            if not fsh_id:
+                continue
+            (fsh_id, shpi_block, shpi_data), _ = require_resource(fsh_id)
+            while not isinstance(shpi_block, ShpiBlock) and isinstance(shpi_data, dict) and 'choice_index' in shpi_data:
+                (fsh_id, shpi_block, shpi_data), _ = require_resource(join_id(fsh_id, 'data'))
+            if isinstance(shpi_block, ShpiBlock):
+                return fsh_id, shpi_block, shpi_data
+        except Exception:
+            traceback.print_exc()
+    return None
+
+
+def export_fsh_textures(
+    archive: Optional[Tuple[str, ShpiBlock, dict]], aliases, path: str, name_prefix: str = ''
+) -> Tuple[Dict[str, str], Dict[str, str]]:
+    """Saves images with given aliases from SHPI archive to "<path>/textures/<name_prefix><alias>.png". Returns
+    alias -> texture name and texture name -> alpha mode"""
+    from serializers import ImageSerializer
+
+    if archive is None:
+        return {}, {}
+    fsh_id, shpi_block, shpi_data = archive
+    images = {}
+    for child in shpi_data['children']:
+        item_block = shpi_block.item_block.possible_blocks[child['item']['choice_index']]
+        if isinstance(item_block, EacImage) and child['alias'] not in images:
+            images[child['alias']] = (child['item']['data'], item_block, join_id(fsh_id, 'children', child['alias']))
+    os.makedirs(path_join(path, 'textures'), exist_ok=True)
+    names, alpha_modes = {}, {}
+    for alias in aliases:
+        if alias not in images:
+            continue
+        image_data, image_block, image_id = images[alias]
+        try:
+            image = ImageSerializer().to_image(image_data, image_block, image_id)
+        except Exception:
+            traceback.print_exc()
+            continue
+        name = name_prefix + re.sub(r'[^0-9A-Za-z-]', '-', alias.strip())
+        image.save(path_join(path, f'textures/{name}.png'))
+        names[alias] = name
+        alpha_modes[name] = texture_alpha_mode(image)
+    return names, alpha_modes
+
+
+def eagl_sub_meshes(meshes, texture_names: Dict[str, str], mesh_name_prefix: str, pivot=(0, 0, 0)) -> List[SubMesh]:
+    """One SubMesh per EAGL mesh, textured with its main texture, in game coordinates relative to `pivot`. Mesh
+    names end with "_<texture name>" (texture names have no "_")"""
+    sub_meshes = []
+    for i, m in enumerate(meshes):
+        if not m.triangles:
+            continue
+        sm = SubMesh()
+        sm.texture_id = texture_names.get(m.main_texture) or 'untextured'
+        sm.name = f'{mesh_name_prefix}{i}_{sm.texture_id}'
+        sm.vertices = [[v[0] - pivot[0], v[1] - pivot[1], v[2] - pivot[2]] for v in m.vertices]
+        uvs = m.main_uvs
+        sm.vertex_uvs = [[u, v] for (u, v) in uvs] if uvs else [[0, 0]] * len(m.vertices)
+        sm.polygons = [list(t) for t in m.triangles]
+        sub_meshes.append(sm)
+    return sub_meshes
+
+
+class EaglModelSerializer(BaseFileSerializer):
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        from resources.eac.geometries.nfs6 import read_eagl_meshes
+
+        super().serialize(data, path)
+        meshes = read_eagl_meshes(data)
+        archive = find_eagl_texture_archive(id)
+        texture_names, alpha_modes = export_fsh_textures(
+            archive, {m.main_texture for m in meshes if m.main_texture}, path
+        )
+        scene = Scene(
+            name='model',
+            obj_name='geometry',
+            mtl_name='material',
+            sub_meshes=eagl_sub_meshes(meshes, texture_names, 'mesh_'),
+            mtl_texture_names=list(texture_names.values()),
+            mtl_texture_path_func=lambda name: f'textures/{name}.png',
+            mtl_texture_alpha_modes=alpha_modes,
+        )
+        for mesh in scene.sub_meshes:
+            # game Y up -> Z up
+            mesh.change_axes(new_z='y', new_y='z')
+        return export_scenes([scene], path, self.settings)

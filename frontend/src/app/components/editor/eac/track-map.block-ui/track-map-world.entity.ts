@@ -26,8 +26,9 @@ function setupTerrainTextureDefault(texture: Texture) {
   setupNfs1Texture(texture);
 }
 
-// Track terrain streamed as OBJ chunks along a MapGraph, textured from a texture archive (QFS/FAM)
-// serialized to `textureArchivePath`. Chunk extras (e.g. TNFS props) come from the adapter.
+// Track terrain streamed as OBJ chunks along a MapGraph, textured from `<textureArchivePath>/<name>.png`: a texture
+// archive (QFS/FAM) serialized there, or textures the track serializer wrote next to the chunks. Chunk extras (e.g.
+// TNFS props) come from the adapter.
 export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>> {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
@@ -124,7 +125,12 @@ export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld
 
   getTerrainMaterial(matId: string): Material {
     if (!this.terrainMaterials[matId]) {
-      this.terrainMaterials[matId] = new MeshBasicMaterial({ side: DoubleSide, transparent: true, visible: false });
+      this.terrainMaterials[matId] = new MeshBasicMaterial({
+        side: DoubleSide,
+        transparent: true,
+        visible: false,
+        alphaTest: this.adapter.terrainAlphaTest || 0,
+      });
       const applyTexture = (texture: Texture) => {
         this.terrainMaterials[matId].map = texture;
         this.terrainMaterials[matId].needsUpdate = true;

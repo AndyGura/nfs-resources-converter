@@ -10,9 +10,10 @@ from .geometries import (
     CrpGeometrySerializer,
     Fce3GeometrySerializer,
     Fce4GeometrySerializer,
+    EaglModelSerializer,
 )
 from .json import JsonSerializer
-from .maps import TriMapSerializer, TrkMapSerializer, FrdMapSerializer, Nfs4FrdMapSerializer
+from .maps import TriMapSerializer, TrkMapSerializer, FrdMapSerializer, Nfs4FrdMapSerializer, Nfs6AiPathsSerializer
 from .videos import FfmpegSupportedVideoSerializer
 
 

@@ -1,27 +1,29 @@
-<div class="textureSelector">
-  <h4>Textures</h4>
-  <mat-form-field appearance="fill">
-    <mat-label>{{ adapter?.textureArchiveKind }} file</mat-label>
-    <mat-select
-      [value]="textureArchivePath$ | async"
-      [disabled]="(textureArchiveLoading$ | async) || false"
-      (valueChange)="onTextureArchiveSelected($event)">
-      <mat-option [value]="null">None (placeholder textures)</mat-option>
-      @for (path of textureArchiveOptions$ | async; track path) {
-        <mat-option [value]="path" [title]="path">{{ textureArchiveLabel(path) }}</mat-option>
+@if (!adapter?.bundledTextures) {
+  <div class="textureSelector">
+    <h4>Textures</h4>
+    <mat-form-field appearance="fill">
+      <mat-label>{{ adapter?.textureArchiveKind }} file</mat-label>
+      <mat-select
+        [value]="textureArchivePath$ | async"
+        [disabled]="(textureArchiveLoading$ | async) || false"
+        (valueChange)="onTextureArchiveSelected($event)">
+        <mat-option [value]="null">None (placeholder textures)</mat-option>
+        @for (path of textureArchiveOptions$ | async; track path) {
+          <mat-option [value]="path" [title]="path">{{ textureArchiveLabel(path) }}</mat-option>
+        }
+      </mat-select>
+      @if (!(textureArchiveOptions$ | async)?.length) {
+        <mat-hint>No {{ adapter?.textureArchiveKind }} files found next to this track, use Browse to pick one</mat-hint>
       }
-    </mat-select>
-    @if (!(textureArchiveOptions$ | async)?.length) {
-      <mat-hint>No {{ adapter?.textureArchiveKind }} files found next to this track, use Browse to pick one</mat-hint>
+    </mat-form-field>
+    <button mat-button [disabled]="(textureArchiveLoading$ | async) || false" (click)="browseTextureArchive()">
+      BROWSE...
+    </button>
+    @if (textureArchiveLoading$ | async) {
+      <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
     }
-  </mat-form-field>
-  <button mat-button [disabled]="(textureArchiveLoading$ | async) || false" (click)="browseTextureArchive()">
-    BROWSE...
-  </button>
-  @if (textureArchiveLoading$ | async) {
-    <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
-  }
-</div>
+  </div>
+}
 <div class="preview">
   <div class="previewCanvasContainer" #previewCanvasContainer>
     <canvas #previewCanvas width="640" height="480"></canvas>

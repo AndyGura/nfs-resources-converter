@@ -19,7 +19,7 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 | Path | Contents |
 |---|---|
 | `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3 decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
-| `resources/eac/maps/{tnfs,nfs2,nfs3,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5}.py` | Per-game specializations of a shared concept. |
+| `resources/eac/maps/{tnfs,nfs2,nfs3,nfs6,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5,nfs6}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
 | `resources/blackbox/geometries/` | Blackbox-studio (later titles) formats — thin, early. |
 | `resources/eac/fields/misc.py`, `resources/eac/fields/numbers.py` | Small reusable domain blocks: `Point2D`/`Point3D`/`RGBBlock`, `Nfs1Angle8`/`Nfs1Angle14`, `Nfs1TimeField`. Check here before writing a new one. |
@@ -233,6 +233,12 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    `dash00.tga`), falling back to all sibling TGAs in alphabetical order. Both versions
    share the GUI viewer `eac/fce-geometry.block-ui` (`FceCarMeshController`), which picks FCE3/FCE4 behavior (wheels,
    paint colors by texture alpha, light dummies, damage filter) from `block_class_mro`.
+   NFS6 track geometry (`compNN.o`, `levelG.o`, `trackg.o`, `skyg.o`) is an EAGL MIPS ELF object (`EaglModel` in
+   `resources/eac/geometries/nfs6.py`, detected by the `\x7fELF` magic): the block keeps the raw sections, and
+   `read_eagl_meshes` walks `__RenderMethod` symbols and `.data` relocations to vertex/index buffers (format notes in
+   that file's header comment). Textures are FSH aliases looked up by `find_eagl_texture_archive` (same BIGF, sibling
+   file, then `persist.viv`); FSH images there are DXT1/DXT3/DXT5 (`library/utils/dxt.py`, which caches decoded
+   pixels so unchanged images write back byte-exact).
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
@@ -267,7 +273,7 @@ the same mechanism whether generic or custom; see skill `read-block-framework` f
 
 ### Reusing an existing 3D map/terrain viewer for a new per-game format
 
-TNFS (`TriMap`), NFS2 (`TrkMap`), NFS3 (`FrdMap`) and NFS4 (`Nfs4FrdMap`) tracks all render through
+TNFS (`TriMap`), NFS2 (`TrkMap`), NFS3 (`FrdMap`), NFS4 (`Nfs4FrdMap`) and NFS6 (`Nfs6AiPaths`) tracks all render through
 one component, `TrackMapBlockUiComponent` in `frontend/.../editor/eac/track-map.block-ui/`, registered
 for each block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapWorldEntity`
 (`track-map-world.entity.ts`) is generic chunk-graph-of-OBJs-plus-texture-archive machinery.
@@ -278,6 +284,13 @@ terrain texture wrapping, per-chunk props (`tnfs-track-props.ts` for TNFS), and 
 showing the selected spline point's data. For another game's chunked track, add an adapter and a
 `TRACK_MAP_ADAPTERS` entry keyed by the block class name, and map that class to
 `TrackMapBlockUiComponent`; don't fork the component.
+
+`chunkPositions` and the texture archive settings are optional. Without `chunkPositions` the
+component reads chunk pivots from the `terrain_chunks.json` the serializer writes next to the chunk
+OBJs; with `bundledTextures` the serializer writes the textures itself (`<chunks dir>/textures/`)
+and there is no texture picker. NFS6 uses both: a route is `levelNN/aipaths.dat`, its serializer
+(`Nfs6AiPathsSerializer`) exports the compartments listed in `drvpath.ini` with their textures, and
+`nfs6-route.ts` derives the spline as the longest chain of the AI path graph.
 
 The texture picker lists every file matching the adapter's `textureArchivePatterns`, found by the
 backend's `find_files` endpoint (`find_files_case_insensitive` in `library/utils/file_utils.py`:

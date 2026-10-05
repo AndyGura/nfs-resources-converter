@@ -207,7 +207,7 @@ class BigfBlock(ArchiveBlock):
         return schema
 
     def __init__(self, **kwargs):
-        from resources.eac.geometries import GeoGeometry, Fce3Geometry, Fce4Geometry
+        from resources.eac.geometries import GeoGeometry, Fce3Geometry, Fce4Geometry, EaglModel
 
         super().__init__(
             item_block=AutoDetectBlock(
@@ -215,6 +215,7 @@ class BigfBlock(ArchiveBlock):
                     GeoGeometry(),
                     Fce3Geometry(),
                     Fce4Geometry(),
+                    EaglModel(),
                     ShpiBlock(),
                     EacCompressedBlock(),
                     TargaImage(),

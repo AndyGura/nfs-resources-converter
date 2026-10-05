@@ -213,12 +213,15 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
     if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
       const data = this.resourceData;
       const adapter = this.adapter;
-      this.chunkPositions = data && adapter ? adapter.chunkPositions(data).map(toViewer) : null;
+      this.chunkPositions = data && adapter?.chunkPositions ? adapter.chunkPositions(data).map(toViewer) : null;
       this.splinePoints =
         data && adapter
           ? adapter.splinePoints
             ? adapter.splinePoints(data)
-            : adapter.chunkPositions(data).map(position => ({ position, orientation: 0 }))
+            : (adapter.chunkPositions ? adapter.chunkPositions(data) : []).map(position => ({
+                position,
+                orientation: 0,
+              }))
           : [];
       this.minimapSpline = this.splinePoints.map(p => toViewer(p.position));
       this.isClosed = !data || !adapter?.isClosed || adapter.isClosed(data);
@@ -227,7 +230,7 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       const resourceIdChanged = changes.hasOwnProperty('resourceId');
       this.loadTerrainChunks(adapter ? this.resourceId : undefined).then(async () => {
         await this.viewReady;
-        if (resourceIdChanged && this.resourceId && adapter) {
+        if (resourceIdChanged && this.resourceId && adapter?.textureArchivePatterns) {
           await this.findTextureArchives(adapter.textureArchivePatterns(this.resourceId));
           await this.onTextureArchiveSelected(this.textureArchiveOptions$.value[0] || null, true);
         } else {
@@ -335,9 +338,41 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       });
       let anyObjPath = paths.find(x => x.endsWith('.obj')) || '';
       this.terrainChunksObjLocation = anyObjPath.substring(0, anyObjPath.indexOf('terrain_chunk_'));
+      if (this.adapter && !this.adapter.chunkPositions) {
+        this.chunkPositions = await this.loadChunkPositionsFile(paths.find(x => x.endsWith('terrain_chunks.json')));
+      }
     } else {
       this.terrainChunksObjLocation = undefined;
     }
+  }
+
+  private async loadChunkPositionsFile(path: string | undefined): Promise<Point3[] | null> {
+    if (!path) {
+      return null;
+    }
+    try {
+      const positions: Point3[] = await (await fetch(path)).json();
+      return positions.map(toViewer);
+    } catch (err) {
+      console.warn('Could not load terrain chunk positions', err);
+      return null;
+    }
+  }
+
+  // Folder with terrain textures (`<name>.png`), null for placeholder textures
+  private get terrainTexturesPath(): string | null {
+    if (this.adapter?.bundledTextures) {
+      return this.terrainChunksObjLocation ? `${this.terrainChunksObjLocation}textures` : null;
+    }
+    const textureArchivePath = this.textureArchivePath$.value;
+    return (
+      textureArchivePath &&
+      'resources/' +
+        textureArchivePath
+          .split('/')
+          .filter(x => !!x)
+          .join('/')
+    );
   }
 
   onPointerChange(pos: Point3) {
@@ -387,15 +422,9 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       this.isClosed,
     );
     this.unloadPreview();
-    const textureArchivePath = this.textureArchivePath$.value;
     this.map = new TrackMapWorldEntity(
       chunksGraph,
-      textureArchivePath &&
-        'resources/' +
-          textureArchivePath
-            .split('/')
-            .filter(x => !!x)
-            .join('/'),
+      this.terrainTexturesPath,
       this.mainService.hideHiddenFields$,
       this.adapter,
       {

@@ -50,6 +50,10 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
                 from resources.eac.geometries import Fce3Geometry
 
                 return Fce3Geometry
+        elif file_path.lower().endswith('aipaths.dat'):
+            from resources.eac.maps.nfs6 import Nfs6AiPaths
+
+            return Nfs6AiPaths
         elif file_path.upper().endswith('.FRD'):
             if length is not None and length >= 36:
                 pos = buffer.tell()
@@ -130,13 +134,17 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.maps import MapColFile
 
             return MapColFile
+        elif header_str == '\x7fELF':
+            from resources.eac.geometries.nfs6 import EaglModel
+
+            return EaglModel
     try:
         resource_id = header_bytes[0]
         if resource_id in [0x22, 0x24, 0x29, 0x2A, 0x2D]:
             from resources.eac.bitmaps import EacPalette
 
             return EacPalette
-        elif resource_id in [0x40, 0x6D, 0x78, 0x79, 0x7A, 0x7B, 0x7E, 0x7F, 0x7D]:
+        elif resource_id in [0x40, 0x6D, 0x78, 0x79, 0x7A, 0x7B, 0x7E, 0x7F, 0x7D, 0x60, 0x61, 0x62]:
             from resources.eac.bitmaps import EacImage
 
             return EacImage
@@ -151,15 +159,6 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
         #     pass
         # TODO PIXEL_PAL8_PSP https://bitbucket.org/fifam/otools/src/master/OTools/Fsh/Fsh.h
         # elif resource_id == 0x5D:
-        #     pass
-        # TODO BitmapDXT1
-        # elif resource_id == 0x60:
-        #     pass
-        # TODO BitmapDXT3
-        # elif resource_id == 0x61:
-        #     pass
-        # TODO BitmapDXT5
-        # elif resource_id == 0x62:
         #     pass
         # TODO Bitmap24Bit6666
         # elif resource_id == 0x66:

@@ -1,9 +1,13 @@
 # **NFS 6 Hot Pursuit 2 file specs** #
 
-*Last time updated: 2026-10-04 18:32:49.808649+00:00*
+*Last time updated: 2026-10-05 13:26:45.456906+00:00*
 
 
 # **Info by file extensions** #
+
+**compNN.o**, **trackg.o**, **skyg.o**, **levelNN\levelG.o** track geometry. [EaglModel](#eaglmodel)
+
+**levelNN\aipaths.dat** race route. [Nfs6AiPaths](#nfs6aipaths)
 
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
@@ -47,18 +51,100 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | Offset of item data, relative to BIGF block start |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | Length of item data in bytes |
 | 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Item name (file name). Used as file name when the archive is unpacked |
+## **Geometries** ##
+### **EaglModel** ###
+#### **Size**: 52..? bytes ####
+#### **Description**: EAGL model, used by NFS6 for track compartments, sky and other geometry. A 32-bit little-endian MIPS ELF relocatable object file with model data in ".data" section, where named symbols point to render methods, vertex/index buffers and texture references ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **magic** | 4 | 4-bytes unsigned integer (little endian). Always == 0x464c457f | ELF magic "\x7fELF" |
+| 4 | **file_class** | 1 | 1-byte unsigned integer | 1: 32-bit |
+| 5 | **data_encoding** | 1 | 1-byte unsigned integer | 1: little-endian |
+| 6 | **elf_version** | 1 | 1-byte unsigned integer | Always 1 |
+| 7 | **os_abi** | 1 | 1-byte unsigned integer | Always 0 |
+| 8 | **padding** | 8 | Bytes | Zeros |
+| 16 | **object_type** | 2 | 2-bytes unsigned integer (little endian) | 1: relocatable object file |
+| 18 | **machine** | 2 | 2-bytes unsigned integer (little endian) | 8: MIPS |
+| 20 | **version** | 4 | 4-bytes unsigned integer (little endian) | Always 1 |
+| 24 | **entry** | 4 | 4-bytes unsigned integer (little endian) | Entry point, always 0 |
+| 28 | **program_headers_offset** | 4 | 4-bytes unsigned integer (little endian) | Always 0, no program headers |
+| 32 | **section_headers_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of section headers table |
+| 36 | **flags** | 4 | 4-bytes unsigned integer (little endian) | MIPS flags |
+| 40 | **header_size** | 2 | 2-bytes unsigned integer (little endian) | Size of this header, 52 |
+| 42 | **program_header_size** | 2 | 2-bytes unsigned integer (little endian) | Always 0 |
+| 44 | **program_headers_count** | 2 | 2-bytes unsigned integer (little endian) | Always 0 |
+| 46 | **section_header_size** | 2 | 2-bytes unsigned integer (little endian) | Size of section header, 40 |
+| 48 | **section_headers_count** | 2 | 2-bytes unsigned integer (little endian) | Amount of sections |
+| 50 | **section_names_index** | 2 | 2-bytes unsigned integer (little endian) | Index of the section with section names |
+| 52 | **sections_data** | section_headers_offset - 52 | Bytes | Sections: ".data" with the model, ".shstrtab" and ".strtab" string tables, ".symtab" symbol table (16-byte records: name offset, value, size, info, other, section index) and ".rel.data" relocations of ".data" (8-byte records: offset, symbol index << 8 | type) |
+| 52 + section_headers_offset - 52 | **section_headers** | section_headers_count\*40 | Array of `section_headers_count` items<br/>Item type: [EaglSectionHeader](#eaglsectionheader) | Section headers table |
+### **EaglSectionHeader** ###
+#### **Size**: 40 bytes ####
+#### **Description**: ELF32 section header ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **name_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of section name in the section names table |
+| 4 | **section_type** | 4 | 4-bytes unsigned integer (little endian) | 1: program data (".data"), 2: symbol table, 3: string table, 9: relocations |
+| 8 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Section flags |
+| 12 | **address** | 4 | 4-bytes unsigned integer (little endian) | Virtual address, always 0 |
+| 16 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of section data in the file |
+| 20 | **size** | 4 | 4-bytes unsigned integer (little endian) | Size of section data in bytes |
+| 24 | **link** | 4 | 4-bytes unsigned integer (little endian) | Index of related section (string table of symbol table) |
+| 28 | **info** | 4 | 4-bytes unsigned integer (little endian) | Extra info (for relocations: index of the section the relocations apply to) |
+| 32 | **alignment** | 4 | 4-bytes unsigned integer (little endian) | Section alignment |
+| 36 | **entry_size** | 4 | 4-bytes unsigned integer (little endian) | Size of table entry, if section is a table |
+## **Maps** ##
+### **Nfs6AiPaths** ###
+#### **Size**: 20..? bytes ####
+#### **Description**: NFS6 race route (levelNN/aipaths.dat): the road graph for AI cars and the flight paths of the police helicopter. Opening it shows the route in 3D: the compartments listed in drvpath.ini next to it ("compNN.o" files in the parent folder) ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **version** | 4 | 4-bytes unsigned integer (little endian) | Always 1 |
+| 4 | **road_paths** | 8..? | [Nfs6AiPathGraph](#nfs6aipathgraph) | Roads for AI cars |
+| 12..? | **helicopter_paths** | 8..? | [Nfs6AiPathGraph](#nfs6aipathgraph) | Flight paths of police helicopter |
+### **Nfs6AiPathGraph** ###
+#### **Size**: 8..? bytes ####
+#### **Description**: A graph of paths ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **num_nodes** | 4 | 4-bytes unsigned integer (little endian) | Length of nodes array |
+| 4 | **nodes** | num_nodes\*12 | Array of `num_nodes` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Graph nodes: start and end positions of every path |
+| 4 + num_nodes\*12 | **num_paths** | 4 | 4-bytes unsigned integer (little endian) | Length of paths array |
+| 8 + num_nodes\*12 | **paths** | num_paths\*36..? | Array of `num_paths` items<br/>Item type: [Nfs6AiPath](#nfs6aipath) | Paths |
+### **Nfs6AiPath** ###
+#### **Size**: 36..? bytes ####
+#### **Description**: A road between two graph nodes. Paths with the same start/end node positions are connected ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **name** | 16 | UTF-8 string | Path name, e.g. "AI_center011" |
+| 16 | **start_node** | 4 | 4-bytes unsigned integer (little endian) | Index of the graph node where the path starts |
+| 20 | **end_node** | 4 | 4-bytes unsigned integer (little endian) | Index of the graph node where the path ends |
+| 24 | **unk0** | 4 | Float number (little-endian) | Always 44.703 |
+| 28 | **path_type** | 4 | 4-bytes unsigned integer (little endian) | Path kind. Main road is 1, alternative roads and shortcuts have other values (2, 3, 5, 8, 11) |
+| 32 | **num_points** | 4 | 4-bytes unsigned integer (little endian) | Length of points array |
+| 36 | **points** | num_points\*28 | Array of `num_points` items<br/>Item type: [Nfs6AiPathPoint](#nfs6aipathpoint) | Path points, from start node to end node |
+### **Nfs6AiPathPoint** ###
+#### **Size**: 28 bytes ####
+#### **Description**: A point of the AI path ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Point position, Y is up |
+| 12 | **left_width** | 4 | Float number (little-endian) | Distance from the path to the left edge of the drivable area (usually 10) |
+| 16 | **right_width** | 4 | Float number (little-endian) | Distance from the path to the right edge of the drivable area, negative (usually -10) |
+| 20 | **unk0** | 4 | Float number (little-endian) | Values from -9 to 6, maybe road bank |
+| 24 | **unk1** | 4 | Float number (little-endian) | Values from 35 to 60, maybe recommended speed |
 ## **Images** ##
 ### **EacImage** ###
 #### **Size**: 16..? bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>64 (0x40): 4Bit PS1<br/>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
+| 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>64 (0x40): 4Bit PS1<br/>96 (0x60): DXT1 compressed bitmap<br/>97 (0x61): DXT3 compressed bitmap<br/>98 (0x62): DXT5 compressed bitmap<br/>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
 | 1 | **palette_offset** | 3 | 3-bytes signed integer (little endian) | A local offset to the palette that should be used with this image (8Bit). In case of zero, game searches for !pal or !PAL in the SHPI |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
 | 8 | **pivot** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Seems like x coordinate is not used at all. y coordinate is used in horizon textures in TNFS FAM files: higher value = image as horizon will be put higher on the screen. Seems to affect only open tracks |
 | 12 | **position** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Bitmap position on screen. Used for menu/dash sprites. In NFS5 FSH files this is the position of the image in a texture page (atlas), which is used by CRP models: 12 lower bits of each coordinate are a signed value, 4 higher bits are flags (track textures have 6 or 7 in y flags for 64x64 or 128x128 images, likely the mipmap count) |
-| 16 | **bitmap** | width \* height \* pixel_byteness | Bytes | Pixel color table. For 8Bit bitmap each value represents an index of color in the attached palette. Palette can be stored: <br/>- right after 8Bit image<br/>- as !pal/!PAL in the same SHPI<br/>- in a different SHPI before this one (if it is WWWW archive)<br/>- even in different QFS file (TNFS, CONTROL directory).<br/>Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md) |
+| 16 | **bitmap** | width \* height \* pixel_byteness | Bytes | Pixel color table. For 8Bit bitmap each value represents an index of color in the attached palette. Palette can be stored: <br/>- right after 8Bit image<br/>- as !pal/!PAL in the same SHPI<br/>- in a different SHPI before this one (if it is WWWW archive)<br/>- even in different QFS file (TNFS, CONTROL directory).<br/>Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md). DXT1/DXT3/DXT5 bitmaps are S3TC-compressed 4x4 pixel blocks (8, 16 and 16 bytes per block) |
 | 16 + width \* height \* pixel_byteness | **pad** | 0..up to offset palette_offset | Optional (if palette_offset > 0): Padding bytes | Zeros in the end of block data |
 | 16 + width \* height \* pixel_byteness..16 + width \* height \* pixel_byteness + up to offset palette_offset | **unk_7c** | 0..? | Optional (if 0x7C header found): [PaletteReference](#palettereference) | Unknown data with id 0x7C |
 | 16 + width \* height \* pixel_byteness..? | **embedded_palette** | 0..? | Optional (if 8-bit bitmap and palette header found): [EacPalette](#eacpalette) | Embedded palette, which should be assigned to this bitmap (except for ga00 in TR2_001.FAM) |

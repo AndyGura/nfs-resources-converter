@@ -174,3 +174,128 @@ class TestFce4Geometry(unittest.TestCase):
         read = block.unpack_from_bytes(packed)
         self.assertEqual(len(read['reserve6']), 12 * 3 + 7)
         self.assertEqual(block.pack(read), packed)
+
+
+def build_eagl_model(index_padding=0xFFFF):
+    """Minimal NFS6 EAGL model (MIPS ELF relocatable object): one render method with "ShadowTexture" shader (shadow
+    map "0007", base texture "0042"), a quad of 4 vertices (FVF XYZ | DIFFUSE | TEX2) drawn as a triangle strip of 5
+    indices, padded to 6 in the draw command"""
+    import struct
+
+    data = bytearray()
+    relocations = []  # (offset in .data, symbol name, None for .data section symbol)
+    symbols = []  # (name, value in .data or None for undefined)
+
+    def align(n):
+        while len(data) % n:
+            data.append(0)
+
+    # vertex buffer: position, diffuse BGRA, uv0 (base texture), uv1 (shadow map)
+    vb = len(data)
+    for x, z, u, v in [(0, 0, 0, 0), (1, 0, 2, 0), (0, 1, 0, 2), (1, 1, 2, 2)]:
+        data += struct.pack('<3f', x, 5.0, z) + bytes([0x30, 0x20, 0x10, 0xFF]) + struct.pack('<4f', u, v, 0.5, 0.5)
+    ib = len(data)
+    data += struct.pack('<6H', 0, 0, 1, 2, 3, index_padding)
+    align(4)
+    tars = {}
+    for name in ['0007', '0042']:
+        tars[name] = len(data)
+        symbols.append((f'__EAGL::TAR:::tar_{name}_1', len(data)))
+        data += struct.pack('<I', 0) + name.encode() + bytes(40)
+    geoprim = len(data)
+    symbols.append(('__geoprimdatabuffer_0_1', geoprim))
+    data += struct.pack('<I', 0)
+    commands = len(data)
+    data += struct.pack('<I', 0x04 << 16 | 12) + struct.pack(
+        '<11I', 0, 32, 0x242, 0xFFFFFFFF, 0xFFFFFFFF, vb, 4, 0, 0, 0, 0
+    )
+    relocations.append((commands + 4 * 6, None))
+    draw = len(data)
+    data += struct.pack('<I', 0x07 << 16 | 6) + struct.pack('<5I', 2, 0xFFFFFFFF, 0xFFFFFFFF, ib, 6)
+    relocations.append((draw + 4 * 4, None))
+    data += struct.pack('<I', 0x11 << 16 | 1)
+    rm = len(data)
+    symbols.append(('__RenderMethod:::__GPRenderMethod_test_0', rm))
+    data += struct.pack('<12I', commands, 0, 0, 0, 0, 0, 0, 0, 0, geoprim, 0, 0xABCDEFEA)
+    relocations.append((rm, None))
+    relocations.append((rm + 4 * 9, None))
+    relocations.append((rm + 8, 'ShadowTexture__EAGLMicroCode'))
+    # (count, pointer) parameters: textures, vertex buffer, index buffer with the real index count
+    for count, pointer in [(1, tars['0007']), (1, tars['0042']), (4, vb), (5, ib)]:
+        relocations.append((len(data) + 4, None))
+        data += struct.pack('<2I', count, pointer)
+    symbols.append(('__Model:::test', len(data)))
+    data += bytes(16)
+    symbols.append(('ShadowTexture__EAGLMicroCode', None))
+    symbol_indices = {name: i + 2 for i, (name, _) in enumerate(symbols)}
+
+    # string tables, symbol table (index 0 is null, index 1 is .data section symbol)
+    shstrtab = b'\0.data\0.shstrtab\0.strtab\0.symtab\0.rel.data\0'
+    strtab = b'\0'
+    symtab = bytes(16) + struct.pack('<IIIBBH', 0, 0, 0, 3, 0, 1)
+    for name, value in symbols:
+        name_offset = len(strtab)
+        strtab += name.encode() + b'\0'
+        symtab += struct.pack(
+            '<IIIBBH', name_offset, value or 0, 4 if value is not None else 0, 0x11, 0, 1 if value is not None else 0
+        )
+    reldata = b''.join(
+        struct.pack('<II', offset, (symbol_indices[name] if name else 1) << 8 | 2) for offset, name in relocations
+    )
+
+    body = bytearray(bytes(12))  # .data is aligned to 16 bytes, header is 52 bytes long
+    sections = []
+    for name_offset, section_type, content, link, info, entry_size in [
+        (1, 1, bytes(data), 0, 0, 0),
+        (7, 3, shstrtab, 0, 0, 0),
+        (17, 3, strtab, 0, 0, 0),
+        (25, 2, symtab, 3, 2, 16),
+        (33, 9, reldata, 4, 1, 8),
+    ]:
+        sections.append((name_offset, section_type, 52 + len(body), len(content), link, info, entry_size))
+        body += content
+        while len(body) % 4:
+            body.append(0)
+    header = (
+        b'\x7fELF\x01\x01\x01\x00'
+        + bytes(8)
+        + struct.pack('<HHIIIIIHHHHHH', 1, 8, 1, 0, 0, 52 + len(body), 0, 52, 0, 0, 40, len(sections) + 1, 2)
+    )
+    section_headers = bytes(40) + b''.join(
+        struct.pack('<10I', n, t, 0, 0, off, size, link, info, 4, es) for (n, t, off, size, link, info, es) in sections
+    )
+    return header + bytes(body) + section_headers
+
+
+class TestEaglModel(unittest.TestCase):
+    def test_eagl_model_should_remain_the_same(self):
+        from resources.eac.geometries.nfs6 import EaglModel
+
+        model = build_eagl_model()
+        block = EaglModel()
+        data = block.unpack_from_bytes(model)
+        self.assertEqual(data['machine'], 8)
+        self.assertEqual(len(data['section_headers']), 6)
+        self.assertEqual(block.pack(data), model)
+
+    def test_eagl_meshes_should_be_read(self):
+        from resources.eac.geometries.nfs6 import EaglModel, read_eagl_meshes, eagl_model_name
+
+        data = EaglModel().unpack_from_bytes(build_eagl_model())
+        self.assertEqual(eagl_model_name(data), 'test')
+        meshes = read_eagl_meshes(data)
+        self.assertEqual(len(meshes), 1)
+        mesh = meshes[0]
+        self.assertEqual(mesh.shader, 'ShadowTexture')
+        self.assertListEqual(mesh.textures, ['0007', '0042'])
+        # the first texture of shadow shaders is a shadow map, the base texture uses the first UV set
+        self.assertEqual(mesh.main_texture, '0042')
+        self.assertListEqual(mesh.main_uvs, [(0, 0), (2, 0), (0, 2), (2, 2)])
+        self.assertListEqual(mesh.vertices, [(0, 5, 0), (1, 5, 0), (0, 5, 1), (1, 5, 1)])
+        self.assertListEqual(mesh.colors, [0x102030FF] * 4)
+        # strip 0 0 1 2 3: degenerate triangle skipped, odd triangles flipped; padding index not drawn even if valid
+        self.assertListEqual(mesh.triangles, [(1, 0, 2), (1, 2, 3)])
+        self.assertListEqual(
+            read_eagl_meshes(EaglModel().unpack_from_bytes(build_eagl_model(index_padding=0)))[0].triangles,
+            [(1, 0, 2), (1, 2, 3)],
+        )
