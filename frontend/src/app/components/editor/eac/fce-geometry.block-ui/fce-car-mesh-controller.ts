@@ -80,7 +80,8 @@ export class FceCarMeshController {
     }
     if (value !== 'idle') {
       this.animationTimer = setInterval(() => {
-        this.spinAngle += WHEEL_SPIN_SPEED[this._speed] / 60;
+        // negative angle rolls wheels forward
+        this.spinAngle -= WHEEL_SPIN_SPEED[this._speed] / 60;
         this.updateWheels();
       }, 1000 / 60);
     }
