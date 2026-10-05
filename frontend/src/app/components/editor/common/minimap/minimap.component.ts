@@ -41,7 +41,11 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
     this._projection$.next(value);
   }
 
-  @Input() splineClosed: boolean = false;
+  _splineClosed$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+
+  @Input('splineClosed') set splineClosed(value: boolean) {
+    this._splineClosed$.next(value);
+  }
   // Draw spline points as dots, without connecting them (e.g. chunk centers of a city instead of a road)
   @Input() pointsOnly: boolean = false;
   @Output() pointerChange = new EventEmitter<Point3>();
@@ -159,10 +163,10 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
       )
       .subscribe(this.scalingSquare$);
 
-    combineLatest([this._roadSplineProjected$, this.scalingSquare$, this.svgSize$])
+    combineLatest([this._roadSplineProjected$, this.scalingSquare$, this.svgSize$, this._splineClosed$])
       .pipe(
         takeUntil(this.destroyed$),
-        map(([points, scalingSquare, svgSize]) => {
+        map(([points, scalingSquare, svgSize, splineClosed]) => {
           const polygonToDraw: Point2[] = points.map(p => ({
             x: ((p.x - scalingSquare.x) * svgSize.x) / scalingSquare.width,
             y: ((scalingSquare.y - p.y) * svgSize.y) / scalingSquare.height + svgSize.y,
@@ -171,7 +175,7 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
           if (this.pointsOnly) {
             return '';
           }
-          if (this.splineClosed && polygonToDraw.length) {
+          if (splineClosed && polygonToDraw.length) {
             polygonToDraw.push(polygonToDraw[0]);
           }
           return polygonToDraw.map(v => Math.round(v.x) + ',' + Math.round(v.y)).join(' ');

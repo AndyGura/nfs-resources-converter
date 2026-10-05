@@ -38,7 +38,13 @@ import { ThreeGgWorld, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-w
 import { BlockSchema, Resource } from '../../types';
 import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
 import { joinId } from '../../../../utils/join-id';
-import { findTrackMapAdapter, TrackMapAdapter, TrackSplineDetailPanel, TrackSplinePoint } from './track-map-adapters';
+import {
+  findTrackMapAdapter,
+  TrackLayout,
+  TrackMapAdapter,
+  TrackSplineDetailPanel,
+  TrackSplinePoint,
+} from './track-map-adapters';
 import { TrackEntity, TrackMapWorldEntity } from './track-map-world.entity';
 
 // Game coordinates (Y up) -> viewer coordinates (Z up)
@@ -46,7 +52,7 @@ function toViewer(p: Point3): Point3 {
   return { x: p.x, y: p.z, z: p.y };
 }
 
-// Chunked track viewer shared by TNFS (TRI), NFS2 (TRK), NFS3 (FRD), NFS4 (FRD), NFS6 and NFSU tracks;
+// Chunked track viewer shared by TNFS (TRI), NFS2 (TRK), NFS3 (FRD), NFS4 (FRD), NFS5 (CRP), NFS6 and NFSU tracks;
 // per-game differences live in a `TrackMapAdapter`, picked by the block class
 @Component({
   selector: 'app-track-map-block-ui',
@@ -213,18 +219,22 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
     if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
       const data = this.resourceData;
       const adapter = this.adapter;
-      this.chunkPositions = data && adapter?.chunkPositions ? adapter.chunkPositions(data).map(toViewer) : null;
-      this.splinePoints =
-        data && adapter
-          ? adapter.splinePoints
-            ? adapter.splinePoints(data)
-            : (adapter.chunkPositions ? adapter.chunkPositions(data) : []).map(position => ({
-                position,
-                orientation: 0,
-              }))
-          : [];
-      this.minimapSpline = this.splinePoints.map(p => toViewer(p.position));
-      this.isClosed = !data || !adapter?.isClosed || adapter.isClosed(data);
+      if (!adapter?.loadLayout) {
+        this.applyLayout(
+          data && adapter
+            ? {
+                chunkPositions: adapter.chunkPositions ? adapter.chunkPositions(data) : null,
+                splinePoints: adapter.splinePoints
+                  ? adapter.splinePoints(data)
+                  : (adapter.chunkPositions ? adapter.chunkPositions(data) : []).map(position => ({
+                      position,
+                      orientation: 0,
+                    })),
+                isClosed: !adapter.isClosed || adapter.isClosed(data),
+              }
+            : null,
+        );
+      }
       this.updateSplineDetails();
       this.previewLoading$.next(true);
       const resourceIdChanged = changes.hasOwnProperty('resourceId');
@@ -239,6 +249,14 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
         this.previewLoading$.next(false);
       });
     }
+  }
+
+  private applyLayout(layout: TrackLayout | null) {
+    this.chunkPositions = layout?.chunkPositions ? layout.chunkPositions.map(toViewer) : null;
+    this.splinePoints = layout ? layout.splinePoints : [];
+    this.minimapSpline = this.splinePoints.map(p => toViewer(p.position));
+    this.isClosed = !layout || layout.isClosed;
+    this.cdr.markForCheck();
   }
 
   private async findTextureArchives(patterns: string[]) {
@@ -338,7 +356,14 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       });
       let anyObjPath = paths.find(x => x.endsWith('.obj')) || '';
       this.terrainChunksObjLocation = anyObjPath.substring(0, anyObjPath.indexOf('terrain_chunk_'));
-      if (this.adapter && !this.adapter.chunkPositions) {
+      if (this.adapter?.loadLayout) {
+        const hadSpline = this.splinePoints.length > 0;
+        this.applyLayout(await this.adapter.loadLayout(paths));
+        if (!hadSpline) {
+          // the layout wasn't known when the view was set up: fly to the selected spline item now
+          this.selectedSplineIndex$.next(this.selectedSplineIndex$.value);
+        }
+      } else if (this.adapter && !this.adapter.chunkPositions) {
         this.chunkPositions = await this.loadChunkPositionsFile(paths.find(x => x.endsWith('terrain_chunks.json')));
         if (!this.adapter.splinePoints && this.chunkPositions) {
           this.splinePoints = this.chunkPositions.map(position => ({ position: toViewer(position), orientation: 0 }));
@@ -347,6 +372,9 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       }
     } else {
       this.terrainChunksObjLocation = undefined;
+      if (this.adapter?.loadLayout) {
+        this.applyLayout(null);
+      }
     }
   }
 

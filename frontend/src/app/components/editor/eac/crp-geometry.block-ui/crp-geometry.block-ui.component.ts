@@ -4,6 +4,7 @@ import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs'
 import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
 
+// NFS5 CRP geometry: cars open in the 3D model viewer, tracks ("karT") in the shared track viewer
 @Component({
   selector: 'app-crp-geometry-block-ui',
   templateUrl: './crp-geometry.block-ui.component.html',
@@ -21,7 +22,7 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
     this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
-        filter(x => !!(this.resourceId && x.startsWith(this.resourceId))),
+        filter(x => !this.isTrack$.value && !!(this.resourceId && x.startsWith(this.resourceId))),
         debounceTime(150),
       )
       .subscribe(async () => {
@@ -57,7 +58,7 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
 
   private async loadPreview() {
     this.previewPaths$.next(null);
-    if (this.resourceId) {
+    if (this.resourceId && !this.isTrack$.value) {
       const paths = await this.mainService.api.serializeResource(this.resourceId, null, this.serializerSettings);
       this.previewPaths$.next([paths.find(x => x.endsWith('.obj'))!, paths.find(x => x.endsWith('.mtl'))!]);
     }
