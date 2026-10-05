@@ -1,9 +1,11 @@
 # **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2026-10-04 18:32:49.746833+00:00*
+*Last time updated: 2026-10-05 08:45:55.457019+00:00*
 
 
 # **Info by file extensions** #
+
+**\*.FCE** 3D model (car.fce in car.viv: car model). [Fce4Geometry](#fce4geometry)
 
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
@@ -42,7 +44,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | Descriptions of items: offset, length and name of each of them |
-| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock)<br/>- pure TGA image |
+| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [Fce4Geometry](#fce4geometry)<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock)<br/>- pure TGA image |
 ### **BigfItemDescriptionBlock** ###
 #### **Size**: 9..? bytes ####
 #### **Description**: Description of a single item of BIGF archive ####
@@ -51,6 +53,83 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | Offset of item data, relative to BIGF block start |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | Length of item data in bytes |
 | 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Item name (file name). Used as file name when the archive is unpacked |
+## **Geometries** ##
+### **Fce4Geometry** ###
+#### **Size**: 8248..? bytes ####
+#### **Description**: FCE 3D model, version 4 (NFS4: High Stakes, Motor City Online). Used for cars (car.fce in car.viv), dashboards (dash.fce), police officers, helicopter, menu models. Consists of up to 64 parts, each of them is a separate mesh with own position, and up to 16 "dummies": named points, which are used for lights, license plates, smoke and water effects. In addition to FCE3, every vertex has a "damaged" position, used when car is crashed. Coordinate system: X points right, Y up, Z forward. The unit is meter. Texture is a TGA image car00.tga, which is located next to car.fce in car.viv. Alpha channel of the texture defines which car color is applied to the pixel: 224 primary, 164 interior, 96 secondary, 32 driver hair color ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **version** | 4 | 4-bytes unsigned integer (little endian) | Format version. 0x00101014 in NFS4, 0x00101015 in Motor City Online (FCE4M) |
+| 4 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 8 | **num_triangles** | 4 | 4-bytes unsigned integer (little endian) | Number of triangles in the model |
+| 12 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Number of vertices in the model |
+| 16 | **num_arts** | 4 | 4-bytes unsigned integer (little endian) | Number of "arts" (texture pages?). 1, unless triangles use non-zero `tex_page` |
+| 20 | **vertices_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of vertices table, relative to header end (0x2038). Tables go one after another in order: vertices, normals, triangles, reserved areas 1-3, undamaged vertices, undamaged normals, damaged vertices, damaged normals, reserved area 4, animation flags, reserved areas 5-6 |
+| 24 | **normals_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of normals table, relative to header end |
+| 28 | **triangles_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of triangles table, relative to header end |
+| 32 | **reserve1_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of reserved area 1, relative to header end |
+| 36 | **reserve2_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of reserved area 2, relative to header end |
+| 40 | **reserve3_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of reserved area 3, relative to header end |
+| 44 | **undamaged_vertices_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of undamaged vertices table, relative to header end |
+| 48 | **undamaged_normals_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of undamaged normals table, relative to header end |
+| 52 | **damaged_vertices_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of damaged vertices table, relative to header end |
+| 56 | **damaged_normals_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of damaged normals table, relative to header end |
+| 60 | **reserve4_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of reserved area 4, relative to header end |
+| 64 | **animation_flags_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of vertex animation flags table, relative to header end |
+| 68 | **reserve5_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of reserved area 5, relative to header end |
+| 72 | **reserve6_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of reserved area 6, relative to header end |
+| 76 | **half_size** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Half-size of the whole model (bounding box, used for collisions) |
+| 88 | **num_dummies** | 4 | 4-bytes unsigned integer (little endian) | Number of used dummies, 0..16 |
+| 92 | **dummy_positions** | 192 | Array of `16` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Positions of dummies. Only first `num_dummies` are used |
+| 284 | **num_parts** | 4 | 4-bytes unsigned integer (little endian) | Number of used parts, 0..64 |
+| 288 | **part_positions** | 768 | Array of `64` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Positions of parts. Vertices of the part are relative to it. Only first `num_parts` are used |
+| 1056 | **part_first_vertex** | 256 | Array of `64` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Index of first vertex of each part |
+| 1312 | **part_num_vertices** | 256 | Array of `64` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Number of vertices in each part |
+| 1568 | **part_first_triangle** | 256 | Array of `64` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Index of first triangle of each part |
+| 1824 | **part_num_triangles** | 256 | Array of `64` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Number of triangles in each part |
+| 2080 | **num_colors** | 4 | 4-bytes unsigned integer (little endian) | Number of car colors, 0..16. Every color is a set of 4 colors with the same index in tables below |
+| 2084 | **primary_colors** | 64 | Array of `16` items<br/>Item size: 4 bytes<br/>Item type: Car color in HSB. Every component is 0..255: hue = degrees / 360 * 255, saturation = percent / 100 * 255, brightness = percent / 100 * 255 | Primary car colors (car body). Only first `num_colors` are used |
+| 2148 | **interior_colors** | 64 | Array of `16` items<br/>Item size: 4 bytes<br/>Item type: Car color in HSB. Every component is 0..255: hue = degrees / 360 * 255, saturation = percent / 100 * 255, brightness = percent / 100 * 255 | Interior colors. Only first `num_colors` are used |
+| 2212 | **secondary_colors** | 64 | Array of `16` items<br/>Item size: 4 bytes<br/>Item type: Car color in HSB. Every component is 0..255: hue = degrees / 360 * 255, saturation = percent / 100 * 255, brightness = percent / 100 * 255 | Secondary car colors. Only first `num_colors` are used |
+| 2276 | **driver_hair_colors** | 64 | Array of `16` items<br/>Item size: 4 bytes<br/>Item type: Car color in HSB. Every component is 0..255: hue = degrees / 360 * 255, saturation = percent / 100 * 255, brightness = percent / 100 * 255 | Driver hair colors. Only first `num_colors` are used |
+| 2340 | **unk1** | 260 | Bytes | Unknown purpose |
+| 2600 | **dummy_names** | 1024 | Array of `16` items<br/>Item size: 64 bytes<br/>Item type: UTF-8 string | Names of dummies. The name defines what the dummy is. Special names: ":LICENSE", ":LICMED", ":LICLOW" (license plate in high/medium/low LOD), ":LICENSE_EURO" (long license plate), ":SMOKE" (smoke when shifting gears), ":WATER" (water generator). Other dummies are lights, where every letter is a property: 1st is kind ("H": headlight, "T": taillight, "B": brake light, "R": reverse light, "P": direction indicator, "S": siren), 2nd is color ("W": white, "R": red, "B": blue, "O": orange, "Y": yellow), 3rd is "Y"/"N" for breakable or not, 4th is flashing mode ("O"/"E" for odd/even flashing, "N" for no flashing), 5th is intensity 0..9, 6th and 7th are flashing time and delay 0..9 |
+| 3624 | **part_names** | 4096 | Array of `64` items<br/>Item size: 64 bytes<br/>Item type: UTF-8 string | Names of parts. For car models, the role of the part is defined by its name: ":HB": high body, ":MB": medium body, ":LB": low body, ":TB": tiny body, ":OT": top of convertible, ":OL": pop-up headlights, ":OS": optional spoiler, ":OLB": left front brake, ":ORB": right front brake, ":OLM": left mirror, ":ORM": right mirror, ":OC": interior, ":ODL": dashboard when lit, ":OH": driver head, ":OD": driver holding steering wheel, ":OND": chair and steering wheel without driver, ":HLFW": high left front wheel ("M" instead of "H" for medium wheels, "R" instead of "L" for right, "M"/"R" instead of "F" for middle/rear) |
+| 7720 | **unk2** | 528 | Bytes | Unknown purpose |
+| 8248 | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex positions, relative to position of their part |
+| 8248 + num_vertices\*12 | **normals** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex normals |
+| 8248 + num_vertices\*12 + num_vertices\*12 | **triangles** | num_triangles\*56 | Array of `num_triangles` items<br/>Item type: [Fce4Triangle](#fce4triangle) | Triangles |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 | **reserve1** | 32 \* num_vertices | Bytes | Unknown purpose |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices | **reserve2** | 12 \* num_vertices | Bytes | Unknown purpose |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices | **reserve3** | 12 \* num_vertices | Bytes | Unknown purpose |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices | **undamaged_vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Undamaged vertex positions, a copy of `vertices` |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices + num_vertices\*12 | **undamaged_normals** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Undamaged vertex normals, a copy of `normals` |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices + num_vertices\*12 + num_vertices\*12 | **damaged_vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex positions of crashed car, relative to position of their part |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 | **damaged_normals** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex normals of crashed car |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 | **reserve4** | 4 \* num_vertices | Bytes | Unknown purpose |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 + 4 \* num_vertices | **animation_flags** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Vertex animation flags. Used by driver part ":OD": vertex with value 4 does not move, vertex with value 0 rotates together with steering wheel |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 + 4 \* num_vertices + num_vertices\*4 | **reserve5** | 4 \* num_vertices | Bytes | Unknown purpose |
+| 8248 + num_vertices\*12 + num_vertices\*12 + num_triangles\*56 + 32 \* num_vertices + 12 \* num_vertices + 12 \* num_vertices + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 + num_vertices\*12 + 4 \* num_vertices + num_vertices\*4 + 4 \* num_vertices | **reserve6** | 12 \* num_triangles (+ num_vertices in FCE4M) | Bytes | Unknown purpose |
+### **Fce4Triangle** ###
+#### **Size**: 56 bytes ####
+#### **Description**: A single triangle of FCE4 mesh ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **tex_page** | 4 | 4-bytes unsigned integer (little endian) | Texture page index. 0 for car models (texture car00.tga), other values are used by multi-texture models like police officers and pursuit road objects |
+| 4 | **vertex_indices** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Vertex indices, local to the part: add `part_first_vertex` of the part to get index in `vertices` |
+| 16 | **unk0** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 28 | **flags** | 4 | 32 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: matte<br/>1: high_chrome<br/>2: no_cull<br/>3: semi_transparent<br/>5: window<br/>6: front_window<br/>7: left_window<br/>8: back_window<br/>9: right_window<br/>10: broken_window</details> | Triangle flags. "matte": no environment reflection (underbody), "high_chrome": strong reflection (windows), "no_cull": triangle is visible from both sides, "semi_transparent": translucent triangle (windows). Triangle is visible behind a semi-transparent triangle only if it has smaller index. "window" is set for all car windows, together with one of "front_window", "left_window", "back_window", "right_window". "broken_window" marks a texture of broken glass, which replaces the window after crash |
+| 32 | **u** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Texture U coordinates of 3 vertices, 0..1 |
+| 44 | **v** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Texture V coordinates of 3 vertices, 0..1, from top to bottom |
+### **Fce4Color** ###
+#### **Size**: 4 bytes ####
+#### **Description**: Car color in HSB. Every component is 0..255: hue = degrees / 360 * 255, saturation = percent / 100 * 255, brightness = percent / 100 * 255 ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **hue** | 1 | 1-byte unsigned integer | Hue |
+| 1 | **saturation** | 1 | 1-byte unsigned integer | Saturation |
+| 2 | **brightness** | 1 | 1-byte unsigned integer | Brightness |
+| 3 | **transparency** | 1 | 1-byte unsigned integer | Transparency |
 ## **Maps** ##
 ### **Nfs4FrdMap** ###
 #### **Size**: 44..? bytes ####

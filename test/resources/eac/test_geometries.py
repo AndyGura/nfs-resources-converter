@@ -90,7 +90,87 @@ class TestFce3Geometry(unittest.TestCase):
 
     def test_fce4_is_not_detected_as_fce3(self):
         from library.loader import probe_block_class
+        from resources.eac.geometries import Fce4Geometry
 
-        fce4_header = b'\x14\x10\x10\x00' + bytes(0x2038)
-        with self.assertRaises(NotImplementedError):
-            probe_block_class(BytesIO(fce4_header), 'car.fce', len(fce4_header))
+        block, data = build_fce4_data()
+        packed = block.pack(data)
+        self.assertEqual(probe_block_class(BytesIO(packed), 'car.fce', len(packed)), Fce4Geometry)
+
+
+def build_fce4_data():
+    """Minimal FCE4 model: body (":HB") is a quad (2 triangles) with damaged position, front left wheel (":HLFW") is
+    a triangle, one light dummy"""
+    from resources.eac.geometries.nfs4 import Fce4Geometry
+
+    block = Fce4Geometry()
+    data = block.new_data()
+    data['version'] = 0x00101014
+    data['num_parts'] = 2
+    data['part_names'][0] = ':HB'
+    data['part_names'][1] = ':HLFW'
+    data['part_positions'][1] = {'x': 1.0, 'y': 2.0, 'z': 3.0}
+    data['part_first_vertex'][:2] = [0, 4]
+    data['part_num_vertices'][:2] = [4, 3]
+    data['part_first_triangle'][:2] = [0, 2]
+    data['part_num_triangles'][:2] = [2, 1]
+    data['num_dummies'] = 1
+    data['dummy_names'][0] = 'HWYN5'
+    data['num_colors'] = 1
+    data['primary_colors'][0] = {'hue': 0, 'saturation': 255, 'brightness': 255, 'transparency': 0}
+    data['num_arts'] = 1
+    vertices = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 0), (1, 0, 0), (0, 0, 1)]
+    data['vertices'] = [{'x': x, 'y': y, 'z': z} for x, y, z in vertices]
+    data['normals'] = [{'x': 0.0, 'y': 1.0, 'z': 0.0} for _ in vertices]
+    data['undamaged_vertices'] = [dict(v) for v in data['vertices']]
+    data['undamaged_normals'] = [dict(v) for v in data['normals']]
+    data['damaged_vertices'] = [dict(v) for v in data['vertices']]
+    data['damaged_vertices'][2] = {'x': 0.75, 'y': 0.75, 'z': -0.5}
+    data['damaged_normals'] = [dict(v) for v in data['normals']]
+    data['triangles'] = []
+    for vertex_indices in [[0, 1, 2], [0, 2, 3], [0, 1, 2]]:
+        triangle = block.field_blocks_map['triangles'].child.new_data()
+        triangle['vertex_indices'] = vertex_indices
+        triangle['unk0'] = [0xFF00FF00, 0xFF00FF00, 0xFF00FF00]
+        triangle['u'] = [0.0, 0.5, 1.0]
+        triangle['v'] = [0.25, 0.5, 0.75]
+        data['triangles'].append(triangle)
+    data['triangles'][0]['flags']['window'] = True
+    data['triangles'][0]['flags']['broken_window'] = True
+    data['reserve1'] = bytes(32 * len(vertices))
+    data['reserve2'] = bytes(12 * len(vertices))
+    data['reserve3'] = bytes(12 * len(vertices))
+    data['reserve4'] = bytes(4 * len(vertices))
+    data['animation_flags'] = [0, 0, 0, 0, 4, 4, 4]
+    data['reserve5'] = bytes(4 * len(vertices))
+    data['reserve6'] = bytes(12 * 3)
+    return block, data
+
+
+class TestFce4Geometry(unittest.TestCase):
+    def test_round_trip(self):
+        block, data = build_fce4_data()
+        packed = block.pack(data)
+        self.assertEqual(len(packed), 0x2038 + 7 * (12 * 8 + 32 + 4 * 3) + 3 * (56 + 12))
+        self.assertEqual(packed[:4], b'\x14\x10\x10\x00')
+        read = block.unpack_from_bytes(packed)
+        self.assertEqual(read['num_vertices'], 7)
+        self.assertEqual(read['num_triangles'], 3)
+        self.assertEqual(read['triangles_offset'], 7 * 24)
+        self.assertEqual(read['damaged_vertices_offset'], 7 * (24 + 32 + 24 + 24) + 3 * 56)
+        self.assertEqual(read['reserve6_offset'], 7 * (12 * 8 + 32 + 4 * 3) + 3 * 56)
+        self.assertEqual(read['part_names'][1], ':HLFW')
+        self.assertEqual(read['dummy_names'][0], 'HWYN5')
+        self.assertEqual(read['primary_colors'][0], {'hue': 0, 'saturation': 255, 'brightness': 255, 'transparency': 0})
+        self.assertEqual(read['damaged_vertices'][2], {'x': 0.75, 'y': 0.75, 'z': -0.5})
+        self.assertEqual(read['animation_flags'], [0, 0, 0, 0, 4, 4, 4])
+        self.assertTrue(read['triangles'][0]['flags']['broken_window'])
+        self.assertEqual(block.pack(read), packed)
+
+    def test_fce4m_has_longer_reserve6(self):
+        block, data = build_fce4_data()
+        data['version'] = 0x00101015
+        data['reserve6'] = bytes(12 * 3 + 7)
+        packed = block.pack(data)
+        read = block.unpack_from_bytes(packed)
+        self.assertEqual(len(read['reserve6']), 12 * 3 + 7)
+        self.assertEqual(block.pack(read), packed)

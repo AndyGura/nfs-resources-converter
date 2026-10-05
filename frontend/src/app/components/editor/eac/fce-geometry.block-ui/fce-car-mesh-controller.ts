@@ -19,44 +19,46 @@ export const fceColorToRgb = (color: FceColor): number => {
   return (f(5) << 16) | (f(3) << 8) | f(1);
 };
 
-// texture alpha of painted pixels: below this value it is primary color (car body), above it is secondary color
-const SECONDARY_COLOR_ALPHA_THRESHOLD = 160;
+export type FceVersion = 3 | 4;
 
-// part indices of car.fce wheels, by LOD. Order: front left, front right, rear left, rear right
-const HIGH_POLY_WHEELS = [1, 2, 3, 4];
-const MEDIUM_POLY_WHEELS = [7, 6, 9, 8];
+// FCE3: texture alpha of painted pixels: below this value it is primary color (car body), above it is secondary color
+const FCE3_SECONDARY_COLOR_ALPHA_THRESHOLD = 160;
+
+// FCE4: texture alpha of pixels, painted with primary, interior, secondary and driver hair color
+const FCE4_COLOR_ALPHAS = [224, 164, 96, 32];
+
+// FCE3: part indices of car.fce wheels, by LOD. Order: front left, front right, rear left, rear right
+const FCE3_HIGH_POLY_WHEELS = [1, 2, 3, 4];
+const FCE3_MEDIUM_POLY_WHEELS = [7, 6, 9, 8];
+
+// FCE4: car.fce wheel part name: high/medium LOD, left/right, front/middle/rear
+const FCE4_WHEEL_REGEX = /^(?:hp|mp)_\d+_[HM][LR]([FMR])W(?=__|_damaged$|$)/i;
+// FCE4: front brakes steer together with wheels, but don't spin
+const FCE4_BRAKE_REGEX = /^hp_\d+_O[LR]B(?=__|_damaged$|$)/i;
 
 const WHEEL_SPIN_SPEED = { idle: 0, slow: 5, fast: 40 };
 
 /**
- * Animates car.fce model in preview: steers and spins wheels, shows light dummies. Expects meshes, exported by
- * Fce3GeometrySerializer: "<lod>_<part index>_..."
+ * Animates car.fce model in preview: steers and spins wheels, shows light dummies, recolors car. Expects meshes,
+ * exported by Fce3GeometrySerializer/Fce4GeometrySerializer: "<lod>_<part index>_<part name>[__<texture>][_damaged]"
  */
-export class Fce3CarMeshController {
-  // every wheel can consist of a few meshes (one per texture)
-  private wheels: { meshes: Mesh[]; isFront: boolean }[] = [];
+export class FceCarMeshController {
+  // every wheel can consist of a few meshes (one per texture, damaged copy)
+  private wheels: { meshes: Mesh[]; isFront: boolean; spins: boolean }[] = [];
   private lights: Group | null = null;
   private spinAngle = 0;
   // original texture, its paint mask (alpha channel of car00.tga) and recolored texture, used by materials
   private paintTextures: { original: Texture; mask: HTMLImageElement; target: Texture }[] = [];
 
-  private _primaryColor: number;
-  get primaryColor(): number {
-    return this._primaryColor;
+  // FCE3: primary, secondary. FCE4: primary, interior, secondary, driver hair
+  private readonly colors: number[];
+
+  getColor(index: number): number {
+    return this.colors[index];
   }
 
-  set primaryColor(value: number) {
-    this._primaryColor = value;
-    this.recolorCar().then();
-  }
-
-  private _secondaryColor: number;
-  get secondaryColor(): number {
-    return this._secondaryColor;
-  }
-
-  set secondaryColor(value: number) {
-    this._secondaryColor = value;
+  setColor(index: number, value: number) {
+    this.colors[index] = value;
     this.recolorCar().then();
   }
 
@@ -112,11 +114,16 @@ export class Fce3CarMeshController {
     return !!this.lights;
   }
 
-  constructor(mesh: Object3D, dummies: FceDummy[], primaryColor: number, secondaryColor: number) {
-    this._primaryColor = primaryColor;
-    this._secondaryColor = secondaryColor;
+  constructor(
+    mesh: Object3D,
+    private readonly version: FceVersion,
+    dummies: FceDummy[],
+    colors: number[],
+  ) {
+    this.colors = [...colors];
     this.setupPaintTextures(mesh);
-    const parts: { [index: number]: Mesh[] } = {};
+    // wheel meshes by part index
+    const parts: { [index: number]: { meshes: Mesh[]; isFront: boolean; spins: boolean } } = {};
     let body: Mesh | null = null;
     mesh.traverse(o => {
       if (!(o instanceof Mesh)) {
@@ -127,40 +134,51 @@ export class Fce3CarMeshController {
         return;
       }
       const index = +match[2];
-      if (index === 0 && !body) {
+      const isBody = version === 3 ? index === 0 : /^hp_\d+_HB(?=__|$)/i.test(o.name);
+      if (isBody && !body) {
         body = o;
       }
-      if ([...HIGH_POLY_WHEELS, ...MEDIUM_POLY_WHEELS].includes(index)) {
-        (parts[index] = parts[index] || []).push(o);
+      let wheel: { isFront: boolean; spins: boolean } | null = null;
+      if (version === 3) {
+        for (const wheelIndices of [FCE3_HIGH_POLY_WHEELS, FCE3_MEDIUM_POLY_WHEELS]) {
+          if (wheelIndices.includes(index)) {
+            wheel = { isFront: wheelIndices.indexOf(index) < 2, spins: true };
+          }
+        }
+      } else {
+        const wheelMatch = FCE4_WHEEL_REGEX.exec(o.name);
+        if (wheelMatch) {
+          wheel = { isFront: wheelMatch[1].toUpperCase() === 'F', spins: true };
+        } else if (FCE4_BRAKE_REGEX.test(o.name)) {
+          wheel = { isFront: true, spins: false };
+        }
+      }
+      if (wheel) {
+        (parts[index] = parts[index] || { meshes: [], ...wheel }).meshes.push(o);
       }
     });
-    for (const wheelIndices of [HIGH_POLY_WHEELS, MEDIUM_POLY_WHEELS]) {
-      wheelIndices.forEach((partIndex, i) => {
-        const meshes = parts[partIndex];
-        if (!meshes) {
-          return;
-        }
-        // move pivot to the wheel center, so it rotates in place
-        const box = new Box3();
-        for (const m of meshes) {
-          m.geometry.computeBoundingBox();
-          box.union(m.geometry.boundingBox!);
-        }
-        const center = box.getCenter(new Vector3());
-        for (const m of meshes) {
-          m.geometry.translate(-center.x, -center.y, -center.z);
-          m.position.copy(center);
-          m.rotation.order = 'ZXY';
-        }
-        this.wheels.push({ meshes, isFront: i < 2 });
-      });
+    for (const wheel of Object.values(parts)) {
+      // move pivot to the wheel center, so it rotates in place
+      const box = new Box3();
+      for (const m of wheel.meshes) {
+        m.geometry.computeBoundingBox();
+        box.union(m.geometry.boundingBox!);
+      }
+      const center = box.getCenter(new Vector3());
+      for (const m of wheel.meshes) {
+        m.geometry.translate(-center.x, -center.y, -center.z);
+        m.position.copy(center);
+        m.rotation.order = 'ZXY';
+      }
+      this.wheels.push(wheel);
     }
-    if (body && dummies.length > 0) {
+    const lightDummies = dummies.filter(d => FceCarMeshController.lightColor(version, d.name) !== null);
+    if (body && lightDummies.length > 0) {
       this.lights = new Group();
-      for (const dummy of dummies) {
+      for (const dummy of lightDummies) {
         const light = new Mesh(
           new SphereGeometry(0.05, 8, 8),
-          new MeshBasicMaterial({ color: Fce3CarMeshController.lightColor(dummy.name) }),
+          new MeshBasicMaterial({ color: FceCarMeshController.lightColor(version, dummy.name)! }),
         );
         light.name = dummy.name;
         light.position.set(...dummy.position);
@@ -205,7 +223,7 @@ export class Fce3CarMeshController {
   }
 
   async recolorCar() {
-    const colors = [this._primaryColor, this._secondaryColor].map(c => [c >> 16, (c >> 8) & 0xff, c & 0xff]);
+    const colors = this.colors.map(c => [c >> 16, (c >> 8) & 0xff, c & 0xff]);
     for (const { original, mask, target } of this.paintTextures) {
       for (let i = 100; i > 0 && !((original.source.data as HTMLImageElement)?.complete && mask.complete); i--) {
         await sleep(50);
@@ -214,7 +232,7 @@ export class Fce3CarMeshController {
       if (!image?.complete || !mask.complete) {
         continue;
       }
-      const maskData = Fce3CarMeshController.readImageData(mask, image.width, image.height);
+      const maskData = FceCarMeshController.readImageData(mask, image.width, image.height);
       recolorImageSmart(
         image,
         (data, i) => {
@@ -223,7 +241,7 @@ export class Fce3CarMeshController {
             return;
           }
           // texture is a greyscale shading of the paint: mid-grey means exactly the paint color
-          const [r, g, b] = colors[alpha < SECONDARY_COLOR_ALPHA_THRESHOLD ? 0 : 1];
+          const [r, g, b] = colors[this.colorIndexByAlpha(alpha)];
           data[i] = Math.min(255, (data[i] * r) / 128);
           data[i + 1] = Math.min(255, (data[i + 1] * g) / 128);
           data[i + 2] = Math.min(255, (data[i + 2] * b) / 128);
@@ -232,6 +250,19 @@ export class Fce3CarMeshController {
       );
       target.needsUpdate = true;
     }
+  }
+
+  private colorIndexByAlpha(alpha: number): number {
+    if (this.version === 3) {
+      return alpha < FCE3_SECONDARY_COLOR_ALPHA_THRESHOLD ? 0 : 1;
+    }
+    let result = 0;
+    FCE4_COLOR_ALPHAS.forEach((value, i) => {
+      if (Math.abs(alpha - value) < Math.abs(alpha - FCE4_COLOR_ALPHAS[result])) {
+        result = i;
+      }
+    });
+    return result;
   }
 
   private static readImageData(img: HTMLImageElement, width: number, height: number): Uint8ClampedArray | null {
@@ -249,9 +280,18 @@ export class Fce3CarMeshController {
     return data;
   }
 
-  // light kind is the first letter of dummy name: H - headlight, T - taillight, M - siren (with side as 3rd letter)
-  private static lightColor(name: string): number {
+  /** Color of light dummy, null if dummy is not a light */
+  private static lightColor(version: FceVersion, name: string): number | null {
     const kind = name.toUpperCase();
+    if (version === 4) {
+      // FCE4: special dummies start with ":" (license plate, smoke, water), lights have color as 2nd letter
+      if (kind.startsWith(':')) {
+        return null;
+      }
+      const color = { W: 0xffffcc, R: 0xff0000, B: 0x0000ff, O: 0xff8000, Y: 0xffff00 }[kind[1]];
+      return color === undefined ? 0xff00ff : color;
+    }
+    // FCE3: light kind is the first letter: H - headlight, T - taillight, M - siren (with side as 3rd letter)
     if (kind.startsWith('H')) {
       return 0xffffcc;
     } else if (kind.startsWith('T')) {
@@ -263,9 +303,9 @@ export class Fce3CarMeshController {
   }
 
   private updateWheels() {
-    for (const { meshes, isFront } of this.wheels) {
+    for (const { meshes, isFront, spins } of this.wheels) {
       for (const m of meshes) {
-        m.rotation.set(this.spinAngle, 0, isFront ? this._steeringAngle : 0);
+        m.rotation.set(spins ? this.spinAngle : 0, 0, isFront ? this._steeringAngle : 0);
       }
     }
   }

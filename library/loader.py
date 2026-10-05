@@ -42,7 +42,11 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             return TargaImage
         elif file_path.upper().endswith('.FCE'):
             # FCE4 (NFS4) starts with version number, FCE3 (NFS3) doesn't have it
-            if header_bytes not in [b'\x14\x10\x10\x00', b'\x15\x10\x10\x00']:
+            if header_bytes in [b'\x14\x10\x10\x00', b'\x15\x10\x10\x00']:
+                from resources.eac.geometries import Fce4Geometry
+
+                return Fce4Geometry
+            else:
                 from resources.eac.geometries import Fce3Geometry
 
                 return Fce3Geometry
