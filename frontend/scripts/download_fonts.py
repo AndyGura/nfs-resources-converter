@@ -1,3 +1,4 @@
+import hashlib
 import os
 import re
 import urllib.request
@@ -46,10 +47,12 @@ def run():
         if not os.path.exists(font_dir):
             os.makedirs(font_dir)
 
-        urls = re.findall(r'url\((https://fonts\.gstatic\.com/[^\)]+)\)', css_content)
+        sources = re.findall(r"url\((https://fonts\.gstatic\.com/[^\)]+)\)(?:\s*format\('([^']+)'\))?", css_content)
 
-        for url in set(urls):
-            filename = os.path.basename(url)
+        for url, fmt in set(sources):
+            # Google may serve URLs like .../l/font?kit=...&skey=..., which aren't valid file names on Windows
+            # and would be read as a query string when referenced from CSS, so name files by URL hash instead
+            filename = f"{hashlib.sha1(url.encode('utf-8')).hexdigest()[:16]}.{fmt or 'woff2'}"
             dest = os.path.join(font_dir, filename)
             print(f"  Downloading {url}...")
             download_file(url, dest)
