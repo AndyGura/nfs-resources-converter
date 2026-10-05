@@ -223,7 +223,8 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    (`page_<n>.png` vs `page_<n>_alpha.png`). Meshes without a texture still need a material
    (`untextured`), otherwise OBJ readers carry over the previous `usemtl`.
    NFS3 `car.fce` (`Fce3Geometry`) textures are the TGA siblings in the same BIGF archive (`car.viv`) or folder
-   (`_find_fce_siblings`); part roles come from part index (`fce_part_lod_prefix`), and the `.FCE` loader branch
+   (`_find_fce_siblings`), written opaque plus `<name>_paint_mask.png` (TGA alpha < 255 marks paintable pixels,
+   used by the GUI color pickers); part roles come from part index (`fce_part_lod_prefix`), and the `.FCE` loader branch
    leaves FCE4 files (version `0x00101014`/`0x00101015` in the first 4 bytes) undetected.
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.

@@ -793,7 +793,9 @@ class Fce3GeometrySerializer(BaseFileSerializer):
             except Exception:
                 traceback.print_exc()
                 continue
-            # alpha channel of car textures is not transparency
+            # alpha channel of car textures is not transparency, but a paint mask: the less alpha, the more car
+            # color is applied. Kept in a separate file for GUI preview
+            image.save(path_join(path, f'assets/{name}_paint_mask.png'))
             image.putalpha(255)
             image.save(path_join(path, f'assets/{name}.png'))
             names.append(name)

@@ -12,7 +12,7 @@ import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
-import { Fce3CarMeshController, FceDummy } from './fce3-car-mesh-controller';
+import { Fce3CarMeshController, fceColorToRgb, FceDummy } from './fce3-car-mesh-controller';
 
 @Component({
   selector: 'app-fce3-geometry-block-ui',
@@ -61,9 +61,29 @@ export class Fce3GeometryBlockUiComponent extends GuiComponent implements AfterV
           console.warn('Cannot load FCE dummies', err);
         }
       }
-      const meshController = new Fce3CarMeshController(obj, dummies);
+      // default paint is the first color of the car
+      const data = this.resourceData;
+      const primaryColor = data?.num_primary_colors > 0 ? fceColorToRgb(data.primary_colors[0]) : 0xff0000;
+      const secondaryColor = data?.num_secondary_colors > 0 ? fceColorToRgb(data.secondary_colors[0]) : 0x808080;
+      const meshController = new Fce3CarMeshController(obj, dummies, primaryColor, secondaryColor);
       this.meshController = meshController;
       const controls: ObjViewerCustomControl['controls'] = [];
+      if (meshController.isPaintable) {
+        controls.push(
+          {
+            label: 'Primary color',
+            type: 'color',
+            value: primaryColor,
+            change: c => this.debounced(() => (meshController.primaryColor = c)),
+          },
+          {
+            label: 'Secondary color',
+            type: 'color',
+            value: secondaryColor,
+            change: c => this.debounced(() => (meshController.secondaryColor = c)),
+          },
+        );
+      }
       if (meshController.hasLights) {
         controls.push({
           label: 'Show lights',
@@ -97,6 +117,15 @@ export class Fce3GeometryBlockUiComponent extends GuiComponent implements AfterV
     } catch (err) {
       console.error(err);
     }
+  }
+
+  private debounceTimer: any = null;
+
+  private debounced(func: () => void) {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    this.debounceTimer = setTimeout(func, 50);
   }
 
   private serializerSettings = {

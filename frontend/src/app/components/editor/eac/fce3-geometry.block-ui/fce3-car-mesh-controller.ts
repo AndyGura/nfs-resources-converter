@@ -1,6 +1,26 @@
-import { Box3, Group, Mesh, MeshBasicMaterial, Object3D, SphereGeometry, Vector3 } from 'three';
+import { Box3, Group, Mesh, MeshBasicMaterial, Object3D, SphereGeometry, Texture, Vector3 } from 'three';
+import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
+import { sleep } from '../../../../utils/sleep';
+import { recolorImageSmart } from '../../../../utils/recolor-image';
 
 export type FceDummy = { name: string; position: [number, number, number] };
+
+export type FceColor = { hue: number; saturation: number; brightness: number; transparency: number };
+
+/** FCE color (HSB, every component is 0..255) to 0xRRGGBB */
+export const fceColorToRgb = (color: FceColor): number => {
+  const h = (color.hue / 255) * 6;
+  const s = color.saturation / 255;
+  const v = color.brightness / 255;
+  const f = (n: number) => {
+    const k = (n + h) % 6;
+    return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1))));
+  };
+  return (f(5) << 16) | (f(3) << 8) | f(1);
+};
+
+// texture alpha of painted pixels: below this value it is primary color (car body), above it is secondary color
+const SECONDARY_COLOR_ALPHA_THRESHOLD = 160;
 
 // part indices of car.fce wheels, by LOD. Order: front left, front right, rear left, rear right
 const HIGH_POLY_WHEELS = [1, 2, 3, 4];
@@ -17,6 +37,32 @@ export class Fce3CarMeshController {
   private wheels: { meshes: Mesh[]; isFront: boolean }[] = [];
   private lights: Group | null = null;
   private spinAngle = 0;
+  // original texture, its paint mask (alpha channel of car00.tga) and recolored texture, used by materials
+  private paintTextures: { original: Texture; mask: HTMLImageElement; target: Texture }[] = [];
+
+  private _primaryColor: number;
+  get primaryColor(): number {
+    return this._primaryColor;
+  }
+
+  set primaryColor(value: number) {
+    this._primaryColor = value;
+    this.recolorCar().then();
+  }
+
+  private _secondaryColor: number;
+  get secondaryColor(): number {
+    return this._secondaryColor;
+  }
+
+  set secondaryColor(value: number) {
+    this._secondaryColor = value;
+    this.recolorCar().then();
+  }
+
+  get isPaintable(): boolean {
+    return this.paintTextures.length > 0;
+  }
   private animationTimer: any = null;
 
   private _speed: 'idle' | 'slow' | 'fast' = 'idle';
@@ -66,7 +112,10 @@ export class Fce3CarMeshController {
     return !!this.lights;
   }
 
-  constructor(mesh: Object3D, dummies: FceDummy[]) {
+  constructor(mesh: Object3D, dummies: FceDummy[], primaryColor: number, secondaryColor: number) {
+    this._primaryColor = primaryColor;
+    this._secondaryColor = secondaryColor;
+    this.setupPaintTextures(mesh);
     const parts: { [index: number]: Mesh[] } = {};
     let body: Mesh | null = null;
     mesh.traverse(o => {
@@ -119,6 +168,85 @@ export class Fce3CarMeshController {
       }
       (body as Mesh).add(this.lights);
     }
+    this.recolorCar().then();
+  }
+
+  /** Replaces textures of materials with recolorable copies, if texture has a paint mask (<texture>_paint_mask.png) */
+  private setupPaintTextures(mesh: Object3D) {
+    mesh.traverse(o => {
+      if (!(o instanceof Mesh)) {
+        return;
+      }
+      const materials = o.material instanceof Array ? o.material : [o.material];
+      for (const material of materials) {
+        const original: Texture | null = (material as MeshBasicMaterial).map;
+        if (!original) {
+          continue;
+        }
+        let paintTexture = this.paintTextures.find(x => x.original === original || x.target === original);
+        if (!paintTexture) {
+          const url: string | undefined = (original.source.data as HTMLImageElement)?.src;
+          if (!url || !/\.png(\?.*)?$/.test(url)) {
+            continue;
+          }
+          const mask = document.createElement('img');
+          mask.src = url.replace(/\.png(\?.*)?$/, '_paint_mask.png$1');
+          const target = new Texture(document.createElement('img'));
+          target.flipY = original.flipY;
+          target.wrapS = original.wrapS;
+          target.wrapT = original.wrapT;
+          setupNfs1Texture(target);
+          paintTexture = { original, mask, target };
+          this.paintTextures.push(paintTexture);
+        }
+        (material as MeshBasicMaterial).map = paintTexture.target;
+      }
+    });
+  }
+
+  async recolorCar() {
+    const colors = [this._primaryColor, this._secondaryColor].map(c => [c >> 16, (c >> 8) & 0xff, c & 0xff]);
+    for (const { original, mask, target } of this.paintTextures) {
+      for (let i = 100; i > 0 && !((original.source.data as HTMLImageElement)?.complete && mask.complete); i--) {
+        await sleep(50);
+      }
+      const image = original.source.data as HTMLImageElement;
+      if (!image?.complete || !mask.complete) {
+        continue;
+      }
+      const maskData = Fce3CarMeshController.readImageData(mask, image.width, image.height);
+      recolorImageSmart(
+        image,
+        (data, i) => {
+          const alpha = maskData ? maskData[i + 3] : 255;
+          if (alpha === 0 || alpha === 255) {
+            return;
+          }
+          // texture is a greyscale shading of the paint: mid-grey means exactly the paint color
+          const [r, g, b] = colors[alpha < SECONDARY_COLOR_ALPHA_THRESHOLD ? 0 : 1];
+          data[i] = Math.min(255, (data[i] * r) / 128);
+          data[i + 1] = Math.min(255, (data[i + 1] * g) / 128);
+          data[i + 2] = Math.min(255, (data[i + 2] * b) / 128);
+        },
+        target.source.data as HTMLImageElement,
+      );
+      target.needsUpdate = true;
+    }
+  }
+
+  private static readImageData(img: HTMLImageElement, width: number, height: number): Uint8ClampedArray | null {
+    if (!img.naturalWidth) {
+      // no paint mask: texture is not recolored
+      return null;
+    }
+    const c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(img, 0, 0, width, height);
+    const data = ctx.getImageData(0, 0, width, height).data;
+    c.remove();
+    return data;
   }
 
   // light kind is the first letter of dummy name: H - headlight, T - taillight, M - siren (with side as 3rd letter)

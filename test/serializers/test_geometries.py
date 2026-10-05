@@ -251,6 +251,8 @@ class TestFce3GeometrySerializer(unittest.TestCase):
         # alpha channel of car texture is not transparency
         with Image.open(os.path.join(out_path, 'assets/car00.png')) as png:
             self.assertEqual(png.convert('RGBA').getpixel((0, 0)), (255, 0, 0, 255))
+        with Image.open(os.path.join(out_path, 'assets/car00_paint_mask.png')) as png:
+            self.assertEqual(png.convert('RGBA').getpixel((0, 0)), (255, 0, 0, 0))
         # vertices are shared by triangle corners with the same UV: quad has 5 of them (vertex 2 has different UV in
         # both triangles). Double-sided triangle has 3 vertices and 2 faces
         self.assertEqual(len(re.findall(r'^v ', obj, re.MULTILINE)), 8)
