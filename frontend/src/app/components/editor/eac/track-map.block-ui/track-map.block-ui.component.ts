@@ -16,18 +16,14 @@ import {
   Entity3d,
   FreeCameraController,
   Gg3dWorld,
-  GgWorld,
-  LoadResultWithProps,
   MapGraph,
-  MapGraph3dEntity,
-  MapGraphNodeType,
   Pnt3,
   Point2,
   Point3,
   Qtrn,
   Renderer3dEntity,
 } from '@gg-web-engine/core';
-import { BehaviorSubject, debounceTime, distinctUntilChanged, filter, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import {
   AmbientLight,
   CubeReflectionMapping,
@@ -35,145 +31,23 @@ import {
   Material,
   Mesh,
   MeshBasicMaterial,
-  RepeatWrapping,
   Texture,
   TextureLoader,
 } from 'three';
-import {
-  ThreeDisplayObjectComponent,
-  ThreeGgWorld,
-  ThreeSceneComponent,
-  ThreeVisualTypeDocRepo,
-} from '@gg-web-engine/three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
-import { Resource } from '../../types';
+import { ThreeGgWorld, ThreeSceneComponent, ThreeVisualTypeDocRepo } from '@gg-web-engine/three';
+import { BlockSchema, Resource } from '../../types';
 import { ViewMode, ViewModeController } from '../../common/obj-viewer/view-mode-toolbar/view-mode.controller';
-import { findTrackMapAdapter, TrackMapAdapter } from './track-map-adapters';
+import { joinId } from '../../../../utils/join-id';
+import { findTrackMapAdapter, TrackMapAdapter, TrackSplineDetailPanel, TrackSplinePoint } from './track-map-adapters';
+import { TrackEntity, TrackMapWorldEntity } from './track-map-world.entity';
 
-// TODO use this from gg-web-engine after next release
-type TypeDocOf<W extends GgWorld<any, any>> = W extends GgWorld<infer D, infer R, infer TypeDoc> ? TypeDoc : never;
-
-// Track terrain streamed as OBJ chunks along a MapGraph, textured from a QFS archive serialized to `qfsPath`
-export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>> {
-  public readonly textureLoader = new TextureLoader();
-  private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
-  private readonly objLoader = new OBJLoader();
-
-  public resource: Resource | null = null;
-  public isOpenedTrack: boolean = false;
-
-  constructor(
-    public override readonly mapGraph: MapGraph,
-    public readonly qfsPath: string | null,
-    private readonly hideUnknownEntities$: BehaviorSubject<boolean>,
-  ) {
-    super(mapGraph, { loadDepth: 40, inertia: 2 });
-  }
-
-  private _placeholder: Texture | null = null;
-  private _placeholderPromise: Promise<Texture> | null = null;
-
-  unknownEntities: Set<Entity3d> = new Set<Entity3d>();
-
-  override onSpawned(world: ThreeGgWorld) {
-    super.onSpawned(world);
-    this.hideUnknownEntities$.pipe(distinctUntilChanged(), takeUntil(this._onRemoved$)).subscribe(hide => {
-      for (const e of this.unknownEntities) {
-        e.visible = !hide;
-      }
-    });
-  }
-
-  async getPlaceholderTexture(): Promise<Texture> {
-    if (this._placeholder) return this._placeholder;
-    if (!this._placeholderPromise) {
-      this._placeholderPromise = this.textureLoader.loadAsync('assets/placeholder_texture.png');
-    }
-    return this._placeholderPromise;
-  }
-
-  private _placeholderTerrain: Texture | null = null;
-  private _placeholderTerrainPromise: Promise<Texture> | null = null;
-
-  async getPlaceholderTerrainTexture(): Promise<Texture> {
-    if (this._placeholderTerrain) return this._placeholderTerrain;
-    if (!this._placeholderTerrainPromise) {
-      this._placeholderTerrainPromise = this.textureLoader.loadAsync('assets/placeholder_texture.png').then(texture => {
-        texture.wrapS = RepeatWrapping;
-        texture.wrapT = RepeatWrapping;
-        setupNfs1Texture(texture);
-        return texture;
-      });
-    }
-    return this._placeholderTerrainPromise;
-  }
-
-  protected override async loadChunk(
-    node: MapGraphNodeType,
-  ): Promise<[Entity3d<TypeDocOf<ThreeGgWorld>>[], LoadResultWithProps<TypeDocOf<ThreeGgWorld>>]> {
-    const object = await this.objLoader.loadAsync(node.path + '.obj');
-    object.position.set(node.position.x, node.position.y, node.position.z);
-    object.traverse((node: any) => {
-      if (node instanceof Mesh) {
-        node.material = this.getTerrainMaterial(
-          (node.userData['name'] || node.name)
-            .substr((node.userData['name'] || node.name).lastIndexOf('_') + 1)
-            .split('.')[0],
-        );
-      }
-    });
-    const entity: Entity3d<TypeDocOf<ThreeGgWorld>> = new Entity3d({
-      object3D: new ThreeDisplayObjectComponent(object),
-    });
-    this.addChildren(entity);
-    this.loaded.set(node, [entity]);
-    return [[entity], null!];
-  }
-
-  protected override disposeChunk(node: MapGraphNodeType) {
-    for (const c of this.loaded.get(node) || []) {
-      this.unknownEntities.delete(c as Entity3d);
-    }
-    super.disposeChunk(node);
-  }
-
-  getTerrainMaterial(matId: string): Material {
-    if (!this.terrainMaterials[matId]) {
-      this.terrainMaterials[matId] = new MeshBasicMaterial({ side: DoubleSide, transparent: true, visible: false });
-      if (this.qfsPath) {
-        this.textureLoader
-          .loadAsync(`${this.qfsPath}/${matId}.png`)
-          .then(texture => {
-            texture.wrapS = RepeatWrapping;
-            texture.wrapT = RepeatWrapping;
-            setupNfs1Texture(texture);
-            this.terrainMaterials[matId].map = texture;
-            this.terrainMaterials[matId].needsUpdate = true;
-            this.terrainMaterials[matId].visible = true;
-          })
-          .catch(err => {
-            console.warn(`Problem with loading terrain material ${matId}`);
-            this.getPlaceholderTerrainTexture().then(texture => {
-              this.terrainMaterials[matId].map = texture;
-              this.terrainMaterials[matId].needsUpdate = true;
-              this.terrainMaterials[matId].visible = true;
-            });
-          });
-      } else {
-        this.getPlaceholderTerrainTexture().then(texture => {
-          this.terrainMaterials[matId].map = texture;
-          this.terrainMaterials[matId].needsUpdate = true;
-          this.terrainMaterials[matId].visible = true;
-        });
-      }
-    }
-    return this.terrainMaterials[matId];
-  }
+// Game coordinates (Y up) -> viewer coordinates (Z up)
+function toViewer(p: Point3): Point3 {
+  return { x: p.x, y: p.z, z: p.y };
 }
 
-// Chunked track viewer shared by NFS2 (TRK), NFS3 (FRD) and NFS4 (FRD) tracks; per-game differences
-// live in a `TrackMapAdapter`, picked by the block class
+// Chunked track viewer shared by TNFS (TRI), NFS2 (TRK), NFS3 (FRD) and NFS4 (FRD) tracks;
+// per-game differences live in a `TrackMapAdapter`, picked by the block class
 @Component({
   selector: 'app-track-map-block-ui',
   templateUrl: './track-map.block-ui.component.html',
@@ -186,27 +60,37 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
   previewLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
-  previewQfsLocation$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
-  previewQfsLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  // Texture archives (QFS/FAM) found next to the track, offered in the picker
+  textureArchiveOptions$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
+  textureArchiveLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  // The loaded texture archive, null when the terrain uses placeholder textures
+  textureArchivePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   private terrainChunksObjLocation: string | undefined;
 
   pointer$: BehaviorSubject<Point3 | null> = new BehaviorSubject<Point3 | null>(null);
 
   selectedSplineIndex$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
-  qfsPath: string | null = null;
-  name: string = '';
+  selectedSplineDetails$: BehaviorSubject<{ title: string; resource: Resource }[]> = new BehaviorSubject<
+    { title: string; resource: Resource }[]
+  >([]);
   world!: ThreeGgWorld;
   renderer: Renderer3dEntity<ThreeVisualTypeDocRepo> | null = null;
   map: TrackMapWorldEntity | null = null;
   adapter: TrackMapAdapter | null = null;
   controller!: FreeCameraController;
-  roadPath: Point3[] | null = null;
+  chunkPositions: Point3[] | null = null;
+  splinePoints: TrackSplinePoint[] = [];
+  minimapSpline: Point3[] = [];
+  isClosed: boolean = true;
   ambientLight: AmbientLight = new AmbientLight(0xffffff, 2);
   viewModeController?: ViewModeController;
-  skySphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
-  selectionSphere!: Entity3d<TypeDocOf<ThreeGgWorld>>;
+  skySphere!: TrackEntity;
+  selectionSphere!: TrackEntity;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
+  // Resolves once the 3D world is set up; inputs can arrive before that
+  private markViewReady!: () => void;
+  private readonly viewReady: Promise<void> = new Promise(resolve => (this.markViewReady = resolve));
 
   get viewMode(): ViewMode {
     return this.viewModeController?.viewMode || 'material';
@@ -260,6 +144,9 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
         if (this.renderer) {
           this.skySphere.position = this.renderer.camera.position;
           this.pointer$.next(this.renderer.camera.position);
+          if (this.map) {
+            this.map.loaderCursor$.next(this.renderer.position);
+          }
         }
       });
 
@@ -300,37 +187,91 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       });
 
     this.selectedSplineIndex$.pipe(takeUntil(this.destroyed$), debounceTime(250)).subscribe(i => {
-      if (this.resourceId && this.resourceData) {
-        const point = this.roadPath?.[i];
-        if (!point) {
-          return;
-        }
-        this.selectionSphere.position = point;
-        const orientation = 0;
-        if (this.renderer) {
-          this.renderer.position = Pnt3.add(
-            point,
-            Pnt3.rotAround({ x: 10, y: -12, z: 5 }, { x: 0, y: 0, z: 1 }, -orientation),
-          );
-          this.renderer.rotation = Qtrn.lookAt(this.renderer.position, point, { x: 0, y: 0, z: 1 });
-          this.controller.reset();
-        }
-      }
-    });
-  }
-
-  private async loadQfsWithFallback(candidates: string[]) {
-    for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i];
-      // Every candidate but the last is a speculative guess (e.g. trying a reverse track's own
-      // archive before falling back to the forward track's) - a miss there is expected and
-      // shouldn't pop the global API-error dialog, only a failure of the final candidate should.
-      await this.onQfsSelected(candidate, i < candidates.length - 1);
-      if (this.qfsPath) {
-        this.previewQfsLocation$.next(candidate);
+      this.updateSplineDetails();
+      const splinePoint = this.splinePoints[i];
+      if (!this.resourceId || !splinePoint) {
         return;
       }
+      const point = toViewer(splinePoint.position);
+      this.selectionSphere.position = point;
+      if (this.renderer) {
+        this.renderer.position = Pnt3.add(
+          point,
+          Pnt3.rotAround({ x: 10, y: -12, z: 5 }, { x: 0, y: 0, z: 1 }, -splinePoint.orientation),
+        );
+        this.renderer.rotation = Qtrn.lookAt(this.renderer.position, point, { x: 0, y: 0, z: 1 });
+        this.controller.reset();
+      }
+    });
+    this.markViewReady();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceSchema')) {
+      this.adapter = findTrackMapAdapter(this.resourceSchema?.block_class_mro);
     }
+    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
+      const data = this.resourceData;
+      const adapter = this.adapter;
+      this.chunkPositions = data && adapter ? adapter.chunkPositions(data).map(toViewer) : null;
+      this.splinePoints =
+        data && adapter
+          ? adapter.splinePoints
+            ? adapter.splinePoints(data)
+            : adapter.chunkPositions(data).map(position => ({ position, orientation: 0 }))
+          : [];
+      this.minimapSpline = this.splinePoints.map(p => toViewer(p.position));
+      this.isClosed = !data || !adapter?.isClosed || adapter.isClosed(data);
+      this.updateSplineDetails();
+      this.previewLoading$.next(true);
+      const resourceIdChanged = changes.hasOwnProperty('resourceId');
+      this.loadTerrainChunks(adapter ? this.resourceId : undefined).then(async () => {
+        await this.viewReady;
+        if (resourceIdChanged && this.resourceId && adapter) {
+          await this.findTextureArchives(adapter.textureArchivePatterns(this.resourceId));
+          await this.onTextureArchiveSelected(this.textureArchiveOptions$.value[0] || null, true);
+        } else {
+          await this.loadPreview();
+        }
+        this.previewLoading$.next(false);
+      });
+    }
+  }
+
+  private async findTextureArchives(patterns: string[]) {
+    let found: string[] = [];
+    try {
+      found = await this.mainService.api.findFiles(patterns);
+    } catch (err) {
+      console.warn('Could not look up texture archives', err);
+    }
+    this.textureArchiveOptions$.next(found);
+  }
+
+  async browseTextureArchive() {
+    const [path] = await this.mainService.api.openFileDialog();
+    if (!path) {
+      return;
+    }
+    const normalized = path.replace(/\\/g, '/');
+    if (!this.textureArchiveOptions$.value.includes(normalized)) {
+      this.textureArchiveOptions$.next([...this.textureArchiveOptions$.value, normalized]);
+    }
+    await this.onTextureArchiveSelected(normalized);
+  }
+
+  // Picker label: the path relative to the folder where the track file lies
+  textureArchiveLabel(path: string): string {
+    const id = this.resourceId || '';
+    const dir = id.substring(0, Math.max(id.lastIndexOf('/'), id.lastIndexOf('\\')) + 1);
+    const parentDir = dir.substring(0, Math.max(dir.lastIndexOf('/', dir.length - 2), 0) + 1);
+    if (dir && path.startsWith(dir)) {
+      return path.substring(dir.length);
+    }
+    if (parentDir && path.startsWith(parentDir)) {
+      return '../' + path.substring(parentDir.length);
+    }
+    return path;
   }
 
   private setSkyTexture(texture: Texture | null) {
@@ -339,17 +280,24 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
     material.needsUpdate = true;
   }
 
-  async onQfsSelected(path: string, silent: boolean = false) {
-    if (this.qfsPath == path) {
+  async onTextureArchiveSelected(path: string | null, force: boolean = false) {
+    if (!force && this.textureArchivePath$.value == path) {
       return;
     }
-    this.previewQfsLoading$.next(true);
+    this.textureArchiveLoading$.next(true);
     try {
-      // Serializes the QFS archive's textures to disk (under `resources/<path>`), where
-      // `TrackMapWorldEntity.getTerrainMaterial` loads them from
-      const files = silent
-        ? await this.mainService.api.serializeResourceSilent(path)
-        : await this.mainService.api.serializeResource(path);
+      if (!path) {
+        this.setSkyTexture(null);
+        this.textureArchivePath$.next(null);
+        return;
+      }
+      // Serializes the archive's textures (and, for FAM, props) to disk under `resources/<path>`,
+      // where `TrackMapWorldEntity` loads them from
+      const files = await this.mainService.api.serializeResource(
+        path,
+        null,
+        this.adapter?.textureArchiveSettings || {},
+      );
       if (this.adapter?.hasSkybox) {
         const skyPath = files.find(x => x.endsWith('spherical.png'));
         if (skyPath) {
@@ -361,16 +309,16 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
           this.setSkyTexture(null);
         }
       }
-      this.qfsPath = path;
+      this.textureArchivePath$.next(path);
     } catch (err) {
       if (this.adapter?.hasSkybox) {
         this.setSkyTexture(null);
       }
-      this.qfsPath = null;
+      this.textureArchivePath$.next(null);
     } finally {
-      this.previewQfsLoading$.next(false);
+      this.textureArchiveLoading$.next(false);
+      await this.loadPreview();
     }
-    await this.loadPreview();
   }
 
   private async loadTerrainChunks(blockId?: string) {
@@ -399,41 +347,66 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
     this.renderer.position = pos;
   }
 
+  private updateSplineDetails() {
+    const panels: TrackSplineDetailPanel[] = this.adapter?.splineDetailPanels || [];
+    const data = this.resourceData;
+    if (!this.resourceId || !data || !panels.length) {
+      this.selectedSplineDetails$.next([]);
+      return;
+    }
+    const i = this.selectedSplineIndex$.value;
+    this.selectedSplineDetails$.next(
+      panels.map(panel => {
+        const entryIndex = Math.floor(i / panel.itemsPerEntry);
+        return {
+          title: panel.title,
+          resource: {
+            id: joinId(this.resourceId!, `${panel.field}/${entryIndex}`),
+            data: (data[panel.field] || [])[entryIndex],
+            schema: (this.resourceSchema?.fields || []).find(
+              (x: { name: string; schema: BlockSchema }) => x.name === panel.field,
+            )?.schema.child_schema,
+            name: '',
+          },
+        };
+      }),
+    );
+  }
+
   private async loadPreview() {
-    if (!this.resourceData) return;
-    if (!this.terrainChunksObjLocation || !this.roadPath) {
+    if (!this.resourceData || !this.adapter) return;
+    if (!this.terrainChunksObjLocation || !this.chunkPositions) {
       return;
     }
     const chunksGraph = MapGraph.fromMapArray(
-      this.roadPath.map((position: Point3, i: number) => ({
+      this.chunkPositions.map((position: Point3, i: number) => ({
         path: `${this.terrainChunksObjLocation}terrain_chunk_${i}`,
         position,
         loadOptions: {},
-      })) || [],
-      true,
+      })),
+      this.isClosed,
     );
     this.unloadPreview();
+    const textureArchivePath = this.textureArchivePath$.value;
     this.map = new TrackMapWorldEntity(
       chunksGraph,
-      this.qfsPath && 'resources/' + this.qfsPath,
+      textureArchivePath &&
+        'resources/' +
+          textureArchivePath
+            .split('/')
+            .filter(x => !!x)
+            .join('/'),
       this.mainService.hideHiddenFields$,
+      this.adapter,
+      {
+        id: this.resourceId!,
+        name: this.resourceName!,
+        schema: this.resourceSchema,
+        data: this.resourceData,
+      },
+      !this.isClosed,
     );
-    this.map.resource = {
-      id: this.resourceId!,
-      name: this.resourceName!,
-      schema: this.resourceSchema,
-      data: this.resourceData,
-    };
-    this.map.isOpenedTrack = false;
-
-    createInlineTickController(this.world)
-      .pipe(takeUntil(this.destroyed$))
-      .subscribe(() => {
-        if (this.map && this.renderer) {
-          this.map.loaderCursor$.next(this.renderer.position);
-        }
-      });
-    this.world.addEntity(this.map!);
+    this.world.addEntity(this.map);
     this.cdr.markForCheck();
   }
 
@@ -443,32 +416,6 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       this.map.dispose();
       this.map = null;
       this.cdr.markForCheck();
-    }
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes.hasOwnProperty('resourceSchema')) {
-      this.adapter = findTrackMapAdapter(this.resourceSchema?.block_class_mro);
-    }
-    if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
-      this.roadPath =
-        this.resourceData && this.adapter
-          ? this.adapter.blockPositions(this.resourceData).map((p: Point3) => ({ x: p.x, y: p.z, z: p.y }))
-          : null;
-      this.previewLoading$.next(true);
-      if (this.resourceId && this.adapter) {
-        const candidates = this.adapter.qfsCandidates(this.resourceId);
-        this.previewQfsLocation$.next(candidates[0]);
-        this.loadTerrainChunks(this.resourceId).then(async () => {
-          await this.loadQfsWithFallback(candidates);
-          this.previewLoading$.next(false);
-        });
-      } else {
-        this.loadTerrainChunks().then(async () => {
-          await this.loadPreview();
-          this.previewLoading$.next(false);
-        });
-      }
     }
   }
 

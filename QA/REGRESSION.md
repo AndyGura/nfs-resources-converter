@@ -73,7 +73,7 @@ coverage at scale. Re-apply the skip afterward; don't commit it un-skipped.
 ### 6. Run the broader exploratory pass around changed areas
 Bring up the environment from `TEST_ENVIRONMENT.md` and manually/agent-drive the affected screens
 per `UI_MAP.md`, going a bit wider than the exact scenario list — e.g. if a map-viewer change is
-being tested, open more than one map file, try switching the "Current preview FAM" dropdown, try
+being tested, open more than one map file, try switching the "Textures" archive picker, try
 Undo after editing a field in it, not just the one exact repro.
 
 ### 7. Verify existing behavior wasn't broken

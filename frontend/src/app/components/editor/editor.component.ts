@@ -29,7 +29,6 @@ import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
-import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
 import { TrackMapBlockUiComponent } from './eac/track-map.block-ui/track-map.block-ui.component';
 import { FceGeometryBlockUiComponent } from './eac/fce-geometry.block-ui/fce-geometry.block-ui.component';
@@ -80,7 +79,7 @@ export class EditorComponent implements OnDestroy {
     OripGeometry: OripGeometryBlockUiComponent,
     EacsAudioFile: EacsAudioBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
-    TriMap: TriMapBlockUiComponent,
+    TriMap: TrackMapBlockUiComponent,
 
     // NFS2-specific blocks
     GeoGeometry: GeoGeometryBlockUiComponent,

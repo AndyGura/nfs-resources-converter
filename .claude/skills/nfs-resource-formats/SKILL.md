@@ -267,37 +267,40 @@ the same mechanism whether generic or custom; see skill `read-block-framework` f
 
 ### Reusing an existing 3D map/terrain viewer for a new per-game format
 
-NFS2 (`TrkMap`), NFS3 (`FrdMap`) and NFS4 (`Nfs4FrdMap`) tracks all render through one component,
-`TrackMapBlockUiComponent` in `frontend/.../editor/eac/track-map.block-ui/`, registered for each
-block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapWorldEntity` is generic
-chunk-graph-of-OBJs-plus-QFS-texture machinery. Per-game differences live in a `TrackMapAdapter`
-(`track-map-adapters.ts`): where block positions are read from (`block_positions`, `blocks[i].position`,
-`blocks_headers[i].position`), which QFS archive paths to try, and whether the archive has a skybox.
-For another game's chunked track, add an adapter and a `TRACK_MAP_ADAPTERS` entry keyed by the block
-class name, and map that class to `TrackMapBlockUiComponent`; don't fork the component.
+TNFS (`TriMap`), NFS2 (`TrkMap`), NFS3 (`FrdMap`) and NFS4 (`Nfs4FrdMap`) tracks all render through
+one component, `TrackMapBlockUiComponent` in `frontend/.../editor/eac/track-map.block-ui/`, registered
+for each block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapWorldEntity`
+(`track-map-world.entity.ts`) is generic chunk-graph-of-OBJs-plus-texture-archive machinery.
+Per-game differences live in a `TrackMapAdapter` (`track-map-adapters.ts`): chunk positions, the road
+spline used by the minimap and "Spline item" fly-to (with orientation), whether the track is closed,
+texture archive kind (QFS/FAM), glob patterns for finding it, serializer settings for it, skybox,
+terrain texture wrapping, per-chunk props (`tnfs-track-props.ts` for TNFS), and optional panels
+showing the selected spline point's data. For another game's chunked track, add an adapter and a
+`TRACK_MAP_ADAPTERS` entry keyed by the block class name, and map that class to
+`TrackMapBlockUiComponent`; don't fork the component.
 
-In `TrackMapBlockUiComponent.onQfsSelected`, the
-`serializeResource(qfsPath)` call is needed even when the adapter has no skybox and nothing reads
-its return value. The call has a load-bearing **side effect**: it's
-what makes the backend actually write the QFS archive's texture PNGs to disk (under
-`resources/<qfsPath>/`, which the dev-server proxy and production static server both serve), which
-`TrackMapWorldEntity.getTerrainMaterial` then loads by predicting that same path from the string
-alone - it never receives the call's return value. Drop the call and every terrain material silently
-falls back to the checkerboard placeholder texture with no error anywhere; the only symptom is a
-`console.warn('Problem with loading terrain material ...')` per texture, easy to miss unless you're
-watching the dev-server log (`read_console_messages`) while checking the live preview, not just the
-build/compile step.
+The texture picker lists every file matching the adapter's `textureArchivePatterns`, found by the
+backend's `find_files` endpoint (`find_files_case_insensitive` in `library/utils/file_utils.py`:
+wildcards in the file name only, letter case ignored, since game files ship as "tr0.qfs",
+"TRN0.qFS" etc.). The first match is loaded; "Browse..." opens a native file dialog for anything else.
 
-Don't assume the texture archive's path can always be derived purely from the FRD's own filename,
-either - a per-game/per-track naming quirk can mean the "obvious" derived path doesn't exist and the
-real texture archive is a *sibling* resource instead. NFS4 has exactly this: a reverse-direction
-track ("Trn.FRD") doesn't always ship its own archive, and its polygons reference the forward
-track's ("Tr.FRD") "Tr0.QFS" instead (see `_require_nfs4_texture_archive` in `serializers/maps.py`
-and the matching `NFS4_TRACK_ADAPTER.qfsCandidates` + `TrackMapBlockUiComponent.loadQfsWithFallback` - both try
-the derived path first and fall back to a same-directory sibling before giving up). `loadQfsWithFallback` uses `mainService.api.serializeResourceSilent`
-(not `serializeResource`) for every candidate except the last - a miss on a *speculative* candidate is
-expected and shouldn't pop the global API-error dialog (`apiError$` in `BaseApiDelegateService`),
-only a failure of the final, no-more-fallbacks attempt should.
+In `TrackMapBlockUiComponent.onTextureArchiveSelected`, the `serializeResource(path)` call is needed
+even when the adapter has no skybox and nothing reads its return value. The call has a load-bearing
+**side effect**: it's what makes the backend actually write the archive's texture PNGs (and, for
+FAM, props) to disk (under `resources/<path>/`, which the dev-server proxy and production static
+server both serve), which `TrackMapWorldEntity.getTerrainMaterial` then loads by predicting that same
+path from the string alone - it never receives the call's return value. Drop the call and every
+terrain material silently falls back to the checkerboard placeholder texture with no error anywhere;
+the only symptom is a `console.warn('Problem with loading terrain material ...')` per texture, easy
+to miss unless you're watching the dev-server log (`read_console_messages`) while checking the live
+preview, not just the build/compile step.
+
+Don't assume the texture archive's path can always be derived purely from the track file's own
+name, either. NFS4 has a reverse-direction track ("Trn.FRD") that doesn't always ship its own
+archive; its polygons reference the forward track's ("Tr.FRD") "Tr0.QFS" instead (see
+`_require_nfs4_texture_archive` in `serializers/maps.py`, which the FRD serializer uses to resolve
+texture names, and the matching `NFS4_TRACK_ADAPTER.textureArchivePatterns`). Both try the derived
+path first and fall back to the forward track's archive; both look files up ignoring letter case.
 
 ### Overriding a few fields inside an existing bespoke viewer
 

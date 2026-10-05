@@ -986,6 +986,7 @@ def _require_nfs4_texture_archive(id):
     # archive named after this FRD's own basename first, and fall back to the same path with a
     # trailing "n" (the reverse-track marker) stripped before giving up.
     from library import require_resource
+    from library.utils.file_utils import find_files_case_insensitive
 
     dirpath, _, filename = id.rpartition('/')
     prefix = f'{dirpath}/' if dirpath else ''
@@ -995,8 +996,11 @@ def _require_nfs4_texture_archive(id):
         candidates.append(basename[:-1])
     last_error = None
     for candidate in candidates:
+        path = f'{prefix}{candidate}0.QFS'
+        # Game files' letter case varies ("tr0.qfs", "TRN0.qFS"), which matters on case-sensitive file systems
+        path = next(iter(find_files_case_insensitive([path])), path).replace('\\', '/')
         try:
-            return require_resource(f'{prefix}{candidate}0.QFS__data')
+            return require_resource(f'{path}__data')
         except Exception as e:
             last_error = e
     raise last_error

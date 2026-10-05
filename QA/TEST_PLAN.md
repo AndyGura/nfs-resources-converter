@@ -68,8 +68,8 @@ standing regression set (`REGRESSION.md`), — = one-off/exploratory only.
 
 | ID | Area | Steps | Expected | Priority | Regression | Status |
 |---|---|---|---|---|---|---|
-| V-1 | TRI map | Open a `.TRI` file | 3D terrain (checkerboard placeholder texture is normal/expected — no texture data embedded), minimap with track spline + start marker, "Current preview FAM" dropdown, view-mode icons (home/orbit/wireframe/globe) | P1 | ✅ | **Pass** (Confirmed live) |
-| V-2 | Switch preview FAM | On a TRI viewer, change "Current preview FAM" dropdown | 3D view updates to reflect the newly selected FAM prefab set | P2 | ✅ | Not run |
+| V-1 | TRI map | Open a `.TRI` file | 3D terrain (checkerboard placeholder texture is normal/expected — no texture data embedded), minimap with track spline + start marker, "Textures" FAM picker (lists FAM files found in SIMDATA/{E,G,N}TRACKFM or next to the TRI, plus Browse...), view-mode icons (home/orbit/wireframe/globe) | P1 | ✅ | **Pass** (Confirmed live) |
+| V-2 | Switch preview FAM | On a TRI viewer, pick another file in the "Textures" FAM picker | 3D view updates to reflect the newly selected FAM prefab set | P2 | ✅ | Not run |
 | V-3 | Image viewer | Open a `.FSH` file | Image renders; palette info visible if applicable | P1 | ✅ | Not run this pass via GUI (verified only via headless parse in corpus test) |
 | V-4 | Font viewer | Open a `.FFN` file | Glyphs render | P2 | ✅ | Not run via GUI |
 | V-5 | Audio viewer | Open a `.BNK`/`.FSB` file | Playback control renders; Unknown whether autoplay/streaming works headlessly (audio playback needs a real audio device — likely untestable in a headless container) | P2 | — | Not run |

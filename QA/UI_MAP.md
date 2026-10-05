@@ -102,9 +102,9 @@ block, an array field with per-item "Click to view items (N)" expanders for larg
 | ORIP geometry | `OripGeometry` | embeds an **obj-viewer** (3D, WebGL) |
 | GEO geometry | `GeoGeometry` | embeds obj-viewer |
 | CRP geometry | `CrpGeometry` | embeds obj-viewer |
-| TRI map | `TriMap` | 3D terrain view (WebGL) + **minimap** (2D spline path) + "Current preview FAM" dropdown (a TRI can reference multiple `.FAM` prefab sets) + view-mode icon toolbar (home/orbit/wireframe/globe icons observed) + full generic-field data panel below (see above) |
-| TRK map | `TrkMap` | same family as TRI, NFS2-specific |
-| FRD map | `FrdMap` | same family, NFS3-specific |
+| TRI map | `TriMap` | 3D terrain view (WebGL) + **minimap** (2D spline path) + "Textures" FAM picker (lists the `.FAM` files found for the track, a TRI can use several; "Browse..." for others) + road spline / AI info / terrain panels for the selected spline item + view-mode icon toolbar (home/orbit/wireframe/globe icons observed) + full generic-field data panel below (see above) |
+| TRK map | `TrkMap` | same track viewer as TRI ("Textures" QFS picker, no props) |
+| FRD map | `FrdMap` | same track viewer as TRI ("Textures" QFS picker, no props) |
 | EACS audio | `EacsAudioFile` | single audio clip playback, presumably |
 | Soundbank | `SoundBank` | multi-clip container |
 | Archive | `ArchiveBlock` (generic, non-`Wwww`) | directory-like item list; has its own item-type/edit dialogs (`archive-delegate-item-type.dialog`, `archive-item-edit.dialog`) — **Unknown**: not exercised live |

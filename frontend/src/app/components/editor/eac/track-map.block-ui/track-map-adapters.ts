@@ -1,60 +1,165 @@
 import { Point3 } from '@gg-web-engine/core';
+import { ClampToEdgeWrapping, RepeatWrapping, Texture } from 'three';
+import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { BlockData } from '../../types';
+import type { TrackEntity, TrackMapWorldEntity } from './track-map-world.entity';
+import { loadTnfsChunkProps } from './tnfs-track-props';
 
-// Per-game differences of the chunked track viewer (`TrackMapBlockUiComponent`). Everything else
-// (world, camera, sky, chunk streaming, fly-to) is shared.
-export interface TrackMapAdapter {
-  // Track block (= terrain chunk) positions, in game coordinates (Y up)
-  blockPositions(data: BlockData): Point3[];
-  // QFS texture archive guesses for a track resource id, tried in order until one loads
-  qfsCandidates(resourceId: string): string[];
-  // Whether the QFS archive provides a spherical skybox texture
-  hasSkybox: boolean;
+// A road spline point in game coordinates (Y up); orientation is the heading in radians
+export interface TrackSplinePoint {
+  position: Point3;
+  orientation: number;
 }
 
-// "<track>.<ext>" -> "<track>0.QFS"
-function sameNameQfs(resourceId: string, extension: string): string {
-  return resourceId.substring(0, resourceId.indexOf(extension)) + '0.QFS';
+// A panel showing the part of a data array that belongs to the selected spline point:
+// entry index = spline index / itemsPerEntry
+export interface TrackSplineDetailPanel {
+  title: string;
+  field: string;
+  itemsPerEntry: number;
+}
+
+// Per-game differences of the chunked track viewer (`TrackMapBlockUiComponent`). Everything else
+// (world, camera, sky, chunk streaming, fly-to, texture archive picker) is shared.
+export interface TrackMapAdapter {
+  // Terrain chunk positions, in game coordinates (Y up). One serialized `terrain_chunk_<i>.obj` per item
+  chunkPositions(data: BlockData): Point3[];
+  // Road spline for the minimap and the "Spline item" fly-to. Defaults to the chunk positions
+  splinePoints?(data: BlockData): TrackSplinePoint[];
+  // Whether the last chunk connects to the first one. Defaults to true
+  isClosed?(data: BlockData): boolean;
+  // Texture archive file kind, shown in the picker ("QFS", "FAM")
+  textureArchiveKind: string;
+  // Glob patterns (wildcards in file name only, case-insensitive) of texture archives for this track,
+  // most preferred first. Every match is offered in the picker and the first one is loaded
+  textureArchivePatterns(resourceId: string): string[];
+  // Serializer settings patch used when exporting the texture archive
+  textureArchiveSettings?: { [key: string]: any };
+  // Whether the texture archive provides a spherical skybox texture
+  hasSkybox: boolean;
+  // Wrapping/orientation of terrain textures. Defaults to repeat in both directions
+  setupTerrainTexture?(texture: Texture): void;
+  // Extra entities placed on a terrain chunk (e.g. props)
+  loadChunkProps?(map: TrackMapWorldEntity, chunkIndex: number): Promise<TrackEntity[]>;
+  // Panels with the data of the selected spline point. When set, `commonFields` lists the fields
+  // shown in the "Common" panel instead of the whole track block
+  splineDetailPanels?: TrackSplineDetailPanel[];
+  commonFields?: string[];
+}
+
+function splitPath(resourceId: string): { dir: string; base: string } {
+  const slash = Math.max(resourceId.lastIndexOf('/'), resourceId.lastIndexOf('\\'));
+  const dir = resourceId.substring(0, slash + 1);
+  const fileName = resourceId.substring(slash + 1);
+  const dot = fileName.lastIndexOf('.');
+  return { dir, base: dot > 0 ? fileName.substring(0, dot) : fileName };
+}
+
+// "<dir>/<track>.<ext>" -> "<dir>/<track>0.QFS", then any other QFS in the same folder
+function qfsPatterns(resourceId: string): string[] {
+  const { dir, base } = splitPath(resourceId);
+  return [`${dir}${base}0.QFS`, `${dir}*.QFS`];
 }
 
 export const NFS2_TRACK_ADAPTER: TrackMapAdapter = {
-  blockPositions: data => data['block_positions'] || [],
-  qfsCandidates: resourceId => [sameNameQfs(resourceId, '.TRK')],
+  chunkPositions: data => data['block_positions'] || [],
+  textureArchiveKind: 'QFS',
+  textureArchivePatterns: qfsPatterns,
   hasSkybox: true,
 };
 
 export const NFS3_TRACK_ADAPTER: TrackMapAdapter = {
-  blockPositions: data => (data['blocks'] || []).map((b: any) => b.position),
-  qfsCandidates: resourceId => [sameNameQfs(resourceId, '.FRD')],
+  chunkPositions: data => (data['blocks'] || []).map((b: any) => b.position),
+  textureArchiveKind: 'QFS',
+  textureArchivePatterns: qfsPatterns,
   hasSkybox: true,
 };
 
 // NFS4's FRD track blocks store their position in `blocks_headers[i].position` (a separate array
 // from the block bodies in `blocks`), unlike NFS3 where each block carries its own `position` inline.
 export const NFS4_TRACK_ADAPTER: TrackMapAdapter = {
-  blockPositions: data => (data['blocks_headers'] || []).map((h: any) => h.position),
-  qfsCandidates: resourceId => {
-    // Same primary convention as the backend's Nfs4FrdMapSerializer: the track's texture archive
-    // is named after the .FRD's own basename with the extension replaced by "0.QFS". A
-    // reverse-direction track ("Trn.FRD") doesn't always have its own archive though - some
-    // tracks (e.g. GT1, GT2, Park) only ship the forward track's "Tr0.QFS", which the reverse
-    // FRD's polygons reference directly - so fall back to that (basename with a trailing "n"
-    // stripped) if the primary guess turns out not to exist.
-    const base = resourceId.substring(0, resourceId.length - 4);
-    const candidates = [base + '0.QFS'];
-    const segments = base.split('/');
-    const filenamePart = segments[segments.length - 1];
-    if (filenamePart.slice(-1).toLowerCase() === 'n') {
-      segments[segments.length - 1] = filenamePart.slice(0, -1);
-      candidates.push(segments.join('/') + '0.QFS');
+  chunkPositions: data => (data['blocks_headers'] || []).map((h: any) => h.position),
+  textureArchiveKind: 'QFS',
+  textureArchivePatterns: resourceId => {
+    // Same convention as the backend's Nfs4FrdMapSerializer: the track's texture archive is named
+    // after the .FRD's basename + "0.QFS". A reverse-direction track ("Trn.FRD") doesn't always have
+    // its own archive (e.g. GT1, GT2, Park only ship the forward track's "Tr0.QFS", which the
+    // reverse FRD's polygons reference directly), so the forward one comes next.
+    const { dir, base } = splitPath(resourceId);
+    const patterns = [`${dir}${base}0.QFS`];
+    if (base.slice(-1).toLowerCase() === 'n') {
+      patterns.push(`${dir}${base.slice(0, -1)}0.QFS`);
     }
-    return candidates;
+    return [...patterns, `${dir}*.QFS`];
   },
   hasSkybox: false,
 };
 
+// TNFS TRI: 4 road spline points per terrain chunk; props and textures come from a FAM file in
+// SIMDATA/{E,G,N}TRACKFM next to SIMDATA/MISC where the TRI lives
+export const TNFS_TRACK_ADAPTER: TrackMapAdapter = {
+  chunkPositions: data =>
+    (data['road_spline'] || [])
+      .filter((_: any, i: number) => i % 4 === 0)
+      .slice(0, data['num_chunks'])
+      .map((p: any) => p.position),
+  splinePoints: data =>
+    (data['road_spline'] || [])
+      .slice(0, (data['num_chunks'] || 0) * 4)
+      .map((p: any) => ({ position: p.position, orientation: p.orientation })),
+  isClosed: data => data['loop_chunk'] !== 0,
+  textureArchiveKind: 'FAM',
+  textureArchivePatterns: resourceId => {
+    const { dir, base } = splitPath(resourceId);
+    const trackName = base.substring(0, 3);
+    const simDataDir = /(^|[\/\\])MISC[\/\\]$/i.test(dir) ? dir.substring(0, dir.length - 5) : dir;
+    return [
+      `${simDataDir}ETRACKFM/${trackName}_001.FAM`,
+      `${simDataDir}ETRACKFM/${trackName}_*.FAM`,
+      `${simDataDir}GTRACKFM/${trackName}_*.FAM`,
+      `${simDataDir}NTRACKFM/${trackName}_*.FAM`,
+      `${dir}${trackName}_*.FAM`,
+    ];
+  },
+  textureArchiveSettings: {
+    geometry__save_obj: true,
+    geometry__save_blend: false,
+    geometry__export_to_gg_web_engine: false,
+  },
+  hasSkybox: true,
+  setupTerrainTexture: (texture: Texture) => {
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = ClampToEdgeWrapping;
+    setupNfs1Texture(texture);
+    texture.flipY = true;
+  },
+  loadChunkProps: loadTnfsChunkProps,
+  splineDetailPanels: [
+    { title: 'Road spline item', field: 'road_spline', itemsPerEntry: 1 },
+    { title: 'AI info (block for 4 spline items)', field: 'ai_info', itemsPerEntry: 4 },
+    { title: 'Terrain (block for 4 spline items)', field: 'terrain', itemsPerEntry: 4 },
+  ],
+  commonFields: [
+    'loop_chunk',
+    'num_chunks',
+    'unk0',
+    'unk1',
+    'position',
+    'unknowns0',
+    'chunks_size',
+    'rail_tex_id',
+    'num_prop_descr',
+    'num_props',
+    'unk2',
+    'unk3',
+    'prop_descr',
+    'props',
+  ],
+};
+
 // Keyed by block class name, as found in `BlockSchema.block_class_mro`
 export const TRACK_MAP_ADAPTERS: { [blockClass: string]: TrackMapAdapter } = {
+  TriMap: TNFS_TRACK_ADAPTER,
   TrkMap: NFS2_TRACK_ADAPTER,
   FrdMap: NFS3_TRACK_ADAPTER,
   Nfs4FrdMap: NFS4_TRACK_ADAPTER,
