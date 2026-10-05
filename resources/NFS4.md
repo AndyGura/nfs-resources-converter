@@ -1,6 +1,6 @@
 # **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2026-10-05 08:45:55.457019+00:00*
+*Last time updated: 2026-10-05 10:48:35.625124+00:00*
 
 
 # **Info by file extensions** #
@@ -133,7 +133,7 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Maps** ##
 ### **Nfs4FrdMap** ###
 #### **Size**: 44..? bytes ####
-#### **Description**: Main track file (NFS4 High Stakes). The track is split into blocks (segments): block headers with all counts come first, then block bodies with vertices, polygons at 3 levels of detail and objects. Polygon textures index the track QFS archive (<track>0.QFS) directly; UV-s are not stored, texture orientation is defined by polygon flags ####
+#### **Description**: Main track file (NFS4 High Stakes). The track is split into blocks (segments): block headers with all counts come first, then block bodies with vertices, polygons at 3 levels of detail and objects. Polygon textures index the track QFS archive (<track>0.QFS), skipping its mirrored texture copies; UV-s are not stored, texture orientation is defined by polygon flags ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk** | 28 | Bytes | Unknown header |
@@ -284,7 +284,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **vertices** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Indexes of the 4 vertices in the vertex table of the enclosing track block (terrain polygons) or extra object (object polygons) |
-| 8 | **texture** | 2 | 2-bytes unsigned integer (little endian) | Bits 0-10: index of the texture in the track QFS archive (<file>0.QFS). Other bits: rendering flags |
+| 8 | **texture** | 2 | 2-bytes unsigned integer (little endian) | Bits 0-10: index of the texture in the track QFS archive (<file>0.QFS), not counting the archive's mirrored texture copies (images with a "<mirrored>" text attachment). Other bits: rendering flags |
 | 10 | **tex_flags** | 2 | 2-bytes unsigned integer (little endian) | UV orientation of the texture on this polygon. Base UV-s of the 4 vertices are (0,1), (1,1), (1,0), (0,0); bit 4 mirrors them horizontally, bits 7-8 rotate them by 90 degrees x value. Other bits unknown. |
 | 12 | **anim_flags** | 1 | 1-byte unsigned integer | Used for animated textures: length/period |
 ### **Nfs4ExtraObject** ###

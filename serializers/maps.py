@@ -1002,18 +1002,27 @@ def _require_nfs4_texture_archive(id):
     raise last_error
 
 
+def _is_mirrored_copy(shpi_child) -> bool:
+    # Some NFS4 track textures are stored twice in a row under the same name: the original with a
+    # "<nonmirrored>" text attachment, then a horizontally mirrored copy tagged "<mirrored>".
+    # Polygon texture indices don't count the mirrored copies.
+    item = shpi_child['item']['data']
+    text = item.get('text') if isinstance(item, dict) else None
+    return bool(text) and text['text'].startswith('<mirrored>')
+
+
 class Nfs4FrdMapSerializer(BaseFileSerializer):
     def __init__(self):
         super().__init__(is_dir=True)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id, block, **kwargs)
-        # Unlike NFS3, a NFS4 FRD polygon's texture field directly indexes the track's QFS/SHPI
-        # archive (no local texture table in the FRD itself), and no per-polygon UV corners are
+        # Unlike NFS3, a NFS4 FRD polygon's texture field indexes the track's QFS/SHPI archive
+        # (no local texture table in the FRD itself), and no per-polygon UV corners are
         # stored anywhere - every polygon is UV-mapped to the full 0..1 quad of its texture.
         try:
             (_, _, qfs_data), _ = _require_nfs4_texture_archive(id)
-            shpi_aliases = [x['alias'] for x in qfs_data['children'] if x['alias']]
+            shpi_aliases = [x['alias'] for x in qfs_data['children'] if x['alias'] and not _is_mirrored_copy(x)]
 
             def get_texture(tex):
                 try:

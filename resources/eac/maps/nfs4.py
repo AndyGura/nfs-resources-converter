@@ -382,7 +382,8 @@ class Nfs4Polygon(DeclarativeCompoundBlock):
             IntegerBlock(length=2, is_signed=False),
             {
                 'description': 'Bits 0-10: index of the texture in the track QFS archive '
-                '(<file>0.QFS). Other bits: rendering flags'
+                "(<file>0.QFS), not counting the archive's mirrored texture copies (images with a "
+                '"<mirrored>" text attachment). Other bits: rendering flags'
             },
         )
         tex_flags = (
@@ -594,7 +595,7 @@ class Nfs4FrdMap(DeclarativeCompoundBlock):
             'block_description': 'Main track file (NFS4 High Stakes). The track is split into blocks (segments): '
             'block headers with all counts come first, then block bodies with vertices, '
             'polygons at 3 levels of detail and objects. Polygon textures index the track '
-            'QFS archive (<track>0.QFS) directly; UV-s are not stored, texture orientation '
+            'QFS archive (<track>0.QFS), skipping its mirrored texture copies; UV-s are not stored, texture orientation '
             'is defined by polygon flags',
         }
 
