@@ -19,7 +19,7 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 | Path | Contents |
 |---|---|
 | `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3 decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
-| `resources/eac/maps/{tnfs,nfs2,nfs3,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs5}.py` | Per-game specializations of a shared concept. |
+| `resources/eac/maps/{tnfs,nfs2,nfs3,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs5}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
 | `resources/blackbox/geometries/` | Blackbox-studio (later titles) formats — thin, early. |
 | `resources/eac/fields/misc.py`, `resources/eac/fields/numbers.py` | Small reusable domain blocks: `Point2D`/`Point3D`/`RGBBlock`, `Nfs1Angle8`/`Nfs1Angle14`, `Nfs1TimeField`. Check here before writing a new one. |
@@ -222,6 +222,9 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    transparency except for `CarWheel`/`CarWindow` materials, so other pages are written opaque
    (`page_<n>.png` vs `page_<n>_alpha.png`). Meshes without a texture still need a material
    (`untextured`), otherwise OBJ readers carry over the previous `usemtl`.
+   NFS3 `car.fce` (`Fce3Geometry`) textures are the TGA siblings in the same BIGF archive (`car.viv`) or folder
+   (`_find_fce_siblings`); part roles come from part index (`fce_part_lod_prefix`), and the `.FCE` loader branch
+   leaves FCE4 files (version `0x00101014`/`0x00101015` in the first 4 bytes) undetected.
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a

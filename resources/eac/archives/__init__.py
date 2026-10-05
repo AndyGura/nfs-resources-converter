@@ -207,12 +207,13 @@ class BigfBlock(ArchiveBlock):
         return schema
 
     def __init__(self, **kwargs):
-        from resources.eac.geometries import GeoGeometry
+        from resources.eac.geometries import GeoGeometry, Fce3Geometry
 
         super().__init__(
             item_block=AutoDetectBlock(
                 possible_blocks=[
                     GeoGeometry(),
+                    Fce3Geometry(),
                     ShpiBlock(),
                     EacCompressedBlock(),
                     TargaImage(),
@@ -257,6 +258,7 @@ class BigfBlock(ArchiveBlock):
                 'description': 'A part of block, where items data is located. Offsets and lengths are defined '
                 'in previous block. Possible item types:'
                 '<br/>- [GeoGeometry](#geogeometry)'
+                '<br/>- [Fce3Geometry](#fce3geometry)'
                 '<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file'
                 '<br/>- [BigfBlock](#bigfblock)'
                 '<br/>- pure TGA image',

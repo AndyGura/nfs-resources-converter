@@ -4,7 +4,7 @@ from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
 from .bitmaps import ImageSerializer, TargaImageSerializer, PaletteSerializer, ShpiTextSerializer
 from .fonts import FfnFontSerializer
-from .geometries import OripGeometrySerializer, GeoGeometrySerializer, CrpGeometrySerializer
+from .geometries import OripGeometrySerializer, GeoGeometrySerializer, CrpGeometrySerializer, Fce3GeometrySerializer
 from .json import JsonSerializer
 from .maps import TriMapSerializer, TrkMapSerializer, FrdMapSerializer, Nfs4FrdMapSerializer
 from .videos import FfmpegSupportedVideoSerializer

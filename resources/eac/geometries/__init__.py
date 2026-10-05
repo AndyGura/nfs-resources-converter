@@ -3,6 +3,11 @@ from .nfs2 import (
     GeoMesh,
     GeoGeometry,
 )
+from .nfs3 import (
+    FceColor,
+    Fce3Triangle,
+    Fce3Geometry,
+)
 from .nfs5 import (
     ArticlePart,
     UnkPart4,

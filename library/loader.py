@@ -36,6 +36,16 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.geometries import GeoGeometry
 
             return GeoGeometry
+        elif file_path.upper().endswith('.TGA'):
+            from resources.common.bitmaps import TargaImage
+
+            return TargaImage
+        elif file_path.upper().endswith('.FCE'):
+            # FCE4 (NFS4) starts with version number, FCE3 (NFS3) doesn't have it
+            if header_bytes not in [b'\x14\x10\x10\x00', b'\x15\x10\x10\x00']:
+                from resources.eac.geometries import Fce3Geometry
+
+                return Fce3Geometry
         elif file_path.upper().endswith('.FRD'):
             if length is not None and length >= 36:
                 pos = buffer.tell()
