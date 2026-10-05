@@ -158,6 +158,17 @@ scenario and a subsequent scenario that needs a screenshot — open a new tab in
 
 ---
 
+## KI-4 — NFS Underground: opening a race bundle is slow, opening the city stream directly is slower
+
+Opening `TRACKS/TRACKBnnnn.lzc` exports the whole city (all streamed sections of `STREAML1RA.BUN`, about
+420 chunks and 1,300 textures) before the viewer shows anything: about 75 s and 2.3 GB of memory on a
+cloud container, every time (the export is not cached). Opening `STREAML1RA.BUN` itself (92 MB) parses it
+as one generic chunk bundle for the data tree: about 60 s and 3 GB, and there is no 3D view for it.
+22 texture hashes used by the city are not in the track's texture packs (probably `GLOBAL/*.BIN`); those
+materials show the placeholder texture.
+
+---
+
 ## Unknown / not yet investigated (flagged, not silently assumed fine)
 
 - Byte-for-byte round-trip mismatches on compressed formats (QFS-family) in the golden-corpus
@@ -169,6 +180,8 @@ scenario and a subsequent scenario that needs a screenshot — open a new tab in
 - NFS6 `persist.viv` (BIGF) does not round-trip byte-exact: its header `length` field holds the file
   size minus 14, while the writer stores the real size. All other bytes match. **Unclear** whether
   the game reads the field at all; untested in-game.
+- NFS Underground city handedness: chunks keep game coordinates (Z up), the same as the NFSU car viewer.
+  Whether that mirrors the city compared to the game (look at text on signs) is not verified.
 - macOS-specific native behaviors (pointer lock for 3D free-fly camera, Finder "Open With" /
   file-association open events, the pointer-lock "funk beep" suppression) — read from code
   (`actions/gui_editor_macos.py`), never exercised live this pass (this pass ran entirely inside a

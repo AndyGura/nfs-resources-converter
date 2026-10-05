@@ -707,24 +707,12 @@ class NfsuBinGeometrySerializer(BaseFileSerializer):
         scene.obj_name = 'geometry'
         scene.sub_meshes = []
 
-        for c in data['chunks']:
-            if c['data']['chunk_id'] != 0x80_13_40_10:
-                continue
-            mesh_main_chunk = next(x for x in c['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_40_11)
-            details_sub_chunk = next(x for x in c['data']['sub_chunks'] if x['data']['chunk_id'] == 0x80_13_41_00)
-
-            mesh_name = mesh_main_chunk['data']['mesh_name']
-            vertices = next(
-                x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_01
-            )['data']['vertices']['data']
-            faces = next(x for x in details_sub_chunk['data']['sub_chunks'] if x['data']['chunk_id'] == 0x00_13_4B_03)[
-                'data'
-            ]['faces']
-
+        for nfsu_mesh in nfsu_geometry_meshes(data):
             mesh = SubMesh()
-            mesh.name = mesh_name
-            mesh.vertices = [[v['position']['x'], v['position']['y'], v['position']['z']] for v in vertices]
-            mesh.polygons = faces
+            mesh.name = nfsu_mesh.name
+            mesh.vertices = [list(v) for v in nfsu_mesh.vertices]
+            mesh.vertex_uvs = [list(uv) for uv in nfsu_mesh.uvs]
+            mesh.polygons = [list(t) for (_, triangles) in nfsu_mesh.parts for t in triangles]
             scene.sub_meshes.append(mesh)
 
         return export_scenes([scene], path, self.settings)
@@ -1071,3 +1059,58 @@ class EaglModelSerializer(BaseFileSerializer):
             # game Y up -> Z up
             mesh.change_axes(new_z='y', new_y='z')
         return export_scenes([scene], path, self.settings)
+
+
+class NfsuMesh:
+    """Mesh of NFS Underground geometry pack, in its local coordinates: vertex positions, UVs and triangles per
+    texture id (hash of texture name)"""
+
+    def __init__(self, mesh_id: int, name: str):
+        self.mesh_id = mesh_id
+        self.name = name
+        self.vertices: List[Tuple[float, float, float]] = []
+        self.uvs: List[Tuple[float, float]] = []
+        self.parts: List[Tuple[Optional[int], List[List[int]]]] = []
+
+
+def _nfsu_sub_chunk_data(chunks: list, chunk_id: int):
+    return next(
+        (x['data'] for x in chunks if isinstance(x['data'], dict) and x['data'].get('chunk_id') == chunk_id), None
+    )
+
+
+def nfsu_geometry_meshes(geometry_data: dict) -> List[NfsuMesh]:
+    """Meshes of NFS Underground geometry pack (NfsuBinGeometry data)"""
+    meshes = []
+    for c in geometry_data['chunks']:
+        if c['data'].get('chunk_id') != 0x80_13_40_10:
+            continue
+        sub_chunks = c['data']['sub_chunks']
+        header = _nfsu_sub_chunk_data(sub_chunks, 0x00_13_40_11)
+        container = _nfsu_sub_chunk_data(sub_chunks, 0x80_13_41_00)
+        if header is None or container is None:
+            continue
+        texture_ids = _nfsu_sub_chunk_data(sub_chunks, 0x00_13_40_12)
+        texture_ids = [x['value'] for x in texture_ids['items']] if texture_ids else []
+        vertices_chunk = _nfsu_sub_chunk_data(container['sub_chunks'], 0x00_13_4B_01)
+        faces_chunk = _nfsu_sub_chunk_data(container['sub_chunks'], 0x00_13_4B_03)
+        materials_chunk = _nfsu_sub_chunk_data(container['sub_chunks'], 0x00_13_4B_02)
+        if vertices_chunk is None or faces_chunk is None or not isinstance(vertices_chunk['vertices']['data'], list):
+            continue
+        mesh = NfsuMesh(header['mesh_id'], header['mesh_name'])
+        vertices = vertices_chunk['vertices']['data']
+        mesh.vertices = [(v['position']['x'], v['position']['y'], v['position']['z']) for v in vertices]
+        mesh.uvs = [(v['u'], v['v']) for v in vertices]
+        faces = faces_chunk['faces']
+        materials = materials_chunk['materials'] if materials_chunk else []
+        if not materials:
+            mesh.parts.append((texture_ids[0] if texture_ids else None, faces))
+        for material in materials:
+            start = material['indices_offset'] // 3
+            end = start + material['indices_amount'] // 3
+            texture_index = material['texture_index']
+            mesh.parts.append(
+                (texture_ids[texture_index] if 0 <= texture_index < len(texture_ids) else None, faces[start:end])
+            )
+        meshes.append(mesh)
+    return meshes

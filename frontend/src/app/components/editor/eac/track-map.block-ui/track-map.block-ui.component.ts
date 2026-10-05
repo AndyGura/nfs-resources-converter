@@ -46,7 +46,7 @@ function toViewer(p: Point3): Point3 {
   return { x: p.x, y: p.z, z: p.y };
 }
 
-// Chunked track viewer shared by TNFS (TRI), NFS2 (TRK), NFS3 (FRD) and NFS4 (FRD) tracks;
+// Chunked track viewer shared by TNFS (TRI), NFS2 (TRK), NFS3 (FRD), NFS4 (FRD), NFS6 and NFSU tracks;
 // per-game differences live in a `TrackMapAdapter`, picked by the block class
 @Component({
   selector: 'app-track-map-block-ui',
@@ -340,6 +340,10 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       this.terrainChunksObjLocation = anyObjPath.substring(0, anyObjPath.indexOf('terrain_chunk_'));
       if (this.adapter && !this.adapter.chunkPositions) {
         this.chunkPositions = await this.loadChunkPositionsFile(paths.find(x => x.endsWith('terrain_chunks.json')));
+        if (!this.adapter.splinePoints && this.chunkPositions) {
+          this.splinePoints = this.chunkPositions.map(position => ({ position: toViewer(position), orientation: 0 }));
+          this.minimapSpline = this.chunkPositions;
+        }
       }
     } else {
       this.terrainChunksObjLocation = undefined;
@@ -413,14 +417,14 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
     if (!this.terrainChunksObjLocation || !this.chunkPositions) {
       return;
     }
-    const chunksGraph = MapGraph.fromMapArray(
-      this.chunkPositions.map((position: Point3, i: number) => ({
-        path: `${this.terrainChunksObjLocation}terrain_chunk_${i}`,
-        position,
-        loadOptions: {},
-      })),
-      this.isClosed,
-    );
+    const chunkNodes = this.chunkPositions.map((position: Point3, i: number) => ({
+      path: `${this.terrainChunksObjLocation}terrain_chunk_${i}`,
+      position,
+      loadOptions: {},
+    }));
+    const chunksGraph = this.adapter.chunkGraph
+      ? this.adapter.chunkGraph(chunkNodes)
+      : MapGraph.fromMapArray(chunkNodes, this.isClosed);
     this.unloadPreview();
     this.map = new TrackMapWorldEntity(
       chunksGraph,

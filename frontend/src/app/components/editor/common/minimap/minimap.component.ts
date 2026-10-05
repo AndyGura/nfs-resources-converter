@@ -42,6 +42,8 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
   }
 
   @Input() splineClosed: boolean = false;
+  // Draw spline points as dots, without connecting them (e.g. chunk centers of a city instead of a road)
+  @Input() pointsOnly: boolean = false;
   @Output() pointerChange = new EventEmitter<Point3>();
 
   svgSize$: BehaviorSubject<Point2> = new BehaviorSubject({ x: 100, y: 100 });
@@ -52,6 +54,7 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
     height: number;
   }>({ x: 0, y: 0, width: 100, height: 100 });
   mapPolyline$: BehaviorSubject<string> = new BehaviorSubject<string>('');
+  mapPoints$: BehaviorSubject<Point2[]> = new BehaviorSubject<Point2[]>([]);
   mapPointer$: BehaviorSubject<Point2 | null> = new BehaviorSubject<Point2 | null>(null);
 
   private isShiftPressed = false;
@@ -164,6 +167,10 @@ export class MinimapComponent implements AfterViewInit, OnDestroy {
             x: ((p.x - scalingSquare.x) * svgSize.x) / scalingSquare.width,
             y: ((scalingSquare.y - p.y) * svgSize.y) / scalingSquare.height + svgSize.y,
           }));
+          this.mapPoints$.next(this.pointsOnly ? polygonToDraw : []);
+          if (this.pointsOnly) {
+            return '';
+          }
           if (this.splineClosed && polygonToDraw.length) {
             polygonToDraw.push(polygonToDraw[0]);
           }

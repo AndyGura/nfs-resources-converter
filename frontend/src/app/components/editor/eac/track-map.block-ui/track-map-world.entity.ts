@@ -42,7 +42,7 @@ export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld
     public readonly resource: Resource,
     public readonly isOpenedTrack: boolean,
   ) {
-    super(mapGraph, { loadDepth: 40, inertia: 2 });
+    super(mapGraph, { loadDepth: adapter.loadDepth ?? 40, inertia: 2 });
   }
 
   private _placeholder: Texture | null = null;

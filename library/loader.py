@@ -138,6 +138,10 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.geometries.nfs6 import EaglModel
 
             return EaglModel
+        elif header_str == 'JDLZ':
+            from resources.blackbox.archives import NfsuJdlzCompressedBlock
+
+            return NfsuJdlzCompressedBlock
     try:
         resource_id = header_bytes[0]
         if resource_id in [0x22, 0x24, 0x29, 0x2A, 0x2D]:
@@ -186,6 +190,23 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
 
     except IndexError:
         pass
+    if (
+        file_path
+        and length is not None
+        and length >= 8
+        and (file_path.upper().endswith(('.BUN', '.BIN')) or '.LZC' in file_path.upper())
+    ):
+        from resources.blackbox.maps.nfsu import walk_nfsu_chunk_ids
+
+        chunk_ids = walk_nfsu_chunk_ids(buffer, length)
+        if chunk_ids:
+            if 0x00034107 in chunk_ids:
+                from resources.blackbox.maps.nfsu import NfsuTrackBundle
+
+                return NfsuTrackBundle
+            from resources.blackbox.maps.nfsu import NfsuChunkBundle
+
+            return NfsuChunkBundle
     if length is not None and length >= 18:
         buffer_pos = buffer.tell()
         try:

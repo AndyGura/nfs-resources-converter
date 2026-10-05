@@ -99,6 +99,7 @@ export class EditorComponent implements OnDestroy {
 
     // NFS6-specific blocks
     Nfs6AiPaths: TrackMapBlockUiComponent,
+    NfsuTrackBundle: TrackMapBlockUiComponent,
     EaglModel: EaglModelBlockUiComponent,
 
     // NFSU-specific blocks

@@ -1,4 +1,4 @@
-import { Point3 } from '@gg-web-engine/core';
+import { MapGraph, MapGraphNodeType, Point3 } from '@gg-web-engine/core';
 import { ClampToEdgeWrapping, RepeatWrapping, Texture } from 'three';
 import { nfs6Route } from './nfs6-route';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
@@ -48,6 +48,13 @@ export interface TrackMapAdapter {
   setupTerrainTexture?(texture: Texture): void;
   // Extra entities placed on a terrain chunk (e.g. props)
   loadChunkProps?(map: TrackMapWorldEntity, chunkIndex: number): Promise<TrackEntity[]>;
+  // Graph of terrain chunks (viewer coordinates), loaded around the camera up to `loadDepth` hops. Defaults to a
+  // chain in chunk order, as a road goes
+  chunkGraph?(nodes: MapGraphNodeType[]): MapGraph;
+  // How many graph hops around the camera are loaded. Defaults to 40
+  loadDepth?: number;
+  // Minimap shows spline points as dots instead of a road line
+  minimapPointsOnly?: boolean;
   // Panels with the data of the selected spline point. When set, `commonFields` lists the fields
   // shown in the "Common" panel instead of the whole track block
   splineDetailPanels?: TrackSplineDetailPanel[];
@@ -180,6 +187,62 @@ export const NFS6_TRACK_ADAPTER: TrackMapAdapter = {
   },
 };
 
+// Every node is connected to `k` nearest ones, so the camera loads chunks around it in every direction (a city).
+// Separate clusters are joined by their closest nodes, so that every node is reachable from the returned root
+export function proximityChunkGraph(nodes: MapGraphNodeType[], k: number = 8): MapGraph {
+  const graphs = nodes.map(n => new MapGraph(n));
+  const distSq = (i: number, j: number) =>
+    (nodes[i].position.x - nodes[j].position.x) ** 2 +
+    (nodes[i].position.y - nodes[j].position.y) ** 2 +
+    (nodes[i].position.z - nodes[j].position.z) ** 2;
+  for (let i = 0; i < nodes.length; i++) {
+    nodes
+      .map((_, j) => ({ j, d: distSq(i, j) }))
+      .filter(x => x.j !== i)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, k)
+      .forEach(({ j }) => graphs[i].addAdjacent(graphs[j]));
+  }
+  if (!graphs.length) {
+    return new MapGraph({ path: '', position: { x: 0, y: 0, z: 0 }, loadOptions: {} });
+  }
+  const connected = new Set(graphs[0].nodes());
+  while (connected.size < graphs.length) {
+    let best: [number, number, number] = [-1, -1, Infinity];
+    for (let i = 0; i < graphs.length; i++) {
+      if (!connected.has(graphs[i])) {
+        continue;
+      }
+      for (let j = 0; j < graphs.length; j++) {
+        if (!connected.has(graphs[j]) && distSq(i, j) < best[2]) {
+          best = [i, j, distSq(i, j)];
+        }
+      }
+    }
+    graphs[best[0]].addAdjacent(graphs[best[1]]);
+    graphs[best[1]].nodes().forEach(n => connected.add(n));
+  }
+  return graphs[0];
+}
+
+// NFS Underground race bundle (TRACKS/TRACKBnnnn.lzc): one chunk per scenery of the streamed world sections, textures
+// come with the chunks. No race route yet: the minimap shows chunk centers
+export const NFSU_TRACK_ADAPTER: TrackMapAdapter = {
+  isClosed: () => false,
+  bundledTextures: true,
+  terrainAlphaTest: 0.5,
+  hasSkybox: false,
+  setupTerrainTexture: (texture: Texture) => {
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.colorSpace = 'srgb';
+    texture.anisotropy = 8;
+  },
+  chunkGraph: nodes => proximityChunkGraph(nodes),
+  loadDepth: 3,
+  minimapPointsOnly: true,
+};
+
 // Keyed by block class name, as found in `BlockSchema.block_class_mro`
 export const TRACK_MAP_ADAPTERS: { [blockClass: string]: TrackMapAdapter } = {
   TriMap: TNFS_TRACK_ADAPTER,
@@ -187,6 +250,7 @@ export const TRACK_MAP_ADAPTERS: { [blockClass: string]: TrackMapAdapter } = {
   FrdMap: NFS3_TRACK_ADAPTER,
   Nfs4FrdMap: NFS4_TRACK_ADAPTER,
   Nfs6AiPaths: NFS6_TRACK_ADAPTER,
+  NfsuTrackBundle: NFSU_TRACK_ADAPTER,
 };
 
 export function findTrackMapAdapter(blockClassMro: string | undefined): TrackMapAdapter | null {
