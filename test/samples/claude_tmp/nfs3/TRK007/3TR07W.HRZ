@@ -1,0 +1,140 @@
+/*Fog Color (r,g,b) and Density (%), (%)effect on pixmap*/
+220,220,220,	60,	  70,
+
+/*Number of Dynamic Fog Regions*/
+6,
+
+/*Fog Region 1  (starting)r,g,b,density,  (apex)r,g,b,density, (ending)r,g,b,density,	beforeslice,centerslice,afterslice*/
+220,220,220,	60,
+220,220,220,	80,
+220,220,220,	80,
+74,
+180,
+306,
+
+/*Fog Region 2  (starting)r,g,b,density,  (apex)r,g,b,density, (ending)r,g,b,density,	beforeslice,centerslice,afterslice*/
+220,220,220,	80,
+220,220,220,	80,
+220,220,220,	60,
+306,
+350,
+425,
+
+/*Fog Region 3  (starting)r,g,b,density,  (apex)r,g,b,density, (ending)r,g,b,density,	beforeslice,centerslice,afterslice*/
+220,220,220,	60,
+220,220,220,	85,
+220,220,220,	85,
+965,
+990,
+1031,
+
+/*Fog Region 4  (starting)r,g,b,density,  (apex)r,g,b,density, (ending)r,g,b,density,	beforeslice,centerslice,afterslice*/
+220,220,220,	85,
+220,220,220,	90,
+220,220,220,	60,
+1031,
+1066,
+1100,
+
+/*Fog Region 5  (starting)r,g,b,density,  (apex)r,g,b,density, (ending)r,g,b,density,	beforeslice,centerslice,afterslice*/
+220,220,220,	60,
+220,220,220,	80,
+220,220,220,	80,
+1460,
+1490,
+1520,
+
+/*Fog Region 6  (starting)r,g,b,density,  (apex)r,g,b,density, (ending)r,g,b,density,	beforeslice,centerslice,afterslice*/
+220,220,220,	80,
+220,220,220,	80,
+220,220,220,	60,
+1520,
+1540,
+1555,
+
+/*Cloud Type 0, 1 additive, 2 blend*/
+1,
+
+/*Fog Clouds?*/
+1,
+
+/*Has Lightning?, (%chance per # ticks)*/
+0,128,
+
+/*Visual Height 100-1000*/
+300,
+
+/*Cloud dome offset*/
+-100,	250,
+
+/*Cloud bright (0-255), Cloud Variance (< bright), Nimbus Effect(%)*/
+170,80,90,
+
+/*WindSpeed (clouds) mph, dir*/
+0,0,
+
+/* Black horizon flag */
+0,
+
+/* Mirror Flag */
+0,
+
+/* The radius of the horizon */
+1700,
+
+/* The angle of rotation for the horizon in degrees. */
+160,
+
+/* Has a pixmap */
+1,
+
+/* How high in the air the base of the Gourad shaded area is (world offset). */
+-1200,
+
+/* Height of the Gourad shaded area (offset from base) */
+2900,
+
+/* Midpoint of Gourad shaded area (offset from base) */
+1500,
+
+/* Top of horizon pixmap (offset from base) */
+1850,
+ 
+/* Bottom of horizon pixmap (offset from base) */
+1025,
+
+/* r,g,b value at top of Gourad shaded EARTH area */
+197,206,197,
+
+/* r,g,b value at base of Gourad shaded EARTH area */
+197,206,197,
+
+/* r,g,b value at top of Gourad shaded SKY area */
+173,177,186,
+
+/* r,g,b values for base of Gourad shaded SKY area */
+152,152,138,		/* 237, 166, 59, at position of sun */
+133,134,127,			/* 150, 110, 30, at position opposite to sun */
+
+/* weather parameters for track! */
+
+/* type */
+2,
+/* startSlice */
+0,
+/* endSlice */
+0,
+/* fade */
+0,
+/* stayTimeOn  Ticks...*/
+0,
+/* fadeTimeOff Ticks...*/
+0,
+/* stayTimeOff Ticks...*/
+0,
+/* fadeTimeOn Ticks...*/
+0,
+
+/* Ambient Light Percentages (R,G,B) 0-100*/
+100,100,100,
+

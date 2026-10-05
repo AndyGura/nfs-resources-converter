@@ -13,7 +13,7 @@ from library import require_file
 from library.changes_service import ChangesService
 from library.loader import clear_file_cache
 from library.utils import path_join
-from library.utils.file_utils import start_file
+from library.utils.file_utils import start_file, find_files_case_insensitive
 from serializers.misc.json_utils import convert_bytes, serialize_exceptions
 
 
@@ -114,6 +114,18 @@ class FileAPI:
             if path.startswith('/') or path.startswith('\\'):
                 path = path[1:]
             start_file(path_join(self.api.static_path, path))
+
+    def find_files(self, patterns: list) -> list:
+        """
+        Find existing files matching glob patterns (wildcards in the file name only), ignoring letter case.
+
+        Args:
+            patterns: Glob patterns, in order of preference
+
+        Returns:
+            Paths of found files, in order of the patterns
+        """
+        return find_files_case_insensitive(patterns)
 
     def open_url(self, url: str):
         """

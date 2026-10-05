@@ -506,7 +506,11 @@ EXPORT_RESOURCES = {
     'nfs6': {
         'file_name': 'NFS6.md',
         'title': 'NFS 6 Hot Pursuit 2 file specs',
-        'file_list': f"""**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
+        'file_list': f"""**compNN.o**, **trackg.o**, **skyg.o**, **levelNN\\levelG.o** track geometry. {render_type(eac.geometries.EaglModel())}
+
+**levelNN\\aipaths.dat** race route. {render_type(eac.maps.Nfs6AiPaths())}
+
+**\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
 **\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
@@ -517,10 +521,16 @@ EXPORT_RESOURCES = {
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
             ],
-            # 'Geometries': [
-            # ],
-            # 'Maps': [
-            # ],
+            'Geometries': [
+                eac.geometries.EaglModel(),
+                eac.geometries.EaglSectionHeader(),
+            ],
+            'Maps': [
+                eac.maps.Nfs6AiPaths(),
+                eac.maps.Nfs6AiPathGraph(),
+                eac.maps.Nfs6AiPath(),
+                eac.maps.Nfs6AiPathPoint(),
+            ],
             # 'Physics': [
             # ],
             'Images': [

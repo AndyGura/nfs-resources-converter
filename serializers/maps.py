@@ -986,6 +986,7 @@ def _require_nfs4_texture_archive(id):
     # archive named after this FRD's own basename first, and fall back to the same path with a
     # trailing "n" (the reverse-track marker) stripped before giving up.
     from library import require_resource
+    from library.utils.file_utils import find_files_case_insensitive
 
     dirpath, _, filename = id.rpartition('/')
     prefix = f'{dirpath}/' if dirpath else ''
@@ -995,11 +996,23 @@ def _require_nfs4_texture_archive(id):
         candidates.append(basename[:-1])
     last_error = None
     for candidate in candidates:
+        path = f'{prefix}{candidate}0.QFS'
+        # Game files' letter case varies ("tr0.qfs", "TRN0.qFS"), which matters on case-sensitive file systems
+        path = next(iter(find_files_case_insensitive([path])), path).replace('\\', '/')
         try:
-            return require_resource(f'{prefix}{candidate}0.QFS__data')
+            return require_resource(f'{path}__data')
         except Exception as e:
             last_error = e
     raise last_error
+
+
+def _is_mirrored_copy(shpi_child) -> bool:
+    # Some NFS4 track textures are stored twice in a row under the same name: the original with a
+    # "<nonmirrored>" text attachment, then a horizontally mirrored copy tagged "<mirrored>".
+    # Polygon texture indices don't count the mirrored copies.
+    item = shpi_child['item']['data']
+    text = item.get('text') if isinstance(item, dict) else None
+    return bool(text) and text['text'].startswith('<mirrored>')
 
 
 class Nfs4FrdMapSerializer(BaseFileSerializer):
@@ -1008,12 +1021,12 @@ class Nfs4FrdMapSerializer(BaseFileSerializer):
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id, block, **kwargs)
-        # Unlike NFS3, a NFS4 FRD polygon's texture field directly indexes the track's QFS/SHPI
-        # archive (no local texture table in the FRD itself), and no per-polygon UV corners are
+        # Unlike NFS3, a NFS4 FRD polygon's texture field indexes the track's QFS/SHPI archive
+        # (no local texture table in the FRD itself), and no per-polygon UV corners are
         # stored anywhere - every polygon is UV-mapped to the full 0..1 quad of its texture.
         try:
             (_, _, qfs_data), _ = _require_nfs4_texture_archive(id)
-            shpi_aliases = [x['alias'] for x in qfs_data['children'] if x['alias']]
+            shpi_aliases = [x['alias'] for x in qfs_data['children'] if x['alias'] and not _is_mirrored_copy(x)]
 
             def get_texture(tex):
                 try:
@@ -1139,3 +1152,136 @@ for obj in bpy.context.selected_objects:
 
         # export scenes
         return export_scenes(scenes, path, self.settings)
+
+
+def nfs6_route_model_files(level_dir: str) -> List[str]:
+    """Model files of NFS6 race route (level folder): compartments listed in "drvpath.ini" ("compNN.o" in the track
+    folder, all of them if the list can't be read). "levelG.o" of the route is not included: it is a set of props
+    (signs, barrels, spike strips, helicopter) in their own local coordinates, placed by "level.dat" """
+    import os
+    import re
+    from configparser import ConfigParser
+    from library.utils.file_utils import find_files_case_insensitive
+
+    track_dir = os.path.dirname(level_dir.rstrip('/\\'))
+    compartments = []
+    drvpath = find_files_case_insensitive([path_join(level_dir, 'drvpath.ini')])
+    if drvpath:
+        try:
+            ini = ConfigParser(strict=False)
+            with open(drvpath[0], encoding='latin-1') as f:
+                # sections of the file are indented by tabs
+                ini.read_string('\n'.join(line.strip() for line in f))
+            for i in range(ini.getint('path', 'nodenum')):
+                compartment = ini.getint(f'node{i}', 'compartmentId')
+                if compartment not in compartments:
+                    compartments.append(compartment)
+        except Exception:
+            traceback.print_exc()
+            compartments = []
+    files = []
+    if compartments:
+        for compartment in compartments:
+            files += find_files_case_insensitive([path_join(track_dir, f'comp{compartment:02d}.o')])
+    else:
+        files = [x for x in find_files_case_insensitive([path_join(track_dir, 'comp*.o')]) if re.search(r'\d\.o$', x)]
+    return files
+
+
+class Nfs6AiPathsSerializer(BaseFileSerializer):
+    """NFS6 race route: geometry of route compartments, one terrain chunk per compartment. Chunk
+    positions (centers of model bounding boxes, in game coordinates) are saved to "terrain_chunks.json" """
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        import os
+        from library import require_resource
+        from library.loader import id_to_path, path_to_name
+        from resources.eac.geometries.nfs6 import read_eagl_meshes
+        from serializers.geometries import (
+            eagl_sub_meshes,
+            export_fsh_textures,
+            find_eagl_texture_archive,
+            eagl_texture_archive_name,
+        )
+
+        super().serialize(data, path, id, block, **kwargs)
+        level_dir = os.path.dirname(id_to_path(id))
+        # texture archive name -> (archive, model meshes)
+        models = []
+        for file_path in nfs6_route_model_files(level_dir):
+            try:
+                (model_id, _, model_data), _ = require_resource(path_to_name(file_path))
+                models.append((model_id, os.path.basename(file_path), read_eagl_meshes(model_data)))
+            except Exception:
+                traceback.print_exc()
+        archives = {}
+        texture_names = {}
+        alpha_modes = {}
+        for model_id, file_name, meshes in models:
+            archive_name = eagl_texture_archive_name(file_name)
+            if archive_name not in archives:
+                archives[archive_name] = (find_eagl_texture_archive(model_id, file_name), set())
+            archives[archive_name][1].update(m.main_texture for m in meshes if m.main_texture)
+        for archive_name, (archive, aliases) in archives.items():
+            # images of different archives have the same names ("0000", "0001", ...)
+            names, modes = export_fsh_textures(archive, aliases, path, archive_name[0])
+            texture_names[archive_name] = names
+            alpha_modes.update(modes)
+
+        map_scene = Scene(
+            name='map',
+            obj_name='map',
+            mtl_name='terrain',
+            mtl_texture_names=list(alpha_modes.keys()),
+            mtl_texture_path_func=lambda x: f'textures/{x}.png',
+            mtl_texture_alpha_modes=alpha_modes,
+            skip_obj_export=self.settings.maps__save_as_chunked,
+        )
+        for graph_name in ['road_paths', 'helicopter_paths']:
+            for ai_path in data[graph_name]['paths']:
+                map_scene.curves.append(
+                    {
+                        'name': ai_path['name'],
+                        'closed': False,
+                        'points': [
+                            [p['position']['x'], p['position']['z'], p['position']['y']] for p in ai_path['points']
+                        ],
+                    }
+                )
+        scenes = [map_scene]
+        chunk_positions = []
+        for i, (model_id, file_name, meshes) in enumerate(models):
+            vertices = [v for m in meshes for v in m.vertices]
+            if not vertices:
+                vertices = [(0, 0, 0)]
+            pivot = tuple((min(v[k] for v in vertices) + max(v[k] for v in vertices)) / 2 for k in range(3))
+            names = texture_names[eagl_texture_archive_name(file_name)]
+            sub_meshes = eagl_sub_meshes(meshes, names, f'{file_name.split(".")[0]}_', pivot)
+            for mesh in sub_meshes:
+                mesh.change_axes(new_z='y', new_y='z')
+            if self.settings.maps__save_as_chunked:
+                chunk_positions.append({'x': pivot[0], 'y': pivot[1], 'z': pivot[2]})
+                scenes.append(
+                    Scene(
+                        name=f'terrain_chunk_{i}',
+                        sub_meshes=sub_meshes,
+                        obj_name=f'terrain_chunk_{i}',
+                        mtl_name='terrain',
+                        bake_textures=False,
+                        skip_mtl_export=True,
+                    )
+                )
+            else:
+                for mesh in sub_meshes:
+                    mesh.pivot_offset = (-pivot[0], -pivot[2], -pivot[1])
+                map_scene.sub_meshes.extend(sub_meshes)
+        exported = export_scenes(scenes, path, self.settings)
+        if self.settings.maps__save_as_chunked:
+            chunks_file = path_join(path, 'terrain_chunks.json')
+            with open(chunks_file, 'w') as f:
+                json.dump(chunk_positions, f)
+            exported.append(chunks_file)
+        return exported

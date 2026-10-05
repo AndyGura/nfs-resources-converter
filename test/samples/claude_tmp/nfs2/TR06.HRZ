@@ -1,0 +1,41 @@
+/* Black Horizon  (1=yes & 0=no) */
+0,
+
+/* Mirror Flag */
+1,
+
+/* The radius of the horizon */
+1500,
+
+/* The angle of rotation for the horizon in degrees. */
+0,
+
+/* The distace to horizon for flat projection (should be <= to radius) */
+1000,
+
+/* How high in the air the base of the flat shaded area is (world offset). */
+-1000,
+
+/* Height of the horizon (offset from base) */
+1230,
+
+/* Location of pixmap base in horizon (as an integer percentage of the height [0, 100]) */
+30,
+
+/* r,g,b value for flat shaded sky area */
+84,95,97,
+
+/* r,g,b value for flat shaded horizon base area */
+29,66,87,
+
+/* Depth cueing distance values (0-1100) */
+0,250,500,900,
+
+/* Depth cueing light values associated to distances (0-15) */
+0,0,10,15,
+
+/* Color system to use 0-rgb 1-hsv  */
+0,
+
+/* RGB.HSV value */
+40,40,40

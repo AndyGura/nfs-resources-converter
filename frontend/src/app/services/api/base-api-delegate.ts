@@ -82,6 +82,10 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).openUrl(url);
   }
 
+  public async findFiles(patterns: string[]): Promise<string[]> {
+    return (await this.getImpl()).findFiles(patterns);
+  }
+
   public async saveFile(): Promise<void> {
     return (await this.getImpl()).saveFile();
   }

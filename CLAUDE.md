@@ -69,6 +69,12 @@ docs and a working GUI editor for free.
   on every PR/push to main and commits the result, so it's never a blocking check.
 - Frontend: `cd frontend && npm install` once; `npm run start` for the dev server;
   CI-equivalent test run: `npm run test -- --watch=false --no-progress --browsers=ChromeHeadless`.
+  Needs Node `^22.22.3 || ^24.15.0 || >=26` (`engines` in `frontend/package.json`); as root or in a
+  sandbox, Karma's Chrome needs `--no-sandbox` (point `CHROME_BIN` at a wrapper script). Cloud-container
+  setup and headless GUI screenshots: `QA/TEST_ENVIRONMENT.md`.
+- `.github/workflows/build-extras.yml` runs on every PR and push to main: `ruff format`, prettier,
+  `generate_resource_doc.py`, `generate_build_configs.py` and `npm run build`, then commits the result
+  (incl. `frontend/dist`). Regenerating these by hand is only needed for a branch that gets no PR.
 - Run the app: `python run.py [path/to/file]`; `python run.py --dev` for the hot-reload GUI
   (see `README.md` "Debugging the Angular frontend" for the full dev-server dance, incl. Linux
   differences).

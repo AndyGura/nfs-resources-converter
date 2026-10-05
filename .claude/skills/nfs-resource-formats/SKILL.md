@@ -19,7 +19,7 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 | Path | Contents |
 |---|---|
 | `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3 decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
-| `resources/eac/maps/{tnfs,nfs2,nfs3,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5}.py` | Per-game specializations of a shared concept. |
+| `resources/eac/maps/{tnfs,nfs2,nfs3,nfs6,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5,nfs6}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
 | `resources/blackbox/geometries/` | Blackbox-studio (later titles) formats — thin, early. |
 | `resources/eac/fields/misc.py`, `resources/eac/fields/numbers.py` | Small reusable domain blocks: `Point2D`/`Point3D`/`RGBBlock`, `Nfs1Angle8`/`Nfs1Angle14`, `Nfs1TimeField`. Check here before writing a new one. |
@@ -233,6 +233,12 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    `dash00.tga`), falling back to all sibling TGAs in alphabetical order. Both versions
    share the GUI viewer `eac/fce-geometry.block-ui` (`FceCarMeshController`), which picks FCE3/FCE4 behavior (wheels,
    paint colors by texture alpha, light dummies, damage filter) from `block_class_mro`.
+   NFS6 track geometry (`compNN.o`, `levelG.o`, `trackg.o`, `skyg.o`) is an EAGL MIPS ELF object (`EaglModel` in
+   `resources/eac/geometries/nfs6.py`, detected by the `\x7fELF` magic): the block keeps the raw sections, and
+   `read_eagl_meshes` walks `__RenderMethod` symbols and `.data` relocations to vertex/index buffers (format notes in
+   that file's header comment). Textures are FSH aliases looked up by `find_eagl_texture_archive` (same BIGF, sibling
+   file, then `persist.viv`); FSH images there are DXT1/DXT3/DXT5 (`library/utils/dxt.py`, which caches decoded
+   pixels so unchanged images write back byte-exact).
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
@@ -255,6 +261,28 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    into `test/golden_corpus/` and run `test/test_gui_golden_corpus.sh`, which opens every corpus
    file through `run.py` — a cheap way to catch crashes across the whole known file zoo.
 
+## Working out an undocumented format
+
+- Check for a standard container before reading hex: `file <sample>` and the first bytes. NFS6 `.o` is a
+  plain ELF object, so a short `struct` parser of its symbol table and relocations named every
+  structure and turned every pointer into a known target; guessing offsets would have taken far longer.
+- Write throwaway probe scripts (in the scratchpad) that run over every file of that kind in
+  `games/<game>/` or the samples, and print value ranges and counts per field rather than dumping
+  one file. Field descriptions like "always 44.703" or "values from 35 to 60" come from that.
+- Where a command stream and a metadata table both give a count, trust the metadata: draw commands
+  pad index counts (NFS6 rounds up to even), which adds a garbage triangle at the end of a strip.
+- Triangle strips: flip the winding of every odd triangle and skip degenerate ones.
+- Look at geometry early. Export one model to OBJ, open it in the GUI and take a screenshot
+  (`QA/TEST_ENVIRONMENT.md`); a wrong axis, winding or UV-set-to-texture mapping is obvious in a
+  picture and invisible in numbers.
+- Round-trip every real sample (`blk.pack(data) == original bytes`). When one differs, check
+  whether it also differs on the base branch before suspecting your change, and record a real
+  game quirk in `QA/KNOWN_ISSUES.md`.
+- Lossy codecs (DXT): keep a cache from decoded pixels to the original bytes so an image the user
+  didn't touch is written back unchanged.
+- Changing a block shared by every game (an `EacImage` enum value, `BigfBlock.possible_blocks`)
+  rewrites every game's `resources/*.md` when regenerated; that diff is expected.
+
 ## GUI: usually nothing to build
 
 The generic components (compound/array/number/string/enum/delegate/binary/sub-byte-compound/archive)
@@ -267,40 +295,47 @@ the same mechanism whether generic or custom; see skill `read-block-framework` f
 
 ### Reusing an existing 3D map/terrain viewer for a new per-game format
 
-If a new format is conceptually the same kind of thing an existing bespoke 3D viewer already
-renders (e.g. another game's track file, alongside `FrdMapBlockUiComponent`/`Nfs3MapWorldEntity` in
-`frontend/.../editor/eac/frd-map.block-ui/`), don't fork the whole component - the world/rendering
-class (`Nfs3MapWorldEntity` there, despite the name) is generic chunk-graph-of-OBJs-plus-QFS-texture
-machinery with no game-specific logic in it; import and reuse it as-is from a new sibling
-`*.block-ui` folder, only rewriting the thin wrapper component around it (see
-`Nfs4FrdMapBlockUiComponent` for a worked example - it differs from the NFS3 one only in where it
-reads each block's road-spline position from, since that game splits block headers into their own
-array instead of storing position inline per block).
+TNFS (`TriMap`), NFS2 (`TrkMap`), NFS3 (`FrdMap`), NFS4 (`Nfs4FrdMap`) and NFS6 (`Nfs6AiPaths`) tracks all render through
+one component, `TrackMapBlockUiComponent` in `frontend/.../editor/eac/track-map.block-ui/`, registered
+for each block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapWorldEntity`
+(`track-map-world.entity.ts`) is generic chunk-graph-of-OBJs-plus-texture-archive machinery.
+Per-game differences live in a `TrackMapAdapter` (`track-map-adapters.ts`): chunk positions, the road
+spline used by the minimap and "Spline item" fly-to (with orientation), whether the track is closed,
+texture archive kind (QFS/FAM), glob patterns for finding it, serializer settings for it, skybox,
+terrain texture wrapping, per-chunk props (`tnfs-track-props.ts` for TNFS), and optional panels
+showing the selected spline point's data. For another game's chunked track, add an adapter and a
+`TRACK_MAP_ADAPTERS` entry keyed by the block class name, and map that class to
+`TrackMapBlockUiComponent`; don't fork the component.
 
-When adapting `onQfsSelected`-style code for the new wrapper, keep the
-`await this.mainService.api.serializeResource(qfsPath)` call even if you don't need anything from
-its return value. It looks like dead weight if you're only borrowing the sky-texture-loading half of
-the original method and dropping the rest, but the call has a load-bearing **side effect**: it's
-what makes the backend actually write the QFS archive's texture PNGs to disk (under
-`resources/<qfsPath>/`, which the dev-server proxy and production static server both serve), which
-`Nfs3MapWorldEntity.getTerrainMaterial` then loads by predicting that same path from the string
-alone - it never receives the call's return value. Drop the call and every terrain material silently
-falls back to the checkerboard placeholder texture with no error anywhere; the only symptom is a
-`console.warn('Problem with loading terrain material ...')` per texture, easy to miss unless you're
-watching the dev-server log (`read_console_messages`) while checking the live preview, not just the
-build/compile step.
+`chunkPositions` and the texture archive settings are optional. Without `chunkPositions` the
+component reads chunk pivots from the `terrain_chunks.json` the serializer writes next to the chunk
+OBJs; with `bundledTextures` the serializer writes the textures itself (`<chunks dir>/textures/`)
+and there is no texture picker. NFS6 uses both: a route is `levelNN/aipaths.dat`, its serializer
+(`Nfs6AiPathsSerializer`) exports the compartments listed in `drvpath.ini` with their textures, and
+`nfs6-route.ts` derives the spline as the longest chain of the AI path graph.
 
-Don't assume the texture archive's path can always be derived purely from the FRD's own filename,
-either - a per-game/per-track naming quirk can mean the "obvious" derived path doesn't exist and the
-real texture archive is a *sibling* resource instead. NFS4 has exactly this: a reverse-direction
-track ("Trn.FRD") doesn't always ship its own archive, and its polygons reference the forward
-track's ("Tr.FRD") "Tr0.QFS" instead (see `_require_nfs4_texture_archive` in `serializers/maps.py`
-and the matching `qfsCandidates`/`loadQfsWithFallback` in `Nfs4FrdMapBlockUiComponent` - both try
-the derived path first and fall back to a same-directory sibling before giving up). When a wrapper
-needs to try more than one candidate path like this, use `mainService.api.serializeResourceSilent`
-(not `serializeResource`) for every attempt except the last - a miss on a *speculative* candidate is
-expected and shouldn't pop the global API-error dialog (`apiError$` in `BaseApiDelegateService`),
-only a failure of the final, no-more-fallbacks attempt should.
+The texture picker lists every file matching the adapter's `textureArchivePatterns`, found by the
+backend's `find_files` endpoint (`find_files_case_insensitive` in `library/utils/file_utils.py`:
+wildcards in the file name only, letter case ignored, since game files ship as "tr0.qfs",
+"TRN0.qFS" etc.). The first match is loaded; "Browse..." opens a native file dialog for anything else.
+
+In `TrackMapBlockUiComponent.onTextureArchiveSelected`, the `serializeResource(path)` call is needed
+even when the adapter has no skybox and nothing reads its return value. The call has a load-bearing
+**side effect**: it's what makes the backend actually write the archive's texture PNGs (and, for
+FAM, props) to disk (under `resources/<path>/`, which the dev-server proxy and production static
+server both serve), which `TrackMapWorldEntity.getTerrainMaterial` then loads by predicting that same
+path from the string alone - it never receives the call's return value. Drop the call and every
+terrain material silently falls back to the checkerboard placeholder texture with no error anywhere;
+the only symptom is a `console.warn('Problem with loading terrain material ...')` per texture, easy
+to miss unless you're watching the dev-server log (`read_console_messages`) while checking the live
+preview, not just the build/compile step.
+
+Don't assume the texture archive's path can always be derived purely from the track file's own
+name, either. NFS4 has a reverse-direction track ("Trn.FRD") that doesn't always ship its own
+archive; its polygons reference the forward track's ("Tr.FRD") "Tr0.QFS" instead (see
+`_require_nfs4_texture_archive` in `serializers/maps.py`, which the FRD serializer uses to resolve
+texture names, and the matching `NFS4_TRACK_ADAPTER.textureArchivePatterns`). Both try the derived
+path first and fall back to the forward track's archive; both look files up ignoring letter case.
 
 ### Overriding a few fields inside an existing bespoke viewer
 

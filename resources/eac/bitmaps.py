@@ -24,6 +24,7 @@ from library.read_blocks import (
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import LengthPrefixedUtf8Block
 from library.utils import transform_bitness, extract_number, is_power_of_two
+from library.utils.dxt import decode_dxt, dxt_byte_len, encode_dxt
 from library.utils.id import join_id
 from resources.eac.fields.misc import Point2D
 
@@ -58,7 +59,9 @@ def revert_color_bitness(color, alpha_bitness, red_bitness, green_bitness, blue_
 
 
 def get_bitmap_len(resource_id, width, height):
-    if resource_id[:2] == '16':
+    if resource_id[:3] == 'DXT':
+        return dxt_byte_len(resource_id[:4], width, height)
+    elif resource_id[:2] == '16':
         return 2 * width * height
     elif resource_id[:2] == '24':
         return 3 * width * height
@@ -367,6 +370,9 @@ class EacImage(DeclarativeCompoundBlock):
                     (0x7E, '16Bit_1555 color format bitmap'),
                     (0x7F, '24Bit color format bitmap'),
                     (0x7D, '32Bit color format bitmap'),
+                    (0x60, 'DXT1 compressed bitmap'),
+                    (0x61, 'DXT3 compressed bitmap'),
+                    (0x62, 'DXT5 compressed bitmap'),
                 ]
             ),
             {'description': 'Resource ID'},
@@ -415,7 +421,8 @@ class EacImage(DeclarativeCompoundBlock):
                 '- in a different SHPI before this one (if it is WWWW archive)<br/>'
                 '- even in different QFS file (TNFS, CONTROL directory).<br/>'
                 'Color model is selected according to `resource_id` field. Color models are '
-                'described [here](eac_colors.md)',
+                'described [here](eac_colors.md). DXT1/DXT3/DXT5 bitmaps are S3TC-compressed 4x4 pixel blocks '
+                '(8, 16 and 16 bytes per block)',
             },
         )
         pad = (
@@ -636,6 +643,8 @@ class EacImage(DeclarativeCompoundBlock):
             bitmap = np.frombuffer(bd, dtype='<u4')
             # ARGB => RGBA
             return [int((x & 0x00_FF_FF_FF) << 8 | (x & 0xFF_00_00_00) >> 24) for x in bitmap]
+        elif resource_id.startswith('DXT'):
+            return decode_dxt(resource_id[:4], width, height, bd)
         else:
             raise NotImplementedError(f'Bitmap resource ID {resource_id} is not supported')
 
@@ -679,6 +688,8 @@ class EacImage(DeclarativeCompoundBlock):
             # RGBA => ARGB
             arr = [(x & 0xFF_FF_FF_00) >> 8 | (x & 0xFF) << 24 for x in bd]
             return np.asarray(arr, dtype='<u4').tobytes()
+        elif resource_id.startswith('DXT'):
+            return encode_dxt(resource_id[:4], width, height, bd)
         else:
             raise NotImplementedError(f'Bitmap resource ID {resource_id} is not supported')
 

@@ -43,11 +43,8 @@ import { PaletteBlockUiComponent } from './eac/palette.block-ui/palette.block-ui
 import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-geometry.block-ui.component';
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
-import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
-import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
+import { TrackMapBlockUiComponent } from './eac/track-map.block-ui/track-map.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
-import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
-import { Nfs4FrdMapBlockUiComponent } from './eac/nfs4-frd-map.block-ui/nfs4-frd-map.block-ui.component';
 import { FceGeometryBlockUiComponent } from './eac/fce-geometry.block-ui/fce-geometry.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
@@ -58,6 +55,7 @@ import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegat
 import { TargaImageBlockUiComponent } from './common/targa-image.block-ui/targa-image.block-ui.component';
 import { ImageViewerComponent } from './common/image-viewer/image-viewer.component';
 import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.block-ui/nfsu-bin-geometry.block-ui.component';
+import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -96,14 +94,12 @@ import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.bl
     OripGeometryBlockUiComponent,
     EacsAudioBlockUiComponent,
     SoundbankBlockUiComponent,
-    TriMapBlockUiComponent,
     GeoGeometryBlockUiComponent,
-    TrkMapBlockUiComponent,
-    FrdMapBlockUiComponent,
-    Nfs4FrdMapBlockUiComponent,
+    TrackMapBlockUiComponent,
     FceGeometryBlockUiComponent,
     CrpGeometryBlockUiComponent,
     NfsuBinGeometryBlockUiComponent,
+    EaglModelBlockUiComponent,
   ],
   imports: [
     CommonModule,

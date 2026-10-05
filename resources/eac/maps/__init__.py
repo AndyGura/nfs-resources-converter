@@ -53,6 +53,12 @@ from .nfs_common import (
     ColExtraBlock,
     MapColFile,
 )
+from .nfs6 import (
+    Nfs6AiPathPoint,
+    Nfs6AiPath,
+    Nfs6AiPathGraph,
+    Nfs6AiPaths,
+)
 from .tnfs import (
     RoadSplinePoint,
     ModelPropDescrData,

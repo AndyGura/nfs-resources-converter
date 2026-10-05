@@ -1,0 +1,81 @@
+@if (!adapter?.bundledTextures) {
+  <div class="textureSelector">
+    <h4>Textures</h4>
+    <mat-form-field appearance="fill">
+      <mat-label>{{ adapter?.textureArchiveKind }} file</mat-label>
+      <mat-select
+        [value]="textureArchivePath$ | async"
+        [disabled]="(textureArchiveLoading$ | async) || false"
+        (valueChange)="onTextureArchiveSelected($event)">
+        <mat-option [value]="null">None (placeholder textures)</mat-option>
+        @for (path of textureArchiveOptions$ | async; track path) {
+          <mat-option [value]="path" [title]="path">{{ textureArchiveLabel(path) }}</mat-option>
+        }
+      </mat-select>
+      @if (!(textureArchiveOptions$ | async)?.length) {
+        <mat-hint>No {{ adapter?.textureArchiveKind }} files found next to this track, use Browse to pick one</mat-hint>
+      }
+    </mat-form-field>
+    <button mat-button [disabled]="(textureArchiveLoading$ | async) || false" (click)="browseTextureArchive()">
+      BROWSE...
+    </button>
+    @if (textureArchiveLoading$ | async) {
+      <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
+    }
+  </div>
+}
+<div class="preview">
+  <div class="previewCanvasContainer" #previewCanvasContainer>
+    <canvas #previewCanvas width="640" height="480"></canvas>
+    @if (previewLoading$ | async) {
+      <mat-spinner mode="indeterminate"></mat-spinner>
+    }
+    <app-view-mode-toolbar
+      [viewModeController]="viewModeController"
+      [currentViewMode]="viewMode"
+      (viewModeChanged)="setViewMode($event)"></app-view-mode-toolbar>
+  </div>
+  <div class="previewNavigationContainer">
+    <mat-form-field appearance="fill">
+      <mat-label>Spline item</mat-label>
+      <input
+        matInput
+        type="number"
+        [min]="0"
+        [max]="(splinePoints.length || 1) - 1"
+        [ngModel]="selectedSplineIndex$ | async"
+        (ngModelChange)="selectedSplineIndex$.next($event)" />
+    </mat-form-field>
+    <app-minimap
+      [roadSpline]="minimapSpline"
+      [pointer]="pointer$ | async"
+      [splineClosed]="isClosed"
+      [projection]="'nz'"
+      (pointerChange)="onPointerChange($event)"></app-minimap>
+  </div>
+</div>
+@if (adapter?.commonFields) {
+  @for (detail of selectedSplineDetails$ | async; track detail.title) {
+    <h4>{{ detail.title }}</h4>
+    <app-compound-block-ui
+      [resourceId]="detail.resource.id"
+      [resourceName]="detail.resource.name"
+      [resourceSchema]="detail.resource.schema"
+      [resourceData]="detail.resource.data"
+      [hideBlockActions]="true"></app-compound-block-ui>
+  }
+  <h4>Common</h4>
+  <app-compound-block-ui
+    [resourceId]="resourceId"
+    [resourceName]="resourceName"
+    [resourceSchema]="resourceSchema"
+    [resourceData]="resourceData"
+    [hideBlockActions]="true"
+    [fieldWhitelist]="adapter?.commonFields!"></app-compound-block-ui>
+} @else {
+  <app-compound-block-ui
+    [resourceId]="resourceId"
+    [resourceName]="resourceName"
+    [resourceSchema]="resourceSchema"
+    [resourceData]="resourceData"></app-compound-block-ui>
+}

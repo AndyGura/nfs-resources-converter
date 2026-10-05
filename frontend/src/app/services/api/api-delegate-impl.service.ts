@@ -80,6 +80,10 @@ export class ApiDelegateImplService {
     return this.wrapCall('open_url', url);
   }
 
+  public async findFiles(patterns: string[]): Promise<string[]> {
+    return this.wrapCall('find_files', patterns);
+  }
+
   public async saveFile(): Promise<void> {
     const current = this.openedResource$.getValue();
     if (!current) return;

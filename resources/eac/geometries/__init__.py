@@ -20,6 +20,10 @@ from .nfs5 import (
     FSHPart,
     CrpGeometry,
 )
+from .nfs6 import (
+    EaglSectionHeader,
+    EaglModel,
+)
 from .tnfs import (
     OripPolygon,
     OripVertexUV,
