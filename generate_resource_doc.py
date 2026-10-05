@@ -300,6 +300,8 @@ EXPORT_RESOURCES = {
         'title': 'NFS 3 Hot Pursuit file specs',
         'file_list': f"""**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
         
+**\\*.FCE** 3D model (car.fce in car.viv: car model). {render_type(eac.geometries.Fce3Geometry())}
+
 **\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
 **\\*.FRD** main track file. {render_type(eac.maps.FrdMap())}
@@ -315,8 +317,11 @@ EXPORT_RESOURCES = {
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
             ],
-            # 'Geometries': [
-            # ],
+            'Geometries': [
+                eac.geometries.Fce3Geometry(),
+                eac.geometries.Fce3Triangle(),
+                eac.geometries.FceColor(),
+            ],
             'Maps': [
                 # FRD
                 eac.maps.FrdMap(),

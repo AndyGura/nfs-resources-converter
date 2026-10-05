@@ -27,6 +27,7 @@ const iconMap: Record<string, string> = {
 
   OripGeometry: 'view_in_ar',
   GeoGeometry: 'view_in_ar',
+  Fce3Geometry: 'view_in_ar',
   CrpGeometry: 'view_in_ar',
 
   TriMap: 'layers',

@@ -728,3 +728,152 @@ class NfsuBinGeometrySerializer(BaseFileSerializer):
             scene.sub_meshes.append(mesh)
 
         return export_scenes([scene], path, self.settings)
+
+
+def fce_part_lod_prefix(part_index: int) -> str:
+    """Level of detail of a car.fce part, by its index: "hp" (high-poly), "mp" (medium-poly), "lp" (low-poly) or
+    "tp" (tiny)"""
+    if part_index in (0, 1, 2, 3, 4, 12):
+        return 'hp'
+    if 5 <= part_index <= 9:
+        return 'mp'
+    if part_index == 10:
+        return 'lp'
+    if part_index == 11:
+        return 'tp'
+    return 'part'
+
+
+def _find_fce_siblings(id: str) -> Tuple[Optional[str], List[Tuple[str, bytes]]]:
+    """Finds file name of FCE model and its TGA textures: TGA items of the same BIGF archive (car.viv), or TGA files
+    next to FCE file. Returns (FCE file name, list of (texture name without extension, TGA bytes) sorted by name)"""
+    from library import require_resource
+    from library.loader import id_to_path
+
+    if not id:
+        return None, []
+    file_name = None
+    textures = []
+    match = re.fullmatch(r'(.*?)(?:__|/)children/(\d+)/item/data', id)
+    if match:
+        (_, _, archive_data), _ = require_resource(match.group(1))
+        children = (archive_data or {}).get('children', [])
+        if int(match.group(2)) < len(children):
+            file_name = children[int(match.group(2))]['alias']
+        for child in children:
+            alias = child['alias'] or ''
+            item_data = (child['item'] or {}).get('data')
+            if alias.lower().endswith('.tga') and isinstance(item_data, bytes):
+                textures.append((alias[:-4], item_data))
+    elif '__' not in id:
+        file_path = id_to_path(id)
+        file_name = os.path.basename(file_path)
+        directory = os.path.dirname(file_path) or '.'
+        for sibling in sorted(os.listdir(directory)) if os.path.isdir(directory) else []:
+            if sibling.lower().endswith('.tga'):
+                with open(path_join(directory, sibling), 'rb') as f:
+                    textures.append((sibling[:-4], f.read()))
+    return file_name, sorted(textures, key=lambda x: x[0].lower())
+
+
+class Fce3GeometrySerializer(BaseFileSerializer):
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def _export_textures(self, path: str, textures: List[Tuple[str, bytes]]) -> List[str]:
+        """Exports TGA textures to PNG. Returns texture name for every texture page: TGA files in alphabetical order,
+        so car00.tga is page 0"""
+        from io import BytesIO
+
+        names = []
+        for name, tga_bytes in textures:
+            name = re.sub(r'[^0-9A-Za-z_-]', '_', name) or 'texture'
+            try:
+                image = Image.open(BytesIO(tga_bytes)).convert('RGBA')
+            except Exception:
+                traceback.print_exc()
+                continue
+            # alpha channel of car textures is not transparency, but a paint mask: the less alpha, the more car
+            # color is applied. Kept in a separate file for GUI preview
+            image.save(path_join(path, f'assets/{name}_paint_mask.png'))
+            image.putalpha(255)
+            image.save(path_join(path, f'assets/{name}.png'))
+            names.append(name)
+        return names
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        super().serialize(data, path)
+        os.makedirs(path_join(path, 'assets'), exist_ok=True)
+        file_name, textures = _find_fce_siblings(id)
+        texture_pages = self._export_textures(path, textures)
+        # role of car.fce part is defined by its index
+        is_car = (file_name or '').lower() == 'car.fce'
+
+        scene = Scene()
+        scene.name = 'body'
+        scene.obj_name = 'geometry'
+        scene.mtl_name = 'material'
+        alpha_modes = {}
+
+        for part_index in range(min(data['num_parts'], 64)):
+            part_name = data['part_names'][part_index].split('\x00')[0]
+            prefix = fce_part_lod_prefix(part_index) if is_car else 'part'
+            mesh_name = f'{prefix}_{part_index}'
+            sanitized_name = re.sub(r'[^0-9A-Za-z_-]', '_', part_name).strip('_')
+            if sanitized_name:
+                mesh_name += f'_{sanitized_name}'
+            first_vertex = data['part_first_vertex'][part_index]
+            first_triangle = data['part_first_triangle'][part_index]
+            vertices = data['vertices'][first_vertex : first_vertex + data['part_num_vertices'][part_index]]
+            triangles = data['triangles'][first_triangle : first_triangle + data['part_num_triangles'][part_index]]
+            position = data['part_positions'][part_index]
+
+            mesh = Mesh()
+            mesh.name = mesh_name
+            mesh.pivot_offset = (-position['x'], -position['y'], -position['z'])
+            corner_map = {}
+            for triangle in triangles:
+                if any(vi < 0 or vi >= len(vertices) for vi in triangle['vertex_indices']):
+                    continue
+                page = triangle['tex_page']
+                texture_id = texture_pages[page] if 0 <= page < len(texture_pages) else 'untextured'
+                if triangle['flags']['semi_transparent'] and texture_id != 'untextured':
+                    texture_id += '_translucent'
+                    alpha_modes[texture_id] = 'blend'
+                polygon = []
+                for vi, u, v in zip(triangle['vertex_indices'], triangle['u'], triangle['v']):
+                    key = (vi, u, v)
+                    if key not in corner_map:
+                        corner_map[key] = len(mesh.vertices)
+                        vertex = vertices[vi]
+                        mesh.vertices.append([vertex['x'], vertex['y'], vertex['z']])
+                        # V goes from bottom to top of the texture, the same as in OBJ
+                        mesh.vertex_uvs.append([u, 1 - v])
+                    polygon.append(corner_map[key])
+                mesh.polygons.append(polygon)
+                mesh.texture_ids.append(texture_id)
+                if triangle['flags']['no_cull']:
+                    mesh.polygons.append(polygon[::-1])
+                    mesh.texture_ids.append(texture_id)
+            if not mesh.polygons:
+                continue
+            for sub_mesh, _, _ in mesh.split_by_texture_ids():
+                sub_mesh.name = mesh_name + (f'__{sub_mesh.texture_id}' if sub_mesh.texture_id != 'untextured' else '')
+                sub_mesh.change_axes(new_y='z', new_z='y')
+                px, py, pz = sub_mesh.pivot_offset
+                sub_mesh.pivot_offset = (px, pz, py)
+                scene.sub_meshes.append(sub_mesh)
+
+        for dummy_index in range(min(data['num_dummies'], 16)):
+            position = data['dummy_positions'][dummy_index]
+            scene.dummies.append(
+                {
+                    'name': data['dummy_names'][dummy_index].split('\x00')[0] or f'dummy_{dummy_index}',
+                    'position': [position['x'], position['z'], position['y']],
+                }
+            )
+
+        scene.mtl_texture_names = sorted({m.texture_id for m in scene.sub_meshes if m.texture_id != 'untextured'})
+        scene.mtl_texture_path_func = lambda name: f'assets/{name.removesuffix("_translucent")}.png'
+        scene.mtl_texture_alpha_modes = {name: alpha_modes.get(name, 'cutout') for name in scene.mtl_texture_names}
+        return export_scenes([scene], path, self.settings)

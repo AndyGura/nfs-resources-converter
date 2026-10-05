@@ -34,6 +34,7 @@ import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geo
 import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
 import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
 import { Nfs4FrdMapBlockUiComponent } from './eac/nfs4-frd-map.block-ui/nfs4-frd-map.block-ui.component';
+import { Fce3GeometryBlockUiComponent } from './eac/fce3-geometry.block-ui/fce3-geometry.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
 import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
@@ -89,6 +90,7 @@ export class EditorComponent implements OnDestroy {
 
     // NFS3-specific blocks
     FrdMap: FrdMapBlockUiComponent,
+    Fce3Geometry: Fce3GeometryBlockUiComponent,
 
     // NFS4-specific blocks
     Nfs4FrdMap: Nfs4FrdMapBlockUiComponent,

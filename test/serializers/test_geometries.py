@@ -189,3 +189,83 @@ class TestCrpGeometrySerializer(unittest.TestCase):
                     re.findall(r'newmtl (\S+)', f.read()),
                     ['page_0', 'page_1', 'page_2', 'page_3', 'page_3_alpha', 'page_4_alpha'],
                 )
+
+
+class TestFce3GeometrySerializer(unittest.TestCase):
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
+
+    def _serialize_car_viv(self):
+        from io import BytesIO
+
+        from library import require_resource
+        from library.loader import clear_file_cache
+        from resources.eac.archives import BigfBlock
+        from serializers import get_serializer
+        from test.resources.eac.test_geometries import build_fce3_data
+
+        fce_block, fce_data = build_fce3_data()
+        tga = BytesIO()
+        Image.new('RGBA', (4, 4), (255, 0, 0, 0)).save(tga, format='TGA')
+        bigf = BigfBlock()
+        bigf_data = bigf.new_data()
+        bytes_choice = bigf.item_block.get_choice_index_by_class_name('BytesBlock')
+        bigf_data['children'] = [
+            {
+                'alias': alias,
+                'item': {'choice_index': bytes_choice, 'data': item_bytes},
+                'pre_offset_payload': b'',
+                'post_offset_payload': b'',
+            }
+            for alias, item_bytes in [('car.fce', fce_block.pack(fce_data)), ('car00.tga', tga.getvalue())]
+        ]
+        viv_path = os.path.join(self.tmp_dir, 'car.viv')
+        with open(viv_path, 'wb') as f:
+            f.write(bigf.pack(bigf_data))
+        clear_file_cache(viv_path)
+        fce_id = viv_path + '__children/0/item/data'
+        (fce_id, block, data), _ = require_resource(fce_id)
+        self.assertEqual(block.__class__.__name__, 'Fce3Geometry')
+        serializer = get_serializer(block, data)
+        serializer.patch_settings(
+            {'geometry__save_obj': True, 'geometry__save_blend': False, 'geometry__export_to_gg_web_engine': False}
+        )
+        out_path = os.path.join(self.tmp_dir, 'out/')
+        serializer.serialize(data, out_path, id=fce_id, block=block)
+        return out_path
+
+    def test_exports_parts_with_texture(self):
+        out_path = self._serialize_car_viv()
+        with open(os.path.join(out_path, 'geometry.obj')) as f:
+            obj = f.read()
+        with open(os.path.join(out_path, 'material.mtl')) as f:
+            mtl = f.read()
+        objects = re.findall(r'^o (.*)$', obj, re.MULTILINE)
+        self.assertEqual(objects, ['hp_0_HB__car00', 'hp_1_HLFW__car00_translucent'])
+        self.assertIn('map_Kd assets/car00.png', mtl)
+        self.assertIn('newmtl car00_translucent', mtl)
+        self.assertIn('alpha_mode blend', mtl)
+        # alpha channel of car texture is not transparency
+        with Image.open(os.path.join(out_path, 'assets/car00.png')) as png:
+            self.assertEqual(png.convert('RGBA').getpixel((0, 0)), (255, 0, 0, 255))
+        with Image.open(os.path.join(out_path, 'assets/car00_paint_mask.png')) as png:
+            self.assertEqual(png.convert('RGBA').getpixel((0, 0)), (255, 0, 0, 0))
+        # vertices are shared by triangle corners with the same UV: quad has 5 of them (vertex 2 has different UV in
+        # both triangles). Double-sided triangle has 3 vertices and 2 faces
+        self.assertEqual(len(re.findall(r'^v ', obj, re.MULTILINE)), 8)
+        self.assertEqual(len(re.findall(r'^f ', obj, re.MULTILINE)), 4)
+        # part position is applied, axes: (x, z, y)
+        self.assertIn('v 1.0 4.0 2.0', obj)
+        # V goes from bottom to top, as in OBJ
+        self.assertIn('vt 0.0 0.25', obj)
+
+    def test_exports_dummies(self):
+        out_path = self._serialize_car_viv()
+        import json
+
+        with open(os.path.join(out_path, 'geometry_extra.json')) as f:
+            extra = json.load(f)
+        self.assertEqual(extra['dummies'], [{'name': 'HFLO', 'position': [0.5, 2.0, 0.25]}])
