@@ -267,23 +267,21 @@ the same mechanism whether generic or custom; see skill `read-block-framework` f
 
 ### Reusing an existing 3D map/terrain viewer for a new per-game format
 
-If a new format is conceptually the same kind of thing an existing bespoke 3D viewer already
-renders (e.g. another game's track file, alongside `FrdMapBlockUiComponent`/`Nfs3MapWorldEntity` in
-`frontend/.../editor/eac/frd-map.block-ui/`), don't fork the whole component - the world/rendering
-class (`Nfs3MapWorldEntity` there, despite the name) is generic chunk-graph-of-OBJs-plus-QFS-texture
-machinery with no game-specific logic in it; import and reuse it as-is from a new sibling
-`*.block-ui` folder, only rewriting the thin wrapper component around it (see
-`Nfs4FrdMapBlockUiComponent` for a worked example - it differs from the NFS3 one only in where it
-reads each block's road-spline position from, since that game splits block headers into their own
-array instead of storing position inline per block).
+NFS2 (`TrkMap`), NFS3 (`FrdMap`) and NFS4 (`Nfs4FrdMap`) tracks all render through one component,
+`TrackMapBlockUiComponent` in `frontend/.../editor/eac/track-map.block-ui/`, registered for each
+block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapWorldEntity` is generic
+chunk-graph-of-OBJs-plus-QFS-texture machinery. Per-game differences live in a `TrackMapAdapter`
+(`track-map-adapters.ts`): where block positions are read from (`block_positions`, `blocks[i].position`,
+`blocks_headers[i].position`), which QFS archive paths to try, and whether the archive has a skybox.
+For another game's chunked track, add an adapter and a `TRACK_MAP_ADAPTERS` entry keyed by the block
+class name, and map that class to `TrackMapBlockUiComponent`; don't fork the component.
 
-When adapting `onQfsSelected`-style code for the new wrapper, keep the
-`await this.mainService.api.serializeResource(qfsPath)` call even if you don't need anything from
-its return value. It looks like dead weight if you're only borrowing the sky-texture-loading half of
-the original method and dropping the rest, but the call has a load-bearing **side effect**: it's
+In `TrackMapBlockUiComponent.onQfsSelected`, the
+`serializeResource(qfsPath)` call is needed even when the adapter has no skybox and nothing reads
+its return value. The call has a load-bearing **side effect**: it's
 what makes the backend actually write the QFS archive's texture PNGs to disk (under
 `resources/<qfsPath>/`, which the dev-server proxy and production static server both serve), which
-`Nfs3MapWorldEntity.getTerrainMaterial` then loads by predicting that same path from the string
+`TrackMapWorldEntity.getTerrainMaterial` then loads by predicting that same path from the string
 alone - it never receives the call's return value. Drop the call and every terrain material silently
 falls back to the checkerboard placeholder texture with no error anywhere; the only symptom is a
 `console.warn('Problem with loading terrain material ...')` per texture, easy to miss unless you're
@@ -295,10 +293,9 @@ either - a per-game/per-track naming quirk can mean the "obvious" derived path d
 real texture archive is a *sibling* resource instead. NFS4 has exactly this: a reverse-direction
 track ("Trn.FRD") doesn't always ship its own archive, and its polygons reference the forward
 track's ("Tr.FRD") "Tr0.QFS" instead (see `_require_nfs4_texture_archive` in `serializers/maps.py`
-and the matching `qfsCandidates`/`loadQfsWithFallback` in `Nfs4FrdMapBlockUiComponent` - both try
-the derived path first and fall back to a same-directory sibling before giving up). When a wrapper
-needs to try more than one candidate path like this, use `mainService.api.serializeResourceSilent`
-(not `serializeResource`) for every attempt except the last - a miss on a *speculative* candidate is
+and the matching `NFS4_TRACK_ADAPTER.qfsCandidates` + `TrackMapBlockUiComponent.loadQfsWithFallback` - both try
+the derived path first and fall back to a same-directory sibling before giving up). `loadQfsWithFallback` uses `mainService.api.serializeResourceSilent`
+(not `serializeResource`) for every candidate except the last - a miss on a *speculative* candidate is
 expected and shouldn't pop the global API-error dialog (`apiError$` in `BaseApiDelegateService`),
 only a failure of the final, no-more-fallbacks attempt should.
 

@@ -27,7 +27,7 @@
         matInput
         type="number"
         [min]="0"
-        [max]="$safeNavigationMigration(resourceData?.num_blocks) * 4 - 1"
+        [max]="(roadPath?.length || 1) - 1"
         [ngModel]="selectedSplineIndex$ | async"
         (ngModelChange)="selectedSplineIndex$.next($event)" />
     </mat-form-field>

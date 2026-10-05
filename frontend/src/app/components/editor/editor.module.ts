@@ -44,10 +44,8 @@ import { OripGeometryBlockUiComponent } from './eac/orip-geometry.block-ui/orip-
 import { EacsAudioBlockUiComponent } from './eac/eacs-audio.block-ui/eacs-audio.block-ui.component';
 import { SoundbankBlockUiComponent } from './eac/soundbank.block-ui/soundbank.block-ui.component';
 import { TriMapBlockUiComponent } from './eac/tri-map.block-ui/tri-map.block-ui.component';
-import { TrkMapBlockUiComponent } from './eac/trk-map.block-ui/trk-map.block-ui.component';
+import { TrackMapBlockUiComponent } from './eac/track-map.block-ui/track-map.block-ui.component';
 import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geometry.block-ui.component';
-import { FrdMapBlockUiComponent } from './eac/frd-map.block-ui/frd-map.block-ui.component';
-import { Nfs4FrdMapBlockUiComponent } from './eac/nfs4-frd-map.block-ui/nfs4-frd-map.block-ui.component';
 import { FceGeometryBlockUiComponent } from './eac/fce-geometry.block-ui/fce-geometry.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
@@ -98,9 +96,7 @@ import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.bl
     SoundbankBlockUiComponent,
     TriMapBlockUiComponent,
     GeoGeometryBlockUiComponent,
-    TrkMapBlockUiComponent,
-    FrdMapBlockUiComponent,
-    Nfs4FrdMapBlockUiComponent,
+    TrackMapBlockUiComponent,
     FceGeometryBlockUiComponent,
     CrpGeometryBlockUiComponent,
     NfsuBinGeometryBlockUiComponent,
