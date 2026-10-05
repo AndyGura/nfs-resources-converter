@@ -1,7 +1,9 @@
 <app-obj-viewer
   [paths]="previewPaths$ | async"
   [viewFilters]="previewViewFilters"
-  [cameraControl]="(isTrack$ | async) ? 'free' : 'orbit'"></app-obj-viewer>
+  [cameraControl]="(isTrack$ | async) ? 'free' : 'orbit'"
+  [visibilityGroupFunction]="previewObjectGroupFunc"
+  [animationFrameFunction]="previewAnimationFrameFunc"></app-obj-viewer>
 <app-compound-block-ui
   [resourceId]="resourceId"
   [resourceName]="resourceName"

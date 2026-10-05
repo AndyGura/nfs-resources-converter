@@ -2,6 +2,7 @@ import json
 import os
 from string import Template
 from typing import Callable
+from typing import Dict
 from typing import List
 
 from library.utils import path_join
@@ -20,6 +21,7 @@ class Scene:
         bake_textures: bool = True,
         mtl_texture_names: List[str] = None,
         mtl_texture_path_func: Callable[[str], str] = lambda x: x,
+        mtl_texture_alpha_modes: Dict[str, str] = None,
         dummies: List[dict] = None,
         curves: List[dict] = None,
         extra_script: str = None,
@@ -33,6 +35,9 @@ class Scene:
         self.bake_textures = bake_textures
         self.mtl_texture_names = mtl_texture_names or []
         self.mtl_texture_path_func = mtl_texture_path_func
+        # texture name -> "blend" (translucent) or "cutout" (alpha is a mask), written to MTL as non-standard
+        # "alpha_mode" statement, which is used by GUI preview
+        self.mtl_texture_alpha_modes = mtl_texture_alpha_modes or {}
         self.dummies = dummies or []
         self.curves = curves or []
         self.extra_script = extra_script or ''
@@ -128,6 +133,8 @@ $extra_script
                             }
                         )
                     )
+                    if texture_name in scene.mtl_texture_alpha_modes:
+                        f.write(f'\nalpha_mode {scene.mtl_texture_alpha_modes[texture_name]}')
             exported_files.append(file_path)
 
     if settings.geometry__export_to_gg_web_engine or settings.geometry__save_blend:

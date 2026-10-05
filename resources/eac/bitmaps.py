@@ -392,7 +392,12 @@ class EacImage(DeclarativeCompoundBlock):
         )
         position = (
             Point2D(child=IntegerBlock(length=2)),
-            {'description': 'Bitmap position on screen. Used for menu/dash sprites. Unknown for others'},
+            {
+                'description': 'Bitmap position on screen. Used for menu/dash sprites. In NFS5 FSH files this is '
+                'the position of the image in a texture page (atlas), which is used by CRP models: '
+                '12 lower bits of each coordinate are a signed value, 4 higher bits are flags '
+                '(track textures have 6 or 7 in y flags for 64x64 or 128x128 images, likely the mipmap count)'
+            },
         )
         bitmap = (
             BytesBlock(

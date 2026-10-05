@@ -192,6 +192,7 @@ class Mesh(BaseMesh):
             sm.pivot_offset = self.pivot_offset
             sm.texture_id = texture_id
             vertex_indices = []
+            new_vertex_indices = {}
             polygon_indices = []
             for i, p in enumerate(self.polygons):
                 if self.texture_ids[i] != texture_id:
@@ -199,12 +200,10 @@ class Mesh(BaseMesh):
                 polygon_indices.append(i)
                 new_polygon = []
                 for idx in p:
-                    try:
-                        new_idx = vertex_indices.index(idx)
-                    except ValueError:
-                        new_idx = len(vertex_indices)
+                    if idx not in new_vertex_indices:
+                        new_vertex_indices[idx] = len(vertex_indices)
                         vertex_indices.append(idx)
-                    new_polygon.append(new_idx)
+                    new_polygon.append(new_vertex_indices[idx])
                 sm.polygons.append(new_polygon)
             for v_idx in vertex_indices:
                 sm.vertices.append(self.vertices[v_idx])

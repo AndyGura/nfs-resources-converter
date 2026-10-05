@@ -102,6 +102,16 @@
         @for (group of uiGroups | keyvalue; track group) {
           <div class="controls-list">
             <label [for]="'visibility_' + group.key">{{ group.key }}</label>
+            @if (group.value.frames.length > 1) {
+              <button
+                class="icon-button animation-button"
+                (click)="toggleUiGroupAnimation(group.key)"
+                [title]="
+                  (group.value.playing ? 'Stop' : 'Play') + ' animation (' + group.value.frames.length + ' frames)'
+                ">
+                {{ group.value.playing ? '■' : '▶' }}
+              </button>
+            }
             <div class="checkbox-wrapper">
               <input
                 [id]="'visibility_' + group.key"

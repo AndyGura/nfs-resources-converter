@@ -2,6 +2,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { Object3D } from 'three';
 
 @Component({
   selector: 'app-crp-geometry-block-ui',
@@ -33,6 +34,19 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
       this.isTrack$.next(this.resourceData?.resource_id === 'karT');
       this.loadPreview().then();
     }
+  }
+
+  // mesh name: <article name>_LOD<lod>_ai<animation frame>[_<texture>][_damaged]
+  private static readonly MESH_NAME_REGEX = /^(.*_LOD\d+)_ai(\d+)(?:_(?!damaged$).*?)?(_damaged)?$/;
+
+  previewObjectGroupFunc(object: Object3D): string {
+    const match = CrpGeometryBlockUiComponent.MESH_NAME_REGEX.exec(object.name);
+    return match ? match[1] + (match[3] || '') : object.name;
+  }
+
+  previewAnimationFrameFunc(object: Object3D): number | null {
+    const match = CrpGeometryBlockUiComponent.MESH_NAME_REGEX.exec(object.name);
+    return match ? +match[2] : null;
   }
 
   private serializerSettings = {
