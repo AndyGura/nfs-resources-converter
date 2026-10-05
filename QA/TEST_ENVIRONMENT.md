@@ -146,6 +146,43 @@ Neither permission can be granted headlessly. Skip straight to the no-Docker sho
 of spending time on either — it gets you a real screenshot via the `computer` MCP tool's own
 capture, which needs no OS-level permission at all.
 
+### Headless screenshots in a cloud container (no browser tools at all)
+
+When the session has no browser-automation tools (claude.ai cloud container), drive the same
+`http://localhost:4200` tab with Playwright and the preinstalled Chromium. WebGL (every 3D viewer)
+only renders with SwiftShader flags; without them the canvas stays blank and nothing errors:
+
+```python
+# shot.py <out.png> <wait_ms>
+import sys, asyncio
+from playwright.async_api import async_playwright
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(executable_path='/opt/pw-browsers/chromium', args=[
+            '--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
+        pg = await b.new_page(viewport={'width': 1400, 'height': 1000})
+        logs = []
+        pg.on('console', lambda m: logs.append(f'{m.type}: {m.text}'))
+        await pg.goto('http://localhost:4200/')
+        await pg.wait_for_timeout(int(sys.argv[2]))   # a whole NFS6/NFS4 track needs ~60-90s
+        await pg.screenshot(path=sys.argv[1])
+        print('\n'.join(logs[-30:]))
+        await b.close()
+asyncio.run(main())
+```
+
+Start the backend with the no-Docker shortcut above (the file argument auto-opens it), run the script,
+and look at the PNG with the Read tool. To check another file, restart the backend with the new path.
+Interact through ordinary selectors (e.g. `pg.fill('input[type=number]', '250')` for a track viewer's
+"Spline item" fly-to). Print the console log every time: a texture 404 or a backend `Traceback` usually
+shows up there before it shows up in the picture.
+
+- The container's Node may be older than `frontend/package.json`'s `engines` range; `npm install
+  node@24` into a scratch directory and put its `node_modules/.bin` first on `PATH`.
+- Stop the servers with a pattern that can't match your own shell's command line
+  (`pkill -f "ng serve"` inside a command that also contains "ng serve" kills that command itself):
+  use `pgrep`, then `kill` by PID.
+
 ### Known friction with this setup
 
 - `computer` screenshot capture can hang (CDP `Page.captureScreenshot` times out) on a tab that

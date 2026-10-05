@@ -166,6 +166,9 @@ scenario and a subsequent scenario that needs a screenshot — open a new tab in
   decompressed content exist); the check that matters for these is decompressed-content equality,
   which was not separately asserted this pass (only "no exception" was) — worth adding if a
   stronger corpus check is written later.
+- NFS6 `persist.viv` (BIGF) does not round-trip byte-exact: its header `length` field holds the file
+  size minus 14, while the writer stores the real size. All other bytes match. **Unclear** whether
+  the game reads the field at all; untested in-game.
 - macOS-specific native behaviors (pointer lock for 3D free-fly camera, Finder "Open With" /
   file-association open events, the pointer-lock "funk beep" suppression) — read from code
   (`actions/gui_editor_macos.py`), never exercised live this pass (this pass ran entirely inside a

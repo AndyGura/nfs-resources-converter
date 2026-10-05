@@ -261,6 +261,28 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    into `test/golden_corpus/` and run `test/test_gui_golden_corpus.sh`, which opens every corpus
    file through `run.py` — a cheap way to catch crashes across the whole known file zoo.
 
+## Working out an undocumented format
+
+- Check for a standard container before reading hex: `file <sample>` and the first bytes. NFS6 `.o` is a
+  plain ELF object, so a short `struct` parser of its symbol table and relocations named every
+  structure and turned every pointer into a known target; guessing offsets would have taken far longer.
+- Write throwaway probe scripts (in the scratchpad) that run over every file of that kind in
+  `games/<game>/` or the samples, and print value ranges and counts per field rather than dumping
+  one file. Field descriptions like "always 44.703" or "values from 35 to 60" come from that.
+- Where a command stream and a metadata table both give a count, trust the metadata: draw commands
+  pad index counts (NFS6 rounds up to even), which adds a garbage triangle at the end of a strip.
+- Triangle strips: flip the winding of every odd triangle and skip degenerate ones.
+- Look at geometry early. Export one model to OBJ, open it in the GUI and take a screenshot
+  (`QA/TEST_ENVIRONMENT.md`); a wrong axis, winding or UV-set-to-texture mapping is obvious in a
+  picture and invisible in numbers.
+- Round-trip every real sample (`blk.pack(data) == original bytes`). When one differs, check
+  whether it also differs on the base branch before suspecting your change, and record a real
+  game quirk in `QA/KNOWN_ISSUES.md`.
+- Lossy codecs (DXT): keep a cache from decoded pixels to the original bytes so an image the user
+  didn't touch is written back unchanged.
+- Changing a block shared by every game (an `EacImage` enum value, `BigfBlock.possible_blocks`)
+  rewrites every game's `resources/*.md` when regenerated; that diff is expected.
+
 ## GUI: usually nothing to build
 
 The generic components (compound/array/number/string/enum/delegate/binary/sub-byte-compound/archive)
