@@ -8,6 +8,11 @@ from .nfs3 import (
     Fce3Triangle,
     Fce3Geometry,
 )
+from .nfs4 import (
+    Fce4Color,
+    Fce4Triangle,
+    Fce4Geometry,
+)
 from .nfs5 import (
     ArticlePart,
     UnkPart4,

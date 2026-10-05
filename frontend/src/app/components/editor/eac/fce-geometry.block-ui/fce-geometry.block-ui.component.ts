@@ -12,27 +12,34 @@ import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
-import { Fce3CarMeshController, fceColorToRgb, FceDummy } from './fce3-car-mesh-controller';
+import { FceCarMeshController, fceColorToRgb, FceDummy, FceVersion } from './fce-car-mesh-controller';
 
 @Component({
-  selector: 'app-fce3-geometry-block-ui',
-  templateUrl: './fce3-geometry.block-ui.component.html',
+  selector: 'app-fce-geometry-block-ui',
+  templateUrl: './fce-geometry.block-ui.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class Fce3GeometryBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
+export class FceGeometryBlockUiComponent extends GuiComponent implements AfterViewInit, OnChanges, OnDestroy {
   customControls: ObjViewerCustomControl[] = [];
 
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   readonly cdr = inject(ChangeDetectorRef);
 
+  previewViewFilters: ViewFilterOpts[] = [];
+
   private extraPath: string | null = null;
-  private meshController: Fce3CarMeshController | null = null;
+  private meshController: FceCarMeshController | null = null;
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes.hasOwnProperty('resourceSchema')) {
+      // FCE4 has damaged copy of every mesh
+      this.previewViewFilters =
+        this.version === 4 ? [this.previewViewFilter, this.damageViewFilter] : [this.previewViewFilter];
+    }
     if (changes.hasOwnProperty('resourceId') || changes.hasOwnProperty('resourceData')) {
       this.loadPreview().then();
     }
@@ -62,26 +69,23 @@ export class Fce3GeometryBlockUiComponent extends GuiComponent implements AfterV
         }
       }
       // default paint is the first color of the car
-      const data = this.resourceData;
-      const primaryColor = data?.num_primary_colors > 0 ? fceColorToRgb(data.primary_colors[0]) : 0xff0000;
-      const secondaryColor = data?.num_secondary_colors > 0 ? fceColorToRgb(data.secondary_colors[0]) : 0x808080;
-      const meshController = new Fce3CarMeshController(obj, dummies, primaryColor, secondaryColor);
+      const paints = this.paints;
+      const meshController = new FceCarMeshController(
+        obj,
+        this.version,
+        dummies,
+        paints.map(x => x.color),
+      );
       this.meshController = meshController;
       const controls: ObjViewerCustomControl['controls'] = [];
       if (meshController.isPaintable) {
-        controls.push(
-          {
-            label: 'Primary color',
+        paints.forEach(({ label, color }, i) =>
+          controls.push({
+            label,
             type: 'color',
-            value: primaryColor,
-            change: c => this.debounced(() => (meshController.primaryColor = c)),
-          },
-          {
-            label: 'Secondary color',
-            type: 'color',
-            value: secondaryColor,
-            change: c => this.debounced(() => (meshController.secondaryColor = c)),
-          },
+            value: color,
+            change: c => this.debounced(() => meshController.setColor(i, c)),
+          }),
         );
       }
       if (meshController.hasLights) {
@@ -112,11 +116,36 @@ export class Fce3GeometryBlockUiComponent extends GuiComponent implements AfterV
           },
         );
       }
-      this.customControls = controls.length > 0 ? [{ title: 'NFS3 car features', controls }] : [];
+      this.customControls = controls.length > 0 ? [{ title: `NFS${this.version} car features`, controls }] : [];
       this.cdr.markForCheck();
     } catch (err) {
       console.error(err);
     }
+  }
+
+  get version(): FceVersion {
+    return this.resourceSchema?.block_class_mro?.startsWith('Fce4Geometry') ? 4 : 3;
+  }
+
+  /** Colors of car paint: the first color set of the model */
+  private get paints(): { label: string; color: number }[] {
+    const data = this.resourceData;
+    const paint = (label: string, colorsKey: string, numColors: number, fallback: number) => ({
+      label,
+      color: numColors > 0 ? fceColorToRgb(data[colorsKey][0]) : fallback,
+    });
+    if (this.version === 4) {
+      return [
+        paint('Primary color', 'primary_colors', data?.num_colors, 0xff0000),
+        paint('Interior color', 'interior_colors', data?.num_colors, 0x404040),
+        paint('Secondary color', 'secondary_colors', data?.num_colors, 0x808080),
+        paint('Driver hair color', 'driver_hair_colors', data?.num_colors, 0x302010),
+      ];
+    }
+    return [
+      paint('Primary color', 'primary_colors', data?.num_primary_colors, 0xff0000),
+      paint('Secondary color', 'secondary_colors', data?.num_secondary_colors, 0x808080),
+    ];
   }
 
   private debounceTimer: any = null;
@@ -143,13 +172,20 @@ export class Fce3GeometryBlockUiComponent extends GuiComponent implements AfterV
     }
   }
 
-  // mesh name: <lod>_<part index>[_<part name>][__<texture>]
+  // mesh name: <lod>_<part index>[_<part name>][__<texture>][_damaged]
   previewObjectGroupFunc(object: Object3D): string {
-    const match = /^(?:hp|mp|lp|tp|part)_\d+(?:_.*?)?(?=__|$)/.exec(object.name);
+    const match = /^(?:hp|mp|lp|tp|part)_\d+(?:_.*?)?(?=__|_damaged$|$)/.exec(object.name);
     return match ? match[0] : object.name;
   }
 
-  public readonly previewViewFilter: ViewFilterOpts = {
+  private readonly damageViewFilter: ViewFilterOpts = {
+    name: 'Damage',
+    filterGroups: ['Not damaged', 'Damaged'],
+    checkedIndex: 0,
+    pickFunction: object => (object.name.endsWith('_damaged') ? 1 : 0),
+  };
+
+  private readonly previewViewFilter: ViewFilterOpts = {
     name: 'LOD',
     filterGroups: ['High-poly', 'Medium-poly', 'Low-poly', 'Tiny', 'Other'],
     checkedIndex: 0,

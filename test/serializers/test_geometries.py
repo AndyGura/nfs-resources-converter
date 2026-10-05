@@ -198,7 +198,7 @@ class TestFce3GeometrySerializer(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp_dir)
 
-    def _serialize_car_viv(self):
+    def _serialize_car_viv(self, build_data=None, fce_name='car.fce', textures=None):
         from io import BytesIO
 
         from library import require_resource
@@ -207,9 +207,12 @@ class TestFce3GeometrySerializer(unittest.TestCase):
         from serializers import get_serializer
         from test.resources.eac.test_geometries import build_fce3_data
 
-        fce_block, fce_data = build_fce3_data()
-        tga = BytesIO()
-        Image.new('RGBA', (4, 4), (255, 0, 0, 0)).save(tga, format='TGA')
+        fce_block, fce_data = (build_data or build_fce3_data)()
+        tga_items = []
+        for alias, color in textures or [('car00.tga', (255, 0, 0, 0))]:
+            tga = BytesIO()
+            Image.new('RGBA', (4, 4), color).save(tga, format='TGA')
+            tga_items.append((alias, tga.getvalue()))
         bigf = BigfBlock()
         bigf_data = bigf.new_data()
         bytes_choice = bigf.item_block.get_choice_index_by_class_name('BytesBlock')
@@ -220,7 +223,7 @@ class TestFce3GeometrySerializer(unittest.TestCase):
                 'pre_offset_payload': b'',
                 'post_offset_payload': b'',
             }
-            for alias, item_bytes in [('car.fce', fce_block.pack(fce_data)), ('car00.tga', tga.getvalue())]
+            for alias, item_bytes in [(fce_name, fce_block.pack(fce_data))] + tga_items
         ]
         viv_path = os.path.join(self.tmp_dir, 'car.viv')
         with open(viv_path, 'wb') as f:
@@ -228,7 +231,7 @@ class TestFce3GeometrySerializer(unittest.TestCase):
         clear_file_cache(viv_path)
         fce_id = viv_path + '__children/0/item/data'
         (fce_id, block, data), _ = require_resource(fce_id)
-        self.assertEqual(block.__class__.__name__, 'Fce3Geometry')
+        self.assertEqual(block.__class__, fce_block.__class__)
         serializer = get_serializer(block, data)
         serializer.patch_settings(
             {'geometry__save_obj': True, 'geometry__save_blend': False, 'geometry__export_to_gg_web_engine': False}
@@ -269,3 +272,51 @@ class TestFce3GeometrySerializer(unittest.TestCase):
         with open(os.path.join(out_path, 'geometry_extra.json')) as f:
             extra = json.load(f)
         self.assertEqual(extra['dummies'], [{'name': 'HFLO', 'position': [0.5, 2.0, 0.25]}])
+
+
+class TestFce4GeometrySerializer(unittest.TestCase):
+    setUp = TestFce3GeometrySerializer.setUp
+    tearDown = TestFce3GeometrySerializer.tearDown
+    _serialize_car_viv = TestFce3GeometrySerializer._serialize_car_viv
+
+    def test_exports_damaged_copy_of_parts(self):
+        from test.resources.eac.test_geometries import build_fce4_data
+
+        out_path = self._serialize_car_viv(build_fce4_data)
+        with open(os.path.join(out_path, 'geometry.obj')) as f:
+            obj = f.read()
+        objects = re.findall(r'^o (.*)$', obj, re.MULTILINE)
+        self.assertEqual(
+            objects, ['hp_0_HB__car00', 'hp_0_HB__car00_damaged', 'hp_1_HLFW__car00', 'hp_1_HLFW__car00_damaged']
+        )
+        # damaged position of vertex 2 (x, z, y)
+        self.assertIn('v 0.75 -0.5 0.75', obj)
+        # V goes from top to bottom, OBJ has it from bottom to top
+        self.assertIn('vt 0.0 0.75', obj)
+
+    def test_part_lod_prefix(self):
+        from serializers.geometries import fce4_part_lod_prefix
+
+        self.assertEqual(
+            [fce4_part_lod_prefix(x) for x in [':HB', ':MRFW', ':LB', ':TB', ':OD', ':ORM', 'body']],
+            ['hp', 'mp', 'lp', 'tp', 'hp', 'hp', 'part'],
+        )
+
+    def test_upgrade_model_uses_own_texture(self):
+        from test.resources.eac.test_geometries import build_fce4_data
+
+        out_path = self._serialize_car_viv(
+            build_fce4_data,
+            fce_name='car1.fce',
+            textures=[('car00.tga', (255, 0, 0, 223)), ('car100.tga', (0, 255, 0, 0))],
+        )
+        with open(os.path.join(out_path, 'material.mtl')) as f:
+            mtl = f.read()
+        self.assertIn('map_Kd assets/car100.png', mtl)
+        self.assertNotIn('car00', mtl)
+        # alpha 0 is transparency
+        with Image.open(os.path.join(out_path, 'assets/car100.png')) as png:
+            self.assertEqual(png.convert('RGBA').getpixel((0, 0)), (0, 255, 0, 0))
+        with open(os.path.join(out_path, 'geometry.obj')) as f:
+            # car1.fce is a car model too: part roles by name
+            self.assertIn('o hp_0_HB__car100\n', f.read())
