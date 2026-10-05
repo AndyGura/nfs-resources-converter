@@ -101,7 +101,7 @@ block, an array field with per-item "Click to view items (N)" expanders for larg
 | Targa image | `TargaImage` | — |
 | ORIP geometry | `OripGeometry` | embeds an **obj-viewer** (3D, WebGL) |
 | GEO geometry | `GeoGeometry` | embeds obj-viewer |
-| CRP geometry | `CrpGeometry` | embeds obj-viewer |
+| CRP geometry | `CrpGeometry` | cars ("raC"): embeds obj-viewer; tracks ("karT"): same track viewer as TRI ("Textures" FSH picker, chunk per road piece, no props panel) |
 | TRI map | `TriMap` | 3D terrain view (WebGL) + **minimap** (2D spline path) + "Textures" FAM picker (lists the `.FAM` files found for the track, a TRI can use several; "Browse..." for others) + road spline / AI info / terrain panels for the selected spline item + view-mode icon toolbar (home/orbit/wireframe/globe icons observed) + full generic-field data panel below (see above) |
 | TRK map | `TrkMap` | same track viewer as TRI ("Textures" QFS picker, no props) |
 | FRD map | `FrdMap` | same track viewer as TRI ("Textures" QFS picker, no props) |

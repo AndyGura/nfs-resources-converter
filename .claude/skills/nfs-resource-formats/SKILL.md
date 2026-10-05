@@ -314,6 +314,15 @@ and there is no texture picker. NFS6 uses both: a route is `levelNN/aipaths.dat`
 (`Nfs6AiPathsSerializer`) exports the compartments listed in `drvpath.ini` with their textures, and
 `nfs6-route.ts` derives the spline as the longest chain of the AI path graph.
 
+When the block data that reaches the GUI doesn't carry the layout (NFS5 `CrpGeometry` tracks: the
+mesh parts are `io,doc`-only), the adapter implements `loadLayout(serializedPaths)` instead: the
+serializer, called with `maps__save_as_chunked`, writes the chunks plus a `track_layout.json` (chunk
+positions, road headings, loop flag), and the viewer reads it after serializing. `CrpGeometry` is
+shared by cars and tracks, so `CrpGeometryBlockUiComponent` embeds `app-track-map-block-ui` for
+"karT" data instead of being re-registered. NFS5 chunking (`CrpGeometrySerializer._serialize_track_chunks`)
+relies on article names `<RD|CNK|OBJ><road piece number><L|C|R> (<section> ...)`: one chunk per "RD"
+piece of the section with the most of them, other sections and unnamed articles go to the nearest chunk.
+
 The texture picker lists every file matching the adapter's `textureArchivePatterns`, found by the
 backend's `find_files` endpoint (`find_files_case_insensitive` in `library/utils/file_utils.py`:
 wildcards in the file name only, letter case ignored, since game files ship as "tr0.qfs",

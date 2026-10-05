@@ -530,6 +530,17 @@ class CrpGeometrySerializer(BaseFileSerializer):
             for x in data['common_parts']
             if x['choice_index'] == material_choice_index
         }
+        if data['resource_id'] == 'karT' and self.settings.maps__save_as_chunked:
+            # the track viewer textures chunks from the track's FSH file itself: material name is the FSH alias
+            def material_texture(material_index):
+                material = materials.get(material_index)
+                if not material:
+                    return None
+                # no "_" in the name: the track viewer takes the material from the last "_"-separated part of mesh name
+                return re.sub(r'[^0-9A-Za-z-]', '-', _crp_texture_tag(material['tex_page_index']).strip()) or None
+
+            return self._serialize_track_chunks(data, path, block, material_texture)
+
         if data['resource_id'] == 'karT':
             textures, alpha_modes = self._load_track_textures(
                 data, path, id, block, {m['tex_page_index'] for m in materials.values()}
@@ -570,7 +581,17 @@ class CrpGeometrySerializer(BaseFileSerializer):
         scene.obj_name = 'geometry'
         scene.sub_meshes = []
         scene.mtl_texture_path_func = lambda name: f'textures/{name}.png'
+        for *_, sub_mesh in self._build_article_meshes(data, block, material_texture):
+            sub_mesh.change_axes(new_y='z', new_z='y')
+            scene.sub_meshes.append(sub_mesh)
 
+        scene.mtl_texture_names = sorted({m.texture_id for m in scene.sub_meshes if m.texture_id != 'untextured'})
+        scene.mtl_texture_alpha_modes = alpha_modes
+        return export_scenes([scene], path, self.settings)
+
+    def _build_article_meshes(self, data, block, material_texture):
+        """Yields (article index, article name, vertex part info, sub-mesh) of every vertex part and texture of each
+        article. Sub-mesh is in CRP coordinates (Y up), with the article transformation applied"""
         # Identify choice indexes for part types
         choice = block.field_blocks_map['parts'].child
         vertex_choice_index = choice.get_choice_index_by_class_name('VertexPart')
@@ -687,12 +708,99 @@ class CrpGeometrySerializer(BaseFileSerializer):
                                 [transform_matrix[3], transform_matrix[7], transform_matrix[11], transform_matrix[15]],
                             ]
                         )
-                    sub_mesh.change_axes(new_y='z', new_z='y')
-                    scene.sub_meshes.append(sub_mesh)
+                    yield i, name, vx['part_info'], sub_mesh
 
-        scene.mtl_texture_names = sorted({m.texture_id for m in scene.sub_meshes if m.texture_id != 'untextured'})
-        scene.mtl_texture_alpha_modes = alpha_modes
-        return export_scenes([scene], path, self.settings)
+    # track article name: <RD|CNK|OBJ><4-digit road piece number><L|C|R> (<section> <description>)
+    _TRACK_ARTICLE_NAME_REGEX = re.compile(r'^(RD|CNK|OBJ)(\d{4})[LCR]\s*\((\d+)\s')
+
+    def _serialize_track_chunks(self, data, path, block, material_texture) -> List[str]:
+        """Track viewer output: one `terrain_chunk_<i>.obj` per road piece of the main road section, pivoted at the
+        road piece center, plus `track_layout.json` with chunk positions (in CRP coordinates, Y up), road headings and
+        whether the road is a loop. Only LOD 0, not animated, not damaged meshes are exported. Articles of the main
+        section go to the chunk of their road piece number, all other articles to the chunk with the nearest center"""
+        import bisect
+        import json
+        import math
+
+        articles = defaultdict(list)
+        names = {}
+        for article_index, name, part_info, sub_mesh in self._build_article_meshes(data, block, material_texture):
+            if part_info['lod'] != 0 or part_info['animation_index'] != 0 or part_info['damage'] != 0:
+                continue
+            articles[article_index].append(sub_mesh)
+            names[article_index] = name
+
+        def center(meshes):
+            vertices = [v for m in meshes for v in m.vertices]
+            return tuple(sum(v[k] for v in vertices) / len(vertices) for k in range(3))
+
+        parsed = {i: self._TRACK_ARTICLE_NAME_REGEX.match(names[i]) for i in articles}
+        sections = defaultdict(int)
+        for m in parsed.values():
+            if m and m.group(1) == 'RD':
+                sections[m.group(3)] += 1
+        main_section = max(sections, key=sections.get) if sections else None
+        road_pieces = sorted(
+            (int(m.group(2)), i) for i, m in parsed.items() if m and m.group(1) == 'RD' and m.group(3) == main_section
+        )
+        # several articles of the same road piece are merged into one chunk
+        piece_numbers = sorted({n for n, _ in road_pieces})
+        chunk_positions = [
+            center([sm for n, i in road_pieces if n == number for sm in articles[i]]) for number in piece_numbers
+        ]
+        if not chunk_positions:
+            chunk_positions = [center([sm for meshes in articles.values() for sm in meshes])] if articles else []
+        chunks = [[] for _ in chunk_positions]
+        for i, meshes in articles.items():
+            m = parsed[i]
+            if m and m.group(3) == main_section and piece_numbers:
+                chunk_index = max(bisect.bisect_right(piece_numbers, int(m.group(2))) - 1, 0)
+            else:
+                c = center(meshes)
+                chunk_index = min(range(len(chunk_positions)), key=lambda k: math.dist(chunk_positions[k], c))
+            chunks[chunk_index].extend(meshes)
+
+        def heading(k):
+            if len(chunk_positions) < 2:
+                return 0
+            a, b = (
+                (chunk_positions[k], chunk_positions[k + 1]) if k < len(chunk_positions) - 1 else chunk_positions[-2:]
+            )
+            return math.atan2(b[0] - a[0], b[2] - a[2])
+
+        steps = [math.dist(chunk_positions[k], chunk_positions[k + 1]) for k in range(len(chunk_positions) - 1)]
+        is_closed = bool(steps) and math.dist(chunk_positions[0], chunk_positions[-1]) < 2 * max(steps)
+
+        scenes = []
+        for k, meshes in enumerate(chunks):
+            position = chunk_positions[k]
+            for j, sub_mesh in enumerate(meshes):
+                sub_mesh.change_axes(new_y='z', new_z='y')
+                sub_mesh.pivot_offset = (position[0], position[2], position[1])
+                sub_mesh.name = f'terrain_chunk_{k}_{j}_{sub_mesh.texture_id}'
+            scenes.append(
+                Scene(
+                    name=f'terrain_chunk_{k}',
+                    sub_meshes=meshes,
+                    obj_name=f'terrain_chunk_{k}',
+                    mtl_name=None,
+                    bake_textures=False,
+                )
+            )
+        exported = export_scenes(scenes, path, self.settings)
+        layout_path = path_join(path, 'track_layout.json')
+        with open(layout_path, 'w') as f:
+            json.dump(
+                {
+                    'closed': is_closed,
+                    'chunks': [
+                        {'position': {'x': p[0], 'y': p[1], 'z': p[2]}, 'orientation': heading(k)}
+                        for k, p in enumerate(chunk_positions)
+                    ],
+                },
+                f,
+            )
+        return exported + [layout_path]
 
 
 class NfsuBinGeometrySerializer(BaseFileSerializer):

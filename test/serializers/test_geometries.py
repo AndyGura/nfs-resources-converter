@@ -1,3 +1,5 @@
+import json
+import math
 import os
 import re
 import shutil
@@ -189,6 +191,46 @@ class TestCrpGeometrySerializer(unittest.TestCase):
                     re.findall(r'newmtl (\S+)', f.read()),
                     ['page_0', 'page_1', 'page_2', 'page_3', 'page_3_alpha', 'page_4_alpha'],
                 )
+
+    @unittest.skipUnless(os.path.exists('test/samples/alps.crp'), 'needs NFS5 track sample test/samples/alps.crp')
+    def test_track_chunks_for_track_viewer(self):
+        from library import require_resource
+        from library.utils.id import join_id
+        from serializers import get_serializer
+
+        (_, block, data), _ = require_resource(join_id('test/samples/alps.crp', 'data'))
+        serializer = get_serializer(block, data)
+        serializer.patch_settings(
+            {
+                'geometry__save_obj': True,
+                'geometry__save_blend': False,
+                'geometry__export_to_gg_web_engine': False,
+                'maps__save_as_chunked': True,
+            }
+        )
+        try:
+            with tempfile.TemporaryDirectory() as out:
+                files = serializer.serialize(data, out, id=join_id('test/samples/alps.crp', 'data'), block=block)
+                with open(os.path.join(out, 'track_layout.json')) as f:
+                    layout = json.load(f)
+                # one chunk per road piece of the main road: RD0000C..RD1792C, every 8th
+                self.assertEqual(len(layout['chunks']), 225)
+                self.assertFalse(layout['closed'])
+                self.assertEqual(len([x for x in files if x.endswith('.obj')]), 225)
+                # the first road piece goes from Z=464 to Z=416
+                self.assertAlmostEqual(layout['chunks'][0]['position']['z'], 464, delta=5)
+                self.assertAlmostEqual(abs(layout['chunks'][0]['orientation']), math.pi, delta=0.1)
+                with open(os.path.join(out, 'terrain_chunk_0.obj')) as f:
+                    obj = f.read()
+                # LOD 0 only, material is the FSH alias after the last "_"
+                self.assertNotIn('LOD1', obj)
+                self.assertIn('\no terrain_chunk_0_0_cla2\n', obj)
+                self.assertNotIn('mtllib', obj)
+                # pivoted at the road piece center
+                xs = [float(line.split()[1]) for line in obj.splitlines() if line.startswith('v ')]
+                self.assertLess(max(abs(x) for x in xs), 200)
+        finally:
+            serializer.patch_settings({'maps__save_as_chunked': False})
 
 
 class TestFce3GeometrySerializer(unittest.TestCase):

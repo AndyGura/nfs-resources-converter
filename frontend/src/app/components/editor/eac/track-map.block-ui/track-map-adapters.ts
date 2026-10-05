@@ -20,12 +20,23 @@ export interface TrackSplineDetailPanel {
   itemsPerEntry: number;
 }
 
+// Chunk positions, road spline and loop flag of a track
+export interface TrackLayout {
+  // null: positions come from `terrain_chunks.json`
+  chunkPositions: Point3[] | null;
+  splinePoints: TrackSplinePoint[];
+  isClosed: boolean;
+}
+
 // Per-game differences of the chunked track viewer (`TrackMapBlockUiComponent`). Everything else
 // (world, camera, sky, chunk streaming, fly-to, texture archive picker) is shared.
 export interface TrackMapAdapter {
   // Terrain chunk positions, in game coordinates (Y up). One serialized `terrain_chunk_<i>.obj` per item. When not
   // set, positions are read from `terrain_chunks.json`, written by the serializer next to the chunks
   chunkPositions?(data: BlockData): Point3[];
+  // For tracks whose block data doesn't carry the road spline: reads chunk positions, spline and loop flag from the
+  // files serialized for the viewer. When set, `chunkPositions`, `splinePoints` and `isClosed` are not used
+  loadLayout?(serializedPaths: string[]): Promise<TrackLayout>;
   // Road spline for the minimap and the "Spline item" fly-to. Defaults to the chunk positions
   splinePoints?(data: BlockData): TrackSplinePoint[];
   // Whether the last chunk connects to the first one. Defaults to true
@@ -180,6 +191,26 @@ export const NFS6_TRACK_ADAPTER: TrackMapAdapter = {
   },
 };
 
+// NFS5 CRP track ("karT"): the backend splits the meshes into chunks, one per road piece, and writes their
+// positions and road headings to `track_layout.json`. Textures come from the FSH file, referenced by the CRP
+export const NFS5_TRACK_ADAPTER: TrackMapAdapter = {
+  loadLayout: async (serializedPaths: string[]) => {
+    const layoutPath = serializedPaths.find(x => x.endsWith('track_layout.json'));
+    const layout = layoutPath ? await (await fetch(layoutPath)).json() : { chunks: [], closed: false };
+    return {
+      chunkPositions: layout.chunks.map((c: any) => c.position),
+      splinePoints: layout.chunks.map((c: any) => ({ position: c.position, orientation: c.orientation })),
+      isClosed: layout.closed,
+    };
+  },
+  textureArchiveKind: 'FSH',
+  textureArchivePatterns: resourceId => {
+    const { dir, base } = splitPath(resourceId);
+    return [`${dir}${base}.fsh`, `${dir}*.fsh`];
+  },
+  hasSkybox: false,
+};
+
 // Keyed by block class name, as found in `BlockSchema.block_class_mro`
 export const TRACK_MAP_ADAPTERS: { [blockClass: string]: TrackMapAdapter } = {
   TriMap: TNFS_TRACK_ADAPTER,
@@ -187,6 +218,7 @@ export const TRACK_MAP_ADAPTERS: { [blockClass: string]: TrackMapAdapter } = {
   FrdMap: NFS3_TRACK_ADAPTER,
   Nfs4FrdMap: NFS4_TRACK_ADAPTER,
   Nfs6AiPaths: NFS6_TRACK_ADAPTER,
+  CrpGeometry: NFS5_TRACK_ADAPTER,
 };
 
 export function findTrackMapAdapter(blockClassMro: string | undefined): TrackMapAdapter | null {
