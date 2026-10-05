@@ -845,7 +845,8 @@ class Fce3GeometrySerializer(BaseFileSerializer):
                         corner_map[key] = len(mesh.vertices)
                         vertex = vertices[vi]
                         mesh.vertices.append([vertex['x'], vertex['y'], vertex['z']])
-                        mesh.vertex_uvs.append([u, v])
+                        # V goes from bottom to top of the texture, the same as in OBJ
+                        mesh.vertex_uvs.append([u, 1 - v])
                     polygon.append(corner_map[key])
                 mesh.polygons.append(polygon)
                 mesh.texture_ids.append(texture_id)

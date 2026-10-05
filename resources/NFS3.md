@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-10-05 06:40:10.843447+00:00*
+*Last time updated: 2026-10-05 07:46:26.164698+00:00*
 
 
 # **Info by file extensions** #
@@ -103,7 +103,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 16 | **unk0** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 28 | **flags** | 4 | 32 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: matte<br/>1: high_chrome<br/>2: no_cull<br/>3: semi_transparent</details> | Triangle flags. "matte": no environment reflection (underbody), "high_chrome": strong reflection (windows), "no_cull": triangle is visible from both sides, "semi_transparent": translucent triangle (windows). Triangle is visible behind a semi-transparent triangle only if it has smaller index |
 | 32 | **u** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Texture U coordinates of 3 vertices, 0..1 |
-| 44 | **v** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Texture V coordinates of 3 vertices, 0..1, from top to bottom |
+| 44 | **v** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Texture V coordinates of 3 vertices, 0..1, from bottom to top |
 ### **FceColor** ###
 #### **Size**: 16 bytes ####
 #### **Description**: Car color in HSB. Every component is 0..255: hue = degrees / 360 * 255, saturation = percent / 100 * 255, brightness = percent / 100 * 255 ####

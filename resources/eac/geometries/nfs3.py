@@ -87,7 +87,7 @@ class Fce3Triangle(DeclarativeCompoundBlock):
         )
         v = (
             ArrayBlock(child=DecimalBlock(length=4), length=3),
-            {'description': 'Texture V coordinates of 3 vertices, 0..1, from top to bottom'},
+            {'description': 'Texture V coordinates of 3 vertices, 0..1, from bottom to top'},
         )
 
 

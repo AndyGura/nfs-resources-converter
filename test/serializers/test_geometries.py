@@ -257,8 +257,8 @@ class TestFce3GeometrySerializer(unittest.TestCase):
         self.assertEqual(len(re.findall(r'^f ', obj, re.MULTILINE)), 4)
         # part position is applied, axes: (x, z, y)
         self.assertIn('v 1.0 4.0 2.0', obj)
-        # V is stored from top to bottom, OBJ is from bottom to top
-        self.assertIn('vt 0.0 0.75', obj)
+        # V goes from bottom to top, as in OBJ
+        self.assertIn('vt 0.0 0.25', obj)
 
     def test_exports_dummies(self):
         out_path = self._serialize_car_viv()
