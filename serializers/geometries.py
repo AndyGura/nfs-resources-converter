@@ -1028,8 +1028,11 @@ class Fce4GeometrySerializer(Fce3GeometrySerializer):
 
 def eagl_texture_archive_name(model_file_name: str) -> str:
     """FSH file with textures of NFS6 EAGL model: "<x>g.o" uses "<x>.fsh" ("levelG.o" -> "level.fsh", "skyg.o" ->
-    "sky.fsh"), track compartments ("compNN.o") use "track.fsh" """
+    "sky.fsh"), track compartments ("compNN.o") use "track.fsh", car models ("car.o", "carRigid.o", "carM.o", "shadow.o"
+    in car.viv) use "car.fsh" """
     name = os.path.basename(model_file_name or '').lower()
+    if name.startswith('car') or name == 'shadow.o':
+        return 'car.fsh'
     if name.endswith('g.o') and not name.startswith('comp'):
         return name[:-3] + '.fsh'
     return 'track.fsh'
@@ -1150,6 +1153,8 @@ class EaglModelSerializer(BaseFileSerializer):
 
         super().serialize(data, path)
         meshes = read_eagl_meshes(data)
+        if is_nfs6_car_model(meshes):
+            return self._serialize_car(data, meshes, path, id)
         archive = find_eagl_texture_archive(id)
         texture_names, alpha_modes = export_fsh_textures(
             archive, {m.main_texture for m in meshes if m.main_texture}, path
@@ -1167,6 +1172,201 @@ class EaglModelSerializer(BaseFileSerializer):
             # game Y up -> Z up
             mesh.change_axes(new_z='y', new_y='z')
         return export_scenes([scene], path, self.settings)
+
+    def _serialize_car(self, data: dict, meshes, path: str, id) -> List[str]:
+        import json
+
+        scene, skins = nfs6_car_scene(data, meshes, path, id)
+        # game axes: X right, Y up, car front at -Z. Exported: X right, Y forward, Z up
+        for mesh in scene.sub_meshes:
+            mesh.change_axes(new_y='-z', new_z='y')
+            mesh.polygons = [p[::-1] for p in mesh.polygons]
+        for dummy in scene.dummies:
+            x, y, z = dummy['position']
+            dummy['position'] = [x, -z, y]
+        paths = export_scenes([scene], path, self.settings)
+        skins_path = path_join(path, 'skins.json')
+        with open(skins_path, 'w') as f:
+            json.dump(skins, f, indent=2)
+        return paths + [skins_path]
+
+
+def _eagl_model_location(id: str) -> Tuple[Optional[str], Optional[str], str]:
+    """(BIGF archive id or None, model file name, path of the file on disk) of NFS6 model with given resource id"""
+    from library import require_resource
+    from library.loader import id_to_path
+
+    match = re.fullmatch(r'(.*?)(?:__|/)children/(\d+)/item/data', id or '')
+    if not match:
+        return None, os.path.basename(id_to_path(id or '')), id_to_path(id or '')
+    (_, _, archive_data), _ = require_resource(match.group(1))
+    children = (archive_data or {}).get('children', [])
+    alias = children[int(match.group(2))]['alias'] if int(match.group(2)) < len(children) else None
+    return match.group(1), alias, id_to_path(id)
+
+
+def is_nfs6_car_model(meshes) -> bool:
+    """NFS6 car models (car.o, carRigid.o etc.) are drawn with "EASVehicle*" microcodes"""
+    return any(m.shader.startswith('EASVehicle') for m in meshes)
+
+
+def nfs6_car_part_lod_prefix(geometry_name: str) -> str:
+    """Level of detail of NFS6 car geometry, by its name: "hp" (high-poly) for full-detail parts, "mp" (medium-poly)
+    for "MIDLOD_Shape" and "*_LOD_WHEEL_*" wheels, "lp" (low-poly) for other "*LOD*" geometries
+    ("ALPHA_OPAQUE_LODShape"). Game's geomdata.ini has the same as distances: hp is drawn from 100 to 65, mp from 65
+    to 50 (wheels to 10), lp below 50"""
+    name = (geometry_name or '').upper()
+    if 'MIDLOD' in name or 'LOD_WHEEL' in name:
+        return 'mp'
+    if 'LOD' in name:
+        return 'lp'
+    return 'hp'
+
+
+def find_nfs6_car_skins(id: str) -> List[Tuple[str, str, Tuple[str, ShpiBlock, dict]]]:
+    """Skins of NFS6 car: FSH files of "skin.viv" next to car's "car.viv" ("skin00.fsh", ..., "skinhp.fsh" for the
+    hot pursuit version), each has a "skin" image. Returns list of (skin name, label, (FSH id, block, data)), label is
+    "color_id" of [skinNN] section of "vehicle.ini" next to car.viv ("red", "silver", ...) or skin name"""
+    from library import require_resource
+    from library.loader import path_to_name
+
+    _, _, file_path = _eagl_model_location(id)
+    skin_viv = _find_sibling_file(file_path, 'skin.viv')
+    if not skin_viv:
+        return []
+    labels = {}
+    vehicle_ini = _find_sibling_file(file_path, 'vehicle.ini')
+    if vehicle_ini:
+        ini = ConfigParser(strict=False, interpolation=None, comment_prefixes=("'", '//', ';', '#'))
+        try:
+            with open(vehicle_ini, encoding='latin-1') as f:
+                ini.read_string(f.read())
+            labels = {x.lower(): ini.get(x, 'color_id') for x in ini.sections() if ini.has_option(x, 'color_id')}
+        except ConfigParserError:
+            traceback.print_exc()
+    skins = []
+    try:
+        (archive_id, _, archive_data), _ = require_resource(path_to_name(skin_viv))
+        for i, child in enumerate((archive_data or {}).get('children', [])):
+            alias = child['alias'] or ''
+            if not alias.lower().endswith('.fsh'):
+                continue
+            (fsh_id, fsh_block, fsh_data), _ = require_resource(join_id(archive_id, 'children', str(i), 'item', 'data'))
+            while not isinstance(fsh_block, ShpiBlock) and isinstance(fsh_data, dict) and 'choice_index' in fsh_data:
+                (fsh_id, fsh_block, fsh_data), _ = require_resource(join_id(fsh_id, 'data'))
+            if isinstance(fsh_block, ShpiBlock):
+                name = alias[:-4]
+                skins.append((name, labels.get(name.lower(), name), (fsh_id, fsh_block, fsh_data)))
+    except Exception:
+        traceback.print_exc()
+    return skins
+
+
+def _find_nfs6_car_skeleton(id: str):
+    """Bones of "skeleton.o" in the same car.viv as the car model, or next to the model file"""
+    from library import require_resource
+    from library.loader import path_to_name
+    from resources.eac.geometries.nfs6 import read_eagl_skeleton
+
+    archive_id, _, file_path = _eagl_model_location(id)
+    try:
+        skeleton_id = _find_bigf_child(archive_id, 'skeleton.o') if archive_id else None
+        if skeleton_id is None:
+            skeleton_path = _find_sibling_file(file_path, 'skeleton.o')
+            skeleton_id = path_to_name(skeleton_path) if skeleton_path else None
+        if skeleton_id is None:
+            return []
+        (_, _, skeleton_data), _ = require_resource(skeleton_id)
+        return read_eagl_skeleton(skeleton_data) if skeleton_data else []
+    except Exception:
+        traceback.print_exc()
+        return []
+
+
+def _save_opaque(file_path: str):
+    image = Image.open(file_path).convert('RGBA')
+    image.putalpha(255)
+    image.save(file_path)
+
+
+def _tinted_texture(image: Image.Image, color: int) -> Image.Image:
+    """Texture multiplied by vertex diffuse color 0xRRGGBBAA, as Direct3D modulates them"""
+    from PIL import ImageChops
+
+    tint = Image.new(
+        'RGBA', image.size, ((color >> 24) & 0xFF, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF)
+    )
+    return ImageChops.multiply(image.convert('RGBA'), tint)
+
+
+def nfs6_car_scene(data: dict, meshes, path: str, id: str) -> Tuple[Scene, List[dict]]:
+    """Scene of NFS6 car model with its textures in "<path>/textures": car.fsh images by alias, "skin.png" is the
+    first skin, every skin is also saved as "skins/<skin name>-skin.png". Car textures are saved opaque: their alpha is
+    a reflection mask. Glass is drawn black with vertex alpha, so meshes with one vertex color other than white get a
+    tinted copy of their texture "<texture>-<RRGGBBAA>", which is translucent. Mesh names are
+    "<lod>_<geometry index>_<geometry name>", dummies are the bones of car's skeleton.o. Returns the scene (game
+    axes) and the skins: list of {"name", "label", "texture"}"""
+    texture_path = path_join(path, 'textures')
+    os.makedirs(path_join(texture_path, 'skins'), exist_ok=True)
+    texture_names, _ = export_fsh_textures(
+        find_eagl_texture_archive(id),
+        {m.main_texture for m in meshes if m.main_texture and m.main_texture != 'skin'},
+        path,
+    )
+    for texture_name in texture_names.values():
+        _save_opaque(path_join(texture_path, f'{texture_name}.png'))
+    skins = []
+    for name, label, archive in find_nfs6_car_skins(id):
+        file_name = re.sub(r'[^0-9A-Za-z-]', '-', name)
+        names, _ = export_fsh_textures(archive, ['skin'], path, name_prefix=f'skins/{file_name}-')
+        if 'skin' not in names:
+            continue
+        _save_opaque(path_join(texture_path, f'{names["skin"]}.png'))
+        skins.append({'name': name, 'label': label, 'texture': f'textures/{names["skin"]}.png'})
+        if 'skin' not in texture_names:
+            Image.open(path_join(path, skins[-1]['texture'])).save(path_join(texture_path, 'skin.png'))
+            texture_names['skin'] = 'skin'
+    alpha_modes = {name: 'cutout' for name in texture_names.values()}
+    images = {}
+    sub_meshes = []
+    for i, m in enumerate(meshes):
+        if not m.triangles:
+            continue
+        sm = SubMesh()
+        sm.texture_id = texture_names.get(m.main_texture) or 'untextured'
+        colors = set(m.colors)
+        if sm.texture_id != 'untextured' and len(colors) == 1 and next(iter(colors)) != 0xFFFFFFFF:
+            color = next(iter(colors))
+            tinted_id = f'{sm.texture_id}-{color:08x}'
+            if tinted_id not in alpha_modes:
+                if sm.texture_id not in images:
+                    images[sm.texture_id] = Image.open(path_join(texture_path, f'{sm.texture_id}.png'))
+                _tinted_texture(images[sm.texture_id], color).save(path_join(texture_path, f'{tinted_id}.png'))
+                alpha_modes[tinted_id] = 'blend'
+            sm.texture_id = tinted_id
+        geometry = re.sub(r'[^0-9A-Za-z]+', '_', (m.geometry_name or '').split('~')[0]).strip('_') or 'mesh'
+        sm.name = f'{nfs6_car_part_lod_prefix(m.geometry_name)}_{i}_{geometry}'
+        sm.vertices = [list(v) for v in m.vertices]
+        uvs = m.main_uvs
+        sm.vertex_uvs = [[u, v] for (u, v) in uvs] if uvs else [[0, 0]] * len(m.vertices)
+        sm.polygons = [list(t) for t in m.triangles]
+        sub_meshes.append(sm)
+    dummies = [
+        {'name': bone.name, 'position': list(bone.position)}
+        for bone in _find_nfs6_car_skeleton(id)
+        if not re.match(r'(Root|false_?root\d*|joint\d+|DAMAGE\d+)$', bone.name, re.IGNORECASE)
+    ]
+    scene = Scene(
+        name='body',
+        obj_name='geometry',
+        mtl_name='material',
+        sub_meshes=sub_meshes,
+        mtl_texture_names=sorted({m.texture_id for m in sub_meshes if m.texture_id != 'untextured'}),
+        mtl_texture_path_func=lambda name: f'textures/{name}.png',
+        mtl_texture_alpha_modes=alpha_modes,
+        dummies=dummies,
+    )
+    return scene, skins
 
 
 class NfsuMesh:

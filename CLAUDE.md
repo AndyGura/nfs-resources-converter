@@ -105,6 +105,10 @@ When you do:
   time). Follow that pattern there rather than importing at module top level.
 - Field extras dict (third tuple element in `Fields`) keys: `description`, `is_unknown`,
   `custom_offset`, `usage` (comma-separated subset of `ui`/`io`/`doc`, default = everywhere).
+- Car mesh controllers (`*-car-mesh-controller.ts`) and track props controllers (`*track-props-controller.ts`) in
+  `frontend/.../editor/eac/` are copied into the nfs-web game as they are (only import paths change): keep them free
+  of GUI services, depending on three.js, gg-web-engine and rxjs only. nfs-web loads the converter's gg-web-engine
+  export with "Add props to obj" off, so a track's props must reach it as dummies.
 - Nothing repo-specific overrides standard slash commands (`/code-review`, `/simplify`, etc.).
 - Real game files for broader validation live under the gitignored `games/<game>/` folders (e.g. every
   QFS3-compressed file across nfs1/nfs2/nfs2se/nfs3), beyond the few samples in `test/samples/`.

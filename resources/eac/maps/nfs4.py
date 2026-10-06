@@ -10,7 +10,7 @@ from library.read_blocks import (
     FixedPointBlock,
     OptionalBlock,
 )
-from resources.eac.fields.misc import Point3D
+from resources.eac.fields.misc import Point3D, Quaternion
 
 # NFS4 (High Stakes) uses the same overall "TRK" family of formats as NFS3, but the file layout
 # differs in several places: virtual road (vroad) data moved from per-block to a single global
@@ -226,7 +226,7 @@ class Nfs4RefExtraObject(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         pt = (
-            Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True)),
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
             {'description': 'Position of the object'},
         )
         unk0 = (IntegerBlock(length=2), {'is_unknown': True})
@@ -300,15 +300,14 @@ class Nfs4AnimKeyframe(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         pt = (
-            Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True)),
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
             {'description': 'Object position at this keyframe'},
         )
-        unk = (
-            ArrayBlock(child=IntegerBlock(length=2, is_signed=True), length=4),
+        orientation = (
+            Quaternion(child=FixedPointBlock(length=2, fraction_bits=14, is_signed=True)),
             {
-                'description': 'Object orientation at this keyframe, presumably a quaternion (x, y, z, w), where each '
-                'component is 16-bit fixed point with 14 fraction bits',
-                'is_unknown': True,
+                'description': 'Object orientation at this keyframe. Presumably the same as in NFS3: object vertices '
+                "are rotated by it (v' = q v q^-1), then moved to `pt`"
             },
         )
 
@@ -349,7 +348,10 @@ class Nfs4SpecialExtra(DeclarativeCompoundBlock):
         mass = (DecimalBlock(length=4), {'description': 'Mass of the object'})
         transform = (
             ArrayBlock(child=DecimalBlock(length=4), length=9),
-            {'description': '3x3 rotation/transform matrix'},
+            {
+                'description': "3x3 rotation matrix of the object. Rotates its vertices as row vectors: v' = v M "
+                '(verified by roadside boards facing the oncoming traffic)'
+            },
         )
         collision_dimensions = (
             Point3D(child=DecimalBlock(length=4)),
@@ -427,7 +429,10 @@ class Nfs4ExtraObject(DeclarativeCompoundBlock):
         )
         vertices = (
             ArrayBlock(child=Point3D(child=DecimalBlock(length=4)), length=_object_header_field('num_vertices')),
-            {'description': 'Vertices, global coordinates'},
+            {
+                'description': 'Vertices, relative to the object position `pt` of the header (rotated by '
+                '`special_data.transform` for special objects)'
+            },
         )
         vertex_shading = (
             ArrayBlock(child=IntegerBlock(length=4, is_signed=False), length=lambda ctx: len(ctx.data('vertices'))),
@@ -490,14 +495,14 @@ class Nfs4TrkBlock(DeclarativeCompoundBlock):
         soundsrc = (
             ArrayBlock(child=BytesBlock(length=16), length=_block_header_field('num_soundsrc/num')),
             {
-                'description': 'Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 '
+                'description': 'Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 16 '
                 'fraction bits) + 32-bit sound type'
             },
         )
         lightsrc = (
             ArrayBlock(child=BytesBlock(length=16), length=_block_header_field('num_lightsrc/num')),
             {
-                'description': 'Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 '
+                'description': 'Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 16 '
                 'fraction bits) + 32-bit light type'
             },
         )

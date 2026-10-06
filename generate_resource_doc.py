@@ -205,6 +205,7 @@ EXPORT_RESOURCES = {
                 eac.maps.MedianExtraDataRecord(),
                 eac.maps.AnimatedPropPosition(),
                 eac.maps.AnimatedPropPositionFrame(),
+                eac.maps.SpecialPropPosition(),
                 eac.maps.PropExtraDataRecord(),
                 eac.maps.PropDescriptionExtraDataRecord(),
                 eac.maps.LanesExtraDataRecord(),
@@ -271,6 +272,7 @@ EXPORT_RESOURCES = {
                 eac.maps.MedianExtraDataRecord(),
                 eac.maps.AnimatedPropPosition(),
                 eac.maps.AnimatedPropPositionFrame(),
+                eac.maps.SpecialPropPosition(),
                 eac.maps.PropExtraDataRecord(),
                 eac.maps.PropDescriptionExtraDataRecord(),
                 eac.maps.LanesExtraDataRecord(),
@@ -331,13 +333,17 @@ EXPORT_RESOURCES = {
                 eac.maps.FrdPositionBlock(),
                 eac.maps.FrdBlockPolygonData(),
                 eac.maps.FrdBlockVroadData(),
+                eac.maps.FrdXobjRef(),
+                eac.maps.FrdPolyObjRef(),
+                eac.maps.FrdSoundSource(),
+                eac.maps.FrdLightSource(),
                 eac.maps.FrdPolyBlock(),
                 eac.maps.FrdPolygonsBlock(),
                 eac.maps.FrdPolygonRecord(),
                 eac.maps.FrdPolyObjBlock(),
                 eac.maps.FrdPolyObjPolygonsBlock(),
                 eac.maps.ExtraObjectBlock(),
-                eac.maps.ExtraObjectDataCrossType1(),
+                eac.maps.ExtraObjectDataCrossType3(),
                 eac.maps.AnimData(),
                 eac.maps.ExtraObjectDataCrossType4(),
                 eac.maps.TextureBlock(),
@@ -349,6 +355,7 @@ EXPORT_RESOURCES = {
                 eac.maps.MedianExtraDataRecord(),
                 eac.maps.AnimatedPropPosition(),
                 eac.maps.AnimatedPropPositionFrame(),
+                eac.maps.SpecialPropPosition(),
                 eac.maps.PropExtraDataRecord(),
                 eac.maps.PropDescriptionExtraDataRecord(),
                 eac.maps.LanesExtraDataRecord(),
@@ -509,6 +516,10 @@ EXPORT_RESOURCES = {
         'file_name': 'NFS6.md',
         'title': 'NFS 6 Hot Pursuit 2 file specs',
         'file_list': f"""**compNN.o**, **trackg.o**, **skyg.o**, **levelNN\\levelG.o** track geometry. {render_type(eac.geometries.EaglModel())}
+
+**cars\\<car>\\car.viv** car: **car.o** model (also **carRigid.o**, **carM.o** and **carRigidM.o** with left and right windows swapped, **shadow.o**, bones in **skeleton.o**: {render_type(eac.geometries.EaglModel())}), **car.fsh** wheel textures. {render_type(eac.archives.BigfBlock())}
+
+**cars\\<car>\\skin.viv** car paint textures **skinNN.fsh**, their colors are in **vehicle.ini**. {render_type(eac.archives.BigfBlock())}
 
 **levelNN\\aipaths.dat** race route. {render_type(eac.maps.Nfs6AiPaths())}
 

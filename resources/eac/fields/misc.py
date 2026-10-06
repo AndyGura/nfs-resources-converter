@@ -60,6 +60,21 @@ class Point3D(CompoundBlock):
         return super().write(data, ctx, name)
 
 
+class Quaternion(CompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        schema = super().schema
+        return {
+            **schema,
+            'block_description': 'Rotation quaternion (x,y,z,w), in the same axes as the positions next to it, '
+            'where each component is: ' + schema['fields'][0]['schema']['block_description'],
+            'inline_description': True,
+        }
+
+    def __init__(self, child, **kwargs):
+        super().__init__(fields=[('x', child, {}), ('y', child, {}), ('z', child, {}), ('w', child, {})], **kwargs)
+
+
 class RGBBlock(CompoundBlock):
     @property
     def schema(self) -> Dict:

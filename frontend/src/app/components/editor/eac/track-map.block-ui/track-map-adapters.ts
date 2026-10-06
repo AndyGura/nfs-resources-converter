@@ -3,8 +3,9 @@ import { ClampToEdgeWrapping, RepeatWrapping, Texture } from 'three';
 import { nfs6Route } from './nfs6-route';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { BlockData } from '../../types';
-import type { TrackEntity, TrackMapWorldEntity } from './track-map-world.entity';
-import { loadTnfsChunkProps } from './tnfs-track-props';
+import type { TrackMapWorldEntity } from './track-map-world.entity';
+import { TrackPropsController } from './track-props-controller';
+import { TnfsTrackPropsController } from './tnfs-track-props-controller';
 
 // A road spline point in game coordinates (Y up); orientation is the heading in radians
 export interface TrackSplinePoint {
@@ -57,8 +58,9 @@ export interface TrackMapAdapter {
   hasSkybox: boolean;
   // Wrapping/orientation of terrain textures. Defaults to repeat in both directions
   setupTerrainTexture?(texture: Texture): void;
-  // Extra entities placed on a terrain chunk (e.g. props)
-  loadChunkProps?(map: TrackMapWorldEntity, chunkIndex: number): Promise<TrackEntity[]>;
+  // Spawns the props of terrain chunks: dummies of "terrain_chunk_<i>_extra.json" written by the serializer (with
+  // maps__add_props_to_obj off). The controllers are shared with nfs-web, the map entity is their `TrackPropsAssets`
+  propsController?(map: TrackMapWorldEntity): TrackPropsController | null;
   // Graph of terrain chunks (viewer coordinates), loaded around the camera up to `loadDepth` hops. Defaults to a
   // chain in chunk order, as a road goes
   chunkGraph?(nodes: MapGraphNodeType[]): MapGraph;
@@ -86,11 +88,19 @@ function qfsPatterns(resourceId: string): string[] {
   return [`${dir}${base}0.QFS`, `${dir}*.QFS`];
 }
 
+// Props of NFS2-NFS4 tracks: models exported to "props/<model>/" next to the chunks, textured with track textures
+function eacTrackPropsController(map: TrackMapWorldEntity): TrackPropsController {
+  return new TrackPropsController(map, `${map.chunksLocation}props`);
+}
+
+// NFS2 TRK and NFS3 FRD: props come from the track file and the COL file next to it
 export const NFS2_TRACK_ADAPTER: TrackMapAdapter = {
   chunkPositions: data => data['block_positions'] || [],
   textureArchiveKind: 'QFS',
   textureArchivePatterns: qfsPatterns,
   hasSkybox: true,
+  terrainAlphaTest: 0.5,
+  propsController: eacTrackPropsController,
 };
 
 export const NFS3_TRACK_ADAPTER: TrackMapAdapter = {
@@ -98,6 +108,8 @@ export const NFS3_TRACK_ADAPTER: TrackMapAdapter = {
   textureArchiveKind: 'QFS',
   textureArchivePatterns: qfsPatterns,
   hasSkybox: true,
+  terrainAlphaTest: 0.5,
+  propsController: eacTrackPropsController,
 };
 
 // NFS4's FRD track blocks store their position in `blocks_headers[i].position` (a separate array
@@ -118,6 +130,8 @@ export const NFS4_TRACK_ADAPTER: TrackMapAdapter = {
     return [...patterns, `${dir}*.QFS`];
   },
   hasSkybox: false,
+  terrainAlphaTest: 0.5,
+  propsController: eacTrackPropsController,
 };
 
 // TNFS TRI: 4 road spline points per terrain chunk; props and textures come from a FAM file in
@@ -158,7 +172,7 @@ export const TNFS_TRACK_ADAPTER: TrackMapAdapter = {
     setupNfs1Texture(texture);
     texture.flipY = true;
   },
-  loadChunkProps: loadTnfsChunkProps,
+  propsController: map => new TnfsTrackPropsController(map, map.textureArchivePath || ''),
   splineDetailPanels: [
     { title: 'Road spline item', field: 'road_spline', itemsPerEntry: 1 },
     { title: 'AI info (block for 4 spline items)', field: 'ai_info', itemsPerEntry: 4 },

@@ -177,9 +177,21 @@ materials show the placeholder texture.
   decompressed content exist); the check that matters for these is decompressed-content equality,
   which was not separately asserted this pass (only "no exception" was) — worth adding if a
   stronger corpus check is written later.
-- NFS6 `persist.viv` (BIGF) does not round-trip byte-exact: its header `length` field holds the file
-  size minus 14, while the writer stores the real size. All other bytes match. **Unclear** whether
-  the game reads the field at all; untested in-game.
+- NFS6 BIGF archives store header `length` as header size plus item lengths, without the padding between items
+  (car.viv, skin.viv); `BigfBlock` keeps that convention when the read value matches it, so they round-trip
+  byte-exact. `persist.viv` (described earlier as "file size minus 14") was not re-checked.
+- NFS6 track geometry is probably exported mirrored: car models show that EAGL space is right-handed (license plate
+  text reads correctly only with a rotation), while `EaglModelSerializer` (non-car) and the NFS6 route serializer
+  swap Y and Z, which is a mirror. **Unverified** on a track (no NFS6 track sample in the repo).
+- NFS3 COL props (track-wide `prop_descriptions`/`props_7` of `TRnn.COL`, e.g. an airliner and a 55 m column in
+  TR00.COL) have texture numbers that don't match the track's `TRnn0.QFS` (nor the FRD `texture_blocks`): they get
+  wrong textures, so the GUI hides them unless hidden fields are shown (`is_unknown` dummy property). **Unclear**
+  which archive textures them, or whether the game shows them at all.
+- NFS2-NFS4 animated props: the unit of `anim_delay` is not confirmed; the converter writes `frame_duration`
+  assuming 64 units per second. NFS4 animated extra objects are read like NFS3 ones (16.16 positions, 2.14
+  quaternions), not verified on a file that has them (GT1.FRD has none). The NFS3
+  lane markings (FRD polygon chunk 6, `is_lane` texture blocks) are not rendered: their textures are not in the
+  track QFS.
 - NFS Underground city handedness: chunks keep game coordinates (Z up), the same as the NFSU car viewer.
   Whether that mirrors the city compared to the game (look at text on signs) is not verified.
 - macOS-specific native behaviors (pointer lock for 3D free-fly camera, Finder "Open With" /

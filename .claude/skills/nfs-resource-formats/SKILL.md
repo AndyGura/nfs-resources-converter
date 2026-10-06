@@ -77,8 +77,10 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 enumerated value (e.g. a magic-number field).
 
 **Domain helpers** (`resources.eac.fields`): `Point2D(child, normalized=False)`,
-`Point3D(child, normalized=False)`, `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle →
-radians float), `Nfs1TimeField()` (ticks → seconds float).
+`Point3D(child, normalized=False)`, `Quaternion(child)` (x, y, z, w; NFS2/NFS3 animation keyframes use 2.14 fixed
+point), `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle → radians float), `Nfs1TimeField()` (ticks →
+seconds float). `normalized=True` rescales the vector to unit length on write, which breaks a byte-exact round trip
+of stored vectors that are slightly off unit length or zero; leave it off for data read from game files.
 
 ## If no existing block fits: ask before adding a generic one
 
@@ -239,8 +241,39 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    that file's header comment). Textures are FSH aliases looked up by `find_eagl_texture_archive` (same BIGF, sibling
    file, then `persist.viv`); FSH images there are DXT1/DXT3/DXT5 (`library/utils/dxt.py`, which caches decoded
    pixels so unchanged images write back byte-exact).
+   NFS6 cars (`cars/<car>/car.viv`: `car.o`, `carRigid.o`, `carM.o`, `carRigidM.o`, `shadow.o`, `skeleton.o`,
+   `car.fsh`; paint in `skin.viv` next to it: `skin00.fsh`.. with a "skin" image each, labels from `[skinNN]
+   color_id` of `vehicle.ini`) are the same EAGL objects, recognised by `EASVehicle*` shaders (`is_nfs6_car_model`):
+   `EaglModelSerializer._serialize_car` / `nfs6_car_scene` name meshes `<lod>_<index>_<geometry name>` (names from
+   the model's geometry table, `nfs6_car_part_lod_prefix`), write car textures opaque (their alpha is a reflection
+   mask), every skin to `textures/skins/` plus `skins.json`, skeleton bones as dummies, and give meshes with one
+   non-white vertex color (glass: black, alpha 0x85) a tinted translucent texture copy. Car space is right-handed
+   (X right, Y up, front at -Z): exported with a rotation (`new_y='-z'`) and reversed winding; a mirrored export
+   shows the "ND 4 SPD" license plate of the McLaren F1 sample mirrored. The GUI viewer is `eagl-model.block-ui`
+   with `Nfs6CarMeshController` (skin switcher, wheels/brakes by name and position, light bones), active when the
+   serializer returns `skins.json`.
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
+   Track props: with `maps__add_props_to_obj` a track serializer bakes props into the terrain meshes; without it
+   (the GUI track viewer, and nfs-web, which loads the gg-web-engine export) every prop is a dummy of its terrain
+   chunk scene (`_extra.json` / `.meta`; position relative to the chunk, `properties.is_prop`, `type`,
+   `model_ref_id`) and the props controllers of the frontend spawn them (see the track viewer section below).
+   TNFS (`TriMapSerializer`) dummies reference FAM props (`model`, `bitmap`, `two_sided_bitmap`). NFS2
+   (`TrkMapSerializer`), NFS3 (`FrdMapSerializer`) and NFS4 (`Nfs4FrdMapSerializer`) share
+   `EacTrackSerializer._export_track`: terrain chunks plus `TrackProp`s (model id, keyframes of position +
+   quaternion in game coordinates, optional animation delay). Baked props are meshes `prop_<n>__<texture>`; a dummy
+   has `quaternion` [w, x, y, z] and `type: "model"`. Every model is exported once (identical ones deduplicated,
+   `_deduplicate_models`) to its own folder `props/<model id>/` with the converter's single-model names
+   (`geometry.obj` + `material.mtl`, gg-web-engine `body.glb` + `.meta` without materials: the game assigns track
+   textures by mesh name), all in one `export_scenes` call through `Scene.directory`. An animated prop carries
+   `properties.animation`, a JSON string `{"delay", "frame_duration", "frames": [{"position", "quaternion"}]}` in
+   the same coordinates as the dummy (`frame_duration` in seconds, assuming 64 delay units per second); baked
+   animated meshes get it through `Scene.object_properties` (custom properties of the imported Blender objects).
+   Prop sources: TRK block `props_7`/`props_18` + `prop_descriptions`, COL file `props_7` + `prop_descriptions`
+   (NFS2, NFS3), NFS3 and NFS4 extra objects (XOBJ; NFS4 special objects are rotated by their transform matrix, as
+   row vectors). NFS3 terrain is the high-res chunks (`FRD_TERRAIN_POLYGON_CHUNKS`) plus the block's POLYOBJ
+   objects; the low/medium-res chunks are LODs of it. NFS5 (CRP) and NFS6 tracks have no prop dummies yet: NFS5
+   bakes every article into the chunks, NFS6 routes don't include `levelG.o` props (`level.dat` is not parsed).
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
    file-manager association/icon in the installers.
 5. **Docs**: add/extend an entry in `generate_resource_doc.py`'s `EXPORT_RESOURCES[<game>]`
@@ -302,10 +335,18 @@ for each block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapW
 Per-game differences live in a `TrackMapAdapter` (`track-map-adapters.ts`): chunk positions, the road
 spline used by the minimap and "Spline item" fly-to (with orientation), whether the track is closed,
 texture archive kind (QFS/FAM), glob patterns for finding it, serializer settings for it, skybox,
-terrain texture wrapping, per-chunk props (`tnfs-track-props.ts` for TNFS), and optional panels
+terrain texture wrapping, the props controller (`propsController`), and optional panels
 showing the selected spline point's data. For another game's chunked track, add an adapter and a
 `TRACK_MAP_ADAPTERS` entry keyed by the block class name, and map that class to
 `TrackMapBlockUiComponent`; don't fork the component.
+
+Props are spawned by props controllers, which are copied into nfs-web as they are (like the car mesh controllers),
+so they depend only on three.js, gg-web-engine and rxjs (plus `setupNfs1Texture`): `TrackPropsController`
+(`track-props-controller.ts`; NFS2-NFS4 models from `props/<model>/`, keyframe animation) and
+`TnfsTrackPropsController` (`tnfs-track-props-controller.ts`; FAM models and bitmaps with frame animation, mirrored
+tracks). They take dummies in gg-web-engine meta format (`GgDummy`) and a `TrackPropsAssets` (model by folder,
+texture, terrain material by texture name), which `TrackMapWorldEntity` implements with OBJ/MTL files and nfs-web
+with its gg-web-engine loader; the viewer reads a chunk's dummies from its `_extra.json`.
 
 `chunkPositions` and the texture archive settings are optional. Without `chunkPositions` the
 component reads chunk pivots from the `terrain_chunks.json` the serializer writes next to the chunk

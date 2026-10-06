@@ -1,11 +1,15 @@
 # **NFS 6 Hot Pursuit 2 file specs** #
 
-*Last time updated: 2026-10-05 13:26:45.456906+00:00*
+*Last time updated: 2026-10-06 13:29:25.560289+00:00*
 
 
 # **Info by file extensions** #
 
 **compNN.o**, **trackg.o**, **skyg.o**, **levelNN\levelG.o** track geometry. [EaglModel](#eaglmodel)
+
+**cars\<car>\car.viv** car: **car.o** model (also **carRigid.o**, **carM.o** and **carRigidM.o** with left and right windows swapped, **shadow.o**, bones in **skeleton.o**: [EaglModel](#eaglmodel)), **car.fsh** wheel textures. [BigfBlock](#bigfblock)
+
+**cars\<car>\skin.viv** car paint textures **skinNN.fsh**, their colors are in **vehicle.ini**. [BigfBlock](#bigfblock)
 
 **levelNN\aipaths.dat** race route. [Nfs6AiPaths](#nfs6aipaths)
 
@@ -38,7 +42,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "BIGF" | Resource ID |
-| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes. NFS6 stores the length without padding between items: header plus item lengths |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | Descriptions of items: offset, length and name of each of them |
@@ -54,7 +58,7 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Geometries** ##
 ### **EaglModel** ###
 #### **Size**: 52..? bytes ####
-#### **Description**: EAGL model, used by NFS6 for track compartments, sky and other geometry. A 32-bit little-endian MIPS ELF relocatable object file with model data in ".data" section, where named symbols point to render methods, vertex/index buffers and texture references ####
+#### **Description**: EAGL model, used by NFS6 for track compartments, sky, cars and other geometry. A 32-bit little-endian MIPS ELF relocatable object file with model data in ".data" section, where named symbols point to render methods, vertex/index buffers and texture references ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **magic** | 4 | 4-bytes unsigned integer (little endian). Always == 0x464c457f | ELF magic "\x7fELF" |
@@ -78,6 +82,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 50 | **section_names_index** | 2 | 2-bytes unsigned integer (little endian) | Index of the section with section names |
 | 52 | **sections_data** | section_headers_offset - 52 | Bytes | Sections: ".data" with the model, ".shstrtab" and ".strtab" string tables, ".symtab" symbol table (16-byte records: name offset, value, size, info, other, section index) and ".rel.data" relocations of ".data" (8-byte records: offset, symbol index << 8 | type) |
 | 52 + section_headers_offset - 52 | **section_headers** | section_headers_count\*40 | Array of `section_headers_count` items<br/>Item type: [EaglSectionHeader](#eaglsectionheader) | Section headers table |
+| 52 + section_headers_offset - 52 + section_headers_count\*40 | **trailing_bytes** | up to end of file | Bytes | Zeros after section headers, usually none. Car "skeleton.o" has 40 of them: a section header slot of absent relocations section |
 ### **EaglSectionHeader** ###
 #### **Size**: 40 bytes ####
 #### **Description**: ELF32 section header ####
