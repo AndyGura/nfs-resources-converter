@@ -12,7 +12,7 @@ from library.read_blocks import (
     FixedPointBlock,
 )
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.fields.misc import RGBBlock, Point3D
+from resources.eac.fields.misc import RGBBlock, Point3D, Quaternion
 
 
 class TexturesMapExtraDataRecord(DeclarativeCompoundBlock):
@@ -104,9 +104,12 @@ class AnimatedPropPositionFrame(DeclarativeCompoundBlock):
             Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
             {'description': 'Object position in 3D space'},
         )
-        unk0 = (
-            BytesBlock(length=8),
-            {'description': 'Presumably object orientation at this keyframe', 'is_unknown': True},
+        orientation = (
+            Quaternion(child=FixedPointBlock(length=2, fraction_bits=14, is_signed=True)),
+            {
+                'description': "Object orientation at this keyframe. Prop vertices are rotated by it (v' = q v "
+                'q^-1), then moved to `position`'
+            },
         )
 
 
@@ -120,10 +123,36 @@ class AnimatedPropPosition(DeclarativeCompoundBlock):
             IntegerBlock(length=2, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('frames'))),
             {'description': 'An amount of frames'},
         )
-        unk = (IntegerBlock(length=2), {'is_unknown': True})
+        anim_delay = (
+            IntegerBlock(length=2),
+            {
+                'description': 'Delay between frames (animation speed). Unit is not confirmed, the converter '
+                'assumes 1/64 of a second',
+                'is_unknown': True,
+            },
+        )
         frames = (
             ArrayBlock(length=lambda ctx: ctx.data('num_frames'), child=AnimatedPropPositionFrame()),
-            {'description': 'Animation frames'},
+            {'description': 'Animation frames, played in a loop'},
+        )
+
+
+class SpecialPropPosition(DeclarativeCompoundBlock):
+    @property
+    def schema(self):
+        return {**super().schema, 'block_description': 'Positioning of a special prop'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = (
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
+            {'description': 'Object position in 3D space'},
+        )
+        special_idx = (
+            IntegerBlock(length=4, is_signed=False),
+            {
+                'description': 'Index of a record in the extrablock of type 11 of the same TRK block. The record '
+                'repeats the prop position, followed by 8 unknown bytes'
+            },
         )
 
 
@@ -133,9 +162,8 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': '3D model placement (prop). Same 3D model can be used few times on the track. '
-            'Records of type props_18 (in TRK blocks) and props_7 (in COL file) have this '
-            'structure; the 3D model itself is in the prop_descriptions extrablock of the '
-            'same block/file',
+            'Records of props_7 (in TRK blocks and COL file) and props_18 (in TRK blocks) extrablocks have this '
+            'structure; the 3D model itself is in the prop_descriptions extrablock of the same block/file',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -152,9 +180,10 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
                 enum_names=[
                     (1, 'static_prop'),
                     (3, 'animated_prop'),
+                    (4, 'special_prop'),
                 ]
             ),
-            {'description': 'Object type'},
+            {'description': 'Object type. special_prop is a static prop with a reference to extrablock 11'},
         )
         prop_descr_idx = (
             IntegerBlock(length=1, is_signed=False),
@@ -166,13 +195,13 @@ class PropExtraDataRecord(DeclarativeCompoundBlock):
                 blocks=[
                     Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
                     AnimatedPropPosition(),
+                    SpecialPropPosition(),
                     BytesBlock(length=lambda ctx: ctx.data('block_size') - 4),
                 ],
             ),
             {
                 'description': 'Object positioning in 3D space: a single point for static_prop, a sequence of '
-                'keyframes for animated_prop (the converter places the prop at the first '
-                'keyframe). Block class picked according to `type`'
+                'keyframes for animated_prop. Block class picked according to `type`'
             },
         )
 

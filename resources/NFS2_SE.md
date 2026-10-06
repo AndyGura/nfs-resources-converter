@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-10-05 13:26:45.295195+00:00*
+*Last time updated: 2026-10-06 08:50:52.256230+00:00*
 
 
 # **Info by file extensions** #
@@ -190,24 +190,31 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **num_frames** | 2 | 2-bytes unsigned integer (little endian) | An amount of frames |
-| 2 | **unk** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **frames** | num_frames\*20 | Array of `num_frames` items<br/>Item type: [AnimatedPropPositionFrame](#animatedproppositionframe) | Animation frames |
+| 2 | **anim_delay** | 2 | 2-bytes unsigned integer (little endian) | Delay between frames (animation speed). Unit is not confirmed, the converter assumes 1/64 of a second |
+| 4 | **frames** | num_frames\*20 | Array of `num_frames` items<br/>Item type: [AnimatedPropPositionFrame](#animatedproppositionframe) | Animation frames, played in a loop |
 ### **AnimatedPropPositionFrame** ###
 #### **Size**: 20 bytes ####
 #### **Description**: A single keyframe of animated prop movement ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position in 3D space |
-| 12 | **unk0** | 8 | Bytes | Presumably object orientation at this keyframe |
+| 12 | **orientation** | 8 | Rotation quaternion (x,y,z,w), in the same axes as the positions next to it, where each component is: 16-bit real number (little-endian, signed), where last 14 bits is a fractional part | Object orientation at this keyframe. Prop vertices are rotated by it (v' = q v q^-1), then moved to `position` |
+### **SpecialPropPosition** ###
+#### **Size**: 16 bytes ####
+#### **Description**: Positioning of a special prop ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position in 3D space |
+| 12 | **special_idx** | 4 | 4-bytes unsigned integer (little endian) | Index of a record in the extrablock of type 11 of the same TRK block. The record repeats the prop position, followed by 8 unknown bytes |
 ### **PropExtraDataRecord** ###
 #### **Size**: 4..? bytes ####
-#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track. Records of type props_18 (in TRK blocks) and props_7 (in COL file) have this structure; the 3D model itself is in the prop_descriptions extrablock of the same block/file ####
+#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track. Records of props_7 (in TRK blocks and COL file) and props_18 (in TRK blocks) extrablocks have this structure; the 3D model itself is in the prop_descriptions extrablock of the same block/file ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size in bytes |
-| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): static_prop<br/>3 (0x3): animated_prop</details> | Object type |
+| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): static_prop<br/>3 (0x3): animated_prop<br/>4 (0x4): special_prop</details> | Object type. special_prop is a static prop with a reference to extrablock 11 |
 | 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | An index of 3D model in "prop_descriptions" extrablock |
-| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | Object positioning in 3D space: a single point for static_prop, a sequence of keyframes for animated_prop (the converter places the prop at the first keyframe). Block class picked according to `type` |
+| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- [SpecialPropPosition](#specialpropposition)<br/>- Bytes | Object positioning in 3D space: a single point for static_prop, a sequence of keyframes for animated_prop. Block class picked according to `type` |
 ### **PropDescriptionExtraDataRecord** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: 3D model of a prop. Placed on the track by records of props_* extrablocks, which reference this model by index ####

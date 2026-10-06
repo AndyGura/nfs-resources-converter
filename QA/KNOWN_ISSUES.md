@@ -180,6 +180,13 @@ materials show the placeholder texture.
 - NFS6 `persist.viv` (BIGF) does not round-trip byte-exact: its header `length` field holds the file
   size minus 14, while the writer stores the real size. All other bytes match. **Unclear** whether
   the game reads the field at all; untested in-game.
+- NFS3 COL props (track-wide `prop_descriptions`/`props_7` of `TRnn.COL`, e.g. an airliner and a 55 m column in
+  TR00.COL) have texture numbers that don't match the track's `TRnn0.QFS` (nor the FRD `texture_blocks`): they get
+  wrong textures, so the GUI hides them unless hidden fields are shown (`is_unknown` dummy property). **Unclear**
+  which archive textures them, or whether the game shows them at all.
+- NFS2/NFS3 animated props: the unit of `anim_delay` is not confirmed; the GUI plays 64 units per second. The NFS3
+  lane markings (FRD polygon chunk 6, `is_lane` texture blocks) are not rendered: their textures are not in the
+  track QFS.
 - NFS Underground city handedness: chunks keep game coordinates (Z up), the same as the NFSU car viewer.
   Whether that mirrors the city compared to the game (look at text on signs) is not verified.
 - macOS-specific native behaviors (pointer lock for 3D free-fly camera, Finder "Open With" /

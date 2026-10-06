@@ -24,6 +24,7 @@ class Scene:
         mtl_texture_alpha_modes: Dict[str, str] = None,
         dummies: List[dict] = None,
         curves: List[dict] = None,
+        object_properties: Dict[str, dict] = None,
         extra_script: str = None,
         skip_obj_export: bool = False,
         skip_mtl_export: bool = False,
@@ -40,6 +41,8 @@ class Scene:
         self.mtl_texture_alpha_modes = mtl_texture_alpha_modes or {}
         self.dummies = dummies or []
         self.curves = curves or []
+        # mesh name -> custom properties of the object, written to "<obj_name>_extra.json" next to the dummies
+        self.object_properties = object_properties or {}
         self.extra_script = extra_script or ''
         self.skip_obj_export = skip_obj_export
         self.skip_mtl_export = skip_mtl_export
@@ -69,9 +72,19 @@ def load_obj_extra(path):
                 bpy.context.scene.collection.objects.link(o)
                 o.location = dummy.get('position', [0, 0, 0])
                 o.rotation_mode = 'QUATERNION'
-                o.rotation_quaternion = Euler(tuple(dummy.get('rotation', [0, 0, 0])), 'XYZ').to_quaternion()
+                if 'quaternion' in dummy:
+                    o.rotation_quaternion = dummy['quaternion']
+                else:
+                    o.rotation_quaternion = Euler(tuple(dummy.get('rotation', [0, 0, 0])), 'XYZ').to_quaternion()
                 dummy_props = dummy.get('properties', {})
                 for key, value in dummy_props.items():
+                    o[key] = value
+
+            for name, object_props in extras.get('objects', {}).items():
+                o = bpy.data.objects.get(name)
+                if o is None:
+                    continue
+                for key, value in object_props.items():
                     o[key] = value
             
             for curve in extras.get('curves', []):
@@ -116,10 +129,13 @@ $extra_script
                     f.write(obj)
                     face_index_increment += fii
             exported_files.append(file_path)
-        if scene.dummies or scene.curves:
+        if scene.dummies or scene.curves or scene.object_properties:
             file_path = path_join(output_path, f'{scene.obj_name}_extra.json')
+            extras = {'dummies': scene.dummies, 'curves': scene.curves}
+            if scene.object_properties:
+                extras['objects'] = scene.object_properties
             with open(file_path, 'w') as f:
-                f.write(json.dumps({'dummies': scene.dummies, 'curves': scene.curves}, indent=4, sort_keys=True))
+                f.write(json.dumps(extras, indent=4, sort_keys=True))
             exported_files.append(file_path)
         if scene.mtl_name and not scene.skip_mtl_export:
             file_path = path_join(output_path, f'{scene.mtl_name}.mtl')

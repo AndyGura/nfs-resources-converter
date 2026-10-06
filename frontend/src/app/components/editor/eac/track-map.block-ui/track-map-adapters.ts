@@ -5,6 +5,7 @@ import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { BlockData } from '../../types';
 import type { TrackEntity, TrackMapWorldEntity } from './track-map-world.entity';
 import { loadTnfsChunkProps } from './tnfs-track-props';
+import { loadSerializedChunkProps } from './serialized-track-props';
 
 // A road spline point in game coordinates (Y up); orientation is the heading in radians
 export interface TrackSplinePoint {
@@ -57,8 +58,9 @@ export interface TrackMapAdapter {
   hasSkybox: boolean;
   // Wrapping/orientation of terrain textures. Defaults to repeat in both directions
   setupTerrainTexture?(texture: Texture): void;
-  // Extra entities placed on a terrain chunk (e.g. props)
-  loadChunkProps?(map: TrackMapWorldEntity, chunkIndex: number): Promise<TrackEntity[]>;
+  // Extra entities placed on a terrain chunk (e.g. props). `node` is the chunk: path of its files without extension
+  // and position
+  loadChunkProps?(map: TrackMapWorldEntity, chunkIndex: number, node: MapGraphNodeType): Promise<TrackEntity[]>;
   // Graph of terrain chunks (viewer coordinates), loaded around the camera up to `loadDepth` hops. Defaults to a
   // chain in chunk order, as a road goes
   chunkGraph?(nodes: MapGraphNodeType[]): MapGraph;
@@ -86,11 +88,14 @@ function qfsPatterns(resourceId: string): string[] {
   return [`${dir}${base}0.QFS`, `${dir}*.QFS`];
 }
 
+// NFS2 TRK and NFS3 FRD: props (from the track file and the COL file next to it) are written by the serializer
 export const NFS2_TRACK_ADAPTER: TrackMapAdapter = {
   chunkPositions: data => data['block_positions'] || [],
   textureArchiveKind: 'QFS',
   textureArchivePatterns: qfsPatterns,
   hasSkybox: true,
+  terrainAlphaTest: 0.5,
+  loadChunkProps: loadSerializedChunkProps,
 };
 
 export const NFS3_TRACK_ADAPTER: TrackMapAdapter = {
@@ -98,6 +103,8 @@ export const NFS3_TRACK_ADAPTER: TrackMapAdapter = {
   textureArchiveKind: 'QFS',
   textureArchivePatterns: qfsPatterns,
   hasSkybox: true,
+  terrainAlphaTest: 0.5,
+  loadChunkProps: loadSerializedChunkProps,
 };
 
 // NFS4's FRD track blocks store their position in `blocks_headers[i].position` (a separate array

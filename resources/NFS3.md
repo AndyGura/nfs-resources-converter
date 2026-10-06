@@ -1,6 +1,6 @@
 # **NFS 3 Hot Pursuit file specs** #
 
-*Last time updated: 2026-10-05 13:26:45.332749+00:00*
+*Last time updated: 2026-10-06 08:50:52.306428+00:00*
 
 
 # **Info by file extensions** #
@@ -134,11 +134,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position of the block in the world: a point on the road at the block start. Positions of all blocks form the track path |
 | 12 | **bounds** | 48 | Array of `4` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Block bounding rectangle |
 | 60 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Total amount of vertices |
-| 64 | **num_vertices_high** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by high-res terrain polygons |
-| 68 | **num_vertices_low** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by low-res terrain polygons |
-| 72 | **num_vertices_med** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by medium-res terrain polygons |
+| 64 | **num_vertices_high** | 4 | 4-bytes unsigned integer (little endian) | End of the vertices used by high-res terrain polygons. `vertices` are ordered: POLYOBJ object vertices (up to `num_vertices_obj`), terrain vertices of low-res, then medium-res, then high-res polygons (up to `num_vertices_low`, `num_vertices_med`, `num_vertices_high`), then vertices of the lanes polygons |
+| 68 | **num_vertices_low** | 4 | 4-bytes unsigned integer (little endian) | End of the vertices used by low-res terrain polygons |
+| 72 | **num_vertices_med** | 4 | 4-bytes unsigned integer (little endian) | End of the vertices used by medium-res terrain polygons |
 | 76 | **num_vertices_dup** | 4 | 4-bytes unsigned integer (little endian) | Equals to `num_vertices` |
-| 80 | **num_vertices_obj** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by per-block objects (polyobj)? |
+| 80 | **num_vertices_obj** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices used by POLYOBJ objects of the block, they go first in `vertices` |
 | 84 | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices. Coordinates are global (not relative to block position) |
 | 84 + num_vertices\*12 | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Per-vertex shading color, 32-bit ARGB (0xFFRRGGBB), one item per vertex |
 | 84 + num_vertices\*12 + num_vertices\*4 | **neighbour_data** | 1200 | Array of `600` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | 300 pairs of 16-bit values: (neighbouring block index, unknown). Unused pairs have index 0xFFFF |
@@ -153,10 +153,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 1316 + num_vertices\*12 + num_vertices\*4 | **positions** | num_positions\*8 | Array of `num_positions` items<br/>Item type: [FrdPositionBlock](#frdpositionblock) | Groups of high-res track polygons ("rows" across the road) |
 | 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 | **polygons** | num_polygons\*8 | Array of `num_polygons` items<br/>Item type: [FrdBlockPolygonData](#frdblockpolygondata) | Per-polygon data (road orientation reference + flags) for the high-res track polygons |
 | 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 | **vroad** | num_vroad\*12 | Array of `num_vroad` items<br/>Item type: [FrdBlockVroadData](#frdblockvroaddata) | Virtual road: orientation vectors of the road surface, referenced from `polygons` |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 | **xobj** | num_xobj\*20 | Array of `num_xobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | References to extra objects (XOBJ) placed in this block. Each 20-byte item: position (3 x 32-bit fixed point with 24 fraction bits), 16-bit unknown, 16-bit sequence number of the object among all extra objects of the track, 4 unknown bytes |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 | **polyobj** | num_polyobj\*20 | Array of `num_polyobj` items<br/>Item size: 20 bytes<br/>Item type: Bytes | References to per-block objects (POLYOBJ). Each 20-byte item: 16-bit unknown, 8-bit type, 8-bit id, position (3 x 32-bit fixed point with 24 fraction bits), 8-bit cross index, 3 unknown bytes |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 | **soundsrc** | num_soundsrc\*16 | Array of `num_soundsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit sound type |
-| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + num_soundsrc\*16 | **lightsrc** | num_lightsrc\*16 | Array of `num_lightsrc` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit light type |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 | **xobj** | num_xobj\*20 | Array of `num_xobj` items<br/>Item type: [FrdXobjRef](#frdxobjref) | References to extra objects (XOBJ) placed in this block |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 | **polyobj** | num_polyobj\*16..num_polyobj\*20 | Array of `num_polyobj` items<br/>Item type: [FrdPolyObjRef](#frdpolyobjref) | References to the objects of the first POLYOBJ chunk of the block |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*16..1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 | **polyobj_unused** | 4 \* (amount of `polyobj` items with type != 4) | Bytes | Unused space: `polyobj` area is 20 * `num_polyobj` bytes long, 16-byte records leave 4 bytes each at the end |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*16 + 4 \* (amount of `polyobj` items with type != 4)..1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + 4 \* (amount of `polyobj` items with type != 4) | **soundsrc** | num_soundsrc\*16 | Array of `num_soundsrc` items<br/>Item type: [FrdSoundSource](#frdsoundsource) | Sound sources |
+| 1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*16 + 4 \* (amount of `polyobj` items with type != 4) + num_soundsrc\*16..1316 + num_vertices\*12 + num_vertices\*4 + num_positions\*8 + num_polygons\*8 + num_vroad\*12 + num_xobj\*20 + num_polyobj\*20 + 4 \* (amount of `polyobj` items with type != 4) + num_soundsrc\*16 | **lightsrc** | num_lightsrc\*16 | Array of `num_lightsrc` items<br/>Item type: [FrdLightSource](#frdlightsource) | Light sources |
 ### **FrdPositionBlock** ###
 #### **Size**: 8 bytes ####
 #### **Description**: A group of consecutive high-res track polygons: a "row" of polygons across the road. A track block usually has 8 of them, together covering all polygons of the high-res track chunk ####
@@ -180,8 +181,43 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Virtual road entry: orientation of the road surface, referenced by index from `polygons[].vroad_idx` of the block ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | A normal vector of the surface |
-| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 16 bits is a fractional part, normalized | A forward vector of the surface |
+| 0 | **normal** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part | A normal vector of the surface, unit length (or zero) |
+| 6 | **forward** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 15 bits is a fractional part | A forward vector of the surface, unit length (or zero) |
+### **FrdXobjRef** ###
+#### **Size**: 20 bytes ####
+#### **Description**: Reference to an extra object (XOBJ) placed in the block. Animated extra objects are not always listed ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Position of the object, equals to its reference point (`pt_ref`) |
+| 12 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 14 | **global_no** | 2 | 2-bytes unsigned integer (little endian) | Sequence number of the object among all extra objects of the track |
+| 16 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 18 | **cross_index** | 1 | 1-byte unsigned integer | Index of the object in `polyobj` of the block (the first POLYOBJ chunk), 0 if the object is in another chunk |
+| 19 | **unk2** | 1 | 1-byte unsigned integer | Values 1, 2 |
+### **FrdPolyObjRef** ###
+#### **Size**: 16..20 bytes ####
+#### **Description**: Reference to an object of the first POLYOBJ chunk of the block (`polyobj[0]` of the corresponding [FrdPolyBlock](#frdpolyblock)), same order. Variable size: 16 bytes, or 20 for an extra object (XOBJ) ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **size** | 2 | 2-bytes unsigned integer (little endian) | Record size in bytes |
+| 2 | **type** | 1 | 1-byte unsigned integer | Object type: 1 - polygons of the block, 4 - extra object (XOBJ) |
+| 3 | **objno** | 1 | 1-byte unsigned integer | Object number |
+| 4 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Reference point of the object |
+| 16 | **xobj_idx** | 0..4 | Optional (if type == 4): 4-bytes unsigned integer (little endian) | Index of the extra object in its chunk (`extraobject_blocks[4 * block_index]` of the track file) |
+### **FrdSoundSource** ###
+#### **Size**: 16 bytes ####
+#### **Description**: A sound source placed in the block ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Position of the sound source |
+| 12 | **type** | 4 | 4-bytes unsigned integer (little endian) | Sound type |
+### **FrdLightSource** ###
+#### **Size**: 16 bytes ####
+#### **Description**: A light source placed in the block ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Position of the light source |
+| 12 | **type** | 4 | 4-bytes unsigned integer (little endian) | Light type |
 ### **FrdPolyBlock** ###
 #### **Size**: 44..? bytes ####
 #### **Description**: Polygons of a track block (the [FrdBlock](#frdblock) with the same index): 7 chunks of terrain polygons + 4 chunks of per-block objects ####
@@ -228,13 +264,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **cross_type** | 4 | 4-bytes unsigned integer (little endian) | Object type: 4 - static object, 3 - animated object |
 | 4 | **cross_no** | 4 | 4-bytes unsigned integer (little endian) | Object number |
 | 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 12 | **data** | 16..? | One of types:<br/>- [ExtraObjectDataCrossType4](#extraobjectdatacrosstype4)<br/>- [ExtraObjectDataCrossType1](#extraobjectdatacrosstype1) | Type-specific data (position or animation), block class picked according to `cross_type` |
+| 12 | **data** | 16..? | One of types:<br/>- [ExtraObjectDataCrossType4](#extraobjectdatacrosstype4)<br/>- [ExtraObjectDataCrossType3](#extraobjectdatacrosstype3) | Type-specific data (position or animation), block class picked according to `cross_type` |
 | 28..? | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices |
-| 32..? | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Vertices, relative to the object position (reference point for static objects, current keyframe position for animated ones) |
+| 32..? | **vertices** | num_vertices\*12 | Array of `num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices, relative to the object position (reference point for static objects, current keyframe for animated ones) |
 | 32 + num_vertices\*12..? | **vertex_shading** | num_vertices\*4 | Array of `num_vertices` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Per-vertex shading color, 32-bit ARGB (0xFFRRGGBB), one item per vertex |
 | 32 + num_vertices\*12 + num_vertices\*4..? | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Length of polygons array |
 | 36 + num_vertices\*12 + num_vertices\*4..? | **polygons** | num_polygons\*14 | Array of `num_polygons` items<br/>Item type: [FrdPolygonRecord](#frdpolygonrecord) | Polygons of the object. Vertex indexes point to `vertices` of this object |
-### **ExtraObjectDataCrossType1** ###
+### **ExtraObjectDataCrossType3** ###
 #### **Size**: 24..? bytes ####
 #### **Description**: Extra data of an animated extra object (cross_type == 3) ####
 | Offset | Name | Size (bytes) | Type | Description |
@@ -243,21 +279,21 @@ Did not find what you need or some given data is wrong? Please submit an
 | 18 | **type** | 1 | 1-byte unsigned integer. Always == 0x3 | Animation type, always 3 |
 | 19 | **objno** | 1 | 1-byte unsigned integer | Object number |
 | 20 | **num_animdata** | 2 | 2-bytes unsigned integer (little endian) | Amount of keyframes |
-| 22 | **anim_delay** | 2 | 2-bytes unsigned integer (little endian) | Delay between keyframes (animation speed) |
-| 24 | **animdata** | num_animdata\*20 | Array of `num_animdata` items<br/>Item type: [AnimData](#animdata) | Animation keyframes. Object vertices are relative to the position of the current keyframe |
+| 22 | **anim_delay** | 2 | 2-bytes unsigned integer (little endian) | Delay between keyframes (animation speed). Unit is not confirmed, the converter assumes 1/64 of a second |
+| 24 | **animdata** | num_animdata\*20 | Array of `num_animdata` items<br/>Item type: [AnimData](#animdata) | Animation keyframes, played in a loop. Object vertices are relative to the position and orientation of the current keyframe |
 ### **AnimData** ###
 #### **Size**: 20 bytes ####
 #### **Description**: Animation keyframe of an extra object ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Object position at this keyframe |
-| 12 | **od** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Object orientation at this keyframe, presumably a quaternion (x, y, z, w), where each component is 16-bit fixed point with 14 fraction bits (identity is [0, 0, 0, 16384]) |
+| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position at this keyframe |
+| 12 | **orientation** | 8 | Rotation quaternion (x,y,z,w), in the same axes as the positions next to it, where each component is: 16-bit real number (little-endian, signed), where last 14 bits is a fractional part | Object orientation at this keyframe. Object vertices are rotated by it (v' = q v q^-1), then moved to `pt` |
 ### **ExtraObjectDataCrossType4** ###
 #### **Size**: 16 bytes ####
 #### **Description**: Extra data of a static extra object (cross_type == 4) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **pt_ref** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Reference point: position of the object in the world. Object vertices are relative to it |
+| 0 | **pt_ref** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Reference point: position of the object in the world. Object vertices are relative to it |
 | 12 | **anim_memory** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **TextureBlock** ###
 #### **Size**: 47 bytes ####
@@ -322,24 +358,31 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **num_frames** | 2 | 2-bytes unsigned integer (little endian) | An amount of frames |
-| 2 | **unk** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **frames** | num_frames\*20 | Array of `num_frames` items<br/>Item type: [AnimatedPropPositionFrame](#animatedproppositionframe) | Animation frames |
+| 2 | **anim_delay** | 2 | 2-bytes unsigned integer (little endian) | Delay between frames (animation speed). Unit is not confirmed, the converter assumes 1/64 of a second |
+| 4 | **frames** | num_frames\*20 | Array of `num_frames` items<br/>Item type: [AnimatedPropPositionFrame](#animatedproppositionframe) | Animation frames, played in a loop |
 ### **AnimatedPropPositionFrame** ###
 #### **Size**: 20 bytes ####
 #### **Description**: A single keyframe of animated prop movement ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position in 3D space |
-| 12 | **unk0** | 8 | Bytes | Presumably object orientation at this keyframe |
+| 12 | **orientation** | 8 | Rotation quaternion (x,y,z,w), in the same axes as the positions next to it, where each component is: 16-bit real number (little-endian, signed), where last 14 bits is a fractional part | Object orientation at this keyframe. Prop vertices are rotated by it (v' = q v q^-1), then moved to `position` |
+### **SpecialPropPosition** ###
+#### **Size**: 16 bytes ####
+#### **Description**: Positioning of a special prop ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position in 3D space |
+| 12 | **special_idx** | 4 | 4-bytes unsigned integer (little endian) | Index of a record in the extrablock of type 11 of the same TRK block. The record repeats the prop position, followed by 8 unknown bytes |
 ### **PropExtraDataRecord** ###
 #### **Size**: 4..? bytes ####
-#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track. Records of type props_18 (in TRK blocks) and props_7 (in COL file) have this structure; the 3D model itself is in the prop_descriptions extrablock of the same block/file ####
+#### **Description**: 3D model placement (prop). Same 3D model can be used few times on the track. Records of props_7 (in TRK blocks and COL file) and props_18 (in TRK blocks) extrablocks have this structure; the 3D model itself is in the prop_descriptions extrablock of the same block/file ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **block_size** | 2 | 2-bytes unsigned integer (little endian) | Block size in bytes |
-| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): static_prop<br/>3 (0x3): animated_prop</details> | Object type |
+| 2 | **type** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>1 (0x1): static_prop<br/>3 (0x3): animated_prop<br/>4 (0x4): special_prop</details> | Object type. special_prop is a static prop with a reference to extrablock 11 |
 | 3 | **prop_descr_idx** | 1 | 1-byte unsigned integer | An index of 3D model in "prop_descriptions" extrablock |
-| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- Bytes | Object positioning in 3D space: a single point for static_prop, a sequence of keyframes for animated_prop (the converter places the prop at the first keyframe). Block class picked according to `type` |
+| 4 | **position** | ? | Type according to enum `type`:<br/>- Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part<br/>- [AnimatedPropPosition](#animatedpropposition)<br/>- [SpecialPropPosition](#specialpropposition)<br/>- Bytes | Object positioning in 3D space: a single point for static_prop, a sequence of keyframes for animated_prop. Block class picked according to `type` |
 ### **PropDescriptionExtraDataRecord** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: 3D model of a prop. Placed on the track by records of props_* extrablocks, which reference this model by index ####

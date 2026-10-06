@@ -72,6 +72,8 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
   // The loaded texture archive, null when the terrain uses placeholder textures
   textureArchivePath$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
   private terrainChunksObjLocation: string | undefined;
+  // Files written by the track serializer for the chunked preview
+  private serializedFiles: string[] = [];
 
   pointer$: BehaviorSubject<Point3 | null> = new BehaviorSubject<Point3 | null>(null);
 
@@ -354,7 +356,8 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
         maps__save_spherical_skybox_texture: !!this.adapter?.hasSkybox,
         maps__add_props_to_obj: false,
       });
-      let anyObjPath = paths.find(x => x.endsWith('.obj')) || '';
+      this.serializedFiles = paths;
+      let anyObjPath = paths.find(x => x.endsWith('.obj') && x.includes('terrain_chunk_')) || '';
       this.terrainChunksObjLocation = anyObjPath.substring(0, anyObjPath.indexOf('terrain_chunk_'));
       if (this.adapter?.loadLayout) {
         const hadSpline = this.splinePoints.length > 0;
@@ -372,6 +375,7 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       }
     } else {
       this.terrainChunksObjLocation = undefined;
+      this.serializedFiles = [];
       if (this.adapter?.loadLayout) {
         this.applyLayout(null);
       }
@@ -466,6 +470,7 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
         data: this.resourceData,
       },
       !this.isClosed,
+      this.serializedFiles,
     );
     this.world.addEntity(this.map);
     this.cdr.markForCheck();

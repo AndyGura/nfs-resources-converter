@@ -77,8 +77,10 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 enumerated value (e.g. a magic-number field).
 
 **Domain helpers** (`resources.eac.fields`): `Point2D(child, normalized=False)`,
-`Point3D(child, normalized=False)`, `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle →
-radians float), `Nfs1TimeField()` (ticks → seconds float).
+`Point3D(child, normalized=False)`, `Quaternion(child)` (x, y, z, w; NFS2/NFS3 animation keyframes use 2.14 fixed
+point), `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle → radians float), `Nfs1TimeField()` (ticks →
+seconds float). `normalized=True` rescales the vector to unit length on write, which breaks a byte-exact round trip
+of stored vectors that are slightly off unit length or zero; leave it off for data read from game files.
 
 ## If no existing block fits: ask before adding a generic one
 
@@ -241,6 +243,16 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    pixels so unchanged images write back byte-exact).
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
+   NFS2 (`TrkMapSerializer`) and NFS3 (`FrdMapSerializer`) tracks share `EacTrackSerializer._export_track`:
+   terrain chunks plus `TrackProp`s (model id, keyframes of position + quaternion in game coordinates, optional
+   animation delay). With `maps__add_props_to_obj` props are baked into the chunk meshes (`prop_<n>__<texture>`);
+   otherwise each prop is a dummy (`position`, `quaternion` [w, x, y, z], `properties.model_ref_id`) in the
+   chunk's `_extra.json`, and every model is written once to `props/<model id>.obj`. An animated prop carries
+   `properties.animation`, a JSON string `{"delay", "frames": [{"position", "quaternion"}]}` in the same coordinates
+   as the dummy; baked animated meshes get it through `Scene.object_properties` (custom properties of the imported
+   Blender objects). Prop sources: TRK block `props_7`/`props_18` + `prop_descriptions`, COL file `props_7` +
+   `prop_descriptions` (both games), NFS3 extra objects (XOBJ). NFS3 terrain is the high-res chunks
+   (`FRD_TERRAIN_POLYGON_CHUNKS`) plus the block's POLYOBJ objects; the low/medium-res chunks are LODs of it.
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
    file-manager association/icon in the installers.
 5. **Docs**: add/extend an entry in `generate_resource_doc.py`'s `EXPORT_RESOURCES[<game>]`
@@ -302,7 +314,9 @@ for each block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapW
 Per-game differences live in a `TrackMapAdapter` (`track-map-adapters.ts`): chunk positions, the road
 spline used by the minimap and "Spline item" fly-to (with orientation), whether the track is closed,
 texture archive kind (QFS/FAM), glob patterns for finding it, serializer settings for it, skybox,
-terrain texture wrapping, per-chunk props (`tnfs-track-props.ts` for TNFS), and optional panels
+terrain texture wrapping, per-chunk props (`loadChunkProps`: `tnfs-track-props.ts` builds TNFS props from block
+data; `serialized-track-props.ts` loads the prop dummies and `props/*.obj` models NFS2/NFS3 serializers write, and
+plays their keyframe animation), and optional panels
 showing the selected spline point's data. For another game's chunked track, add an adapter and a
 `TRACK_MAP_ADAPTERS` entry keyed by the block class name, and map that class to
 `TrackMapBlockUiComponent`; don't fork the component.

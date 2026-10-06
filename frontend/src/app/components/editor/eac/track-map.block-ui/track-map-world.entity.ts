@@ -7,7 +7,7 @@ import {
   MapGraphNodeType,
 } from '@gg-web-engine/core';
 import { BehaviorSubject, distinctUntilChanged, takeUntil } from 'rxjs';
-import { DoubleSide, Material, Mesh, MeshBasicMaterial, RepeatWrapping, Texture, TextureLoader } from 'three';
+import { DoubleSide, Material, Mesh, MeshBasicMaterial, Object3D, RepeatWrapping, Texture, TextureLoader } from 'three';
 import { ThreeDisplayObjectComponent, ThreeGgWorld } from '@gg-web-engine/three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
@@ -20,6 +20,12 @@ export type TypeDocOf<W extends GgWorld<any, any>> =
 
 export type TrackEntity = Entity3d<TypeDocOf<ThreeGgWorld>>;
 
+// Meshes of the serialized chunks and props are named "<name>_<texture name>"
+export function meshTextureName(mesh: Object3D): string {
+  const name: string = mesh.userData['name'] || mesh.name;
+  return name.substring(name.lastIndexOf('_') + 1).split('.')[0];
+}
+
 function setupTerrainTextureDefault(texture: Texture) {
   texture.wrapS = RepeatWrapping;
   texture.wrapT = RepeatWrapping;
@@ -27,8 +33,8 @@ function setupTerrainTextureDefault(texture: Texture) {
 }
 
 // Track terrain streamed as OBJ chunks along a MapGraph, textured from `<textureArchivePath>/<name>.png`: a texture
-// archive (QFS/FAM) serialized there, or textures the track serializer wrote next to the chunks. Chunk extras (e.g.
-// TNFS props) come from the adapter.
+// archive (QFS/FAM) serialized there, or textures the track serializer wrote next to the chunks. Chunk extras (props)
+// come from the adapter.
 export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>> {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
@@ -41,6 +47,8 @@ export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld
     public readonly adapter: TrackMapAdapter,
     public readonly resource: Resource,
     public readonly isOpenedTrack: boolean,
+    // Files written by the track serializer (chunks and what comes with them)
+    public readonly serializedFiles: string[] = [],
   ) {
     super(mapGraph, { loadDepth: adapter.loadDepth ?? 40, inertia: 2 });
   }
@@ -97,17 +105,13 @@ export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld
   ): Promise<[TrackEntity[], LoadResultWithProps<TypeDocOf<ThreeGgWorld>>]> {
     const object = await this.objLoader.loadAsync(node.path + '.obj');
     object.position.set(node.position.x, node.position.y, node.position.z);
-    object.traverse((node: any) => {
-      if (node instanceof Mesh) {
-        node.material = this.getTerrainMaterial(
-          (node.userData['name'] || node.name)
-            .substr((node.userData['name'] || node.name).lastIndexOf('_') + 1)
-            .split('.')[0],
-        );
+    object.traverse((child: any) => {
+      if (child instanceof Mesh) {
+        child.material = this.getTerrainMaterial(meshTextureName(child));
       }
     });
     const chunkIndex = +node.path.split('_')[node.path.split('_').length - 1];
-    const props = this.adapter.loadChunkProps ? await this.adapter.loadChunkProps(this, chunkIndex) : [];
+    const props = this.adapter.loadChunkProps ? await this.adapter.loadChunkProps(this, chunkIndex, node) : [];
     const entity: TrackEntity = new Entity3d({
       object3D: new ThreeDisplayObjectComponent(object),
     });

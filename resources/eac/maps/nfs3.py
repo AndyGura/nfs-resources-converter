@@ -10,9 +10,14 @@ from library.read_blocks import (
     LengthPrefixedArrayBlock,
     DecimalBlock,
     FixedPointBlock,
+    OptionalBlock,
 )
 from library.read_blocks.misc.value_validators import Eq
-from resources.eac.fields.misc import Point3D
+from resources.eac.fields.misc import Point3D, Quaternion
+
+
+def _resize_bytes(value: bytes, length: int) -> bytes:
+    return (value + bytes(max(length - len(value), 0)))[:length]
 
 
 class FrdPositionBlock(DeclarativeCompoundBlock):
@@ -80,13 +85,109 @@ class FrdBlockVroadData(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         normal = (
-            Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True), normalized=True),
-            {'description': 'A normal vector of the surface'},
+            Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True)),
+            {'description': 'A normal vector of the surface, unit length (or zero)'},
         )
         forward = (
-            Point3D(child=FixedPointBlock(length=2, fraction_bits=16, is_signed=True), normalized=True),
-            {'description': 'A forward vector of the surface'},
+            Point3D(child=FixedPointBlock(length=2, fraction_bits=15, is_signed=True)),
+            {'description': 'A forward vector of the surface, unit length (or zero)'},
         )
+
+
+class FrdXobjRef(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Reference to an extra object (XOBJ) placed in the block. Animated extra objects '
+            'are not always listed',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = (
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
+            {'description': 'Position of the object, equals to its reference point (`pt_ref`)'},
+        )
+        unk0 = (IntegerBlock(length=2, is_signed=False), {'is_unknown': True})
+        global_no = (
+            IntegerBlock(length=2, is_signed=False),
+            {'description': 'Sequence number of the object among all extra objects of the track'},
+        )
+        unk1 = (IntegerBlock(length=2, is_signed=False), {'is_unknown': True})
+        cross_index = (
+            IntegerBlock(length=1, is_signed=False),
+            {
+                'description': 'Index of the object in `polyobj` of the block (the first POLYOBJ chunk), 0 if '
+                'the object is in another chunk'
+            },
+        )
+        unk2 = (IntegerBlock(length=1, is_signed=False), {'description': 'Values 1, 2', 'is_unknown': True})
+
+
+class FrdPolyObjRef(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Reference to an object of the first POLYOBJ chunk of the block '
+            '(`polyobj[0]` of the corresponding [FrdPolyBlock](#frdpolyblock)), same order. '
+            'Variable size: 16 bytes, or 20 for an extra object (XOBJ)',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        size = (
+            IntegerBlock(
+                length=2,
+                is_signed=False,
+                programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data()),
+            ),
+            {'description': 'Record size in bytes'},
+        )
+        type = (
+            IntegerBlock(length=1, is_signed=False),
+            {'description': 'Object type: 1 - polygons of the block, 4 - extra object (XOBJ)'},
+        )
+        objno = (IntegerBlock(length=1, is_signed=False), {'description': 'Object number', 'is_unknown': True})
+        position = (
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
+            {'description': 'Reference point of the object'},
+        )
+        xobj_idx = (
+            OptionalBlock(
+                child=IntegerBlock(length=4, is_signed=False),
+                criteria=(lambda ctx: ctx.data('type') == 4, 'type == 4'),
+            ),
+            {
+                'description': 'Index of the extra object in its chunk (`extraobject_blocks[4 * block_index]` of '
+                'the track file)'
+            },
+        )
+
+
+class FrdSoundSource(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'A sound source placed in the block'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = (
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
+            {'description': 'Position of the sound source'},
+        )
+        type = (IntegerBlock(length=4, is_signed=False), {'description': 'Sound type', 'is_unknown': True})
+
+
+class FrdLightSource(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'A light source placed in the block'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = (
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
+            {'description': 'Position of the light source'},
+        )
+        type = (IntegerBlock(length=4, is_signed=False), {'description': 'Light type', 'is_unknown': True})
 
 
 class FrdBlock(DeclarativeCompoundBlock):
@@ -118,15 +219,20 @@ class FrdBlock(DeclarativeCompoundBlock):
         )
         num_vertices_high = (
             IntegerBlock(length=4, is_signed=False),
-            {'description': 'Amount of vertices used by high-res terrain polygons'},
+            {
+                'description': 'End of the vertices used by high-res terrain polygons. `vertices` are ordered: '
+                'POLYOBJ object vertices (up to `num_vertices_obj`), terrain vertices of low-res, then '
+                'medium-res, then high-res polygons (up to `num_vertices_low`, `num_vertices_med`, '
+                '`num_vertices_high`), then vertices of the lanes polygons'
+            },
         )
         num_vertices_low = (
             IntegerBlock(length=4, is_signed=False),
-            {'description': 'Amount of vertices used by low-res terrain polygons'},
+            {'description': 'End of the vertices used by low-res terrain polygons'},
         )
         num_vertices_med = (
             IntegerBlock(length=4, is_signed=False),
-            {'description': 'Amount of vertices used by medium-res terrain polygons'},
+            {'description': 'End of the vertices used by medium-res terrain polygons'},
         )
         num_vertices_dup = (
             IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('vertices'))),
@@ -134,7 +240,7 @@ class FrdBlock(DeclarativeCompoundBlock):
         )
         num_vertices_obj = (
             IntegerBlock(length=4, is_signed=False),
-            {'description': 'Amount of vertices used by per-block objects (polyobj)?', 'is_unknown': True},
+            {'description': 'Amount of vertices used by POLYOBJ objects of the block, they go first in `vertices`'},
         )
         vertices = (
             ArrayBlock(child=Point3D(child=DecimalBlock(length=4)), length=lambda ctx: ctx.data('num_vertices')),
@@ -202,34 +308,36 @@ class FrdBlock(DeclarativeCompoundBlock):
             {'description': 'Virtual road: orientation vectors of the road surface, referenced from `polygons`'},
         )
         xobj = (
-            ArrayBlock(child=BytesBlock(length=20), length=lambda ctx: ctx.data('num_xobj')),
-            {
-                'description': 'References to extra objects (XOBJ) placed in this block. Each 20-byte item: '
-                'position (3 x 32-bit fixed point with 24 fraction bits), 16-bit unknown, 16-bit '
-                'sequence number of the object among all extra objects of the track, 4 unknown bytes'
-            },
+            ArrayBlock(child=FrdXobjRef(), length=lambda ctx: ctx.data('num_xobj')),
+            {'description': 'References to extra objects (XOBJ) placed in this block'},
         )
         polyobj = (
-            ArrayBlock(child=BytesBlock(length=20), length=lambda ctx: ctx.data('num_polyobj')),
+            ArrayBlock(child=FrdPolyObjRef(), length=lambda ctx: ctx.data('num_polyobj')),
+            {'description': 'References to the objects of the first POLYOBJ chunk of the block'},
+        )
+        polyobj_unused = (
+            BytesBlock(
+                length=(
+                    lambda ctx: sum(4 for x in ctx.data('polyobj') if x['type'] != 4),
+                    '4 * (amount of `polyobj` items with type != 4)',
+                ),
+                programmatic_value=lambda ctx: _resize_bytes(
+                    ctx.data('polyobj_unused'), sum(4 for x in ctx.data('polyobj') if x['type'] != 4)
+                ),
+            ),
             {
-                'description': 'References to per-block objects (POLYOBJ). Each 20-byte item: 16-bit unknown, '
-                '8-bit type, 8-bit id, position (3 x 32-bit fixed point with 24 fraction bits), '
-                '8-bit cross index, 3 unknown bytes'
+                'description': 'Unused space: `polyobj` area is 20 * `num_polyobj` bytes long, 16-byte records '
+                'leave 4 bytes each at the end',
+                'is_unknown': True,
             },
         )
         soundsrc = (
-            ArrayBlock(child=BytesBlock(length=16), length=lambda ctx: ctx.data('num_soundsrc')),
-            {
-                'description': 'Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 '
-                'fraction bits) + 32-bit sound type'
-            },
+            ArrayBlock(child=FrdSoundSource(), length=lambda ctx: ctx.data('num_soundsrc')),
+            {'description': 'Sound sources'},
         )
         lightsrc = (
-            ArrayBlock(child=BytesBlock(length=16), length=lambda ctx: ctx.data('num_lightsrc')),
-            {
-                'description': 'Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 '
-                'fraction bits) + 32-bit light type'
-            },
+            ArrayBlock(child=FrdLightSource(), length=lambda ctx: ctx.data('num_lightsrc')),
+            {'description': 'Light sources'},
         )
 
 
@@ -382,7 +490,7 @@ class ExtraObjectDataCrossType4(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         pt_ref = (
-            Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True)),
+            Point3D(child=DecimalBlock(length=4)),
             {'description': 'Reference point: position of the object in the world. Object vertices are relative to it'},
         )
         anim_memory = (IntegerBlock(length=4), {'is_unknown': True})
@@ -395,19 +503,19 @@ class AnimData(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         pt = (
-            Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True)),
+            Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
             {'description': 'Object position at this keyframe'},
         )
-        od = (
-            ArrayBlock(child=IntegerBlock(length=2), length=4),
+        orientation = (
+            Quaternion(child=FixedPointBlock(length=2, fraction_bits=14, is_signed=True)),
             {
-                'description': 'Object orientation at this keyframe, presumably a quaternion (x, y, z, w), where each '
-                'component is 16-bit fixed point with 14 fraction bits (identity is [0, 0, 0, 16384])'
+                'description': "Object orientation at this keyframe. Object vertices are rotated by it (v' = q v "
+                'q^-1), then moved to `pt`'
             },
         )
 
 
-class ExtraObjectDataCrossType1(DeclarativeCompoundBlock):
+class ExtraObjectDataCrossType3(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {**super().schema, 'block_description': 'Extra data of an animated extra object (cross_type == 3)'}
@@ -420,12 +528,18 @@ class ExtraObjectDataCrossType1(DeclarativeCompoundBlock):
             IntegerBlock(length=2, programmatic_value=lambda ctx: len(ctx.data('animdata'))),
             {'description': 'Amount of keyframes'},
         )
-        anim_delay = (IntegerBlock(length=2), {'description': 'Delay between keyframes (animation speed)'})
+        anim_delay = (
+            IntegerBlock(length=2),
+            {
+                'description': 'Delay between keyframes (animation speed). Unit is not confirmed, the converter '
+                'assumes 1/64 of a second'
+            },
+        )
         animdata = (
             ArrayBlock(child=AnimData(), length=lambda ctx: ctx.data('num_animdata')),
             {
-                'description': 'Animation keyframes. Object vertices are relative to the position of the '
-                'current keyframe'
+                'description': 'Animation keyframes, played in a loop. Object vertices are relative to the position '
+                'and orientation of the current keyframe'
             },
         )
 
@@ -445,7 +559,7 @@ class ExtraObjectBlock(DeclarativeCompoundBlock):
         unk0 = (IntegerBlock(length=4), {'is_unknown': True})
         data = (
             DelegateBlock(
-                possible_blocks=[ExtraObjectDataCrossType4(), ExtraObjectDataCrossType1()],
+                possible_blocks=[ExtraObjectDataCrossType4(), ExtraObjectDataCrossType3()],
                 choice_index=lambda ctx, **_: 0 if ctx.data('cross_type') == 4 else 1,
             ),
             {'description': 'Type-specific data (position or animation), block class picked according to `cross_type`'},
@@ -455,13 +569,10 @@ class ExtraObjectBlock(DeclarativeCompoundBlock):
             {'description': 'Amount of vertices'},
         )
         vertices = (
-            ArrayBlock(
-                child=Point3D(child=FixedPointBlock(length=4, fraction_bits=24, is_signed=True)),
-                length=lambda ctx: ctx.data('num_vertices'),
-            ),
+            ArrayBlock(child=Point3D(child=DecimalBlock(length=4)), length=lambda ctx: ctx.data('num_vertices')),
             {
                 'description': 'Vertices, relative to the object position (reference point for static objects, '
-                'current keyframe position for animated ones)'
+                'current keyframe for animated ones)'
             },
         )
         vertex_shading = (
