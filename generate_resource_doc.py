@@ -105,6 +105,8 @@ EXPORT_RESOURCES = {
 
 **\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
+**\\*.RPL** race replay, car states and controls. {render_type(eac.replays.TnfsReplay())}
+
 **\\*.TGV** video, I just use ffmpeg to convert it
 
 **\\*.TRI** track path, terrain geometry, prop positions, various track properties, used by physics engine, camera work etc. {render_type(eac.maps.TriMap())}
@@ -153,6 +155,18 @@ EXPORT_RESOURCES = {
                 eac.audios.EacsAudioFile(),
                 eac.audios.SoundBankHeaderEntry(),
                 eac.audios.EacsAudioHeader(),
+            ],
+            'Replays': [
+                eac.replays.TnfsReplay(),
+                eac.replays.TnfsReplaySetup(),
+                eac.replays.TnfsReplayPlayer(),
+                eac.replays.TnfsReplayHighlights(),
+                eac.replays.TnfsReplayHighlightClip(),
+                eac.replays.TnfsReplayRecording(),
+                eac.replays.TnfsReplayPlayerFrame(),
+                eac.replays.TnfsReplayOtherFrame(),
+                eac.replays.TnfsReplayCarState(),
+                eac.replays.TnfsReplayStats(),
             ],
             'Misc': [
                 eac.configs.TnfsConfigDat(),
