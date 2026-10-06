@@ -1,8 +1,18 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  inject,
+  OnChanges,
+  OnDestroy,
+  SimpleChanges,
+} from '@angular/core';
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
-import { ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
 import { Object3D } from 'three';
+import { Nfs5CarMeshController } from './nfs5-car-mesh-controller';
 
 // NFS5 CRP geometry: cars open in the 3D model viewer, tracks ("karT") in the shared track viewer
 @Component({
@@ -15,6 +25,15 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
   previewPaths$: BehaviorSubject<[string, string] | null> = new BehaviorSubject<[string, string] | null>(null);
 
   isTrack$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+
+  customControls: ObjViewerCustomControl[] = [];
+
+  readonly cdr = inject(ChangeDetectorRef);
+
+  private meshController: Nfs5CarMeshController | null = null;
+
+  // filter of default car parts, by loaded object
+  private readonly defaultPartFilters = new WeakMap<Object3D, (article: string) => boolean>();
 
   private readonly destroyed$: Subject<void> = new Subject<void>();
 
@@ -48,6 +67,42 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
   previewAnimationFrameFunc(object: Object3D): number | null {
     const match = CrpGeometryBlockUiComponent.MESH_NAME_REGEX.exec(object.name);
     return match ? +match[2] : null;
+  }
+
+  onObjectLoaded(obj: Object3D) {
+    try {
+      this.meshController?.dispose();
+      const meshController = new Nfs5CarMeshController(obj);
+      this.meshController = meshController;
+      this.customControls = meshController.hasWheels
+        ? [
+            {
+              title: 'NFS5 car features',
+              controls: [
+                {
+                  label: 'Car speed',
+                  type: 'radio',
+                  options: ['idle', 'slow', 'fast'],
+                  value: 'idle',
+                  change: v => (meshController.speed = v as any),
+                },
+                {
+                  label: 'Steering angle',
+                  type: 'slider',
+                  minValue: -0.7,
+                  maxValue: 0.7,
+                  valueStep: 0.05,
+                  value: 0,
+                  change: v => (meshController.steeringAngle = v),
+                },
+              ],
+            },
+          ]
+        : [];
+      this.cdr.markForCheck();
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   private serializerSettings = {
@@ -97,9 +152,30 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
         return object.name.endsWith('_damaged') ? 1 : 0;
       },
     },
+    {
+      // a car has every variant of its parts (body kits, spoiler states, cabrio roof, drivers)
+      name: 'Parts',
+      filterGroups: ['Default look', 'Variants, driver'],
+      checkedIndex: 0,
+      pickFunction: object => {
+        const article = Nfs5CarMeshController.parseMeshName(object.name)?.article;
+        if (!article || !object.parent) {
+          return 0;
+        }
+        let isDefault = this.defaultPartFilters.get(object.parent);
+        if (!isDefault) {
+          isDefault = Nfs5CarMeshController.defaultArticleFilter(
+            object.parent.children.map(x => Nfs5CarMeshController.parseMeshName(x.name)?.article || ''),
+          );
+          this.defaultPartFilters.set(object.parent, isDefault);
+        }
+        return isDefault(article) ? 0 : 1;
+      },
+    },
   ];
 
   ngOnDestroy(): void {
+    this.meshController?.dispose();
     this.destroyed$.next();
     this.destroyed$.complete();
   }

@@ -13,7 +13,9 @@
     [paths]="previewPaths$ | async"
     [viewFilters]="previewViewFilters"
     [visibilityGroupFunction]="previewObjectGroupFunc"
-    [animationFrameFunction]="previewAnimationFrameFunc"></app-obj-viewer>
+    [animationFrameFunction]="previewAnimationFrameFunc"
+    [customControls]="customControls"
+    (onObjectLoaded)="onObjectLoaded($event)"></app-obj-viewer>
   <app-compound-block-ui
     [resourceId]="resourceId"
     [resourceName]="resourceName"
