@@ -176,10 +176,12 @@ class TestFce4Geometry(unittest.TestCase):
         self.assertEqual(block.pack(read), packed)
 
 
-def build_eagl_model(index_padding=0xFFFF):
+def build_eagl_model(index_padding=0xFFFF, car=False):
     """Minimal NFS6 EAGL model (MIPS ELF relocatable object): one render method with "ShadowTexture" shader (shadow
     map "0007", base texture "0042"), a quad of 4 vertices (FVF XYZ | DIFFUSE | TEX2) drawn as a triangle strip of 5
-    indices, padded to 6 in the draw command"""
+    indices, padded to 6 in the draw command. With `car`, it is a car model like car.o: "EASVehiclePaint" shader with
+    texture "skin", vertex buffer declared by command 0x4B with FVF XYZB1 | DIFFUSE | TEX1, and model "car" with
+    geometry names table"""
     import struct
 
     data = bytearray()
@@ -190,43 +192,64 @@ def build_eagl_model(index_padding=0xFFFF):
         while len(data) % n:
             data.append(0)
 
-    # vertex buffer: position, diffuse BGRA, uv0 (base texture), uv1 (shadow map)
+    # vertex buffer: position, [blend weight], diffuse BGRA, uv0 (base texture), [uv1 (shadow map)]
     vb = len(data)
     for x, z, u, v in [(0, 0, 0, 0), (1, 0, 2, 0), (0, 1, 0, 2), (1, 1, 2, 2)]:
-        data += struct.pack('<3f', x, 5.0, z) + bytes([0x30, 0x20, 0x10, 0xFF]) + struct.pack('<4f', u, v, 0.5, 0.5)
+        if car:
+            data += struct.pack('<4f', x, 5.0, z, 0) + bytes([0x30, 0x20, 0x10, 0xFF]) + struct.pack('<2f', u, v)
+        else:
+            data += struct.pack('<3f', x, 5.0, z) + bytes([0x30, 0x20, 0x10, 0xFF]) + struct.pack('<4f', u, v, 0.5, 0.5)
     ib = len(data)
     data += struct.pack('<6H', 0, 0, 1, 2, 3, index_padding)
     align(4)
     tars = {}
-    for name in ['0007', '0042']:
+    for name in ['skin'] if car else ['0007', '0042']:
         tars[name] = len(data)
         symbols.append((f'__EAGL::TAR:::tar_{name}_1', len(data)))
         data += struct.pack('<I', 0) + name.encode() + bytes(40)
+    geometry_name = len(data)
+    data += b'ALPHA_OPAQUE_HOODShape\0'
+    align(4)
     geoprim = len(data)
     symbols.append(('__geoprimdatabuffer_0_1', geoprim))
     data += struct.pack('<I', 0)
     commands = len(data)
-    data += struct.pack('<I', 0x04 << 16 | 12) + struct.pack(
-        '<11I', 0, 32, 0x242, 0xFFFFFFFF, 0xFFFFFFFF, vb, 4, 0, 0, 0, 0
-    )
+    if car:
+        data += struct.pack('<I', 0x4B << 16 | 12) + struct.pack(
+            '<11I', 0, 28, 0x146, 0xFFFFFFFF, 0xFFFFFFFF, vb, 4, 0xFFFFFFFC, 0, 0, 0
+        )
+    else:
+        data += struct.pack('<I', 0x04 << 16 | 12) + struct.pack(
+            '<11I', 0, 32, 0x242, 0xFFFFFFFF, 0xFFFFFFFF, vb, 4, 0, 0, 0, 0
+        )
     relocations.append((commands + 4 * 6, None))
     draw = len(data)
     data += struct.pack('<I', 0x07 << 16 | 6) + struct.pack('<5I', 2, 0xFFFFFFFF, 0xFFFFFFFF, ib, 6)
     relocations.append((draw + 4 * 4, None))
     data += struct.pack('<I', 0x11 << 16 | 1)
     rm = len(data)
-    symbols.append(('__RenderMethod:::__GPRenderMethod_test_0', rm))
+    model_name = 'car' if car else 'test'
+    shader = 'EASVehiclePaint__EAGLMicroCode' if car else 'ShadowTexture__EAGLMicroCode'
+    symbols.append((f'__RenderMethod:::__GPRenderMethod_{model_name}_0', rm))
     data += struct.pack('<12I', commands, 0, 0, 0, 0, 0, 0, 0, 0, geoprim, 0, 0xABCDEFEA)
     relocations.append((rm, None))
     relocations.append((rm + 4 * 9, None))
-    relocations.append((rm + 8, 'ShadowTexture__EAGLMicroCode'))
+    relocations.append((rm + 8, shader))
     # (count, pointer) parameters: textures, vertex buffer, index buffer with the real index count
-    for count, pointer in [(1, tars['0007']), (1, tars['0042']), (4, vb), (5, ib)]:
+    for count, pointer in [(1, x) for x in tars.values()] + [(4, vb), (5, ib)]:
         relocations.append((len(data) + 4, None))
         data += struct.pack('<2I', count, pointer)
-    symbols.append(('__Model:::test', len(data)))
-    data += bytes(16)
-    symbols.append(('ShadowTexture__EAGLMicroCode', None))
+    names_table = len(data)
+    data += struct.pack('<I', geometry_name)
+    relocations.append((names_table, None))
+    model = len(data)
+    symbols.append((f'__Model:::{model_name}', model))
+    data += bytes(0xA4)
+    if car:
+        # amount of geometries and pointer to the table of their names
+        struct.pack_into('<2I', data, model + 0x9C, 1, names_table)
+        relocations.append((model + 0xA0, None))
+    symbols.append((shader, None))
     symbol_indices = {name: i + 2 for i, (name, _) in enumerate(symbols)}
 
     # string tables, symbol table (index 0 is null, index 1 is .data section symbol)
@@ -299,3 +322,86 @@ class TestEaglModel(unittest.TestCase):
             read_eagl_meshes(EaglModel().unpack_from_bytes(build_eagl_model(index_padding=0)))[0].triangles,
             [(1, 0, 2), (1, 2, 3)],
         )
+
+    def test_eagl_car_meshes_should_be_read(self):
+        from resources.eac.geometries.nfs6 import EaglModel, read_eagl_meshes
+
+        model = build_eagl_model(car=True)
+        block = EaglModel()
+        data = block.unpack_from_bytes(model)
+        self.assertEqual(block.pack(data), model)
+        meshes = read_eagl_meshes(data)
+        self.assertEqual(len(meshes), 1)
+        mesh = meshes[0]
+        self.assertEqual(mesh.shader, 'EASVehiclePaint')
+        self.assertEqual(mesh.geometry_name, 'ALPHA_OPAQUE_HOODShape')
+        self.assertEqual(mesh.main_texture, 'skin')
+        # blend weight after position is skipped
+        self.assertListEqual(mesh.vertices, [(0, 5, 0), (1, 5, 0), (0, 5, 1), (1, 5, 1)])
+        self.assertListEqual(mesh.colors, [0x102030FF] * 4)
+        self.assertListEqual(mesh.main_uvs, [(0, 0), (2, 0), (0, 2), (2, 2)])
+        self.assertListEqual(mesh.triangles, [(1, 0, 2), (1, 2, 3)])
+
+    def test_eagl_trailing_zeros_should_remain_the_same(self):
+        from resources.eac.geometries.nfs6 import EaglModel
+
+        # car skeleton.o has an empty section header slot after the table
+        model = build_eagl_model() + bytes(40)
+        block = EaglModel()
+        data = block.unpack_from_bytes(model)
+        self.assertEqual(data['trailing_bytes'], bytes(40))
+        self.assertEqual(block.pack(data), model)
+
+
+class TestEaglSkeleton(unittest.TestCase):
+    def test_bone_positions(self):
+        import struct
+
+        from resources.eac.geometries.nfs6 import read_eagl_skeleton
+
+        def bone(parent, index, inverse_translation, rotation=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
+            r = rotation
+            matrix = (r[0], r[1], r[2], 0, r[3], r[4], r[5], 0, r[6], r[7], r[8], 0, *inverse_translation, 1)
+            return (
+                struct.pack('<3fi', 1, 1, 1, parent)
+                + struct.pack('<4f', 0, 0, 0, 1)
+                + struct.pack('<3fI', 0, 0, 0, index)
+                + struct.pack('<16f', *matrix)
+            )
+
+        # skeleton is read from a fake ".data" section with bone symbols: "__Skeleton:::" at 32, two bones
+        from resources.eac.geometries import nfs6
+
+        skeleton_data = (
+            bytes(32)
+            + struct.pack('<4I', 0, 0, 2, 0)
+            + bone(-1, 0, (0, 0, 0))
+            + bone(0, 1, (-0.5, 0.25, -2), rotation=(0, 1, 0, -1, 0, 0, 0, 0, 1))
+        )
+
+        class FakeElf:
+            data_index = 1
+            symbols = [
+                ('__Bone:::Root.Root', 0, 1),
+                ('__Bone:::Root.LIGHT_TAIL_LEFT1', 16, 1),
+                ('__Skeleton:::Root', 32, 1),
+            ]
+
+            def u32(self, offset):
+                return struct.unpack_from('<I', skeleton_data, offset)[0]
+
+        FakeElf.data = skeleton_data
+        original = nfs6._EaglElf
+        nfs6._EaglElf = lambda _: FakeElf()
+        try:
+            bones = read_eagl_skeleton({})
+        finally:
+            nfs6._EaglElf = original
+        self.assertEqual([(b.name, b.parent) for b in bones], [('Root', -1), ('LIGHT_TAIL_LEFT1', 0)])
+        self.assertEqual(bones[0].position, (0, 0, 0))
+        # bone origin p: p * R + t = 0
+        p = bones[1].position
+        r = (0, 1, 0, -1, 0, 0, 0, 0, 1)
+        t = (-0.5, 0.25, -2)
+        for k in range(3):
+            self.assertAlmostEqual(sum(p[j] * r[3 * j + k] for j in range(3)) + t[k], 0)

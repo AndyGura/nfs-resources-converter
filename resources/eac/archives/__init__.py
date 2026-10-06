@@ -240,9 +240,12 @@ class BigfBlock(ArchiveBlock):
             IntegerBlock(
                 length=4,
                 byte_order='big',
-                programmatic_value=lambda ctx: ctx.block.estimate_packed_size(ctx.get_full_data()),
+                programmatic_value=lambda ctx: ctx.block.length_field_value(ctx.get_full_data()),
             ),
-            {'description': 'The length of this BIGF block in bytes'},
+            {
+                'description': 'The length of this BIGF block in bytes. NFS6 stores the length without padding '
+                'between items: header plus item lengths'
+            },
         )
         num_items = (
             IntegerBlock(length=4, byte_order='big', programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
@@ -268,6 +271,13 @@ class BigfBlock(ArchiveBlock):
             },
         )
         children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
+
+    def length_field_value(self, data) -> int:
+        """Value of "length" header field: block size, or (NFS6) size without padding between items. The second
+        one is used when the field read from file has it"""
+        size = self.estimate_packed_size(data)
+        unpadded = size - sum(len(c['pre_offset_payload']) + len(c['post_offset_payload']) for c in data['children'])
+        return unpadded if data.get('length') == unpadded else size
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         total_length = 16

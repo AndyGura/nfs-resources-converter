@@ -136,3 +136,29 @@ class TestBigfBlock(unittest.TestCase):
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
+
+    def test_bigf_length_field_without_padding(self):
+        from resources.eac.archives import BigfBlock
+
+        block = BigfBlock()
+        data = block.new_data()
+        bytes_choice = block.item_block.get_choice_index_by_class_name('BytesBlock')
+        data['children'] = [
+            {
+                'alias': alias,
+                'item': {'choice_index': bytes_choice, 'data': payload},
+                'pre_offset_payload': pre,
+                'post_offset_payload': b'',
+            }
+            for alias, payload, pre in [('a.bin', b'12345', b''), ('b.bin', b'678', bytes(3))]
+        ]
+        # header 16 + 2 * (8 + 6), items 5 + 3, padding 3
+        size = 16 + 28 + 8 + 3
+        packed = block.pack(data)
+        self.assertEqual(len(packed), size)
+        self.assertEqual(int.from_bytes(packed[4:8], 'big'), size)
+        # NFS6 car.viv: length field doesn't count padding between items. Kept as is on write
+        nfs6_style = packed[:4] + (size - 3).to_bytes(4, 'big') + packed[8:]
+        reread = block.unpack_from_bytes(nfs6_style)
+        self.assertEqual(reread['length'], size - 3)
+        self.assertEqual(block.pack(reread), nfs6_style)

@@ -1,6 +1,6 @@
 # **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2026-10-06 09:58:39.547485+00:00*
+*Last time updated: 2026-10-06 13:28:56.159445+00:00*
 
 
 # **Info by file extensions** #
@@ -40,7 +40,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "BIGF" | Resource ID |
-| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes |
+| 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | The length of this BIGF block in bytes. NFS6 stores the length without padding between items: header plus item lengths |
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | Descriptions of items: offset, length and name of each of them |

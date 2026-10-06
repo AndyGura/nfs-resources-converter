@@ -241,6 +241,17 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    that file's header comment). Textures are FSH aliases looked up by `find_eagl_texture_archive` (same BIGF, sibling
    file, then `persist.viv`); FSH images there are DXT1/DXT3/DXT5 (`library/utils/dxt.py`, which caches decoded
    pixels so unchanged images write back byte-exact).
+   NFS6 cars (`cars/<car>/car.viv`: `car.o`, `carRigid.o`, `carM.o`, `carRigidM.o`, `shadow.o`, `skeleton.o`,
+   `car.fsh`; paint in `skin.viv` next to it: `skin00.fsh`.. with a "skin" image each, labels from `[skinNN]
+   color_id` of `vehicle.ini`) are the same EAGL objects, recognised by `EASVehicle*` shaders (`is_nfs6_car_model`):
+   `EaglModelSerializer._serialize_car` / `nfs6_car_scene` name meshes `<lod>_<index>_<geometry name>` (names from
+   the model's geometry table, `nfs6_car_part_lod_prefix`), write car textures opaque (their alpha is a reflection
+   mask), every skin to `textures/skins/` plus `skins.json`, skeleton bones as dummies, and give meshes with one
+   non-white vertex color (glass: black, alpha 0x85) a tinted translucent texture copy. Car space is right-handed
+   (X right, Y up, front at -Z): exported with a rotation (`new_y='-z'`) and reversed winding; a mirrored export
+   shows the "ND 4 SPD" license plate of the McLaren F1 sample mirrored. The GUI viewer is `eagl-model.block-ui`
+   with `Nfs6CarMeshController` (skin switcher, wheels/brakes by name and position, light bones), active when the
+   serializer returns `skins.json`.
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
    Track props: with `maps__add_props_to_obj` a track serializer bakes props into the terrain meshes; without it

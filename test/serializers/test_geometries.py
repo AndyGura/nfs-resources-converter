@@ -362,3 +362,82 @@ class TestFce4GeometrySerializer(unittest.TestCase):
         with open(os.path.join(out_path, 'geometry.obj')) as f:
             # car1.fce is a car model too: part roles by name
             self.assertIn('o hp_0_HB__car100\n', f.read())
+
+
+NFS6_CAR_SAMPLE_DIR = 'test/samples/claude_tmp/nfs6_car'
+
+
+class TestNfs6CarSerializer(unittest.TestCase):
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
+
+    def _serialize(self, model_id):
+        from library import require_resource
+        from serializers import get_serializer
+
+        (model_id, block, data), _ = require_resource(model_id)
+        serializer = get_serializer(block, data)
+        serializer.patch_settings(
+            {'geometry__save_obj': True, 'geometry__save_blend': False, 'geometry__export_to_gg_web_engine': False}
+        )
+        out_path = os.path.join(self.tmp_dir, 'out/')
+        paths = serializer.serialize(data, out_path, id=model_id, block=block)
+        return out_path, paths
+
+    def test_car_model_without_textures(self):
+        from library.loader import clear_file_cache
+        from test.resources.eac.test_geometries import build_eagl_model
+
+        path = os.path.join(self.tmp_dir, 'car.o')
+        with open(path, 'wb') as f:
+            f.write(build_eagl_model(car=True))
+        clear_file_cache(path)
+        out_path, paths = self._serialize(path)
+        self.assertTrue(any(x.endswith('skins.json') for x in paths))
+        with open(os.path.join(out_path, 'geometry.obj')) as f:
+            obj = f.read()
+        self.assertEqual(re.findall(r'^o (.*)$', obj, re.MULTILINE), ['hp_0_ALPHA_OPAQUE_HOODShape'])
+        # game (x, y, z) -> (x, -z, y): Y up, front at -Z becomes Z up, front at +Y
+        self.assertIn('v 1.0 -1.0 5.0', obj)
+        # rotation keeps handedness, so faces keep facing outwards: winding of every triangle is reversed back
+        faces = re.findall(r'^f (\d+)/\d+ (\d+)/\d+ (\d+)/\d+$', obj, re.MULTILINE)
+        self.assertEqual(faces, [('3', '1', '2'), ('4', '3', '2')])
+
+    @unittest.skipUnless(os.path.exists(NFS6_CAR_SAMPLE_DIR), f'needs NFS6 car sample {NFS6_CAR_SAMPLE_DIR}')
+    def test_car_from_car_viv(self):
+        out_path, _ = self._serialize(f'{NFS6_CAR_SAMPLE_DIR}/car.viv__children/2/item/data')
+        with open(os.path.join(out_path, 'geometry.obj')) as f:
+            objects = re.findall(r'^o (.*)$', f.read(), re.MULTILINE)
+        self.assertEqual(len(objects), 31)
+        self.assertIn('hp_6_ALPHA_OPAQUE_RUBBER_Shape', objects)
+        self.assertIn('mp_24_MIDLOD_Shape', objects)
+        self.assertIn('lp_29_ALPHA_OPAQUE_LODShape', objects)
+        with open(os.path.join(out_path, 'material.mtl')) as f:
+            mtl = f.read()
+        self.assertIn('map_Kd textures/skin.png', mtl)
+        self.assertIn('map_Kd textures/wl00.png', mtl)
+        # glass: black with vertex alpha 0x85
+        self.assertIn('newmtl skin-00000085\n', mtl)
+        with Image.open(os.path.join(out_path, 'textures/skin-00000085.png')) as png:
+            self.assertEqual(png.getextrema()[3][1], 0x85)
+        with Image.open(os.path.join(out_path, 'textures/skin.png')) as png:
+            self.assertEqual(png.getextrema()[3], (255, 255))
+        with open(os.path.join(out_path, 'skins.json')) as f:
+            skins = json.load(f)
+        self.assertEqual(
+            [(x['name'], x['label']) for x in skins],
+            [('skin00', 'red'), ('skin01', 'black'), ('skin02', 'silver'), ('skinhp', 'purple')],
+        )
+        for skin in skins:
+            self.assertTrue(os.path.exists(os.path.join(out_path, skin['texture'])))
+        with open(os.path.join(out_path, 'geometry_extra.json')) as f:
+            dummies = {x['name']: x['position'] for x in json.load(f)['dummies']}
+        self.assertNotIn('DAMAGE01', dummies)
+        # front left wheel: left is -X, front is +Y
+        x, y, z = dummies['WHEEL_FRONT_LEFT']
+        self.assertLess(x, 0)
+        self.assertGreater(y, 0)
+        self.assertLess(dummies['LIGHT_TAIL_LEFT1'][1], 0)

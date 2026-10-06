@@ -517,6 +517,10 @@ EXPORT_RESOURCES = {
         'title': 'NFS 6 Hot Pursuit 2 file specs',
         'file_list': f"""**compNN.o**, **trackg.o**, **skyg.o**, **levelNN\\levelG.o** track geometry. {render_type(eac.geometries.EaglModel())}
 
+**cars\\<car>\\car.viv** car: **car.o** model (also **carRigid.o**, **carM.o** and **carRigidM.o** with left and right windows swapped, **shadow.o**, bones in **skeleton.o**: {render_type(eac.geometries.EaglModel())}), **car.fsh** wheel textures. {render_type(eac.archives.BigfBlock())}
+
+**cars\\<car>\\skin.viv** car paint textures **skinNN.fsh**, their colors are in **vehicle.ini**. {render_type(eac.archives.BigfBlock())}
+
 **levelNN\\aipaths.dat** race route. {render_type(eac.maps.Nfs6AiPaths())}
 
 **\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
