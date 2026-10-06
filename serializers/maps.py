@@ -3,7 +3,7 @@ import math
 import traceback
 from copy import deepcopy
 from string import Template
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 
 import config
 from library.utils import path_join
@@ -1283,5 +1283,213 @@ class Nfs6AiPathsSerializer(BaseFileSerializer):
             chunks_file = path_join(path, 'terrain_chunks.json')
             with open(chunks_file, 'w') as f:
                 json.dump(chunk_positions, f)
+            exported.append(chunks_file)
+        return exported
+
+
+def nfsu_streaming_sections(bundle_data: dict) -> List[dict]:
+    """Streamed sections listed in NFS Underground race bundle"""
+    for chunk in bundle_data['chunks']:
+        if chunk['data'].get('chunk_id') == 0x00034107:
+            return chunk['data']['sections']
+    return []
+
+
+def find_nfsu_stream_file(bundle_path: str, sections: List[dict]) -> Optional[str]:
+    """STREAM*.BUN file of NFS Underground race bundle (TRACKBnnnn.lzc) in the same folder: the one whose size
+    matches the end of the last streamed section"""
+    import os
+    from library.utils.file_utils import find_files_case_insensitive
+
+    if not sections:
+        return None
+    stream_end = max(s['offset'] + s['size'] for s in sections)
+    candidates = find_files_case_insensitive([path_join(os.path.dirname(bundle_path), 'STREAM*.BUN')])
+    for candidate in candidates:
+        if os.path.getsize(candidate) == stream_end:
+            return candidate
+    return None
+
+
+def nfsu_section_ranges(sections: List[dict]) -> List[dict]:
+    """Sections to read from the stream file. A section spanning other sections (e.g. "--" at the start of the
+    file) is skipped"""
+    res = []
+    for s in sections:
+        if s['size'] <= 0:
+            continue
+        spans_other = any(
+            o is not s
+            and s['offset'] <= o['offset']
+            and o['offset'] + o['size'] <= s['offset'] + s['size']
+            and (o['offset'], o['size']) != (s['offset'], s['size'])
+            for o in sections
+        )
+        if not spans_other:
+            res.append(s)
+    return res
+
+
+class NfsuWorld:
+    """Meshes (by mesh id), textures (by name hash: texture info, format, data chunk bytes) and sceneries
+    (section number, scenery data) collected from NFS Underground chunk bundles"""
+
+    def __init__(self):
+        self.meshes = {}
+        self.textures = {}
+        self.sceneries = []
+
+    def collect(self, bundle_data: dict):
+        from serializers.bitmaps import nfsu_texture_pack_textures
+        from serializers.geometries import nfsu_geometry_meshes
+
+        for chunk in bundle_data['chunks']:
+            chunk_data = chunk['data']
+            if not isinstance(chunk_data, dict):
+                continue
+            if chunk_data.get('header') == 0x80134000:
+                for mesh in nfsu_geometry_meshes(chunk_data):
+                    self.meshes.setdefault(mesh.mesh_id, mesh)
+            elif chunk_data.get('chunk_id') == 0xB3300000:
+                for info, d3d_format, data in nfsu_texture_pack_textures(chunk_data):
+                    self.textures.setdefault(info['name_hash'], (info, d3d_format, data))
+            elif chunk_data.get('chunk_id') == 0x80034100:
+                sub_chunks = [x['data'] for x in chunk_data['sub_chunks']]
+                header = next((x for x in sub_chunks if x.get('chunk_id') == 0x00034101), None)
+                infos = next((x['infos'] for x in sub_chunks if x.get('chunk_id') == 0x00034102), [])
+                instances = next((x['instances'] for x in sub_chunks if x.get('chunk_id') == 0x00034103), [])
+                self.sceneries.append((header['section_number'] if header else 0, infos, instances))
+
+    def scenery_parts(self, infos: list, instances: list) -> Dict[Optional[int], Tuple[list, list, list]]:
+        """World geometry of scenery: texture id -> (vertices, uvs, triangles). Shadow and reflection meshes are
+        skipped"""
+        import numpy as np
+
+        parts = {}
+        for instance in instances:
+            if instance['info_index'] >= len(infos):
+                continue
+            mesh = self.meshes.get(infos[instance['info_index']]['mesh_ids'][0])
+            if mesh is None or not mesh.vertices or mesh.name.upper().startswith(('SHD_', 'RFL_', 'SHADOW')):
+                continue
+            rotation = np.array(instance['rotation'], dtype=np.float64).reshape(3, 3)
+            position = np.array([instance['position'][k] for k in 'xyz'], dtype=np.float64)
+            world = np.array(mesh.vertices, dtype=np.float64) @ rotation + position
+            mesh_uvs = np.array(mesh.uvs, dtype=np.float64)
+            for texture_id, triangles in mesh.parts:
+                if not triangles:
+                    continue
+                # only vertices used by this part
+                used, remapped = np.unique(np.array(triangles, dtype=np.int64), return_inverse=True)
+                if used[-1] >= len(world):
+                    continue
+                vertices, uvs, polygons = parts.setdefault(texture_id, ([], [], []))
+                offset = sum(len(x) for x in vertices)
+                vertices.append(world[used])
+                uvs.append(mesh_uvs[used])
+                polygons.append(remapped.reshape(-1, 3) + offset)
+        return {
+            texture_id: (np.concatenate(vertices), np.concatenate(uvs), np.concatenate(polygons))
+            for texture_id, (vertices, uvs, polygons) in parts.items()
+        }
+
+
+class NfsuTrackBundleSerializer(BaseFileSerializer):
+    """NFS Underground race world: scenery of every streamed section (from the STREAM*.BUN file next to the race
+    bundle) is a terrain chunk; textures are saved to "textures/<texture id>.png". Chunk positions (centers of
+    bounding boxes, Y up) are saved to "terrain_chunks.json". Game coordinates are Z up, chunk OBJs keep them"""
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        import os
+        import numpy as np
+        from library.loader import id_to_path
+        from resources.blackbox.maps.nfsu import NfsuChunkBundle
+        from serializers.bitmaps import nfsu_texture_to_image
+        from serializers.geometries import texture_alpha_mode
+
+        super().serialize(data, path, id, block, **kwargs)
+        world = NfsuWorld()
+        world.collect(data)
+        sections = nfsu_streaming_sections(data)
+        stream_path = find_nfsu_stream_file(id_to_path(id), sections)
+        if stream_path is None:
+            raise FileNotFoundError('Cannot find STREAM*.BUN file of the race next to it')
+        bundle_block = NfsuChunkBundle()
+        with open(stream_path, 'rb') as f:
+            for section in nfsu_section_ranges(sections):
+                f.seek(section['offset'])
+                try:
+                    world.collect(bundle_block.unpack_from_bytes(f.read(section['size'])))
+                except Exception:
+                    traceback.print_exc()
+
+        # textures
+        os.makedirs(path_join(path, 'textures'), exist_ok=True)
+        texture_names = {}
+        alpha_modes = {}
+
+        def texture_name(texture_id):
+            if texture_id not in texture_names:
+                texture_names[texture_id] = 'untextured'
+                if texture_id in world.textures:
+                    try:
+                        image = nfsu_texture_to_image(*world.textures[texture_id])
+                        name = f'{texture_id:08x}'
+                        image.save(path_join(path, f'textures/{name}.png'))
+                        texture_names[texture_id] = name
+                        alpha_modes[name] = texture_alpha_mode(image)
+                    except Exception:
+                        traceback.print_exc()
+            return texture_names[texture_id]
+
+        chunked = self.settings.maps__save_as_chunked
+        map_scene = Scene(
+            name='map',
+            obj_name='map',
+            mtl_name='terrain',
+            mtl_texture_path_func=lambda x: f'textures/{x}.png',
+            skip_obj_export=chunked,
+        )
+        scenes = [map_scene]
+        chunk_positions = []
+        for i, (section_number, infos, instances) in enumerate(world.sceneries):
+            parts = world.scenery_parts(infos, instances)
+            if not parts:
+                continue
+            all_vertices = np.concatenate([vertices for (vertices, _, _) in parts.values()])
+            pivot = (all_vertices.min(axis=0) + all_vertices.max(axis=0)) / 2 if chunked else np.zeros(3)
+            sub_meshes = []
+            for k, (texture_id, (vertices, uvs, polygons)) in enumerate(parts.items()):
+                sm = SubMesh()
+                sm.texture_id = texture_name(texture_id)
+                sm.name = f'scenery{section_number}_{k}_{sm.texture_id}'
+                sm.vertices = (vertices - pivot).round(3).tolist()
+                sm.vertex_uvs = uvs.round(5).tolist()
+                sm.polygons = polygons.tolist()
+                sub_meshes.append(sm)
+            if chunked:
+                chunk_positions.append({'x': pivot[0], 'y': pivot[2], 'z': pivot[1]})
+                scenes.append(
+                    Scene(
+                        name=f'terrain_chunk_{len(chunk_positions) - 1}',
+                        sub_meshes=sub_meshes,
+                        obj_name=f'terrain_chunk_{len(chunk_positions) - 1}',
+                        mtl_name='terrain',
+                        bake_textures=False,
+                        skip_mtl_export=True,
+                    )
+                )
+            else:
+                map_scene.sub_meshes.extend(sub_meshes)
+        map_scene.mtl_texture_names = [x for x in texture_names.values() if x != 'untextured']
+        map_scene.mtl_texture_alpha_modes = alpha_modes
+        exported = export_scenes(scenes, path, self.settings)
+        if chunked:
+            chunks_file = path_join(path, 'terrain_chunks.json')
+            with open(chunks_file, 'w') as f:
+                json.dump([{k: float(v) for k, v in p.items()} for p in chunk_positions], f)
             exported.append(chunks_file)
         return exported

@@ -10,6 +10,9 @@
       [attr.points]="mapPolyline$ | async"
       [ngStyle]="{ 'stroke-width': 3 }"
       style="fill: none; stroke: #333333"></polyline>
+    @for (point of mapPoints$ | async; track $index) {
+      <circle [attr.cx]="point.x" [attr.cy]="point.y" [attr.r]="2" fill="#333333"></circle>
+    }
     <!-- camera indicator -->
     @if (mapPointer$ | async) {
       <circle
@@ -23,7 +26,9 @@
         style="cursor: pointer"></circle>
     }
   </svg>
-  <div class="info_div">
-    <span>Track length (m): {{ (trackLength$ | async)?.toFixed(2) }}</span>
-  </div>
+  @if (!pointsOnly) {
+    <div class="info_div">
+      <span>Track length (m): {{ (trackLength$ | async)?.toFixed(2) }}</span>
+    </div>
+  }
 </div>

@@ -56,14 +56,12 @@ class ZeroChunk(DeclarativeCompoundBlock):
         )
 
 
-# not found any of them yet. Keep for future needs
 class UnknownChunk(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Fallback for a chunk with an id not known to the parser: header + raw payload. '
-            'Currently not used, every chunk met in the files has a dedicated block',
+            'block_description': 'A chunk not decoded by the parser: header + raw payload',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -123,12 +121,10 @@ class NfsuMeshChunk(DeclarativeCompoundBlock):
         unk_z = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
 
 
-def peek_elevens_length(ctx):
-    i = 0
-    while ctx.buffer.read(1) == b'\x11':
-        i += 1
-    ctx.buffer.seek(-i - 1, SEEK_CUR)
-    return i
+def elevens_length(ctx, alignment: int = 0x10):
+    """Length of 0x11 alignment filler: chunk payloads start at an offset aligned to 16 (vertices: 128) bytes from
+    the beginning of the file"""
+    return -ctx.buffer.tell() % alignment
 
 
 class NfsuMeshFacesChunk(DeclarativeCompoundBlock):
@@ -153,7 +149,10 @@ class NfsuMeshFacesChunk(DeclarativeCompoundBlock):
             {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
         )
         # some 0x11 values, unknown reason for adding them
-        elevens = (BytesBlock(length=lambda ctx: peek_elevens_length(ctx)), {'description': _ELEVENS_DESCR})
+        elevens = (
+            BytesBlock(length=(lambda ctx: elevens_length(ctx), 'up to 16-bytes alignment')),
+            {'description': _ELEVENS_DESCR},
+        )
         faces = (
             ArrayBlock(
                 child=ArrayBlock(child=IntegerBlock(length=2), length=3),
@@ -224,16 +223,38 @@ class NfsuVertexNoNormal(DeclarativeCompoundBlock):
         v = (DecimalBlock(length=4), {'description': 'V texture coordinate'})
 
 
+class NfsuVertexSkinned(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'A single mesh vertex with normal and skinning data (60 bytes). Used by a few '
+            'world meshes (flags 0x4081 in the mesh info chunk)',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Vertex position'})
+        normal = (Point3D(child=DecimalBlock(length=4)), {'description': 'Vertex normal'})
+        unk3 = (IntegerBlock(length=4), {'description': 'Presumably vertex color, 32-bit ARGB', 'is_unknown': True})
+        u = (DecimalBlock(length=4), {'description': 'U texture coordinate'})
+        v = (DecimalBlock(length=4), {'description': 'V texture coordinate'})
+        blend_weights = (Point3D(child=DecimalBlock(length=4)), {'description': 'Blend weights', 'is_unknown': True})
+        blend_indices = (Point3D(child=DecimalBlock(length=4)), {'description': 'Blend indices', 'is_unknown': True})
+
+
 # Size in bytes of each vertex layout, in the order of MeshVerticesChunk.Fields.vertices possible blocks
-_NFSU_VERTEX_SIZES = [36, 24]
+_NFSU_VERTEX_SIZES = [36, 24, 60]
 
 
 def _vertex_layout_index(ctx):
-    # The vertex layout is not stored explicitly (or not found yet): it is the one whose total vertices size
-    # fits into the chunk payload, the remainder being the 0x11 alignment filler (less than 16 bytes)
-    if ctx.data('chunk_length') >= ctx.data('../0/data/vertex_amount') * _NFSU_VERTEX_SIZES[0]:
-        return 0
-    return 1
+    # The vertex layout is not stored explicitly (or not found yet): it is the vertex size that fills the payload
+    # after the alignment filler. Raw bytes (the last choice) if there are no vertices, or the size is not known
+    vertex_amount = ctx.data('../0/data/vertex_amount')
+    payload_length = ctx.data('chunk_length') - len(ctx.data('elevens'))
+    for i, size in enumerate(_NFSU_VERTEX_SIZES):
+        if vertex_amount and payload_length == vertex_amount * size:
+            return i
+    return len(_NFSU_VERTEX_SIZES)
 
 
 class MeshVerticesChunk(DeclarativeCompoundBlock):
@@ -242,7 +263,7 @@ class MeshVerticesChunk(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': 'Mesh vertices. Amount of vertices is defined by the mesh info chunk (the first '
-            'chunk of the same mesh data container). Vertex size (36 or 24 bytes) is '
+            'chunk of the same mesh data container). Vertex size (36, 24 or 60 bytes) is '
             'determined by the chunk length',
         }
 
@@ -256,23 +277,19 @@ class MeshVerticesChunk(DeclarativeCompoundBlock):
                 length=4,
                 is_signed=False,
                 programmatic_value=lambda ctx: (
-                    len(ctx.data('vertices')['data']) * _NFSU_VERTEX_SIZES[ctx.data('vertices')['choice_index']]
-                    + len(ctx.data('elevens'))
+                    len(ctx.data('elevens'))
+                    + (
+                        len(ctx.data('vertices')['data'])
+                        if ctx.data('vertices')['choice_index'] == len(_NFSU_VERTEX_SIZES)
+                        else len(ctx.data('vertices')['data'])
+                        * _NFSU_VERTEX_SIZES[ctx.data('vertices')['choice_index']]
+                    )
                 ),
             ),
             {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
         )
-        # some 0x11 values, unknown reason for adding them
         elevens = (
-            BytesBlock(
-                length=(
-                    lambda ctx: (
-                        ctx.data('chunk_length')
-                        - ctx.data('../0/data/vertex_amount') * _NFSU_VERTEX_SIZES[_vertex_layout_index(ctx)]
-                    ),
-                    'chunk_length - vertex_amount * vertex_size',
-                )
-            ),
+            BytesBlock(length=(lambda ctx: elevens_length(ctx, 0x80), 'up to 128-bytes alignment')),
             {'description': _ELEVENS_DESCR},
         )
         vertices = (
@@ -280,12 +297,15 @@ class MeshVerticesChunk(DeclarativeCompoundBlock):
                 possible_blocks=[
                     ArrayBlock(child=NfsuVertex(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
                     ArrayBlock(child=NfsuVertexNoNormal(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
+                    ArrayBlock(child=NfsuVertexSkinned(), length=lambda ctx: ctx.data('../0/data/vertex_amount')),
+                    BytesBlock(length=lambda ctx: ctx.data('chunk_length') - len(ctx.data('elevens'))),
                 ],
                 choice_index=(lambda ctx, **_: _vertex_layout_index(ctx), 'depends on chunk_length'),
             ),
             {
-                'description': 'Vertices. 36-byte vertices with normal, or 24-byte vertices without normal '
-                'if the chunk is too short for 36-byte ones'
+                'description': 'Vertices: 36-byte vertices with normal, 24-byte vertices without normal or 60-byte '
+                'vertices with normal and skinning data, whichever fills the chunk. Raw bytes if the mesh '
+                'has no vertices'
             },
         )
 
@@ -296,33 +316,62 @@ class MeshVerticesChunk(DeclarativeCompoundBlock):
         return data
 
 
-class Chunk00134BXX(DeclarativeCompoundBlock):
+class NfsuMeshMaterial(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Unknown chunk of the mesh data container (id 0x00134B02). Observed payload '
-            'looks like 16-byte records: 3 floats + 32-bit integer',
+            'block_description': 'A part of the mesh drawn with one texture: a range of the triangle list',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        index = (IntegerBlock(length=1, value_validator=Or([2, 3])), {'description': 'Lowest byte of the chunk id'})
+        bounding_box_min = (Point3D(child=DecimalBlock(length=4)), {'description': 'Bounding box minimum corner'})
+        indices_amount = (IntegerBlock(length=4), {'description': 'Amount of vertex indexes (3 per triangle)'})
+        bounding_box_max = (Point3D(child=DecimalBlock(length=4)), {'description': 'Bounding box maximum corner'})
+        texture_index = (
+            IntegerBlock(length=4),
+            {'description': 'Index of texture id in the texture ids chunk (0x00134012) of the mesh'},
+        )
+        light_material_index = (IntegerBlock(length=4, is_signed=True), {'is_unknown': True})
+        unk = (ArrayBlock(child=IntegerBlock(length=4), length=4), {'is_unknown': True})
+        indices_offset = (
+            IntegerBlock(length=4),
+            {'description': 'Index of the first vertex index in the faces chunk: sum of previous `indices_amount`'},
+        )
+        flags = (IntegerBlock(length=4), {'is_unknown': True})
+
+
+class NfsuMeshMaterialsChunk(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Mesh materials: the triangle list of the mesh split into ranges with their own '
+            'texture',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = (
-            IntegerBlock(length=3, is_signed=False, value_validator=Eq(0x00_13_4B)),
-            {'description': 'Upper 3 bytes of the chunk id'},
+            IntegerBlock(length=4, is_signed=False, value_validator=Eq(0x00_13_4B_02)),
+            {'description': _CHUNK_ID_DESCR},
         )
         chunk_length = (
             IntegerBlock(
                 length=4,
                 is_signed=False,
-                programmatic_value=lambda ctx: len(ctx.data('payload')) + len(ctx.data('elevens')),
+                programmatic_value=lambda ctx: len(ctx.data('materials')) * 60 + len(ctx.data('elevens')),
             ),
             {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
         )
-        elevens = (BytesBlock(length=lambda ctx: peek_elevens_length(ctx)), {'description': _ELEVENS_DESCR})
-        payload = (
-            BytesBlock(length=lambda ctx: ctx.data('chunk_length') - len(ctx.data('elevens'))),
-            {'is_unknown': True},
+        elevens = (
+            BytesBlock(length=(lambda ctx: elevens_length(ctx), 'up to 16-bytes alignment')),
+            {'description': _ELEVENS_DESCR},
+        )
+        materials = (
+            ArrayBlock(
+                child=NfsuMeshMaterial(), length=lambda ctx: (ctx.data('chunk_length') - len(ctx.data('elevens'))) // 60
+            ),
+            {'description': 'Materials, in the order of their ranges in the faces chunk'},
         )
 
 
@@ -360,7 +409,7 @@ class Chunk80134100(DeclarativeCompoundBlock):
                         NfsuMeshChunk(),
                         NfsuMeshFacesChunk(),
                         MeshVerticesChunk(),
-                        Chunk00134BXX(),
+                        NfsuMeshMaterialsChunk(),
                         # UnknownChunk(),
                     ],
                     choice_index=lambda ctx, **_: determine_chunks_class(ctx),
@@ -456,8 +505,12 @@ class Chunk00134011(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00_13_40_11)), {'description': _CHUNK_ID_DESCR})
         chunk_length = (
-            IntegerBlock(length=4, value_validator=Eq(176)),
-            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+            IntegerBlock(length=4, programmatic_value=lambda ctx: 176 + len(ctx.data('elevens'))),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR + ': 176 + length of alignment filler'},
+        )
+        elevens = (
+            BytesBlock(length=(lambda ctx: elevens_length(ctx), 'up to 16-bytes alignment')),
+            {'usage': 'io,doc', 'description': _ELEVENS_DESCR},
         )
         unk2 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
         unk3 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
@@ -767,8 +820,8 @@ def determine_chunks_class(ctx: ReadContext):
         class_name = 'MeshVerticesChunk'
     elif id_hex.startswith('001340') and not id_hex in ['00134002', '00134003', '00134011', '00134012', '00134013']:
         class_name = 'Chunk001340XX'
-    elif id_hex.startswith('00134B') and not id_hex in ['00134B01']:
-        class_name = 'Chunk00134BXX'
+    elif id_hex == '00134B02':
+        class_name = 'NfsuMeshMaterialsChunk'
     else:
         class_name = 'Chunk' + id_hex
     try:
@@ -779,14 +832,20 @@ def determine_chunks_class(ctx: ReadContext):
 
 
 class NfsuBinGeometry(DeclarativeCompoundBlock):
+    def __init__(self, whole_file: bool = True, **kwargs):
+        # car GEOMETRY.BIN: chunks after the pack (e.g. 0x80034020) are read as its own chunks, until the end of file
+        super().__init__(**kwargs)
+        self.whole_file = whole_file
+
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Car geometry file (GEOMETRY.BIN). A sequence of chunks, each having 32-bit id '
-            'and 32-bit payload length; chunks with id starting with 0x80 are containers of '
-            'other chunks. The file starts with a file info container, followed by a mesh '
-            'descriptor per car part, interleaved with zero-id padding chunks',
+            'block_description': 'Geometry pack: car geometry file (GEOMETRY.BIN), also a chunk of track bundles. '
+            'A sequence of chunks, each having 32-bit id and 32-bit payload length; chunks with id '
+            'starting with 0x80 are containers of other chunks. The pack starts with a file info '
+            'container, followed by a mesh descriptor per mesh (car part, scenery object), '
+            'interleaved with zero-id padding chunks',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -794,10 +853,26 @@ class NfsuBinGeometry(DeclarativeCompoundBlock):
             IntegerBlock(length=4, value_validator=Eq(0x80134000)),
             {'description': 'Resource ID (chunk id of the whole file)'},
         )
-        data_length = (IntegerBlock(length=4), {'description': 'Length of the rest of the file in bytes'})
+        data_length = (
+            IntegerBlock(
+                length=4,
+                programmatic_value=lambda ctx: (
+                    ctx.data('data_length')
+                    if ctx.block.whole_file
+                    else ctx.block.field_blocks_map['chunks'].estimate_packed_size(ctx.data('chunks'))
+                ),
+            ),
+            {'description': 'Length of the rest of the chunk in bytes'},
+        )
         chunks = (
             ArrayBlock(
-                length=lambda ctx: determine_chunks_amount(ctx),
+                length=(
+                    lambda ctx: determine_chunks_amount(
+                        ctx,
+                        read_bytes_remaining_func=None if ctx.block.whole_file else lambda ctx: ctx.data('data_length'),
+                    ),
+                    'until the end of chunk (car GEOMETRY.BIN: until the end of file)',
+                ),
                 child=DelegateBlock(
                     possible_blocks=[
                         ZeroChunk(),

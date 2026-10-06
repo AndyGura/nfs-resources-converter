@@ -2,7 +2,13 @@ from library.read_blocks import DataBlock
 from serializers.base import BaseFileSerializer, DelegateBlockSerializer, PlainBinarySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer, BigfArchiveSerializer
 from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
-from .bitmaps import ImageSerializer, TargaImageSerializer, PaletteSerializer, ShpiTextSerializer
+from .bitmaps import (
+    ImageSerializer,
+    TargaImageSerializer,
+    PaletteSerializer,
+    ShpiTextSerializer,
+    NfsuTexturePackSerializer,
+)
 from .fonts import FfnFontSerializer
 from .geometries import (
     OripGeometrySerializer,
@@ -13,7 +19,14 @@ from .geometries import (
     EaglModelSerializer,
 )
 from .json import JsonSerializer
-from .maps import TriMapSerializer, TrkMapSerializer, FrdMapSerializer, Nfs4FrdMapSerializer, Nfs6AiPathsSerializer
+from .maps import (
+    TriMapSerializer,
+    TrkMapSerializer,
+    FrdMapSerializer,
+    Nfs4FrdMapSerializer,
+    Nfs6AiPathsSerializer,
+    NfsuTrackBundleSerializer,
+)
 from .videos import FfmpegSupportedVideoSerializer
 
 

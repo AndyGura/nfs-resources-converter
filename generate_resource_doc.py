@@ -14,6 +14,8 @@ from library.read_blocks import (
 from library.read_blocks.strings import LengthPrefixedUtf8Block, UTF8Block
 from library.utils.docs import add_doc_numbers
 from resources import eac, blackbox
+from resources.blackbox.bitmaps import nfsu as blackbox_bitmaps_nfsu
+from resources.blackbox.maps import nfsu as blackbox_maps_nfsu
 
 
 def render_value_doc_str(value: str) -> str:
@@ -553,10 +555,38 @@ EXPORT_RESOURCES = {
     'nfsu': {
         'file_name': 'NFSU.md',
         'title': 'NFS Underground file specs',
-        'file_list': f"""Cars\\**\\GEOMETRY.BIN** car geometry. {render_type(blackbox.geometries.NfsuBinGeometry())}""",
+        'file_list': f"""**CARS/\\*/GEOMETRY.BIN** car geometry. {render_type(blackbox.geometries.NfsuBinGeometry())}
+
+**TRACKS/TRACKBnnnn.lzc** race bundle (JDLZ-compressed): streaming sections table and race data. Opened in the track viewer together with the city sections from **TRACKS/STREAM\\*.BUN** next to it. {render_type(blackbox_maps_nfsu.NfsuTrackBundle())}
+
+**TRACKS/STREAM\\*.BUN** streamed city sections (scenery, geometry, textures), each 0x800-aligned. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}
+
+**TRACKS/TEXnnnnTRACK.BIN**, **GLOBAL/\*.BIN** texture packs and other chunk bundles. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}""",
         'blocks': {
-            # 'Archives': [
-            # ],
+            'Maps': [
+                blackbox_maps_nfsu.NfsuTrackBundle(),
+                blackbox_maps_nfsu.NfsuChunkBundle(),
+                blackbox_maps_nfsu.NfsuStreamingSections(),
+                blackbox_maps_nfsu.NfsuStreamingSection(),
+                blackbox_maps_nfsu.NfsuScenery(),
+                blackbox_maps_nfsu.NfsuScenerySectionHeader(),
+                blackbox_maps_nfsu.NfsuSceneryInfos(),
+                blackbox_maps_nfsu.NfsuSceneryInfo(),
+                blackbox_maps_nfsu.NfsuSceneryInstances(),
+                blackbox_maps_nfsu.NfsuSceneryInstance(),
+            ],
+            'Images': [
+                blackbox_bitmaps_nfsu.NfsuTexturePack(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackHeader(),
+                blackbox_bitmaps_nfsu.NfsuTextureHashes(),
+                blackbox_bitmaps_nfsu.NfsuTextureInfos(),
+                blackbox_bitmaps_nfsu.NfsuTextureInfo(),
+                blackbox_bitmaps_nfsu.NfsuTextureFormats(),
+                blackbox_bitmaps_nfsu.NfsuTextureFormat(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackInfo(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackDataContainer(),
+                blackbox_bitmaps_nfsu.NfsuTextureData(),
+            ],
             'Geometries': [
                 blackbox.geometries.NfsuBinGeometry(),
                 blackbox.geometries.ZeroChunk(),
@@ -565,7 +595,8 @@ EXPORT_RESOURCES = {
                 blackbox.geometries.NfsuMeshChunk(),
                 blackbox.geometries.NfsuMeshFacesChunk(),
                 blackbox.geometries.MeshVerticesChunk(),
-                blackbox.geometries.Chunk00134BXX(),
+                blackbox.geometries.NfsuMeshMaterialsChunk(),
+                blackbox.geometries.NfsuMeshMaterial(),
                 blackbox.geometries.Chunk80134100(),
                 blackbox.geometries.Chunk00134002(),
                 blackbox.geometries.Chunk00134003(),
@@ -580,12 +611,9 @@ EXPORT_RESOURCES = {
                 blackbox.geometries.NfsuVec3(),
                 blackbox.geometries.NfsuVertex(),
                 blackbox.geometries.NfsuVertexNoNormal(),
+                blackbox.geometries.NfsuVertexSkinned(),
             ],
-            # 'Maps': [
-            # ],
             # 'Physics': [
-            # ],
-            # 'Images': [
             # ],
             # 'Fonts': [
             # ],

@@ -18,10 +18,10 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 
 | Path | Contents |
 |---|---|
-| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3 decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
+| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3, JDLZ decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
 | `resources/eac/maps/{tnfs,nfs2,nfs3,nfs6,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5,nfs6}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
-| `resources/blackbox/geometries/` | Blackbox-studio (later titles) formats — thin, early. |
+| `resources/blackbox/` | Blackbox-studio (NFS Underground) chunk bundles: every file is a tree of u32 id + u32 length chunks (bit 0x80000000 = container), payloads padded with 0x11 bytes to 16-byte (vertices, textures: 128-byte) absolute file offsets. `chunks.py` has `chunk_delegate`/`nfsu_sub_chunks_field` to dispatch sub-chunks by id (unknown ids fall back to raw bytes); `maps/nfsu.py` `walk_nfsu_chunk_ids` is what the loader uses to recognise a bundle. Geometry packs (`geometries/nfsu.py`), texture packs (`bitmaps/nfsu.py`), scenery and streaming sections (`maps/nfsu.py`). |
 | `resources/eac/fields/misc.py`, `resources/eac/fields/numbers.py` | Small reusable domain blocks: `Point2D`/`Point3D`/`RGBBlock`, `Nfs1Angle8`/`Nfs1Angle14`, `Nfs1TimeField`. Check here before writing a new one. |
 
 ## Cheat-sheet: existing blocks (import from `library.read_blocks` unless noted)
@@ -295,7 +295,7 @@ the same mechanism whether generic or custom; see skill `read-block-framework` f
 
 ### Reusing an existing 3D map/terrain viewer for a new per-game format
 
-TNFS (`TriMap`), NFS2 (`TrkMap`), NFS3 (`FrdMap`), NFS4 (`Nfs4FrdMap`) and NFS6 (`Nfs6AiPaths`) tracks all render through
+TNFS (`TriMap`), NFS2 (`TrkMap`), NFS3 (`FrdMap`), NFS4 (`Nfs4FrdMap`), NFS6 (`Nfs6AiPaths`) and NFSU (`NfsuTrackBundle`) tracks all render through
 one component, `TrackMapBlockUiComponent` in `frontend/.../editor/eac/track-map.block-ui/`, registered
 for each block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapWorldEntity`
 (`track-map-world.entity.ts`) is generic chunk-graph-of-OBJs-plus-texture-archive machinery.
@@ -313,6 +313,14 @@ OBJs; with `bundledTextures` the serializer writes the textures itself (`<chunks
 and there is no texture picker. NFS6 uses both: a route is `levelNN/aipaths.dat`, its serializer
 (`Nfs6AiPathsSerializer`) exports the compartments listed in `drvpath.ini` with their textures, and
 `nfs6-route.ts` derives the spline as the longest chain of the AI path graph.
+
+Chunks are loaded around the camera along a graph: by default a chain in chunk order (a road), up to
+`loadDepth` (40) hops. A city sets `chunkGraph: proximityChunkGraph` (k nearest chunks, clusters joined)
+and a small `loadDepth`. Without `splinePoints`/`chunkPositions` the spline is the chunk positions from
+`terrain_chunks.json`; `minimapPointsOnly` draws them as dots. NFSU uses all of these: a race bundle
+`TRACKBnnnn.lzc` lists the streamed sections, and `NfsuTrackBundleSerializer` reads every section's
+scenery from the `STREAM*.BUN` next to it (`find_nfsu_stream_file`) and writes one chunk per scenery,
+in game coordinates (Z up), with its textures.
 
 When the block data that reaches the GUI doesn't carry the layout (NFS5 `CrpGeometry` tracks: the
 mesh parts are `io,doc`-only), the adapter implements `loadLayout(serializedPaths)` instead: the

@@ -50,6 +50,7 @@
       [roadSpline]="minimapSpline"
       [pointer]="pointer$ | async"
       [splineClosed]="isClosed"
+      [pointsOnly]="!!adapter?.minimapPointsOnly"
       [projection]="'nz'"
       (pointerChange)="onPointerChange($event)"></app-minimap>
   </div>

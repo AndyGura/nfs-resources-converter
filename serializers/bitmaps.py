@@ -205,3 +205,84 @@ class ShpiTextSerializer(BaseFileSerializer):
         with open(f'{path}.txt', 'w') as file:
             file.write(data['text'])
         return [f'{path}.txt']
+
+
+# Direct3D formats of NFS Underground textures
+_NFSU_D3D_A8R8G8B8 = 0x15
+_NFSU_D3D_P8 = 0x29
+_NFSU_DXT_FOURCC = {int.from_bytes(x.encode(), 'little'): x for x in ['DXT1', 'DXT3', 'DXT5']}
+
+
+def _sub_chunk(container: dict, chunk_id: int):
+    for chunk in container['sub_chunks']:
+        if chunk['data'].get('chunk_id') == chunk_id:
+            return chunk['data']
+    return None
+
+
+def nfsu_texture_pack_textures(tpk_data: dict) -> List[tuple]:
+    """Textures of NFS Underground texture pack (TPK chunk data): list of (texture info, Direct3D format, data
+    chunk bytes). Texture info offsets point into the data chunk bytes"""
+    info_container = _sub_chunk(tpk_data, 0xB3310000)
+    data_container = _sub_chunk(tpk_data, 0xB3320000)
+    if info_container is None or data_container is None:
+        return []
+    infos = _sub_chunk(info_container, 0x33310004)
+    formats = _sub_chunk(info_container, 0x33310005)
+    data_chunk = _sub_chunk(data_container, 0x33320002)
+    if infos is None or data_chunk is None:
+        return []
+    format_values = [f['format'] for f in formats['formats']] if formats else []
+    return [
+        (info, format_values[i] if i < len(format_values) else None, data_chunk['data'])
+        for i, info in enumerate(infos['textures'])
+    ]
+
+
+def nfsu_texture_to_image(info: dict, d3d_format: int, data: bytes) -> Image.Image:
+    """Full-size image of NFS Underground texture"""
+    import numpy as np
+    from library.utils.dxt import decode_dxt, dxt_byte_len
+
+    width, height = info['width'], info['height']
+    offset = info['image_placement']
+    if d3d_format in _NFSU_DXT_FOURCC:
+        dxt_format = _NFSU_DXT_FOURCC[d3d_format]
+        pixels = decode_dxt(dxt_format, width, height, data[offset : offset + dxt_byte_len(dxt_format, width, height)])
+        return Image.frombytes('RGBA', (width, height), np.array(pixels, dtype='>u4').tobytes())
+    if d3d_format == _NFSU_D3D_A8R8G8B8:
+        return Image.frombytes('RGBA', (width, height), data[offset : offset + width * height * 4], 'raw', 'BGRA')
+    if d3d_format == _NFSU_D3D_P8:
+        indices = np.frombuffer(data[offset : offset + width * height], dtype=np.uint8)
+        palette_offset = info['palette_placement']
+        palette = np.frombuffer(data[palette_offset : palette_offset + 1024], dtype=np.uint8)
+        palette = np.pad(palette, (0, 1024 - len(palette))).reshape(256, 4)[:, [2, 1, 0, 3]]
+        return Image.frombytes('RGBA', (width, height), palette[indices].tobytes())
+    raise NotImplementedError(f'Unsupported NFSU texture format {d3d_format}')
+
+
+class NfsuTexturePackSerializer(BaseFileSerializer):
+    """Texture pack: every texture as "<name>.png" """
+
+    def __init__(self):
+        super().__init__(is_dir=True)
+
+    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        import os
+        import re
+        import traceback
+
+        super().serialize(data, path, id=id, block=block)
+        os.makedirs(path, exist_ok=True)
+        files = []
+        for info, d3d_format, image_data in nfsu_texture_pack_textures(data):
+            name = re.sub(r'[^0-9A-Za-z_-]', '_', info['name']) or f'{info["name_hash"]:08x}'
+            try:
+                image = nfsu_texture_to_image(info, d3d_format, image_data)
+            except Exception:
+                traceback.print_exc()
+                continue
+            file_path = os.path.join(path, f'{name}.png')
+            image.save(file_path)
+            files.append(file_path)
+        return files
