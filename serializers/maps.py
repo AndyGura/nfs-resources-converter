@@ -658,8 +658,12 @@ for obj in bpy.context.selected_objects:
             """
 
 
+# Animation delay units per second of NFS2-NFS4 animated props (assumed, not confirmed)
+ANIMATION_DELAY_UNITS_PER_SECOND = 64
+
+
 class TrackProp:
-    """A prop placed on a NFS2/NFS3 track. Keyframes are (position, orientation) pairs in game coordinates (Y up), the
+    """A prop placed on a NFS2-NFS4 track. Keyframes are (position, orientation) pairs in game coordinates (Y up), the
     orientation is a quaternion (x, y, z, w) or None. A static prop has one keyframe, an animated prop loops through
     them with `delay` between keyframes. Model vertices are rotated by the orientation, then moved to the position"""
 
@@ -761,6 +765,22 @@ def col_props(col_data: dict, get_texture) -> Tuple[List[TrackProp], Dict[str, M
     return _prop_records(records, descriptions, 'col_', get_texture, None)
 
 
+def _deduplicate_models(models: Dict[str, Mesh]) -> Dict[str, str]:
+    """Model id -> id of the first model with the same geometry and textures (e.g. the same tree placed many times as
+    separate objects)"""
+    first_ids = {}
+    result = {}
+    for model_id, model in models.items():
+        key = (
+            tuple(tuple(round(c, 4) for c in v) for v in model.vertices),
+            tuple(tuple(round(c, 5) for c in uv) for uv in model.vertex_uvs),
+            tuple(tuple(p) for p in model.polygons),
+            tuple(model.texture_ids),
+        )
+        result[model_id] = first_ids.setdefault(key, model_id)
+    return result
+
+
 def _prop_description_mesh(description: dict, get_texture) -> Mesh:
     model = Mesh()
 
@@ -805,7 +825,8 @@ def _prop_records(
 
 
 class EacTrackSerializer(BaseFileSerializer):
-    """Common export of NFS2 (TRK) and NFS3 (FRD) tracks: terrain chunks, props, collision mesh and QFS textures"""
+    """Common export of NFS2 (TRK), NFS3 and NFS4 (FRD) tracks: terrain chunks, props, collision mesh and QFS
+    textures"""
 
     def __init__(self):
         super().__init__(is_dir=True)
@@ -821,6 +842,34 @@ class EacTrackSerializer(BaseFileSerializer):
         mesh.pivot_offset = (-position[0], -position[1], -position[2])
         return [m for m, _, _ in mesh.split_by_texture_ids()]
 
+    def _export_prop_models(self, path: str, models: Dict[str, Mesh]) -> List[str]:
+        """Exports every prop model in its own folder "props/<model id>/", like any other single model exported by the
+        converter: "geometry.obj" + "material.mtl" (textures from "textures/" of the track), "body.glb" + "body.meta"
+        for gg-web-engine (without materials: the game assigns track textures by mesh name "<model>__<texture>",
+        like for terrain chunks)"""
+        if not models:
+            return []
+        scenes = []
+        for model_id in sorted(models):
+            meshes = self._prop_meshes(models[model_id], model_id, ((0, 0, 0), None))
+            for mesh in meshes:
+                mesh.change_axes(new_z='y', new_y='z')
+            scenes.append(
+                Scene(
+                    name='body',
+                    sub_meshes=meshes,
+                    obj_name='geometry',
+                    mtl_name='material',
+                    mtl_texture_names=sorted({m.texture_id for m in meshes if m.texture_id}),
+                    mtl_texture_path_func=lambda x: f'../../textures/{x}.png',
+                    bake_textures=False,
+                    directory=f'{model_id}/',
+                )
+            )
+        props_path = path_join(path, 'props/')
+        os.makedirs(props_path, exist_ok=True)
+        return export_scenes(scenes, props_path, self.settings)
+
     def _export_track(
         self,
         path: str,
@@ -833,8 +882,8 @@ class EacTrackSerializer(BaseFileSerializer):
         """
         chunks: (terrain meshes, chunk position) in game coordinates (Y up): world position of a vertex is
         `vertex - mesh.pivot_offset`. Props are baked into the chunk meshes (setting maps__add_props_to_obj), or else
-        exported as dummies referencing models in "props/<model id>.obj". texture_archive is a function, which
-        returns the QFS resource (id, block, data), exported to "textures/"
+        exported as dummies referencing models in "props/<model id>/" (see `_export_prop_models`). texture_archive is
+        a function, which returns the QFS resource (id, block, data), exported to "textures/"
         """
         chunked = self.settings.maps__save_as_chunked
         pivots = [pivot for _, pivot in chunks]
@@ -843,6 +892,7 @@ class EacTrackSerializer(BaseFileSerializer):
         dummies = [[] for _ in chunks]
         object_properties = [{} for _ in chunks]
         used_models = set()
+        canonical_model_ids = _deduplicate_models(prop_models)
 
         def nearest_chunk(position):
             return min(range(len(pivots)), key=lambda i: sum((pivots[i][k] - position[k]) ** 2 for k in range(3)))
@@ -851,10 +901,11 @@ class EacTrackSerializer(BaseFileSerializer):
             model = prop_models.get(prop.model_id)
             if model is None or not pivots:
                 continue
+            model_id = canonical_model_ids[prop.model_id]
             position, orientation = prop.keyframes[0]
             chunk_i = prop.chunk_index if prop.chunk_index is not None else nearest_chunk(position)
             pivot = pivots[chunk_i] if chunked else (0, 0, 0)
-            properties = {'is_prop': True, 'model_ref_id': prop.model_id}
+            properties = {'is_prop': True, 'type': 'model', 'model_ref_id': model_id}
             if prop.is_unknown:
                 properties['is_unknown'] = True
             if prop.is_animated:
@@ -863,6 +914,7 @@ class EacTrackSerializer(BaseFileSerializer):
                 properties['animation'] = json.dumps(
                     {
                         'delay': prop.delay,
+                        'frame_duration': max(prop.delay, 1) / ANIMATION_DELAY_UNITS_PER_SECOND,
                         'frames': [
                             {
                                 'position': _to_export_axes([p[k] - pivot[k] for k in range(3)]),
@@ -887,7 +939,7 @@ class EacTrackSerializer(BaseFileSerializer):
                         'properties': properties,
                     }
                 )
-                used_models.add(prop.model_id)
+                used_models.add(model_id)
 
         for i in range(len(chunks)):
             for mesh in terrain[i] + prop_meshes[i]:
@@ -941,31 +993,7 @@ class EacTrackSerializer(BaseFileSerializer):
         except Exception:
             traceback.print_exc()
 
-        # export models of the props, placed by dummies
-        if used_models:
-            prop_scenes = []
-            for model_id in sorted(used_models):
-                meshes = self._prop_meshes(prop_models[model_id], model_id, ((0, 0, 0), None))
-                for mesh in meshes:
-                    mesh.change_axes(new_z='y', new_y='z')
-                prop_scenes.append(
-                    Scene(
-                        name=model_id,
-                        sub_meshes=meshes,
-                        obj_name=model_id,
-                        mtl_name='material',
-                        mtl_texture_path_func=lambda x: f'../textures/{x}.png',
-                        skip_mtl_export=True,
-                    )
-                )
-            prop_scenes[0].skip_mtl_export = False
-            prop_scenes[0].mtl_texture_names = sorted(
-                {m.texture_id for s in prop_scenes for m in s.sub_meshes if m.texture_id}
-            )
-            props_path = path_join(path, 'props/')
-            os.makedirs(props_path, exist_ok=True)
-            exported_files += export_scenes(prop_scenes, props_path, self.settings)
-
+        exported_files += self._export_prop_models(path, {model_id: prop_models[model_id] for model_id in used_models})
         # export scenes
         return export_scenes(scenes, path, self.settings) + exported_files
 
@@ -1233,31 +1261,33 @@ def _is_mirrored_copy(shpi_child) -> bool:
     return bool(text) and text['text'].startswith('<mirrored>')
 
 
-class Nfs4FrdMapSerializer(BaseFileSerializer):
-    def __init__(self):
-        super().__init__(is_dir=True)
-
+class Nfs4FrdMapSerializer(EacTrackSerializer):
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id, block, **kwargs)
+
+        def texture_archive():
+            return _require_nfs4_texture_archive(id)
+
         # Unlike NFS3, a NFS4 FRD polygon's texture field indexes the track's QFS/SHPI archive
         # (no local texture table in the FRD itself), and no per-polygon UV corners are
         # stored anywhere - every polygon is UV-mapped to the full 0..1 quad of its texture.
         try:
-            (_, _, qfs_data), _ = _require_nfs4_texture_archive(id)
+            (_, _, qfs_data), _ = texture_archive()
             shpi_aliases = [x['alias'] for x in qfs_data['children'] if x['alias'] and not _is_mirrored_copy(x)]
-
-            def get_texture(tex):
-                try:
-                    return shpi_aliases[tex & 0x07FF]
-                except IndexError:
-                    return f'{tex & 0x07FF:04}'
         except Exception:
             traceback.print_exc()
+            shpi_aliases = []
 
-            def get_texture(tex):
-                return f'{tex & 0x07FF:04}'
+        def polygon_texture(p):
+            tex = p['texture'] & 0x07FF
+            uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
+            if p['tex_flags'] & 0x10:
+                uvs = [uvs[1], uvs[0], uvs[3], uvs[2]]
+            rotate_bits = (p['tex_flags'] >> 7) & 0x3
+            if rotate_bits:
+                uvs = rotate_list(uvs, rotate_bits)
+            return (shpi_aliases[tex] if tex < len(shpi_aliases) else f'{tex:04}'), uvs
 
-        blocks = data['blocks']
         map_scene = Scene(
             name='map',
             obj_name='map',
@@ -1265,7 +1295,6 @@ class Nfs4FrdMapSerializer(BaseFileSerializer):
             mtl_texture_path_func=lambda x: f'textures/{x}.png',
             skip_obj_export=self.settings.maps__save_as_chunked and not self.settings.maps__save_terrain_collisions,
         )
-        scenes = [map_scene]
 
         # add road spline to map scene
         headers = data['blocks_headers']
@@ -1276,100 +1305,73 @@ class Nfs4FrdMapSerializer(BaseFileSerializer):
         }
         map_scene.curves.append(curve)
 
-        def get_uvs(tex_flags):
-            uvs = [[0, 1], [1, 1], [1, 0], [0, 0]]
-            if tex_flags & 0x10:
-                uvs = [uvs[1], uvs[0], uvs[3], uvs[2]]
-            rotate_bits = (tex_flags >> 7) & 0x3
-            if rotate_bits:
-                uvs = rotate_list(uvs, rotate_bits)
-            return uvs
-
         chunks = []
-        texture_names = set()
-        for block_i, (header, trk_block) in enumerate(zip(headers, blocks)):
+        props = []
+        prop_models = {}
+
+        def add_extra_objects(chunk, model_prefix, chunk_index):
+            for i, (header, xobj) in enumerate(zip(chunk['object_headers'], chunk['objects'])):
+                model_id = f'{model_prefix}{i}'
+                model = Mesh()
+                _add_quads(model, xobj['polygons'], [_point(v) for v in xobj['vertices']], polygon_texture)
+                prop = nfs4_extra_object_prop(model_id, header, xobj, chunk_index)
+                if prop and model.polygons:
+                    prop_models[model_id] = model
+                    props.append(prop)
+
+        for block_i, (header, trk_block) in enumerate(zip(headers, data['blocks'])):
             model = Mesh()
             model.name = f'block_{block_i}'
-            pivot = header['position']
+            vertices = [_point(v) for v in trk_block['vertices']]
             for chunk_name in NFS4_TERRAIN_POLYGON_CHUNKS:
-                for p in trk_block[chunk_name]:
-                    texture_name = get_texture(p['texture'])
-                    uvs = get_uvs(p['tex_flags'])
-                    base_idx = len(model.vertices)
-                    for i, v_index in enumerate(p['vertices']):
-                        v = trk_block['vertices'][v_index]
-                        model.vertices.append([v['x'], v['y'], v['z']])
-                        model.vertex_uvs.append(uvs[i])
-                    model.polygons.append([base_idx, base_idx + 1, base_idx + 2, base_idx + 3])
-                    model.texture_ids.append(texture_name)
-                    texture_names.add(texture_name)
-            sub_meshes = model.split_by_texture_ids()
-            chunks.append([[m for m, _, _ in sub_meshes], (pivot['x'], pivot['y'], pivot['z'])])
-        map_scene.mtl_texture_names = list(texture_names)
+                _add_quads(model, trk_block[chunk_name], vertices, polygon_texture)
+            chunks.append(([m for m, _, _ in model.split_by_texture_ids()], _point(header['position'])))
+            for chunk_i in range(4):
+                add_extra_objects(trk_block[f'extra_objects_{chunk_i}'], f'xobj_{block_i}_{chunk_i}_', block_i)
+        # objects not attached to any block
+        for chunk_i in range(2):
+            add_extra_objects(data[f'global_objects_{chunk_i}'], f'xobj_global_{chunk_i}_', None)
 
-        for chunk in chunks:
-            chunk[1] = (chunk[1][0], chunk[1][2], chunk[1][1])
-            for mesh in chunk[0]:
-                mesh.pivot_offset = (mesh.pivot_offset[0], mesh.pivot_offset[2], mesh.pivot_offset[1])
-                mesh.change_axes(new_z='y', new_y='z')
-        if self.settings.maps__save_terrain_collisions:
-            terrain_mesh = SubMesh()
-            terrain_mesh.name = 'terrain_collision_mesh'
-            for i, (meshes, chunk_pos) in enumerate(chunks):
-                for mesh in meshes:
-                    terrain_mesh.extend(mesh)
-            terrain_mesh.collapse_vertices()
-            map_scene.sub_meshes.append(terrain_mesh)
-            map_scene.extra_script += """
+        return self._export_track(path, map_scene, chunks, props, prop_models, texture_archive)
 
-bpy.ops.object.select_all(action='DESELECT')
-is_active_set = False
-objects = [x for x in bpy.data.objects if x.name == "terrain_collision_mesh"]
-for object in objects:
-    object.select_set(True)
-    if not is_active_set:
-        bpy.context.view_layer.objects.active = object
-        is_active_set = True
-if len(objects) > 0:
-    bpy.ops.rigidbody.objects_add(type='PASSIVE')
-for obj in bpy.context.selected_objects:
-    obj.rigid_body.collision_shape = 'MESH' 
-    obj.hide_render = True
-    obj.display_type = 'WIRE'   
- 
-            """
-        if self.settings.maps__save_as_chunked:
-            for i, (meshes, chunk_pos) in enumerate(chunks):
-                for mesh in meshes:
-                    mesh.pivot_offset = (
-                        mesh.pivot_offset[0] + chunk_pos[0],
-                        mesh.pivot_offset[1] + chunk_pos[1],
-                        mesh.pivot_offset[2] + chunk_pos[2],
-                    )
-                scene = Scene(
-                    name=f'terrain_chunk_{i}',
-                    sub_meshes=meshes,
-                    obj_name=f'terrain_chunk_{i}',
-                    mtl_name='terrain',
-                    bake_textures=False,
-                    skip_mtl_export=True,
-                )
-                scenes.append(scene)
-        else:
-            for meshes, _ in chunks:
-                map_scene.sub_meshes.extend(meshes)
 
-        # export QFS
-        try:
-            (shpi_id, shpi_block, shpi_data), _ = _require_nfs4_texture_archive(id)
-            from serializers import ShpiArchiveSerializer
+def nfs4_extra_object_prop(model_id: str, header: dict, xobj: dict, chunk_index) -> Optional[TrackProp]:
+    """A NFS4 extra object as a prop. Vertices are relative to the object position; an animated object (type 3) moves
+    along keyframes, a special object (type 6, physics prop) is rotated by its transform matrix"""
+    if header['type'] == 3 and xobj['anim_data'] and xobj['anim_data']['keyframes']:
+        animation = xobj['anim_data']
+        return TrackProp(
+            model_id,
+            [(_point(f['pt']), _quaternion(f['orientation'])) for f in animation['keyframes']],
+            delay=animation['delay'],
+            chunk_index=chunk_index,
+        )
+    orientation = None
+    if header['type'] == 6 and xobj['special_data']:
+        # the matrix rotates vertices as row vectors (v' = v M): transposed for _matrix_to_quaternion
+        t = xobj['special_data']['transform']
+        orientation = _matrix_to_quaternion([t[0], t[3], t[6], t[1], t[4], t[7], t[2], t[5], t[8]])
+    return TrackProp(model_id, [(_point(header['pt']), orientation)], chunk_index=chunk_index)
 
-            ShpiArchiveSerializer().serialize(shpi_data, path_join(path, 'textures/'), shpi_id, shpi_block)
-        except Exception:
-            traceback.print_exc()
 
-        # export scenes
-        return export_scenes(scenes, path, self.settings)
+def _matrix_to_quaternion(m: list) -> tuple:
+    """Rotation quaternion (x, y, z, w) of a row-major 3x3 rotation matrix, which transforms a vector as M v"""
+    m00, m01, m02, m10, m11, m12, m20, m21, m22 = m
+    trace = m00 + m11 + m22
+    if trace > 0:
+        s = 0.5 / math.sqrt(trace + 1)
+        q = ((m21 - m12) * s, (m02 - m20) * s, (m10 - m01) * s, 0.25 / s)
+    elif m00 > m11 and m00 > m22:
+        s = 2 * math.sqrt(1 + m00 - m11 - m22)
+        q = (0.25 * s, (m01 + m10) / s, (m02 + m20) / s, (m21 - m12) / s)
+    elif m11 > m22:
+        s = 2 * math.sqrt(1 + m11 - m00 - m22)
+        q = ((m01 + m10) / s, 0.25 * s, (m12 + m21) / s, (m02 - m20) / s)
+    else:
+        s = 2 * math.sqrt(1 + m22 - m00 - m11)
+        q = ((m02 + m20) / s, (m12 + m21) / s, 0.25 * s, (m10 - m01) / s)
+    length = math.sqrt(sum(c * c for c in q)) or 1
+    return tuple(c / length for c in q)
 
 
 def nfs6_route_model_files(level_dir: str) -> List[str]:

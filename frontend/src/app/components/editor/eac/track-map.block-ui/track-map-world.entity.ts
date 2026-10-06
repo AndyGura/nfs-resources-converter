@@ -1,18 +1,33 @@
 import {
   Entity3d,
+  GgDummy,
   GgWorld,
   LoadResultWithProps,
   MapGraph,
   MapGraph3dEntity,
   MapGraphNodeType,
+  Qtrn,
 } from '@gg-web-engine/core';
 import { BehaviorSubject, distinctUntilChanged, takeUntil } from 'rxjs';
-import { DoubleSide, Material, Mesh, MeshBasicMaterial, Object3D, RepeatWrapping, Texture, TextureLoader } from 'three';
+import {
+  DoubleSide,
+  Euler,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  Object3D,
+  Quaternion,
+  RepeatWrapping,
+  SphereGeometry,
+  Texture,
+  TextureLoader,
+} from 'three';
 import { ThreeDisplayObjectComponent, ThreeGgWorld } from '@gg-web-engine/three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
-import { Resource } from '../../types';
 import { TrackMapAdapter } from './track-map-adapters';
+import { meshTextureName, TrackPropsAssets, TrackPropsController } from './track-props-controller';
 
 // TODO use this from gg-web-engine after next release
 export type TypeDocOf<W extends GgWorld<any, any>> =
@@ -20,10 +35,22 @@ export type TypeDocOf<W extends GgWorld<any, any>> =
 
 export type TrackEntity = Entity3d<TypeDocOf<ThreeGgWorld>>;
 
-// Meshes of the serialized chunks and props are named "<name>_<texture name>"
-export function meshTextureName(mesh: Object3D): string {
-  const name: string = mesh.userData['name'] || mesh.name;
-  return name.substring(name.lastIndexOf('_') + 1).split('.')[0];
+// A dummy of "<scene>_extra.json" written by the converter next to an OBJ, in the format of gg-web-engine meta
+// dummies (what the game gets from the ".meta" of the same scene exported to gg-web-engine)
+function extraJsonDummyToGgDummy(dummy: any): GgDummy {
+  const [x, y, z] = dummy.position || [0, 0, 0];
+  let rotation;
+  if (dummy.quaternion) {
+    const [qw, qx, qy, qz] = dummy.quaternion;
+    rotation = { x: qx, y: qy, z: qz, w: qw };
+  } else if (dummy.rotation) {
+    // Blender "XYZ" Euler angles, which is three.js "ZYX" order
+    const q = new Quaternion().setFromEuler(new Euler(dummy.rotation[0], dummy.rotation[1], dummy.rotation[2], 'ZYX'));
+    rotation = { x: q.x, y: q.y, z: q.z, w: q.w };
+  } else {
+    rotation = Qtrn.O;
+  }
+  return { ...(dummy.properties || {}), name: dummy.name, position: { x, y, z }, rotation };
 }
 
 function setupTerrainTextureDefault(texture: Texture) {
@@ -33,24 +60,28 @@ function setupTerrainTextureDefault(texture: Texture) {
 }
 
 // Track terrain streamed as OBJ chunks along a MapGraph, textured from `<textureArchivePath>/<name>.png`: a texture
-// archive (QFS/FAM) serialized there, or textures the track serializer wrote next to the chunks. Chunk extras (props)
-// come from the adapter.
-export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>> {
+// archive (QFS/FAM) serialized there, or textures the track serializer wrote next to the chunks. Props of a chunk are
+// the dummies of its "_extra.json", spawned by the adapter's props controller (the same controllers render tracks in
+// nfs-web, see `track-props-controller.ts`), with this entity as their `TrackPropsAssets`.
+export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld>> implements TrackPropsAssets {
   public readonly textureLoader = new TextureLoader();
   private readonly terrainMaterials: { [key: string]: MeshBasicMaterial } = {};
   private readonly objLoader = new OBJLoader();
+  private readonly models = new Map<string, Promise<Object3D | null>>();
+  private readonly propsController: TrackPropsController | null;
 
   constructor(
     public override readonly mapGraph: MapGraph,
     public readonly textureArchivePath: string | null,
     private readonly hideUnknownEntities$: BehaviorSubject<boolean>,
     public readonly adapter: TrackMapAdapter,
-    public readonly resource: Resource,
-    public readonly isOpenedTrack: boolean,
+    // Folder of the serialized chunks: "<chunksLocation>terrain_chunk_<i>.obj"
+    public readonly chunksLocation: string,
     // Files written by the track serializer (chunks and what comes with them)
     public readonly serializedFiles: string[] = [],
   ) {
     super(mapGraph, { loadDepth: adapter.loadDepth ?? 40, inertia: 2 });
+    this.propsController = adapter.propsController ? adapter.propsController(this) : null;
   }
 
   private _placeholder: Texture | null = null;
@@ -110,14 +141,78 @@ export class TrackMapWorldEntity extends MapGraph3dEntity<TypeDocOf<ThreeGgWorld
         child.material = this.getTerrainMaterial(meshTextureName(child));
       }
     });
-    const chunkIndex = +node.path.split('_')[node.path.split('_').length - 1];
-    const props = this.adapter.loadChunkProps ? await this.adapter.loadChunkProps(this, chunkIndex, node) : [];
+    const props = await this.loadChunkProps(node);
     const entity: TrackEntity = new Entity3d({
       object3D: new ThreeDisplayObjectComponent(object),
     });
     this.addChildren(entity, ...props);
     this.loaded.set(node, [entity, ...props]);
     return [[entity, ...props], null!];
+  }
+
+  private async loadChunkProps(node: MapGraphNodeType): Promise<TrackEntity[]> {
+    const extraPath = `${node.path}_extra.json`;
+    if (!this.propsController || !this.serializedFiles.includes(extraPath)) {
+      return [];
+    }
+    let dummies: GgDummy[];
+    try {
+      dummies = ((await (await fetch(extraPath)).json()).dummies || []).map(extraJsonDummyToGgDummy);
+    } catch (err) {
+      console.warn(`Could not load props of ${node.path}`, err);
+      return [];
+    }
+    const props = await this.propsController.spawnChunkProps(dummies, node.position);
+    for (const prop of props) {
+      if (prop.isUnknown) {
+        this.markUnknown(prop.entity as TrackEntity);
+      }
+    }
+    return props.map(p => p.entity as TrackEntity);
+  }
+
+  // `TrackPropsAssets`: models are the OBJ files of the converter
+  loadModel(dir: string, withMaterials: boolean): Promise<Object3D | null> {
+    const key = `${dir}|${withMaterials}`;
+    if (!this.models.has(key)) {
+      this.models.set(
+        key,
+        (async () => {
+          const loader = new OBJLoader();
+          if (withMaterials) {
+            try {
+              const materials = await new MTLLoader().loadAsync(`${dir}/material.mtl`);
+              materials.preload();
+              loader.setMaterials(materials);
+            } catch (err) {
+              // a model without materials
+            }
+          }
+          return loader.loadAsync(`${dir}/geometry.obj`);
+        })().catch(err => {
+          console.warn(`Could not load model ${dir}`, err);
+          return null;
+        }),
+      );
+    }
+    return this.models.get(key)!.then(model => (model ? model.clone() : null));
+  }
+
+  async loadTexture(path: string): Promise<Texture | null> {
+    return this.textureLoader.loadAsync(path).catch(() => null);
+  }
+
+  placeholderModel(): Object3D {
+    const material = new MeshBasicMaterial();
+    this.getPlaceholderTexture().then(texture => {
+      material.map = texture;
+      material.needsUpdate = true;
+    });
+    return new Mesh(new SphereGeometry(5), material);
+  }
+
+  placeholderTexture(): Promise<Texture> {
+    return this.getPlaceholderTexture();
   }
 
   protected override disposeChunk(node: MapGraphNodeType) {

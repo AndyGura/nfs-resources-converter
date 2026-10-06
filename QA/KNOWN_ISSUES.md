@@ -184,7 +184,9 @@ materials show the placeholder texture.
   TR00.COL) have texture numbers that don't match the track's `TRnn0.QFS` (nor the FRD `texture_blocks`): they get
   wrong textures, so the GUI hides them unless hidden fields are shown (`is_unknown` dummy property). **Unclear**
   which archive textures them, or whether the game shows them at all.
-- NFS2/NFS3 animated props: the unit of `anim_delay` is not confirmed; the GUI plays 64 units per second. The NFS3
+- NFS2-NFS4 animated props: the unit of `anim_delay` is not confirmed; the converter writes `frame_duration`
+  assuming 64 units per second. NFS4 animated extra objects are read like NFS3 ones (16.16 positions, 2.14
+  quaternions), not verified on a file that has them (GT1.FRD has none). The NFS3
   lane markings (FRD polygon chunk 6, `is_lane` texture blocks) are not rendered: their textures are not in the
   track QFS.
 - NFS Underground city handedness: chunks keep game coordinates (Z up), the same as the NFSU car viewer.

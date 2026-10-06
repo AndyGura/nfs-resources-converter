@@ -1,6 +1,6 @@
 # **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2026-10-05 13:26:45.369440+00:00*
+*Last time updated: 2026-10-06 09:58:39.547485+00:00*
 
 
 # **Info by file extensions** #
@@ -217,7 +217,7 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Reference to an extra object (XOBJ) placed in the track block ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Position of the object |
+| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Position of the object |
 | 12 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
 | 14 | **global_index** | 2 | 2-bytes unsigned integer (little endian) | Sequence number of this object among all extra objects of the track |
 | 16 | **unk1** | 3 | Bytes | Unknown purpose |
@@ -253,8 +253,8 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Animation keyframe of an extra object ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 24 bits is a fractional part | Object position at this keyframe |
-| 12 | **unk** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes signed integer (little endian) | Object orientation at this keyframe, presumably a quaternion (x, y, z, w), where each component is 16-bit fixed point with 14 fraction bits |
+| 0 | **pt** | 12 | Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Object position at this keyframe |
+| 12 | **orientation** | 8 | Rotation quaternion (x,y,z,w), in the same axes as the positions next to it, where each component is: 16-bit real number (little-endian, signed), where last 14 bits is a fractional part | Object orientation at this keyframe. Presumably the same as in NFS3: object vertices are rotated by it (v' = q v q^-1), then moved to `pt` |
 ### **Nfs4AnimExtra** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Animation of an extra object: a sequence of keyframes ####
@@ -273,7 +273,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **location** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position of the object. Equals to `pt` of the object header |
 | 12 | **mass** | 4 | Float number (little-endian) | Mass of the object |
-| 16 | **transform** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | 3x3 rotation/transform matrix |
+| 16 | **transform** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | 3x3 rotation matrix of the object. Rotates its vertices as row vectors: v' = v M (verified by roadside boards facing the oncoming traffic) |
 | 52 | **collision_dimensions** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Dimensions of the collision box of the object |
 | 64 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 68 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
@@ -294,7 +294,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **anim_data** | 0..? | Optional (if object_headers//type == 3): [Nfs4AnimExtra](#nfs4animextra) | Present when the corresponding `object_headers` entry has type == 3 (animated) |
 | 0..? | **special_data** | 0..72 | Optional (if object_headers//type == 6): [Nfs4SpecialExtra](#nfs4specialextra) | Present when the corresponding `object_headers` entry has type == 6 (special) |
-| 0..? | **vertices** | (object_headers//num_vertices)\*12 | Array of `object_headers//num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices, global coordinates |
+| 0..? | **vertices** | (object_headers//num_vertices)\*12 | Array of `object_headers//num_vertices` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertices, relative to the object position `pt` of the header (rotated by `special_data.transform` for special objects) |
 | (object_headers//num_vertices)\*12..? | **vertex_shading** | custom_func\*4 | Array of `custom_func` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Per-vertex shading color, 32-bit ARGB (0xFFRRGGBB), one item per vertex |
 | (object_headers//num_vertices)\*12 + custom_func\*4..? | **polygons** | (object_headers//num_polygons)\*13 | Array of `object_headers//num_polygons` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Polygons of this object |
 ### **Nfs4TrkBlock** ###
@@ -307,8 +307,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | (blocks_headers//num_vertices)\*12 + custom_func\*4 | **polygon_vroad_data** | (blocks_headers//num_polygons)\*24 | Array of `blocks_headers//num_polygons` items<br/>Item type: [Nfs4PolygonVroadData](#nfs4polygonvroaddata) | Per-polygon reference into the global `vroad` array, plus flags |
 | (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 | **xobj** | (blocks_headers//num_xobj/num)\*20 | Array of `blocks_headers//num_xobj/num` items<br/>Item type: [Nfs4RefExtraObject](#nfs4refextraobject) | References to extra objects placed in this block |
 | (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 | **xobj2** | (blocks_headers//num_polyobj/num)\*20 | Array of `blocks_headers//num_polyobj/num` items<br/>Item type: [Nfs4RefExtraObject2](#nfs4refextraobject2) | References to per-block objects placed in this block |
-| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 | **soundsrc** | (blocks_headers//num_soundsrc/num)\*16 | Array of `blocks_headers//num_soundsrc/num` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit sound type |
-| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 | **lightsrc** | (blocks_headers//num_lightsrc/num)\*16 | Array of `blocks_headers//num_lightsrc/num` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 24 fraction bits) + 32-bit light type |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 | **soundsrc** | (blocks_headers//num_soundsrc/num)\*16 | Array of `blocks_headers//num_soundsrc/num` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Sound sources. Each 16-byte item: position (3 x 32-bit fixed point with 16 fraction bits) + 32-bit sound type |
+| (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 | **lightsrc** | (blocks_headers//num_lightsrc/num)\*16 | Array of `blocks_headers//num_lightsrc/num` items<br/>Item size: 16 bytes<br/>Item type: Bytes | Light sources. Each 16-byte item: position (3 x 32-bit fixed point with 16 fraction bits) + 32-bit light type |
 | (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 | **polygons_low_res_track** | (blocks_headers//polygon_chunk_sizes/0)\*13 | Array of `blocks_headers//polygon_chunk_sizes/0` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Low-res track polygons |
 | (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 | **polygons_low_res_misc** | (blocks_headers//polygon_chunk_sizes/1)\*13 | Array of `blocks_headers//polygon_chunk_sizes/1` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Low-res misc (non-track) polygons |
 | (blocks_headers//num_vertices)\*12 + custom_func\*4 + (blocks_headers//num_polygons)\*24 + (blocks_headers//num_xobj/num)\*20 + (blocks_headers//num_polyobj/num)\*20 + (blocks_headers//num_soundsrc/num)\*16 + (blocks_headers//num_lightsrc/num)\*16 + (blocks_headers//polygon_chunk_sizes/0)\*13 + (blocks_headers//polygon_chunk_sizes/1)\*13 | **polygons_med_res_track** | (blocks_headers//polygon_chunk_sizes/2)\*13 | Array of `blocks_headers//polygon_chunk_sizes/2` items<br/>Item type: [Nfs4Polygon](#nfs4polygon) | Medium-res track polygons |

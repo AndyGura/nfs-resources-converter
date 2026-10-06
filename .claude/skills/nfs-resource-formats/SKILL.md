@@ -243,16 +243,26 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    pixels so unchanged images write back byte-exact).
    Mesh names `<name>_ai<frame>` mark morph animation frames: the GUI `obj-viewer` collapses them
    into one list entry with a play button via `visibilityGroupFunction`/`animationFrameFunction`.
-   NFS2 (`TrkMapSerializer`) and NFS3 (`FrdMapSerializer`) tracks share `EacTrackSerializer._export_track`:
-   terrain chunks plus `TrackProp`s (model id, keyframes of position + quaternion in game coordinates, optional
-   animation delay). With `maps__add_props_to_obj` props are baked into the chunk meshes (`prop_<n>__<texture>`);
-   otherwise each prop is a dummy (`position`, `quaternion` [w, x, y, z], `properties.model_ref_id`) in the
-   chunk's `_extra.json`, and every model is written once to `props/<model id>.obj`. An animated prop carries
-   `properties.animation`, a JSON string `{"delay", "frames": [{"position", "quaternion"}]}` in the same coordinates
-   as the dummy; baked animated meshes get it through `Scene.object_properties` (custom properties of the imported
-   Blender objects). Prop sources: TRK block `props_7`/`props_18` + `prop_descriptions`, COL file `props_7` +
-   `prop_descriptions` (both games), NFS3 extra objects (XOBJ). NFS3 terrain is the high-res chunks
-   (`FRD_TERRAIN_POLYGON_CHUNKS`) plus the block's POLYOBJ objects; the low/medium-res chunks are LODs of it.
+   Track props: with `maps__add_props_to_obj` a track serializer bakes props into the terrain meshes; without it
+   (the GUI track viewer, and nfs-web, which loads the gg-web-engine export) every prop is a dummy of its terrain
+   chunk scene (`_extra.json` / `.meta`; position relative to the chunk, `properties.is_prop`, `type`,
+   `model_ref_id`) and the props controllers of the frontend spawn them (see the track viewer section below).
+   TNFS (`TriMapSerializer`) dummies reference FAM props (`model`, `bitmap`, `two_sided_bitmap`). NFS2
+   (`TrkMapSerializer`), NFS3 (`FrdMapSerializer`) and NFS4 (`Nfs4FrdMapSerializer`) share
+   `EacTrackSerializer._export_track`: terrain chunks plus `TrackProp`s (model id, keyframes of position +
+   quaternion in game coordinates, optional animation delay). Baked props are meshes `prop_<n>__<texture>`; a dummy
+   has `quaternion` [w, x, y, z] and `type: "model"`. Every model is exported once (identical ones deduplicated,
+   `_deduplicate_models`) to its own folder `props/<model id>/` with the converter's single-model names
+   (`geometry.obj` + `material.mtl`, gg-web-engine `body.glb` + `.meta` without materials: the game assigns track
+   textures by mesh name), all in one `export_scenes` call through `Scene.directory`. An animated prop carries
+   `properties.animation`, a JSON string `{"delay", "frame_duration", "frames": [{"position", "quaternion"}]}` in
+   the same coordinates as the dummy (`frame_duration` in seconds, assuming 64 delay units per second); baked
+   animated meshes get it through `Scene.object_properties` (custom properties of the imported Blender objects).
+   Prop sources: TRK block `props_7`/`props_18` + `prop_descriptions`, COL file `props_7` + `prop_descriptions`
+   (NFS2, NFS3), NFS3 and NFS4 extra objects (XOBJ; NFS4 special objects are rotated by their transform matrix, as
+   row vectors). NFS3 terrain is the high-res chunks (`FRD_TERRAIN_POLYGON_CHUNKS`) plus the block's POLYOBJ
+   objects; the low/medium-res chunks are LODs of it. NFS5 (CRP) and NFS6 tracks have no prop dummies yet: NFS5
+   bakes every article into the chunks, NFS6 routes don't include `levelG.o` props (`level.dat` is not parsed).
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
    file-manager association/icon in the installers.
 5. **Docs**: add/extend an entry in `generate_resource_doc.py`'s `EXPORT_RESOURCES[<game>]`
@@ -314,12 +324,18 @@ for each block class in `DATA_BLOCK_COMPONENTS_MAP`. Its world entity `TrackMapW
 Per-game differences live in a `TrackMapAdapter` (`track-map-adapters.ts`): chunk positions, the road
 spline used by the minimap and "Spline item" fly-to (with orientation), whether the track is closed,
 texture archive kind (QFS/FAM), glob patterns for finding it, serializer settings for it, skybox,
-terrain texture wrapping, per-chunk props (`loadChunkProps`: `tnfs-track-props.ts` builds TNFS props from block
-data; `serialized-track-props.ts` loads the prop dummies and `props/*.obj` models NFS2/NFS3 serializers write, and
-plays their keyframe animation), and optional panels
+terrain texture wrapping, the props controller (`propsController`), and optional panels
 showing the selected spline point's data. For another game's chunked track, add an adapter and a
 `TRACK_MAP_ADAPTERS` entry keyed by the block class name, and map that class to
 `TrackMapBlockUiComponent`; don't fork the component.
+
+Props are spawned by props controllers, which are copied into nfs-web as they are (like the car mesh controllers),
+so they depend only on three.js, gg-web-engine and rxjs (plus `setupNfs1Texture`): `TrackPropsController`
+(`track-props-controller.ts`; NFS2-NFS4 models from `props/<model>/`, keyframe animation) and
+`TnfsTrackPropsController` (`tnfs-track-props-controller.ts`; FAM models and bitmaps with frame animation, mirrored
+tracks). They take dummies in gg-web-engine meta format (`GgDummy`) and a `TrackPropsAssets` (model by folder,
+texture, terrain material by texture name), which `TrackMapWorldEntity` implements with OBJ/MTL files and nfs-web
+with its gg-web-engine loader; the viewer reads a chunk's dummies from its `_extra.json`.
 
 `chunkPositions` and the texture archive settings are optional. Without `chunkPositions` the
 component reads chunk pivots from the `terrain_chunks.json` the serializer writes next to the chunk

@@ -463,13 +463,7 @@ export class TrackMapBlockUiComponent extends GuiComponent implements AfterViewI
       this.terrainTexturesPath,
       this.mainService.hideHiddenFields$,
       this.adapter,
-      {
-        id: this.resourceId!,
-        name: this.resourceName!,
-        schema: this.resourceSchema,
-        data: this.resourceData,
-      },
-      !this.isClosed,
+      this.terrainChunksObjLocation,
       this.serializedFiles,
     );
     this.world.addEntity(this.map);
