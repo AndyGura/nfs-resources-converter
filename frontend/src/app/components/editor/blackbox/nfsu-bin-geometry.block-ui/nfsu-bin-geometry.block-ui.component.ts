@@ -46,13 +46,23 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
     }
   }
 
+  // object name is "<mesh name>__<texture name>", mesh name is "<CAR>_<part>_<LOD letter>", e.g.
+  // "SUPRA_KIT00_FRONT_BUMPER_A". The name is cut to 27 characters, so the LOD letter can be missing
+  private static meshName(object: { name: string }): string {
+    return object.name.split('__')[0];
+  }
+
+  // one list entry per mesh, whatever amount of textures it has
+  public readonly previewObjectGroupFunc = (object: { name: string }) => NfsuBinGeometryBlockUiComponent.meshName(object);
+
   public readonly previewViewFilters: ViewFilterOpts[] = [
     {
       name: 'LOD',
       filterGroups: ['A', 'B', 'C', 'D', '?'],
       checkedIndex: 0,
       pickFunction: object => {
-        switch (object.name.substring(object.name.length - 2)) {
+        const name = NfsuBinGeometryBlockUiComponent.meshName(object);
+        switch (name.substring(name.length - 2)) {
           case '_A':
             return 0;
           case '_B':
@@ -61,6 +71,27 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
             return 2;
           case '_D':
             return 3;
+        }
+        return 4;
+      },
+    },
+    {
+      name: 'Parts',
+      filterGroups: ['Stock', 'Body kits', 'Widebody kits', 'Aftermarket', 'Decals'],
+      checkedIndex: 0,
+      pickFunction: object => {
+        const part = NfsuBinGeometryBlockUiComponent.meshName(object).split('_')[1] || '';
+        if (part === 'BASE' || part === 'KIT00') {
+          return 0;
+        }
+        if (/^KIT\d+$/.test(part)) {
+          return 1;
+        }
+        if (/^KITW\d+$/.test(part)) {
+          return 2;
+        }
+        if (/^STYLE\d+$/.test(part)) {
+          return 3;
         }
         return 4;
       },

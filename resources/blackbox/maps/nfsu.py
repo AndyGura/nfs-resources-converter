@@ -12,7 +12,14 @@ from library.read_blocks import (
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import UTF8Block
 from resources.blackbox.bitmaps.nfsu import NfsuTexturePack
-from resources.blackbox.chunks import chunk_delegate, container_chunk_length, nfsu_sub_chunks_field
+from resources.blackbox.chunks import (
+    chunk_delegate,
+    container_chunk_length,
+    is_name_bytes,
+    nfsu_sub_chunks_field,
+    peek_chunk_length,
+    peek_chunk_payload,
+)
 from resources.blackbox.geometries.nfsu import (
     _CHUNK_ID_DESCR,
     _CHUNK_LENGTH_DESCR,
@@ -163,6 +170,138 @@ class NfsuScenery(DeclarativeCompoundBlock):
         )
 
 
+def _nfsu2_scenery_info_names_ok(infos_payload: bytes) -> bool:
+    return (
+        len(infos_payload) % 68 == 0
+        and len(infos_payload) > 0
+        and all(is_name_bytes(infos_payload[i : i + 32]) for i in range(0, len(infos_payload), 68))
+    )
+
+
+class Nfsu2SceneryInfo(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'NFSU2 scenery object definition: which mesh to draw'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        name = (UTF8Block(length=32), {'description': 'Object name, e.g. "SKYDOME"'})
+        mesh_ids = (
+            ArrayBlock(child=IntegerBlock(length=4), length=3),
+            {
+                'description': 'Mesh ids (hashes of mesh names, `mesh_id` of mesh header chunks). The first one is '
+                'the main mesh, others are probably levels of detail'
+            },
+        )
+        flags = (ArrayBlock(child=IntegerBlock(length=2), length=2), {'is_unknown': True})
+        model_pointers = (
+            ArrayBlock(child=IntegerBlock(length=4), length=3),
+            {'description': 'Filled by the game in runtime', 'is_unknown': True},
+        )
+        radius = (DecimalBlock(length=4), {'description': 'Bounding sphere radius'})
+        hierarchy_key = (IntegerBlock(length=4), {'is_unknown': True})
+
+
+class Nfsu2SceneryInfos(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'NFSU2 scenery object definitions'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00034102)), {'description': _CHUNK_ID_DESCR})
+        chunk_length = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('infos')) * 68),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        infos = (
+            ArrayBlock(child=Nfsu2SceneryInfo(), length=lambda ctx: ctx.data('chunk_length') // 68),
+            {'description': 'Definitions'},
+        )
+
+
+class Nfsu2SceneryInstance(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'NFSU2 placed scenery object'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        bounding_box_min = (
+            Point3D(child=DecimalBlock(length=4)),
+            {'description': 'Minimum corner of the bounding box in world coordinates'},
+        )
+        bounding_box_max = (
+            Point3D(child=DecimalBlock(length=4)),
+            {'description': 'Maximum corner of the bounding box in world coordinates'},
+        )
+        info_index = (IntegerBlock(length=2), {'description': 'Index of the object definition in this scenery'})
+        instance_flags = (IntegerBlock(length=2), {'is_unknown': True})
+        preculler_info_index = (IntegerBlock(length=4, is_signed=True), {'is_unknown': True})
+        position = (Point3D(child=DecimalBlock(length=4)), {'description': 'Position in world coordinates'})
+        rotation = (
+            ArrayBlock(child=FixedPointBlock(length=2, fraction_bits=13, is_signed=True), length=9),
+            {
+                'description': 'Rotation and scale matrix 3x3, row by row. World position of a mesh vertex v is '
+                'v.x * row0 + v.y * row1 + v.z * row2 + position'
+            },
+        )
+        padding = (IntegerBlock(length=2), {'is_unknown': True})
+
+
+class Nfsu2SceneryInstances(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'NFSU2 placed scenery objects'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00034103)), {'description': _CHUNK_ID_DESCR})
+        chunk_length = (
+            IntegerBlock(
+                length=4, programmatic_value=lambda ctx: len(ctx.data('elevens')) + len(ctx.data('instances')) * 64
+            ),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        elevens = (
+            BytesBlock(length=(lambda ctx: elevens_length(ctx), 'up to 16-bytes alignment')),
+            {'usage': 'io,doc', 'description': _ELEVENS_DESCR},
+        )
+        instances = (
+            ArrayBlock(
+                child=Nfsu2SceneryInstance(),
+                length=lambda ctx: (ctx.data('chunk_length') - len(ctx.data('elevens'))) // 64,
+            ),
+            {'description': 'Instances'},
+        )
+
+
+class Nfsu2Scenery(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'NFSU2 scenery of a section: same as in NFSU, with bigger object definitions '
+            '(named) and instances (float bounding box). Told apart from NFSU scenery by the definitions: '
+            'every NFSU2 one starts with a name',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x80034100)), {'description': _CHUNK_ID_DESCR})
+        chunk_length = container_chunk_length()
+        sub_chunks = nfsu_sub_chunks_field(
+            [NfsuScenerySectionHeader(), Nfsu2SceneryInfos(), Nfsu2SceneryInstances(), ZeroChunk()],
+            'Header, definitions, instances and unknown chunks 0x00034104, 0x00034105, 0x00034106',
+        )
+
+    def matches_chunk(self, ctx) -> bool:
+        payload = peek_chunk_payload(ctx, peek_chunk_length(ctx))
+        pos = 0
+        while pos + 8 <= len(payload):
+            chunk_id = int.from_bytes(payload[pos : pos + 4], 'little')
+            chunk_length = int.from_bytes(payload[pos + 4 : pos + 8], 'little')
+            if chunk_id == 0x00034102:
+                return _nfsu2_scenery_info_names_ok(payload[pos + 8 : pos + 8 + chunk_length])
+            pos += 8 + chunk_length
+        return False
+
+
 class NfsuStreamingSection(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
@@ -192,7 +331,7 @@ class NfsuStreamingSections(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': 'Table of streamed sections: where the world sections of the race lie in the '
-            'STREAM*.BUN file',
+            'STREAM*.BUN file. NFSU2 has another chunk with this id',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -206,13 +345,78 @@ class NfsuStreamingSections(DeclarativeCompoundBlock):
             {'description': 'Sections'},
         )
 
+    def matches_chunk(self, ctx) -> bool:
+        # NFSU2 has another chunk with this id (8-byte records), its sections table is chunk 0x00034110
+        if peek_chunk_length(ctx) % 56:
+            return False
+        name = peek_chunk_payload(ctx, 8)
+        return len(name) == 8 and name[0] != 0 and is_name_bytes(name)
+
+
+class Nfsu2StreamingSection(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'NFSU2: location of a streamed section in the STREAM*.BUN file'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        name = (UTF8Block(length=8), {'description': 'Section name, e.g. "A37"'})
+        number = (
+            IntegerBlock(length=4),
+            {'description': 'Section number: letter index (A = 1) * 100 + number'},
+        )
+        unk0 = (IntegerBlock(length=4), {'is_unknown': True})
+        unk1 = (IntegerBlock(length=4), {'description': '1, except the first section "--"', 'is_unknown': True})
+        offset = (IntegerBlock(length=4), {'description': 'Offset of the section in the stream file'})
+        size = (
+            IntegerBlock(length=4),
+            {'description': 'Size of the section in the stream file, without padding to 2048 bytes'},
+        )
+        size2 = (
+            IntegerBlock(length=4),
+            {'description': 'Equals to `size` unless the section has textures, then smaller', 'is_unknown': True},
+        )
+        unk2 = (
+            IntegerBlock(length=4),
+            {'description': 'Section number + 10000 or 20000 (or 20000 for "--")', 'is_unknown': True},
+        )
+        center = (
+            ArrayBlock(child=DecimalBlock(length=4), length=2),
+            {'description': 'Presumably the center of the section (X, Y) in world coordinates', 'is_unknown': True},
+        )
+        radius = (DecimalBlock(length=4), {'description': 'Presumably radius of the section', 'is_unknown': True})
+        hash = (IntegerBlock(length=4), {'is_unknown': True})
+        unk3 = (BytesBlock(length=28), {'is_unknown': True})
+
+
+class Nfsu2StreamingSections(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'NFSU2 table of streamed sections: where the world sections of the location lie '
+            'in the STREAM*.BUN file',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00034110)), {'description': _CHUNK_ID_DESCR})
+        chunk_length = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('sections')) * 80),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        sections = (
+            ArrayBlock(child=Nfsu2StreamingSection(), length=lambda ctx: ctx.data('chunk_length') // 80),
+            {'description': 'Sections'},
+        )
+
 
 NFSU_BUNDLE_CHUNK_BLOCKS = [
     ZeroChunk(),
     NfsuBinGeometry(whole_file=False),
     NfsuTexturePack(),
+    Nfsu2Scenery(),
     NfsuScenery(),
     NfsuStreamingSections(),
+    Nfsu2StreamingSections(),
 ]
 
 
@@ -246,9 +450,9 @@ class NfsuTrackBundle(NfsuChunkBundle):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Race bundle (TRACKS/TRACKBnnnn.lzc, uncompressed): a chunk bundle with the '
-            'streaming sections table of the race world, which is stored in TRACKS/STREAM*.BUN. '
-            + super().schema['block_description'],
+            'block_description': 'Race bundle (NFSU TRACKS/TRACKBnnnn.lzc, uncompressed) or location bundle (NFSU2 '
+            'TRACKS/L4RA.BUN): a chunk bundle with the streaming sections table of the world, which is stored in '
+            'TRACKS/STREAM*.BUN. ' + super().schema['block_description'],
         }
 
     def serializer_class(self):

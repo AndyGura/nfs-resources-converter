@@ -200,7 +200,8 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
 
         chunk_ids = walk_nfsu_chunk_ids(buffer, length)
         if chunk_ids:
-            if 0x00034107 in chunk_ids:
+            # streaming sections table: NFSU race bundle (0x00034107) or NFSU2 location bundle (0x00034110)
+            if 0x00034107 in chunk_ids or 0x00034110 in chunk_ids:
                 from resources.blackbox.maps.nfsu import NfsuTrackBundle
 
                 return NfsuTrackBundle

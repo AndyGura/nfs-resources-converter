@@ -803,26 +803,101 @@ class CrpGeometrySerializer(BaseFileSerializer):
         return exported + [layout_path]
 
 
+def find_nfsu_car_textures(geometry_path: str) -> dict:
+    """Textures of NFS Underground car GEOMETRY.BIN: texture packs of TEXTURES.BIN next to it, of the shared
+    CARS/TEXTURES.BIN one folder up and of GLOBAL/GLOBALB.LZC of the game (chrome, grilles, exhaust etc.; also looked
+    up in the game folder itself). Name hash -> (texture info, Direct3D format, data)"""
+    import os
+    from library import require_file
+    from library.utils.file_utils import find_files_case_insensitive
+    from serializers.bitmaps import nfsu_texture_pack_textures
+
+    directory = os.path.dirname(geometry_path)
+    cars_directory = os.path.dirname(directory)
+    game_directory = os.path.dirname(cars_directory)
+    textures = {}
+    for pattern in [
+        path_join(directory, 'TEXTURES.BIN'),
+        path_join(cars_directory, 'TEXTURES.BIN'),
+        path_join(game_directory, 'GLOBAL', 'GLOBALB.LZC'),
+        path_join(game_directory, 'GLOBALB.LZC'),
+    ]:
+        for texture_path in find_files_case_insensitive([pattern]):
+            try:
+                (_, _, data) = require_file(texture_path)
+                if 'chunks' not in data and isinstance(data.get('data'), dict):
+                    # JDLZ-compressed bundle
+                    data = data['data']
+                for chunk in data.get('chunks', []):
+                    if chunk['data'].get('chunk_id') == 0xB3300000:
+                        for info, d3d_format, image_data in nfsu_texture_pack_textures(chunk['data']):
+                            textures.setdefault(info['name_hash'], (info, d3d_format, image_data))
+            except Exception:
+                traceback.print_exc()
+    return textures
+
+
 class NfsuBinGeometrySerializer(BaseFileSerializer):
+    """NFS Underground car geometry: every mesh (car part) is exported as one OBJ object per texture, named
+    "<mesh name>__<texture name>". Textures are taken from TEXTURES.BIN files of the car and of all cars (see
+    `find_nfsu_car_textures`) and saved to "textures/<texture name>.png"""
+
     def __init__(self):
         super().__init__(is_dir=True)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        from library.loader import id_to_path
+        from serializers.bitmaps import nfsu_texture_to_image
+
         super().serialize(data, path)
+
+        textures = find_nfsu_car_textures(id_to_path(id)) if id and '__' not in id else {}
+        texture_names = {}
+        alpha_modes = {}
+
+        def texture_name(texture_id):
+            if texture_id not in texture_names:
+                texture_names[texture_id] = 'untextured'
+                if texture_id in textures:
+                    try:
+                        info = textures[texture_id][0]
+                        image = nfsu_texture_to_image(*textures[texture_id])
+                        name = re.sub(r'[^A-Za-z0-9_]', '_', info['name']) or f'{texture_id:08x}'
+                        if name in texture_names.values():
+                            name += f'_{texture_id:08x}'
+                        os.makedirs(path_join(path, 'textures'), exist_ok=True)
+                        image.save(path_join(path, f'textures/{name}.png'))
+                        texture_names[texture_id] = name
+                        alpha_modes[name] = texture_alpha_mode(image)
+                    except Exception:
+                        traceback.print_exc()
+            return texture_names[texture_id]
 
         scene = Scene()
         scene.name = 'body'
         scene.obj_name = 'geometry'
+        scene.mtl_texture_path_func = lambda name: f'textures/{name}.png'
         scene.sub_meshes = []
 
         for nfsu_mesh in nfsu_geometry_meshes(data):
-            mesh = SubMesh()
+            mesh = Mesh()
             mesh.name = nfsu_mesh.name
             mesh.vertices = [list(v) for v in nfsu_mesh.vertices]
             mesh.vertex_uvs = [list(uv) for uv in nfsu_mesh.uvs]
-            mesh.polygons = [list(t) for (_, triangles) in nfsu_mesh.parts for t in triangles]
-            scene.sub_meshes.append(mesh)
+            for texture_id, triangles in nfsu_mesh.parts:
+                name = texture_name(texture_id)
+                for t in triangles:
+                    if all(i < len(mesh.vertices) for i in t):
+                        mesh.polygons.append(list(t))
+                        mesh.texture_ids.append(name)
+            if not mesh.polygons:
+                continue
+            for sub_mesh, _, _ in mesh.split_by_texture_ids():
+                sub_mesh.name = f'{nfsu_mesh.name}__{sub_mesh.texture_id}'
+                scene.sub_meshes.append(sub_mesh)
 
+        scene.mtl_texture_names = sorted(x for x in set(texture_names.values()) if x != 'untextured')
+        scene.mtl_texture_alpha_modes = alpha_modes
         return export_scenes([scene], path, self.settings)
 
 

@@ -1,6 +1,6 @@
 # **NFS Underground file specs** #
 
-*Last time updated: 2026-10-05 22:24:17.653670+00:00*
+*Last time updated: 2026-10-06 23:43:20.495327+00:00*
 
 
 # **Info by file extensions** #
@@ -21,7 +21,7 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Maps** ##
 ### **NfsuTrackBundle** ###
 #### **Size**: 0..? bytes ####
-#### **Description**: Race bundle (TRACKS/TRACKBnnnn.lzc, uncompressed): a chunk bundle with the streaming sections table of the race world, which is stored in TRACKS/STREAM*.BUN. Chunk bundle (*.BUN, *.BIN, uncompressed *.lzc): a sequence of chunks, each having 32-bit id, 32-bit payload length and payload; chunks with the highest bit of id set are containers of other chunks. Geometry packs, texture packs, scenery and streaming sections table are decoded, other chunks are kept as raw bytes ####
+#### **Description**: Race bundle (NFSU TRACKS/TRACKBnnnn.lzc, uncompressed) or location bundle (NFSU2 TRACKS/L4RA.BUN): a chunk bundle with the streaming sections table of the world, which is stored in TRACKS/STREAM*.BUN. Chunk bundle (*.BUN, *.BIN, uncompressed *.lzc): a sequence of chunks, each having 32-bit id, 32-bit payload length and payload; chunks with the highest bit of id set are containers of other chunks. Geometry packs, texture packs, scenery and streaming sections table are decoded, other chunks are kept as raw bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsuScenery](#nfsuscenery)<br/>- [NfsuStreamingSections](#nfsustreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
@@ -33,7 +33,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsuScenery](#nfsuscenery)<br/>- [NfsuStreamingSections](#nfsustreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
 ### **NfsuStreamingSections** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Table of streamed sections: where the world sections of the race lie in the STREAM*.BUN file ####
+#### **Description**: Table of streamed sections: where the world sections of the race lie in the STREAM*.BUN file. NFSU2 has another chunk with this id ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34107 | Chunk ID |
@@ -129,7 +129,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x33310001 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian). Always == 0x7c | - |
-| 8 | **version** | 4 | 4-bytes unsigned integer (little endian) | Texture pack version, 4 in NFSU |
+| 8 | **version** | 4 | 4-bytes unsigned integer (little endian) | Texture pack version, 4 in NFSU, 5 in NFSU2 |
 | 12 | **name** | 28 | UTF-8 string | Texture pack name, e.g. "TRACK" |
 | 40 | **file_path** | 64 | UTF-8 string | Path of the texture pack in the original development environment |
 | 104 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Hash of the texture pack name |
@@ -271,14 +271,15 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134900 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **payload** | chunk_length-28 | Bytes | Unknown data, starts with 0x11 alignment filler bytes |
-| 8 + chunk_length-28 | **faces_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of faces (triangles) of the mesh |
-| 12 + chunk_length-28 | **unk_v** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 16 + chunk_length-28 | **unk_w** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 20 + chunk_length-28 | **unk_x** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 24 + chunk_length-28 | **vertex_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices of the mesh |
-| 28 + chunk_length-28 | **unk_y** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 32 + chunk_length-28 | **unk_z** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 8 | **payload** | 0x11 alignment filler + 36 | Bytes | Unknown data, starts with 0x11 alignment filler bytes |
+| 0x11 alignment filler + 44 | **faces_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of faces (triangles) of the mesh |
+| 0x11 alignment filler + 48 | **unk_v** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 0x11 alignment filler + 52 | **unk_w** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 0x11 alignment filler + 56 | **unk_x** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 0x11 alignment filler + 60 | **vertex_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices of the mesh |
+| 0x11 alignment filler + 64 | **unk_y** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 0x11 alignment filler + 68 | **unk_z** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 0x11 alignment filler + 72 | **unk_tail** | 0 in NFSU, 1 in NFSU2\*4 | Array of `0 in NFSU, 1 in NFSU2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian). Always == 0x0 | NFSU2 only: one more zero value |
 ### **NfsuMeshFacesChunk** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Mesh faces: a triangle list. Amount of faces is defined by the mesh info chunk (the first chunk of the same mesh data container) ####
@@ -329,12 +330,12 @@ Did not find what you need or some given data is wrong? Please submit an
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **sub_chunks** | custom_func\*8..? | Array of `custom_func` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuMeshChunk](#nfsumeshchunk)<br/>- [NfsuMeshFacesChunk](#nfsumeshfaceschunk)<br/>- [MeshVerticesChunk](#meshverticeschunk)<br/>- [NfsuMeshMaterialsChunk](#nfsumeshmaterialschunk) | Child chunks, read until the payload is exhausted. Block class picked according to the chunk id |
 ### **Chunk00134002** ###
-#### **Size**: 136 bytes ####
+#### **Size**: 136..? bytes ####
 #### **Description**: File info: original path of the file and unknown values ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134002 | Chunk ID |
-| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian). Always == 0x80 | Length of the chunk payload in bytes (everything after this field) |
+| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian). One of ['0x80', '0x90'] | Length of the chunk payload in bytes (everything after this field): 128 in NFSU, 144 in NFSU2 |
 | 8 | **unk_0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 12 | **unk_1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **unk_2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
@@ -347,6 +348,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 124 | **unk_7** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 128 | **unk_8** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 132 | **unk_9** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 136 | **nfsu2_padding** | 0 in NFSU, 16 in NFSU2 | Bytes | NFSU2 only: zero bytes |
 ### **Chunk00134003** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: List of mesh ids contained in the file, one item per mesh descriptor chunk ####
@@ -361,13 +363,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134011 | Chunk ID |
-| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field): 176 + length of alignment filler |
+| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field): 176 (NFSU) or 192 (NFSU2) + length of alignment filler |
 | 8 | **elevens** | up to 16-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
 | 8 + up to 16-bytes alignment | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 12 + up to 16-bytes alignment | **unk3** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 16 + up to 16-bytes alignment | **unk4** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 20 + up to 16-bytes alignment | **unk5** | 2 | 2-bytes unsigned integer (little endian). Always == 0x13 | Unknown purpose |
-| 22 + up to 16-bytes alignment | **unk6** | 2 | 2-bytes unsigned integer (little endian). One of ['0x40', '0x0'] | Unknown purpose |
+| 20 + up to 16-bytes alignment | **version** | 2 | 2-bytes unsigned integer (little endian). One of ['0x13', '0x16'] | Version of the mesh header: 0x13 in NFSU, 0x16 in NFSU2 |
+| 22 + up to 16-bytes alignment | **unk6** | 2 | 2-bytes unsigned integer (little endian) | Flags? 0x40 or 0 in NFSU, also 0x80 in NFSU2 |
 | 24 + up to 16-bytes alignment | **mesh_id** | 4 | 4-bytes unsigned integer (little endian) | Mesh id (hash), listed in the mesh ids chunk of the file |
 | 28 + up to 16-bytes alignment | **unk7** | 4 | 4-bytes unsigned integer (little endian) | Amount of faces? Equals to `faces_amount` of the mesh info chunk |
 | 32 + up to 16-bytes alignment | **mesh_flags** | 4 | 4-bytes unsigned integer (little endian) | Mesh flags. Maybe contains stream count / LOD / material count |
@@ -383,10 +385,12 @@ Did not find what you need or some given data is wrong? Please submit an
 | 132 + up to 16-bytes alignment | **unk_U** | 4 | Float number (little-endian). Always == 1.0 | Unknown purpose |
 | 136 + up to 16-bytes alignment | **unk_V** | 4 | Float number (little-endian). Always == 0.0 | Unknown purpose |
 | 140 + up to 16-bytes alignment | **unk_W** | 4 | Float number (little-endian). Always == 0.0 | Unknown purpose |
-| 144 + up to 16-bytes alignment | **unk_X** | 4 | 4-bytes unsigned integer (little endian). Always == 0x12f800 | Unknown purpose |
-| 148 + up to 16-bytes alignment | **unk_Y** | 4 | 4-bytes unsigned integer (little endian). Always == 0x12f800 | Unknown purpose |
+| 144 + up to 16-bytes alignment | **unk_X** | 4 | 4-bytes unsigned integer (little endian) | Always 0x0012F800 in NFSU |
+| 148 + up to 16-bytes alignment | **unk_Y** | 4 | 4-bytes unsigned integer (little endian) | Always equals to `unk_X` |
 | 152 + up to 16-bytes alignment | **unk_Z** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 156 + up to 16-bytes alignment | **mesh_name** | 28 | UTF-8 string | Mesh name, e.g. "S2000_KIT08_FRONT_BUMPER_A". Used as the name of exported mesh |
+| 156 + up to 16-bytes alignment | **nfsu2_unk_floats** | 0 in NFSU, 2 in NFSU2\*4 | Array of `0 in NFSU, 2 in NFSU2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | NFSU2 only |
+| 156 + up to 16-bytes alignment + 0 in NFSU, 2 in NFSU2\*4 | **nfsu2_unk_ints** | 0 in NFSU, 2 in NFSU2\*4 | Array of `0 in NFSU, 2 in NFSU2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | NFSU2 only |
+| 156 + up to 16-bytes alignment + 0 in NFSU, 2 in NFSU2\*4 + 0 in NFSU, 2 in NFSU2\*4 | **mesh_name** | 28 | UTF-8 string | Mesh name, e.g. "S2000_KIT08_FRONT_BUMPER_A". Used as the name of exported mesh |
 ### **Chunk00134012** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: A list of 32-bit values (hashes) of the mesh, presumably texture ids ####

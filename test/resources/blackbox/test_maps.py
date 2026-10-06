@@ -1,13 +1,14 @@
+import os
 import unittest
 from io import BytesIO
 
 from library import require_file
 from resources.blackbox.archives import NfsuJdlzCompressedBlock
-from resources.blackbox.maps.nfsu import NfsuChunkBundle
+from resources.blackbox.maps.nfsu import NfsuChunkBundle, NfsuTrackBundle
 from resources.eac.compressions.jdlz import JdlzCompression
 from serializers.bitmaps import nfsu_texture_pack_textures, nfsu_texture_to_image
 from serializers.geometries import nfsu_geometry_meshes
-from serializers.maps import NfsuWorld
+from serializers.maps import NfsuWorld, find_nfsu_stream_file, nfsu_section_ranges, nfsu_streaming_sections
 
 SECTION = 'test/samples/NFSU_B36.BUN'
 
@@ -83,3 +84,46 @@ class TestJdlz(unittest.TestCase):
         self.assertIsInstance(block.possible_blocks[data['choice_index']], NfsuChunkBundle)
         packed = block.pack(data)
         self.assertEqual(JdlzCompression().uncompress(BytesIO(packed), len(packed)), raw)
+
+
+NFSU2_DIR = 'test/samples/claude_tmp/nfsu2'
+
+
+@unittest.skipUnless(os.path.exists(f'{NFSU2_DIR}/L4RA.BUN'), f'needs NFSU2 samples in {NFSU2_DIR}')
+class TestNfsu2LocationBundle(unittest.TestCase):
+    def test_location_bundle_should_be_read_and_remain_the_same(self):
+        path = f'{NFSU2_DIR}/L4RA.BUN'
+        (name, block, data) = require_file(path)
+        self.assertIsInstance(block, NfsuTrackBundle)
+        with open(path, 'rb') as f:
+            self.assertEqual(f.read(), block.pack(data, name=name))
+
+    def test_streaming_sections_should_be_listed(self):
+        (_, _, data) = require_file(f'{NFSU2_DIR}/L4RA.BUN')
+        sections = nfsu_streaming_sections(data)
+        ranges = nfsu_section_ranges(sections)
+        self.assertEqual(len(ranges), 392)
+        self.assertNotIn('--', [s['name'] for s in ranges])
+        stream_end = max(s['offset'] + s['size'] for s in ranges)
+        stream_path = f'{NFSU2_DIR}/STREAML4RA.BUN'
+        if os.path.exists(stream_path):
+            self.assertEqual(find_nfsu_stream_file(f'{NFSU2_DIR}/L4RA.BUN', sections), stream_path)
+            self.assertGreaterEqual(os.path.getsize(stream_path), stream_end)
+
+    @unittest.skipUnless(os.path.exists(f'{NFSU2_DIR}/STREAML4RA.BUN'), 'needs NFSU2 STREAML4RA.BUN')
+    def test_streamed_section_should_be_read_and_remain_the_same(self):
+        (_, _, data) = require_file(f'{NFSU2_DIR}/L4RA.BUN')
+        section = next(s for s in nfsu_section_ranges(nfsu_streaming_sections(data)) if s['name'] == 'C22')
+        with open(f'{NFSU2_DIR}/STREAML4RA.BUN', 'rb') as f:
+            f.seek(section['offset'])
+            raw = f.read(section['size'])
+        block = NfsuChunkBundle()
+        section_data = block.unpack_from_bytes(raw, name='section.BUN')
+        self.assertEqual(raw, block.pack(section_data))
+        world = NfsuWorld()
+        world.collect(section_data)
+        # NFSU2 scenery layout: named infos, instances with float bounding box
+        self.assertEqual(len(world.sceneries), 2)
+        for _, infos, instances in world.sceneries:
+            self.assertTrue(all(i['name'] for i in infos))
+            self.assertTrue(all(0 <= x['info_index'] < len(infos) for x in instances))

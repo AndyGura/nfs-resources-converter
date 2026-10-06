@@ -105,11 +105,15 @@ class NfsuMeshChunk(DeclarativeCompoundBlock):
             {'description': _CHUNK_ID_DESCR},
         )
         chunk_length = (
-            IntegerBlock(length=4, is_signed=False, programmatic_value=lambda ctx: len(ctx.data('payload')) + 28),
+            IntegerBlock(
+                length=4,
+                is_signed=False,
+                programmatic_value=lambda ctx: len(ctx.data('payload')) + 28 + 4 * len(ctx.data('unk_tail')),
+            ),
             {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
         )
         payload = (
-            BytesBlock(length=lambda ctx: ctx.data('chunk_length') - 28),
+            BytesBlock(length=(lambda ctx: elevens_length(ctx) + 36, '0x11 alignment filler + 36')),
             {'description': 'Unknown data, starts with 0x11 alignment filler bytes', 'is_unknown': True},
         )
         faces_amount = (IntegerBlock(length=4), {'description': 'Amount of faces (triangles) of the mesh'})
@@ -119,6 +123,16 @@ class NfsuMeshChunk(DeclarativeCompoundBlock):
         vertex_amount = (IntegerBlock(length=4), {'description': 'Amount of vertices of the mesh'})
         unk_y = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
         unk_z = (IntegerBlock(length=4, value_validator=Eq(0)), {'is_unknown': True})
+        unk_tail = (
+            ArrayBlock(
+                child=IntegerBlock(length=4, value_validator=Eq(0)),
+                length=(
+                    lambda ctx: (ctx.data('chunk_length') - len(ctx.data('payload')) - 28) // 4,
+                    '0 in NFSU, 1 in NFSU2',
+                ),
+            ),
+            {'description': 'NFSU2 only: one more zero value', 'is_unknown': True},
+        )
 
 
 def elevens_length(ctx, alignment: int = 0x10):
@@ -433,8 +447,8 @@ class Chunk00134002(DeclarativeCompoundBlock):
             {'description': _CHUNK_ID_DESCR},
         )
         chunk_length = (
-            IntegerBlock(length=4, value_validator=Eq(128)),
-            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+            IntegerBlock(length=4, value_validator=Or([128, 144])),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR + ': 128 in NFSU, 144 in NFSU2'},
         )
         unk_0 = (IntegerBlock(length=4), {'is_unknown': True})
         unk_1 = (IntegerBlock(length=4), {'is_unknown': True})
@@ -460,6 +474,10 @@ class Chunk00134002(DeclarativeCompoundBlock):
         unk_7 = (IntegerBlock(length=4), {'is_unknown': True})
         unk_8 = (IntegerBlock(length=4), {'is_unknown': True})
         unk_9 = (IntegerBlock(length=4), {'is_unknown': True})
+        nfsu2_padding = (
+            BytesBlock(length=(lambda ctx: ctx.data('chunk_length') - 128, '0 in NFSU, 16 in NFSU2')),
+            {'description': 'NFSU2 only: zero bytes', 'is_unknown': True},
+        )
 
 
 class Chunk00134003(DeclarativeCompoundBlock):
@@ -505,8 +523,14 @@ class Chunk00134011(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x00_13_40_11)), {'description': _CHUNK_ID_DESCR})
         chunk_length = (
-            IntegerBlock(length=4, programmatic_value=lambda ctx: 176 + len(ctx.data('elevens'))),
-            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR + ': 176 + length of alignment filler'},
+            IntegerBlock(
+                length=4,
+                programmatic_value=lambda ctx: 176 + len(ctx.data('elevens')) + 8 * len(ctx.data('nfsu2_unk_floats')),
+            ),
+            {
+                'usage': 'io,doc',
+                'description': _CHUNK_LENGTH_DESCR + ': 176 (NFSU) or 192 (NFSU2) + length of alignment filler',
+            },
         )
         elevens = (
             BytesBlock(length=(lambda ctx: elevens_length(ctx), 'up to 16-bytes alignment')),
@@ -515,8 +539,14 @@ class Chunk00134011(DeclarativeCompoundBlock):
         unk2 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
         unk3 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
         unk4 = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
-        unk5 = (IntegerBlock(length=2, value_validator=Eq(0x00_13)), {'is_unknown': True})
-        unk6 = (IntegerBlock(length=2, value_validator=Or([0x00_40, 0x00_00])), {'is_unknown': True})
+        version = (
+            IntegerBlock(length=2, value_validator=Or([0x13, 0x16])),
+            {'description': 'Version of the mesh header: 0x13 in NFSU, 0x16 in NFSU2'},
+        )
+        unk6 = (
+            IntegerBlock(length=2),
+            {'description': 'Flags? 0x40 or 0 in NFSU, also 0x80 in NFSU2', 'is_unknown': True},
+        )
         mesh_id = (IntegerBlock(length=4), {'description': 'Mesh id (hash), listed in the mesh ids chunk of the file'})
         unk7 = (
             IntegerBlock(length=4),
@@ -544,9 +574,23 @@ class Chunk00134011(DeclarativeCompoundBlock):
 
         unk_V = (DecimalBlock(length=4, value_validator=Eq(0.0)), {'is_unknown': True})
         unk_W = (DecimalBlock(length=4, value_validator=Eq(0.0)), {'is_unknown': True})
-        unk_X = (IntegerBlock(length=4, value_validator=Eq(0x00_12_F8_00)), {'is_unknown': True})
-        unk_Y = (IntegerBlock(length=4, value_validator=Eq(0x00_12_F8_00)), {'is_unknown': True})
+        unk_X = (IntegerBlock(length=4), {'description': 'Always 0x0012F800 in NFSU', 'is_unknown': True})
+        unk_Y = (IntegerBlock(length=4), {'description': 'Always equals to `unk_X`', 'is_unknown': True})
         unk_Z = (IntegerBlock(length=4, value_validator=Eq(0x00_00_00_00)), {'is_unknown': True})
+        nfsu2_unk_floats = (
+            ArrayBlock(
+                child=DecimalBlock(length=4),
+                length=(lambda ctx: 2 if ctx.data('version') == 0x16 else 0, '0 in NFSU, 2 in NFSU2'),
+            ),
+            {'description': 'NFSU2 only', 'is_unknown': True},
+        )
+        nfsu2_unk_ints = (
+            ArrayBlock(
+                child=IntegerBlock(length=4),
+                length=(lambda ctx: 2 if ctx.data('version') == 0x16 else 0, '0 in NFSU, 2 in NFSU2'),
+            ),
+            {'description': 'NFSU2 only', 'is_unknown': True},
+        )
         mesh_name = (
             UTF8Block(length=28),
             {'description': 'Mesh name, e.g. "S2000_KIT08_FRONT_BUMPER_A". Used as the name of exported mesh'},

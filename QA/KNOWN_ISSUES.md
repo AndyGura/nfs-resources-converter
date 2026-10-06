@@ -167,6 +167,14 @@ as one generic chunk bundle for the data tree: about 60 s and 3 GB, and there is
 22 texture hashes used by the city are not in the track's texture packs (probably `GLOBAL/*.BIN`); those
 materials show the placeholder texture.
 
+NFSU2 Bayview (`TRACKS/L4RA.BUN` + `STREAML4RA.BUN`, 392 sections) is the same: about 95 s per open. 15 texture
+hashes (race barriers, light glows, billboards, sky dome) and 46 animated `ANM_*` meshes (doors, planes,
+spotlights) are not found, so about 5% of the city is untextured or missing, and there is no sky.
+
+NFSU2 cars: the body paint (`<CAR>_SKIN1`), windows (`WINDOW_*`) and decal slots (`DUMMY_DECAL*`) are not in any
+texture pack (the game makes them at run time), so those parts are untextured. NFSU2 mesh names are truncated
+to 27 characters, so the LOD letter can be cut off and such meshes land in the default LOD group.
+
 ---
 
 ## Unknown / not yet investigated (flagged, not silently assumed fine)

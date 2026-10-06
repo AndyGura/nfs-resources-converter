@@ -18,10 +18,10 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 
 | Path | Contents |
 |---|---|
-| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3, JDLZ decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
+| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `misc.py`, `compressions/` (RefPack, QFS2, QFS3, JDLZ, HUFF decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
 | `resources/eac/maps/{tnfs,nfs2,nfs3,nfs6,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5,nfs6}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
-| `resources/blackbox/` | Blackbox-studio (NFS Underground) chunk bundles: every file is a tree of u32 id + u32 length chunks (bit 0x80000000 = container), payloads padded with 0x11 bytes to 16-byte (vertices, textures: 128-byte) absolute file offsets. `chunks.py` has `chunk_delegate`/`nfsu_sub_chunks_field` to dispatch sub-chunks by id (unknown ids fall back to raw bytes); `maps/nfsu.py` `walk_nfsu_chunk_ids` is what the loader uses to recognise a bundle. Geometry packs (`geometries/nfsu.py`), texture packs (`bitmaps/nfsu.py`), scenery and streaming sections (`maps/nfsu.py`). |
+| `resources/blackbox/` | Blackbox-studio (NFS Underground) chunk bundles: every file is a tree of u32 id + u32 length chunks (bit 0x80000000 = container), payloads padded with 0x11 bytes to 16-byte (vertices, textures: 128-byte) absolute file offsets. `chunks.py` has `chunk_delegate`/`nfsu_sub_chunks_field` to dispatch sub-chunks by id (unknown ids fall back to raw bytes); `maps/nfsu.py` `walk_nfsu_chunk_ids` is what the loader uses to recognise a bundle. Geometry packs (`geometries/nfsu.py`), texture packs (`bitmaps/nfsu.py`), scenery and streaming sections (`maps/nfsu.py`). NFSU2 reuses the chunk ids with other layouts: the geometry blocks branch on the mesh header version (0x13 NFSU, 0x16 NFSU2) and chunk lengths; when one id has two layouts (scenery 0x80034100, section table 0x34107), `chunk_delegate` asks each candidate block's `matches_chunk(ctx)` (peek helpers in `chunks.py`). NFSU2 section table is chunk 0x34110 of `TRACKS/LxRA.BUN`; NFSU2 car `TEXTURES.BIN` packs compress every texture separately (0x33310003 entries, JDLZ or HUFF, texture info + format in the last 156 bytes). |
 | `resources/eac/fields/misc.py`, `resources/eac/fields/numbers.py` | Small reusable domain blocks: `Point2D`/`Point3D`/`RGBBlock`, `Nfs1Angle8`/`Nfs1Angle14`, `Nfs1TimeField`. Check here before writing a new one. |
 
 ## Cheat-sheet: existing blocks (import from `library.read_blocks` unless noted)
@@ -359,7 +359,7 @@ Chunks are loaded around the camera along a graph: by default a chain in chunk o
 `loadDepth` (40) hops. A city sets `chunkGraph: proximityChunkGraph` (k nearest chunks, clusters joined)
 and a small `loadDepth`. Without `splinePoints`/`chunkPositions` the spline is the chunk positions from
 `terrain_chunks.json`; `minimapPointsOnly` draws them as dots. NFSU uses all of these: a race bundle
-`TRACKBnnnn.lzc` lists the streamed sections, and `NfsuTrackBundleSerializer` reads every section's
+`TRACKBnnnn.lzc` (NFSU2: location bundle `LxRA.BUN`) lists the streamed sections, and `NfsuTrackBundleSerializer` reads every section's
 scenery from the `STREAM*.BUN` next to it (`find_nfsu_stream_file`) and writes one chunk per scenery,
 in game coordinates (Z up), with its textures.
 

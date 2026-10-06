@@ -1,3 +1,4 @@
+import hashlib
 import os
 import unittest
 from io import BytesIO, BufferedReader
@@ -1120,3 +1121,17 @@ def _qfs3_asm_read_short(buffer, byteorder='little') -> int:
     value = buffer.read(2)
     value = value.ljust(2, b'\0')
     return int.from_bytes(value, byteorder=byteorder)
+
+
+class TestHuffCompression(unittest.TestCase):
+    def test_huff_decompression_nfsu2_texture(self):
+        # one texture of NFSU2 CARS/SUPRA/TEXTURES.BIN; output checked against SPEED2.EXE decompressor run in AsmRunner
+        from resources.eac.compressions.huff import HuffCompression
+
+        with open('test/samples/nfsu2_huff_texture.bin', 'rb') as f:
+            compressed = f.read()
+        output = HuffCompression().uncompress(BytesIO(compressed), len(compressed))
+        self.assertEqual(len(output), 1500)
+        # uncompressed texture ends with its texture info and format
+        self.assertEqual(output[-12:-8], b'DXT1')
+        self.assertEqual(hashlib.md5(output).hexdigest(), '1b66b2c1103cfc6775224658ce48fb5f')

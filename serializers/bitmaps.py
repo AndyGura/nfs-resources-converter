@@ -220,18 +220,54 @@ def _sub_chunk(container: dict, chunk_id: int):
     return None
 
 
+def _nfsu_compressed_textures(compressed: dict, data: bytes) -> List[tuple]:
+    from io import BytesIO
+    from resources.blackbox.bitmaps.nfsu import NfsuTextureFormat, NfsuTextureInfo
+    from resources.eac.compressions.huff import HuffCompression
+    from resources.eac.compressions.jdlz import JdlzCompression
+
+    entries = compressed['textures']
+    if not entries:
+        return []
+    # offsets are absolute in the file; the first texture starts the data chunk payload
+    base = min(e['offset'] for e in entries)
+    res = []
+    for e in entries:
+        blob = data[e['offset'] - base : e['offset'] - base + e['compressed_size']]
+        if blob[:4] == b'JDLZ':
+            raw = JdlzCompression().uncompress(BytesIO(blob), len(blob))
+        elif blob[:4] == b'HUFF':
+            raw = HuffCompression().uncompress(BytesIO(blob), len(blob))
+        else:
+            continue
+        info = NfsuTextureInfo().unpack_from_bytes(raw[-156:-32])
+        d3d_format = NfsuTextureFormat().unpack_from_bytes(raw[-32:])['format']
+        # image data starts the uncompressed texture, palette follows it
+        info = {
+            **info,
+            'image_placement': 0,
+            'palette_placement': info['palette_placement'] - info['image_placement'],
+        }
+        res.append((info, d3d_format, raw[:-156]))
+    return res
+
+
 def nfsu_texture_pack_textures(tpk_data: dict) -> List[tuple]:
     """Textures of NFS Underground texture pack (TPK chunk data): list of (texture info, Direct3D format, data
-    chunk bytes). Texture info offsets point into the data chunk bytes"""
+    bytes). Texture info offsets point into the data bytes: the data chunk of the pack, or the uncompressed texture
+    of NFSU2 compressed pack"""
     info_container = _sub_chunk(tpk_data, 0xB3310000)
     data_container = _sub_chunk(tpk_data, 0xB3320000)
     if info_container is None or data_container is None:
         return []
     infos = _sub_chunk(info_container, 0x33310004)
     formats = _sub_chunk(info_container, 0x33310005)
+    compressed = _sub_chunk(info_container, 0x33310003)
     data_chunk = _sub_chunk(data_container, 0x33320002)
-    if infos is None or data_chunk is None:
+    if data_chunk is None:
         return []
+    if infos is None:
+        return _nfsu_compressed_textures(compressed, data_chunk['data']) if compressed else []
     format_values = [f['format'] for f in formats['formats']] if formats else []
     return [
         (info, format_values[i] if i < len(format_values) else None, data_chunk['data'])
