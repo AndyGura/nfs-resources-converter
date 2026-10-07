@@ -1,17 +1,21 @@
-# **NFS Underground file specs** #
+# **NFS Underground 2 file specs** #
 
-*Last time updated: 2026-10-07 00:35:04.657235+00:00*
+*Last time updated: 2026-10-07 00:35:04.712808+00:00*
 
 
 # **Info by file extensions** #
 
 **CARS/\*/GEOMETRY.BIN** car geometry. [NfsuBinGeometry](#nfsubingeometry)
 
-**TRACKS/TRACKBnnnn.lzc** race bundle (JDLZ-compressed): streaming sections table and race data. Opened in the track viewer together with the city sections from **TRACKS/STREAM\*.BUN** next to it. [NfsuTrackBundle](#nfsutrackbundle)
+**CARS/\*/TEXTURES.BIN**, **CARS/TEXTURES.BIN** car texture packs, every texture compressed separately (JDLZ or HUFF). [NfsuChunkBundle](#nfsuchunkbundle)
 
-**TRACKS/STREAM\*.BUN** streamed city sections (scenery, geometry, textures), each 0x800-aligned. [NfsuChunkBundle](#nfsuchunkbundle)
+**TRACKS/LnRA.BUN** location bundle: streaming sections table and textures shared by the city. Opened in the track viewer together with the city sections from **TRACKS/STREAMLnRA.BUN** next to it. [NfsuTrackBundle](#nfsutrackbundle)
 
-**TRACKS/TEXnnnnTRACK.BIN**, **GLOBAL/\*.BIN** texture packs and other chunk bundles. [NfsuChunkBundle](#nfsuchunkbundle)
+**TRACKS/STREAMLnRA.BUN** streamed city sections (scenery, geometry, textures), each 0x800-aligned. [NfsuChunkBundle](#nfsuchunkbundle)
+
+**GLOBAL/GLOBALB.LZC** global textures (chrome, grilles, ...) and other data. [NfsuChunkBundle](#nfsuchunkbundle), [compressed](eac_compressions.md)
+
+**GLOBAL/\*.BUN**, **GLOBAL/\*.BIN** texture packs and other chunk bundles. [NfsuChunkBundle](#nfsuchunkbundle)
 
 Did not find what you need or some given data is wrong? Please submit an
 [issue](https://github.com/AndyGura/nfs-resources-converter/issues/new)
@@ -24,43 +28,46 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Race bundle (NFSU TRACKS/TRACKBnnnn.lzc, uncompressed) or location bundle (NFSU2 TRACKS/L4RA.BUN, NFSMW TRACKS/L2RA.BUN): a chunk bundle with the streaming sections table of the world, which is stored in TRACKS/STREAM*.BUN. Chunk bundle (*.BUN, *.BIN, uncompressed *.lzc): a sequence of chunks, each having 32-bit id, 32-bit payload length and payload; chunks with the highest bit of id set are containers of other chunks. Geometry packs, texture packs, scenery and streaming sections table are decoded, other chunks are kept as raw bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsuScenery](#nfsuscenery)<br/>- [NfsuStreamingSections](#nfsustreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
+| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [Nfsu2Scenery](#nfsu2scenery)<br/>- [Nfsu2StreamingSections](#nfsu2streamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
 ### **NfsuChunkBundle** ###
 #### **Size**: 0..? bytes ####
 #### **Description**: Chunk bundle (*.BUN, *.BIN, uncompressed *.lzc): a sequence of chunks, each having 32-bit id, 32-bit payload length and payload; chunks with the highest bit of id set are containers of other chunks. Geometry packs, texture packs, scenery and streaming sections table are decoded, other chunks are kept as raw bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsuScenery](#nfsuscenery)<br/>- [NfsuStreamingSections](#nfsustreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
-### **NfsuStreamingSections** ###
+| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [Nfsu2Scenery](#nfsu2scenery)<br/>- [Nfsu2StreamingSections](#nfsu2streamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
+### **Nfsu2StreamingSections** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Table of streamed sections: where the world sections of the race lie in the STREAM*.BUN file. NFSU2 has another chunk with this id ####
+#### **Description**: NFSU2 table of streamed sections: where the world sections of the location lie in the STREAM*.BUN file ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34107 | Chunk ID |
+| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34110 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sections** | (chunk_length/56)\*56 | Array of `chunk_length/56` items<br/>Item type: [NfsuStreamingSection](#nfsustreamingsection) | Sections |
-### **NfsuStreamingSection** ###
-#### **Size**: 56 bytes ####
-#### **Description**: Location of a streamed section in the STREAM*.BUN file ####
+| 8 | **sections** | (chunk_length/80)\*80 | Array of `chunk_length/80` items<br/>Item type: [Nfsu2StreamingSection](#nfsu2streamingsection) | Sections |
+### **Nfsu2StreamingSection** ###
+#### **Size**: 80 bytes ####
+#### **Description**: NFSU2: location of a streamed section in the STREAM*.BUN file ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **name** | 8 | UTF-8 string | Section name, e.g. "A37" |
-| 8 | **number** | 4 | 4-bytes unsigned integer (little endian) | Section number: letter index (A = 1) * 100 + number. Some have flag 0x10000 set |
+| 8 | **number** | 4 | 4-bytes unsigned integer (little endian) | Section number: letter index (A = 1) * 100 + number |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 16 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | 1, except the first section "--" |
 | 20 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of the section in the stream file |
-| 24 | **size** | 4 | 4-bytes unsigned integer (little endian) | Size of the section in the stream file |
-| 28 | **size2** | 4 | 4-bytes unsigned integer (little endian) | Equals to `size` unless the section has textures, then a bit smaller |
-| 32 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 36 | **unk2** | 20 | Bytes | Unknown purpose |
-### **NfsuScenery** ###
+| 24 | **size** | 4 | 4-bytes unsigned integer (little endian) | Size of the section in the stream file, without padding to 2048 bytes |
+| 28 | **size2** | 4 | 4-bytes unsigned integer (little endian) | Equals to `size` unless the section has textures, then smaller |
+| 32 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Section number + 10000 or 20000 (or 20000 for "--") |
+| 36 | **center** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Presumably the center of the section (X, Y) in world coordinates |
+| 44 | **radius** | 4 | Float number (little-endian) | Presumably radius of the section |
+| 48 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 52 | **unk3** | 28 | Bytes | Unknown purpose |
+### **Nfsu2Scenery** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Scenery of a section: object definitions referencing meshes by id, and their placements in the world ####
+#### **Description**: NFSU2 scenery of a section: same as in NFSU, with bigger object definitions (named) and instances (float bounding box). Told apart from NFSU scenery by the definitions: every NFSU2 one starts with a name ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x80034100 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuScenerySectionHeader](#nfsuscenerysectionheader)<br/>- [NfsuSceneryInfos](#nfsusceneryinfos)<br/>- [NfsuSceneryInstances](#nfsusceneryinstances)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Header, definitions, instances and an unknown chunk 0x00034104 |
+| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuScenerySectionHeader](#nfsuscenerysectionheader)<br/>- [Nfsu2SceneryInfos](#nfsu2sceneryinfos)<br/>- [Nfsu2SceneryInstances](#nfsu2sceneryinstances)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Header, definitions, instances and unknown chunks 0x00034104, 0x00034105, 0x00034106 |
 ### **NfsuScenerySectionHeader** ###
 #### **Size**: 68..? bytes ####
 #### **Description**: Scenery header: number of the section it belongs to ####
@@ -72,47 +79,47 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 + up to 16-bytes alignment | **unk0** | 12 | Bytes | Unknown purpose |
 | 20 + up to 16-bytes alignment | **section_number** | 4 | 4-bytes unsigned integer (little endian) | Number of the section: letter index (A = 1) * 100 + number, e.g. 2617 for "Z17". Matches `number` in the streaming sections table (without its 0x10000 flag) |
 | 24 + up to 16-bytes alignment | **unk1** | 44 | Bytes | Unknown purpose |
-### **NfsuSceneryInfos** ###
+### **Nfsu2SceneryInfos** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Scenery object definitions ####
+#### **Description**: NFSU2 scenery object definitions ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34102 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **infos** | (chunk_length/72)\*72 | Array of `chunk_length/72` items<br/>Item type: [NfsuSceneryInfo](#nfsusceneryinfo) | Definitions |
-### **NfsuSceneryInfo** ###
-#### **Size**: 72 bytes ####
-#### **Description**: Scenery object definition: which mesh to draw ####
+| 8 | **infos** | (chunk_length/68)\*68 | Array of `chunk_length/68` items<br/>Item type: [Nfsu2SceneryInfo](#nfsu2sceneryinfo) | Definitions |
+### **Nfsu2SceneryInfo** ###
+#### **Size**: 68 bytes ####
+#### **Description**: NFSU2 scenery object definition: which mesh to draw ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **mesh_ids** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Mesh ids (hashes of mesh names, `mesh_id` of mesh header chunks). The first one is the main mesh, others are probably levels of detail |
-| 24 | **far_clip_sizes** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes signed integer (little endian) | Unknown purpose |
-| 32 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 36 | **model_pointers** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Filled by the game in runtime |
-| 60 | **facade_flags** | 6 | Bytes | Unknown purpose |
-| 66 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 68 | **radius** | 4 | Float number (little-endian) | Bounding sphere radius |
-### **NfsuSceneryInstances** ###
+| 0 | **name** | 32 | UTF-8 string | Object name, e.g. "SKYDOME" |
+| 32 | **mesh_ids** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Mesh ids (hashes of mesh names, `mesh_id` of mesh header chunks). The first one is the main mesh, others are probably levels of detail |
+| 44 | **flags** | 4 | Array of `2` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 48 | **model_pointers** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Filled by the game in runtime |
+| 60 | **radius** | 4 | Float number (little-endian) | Bounding sphere radius |
+| 64 | **hierarchy_key** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+### **Nfsu2SceneryInstances** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Placed scenery objects ####
+#### **Description**: NFSU2 placed scenery objects ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34103 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **elevens** | up to 16-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
-| 8 + up to 16-bytes alignment | **instances** | custom_func\*48 | Array of `custom_func` items<br/>Item type: [NfsuSceneryInstance](#nfsusceneryinstance) | Instances |
-### **NfsuSceneryInstance** ###
-#### **Size**: 48 bytes ####
-#### **Description**: Placed scenery object ####
+| 8 + up to 16-bytes alignment | **instances** | custom_func\*64 | Array of `custom_func` items<br/>Item type: [Nfsu2SceneryInstance](#nfsu2sceneryinstance) | Instances |
+### **Nfsu2SceneryInstance** ###
+#### **Size**: 64 bytes ####
+#### **Description**: NFSU2 placed scenery object ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **bounding_box_min** | 6 | Point in 3D space (x,y,z), where each coordinate is: 2-bytes signed integer (little endian) | Minimum corner of the bounding box in world coordinates |
-| 6 | **bounding_box_max** | 6 | Point in 3D space (x,y,z), where each coordinate is: 2-bytes signed integer (little endian) | Maximum corner of the bounding box in world coordinates |
-| 12 | **info_index** | 2 | 2-bytes unsigned integer (little endian) | Index of the object definition in this scenery |
-| 14 | **exclude_flags** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position in world coordinates |
-| 28 | **rotation** | 18 | Array of `9` items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 13 bits is a fractional part | Rotation and scale matrix 3x3, row by row. World position of a mesh vertex v is v.x * row0 + v.y * row1 + v.z * row2 + position |
-| 46 | **padding** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 0 | **bounding_box_min** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Minimum corner of the bounding box in world coordinates |
+| 12 | **bounding_box_max** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Maximum corner of the bounding box in world coordinates |
+| 24 | **info_index** | 2 | 2-bytes unsigned integer (little endian) | Index of the object definition in this scenery |
+| 26 | **instance_flags** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 28 | **preculler_info_index** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 32 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position in world coordinates |
+| 44 | **rotation** | 18 | Array of `9` items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 13 bits is a fractional part | Rotation and scale matrix 3x3, row by row. World position of a mesh vertex v is v.x * row0 + v.y * row1 + v.z * row2 + position |
+| 62 | **padding** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
 ## **Images** ##
 ### **NfsuTexturePack** ###
 #### **Size**: 8..? bytes ####
@@ -142,6 +149,25 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x33310002 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **hashes** | (chunk_length/8)\*8 | Array of `chunk_length/8` items<br/>Item size: 8 bytes<br/>Item type: Array of `2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Texture name hash and zero, per texture |
+### **NfsuCompressedTextures** ###
+#### **Size**: 8..? bytes ####
+#### **Description**: NFSU2 compressed texture pack: locations of textures, one per texture. Every texture is compressed separately (JDLZ or HUFF) and holds its image data, followed by its texture info (124 bytes) and pixel format (32 bytes). Such a pack has no texture infos and formats chunks ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x33310003 | Chunk ID |
+| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
+| 8 | **textures** | (chunk_length/24)\*24 | Array of `chunk_length/24` items<br/>Item type: [NfsuCompressedTexture](#nfsucompressedtexture) | Compressed textures |
+### **NfsuCompressedTexture** ###
+#### **Size**: 24 bytes ####
+#### **Description**: Location of a compressed texture in the texture pack file ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **name_hash** | 4 | 4-bytes unsigned integer (little endian) | Hash of the texture name |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of the compressed texture in the file (absolute: the first one is the start of texture data chunk payload) |
+| 8 | **compressed_size** | 4 | 4-bytes unsigned integer (little endian) | Size of the compressed texture |
+| 12 | **size** | 4 | 4-bytes unsigned integer (little endian) | Size of the uncompressed texture |
+| 16 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 20 | **unk** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **NfsuTextureInfos** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Texture infos, one per texture ####
@@ -213,7 +239,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0xb3310000 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuTexturePackHeader](#nfsutexturepackheader)<br/>- [NfsuTextureHashes](#nfsutexturehashes)<br/>- [NfsuTextureInfos](#nfsutextureinfos)<br/>- [NfsuTextureFormats](#nfsutextureformats)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Child chunks |
+| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuTexturePackHeader](#nfsutexturepackheader)<br/>- [NfsuTextureHashes](#nfsutexturehashes)<br/>- [NfsuCompressedTextures](#nfsucompressedtextures)<br/>- [NfsuTextureInfos](#nfsutextureinfos)<br/>- [NfsuTextureFormats](#nfsutextureformats)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Child chunks |
 ### **NfsuTexturePackDataContainer** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Texture pack data container ####

@@ -1564,6 +1564,7 @@ class NfsuWorld:
         self.sceneries = []
 
     def collect(self, bundle_data: dict):
+        import numpy as np
         from serializers.bitmaps import nfsu_texture_pack_textures
         from serializers.geometries import nfsu_geometry_meshes
 
@@ -1573,7 +1574,16 @@ class NfsuWorld:
                 continue
             if chunk_data.get('header') == 0x80134000:
                 for mesh in nfsu_geometry_meshes(chunk_data):
-                    self.meshes.setdefault(mesh.mesh_id, mesh)
+                    if mesh.mesh_id in self.meshes:
+                        continue
+                    # numpy arrays take a fraction of memory of lists of tuples: a city has tens of thousands meshes
+                    mesh.vertices = np.array(mesh.vertices, dtype=np.float64).reshape(-1, 3)
+                    mesh.uvs = np.array(mesh.uvs, dtype=np.float64).reshape(-1, 2)
+                    mesh.parts = [
+                        (texture_id, np.array(triangles, dtype=np.int64).reshape(-1, 3))
+                        for texture_id, triangles in mesh.parts
+                    ]
+                    self.meshes[mesh.mesh_id] = mesh
             elif chunk_data.get('chunk_id') == 0xB3300000:
                 for info, d3d_format, data in nfsu_texture_pack_textures(chunk_data):
                     self.textures.setdefault(info['name_hash'], (info, d3d_format, data))
@@ -1594,17 +1604,17 @@ class NfsuWorld:
             if instance['info_index'] >= len(infos):
                 continue
             mesh = self.meshes.get(infos[instance['info_index']]['mesh_ids'][0])
-            if mesh is None or not mesh.vertices or mesh.name.upper().startswith(('SHD_', 'RFL_', 'SHADOW')):
+            if mesh is None or not len(mesh.vertices) or mesh.name.upper().startswith(('SHD_', 'RFL_', 'SHADOW')):
                 continue
             rotation = np.array(instance['rotation'], dtype=np.float64).reshape(3, 3)
             position = np.array([instance['position'][k] for k in 'xyz'], dtype=np.float64)
-            world = np.array(mesh.vertices, dtype=np.float64) @ rotation + position
-            mesh_uvs = np.array(mesh.uvs, dtype=np.float64)
+            world = np.asarray(mesh.vertices, dtype=np.float64) @ rotation + position
+            mesh_uvs = np.asarray(mesh.uvs, dtype=np.float64)
             for texture_id, triangles in mesh.parts:
-                if not triangles:
+                if not len(triangles):
                     continue
                 # only vertices used by this part
-                used, remapped = np.unique(np.array(triangles, dtype=np.int64), return_inverse=True)
+                used, remapped = np.unique(np.asarray(triangles, dtype=np.int64), return_inverse=True)
                 if used[-1] >= len(world):
                     continue
                 vertices, uvs, polygons = parts.setdefault(texture_id, ([], [], []))
@@ -1690,9 +1700,10 @@ class NfsuTrackBundleSerializer(BaseFileSerializer):
                 sm = SubMesh()
                 sm.texture_id = texture_name(texture_id)
                 sm.name = f'scenery{section_number}_{k}_{sm.texture_id}'
-                sm.vertices = (vertices - pivot).round(3).tolist()
-                sm.vertex_uvs = uvs.round(5).tolist()
-                sm.polygons = polygons.tolist()
+                # numpy arrays rather than lists: much less memory for a whole city
+                sm.vertices = (vertices - pivot).round(3)
+                sm.vertex_uvs = uvs.round(5)
+                sm.polygons = polygons
                 sub_meshes.append(sm)
             if chunked:
                 chunk_positions.append({'x': pivot[0], 'y': pivot[2], 'z': pivot[1]})

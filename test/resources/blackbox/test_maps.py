@@ -127,3 +127,39 @@ class TestNfsu2LocationBundle(unittest.TestCase):
         for _, infos, instances in world.sceneries:
             self.assertTrue(all(i['name'] for i in infos))
             self.assertTrue(all(0 <= x['info_index'] < len(infos) for x in instances))
+
+
+NFSMW_DIR = 'test/samples/claude_tmp/nfsmw'
+
+
+@unittest.skipUnless(os.path.exists(f'{NFSMW_DIR}/Tracks/L2RA.BUN'), f'needs NFSMW samples in {NFSMW_DIR}')
+class TestNfsmwLocationBundle(unittest.TestCase):
+    def test_location_bundle_should_be_read_and_remain_the_same(self):
+        path = f'{NFSMW_DIR}/Tracks/L2RA.BUN'
+        (name, block, data) = require_file(path)
+        self.assertIsInstance(block, NfsuTrackBundle)
+        with open(path, 'rb') as f:
+            self.assertEqual(f.read(), block.pack(data, name=name))
+
+    def test_streaming_sections_should_be_listed(self):
+        (_, _, data) = require_file(f'{NFSMW_DIR}/Tracks/L2RA.BUN')
+        sections = nfsu_streaming_sections(data)
+        self.assertEqual(len(sections), 720)
+        self.assertEqual(sections[0]['name'], 'X0')
+        stream_path = f'{NFSMW_DIR}/Tracks/STREAML2RA.BUN'
+        if os.path.exists(stream_path):
+            self.assertEqual(find_nfsu_stream_file(f'{NFSMW_DIR}/Tracks/L2RA.BUN', sections), stream_path)
+
+
+class TestNfsmwSection(unittest.TestCase):
+    def test_scenery_should_be_read(self):
+        # NFSMW scenery: instances before definitions, named definitions with 4 mesh ids
+        (_, _, data) = require_file('test/samples/NFSMW_C52.BUN')
+        world = NfsuWorld()
+        world.collect(data)
+        self.assertEqual(len(world.sceneries), 1)
+        section_number, infos, instances = world.sceneries[0]
+        self.assertEqual(section_number, 352)
+        self.assertTrue(all(i['name'] for i in infos))
+        self.assertTrue(all(0 <= x['info_index'] < len(infos) for x in instances))
+        self.assertTrue(world.scenery_parts(infos, instances))

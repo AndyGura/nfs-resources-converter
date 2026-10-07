@@ -1,17 +1,21 @@
-# **NFS Underground file specs** #
+# **NFS Most Wanted (2005) file specs** #
 
-*Last time updated: 2026-10-07 00:35:04.657235+00:00*
+*Last time updated: 2026-10-07 00:35:04.760762+00:00*
 
 
 # **Info by file extensions** #
 
 **CARS/\*/GEOMETRY.BIN** car geometry. [NfsuBinGeometry](#nfsubingeometry)
 
-**TRACKS/TRACKBnnnn.lzc** race bundle (JDLZ-compressed): streaming sections table and race data. Opened in the track viewer together with the city sections from **TRACKS/STREAM\*.BUN** next to it. [NfsuTrackBundle](#nfsutrackbundle)
+**CARS/\*/TEXTURES.BIN**, **CARS/TEXTURES.BIN** car texture packs, every texture compressed separately (JDLZ or HUFF). [NfsuChunkBundle](#nfsuchunkbundle)
 
-**TRACKS/STREAM\*.BUN** streamed city sections (scenery, geometry, textures), each 0x800-aligned. [NfsuChunkBundle](#nfsuchunkbundle)
+**TRACKS/L2RA.BUN** location bundle (Rockport): streaming sections table and textures shared by the city. Opened in the track viewer together with the city sections from **TRACKS/STREAML2RA.BUN** next to it. [NfsuTrackBundle](#nfsutrackbundle)
 
-**TRACKS/TEXnnnnTRACK.BIN**, **GLOBAL/\*.BIN** texture packs and other chunk bundles. [NfsuChunkBundle](#nfsuchunkbundle)
+**TRACKS/STREAML2RA.BUN** streamed city sections (scenery, geometry, textures), each 0x800-aligned. [NfsuChunkBundle](#nfsuchunkbundle)
+
+**GLOBAL/GLOBALB.BUN** global textures (chrome, grilles, ...) and other data. [NfsuChunkBundle](#nfsuchunkbundle)
+
+**GLOBAL/\*.BUN**, **GLOBAL/\*.BIN** texture packs and other chunk bundles. [NfsuChunkBundle](#nfsuchunkbundle)
 
 Did not find what you need or some given data is wrong? Please submit an
 [issue](https://github.com/AndyGura/nfs-resources-converter/issues/new)
@@ -24,43 +28,47 @@ Did not find what you need or some given data is wrong? Please submit an
 #### **Description**: Race bundle (NFSU TRACKS/TRACKBnnnn.lzc, uncompressed) or location bundle (NFSU2 TRACKS/L4RA.BUN, NFSMW TRACKS/L2RA.BUN): a chunk bundle with the streaming sections table of the world, which is stored in TRACKS/STREAM*.BUN. Chunk bundle (*.BUN, *.BIN, uncompressed *.lzc): a sequence of chunks, each having 32-bit id, 32-bit payload length and payload; chunks with the highest bit of id set are containers of other chunks. Geometry packs, texture packs, scenery and streaming sections table are decoded, other chunks are kept as raw bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsuScenery](#nfsuscenery)<br/>- [NfsuStreamingSections](#nfsustreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
+| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsmwScenery](#nfsmwscenery)<br/>- [NfsmwStreamingSections](#nfsmwstreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
 ### **NfsuChunkBundle** ###
 #### **Size**: 0..? bytes ####
 #### **Description**: Chunk bundle (*.BUN, *.BIN, uncompressed *.lzc): a sequence of chunks, each having 32-bit id, 32-bit payload length and payload; chunks with the highest bit of id set are containers of other chunks. Geometry packs, texture packs, scenery and streaming sections table are decoded, other chunks are kept as raw bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsuScenery](#nfsuscenery)<br/>- [NfsuStreamingSections](#nfsustreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
-### **NfsuStreamingSections** ###
+| 0 | **chunks** | until the end of file\*8..? | Array of `until the end of file` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [ZeroChunk](#zerochunk)<br/>- [NfsuBinGeometry](#nfsubingeometry)<br/>- [NfsuTexturePack](#nfsutexturepack)<br/>- [NfsmwScenery](#nfsmwscenery)<br/>- [NfsmwStreamingSections](#nfsmwstreamingsections)<br/>- [UnknownChunk](#unknownchunk) | Chunks |
+### **NfsmwStreamingSections** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Table of streamed sections: where the world sections of the race lie in the STREAM*.BUN file. NFSU2 has another chunk with this id ####
+#### **Description**: NFSMW table of streamed sections: where the world sections of the location lie in the STREAM*.BUN file ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34107 | Chunk ID |
+| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34110 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sections** | (chunk_length/56)\*56 | Array of `chunk_length/56` items<br/>Item type: [NfsuStreamingSection](#nfsustreamingsection) | Sections |
-### **NfsuStreamingSection** ###
-#### **Size**: 56 bytes ####
-#### **Description**: Location of a streamed section in the STREAM*.BUN file ####
+| 8 | **sections** | (chunk_length/92)\*92 | Array of `chunk_length/92` items<br/>Item type: [NfsmwStreamingSection](#nfsmwstreamingsection) | Sections |
+### **NfsmwStreamingSection** ###
+#### **Size**: 92 bytes ####
+#### **Description**: NFSMW: location of a streamed section in the STREAM*.BUN file ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **name** | 8 | UTF-8 string | Section name, e.g. "A37" |
-| 8 | **number** | 4 | 4-bytes unsigned integer (little endian) | Section number: letter index (A = 1) * 100 + number. Some have flag 0x10000 set |
+| 0 | **name** | 8 | UTF-8 string | Section name, e.g. "T26" |
+| 8 | **number** | 4 | 4-bytes unsigned integer (little endian) | Section number: letter index (A = 1) * 100 + number |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 16 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Always 1 |
 | 20 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of the section in the stream file |
-| 24 | **size** | 4 | 4-bytes unsigned integer (little endian) | Size of the section in the stream file |
-| 28 | **size2** | 4 | 4-bytes unsigned integer (little endian) | Equals to `size` unless the section has textures, then a bit smaller |
-| 32 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 36 | **unk2** | 20 | Bytes | Unknown purpose |
-### **NfsuScenery** ###
+| 24 | **size** | 4 | 4-bytes unsigned integer (little endian) | Size of the section in the stream file, without padding to 2048 bytes |
+| 28 | **size2** | 4 | 4-bytes unsigned integer (little endian) | Always equals to `size` |
+| 32 | **size3** | 4 | 4-bytes unsigned integer (little endian) | Equals to `size` unless the section has textures, then smaller |
+| 36 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Section number + 2000, 4000 ... 22000 (10, 20, 30 for X0, Z0, Y0) |
+| 40 | **center** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Presumably the center of the section (X, Y) in world coordinates |
+| 48 | **radius** | 4 | Float number (little-endian) | Presumably radius of the section |
+| 52 | **hash** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 56 | **unk3** | 36 | Bytes | Unknown purpose |
+### **NfsmwScenery** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Scenery of a section: object definitions referencing meshes by id, and their placements in the world ####
+#### **Description**: NFSMW scenery of a section: object definitions (named, 4 mesh ids) and their placements in the world. Told apart from NFSU and NFSU2 scenery by the definitions: every one starts with a 24-byte name ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x80034100 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuScenerySectionHeader](#nfsuscenerysectionheader)<br/>- [NfsuSceneryInfos](#nfsusceneryinfos)<br/>- [NfsuSceneryInstances](#nfsusceneryinstances)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Header, definitions, instances and an unknown chunk 0x00034104 |
+| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuScenerySectionHeader](#nfsuscenerysectionheader)<br/>- [NfsmwSceneryInfos](#nfsmwsceneryinfos)<br/>- [NfsmwSceneryInstances](#nfsmwsceneryinstances)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Header, instances, definitions and unknown chunks 0x00034105, 0x00034106, 0x00034107 |
 ### **NfsuScenerySectionHeader** ###
 #### **Size**: 68..? bytes ####
 #### **Description**: Scenery header: number of the section it belongs to ####
@@ -72,47 +80,48 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 + up to 16-bytes alignment | **unk0** | 12 | Bytes | Unknown purpose |
 | 20 + up to 16-bytes alignment | **section_number** | 4 | 4-bytes unsigned integer (little endian) | Number of the section: letter index (A = 1) * 100 + number, e.g. 2617 for "Z17". Matches `number` in the streaming sections table (without its 0x10000 flag) |
 | 24 + up to 16-bytes alignment | **unk1** | 44 | Bytes | Unknown purpose |
-### **NfsuSceneryInfos** ###
+### **NfsmwSceneryInfos** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Scenery object definitions ####
+#### **Description**: NFSMW scenery object definitions ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34102 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **infos** | (chunk_length/72)\*72 | Array of `chunk_length/72` items<br/>Item type: [NfsuSceneryInfo](#nfsusceneryinfo) | Definitions |
-### **NfsuSceneryInfo** ###
+| 8 | **infos** | (chunk_length/72)\*72 | Array of `chunk_length/72` items<br/>Item type: [NfsmwSceneryInfo](#nfsmwsceneryinfo) | Definitions |
+### **NfsmwSceneryInfo** ###
 #### **Size**: 72 bytes ####
-#### **Description**: Scenery object definition: which mesh to draw ####
+#### **Description**: NFSMW scenery object definition: which mesh to draw ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **mesh_ids** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Mesh ids (hashes of mesh names, `mesh_id` of mesh header chunks). The first one is the main mesh, others are probably levels of detail |
-| 24 | **far_clip_sizes** | 8 | Array of `4` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes signed integer (little endian) | Unknown purpose |
-| 32 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 36 | **model_pointers** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Filled by the game in runtime |
-| 60 | **facade_flags** | 6 | Bytes | Unknown purpose |
-| 66 | **unk1** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 68 | **radius** | 4 | Float number (little-endian) | Bounding sphere radius |
-### **NfsuSceneryInstances** ###
+| 0 | **name** | 24 | UTF-8 string | Object name, e.g. "XO_StreetLightCb_1b_00" |
+| 24 | **mesh_ids** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Mesh ids (hashes of mesh names, `mesh_id` of mesh header chunks). The first one is the main mesh, others are probably levels of detail |
+| 40 | **model_pointers** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Filled by the game in runtime |
+| 56 | **radius** | 4 | Float number (little-endian) | Bounding sphere radius |
+| 60 | **mesh_checksum** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 64 | **hierarchy_name_hash** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 68 | **hierarchy_pointer** | 4 | 4-bytes unsigned integer (little endian) | Filled by the game in runtime |
+### **NfsmwSceneryInstances** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Placed scenery objects ####
+#### **Description**: NFSMW placed scenery objects ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x34103 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **elevens** | up to 16-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
-| 8 + up to 16-bytes alignment | **instances** | custom_func\*48 | Array of `custom_func` items<br/>Item type: [NfsuSceneryInstance](#nfsusceneryinstance) | Instances |
-### **NfsuSceneryInstance** ###
-#### **Size**: 48 bytes ####
-#### **Description**: Placed scenery object ####
+| 8 + up to 16-bytes alignment | **instances** | custom_func\*64 | Array of `custom_func` items<br/>Item type: [NfsmwSceneryInstance](#nfsmwsceneryinstance) | Instances |
+### **NfsmwSceneryInstance** ###
+#### **Size**: 64 bytes ####
+#### **Description**: NFSMW placed scenery object ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **bounding_box_min** | 6 | Point in 3D space (x,y,z), where each coordinate is: 2-bytes signed integer (little endian) | Minimum corner of the bounding box in world coordinates |
-| 6 | **bounding_box_max** | 6 | Point in 3D space (x,y,z), where each coordinate is: 2-bytes signed integer (little endian) | Maximum corner of the bounding box in world coordinates |
-| 12 | **info_index** | 2 | 2-bytes unsigned integer (little endian) | Index of the object definition in this scenery |
-| 14 | **exclude_flags** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
-| 16 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position in world coordinates |
-| 28 | **rotation** | 18 | Array of `9` items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 13 bits is a fractional part | Rotation and scale matrix 3x3, row by row. World position of a mesh vertex v is v.x * row0 + v.y * row1 + v.z * row2 + position |
-| 46 | **padding** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 0 | **bounding_box_min** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Minimum corner of the bounding box in world coordinates |
+| 12 | **bounding_box_max** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Maximum corner of the bounding box in world coordinates |
+| 24 | **exclude_flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 28 | **preculler_info_index** | 2 | 2-bytes signed integer (little endian) | Unknown purpose |
+| 30 | **lighting_context_number** | 2 | 2-bytes signed integer (little endian) | Unknown purpose |
+| 32 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Position in world coordinates |
+| 44 | **rotation** | 18 | Array of `9` items<br/>Item size: 2 bytes<br/>Item type: 16-bit real number (little-endian, signed), where last 13 bits is a fractional part | Rotation and scale matrix 3x3, row by row. World position of a mesh vertex v is v.x * row0 + v.y * row1 + v.z * row2 + position |
+| 62 | **info_index** | 2 | 2-bytes unsigned integer (little endian) | Index of the object definition in this scenery |
 ## **Images** ##
 ### **NfsuTexturePack** ###
 #### **Size**: 8..? bytes ####
@@ -142,6 +151,25 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x33310002 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **hashes** | (chunk_length/8)\*8 | Array of `chunk_length/8` items<br/>Item size: 8 bytes<br/>Item type: Array of `2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Texture name hash and zero, per texture |
+### **NfsuCompressedTextures** ###
+#### **Size**: 8..? bytes ####
+#### **Description**: NFSU2 compressed texture pack: locations of textures, one per texture. Every texture is compressed separately (JDLZ or HUFF) and holds its image data, followed by its texture info (124 bytes) and pixel format (32 bytes). Such a pack has no texture infos and formats chunks ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x33310003 | Chunk ID |
+| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
+| 8 | **textures** | (chunk_length/24)\*24 | Array of `chunk_length/24` items<br/>Item type: [NfsuCompressedTexture](#nfsucompressedtexture) | Compressed textures |
+### **NfsuCompressedTexture** ###
+#### **Size**: 24 bytes ####
+#### **Description**: Location of a compressed texture in the texture pack file ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **name_hash** | 4 | 4-bytes unsigned integer (little endian) | Hash of the texture name |
+| 4 | **offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of the compressed texture in the file (absolute: the first one is the start of texture data chunk payload) |
+| 8 | **compressed_size** | 4 | 4-bytes unsigned integer (little endian) | Size of the compressed texture |
+| 12 | **size** | 4 | 4-bytes unsigned integer (little endian) | Size of the uncompressed texture |
+| 16 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 20 | **unk** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 ### **NfsuTextureInfos** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Texture infos, one per texture ####
@@ -213,7 +241,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0xb3310000 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuTexturePackHeader](#nfsutexturepackheader)<br/>- [NfsuTextureHashes](#nfsutexturehashes)<br/>- [NfsuTextureInfos](#nfsutextureinfos)<br/>- [NfsuTextureFormats](#nfsutextureformats)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Child chunks |
+| 8 | **sub_chunks** | until the end of chunk\*8..? | Array of `until the end of chunk` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuTexturePackHeader](#nfsutexturepackheader)<br/>- [NfsuTextureHashes](#nfsutexturehashes)<br/>- [NfsuCompressedTextures](#nfsucompressedtextures)<br/>- [NfsuTextureInfos](#nfsutextureinfos)<br/>- [NfsuTextureFormats](#nfsutextureformats)<br/>- [ZeroChunk](#zerochunk)<br/>- [UnknownChunk](#unknownchunk) | Child chunks |
 ### **NfsuTexturePackDataContainer** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Texture pack data container ####
@@ -264,63 +292,82 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x80034020 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **payload** | chunk_length | Bytes | Unknown purpose |
-### **NfsuMeshChunk** ###
-#### **Size**: 36..? bytes ####
-#### **Description**: Mesh info chunk: amounts of faces and vertices of the mesh, used to read the faces and vertices chunks of the same mesh data container ####
+### **NfsmwMeshChunk** ###
+#### **Size**: 56..? bytes ####
+#### **Description**: NFSMW mesh info chunk: amounts of materials, vertex buffers and vertex indexes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134900 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **payload** | 0x11 alignment filler + 36 | Bytes | Unknown data, starts with 0x11 alignment filler bytes |
-| 0x11 alignment filler + 44 | **faces_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of faces (triangles) of the mesh |
-| 0x11 alignment filler + 48 | **unk_v** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 0x11 alignment filler + 52 | **unk_w** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 0x11 alignment filler + 56 | **unk_x** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 0x11 alignment filler + 60 | **vertex_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices of the mesh |
-| 0x11 alignment filler + 64 | **unk_y** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 0x11 alignment filler + 68 | **unk_z** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 0x11 alignment filler + 72 | **unk_tail** | 0 in NFSU, 1 in NFSU2\*4 | Array of `0 in NFSU, 1 in NFSU2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian). Always == 0x0 | NFSU2 only: one more zero value |
-### **NfsuMeshFacesChunk** ###
+| 8 | **elevens** | up to 16-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
+| 8 + up to 16-bytes alignment | **unk0** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 16 + up to 16-bytes alignment | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Usually 0x12 |
+| 20 + up to 16-bytes alignment | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 24 + up to 16-bytes alignment | **materials_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of materials |
+| 28 + up to 16-bytes alignment | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 32 + up to 16-bytes alignment | **vertex_buffers_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices chunks |
+| 36 + up to 16-bytes alignment | **unk3** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 52 + up to 16-bytes alignment | **indices_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex indexes in the faces chunk |
+### **NfsmwMeshFacesChunk** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Mesh faces: a triangle list. Amount of faces is defined by the mesh info chunk (the first chunk of the same mesh data container) ####
+#### **Description**: NFSMW mesh faces: a triangle list. Amount of vertex indexes is defined by the mesh info chunk ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134b03 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **elevens** | up to 16-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
-| 8 + up to 16-bytes alignment | **faces** | (^0/data/faces_amount)\*6 | Array of `^0/data/faces_amount` items<br/>Item size: 6 bytes<br/>Item type: Array of `3` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Triangles: 3 vertex indexes each, pointing to the vertices chunk of the same mesh |
-| 8 + up to 16-bytes alignment + (^0/data/faces_amount)\*6 | **padding** | custom_func | Bytes | Padding to the end of the chunk |
-### **MeshVerticesChunk** ###
+| 8 + up to 16-bytes alignment | **faces** | (^0/data/indices_amount/3)\*6 | Array of `^0/data/indices_amount/3` items<br/>Item size: 6 bytes<br/>Item type: Array of `3` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Triangles: 3 vertex indexes each, pointing to the vertex buffer of the material the triangle belongs to |
+| 8 + up to 16-bytes alignment + (^0/data/indices_amount/3)\*6 | **padding** | custom_func | Bytes | Padding to 4 bytes |
+### **NfsmwMeshVerticesChunk** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Mesh vertices. Amount of vertices is defined by the mesh info chunk (the first chunk of the same mesh data container). Vertex size (36, 24 or 60 bytes) is determined by the chunk length ####
+#### **Description**: NFSMW vertex buffer. A mesh has one per group of consecutive materials with the same effect; amount of vertices is the sum of `vertex_amount` of these materials. Vertex size (36, 44 or 60 bytes) depends on the effect ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134b01 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **elevens** | up to 128-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
-| 8 + up to 128-bytes alignment | **vertices** | ? | One of types:<br/>- Array of `^0/data/vertex_amount` items<br/>Item type: [NfsuVertex](#nfsuvertex)<br/>- Array of `^0/data/vertex_amount` items<br/>Item type: [NfsuVertexNoNormal](#nfsuvertexnonormal)<br/>- Array of `^0/data/vertex_amount` items<br/>Item type: [NfsuVertexSkinned](#nfsuvertexskinned)<br/>- Bytes | Vertices: 36-byte vertices with normal, 24-byte vertices without normal or 60-byte vertices with normal and skinning data, whichever fills the chunk. Raw bytes if the mesh has no vertices |
-### **NfsuMeshMaterialsChunk** ###
+| 8 + up to 128-bytes alignment | **vertices** | ? | One of types:<br/>- Array of `custom_func` items<br/>Item type: [NfsuVertex](#nfsuvertex)<br/>- Array of `custom_func` items<br/>Item type: [NfsmwVertex44](#nfsmwvertex44)<br/>- Array of `custom_func` items<br/>Item type: [NfsmwVertex60](#nfsmwvertex60)<br/>- Array of `custom_func` items<br/>Item type: [NfsuVertexSkinned](#nfsuvertexskinned)<br/>- Bytes | Vertices: 36-byte vertices with normal, 44-byte vertices with two texture coordinates, 60-byte vertices with tangent or 60-byte vertices with skinning data (WorldBoneShader), whichever fills the chunk. Raw bytes if the layout is unknown |
+### **NfsmwMeshMaterialsChunk** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Mesh materials: the triangle list of the mesh split into ranges with their own texture ####
+#### **Description**: NFSMW mesh materials: the triangle list split into ranges with their own texture and effect ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134b02 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **elevens** | up to 16-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
-| 8 + up to 16-bytes alignment | **materials** | custom_func\*60 | Array of `custom_func` items<br/>Item type: [NfsuMeshMaterial](#nfsumeshmaterial) | Materials, in the order of their ranges in the faces chunk |
-### **NfsuMeshMaterial** ###
-#### **Size**: 60 bytes ####
-#### **Description**: A part of the mesh drawn with one texture: a range of the triangle list ####
+| 8 + up to 16-bytes alignment | **materials** | custom_func\*104 | Array of `custom_func` items<br/>Item type: [NfsmwMeshMaterial](#nfsmwmeshmaterial) | Materials, in the order of their ranges in the faces chunk |
+### **NfsmwMeshMaterial** ###
+#### **Size**: 104 bytes ####
+#### **Description**: NFSMW mesh material: a range of the triangle list drawn with one texture and effect ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **bounding_box_min** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Bounding box minimum corner |
-| 12 | **indices_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex indexes (3 per triangle) |
-| 16 | **bounding_box_max** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Bounding box maximum corner |
-| 28 | **texture_index** | 4 | 4-bytes unsigned integer (little endian) | Index of texture id in the texture ids chunk (0x00134012) of the mesh |
-| 32 | **light_material_index** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 36 | **unk** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 52 | **indices_offset** | 4 | 4-bytes unsigned integer (little endian) | Index of the first vertex index in the faces chunk: sum of previous `indices_amount` |
+| 12 | **bounding_box_max** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Bounding box maximum corner |
+| 24 | **texture_index** | 1 | 1-byte unsigned integer | Index of diffuse texture id in the texture ids chunk (0x00134012) of the mesh |
+| 25 | **normal_texture_index** | 1 | 1-byte unsigned integer | Index of normal map texture id |
+| 26 | **height_texture_index** | 1 | 1-byte unsigned integer | Index of height map texture id |
+| 27 | **specular_texture_index** | 1 | 1-byte unsigned integer | Index of specular map texture id |
+| 28 | **opacity_texture_index** | 1 | 1-byte unsigned integer | Index of opacity map texture id |
+| 29 | **light_material_index** | 1 | 1-byte unsigned integer | 0xFF if none |
+| 30 | **unk0** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 32 | **unk1** | 16 | Bytes | Unknown purpose |
+| 48 | **effect** | 4 | 4-bytes unsigned integer (little endian) | Effect (shader), defines vertex layout: 0: WorldShader, 1: WorldReflectShader, 2: WorldBoneShader, 3: WorldNormalMap, 4: CarShader, 5: GlossyWindow, 6: billboardshader, 7: WorldMinShader, 8: WorldNoFogShader, 9: FEShader, 10: FEMaskShader, 11: FilterShader, 12: OverbrightShader, 13: ScreenFilterShader, 14: RainDropShader, 15: RunwayLightShader, 16: VisualTreatmentShader, 17: WorldPrelitShader, 18: ParticlesShader, 19: skyshader, 20: shadow_map_mesh, 21: SkyboxCurrentGen, 22: ShadowPolyCurrentGen, 23: CarShadowMapShader, 24: WorldDepthShader, 25: WorldNormalMapDepth, 26: CarShaderDepth, 27: GlossyWindowDepth, 28: TreeDepthShader, 29: shadow_map_mesh_depth, 30: NormalMapNoFog |
+| 52 | **effect_pointer** | 4 | 4-bytes unsigned integer (little endian) | Filled by the game in runtime |
 | 56 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 60 | **vertex_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices of the material |
+| 64 | **faces_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of triangles of the material |
+| 68 | **unk2** | 24 | Bytes | Unknown purpose |
+| 92 | **indices_amount** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex indexes (3 per triangle) |
+| 96 | **unk3** | 8 | Bytes | Unknown purpose |
+### **NfsmwMeshMaterialName** ###
+#### **Size**: 9..? bytes ####
+#### **Description**: NFSMW material name, one chunk per material in the order of materials ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134c02 | Chunk ID |
+| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
+| 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Material name, e.g. "BMWM3GTR_BADGING" |
+| 9..? | **padding** | custom_func | Bytes | Zero bytes up to 4-bytes alignment |
 ### **Chunk80134100** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: Mesh data container: holds the mesh info chunk (always first), vertices chunk and faces chunk of a single mesh ####
@@ -328,7 +375,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x80134100 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sub_chunks** | custom_func\*8..? | Array of `custom_func` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsuMeshChunk](#nfsumeshchunk)<br/>- [NfsuMeshFacesChunk](#nfsumeshfaceschunk)<br/>- [MeshVerticesChunk](#meshverticeschunk)<br/>- [NfsuMeshMaterialsChunk](#nfsumeshmaterialschunk) | Child chunks, read until the payload is exhausted. Block class picked according to the chunk id |
+| 8 | **sub_chunks** | custom_func\*8..? | Array of `custom_func` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsmwMeshChunk](#nfsmwmeshchunk)<br/>- [NfsmwMeshFacesChunk](#nfsmwmeshfaceschunk)<br/>- [NfsmwMeshVerticesChunk](#nfsmwmeshverticeschunk)<br/>- [NfsmwMeshMaterialsChunk](#nfsmwmeshmaterialschunk)<br/>- [NfsmwMeshMaterialName](#nfsmwmeshmaterialname) | Child chunks, read until the payload is exhausted. Block class picked according to the chunk id |
 ### **Chunk00134002** ###
 #### **Size**: 136..? bytes ####
 #### **Description**: File info: original path of the file and unknown values ####
@@ -357,40 +404,32 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134003 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **items** | custom_func\*8 | Array of `custom_func` items<br/>Item size: 8 bytes<br/>Item type: Two 32-bit unsigned integers (little-endian): value, then unk (always 0) | Mesh ids: `value` equals to `mesh_id` of the corresponding mesh header chunk |
-### **Chunk00134011** ###
-#### **Size**: 184..? bytes ####
-#### **Description**: Mesh header: id, name, bounding volume and flags of a single mesh ####
+### **NfsmwMeshHeaderChunk** ###
+#### **Size**: 169..? bytes ####
+#### **Description**: NFSMW mesh header: id, name, bounding box and transformation of a single mesh. Same id as in NFSU, the name is null-terminated ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x134011 | Chunk ID |
-| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field): 176 (NFSU) or 192 (NFSU2) + length of alignment filler |
+| 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
 | 8 | **elevens** | up to 16-bytes alignment | Bytes | Alignment filler: a run of 0x11 bytes before the actual payload, so that the payload starts at an aligned offset |
-| 8 + up to 16-bytes alignment | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 12 + up to 16-bytes alignment | **unk3** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 16 + up to 16-bytes alignment | **unk4** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 20 + up to 16-bytes alignment | **version** | 2 | 2-bytes unsigned integer (little endian). One of ['0x13', '0x16'] | Version of the mesh header: 0x13 in NFSU, 0x16 in NFSU2 |
-| 22 + up to 16-bytes alignment | **unk6** | 2 | 2-bytes unsigned integer (little endian) | Flags? 0x40 or 0 in NFSU, also 0x80 in NFSU2 |
-| 24 + up to 16-bytes alignment | **mesh_id** | 4 | 4-bytes unsigned integer (little endian) | Mesh id (hash), listed in the mesh ids chunk of the file |
-| 28 + up to 16-bytes alignment | **unk7** | 4 | 4-bytes unsigned integer (little endian) | Amount of faces? Equals to `faces_amount` of the mesh info chunk |
-| 32 + up to 16-bytes alignment | **mesh_flags** | 4 | 4-bytes unsigned integer (little endian) | Mesh flags. Maybe contains stream count / LOD / material count |
-| 36 + up to 16-bytes alignment | **unk10** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
+| 8 + up to 16-bytes alignment | **unk0** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 20 + up to 16-bytes alignment | **version** | 2 | 2-bytes unsigned integer (little endian). Always == 0x16 | Version of the mesh header |
+| 22 + up to 16-bytes alignment | **flags** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 24 + up to 16-bytes alignment | **mesh_id** | 4 | 4-bytes unsigned integer (little endian) | Mesh id (hash of the name), listed in the mesh ids chunk |
+| 28 + up to 16-bytes alignment | **faces_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of faces (triangles) of the mesh |
+| 30 + up to 16-bytes alignment | **vertex_amount** | 2 | 2-bytes unsigned integer (little endian) | Amount of vertices, usually 0 |
+| 32 + up to 16-bytes alignment | **bones_amount** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 33 + up to 16-bytes alignment | **textures_amount** | 1 | 1-byte unsigned integer | Amount of items in the texture ids chunk |
+| 34 + up to 16-bytes alignment | **light_materials_amount** | 1 | 1-byte unsigned integer | Amount of items in the light materials chunk |
+| 35 + up to 16-bytes alignment | **position_markers_amount** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 36 + up to 16-bytes alignment | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 40 + up to 16-bytes alignment | **bounding_box_min** | 16 | [NfsuVec3](#nfsuvec3) | Minimum corner of the axis-aligned bounding box of the mesh |
 | 56 + up to 16-bytes alignment | **bounding_box_max** | 16 | [NfsuVec3](#nfsuvec3) | Maximum corner of the axis-aligned bounding box of the mesh |
-| 72 + up to 16-bytes alignment | **obb_axis0** | 16 | [NfsuVec3](#nfsuvec3) | First axis of the oriented bounding box |
-| 88 + up to 16-bytes alignment | **obb_axis1** | 16 | [NfsuVec3](#nfsuvec3) | Second axis of the oriented bounding box |
-| 104 + up to 16-bytes alignment | **obb_axis2** | 16 | [NfsuVec3](#nfsuvec3) | Third axis of the oriented bounding box |
-| 120 + up to 16-bytes alignment | **unk_float0** | 4 | Float number (little-endian) | Is it a quaternion (with the next 3 floats)? |
-| 124 + up to 16-bytes alignment | **unk_float1** | 4 | Float number (little-endian) | Unknown purpose |
-| 128 + up to 16-bytes alignment | **unk_float2** | 4 | Float number (little-endian) | Unknown purpose |
-| 132 + up to 16-bytes alignment | **unk_U** | 4 | Float number (little-endian). Always == 1.0 | Unknown purpose |
-| 136 + up to 16-bytes alignment | **unk_V** | 4 | Float number (little-endian). Always == 0.0 | Unknown purpose |
-| 140 + up to 16-bytes alignment | **unk_W** | 4 | Float number (little-endian). Always == 0.0 | Unknown purpose |
-| 144 + up to 16-bytes alignment | **unk_X** | 4 | 4-bytes unsigned integer (little endian) | Always 0x0012F800 in NFSU |
-| 148 + up to 16-bytes alignment | **unk_Y** | 4 | 4-bytes unsigned integer (little endian) | Always equals to `unk_X` |
-| 152 + up to 16-bytes alignment | **unk_Z** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 156 + up to 16-bytes alignment | **nfsu2_unk_floats** | 0 in NFSU, 2 in NFSU2\*4 | Array of `0 in NFSU, 2 in NFSU2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | NFSU2 only |
-| 156 + up to 16-bytes alignment + 0 in NFSU, 2 in NFSU2\*4 | **nfsu2_unk_ints** | 0 in NFSU, 2 in NFSU2\*4 | Array of `0 in NFSU, 2 in NFSU2` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | NFSU2 only |
-| 156 + up to 16-bytes alignment + 0 in NFSU, 2 in NFSU2\*4 + 0 in NFSU, 2 in NFSU2\*4 | **mesh_name** | 28 | UTF-8 string | Mesh name, e.g. "S2000_KIT08_FRONT_BUMPER_A". Used as the name of exported mesh |
+| 72 + up to 16-bytes alignment | **transform** | 64 | Array of `16` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Transformation matrix 4x4, row by row |
+| 136 + up to 16-bytes alignment | **unk2** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 160 + up to 16-bytes alignment | **unk3** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Unknown purpose |
+| 168 + up to 16-bytes alignment | **mesh_name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Mesh name, e.g. "BMWM3GTR_BASE_A". Used as the name of exported mesh |
+| 169 + up to 16-bytes alignment..? | **name_padding** | custom_func | Bytes | Zero bytes up to 4-bytes alignment |
 ### **Chunk00134012** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: A list of 32-bit values (hashes) of the mesh, presumably texture ids ####
@@ -431,7 +470,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | --- | --- | --- | --- | --- |
 | 0 | **chunk_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x80134010 | Chunk ID |
 | 4 | **chunk_length** | 4 | 4-bytes unsigned integer (little endian) | Length of the chunk payload in bytes (everything after this field) |
-| 8 | **sub_chunks** | custom_func\*8..? | Array of `custom_func` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [Chunk00134011](#chunk00134011)<br/>- [Chunk00134012](#chunk00134012)<br/>- [Chunk00134013](#chunk00134013)<br/>- [Chunk80134100](#chunk80134100)<br/>- [Chunk001340XX](#chunk001340xx) | Child chunks, read until the payload is exhausted. Block class picked according to the chunk id |
+| 8 | **sub_chunks** | custom_func\*8..? | Array of `custom_func` items<br/>Item size: 8..? bytes<br/>Item type: One of types:<br/>- [NfsmwMeshHeaderChunk](#nfsmwmeshheaderchunk)<br/>- [Chunk00134012](#chunk00134012)<br/>- [Chunk00134013](#chunk00134013)<br/>- [Chunk80134100](#chunk80134100)<br/>- [Chunk001340XX](#chunk001340xx) | Child chunks, read until the payload is exhausted. Block class picked according to the chunk id |
 ### **Chunk80134001** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: File info container: the first meaningful chunk of the file. Holds file info, the list of mesh ids and a per-mesh table ####
@@ -467,15 +506,29 @@ Did not find what you need or some given data is wrong? Please submit an
 | 24 | **unk3** | 4 | 4-bytes unsigned integer (little endian) | Presumably vertex color, 32-bit ARGB |
 | 28 | **u** | 4 | Float number (little-endian) | U texture coordinate |
 | 32 | **v** | 4 | Float number (little-endian) | V texture coordinate |
-### **NfsuVertexNoNormal** ###
-#### **Size**: 24 bytes ####
-#### **Description**: A single mesh vertex without normal (24 bytes). Used by a few meshes, e.g. SUPRA_STYLE02_HEADLIGHT_C. Same layout as the 36-byte vertex with the normal omitted (Direct3D FVF order: position, diffuse color, texture coordinates) ####
+### **NfsmwVertex44** ###
+#### **Size**: 44 bytes ####
+#### **Description**: NFSMW vertex with two texture coordinates (44 bytes), skyshader ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex position |
-| 12 | **unk3** | 4 | 4-bytes unsigned integer (little endian) | Presumably vertex color, 32-bit ARGB |
-| 16 | **u** | 4 | Float number (little-endian) | U texture coordinate |
-| 20 | **v** | 4 | Float number (little-endian) | V texture coordinate |
+| 12 | **normal** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex normal |
+| 24 | **color** | 4 | 4-bytes unsigned integer (little endian) | Vertex color, 32-bit ARGB |
+| 28 | **u** | 4 | Float number (little-endian) | U texture coordinate |
+| 32 | **v** | 4 | Float number (little-endian) | V texture coordinate |
+| 36 | **uv2** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Unknown purpose |
+### **NfsmwVertex60** ###
+#### **Size**: 60 bytes ####
+#### **Description**: NFSMW vertex with tangent (60 bytes), WorldReflectShader and WorldNormalMap effects ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **position** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex position |
+| 12 | **normal** | 12 | Point in 3D space (x,y,z), where each coordinate is: Float number (little-endian) | Vertex normal |
+| 24 | **color** | 4 | 4-bytes unsigned integer (little endian) | Vertex color, 32-bit ARGB |
+| 28 | **u** | 4 | Float number (little-endian) | U texture coordinate |
+| 32 | **v** | 4 | Float number (little-endian) | V texture coordinate |
+| 36 | **uv2** | 8 | Array of `2` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Unknown purpose |
+| 44 | **tangent** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: Float number (little-endian) | Tangent (x, y, z, w) |
 ### **NfsuVertexSkinned** ###
 #### **Size**: 60 bytes ####
 #### **Description**: A single mesh vertex with normal and skinning data (60 bytes). Used by a few world meshes (flags 0x4081 in the mesh info chunk) ####

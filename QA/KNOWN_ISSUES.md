@@ -175,6 +175,12 @@ NFSU2 cars: the body paint (`<CAR>_SKIN1`), windows (`WINDOW_*`) and decal slots
 texture pack (the game makes them at run time), so those parts are untextured. NFSU2 mesh names are truncated
 to 27 characters, so the LOD letter can be cut off and such meshes land in the default LOD group.
 
+NFSMW Rockport (`TRACKS/L2RA.BUN` + `STREAML2RA.BUN`, 720 sections, 949 exported chunks, 1,623 textures) takes
+about 240 s and 1.9 GB of memory per open. NFSMW cars: the body paint (`<CAR>_SKIN1`) and decal slots are made at
+run time, so the body is untextured; headlights, brake lights, windows and the driver map to the car's own
+`_OFF`/`WINDOW_FRONT`/`DRIVER_CUTOUT` textures. Wheel positions are not in the car's `GEOMETRY.BIN` (its position
+markers are exhaust and light points), so all four wheels sit at the origin.
+
 ---
 
 ## Unknown / not yet investigated (flagged, not silently assumed fine)

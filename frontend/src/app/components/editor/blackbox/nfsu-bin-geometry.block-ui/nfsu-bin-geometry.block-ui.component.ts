@@ -58,7 +58,7 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
   public readonly previewViewFilters: ViewFilterOpts[] = [
     {
       name: 'LOD',
-      filterGroups: ['A', 'B', 'C', 'D', '?'],
+      filterGroups: ['A', 'B', 'C', 'D', 'E', '?'],
       checkedIndex: 0,
       pickFunction: object => {
         const name = NfsuBinGeometryBlockUiComponent.meshName(object);
@@ -71,16 +71,27 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
             return 2;
           case '_D':
             return 3;
+          case '_E':
+            return 4;
         }
-        return 4;
+        return 5;
       },
     },
     {
       name: 'Parts',
-      filterGroups: ['Stock', 'Body kits', 'Widebody kits', 'Aftermarket', 'Decals'],
+      filterGroups: ['Stock', 'Body kits', 'Widebody kits', 'Aftermarket', 'Decals', 'Damage'],
       checkedIndex: 0,
       pickFunction: object => {
-        const part = NfsuBinGeometryBlockUiComponent.meshName(object).split('_')[1] || '';
+        const name = NfsuBinGeometryBlockUiComponent.meshName(object);
+        // NFSMW: decal slots and damaged panels of a kit, e.g. "BMWM3GTR_KIT00_DECAL_LEFT_DOOR_RECT_MEDIUM_A",
+        // "BMWM3GTR_KIT00_DAMAGE0_FRONT_A"
+        if (name.includes('_DECAL_')) {
+          return 4;
+        }
+        if (name.includes('_DAMAGE')) {
+          return 5;
+        }
+        const part = name.split('_')[1] || '';
         if (part === 'BASE' || part === 'KIT00') {
           return 0;
         }

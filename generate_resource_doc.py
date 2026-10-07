@@ -634,6 +634,146 @@ EXPORT_RESOURCES = {
             # ]
         },
     },
+    'nfsu2': {
+        'file_name': 'NFSU2.md',
+        'title': 'NFS Underground 2 file specs',
+        'file_list': f"""**CARS/\\*/GEOMETRY.BIN** car geometry. {render_type(blackbox.geometries.NfsuBinGeometry())}
+
+**CARS/\\*/TEXTURES.BIN**, **CARS/TEXTURES.BIN** car texture packs, every texture compressed separately (JDLZ or HUFF). {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}
+
+**TRACKS/LnRA.BUN** location bundle: streaming sections table and textures shared by the city. Opened in the track viewer together with the city sections from **TRACKS/STREAMLnRA.BUN** next to it. {render_type(blackbox_maps_nfsu.NfsuTrackBundle())}
+
+**TRACKS/STREAMLnRA.BUN** streamed city sections (scenery, geometry, textures), each 0x800-aligned. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}
+
+**GLOBAL/GLOBALB.LZC** global textures (chrome, grilles, ...) and other data. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}, [compressed](eac_compressions.md)
+
+**GLOBAL/\\*.BUN**, **GLOBAL/\\*.BIN** texture packs and other chunk bundles. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}""",
+        'blocks': {
+            'Maps': [
+                blackbox_maps_nfsu.NfsuTrackBundle(),
+                blackbox_maps_nfsu.NfsuChunkBundle(),
+                blackbox_maps_nfsu.Nfsu2StreamingSections(),
+                blackbox_maps_nfsu.Nfsu2StreamingSection(),
+                blackbox_maps_nfsu.Nfsu2Scenery(),
+                blackbox_maps_nfsu.NfsuScenerySectionHeader(),
+                blackbox_maps_nfsu.Nfsu2SceneryInfos(),
+                blackbox_maps_nfsu.Nfsu2SceneryInfo(),
+                blackbox_maps_nfsu.Nfsu2SceneryInstances(),
+                blackbox_maps_nfsu.Nfsu2SceneryInstance(),
+            ],
+            'Images': [
+                blackbox_bitmaps_nfsu.NfsuTexturePack(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackHeader(),
+                blackbox_bitmaps_nfsu.NfsuTextureHashes(),
+                blackbox_bitmaps_nfsu.NfsuCompressedTextures(),
+                blackbox_bitmaps_nfsu.NfsuCompressedTexture(),
+                blackbox_bitmaps_nfsu.NfsuTextureInfos(),
+                blackbox_bitmaps_nfsu.NfsuTextureInfo(),
+                blackbox_bitmaps_nfsu.NfsuTextureFormats(),
+                blackbox_bitmaps_nfsu.NfsuTextureFormat(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackInfo(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackDataContainer(),
+                blackbox_bitmaps_nfsu.NfsuTextureData(),
+            ],
+            'Geometries': [
+                blackbox.geometries.NfsuBinGeometry(),
+                blackbox.geometries.ZeroChunk(),
+                blackbox.geometries.UnknownChunk(),
+                blackbox.geometries.Chunk80034020(),
+                blackbox.geometries.NfsuMeshChunk(),
+                blackbox.geometries.NfsuMeshFacesChunk(),
+                blackbox.geometries.MeshVerticesChunk(),
+                blackbox.geometries.NfsuMeshMaterialsChunk(),
+                blackbox.geometries.NfsuMeshMaterial(),
+                blackbox.geometries.Chunk80134100(),
+                blackbox.geometries.Chunk00134002(),
+                blackbox.geometries.Chunk00134003(),
+                blackbox.geometries.Chunk00134011(),
+                blackbox.geometries.Chunk00134012(),
+                blackbox.geometries.Chunk00134013(),
+                blackbox.geometries.Chunk001340XX(),
+                blackbox.geometries.Chunk80134008(),
+                blackbox.geometries.NfsuMeshDescriptorChunk(),
+                blackbox.geometries.Chunk80134001(),
+                blackbox.geometries.Chunk80134020(),
+                blackbox.geometries.NfsuVec3(),
+                blackbox.geometries.NfsuVertex(),
+                blackbox.geometries.NfsuVertexNoNormal(),
+                blackbox.geometries.NfsuVertexSkinned(),
+            ],
+        },
+    },
+    'nfsmw': {
+        'file_name': 'NFSMW.md',
+        'title': 'NFS Most Wanted (2005) file specs',
+        'file_list': f"""**CARS/\\*/GEOMETRY.BIN** car geometry. {render_type(blackbox.geometries.NfsuBinGeometry())}
+
+**CARS/\\*/TEXTURES.BIN**, **CARS/TEXTURES.BIN** car texture packs, every texture compressed separately (JDLZ or HUFF). {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}
+
+**TRACKS/L2RA.BUN** location bundle (Rockport): streaming sections table and textures shared by the city. Opened in the track viewer together with the city sections from **TRACKS/STREAML2RA.BUN** next to it. {render_type(blackbox_maps_nfsu.NfsuTrackBundle())}
+
+**TRACKS/STREAML2RA.BUN** streamed city sections (scenery, geometry, textures), each 0x800-aligned. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}
+
+**GLOBAL/GLOBALB.BUN** global textures (chrome, grilles, ...) and other data. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}
+
+**GLOBAL/\\*.BUN**, **GLOBAL/\\*.BIN** texture packs and other chunk bundles. {render_type(blackbox_maps_nfsu.NfsuChunkBundle())}""",
+        'blocks': {
+            'Maps': [
+                blackbox_maps_nfsu.NfsuTrackBundle(),
+                blackbox_maps_nfsu.NfsuChunkBundle(),
+                blackbox_maps_nfsu.NfsmwStreamingSections(),
+                blackbox_maps_nfsu.NfsmwStreamingSection(),
+                blackbox_maps_nfsu.NfsmwScenery(),
+                blackbox_maps_nfsu.NfsuScenerySectionHeader(),
+                blackbox_maps_nfsu.NfsmwSceneryInfos(),
+                blackbox_maps_nfsu.NfsmwSceneryInfo(),
+                blackbox_maps_nfsu.NfsmwSceneryInstances(),
+                blackbox_maps_nfsu.NfsmwSceneryInstance(),
+            ],
+            'Images': [
+                blackbox_bitmaps_nfsu.NfsuTexturePack(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackHeader(),
+                blackbox_bitmaps_nfsu.NfsuTextureHashes(),
+                blackbox_bitmaps_nfsu.NfsuCompressedTextures(),
+                blackbox_bitmaps_nfsu.NfsuCompressedTexture(),
+                blackbox_bitmaps_nfsu.NfsuTextureInfos(),
+                blackbox_bitmaps_nfsu.NfsuTextureInfo(),
+                blackbox_bitmaps_nfsu.NfsuTextureFormats(),
+                blackbox_bitmaps_nfsu.NfsuTextureFormat(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackInfo(),
+                blackbox_bitmaps_nfsu.NfsuTexturePackDataContainer(),
+                blackbox_bitmaps_nfsu.NfsuTextureData(),
+            ],
+            'Geometries': [
+                blackbox.geometries.NfsuBinGeometry(),
+                blackbox.geometries.ZeroChunk(),
+                blackbox.geometries.UnknownChunk(),
+                blackbox.geometries.Chunk80034020(),
+                blackbox.geometries.NfsmwMeshChunk(),
+                blackbox.geometries.NfsmwMeshFacesChunk(),
+                blackbox.geometries.NfsmwMeshVerticesChunk(),
+                blackbox.geometries.NfsmwMeshMaterialsChunk(),
+                blackbox.geometries.NfsmwMeshMaterial(),
+                blackbox.geometries.NfsmwMeshMaterialName(),
+                blackbox.geometries.Chunk80134100(),
+                blackbox.geometries.Chunk00134002(),
+                blackbox.geometries.Chunk00134003(),
+                blackbox.geometries.NfsmwMeshHeaderChunk(),
+                blackbox.geometries.Chunk00134012(),
+                blackbox.geometries.Chunk00134013(),
+                blackbox.geometries.Chunk001340XX(),
+                blackbox.geometries.Chunk80134008(),
+                blackbox.geometries.NfsuMeshDescriptorChunk(),
+                blackbox.geometries.Chunk80134001(),
+                blackbox.geometries.Chunk80134020(),
+                blackbox.geometries.NfsuVec3(),
+                blackbox.geometries.NfsuVertex(),
+                blackbox.geometries.NfsmwVertex44(),
+                blackbox.geometries.NfsmwVertex60(),
+                blackbox.geometries.NfsuVertexSkinned(),
+            ],
+        },
+    },
 }
 
 with open('resources/README.md', 'w') as f:
@@ -642,7 +782,10 @@ with open('resources/README.md', 'w') as f:
         f.write(f'- [{game["title"]}]({game["file_name"]})\n\n')
 
 for game in EXPORT_RESOURCES.values():
-    old_contents = open('resources/' + game['file_name'], 'r').read()
+    try:
+        old_contents = open('resources/' + game['file_name'], 'r').read()
+    except FileNotFoundError:
+        old_contents = ''
     new_contents = f"""# **{game['title']}** #
 
 *Last time updated: {datetime.now(timezone.utc)}*
