@@ -32,6 +32,10 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.configs import TnfsConfigDat
 
             return TnfsConfigDat
+        elif file_path.upper().endswith('.RPL'):
+            from resources.eac.replays import TnfsReplay
+
+            return TnfsReplay
         elif file_path.upper().endswith('.GEO'):
             from resources.eac.geometries import GeoGeometry
 
