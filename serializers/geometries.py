@@ -803,26 +803,141 @@ class CrpGeometrySerializer(BaseFileSerializer):
         return exported + [layout_path]
 
 
+def find_nfsu_car_textures(geometry_path: str) -> dict:
+    """Textures of NFS Underground car GEOMETRY.BIN: texture packs of TEXTURES.BIN next to it, of the shared
+    CARS/TEXTURES.BIN one folder up and of GLOBAL/GLOBALB.LZC of the game (chrome, grilles, exhaust etc.; also looked
+    up in the game folder itself). Name hash -> (texture info, Direct3D format, data)"""
+    import os
+    from library import require_file
+    from library.utils.file_utils import find_files_case_insensitive
+    from serializers.bitmaps import nfsu_texture_pack_textures
+
+    directory = os.path.dirname(geometry_path)
+    cars_directory = os.path.dirname(directory)
+    game_directory = os.path.dirname(cars_directory)
+    textures = {}
+    for pattern in [
+        path_join(directory, 'TEXTURES.BIN'),
+        path_join(cars_directory, 'TEXTURES.BIN'),
+        path_join(game_directory, 'GLOBAL', 'GLOBALB.LZC'),
+        path_join(game_directory, 'GLOBALB.LZC'),
+        path_join(game_directory, 'GLOBAL', 'GLOBALB.BUN'),
+    ]:
+        for texture_path in find_files_case_insensitive([pattern]):
+            try:
+                (_, _, data) = require_file(texture_path)
+                if 'chunks' not in data and isinstance(data.get('data'), dict):
+                    # JDLZ-compressed bundle
+                    data = data['data']
+                for chunk in data.get('chunks', []):
+                    if chunk['data'].get('chunk_id') == 0xB3300000:
+                        for info, d3d_format, image_data in nfsu_texture_pack_textures(chunk['data']):
+                            textures.setdefault(info['name_hash'], (info, d3d_format, image_data))
+            except Exception:
+                traceback.print_exc()
+    return textures
+
+
+def bin_hash(name: str) -> int:
+    """Black Box hash of a name (texture, mesh): h = h * 33 + character, starting from 0xFFFFFFFF"""
+    h = 0xFFFFFFFF
+    for c in name.encode():
+        h = (h * 33 + c) & 0xFFFFFFFF
+    return h
+
+
+# NFS Most Wanted car texture slots filled by the game at run time -> textures of the car showing them in the
+# default state ({car}: car name, {kit}: body kit of the mesh, e.g. "KIT00"; first existing one is used)
+NFSMW_CAR_RUNTIME_TEXTURES = {
+    **{
+        f'{light}_{side}': [f'{{car}}_{{kit}}_{light}_OFF', f'{{car}}_{{kit}}_{light}_ON']
+        for light in ['HEADLIGHT', 'HEADLIGHT_GLASS', 'BRAKELIGHT', 'BRAKELIGHT_GLASS']
+        for side in ['LEFT', 'RIGHT', 'CENTRE']
+    },
+    **{f'WINDOW_{side}': ['WINDOW_FRONT'] for side in ['LEFT_FRONT', 'RIGHT_FRONT', 'LEFT_REAR', 'RIGHT_REAR', 'REAR']},
+    'DRIVER_PLAYER': ['DRIVER_CUTOUT'],
+}
+
+
+def nfsmw_car_runtime_texture(texture_id: int, mesh_name: str, textures: dict) -> int:
+    """Texture shown in place of NFS Most Wanted run time texture slot `texture_id` on mesh `mesh_name` (e.g.
+    "BMWM3GTR_KIT00_LEFT_HEADLIGHT_A"), or `texture_id` itself if it is not a known slot"""
+    parts = mesh_name.split('_')
+    car = parts[0]
+    kit = parts[1] if len(parts) > 1 and re.fullmatch(r'KITW?\d+', parts[1]) else 'KIT00'
+    for slot, candidates in NFSMW_CAR_RUNTIME_TEXTURES.items():
+        if bin_hash(slot.format(car=car)) != texture_id:
+            continue
+        for candidate in candidates:
+            candidate_id = bin_hash(candidate.format(car=car, kit=kit))
+            if candidate_id in textures:
+                return candidate_id
+    return texture_id
+
+
 class NfsuBinGeometrySerializer(BaseFileSerializer):
+    """NFS Underground car geometry: every mesh (car part) is exported as one OBJ object per texture, named
+    "<mesh name>__<texture name>". Textures are taken from TEXTURES.BIN files of the car and of all cars (see
+    `find_nfsu_car_textures`) and saved to "textures/<texture name>.png"""
+
     def __init__(self):
         super().__init__(is_dir=True)
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+        from library.loader import id_to_path
+        from serializers.bitmaps import nfsu_texture_to_image
+
         super().serialize(data, path)
+
+        textures = find_nfsu_car_textures(id_to_path(id)) if id and '__' not in id else {}
+        texture_names = {}
+        alpha_modes = {}
+
+        def texture_name(texture_id):
+            if texture_id not in texture_names:
+                texture_names[texture_id] = 'untextured'
+                if texture_id in textures:
+                    try:
+                        info = textures[texture_id][0]
+                        image = nfsu_texture_to_image(*textures[texture_id])
+                        name = re.sub(r'[^A-Za-z0-9_]', '_', info['name']) or f'{texture_id:08x}'
+                        if name in texture_names.values():
+                            name += f'_{texture_id:08x}'
+                        os.makedirs(path_join(path, 'textures'), exist_ok=True)
+                        image.save(path_join(path, f'textures/{name}.png'))
+                        texture_names[texture_id] = name
+                        alpha_modes[name] = texture_alpha_mode(image)
+                    except Exception:
+                        traceback.print_exc()
+            return texture_names[texture_id]
 
         scene = Scene()
         scene.name = 'body'
         scene.obj_name = 'geometry'
+        scene.mtl_texture_path_func = lambda name: f'textures/{name}.png'
         scene.sub_meshes = []
 
         for nfsu_mesh in nfsu_geometry_meshes(data):
-            mesh = SubMesh()
+            mesh = Mesh()
             mesh.name = nfsu_mesh.name
             mesh.vertices = [list(v) for v in nfsu_mesh.vertices]
             mesh.vertex_uvs = [list(uv) for uv in nfsu_mesh.uvs]
-            mesh.polygons = [list(t) for (_, triangles) in nfsu_mesh.parts for t in triangles]
-            scene.sub_meshes.append(mesh)
+            for texture_id, triangles in nfsu_mesh.parts:
+                if texture_id not in textures:
+                    texture_id = nfsmw_car_runtime_texture(texture_id, nfsu_mesh.name, textures)
+                name = texture_name(texture_id)
+                for t in triangles:
+                    if all(i < len(mesh.vertices) for i in t):
+                        mesh.polygons.append(list(t))
+                        mesh.texture_ids.append(name)
+            if not mesh.polygons:
+                continue
+            for sub_mesh, _, _ in mesh.split_by_texture_ids():
+                sub_mesh.name = f'{nfsu_mesh.name}__{sub_mesh.texture_id}'
+                scene.sub_meshes.append(sub_mesh)
 
+        scene.mtl_texture_names = sorted(x for x in set(texture_names.values()) if x != 'untextured')
+        scene.mtl_texture_alpha_modes = alpha_modes
         return export_scenes([scene], path, self.settings)
 
 
@@ -1403,6 +1518,11 @@ def nfsu_geometry_meshes(geometry_data: dict) -> List[NfsuMesh]:
         vertices_chunk = _nfsu_sub_chunk_data(container['sub_chunks'], 0x00_13_4B_01)
         faces_chunk = _nfsu_sub_chunk_data(container['sub_chunks'], 0x00_13_4B_03)
         materials_chunk = _nfsu_sub_chunk_data(container['sub_chunks'], 0x00_13_4B_02)
+        if materials_chunk is not None and materials_chunk['materials'] and 'effect' in materials_chunk['materials'][0]:
+            mesh = _nfsmw_mesh(header, texture_ids, container, faces_chunk, materials_chunk['materials'])
+            if mesh is not None:
+                meshes.append(mesh)
+            continue
         if vertices_chunk is None or faces_chunk is None or not isinstance(vertices_chunk['vertices']['data'], list):
             continue
         mesh = NfsuMesh(header['mesh_id'], header['mesh_name'])
@@ -1422,3 +1542,39 @@ def nfsu_geometry_meshes(geometry_data: dict) -> List[NfsuMesh]:
             )
         meshes.append(mesh)
     return meshes
+
+
+def _nfsmw_mesh(header: dict, texture_ids: list, container: dict, faces_chunk, materials: list) -> Optional[NfsuMesh]:
+    """NFS Most Wanted mesh: vertex buffers are concatenated, triangles of every material are shifted by the offset of
+    its buffer"""
+    from resources.blackbox.geometries.nfsu import nfsmw_vertex_buffer_materials
+
+    buffers = [
+        x['data']['vertices']['data']
+        for x in container['sub_chunks']
+        if isinstance(x['data'], dict) and x['data'].get('chunk_id') == 0x00_13_4B_01
+    ]
+    groups = nfsmw_vertex_buffer_materials(materials)
+    if faces_chunk is None or len(buffers) != len(groups) or not all(isinstance(b, list) for b in buffers):
+        return None
+    mesh = NfsuMesh(header['mesh_id'], header['mesh_name'])
+    buffer_offsets = []
+    for vertices in buffers:
+        buffer_offsets.append(len(mesh.vertices))
+        mesh.vertices.extend((v['position']['x'], v['position']['y'], v['position']['z']) for v in vertices)
+        mesh.uvs.extend((v['u'], v['v']) for v in vertices)
+    material_buffer = {i: g for g, group in enumerate(groups) for i in group}
+    faces = faces_chunk['faces']
+    start = 0
+    for i, material in enumerate(materials):
+        end = start + material['indices_amount'] // 3
+        offset = buffer_offsets[material_buffer[i]]
+        texture_index = material['texture_index']
+        mesh.parts.append(
+            (
+                texture_ids[texture_index] if 0 <= texture_index < len(texture_ids) else None,
+                [[x + offset for x in t] for t in faces[start:end]],
+            )
+        )
+        start = end
+    return mesh

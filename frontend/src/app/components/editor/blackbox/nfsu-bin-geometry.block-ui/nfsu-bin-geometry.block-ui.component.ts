@@ -46,13 +46,24 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
     }
   }
 
+  // object name is "<mesh name>__<texture name>", mesh name is "<CAR>_<part>_<LOD letter>", e.g.
+  // "SUPRA_KIT00_FRONT_BUMPER_A". The name is cut to 27 characters, so the LOD letter can be missing
+  private static meshName(object: { name: string }): string {
+    return object.name.split('__')[0];
+  }
+
+  // one list entry per mesh, whatever amount of textures it has
+  public readonly previewObjectGroupFunc = (object: { name: string }) =>
+    NfsuBinGeometryBlockUiComponent.meshName(object);
+
   public readonly previewViewFilters: ViewFilterOpts[] = [
     {
       name: 'LOD',
-      filterGroups: ['A', 'B', 'C', 'D', '?'],
+      filterGroups: ['A', 'B', 'C', 'D', 'E', '?'],
       checkedIndex: 0,
       pickFunction: object => {
-        switch (object.name.substring(object.name.length - 2)) {
+        const name = NfsuBinGeometryBlockUiComponent.meshName(object);
+        switch (name.substring(name.length - 2)) {
           case '_A':
             return 0;
           case '_B':
@@ -61,6 +72,38 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
             return 2;
           case '_D':
             return 3;
+          case '_E':
+            return 4;
+        }
+        return 5;
+      },
+    },
+    {
+      name: 'Parts',
+      filterGroups: ['Stock', 'Body kits', 'Widebody kits', 'Aftermarket', 'Decals', 'Damage'],
+      checkedIndex: 0,
+      pickFunction: object => {
+        const name = NfsuBinGeometryBlockUiComponent.meshName(object);
+        // NFSMW: decal slots and damaged panels of a kit, e.g. "BMWM3GTR_KIT00_DECAL_LEFT_DOOR_RECT_MEDIUM_A",
+        // "BMWM3GTR_KIT00_DAMAGE0_FRONT_A"
+        if (name.includes('_DECAL_')) {
+          return 4;
+        }
+        if (name.includes('_DAMAGE')) {
+          return 5;
+        }
+        const part = name.split('_')[1] || '';
+        if (part === 'BASE' || part === 'KIT00') {
+          return 0;
+        }
+        if (/^KIT\d+$/.test(part)) {
+          return 1;
+        }
+        if (/^KITW\d+$/.test(part)) {
+          return 2;
+        }
+        if (/^STYLE\d+$/.test(part)) {
+          return 3;
         }
         return 4;
       },

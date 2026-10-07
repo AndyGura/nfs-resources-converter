@@ -16,3 +16,7 @@
 
 - [NFS Underground file specs](NFSU.md)
 
+- [NFS Underground 2 file specs](NFSU2.md)
+
+- [NFS Most Wanted (2005) file specs](NFSMW.md)
+

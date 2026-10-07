@@ -41,7 +41,7 @@ class NfsuTexturePackHeader(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x33310001)), {'description': _CHUNK_ID_DESCR})
         chunk_length = (IntegerBlock(length=4, value_validator=Eq(124)), {'usage': 'io,doc'})
-        version = (IntegerBlock(length=4), {'description': 'Texture pack version, 4 in NFSU'})
+        version = (IntegerBlock(length=4), {'description': 'Texture pack version, 4 in NFSU, 5 in NFSU2'})
         name = (UTF8Block(length=28), {'description': 'Texture pack name, e.g. "TRACK"'})
         file_path = (
             UTF8Block(length=64),
@@ -117,6 +117,48 @@ class NfsuTextureInfo(DeclarativeCompoundBlock):
         unk1 = (BytesBlock(length=22), {'is_unknown': True})
 
 
+class NfsuCompressedTexture(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {**super().schema, 'block_description': 'Location of a compressed texture in the texture pack file'}
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        name_hash = (IntegerBlock(length=4), {'description': 'Hash of the texture name'})
+        offset = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Offset of the compressed texture in the file (absolute: the first one is the start '
+                'of texture data chunk payload)'
+            },
+        )
+        compressed_size = (IntegerBlock(length=4), {'description': 'Size of the compressed texture'})
+        size = (IntegerBlock(length=4), {'description': 'Size of the uncompressed texture'})
+        flags = (IntegerBlock(length=4), {'is_unknown': True})
+        unk = (IntegerBlock(length=4), {'is_unknown': True})
+
+
+class NfsuCompressedTextures(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'NFSU2 compressed texture pack: locations of textures, one per texture. Every '
+            'texture is compressed separately (JDLZ or HUFF) and holds its image data, followed by its texture info '
+            '(124 bytes) and pixel format (32 bytes). Such a pack has no texture infos and formats chunks',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        chunk_id = (IntegerBlock(length=4, value_validator=Eq(0x33310003)), {'description': _CHUNK_ID_DESCR})
+        chunk_length = (
+            IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('textures')) * 24),
+            {'usage': 'io,doc', 'description': _CHUNK_LENGTH_DESCR},
+        )
+        textures = (
+            ArrayBlock(child=NfsuCompressedTexture(), length=lambda ctx: ctx.data('chunk_length') // 24),
+            {'description': 'Compressed textures'},
+        )
+
+
 class NfsuTextureInfos(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
@@ -177,7 +219,14 @@ class NfsuTexturePackInfo(DeclarativeCompoundBlock):
         chunk_id = (IntegerBlock(length=4, value_validator=Eq(0xB3310000)), {'description': _CHUNK_ID_DESCR})
         chunk_length = container_chunk_length()
         sub_chunks = nfsu_sub_chunks_field(
-            [NfsuTexturePackHeader(), NfsuTextureHashes(), NfsuTextureInfos(), NfsuTextureFormats(), ZeroChunk()],
+            [
+                NfsuTexturePackHeader(),
+                NfsuTextureHashes(),
+                NfsuCompressedTextures(),
+                NfsuTextureInfos(),
+                NfsuTextureFormats(),
+                ZeroChunk(),
+            ],
             'Child chunks',
         )
 

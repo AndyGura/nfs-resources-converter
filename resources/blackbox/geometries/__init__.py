@@ -23,4 +23,13 @@ from .nfsu import (
     Chunk80134001,
     Chunk80134020,
     NfsuBinGeometry,
+    NfsmwMeshHeaderChunk,
+    NfsmwMeshChunk,
+    NfsmwMeshMaterial,
+    NfsmwMeshMaterialsChunk,
+    NfsmwMeshFacesChunk,
+    NfsmwMeshVerticesChunk,
+    NfsmwMeshMaterialName,
+    NfsmwVertex44,
+    NfsmwVertex60,
 )
