@@ -53,7 +53,8 @@ export class NfsuBinGeometryBlockUiComponent extends GuiComponent implements Aft
   }
 
   // one list entry per mesh, whatever amount of textures it has
-  public readonly previewObjectGroupFunc = (object: { name: string }) => NfsuBinGeometryBlockUiComponent.meshName(object);
+  public readonly previewObjectGroupFunc = (object: { name: string }) =>
+    NfsuBinGeometryBlockUiComponent.meshName(object);
 
   public readonly previewViewFilters: ViewFilterOpts[] = [
     {
