@@ -136,6 +136,17 @@ class TestSoundBankBlock(unittest.TestCase):
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
+    def test_bnk_entry_settings(self):
+        (name, block, res) = require_file('test/samples/DIABLOSW.BNK')
+        gear = res['items'][3]
+        self.assertEqual(gear['eacs_header_offset'], 0x2D8 + 40)
+        self.assertEqual(gear['random_range'], 250)
+        self.assertEqual(gear['priority'], 30)
+        self.assertEqual(gear['bend_range_semitones'], 0)
+        self.assertEqual(gear['pan'], 64)
+        self.assertEqual(gear['volume'], 127)
+        self.assertEqual(res['items'][0]['bend_range_semitones'], 12)
+
 
 class TestBigfBlock(unittest.TestCase):
     def test_bigf_should_remain_the_same(self):

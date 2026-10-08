@@ -120,3 +120,20 @@ When you do:
   `NFS_GAMES_ROUNDTRIP=1`; `NFS_GAMES_DIR=test/samples` makes it a seconds-long smoke run without the regression
   check, `NFS_GAMES_EXTENSIONS=.FSH,.QFS` limits it to some extensions (both only print the reports, without
   overwriting the files).
+
+## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
+
+- Output: one folder per bank, `0x<index>.wav` (16-bit) + `0x<index>.meta.json` with `loop`, `loop_start_time_ms`,
+  `loop_end_time_ms` and the bank entry's `bend_range_semitones`, `volume`, `pan`, `priority`, `random_range`,
+  `unknown_0x16`. Car banks (`*SW.BNK`, `TRAFFC.BNK`, `TESTBANK.BNK` with 4 samples) name their samples `engine_on`,
+  `engine_off`, `honk`, `gear` instead. nfs-web reads these file names and the `loop_*` keys: keep them stable.
+- A sample without a loop has `repeat_loop_length` 0 (and start 0); the serializer's `start + (length - 1)` then gives
+  `loop_end_time_ms` -0.0625 (-1 sample at 16 kHz). Standalone `.EAS` files mark it with loop start 0xFFFFFFFF.
+- Collision bank variants `COLL_SW`, `COLLSWWT`, `COLLSWMT`, `COLLSW3D`, `COLSWWT3`, `COLSWMT3` hold byte-identical
+  wavs at 0x21–0x3a (the `*3D`/`*3` ones add 0x31–0x3b odd); from 0x3d up the indices differ per variant. The `*SB*`
+  variants share only some of them. Inside a `*SW*` bank several indices are one wav, one per mixer channel of the game:
+  0x2d = 0x2a = 0x2b = 0x38 = 0x3a, 0x2e = 0x26 = 0x28, 0x27 = 0x34 = 0x36, 0x29 = 0x30 = 0x32.
+- Collision bank samples, as the game uses them (tnfs-1995, DOS `sfx_00066056` / `sfx_00065eb1`): 0x21 light hit /
+  prop, 0x22 medium hit, 0x23 fence hit, 0x24 heavy hit, 0x25 landing / bump, 0x27 body scrape loop, 0x29 wind loop,
+  0x2d tyre squeal loop, 0x2e gravel squeal loop; 0x50 is nfs-web's traffic horn (picked by ear). The GUI's bank
+  viewer labels them.

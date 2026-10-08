@@ -9,7 +9,7 @@ from serializers import BaseFileSerializer
 
 
 class EacsAudioSerializer(BaseFileSerializer):
-    def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
+    def serialize(self, data: dict, path: str, id=None, block=None, meta: dict = None, **kwargs) -> List[str]:
         super().serialize(data, path)
         wave_bytes = data['wave_data']
         if data['header']['compression'] == 2:
@@ -31,7 +31,15 @@ class EacsAudioSerializer(BaseFileSerializer):
         self._save_wave_data(data['header'], wave_bytes, path)
         with open(f'{path}.meta.json', 'w') as file:
             file.write(
-                json.dumps({'loop_start_time_ms': loop_start_time_ms, 'loop_end_time_ms': loop_end_time_ms}, indent=4)
+                json.dumps(
+                    {
+                        'loop': data['header']['repeat_loop_length'] > 0,
+                        'loop_start_time_ms': loop_start_time_ms,
+                        'loop_end_time_ms': loop_end_time_ms,
+                        **(meta or {}),
+                    },
+                    indent=4,
+                )
             )
         return [f'{path}.wav', f'{path}.meta.json']
 
@@ -55,6 +63,13 @@ class FfmpegSupportedAudioSerializer(BaseFileSerializer):
             loop_start_time_ms = 1000 * data['repeat_loop_beginning'] / data['sampling_rate']
             loop_end_time_ms = loop_start_time_ms + 1000 * data['repeat_loop_length'] / data['sampling_rate']
             file.write(
-                json.dumps({'loop_start_time_ms': loop_start_time_ms, 'loop_end_time_ms': loop_end_time_ms}, indent=4)
+                json.dumps(
+                    {
+                        'loop': data['repeat_loop_length'] > 0,
+                        'loop_start_time_ms': loop_start_time_ms,
+                        'loop_end_time_ms': loop_end_time_ms,
+                    },
+                    indent=4,
+                )
             )
         return [wav_path, meta_path]

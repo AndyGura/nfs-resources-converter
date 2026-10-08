@@ -238,9 +238,20 @@ class SoundBankSerializer(BaseFileSerializer):
         item_block = block.field_blocks_map['children'].child
         output = []
         for i, (name, item) in enumerate(items):
+            entry = data['items'][i]
+            meta = {
+                'bend_range_semitones': entry['bend_range_semitones'],
+                'volume': entry['volume'],
+                'pan': entry['pan'],
+                'priority': entry['priority'],
+                'random_range': entry['random_range'],
+                'unknown_0x16': entry['unk4'],
+            }
             try:
                 serializer = serializers.get_serializer(item_block, item)
-                output.extend(serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', str(i))))
+                output.extend(
+                    serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', str(i)), meta=meta)
+                )
             except Exception as ex:
                 traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))

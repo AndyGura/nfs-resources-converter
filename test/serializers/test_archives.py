@@ -1,3 +1,4 @@
+import json
 import unittest
 import tempfile
 import os
@@ -7,7 +8,7 @@ import serializers
 from library import require_file, require_resource
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import EacImage
-from serializers.archives import ShpiArchiveSerializer
+from serializers.archives import ShpiArchiveSerializer, SoundBankSerializer
 
 
 class TestShpiArchiveSerializer(unittest.TestCase):
@@ -94,6 +95,28 @@ class TestShpiArchiveSerializer(unittest.TestCase):
         for i, item_id in enumerate(ids):
             (_, _, item_data), _ = require_resource(item_id)
             self.assertIs(item_data, data['children'][i]['item']['data'])
+
+
+class TestSoundBankSerializer(unittest.TestCase):
+    def test_meta_has_loop_flag_and_bank_entry_settings(self):
+        (name, block, res) = require_file('test/samples/DIABLOSW.BNK')
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            SoundBankSerializer().serialize(res, tmp_dir, id=name, block=block)
+            with open(os.path.join(tmp_dir, 'engine_on.meta.json')) as f:
+                engine_on = json.load(f)
+            with open(os.path.join(tmp_dir, 'gear.meta.json')) as f:
+                gear = json.load(f)
+        self.assertTrue(engine_on['loop'])
+        self.assertEqual(engine_on['bend_range_semitones'], 12)
+        self.assertEqual(engine_on['priority'], 50)
+        self.assertFalse(gear['loop'])
+        self.assertEqual(gear['loop_end_time_ms'], -0.0625)
+        self.assertEqual(gear['bend_range_semitones'], 0)
+        self.assertEqual(gear['random_range'], 250)
+        self.assertEqual(gear['priority'], 30)
+        self.assertEqual(gear['volume'], 127)
+        self.assertEqual(gear['pan'], 64)
+        self.assertEqual(gear['unknown_0x16'], 0)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-06 22:11:01.451324+00:00*
+*Last time updated: 2026-10-08 19:56:37.703903+00:00*
 
 
 # **Info by file extensions** #
@@ -487,10 +487,21 @@ Did not find what you need or some given data is wrong? Please submit an
 | header/wave_data_offset | **wave_data** | min(`remaining file bytes`, `header.wave_data_length` \* `header.sound_resolution`) | Bytes | Wave data is here. If header.sound_resolution == 1, contains signed bytes, else - unsigned |
 ### **SoundBankHeaderEntry** ###
 #### **Size**: 72 bytes ####
-#### **Description**: Uknown wrapper around EACS header block, which is used in *.BNK files ####
+#### **Description**: TNFS sound bank (*.BNK) entry: the game's playback settings for a sample, followed by its EACS header. Field meanings come from the game code, as decoded by the [tnfs-1995](https://github.com/marcos2250/tnfs-1995) project ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unk** | 40 | Array of `10` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Presumably a bit mask of the game's mixer channels for this sample (bit n = channel n): the collision bank duplicates looped wavs under several indices, each with a different bit |
+| 4 | **eacs_header_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of `eacs_header` in the file: offset of this entry + 40 |
+| 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12 | **random_range** | 4 | 4-bytes unsigned integer (little endian) | Random range of one-shot samples (300 for hits, 200 for gear, 600 for horn), unit unknown |
+| 16 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 20 | **priority** | 1 | 1-byte unsigned integer | Playback priority |
+| 21 | **unk3** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 22 | **unk4** | 1 | 1-byte signed integer | Unknown purpose |
+| 23 | **bend_range_semitones** | 1 | 1-byte unsigned integer | Pitch bend range in semitones. The game plays a sample at pitch value 0..127 (64 = original pitch), the playback rate is 2 ^ ((value - 64) / 64 * bend_range_semitones / 12) |
+| 24 | **pan** | 1 | 1-byte unsigned integer | Pan, 0..127, 64 is center |
+| 25 | **volume** | 1 | 1-byte unsigned integer | Volume, 0..127 |
+| 26 | **unk5** | 14 | Bytes | Unknown purpose |
 | 40 | **eacs_header** | 32 | [EacsAudioHeader](#eacsaudioheader) | EACS header. Its `wave_data_offset` points into the wave data region of the sound bank file |
 ### **EacsAudioHeader** ###
 #### **Size**: 32 bytes ####

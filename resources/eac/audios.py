@@ -1,6 +1,6 @@
 from typing import Dict
 
-from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock, ArrayBlock, Padding
+from library.read_blocks import DeclarativeCompoundBlock, UTF8Block, IntegerBlock, BytesBlock, Padding
 from library.read_blocks.misc.value_validators import Eq
 
 
@@ -62,11 +62,45 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Uknown wrapper around EACS header block, which is used in *.BNK files',
+            'block_description': "TNFS sound bank (*.BNK) entry: the game's playback settings for a sample, "
+            'followed by its EACS header. Field meanings come from the game code, as decoded by the '
+            '[tnfs-1995](https://github.com/marcos2250/tnfs-1995) project',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        unk = (ArrayBlock(child=IntegerBlock(length=4), length=10), {'is_unknown': True})
+        unk0 = (
+            IntegerBlock(length=4),
+            {
+                'is_unknown': True,
+                'description': "Presumably a bit mask of the game's mixer channels for this sample (bit n = channel "
+                'n): the collision bank duplicates looped wavs under several indices, each with a different bit',
+            },
+        )
+        eacs_header_offset = (
+            IntegerBlock(length=4),
+            {'description': 'Offset of `eacs_header` in the file: offset of this entry + 40'},
+        )
+        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        random_range = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Random range of one-shot samples (300 for hits, 200 for gear, 600 for horn), unit unknown'
+            },
+        )
+        unk2 = (IntegerBlock(length=4), {'is_unknown': True})
+        priority = (IntegerBlock(length=1), {'description': 'Playback priority'})
+        unk3 = (IntegerBlock(length=1), {'is_unknown': True})
+        unk4 = (IntegerBlock(length=1, is_signed=True), {'is_unknown': True})
+        bend_range_semitones = (
+            IntegerBlock(length=1),
+            {
+                'description': 'Pitch bend range in semitones. The game plays a sample at pitch value 0..127 '
+                '(64 = original pitch), the playback rate is 2 ^ ((value - 64) / 64 * bend_range_semitones / 12)'
+            },
+        )
+        pan = (IntegerBlock(length=1), {'description': 'Pan, 0..127, 64 is center'})
+        volume = (IntegerBlock(length=1), {'description': 'Volume, 0..127'})
+        unk5 = (BytesBlock(length=14), {'is_unknown': True})
         eacs_header = (
             EacsAudioHeader(),
             {
