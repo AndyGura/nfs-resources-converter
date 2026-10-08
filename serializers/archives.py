@@ -58,16 +58,16 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     file_name = escape_chars(name).replace('/', '_')
                     if save_image_names.get(file_name):
                         original_file_name = file_name
-                        i = 0
+                        n = 0
                         while save_image_names.get(file_name):
-                            file_name = f'{original_file_name}{i}'
-                            i += 1
+                            file_name = f'{original_file_name}{n}'
+                            n += 1
                     output.extend(
                         serializer.serialize(
                             item_data,
                             path_join(path, file_name),
                             block=item_block,
-                            id=join_id(id, 'children', name, 'item', 'data'),
+                            id=join_id(id, 'children', str(i), 'item', 'data'),
                         )
                     )
                     save_image_names[file_name] = True
@@ -237,10 +237,10 @@ class SoundBankSerializer(BaseFileSerializer):
         skipped_resources = []
         item_block = block.field_blocks_map['children'].child
         output = []
-        for name, item in [(name, item) for name, item in items]:
+        for i, (name, item) in enumerate(items):
             try:
                 serializer = serializers.get_serializer(item_block, item)
-                output.extend(serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', name)))
+                output.extend(serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', str(i))))
             except Exception as ex:
                 traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
@@ -274,10 +274,10 @@ class BigfArchiveSerializer(BaseFileSerializer):
                 file_name = escape_chars(name).replace('/', '_')
                 if save_image_names.get(file_name):
                     original_file_name = file_name
-                    i = 0
+                    n = 0
                     while save_image_names.get(file_name):
-                        file_name = f'{original_file_name}{i}'
-                        i += 1
+                        file_name = f'{original_file_name}{n}'
+                        n += 1
                 output.extend(
                     serializer.serialize(
                         item_data,
