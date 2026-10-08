@@ -1,6 +1,4 @@
-import traceback
 from copy import deepcopy
-from io import SEEK_CUR
 from typing import Dict
 
 from library.context import ReadContext, WriteContext
@@ -12,7 +10,7 @@ from library.read_blocks import (
     AutoDetectBlock,
     BytesBlock,
 )
-from library.read_blocks.archives import ArchiveBlock
+from library.read_blocks.archives import ArchiveBlock, read_gap, slot_lengths
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
@@ -99,63 +97,52 @@ class WwwwBlock(ArchiveBlock):
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         total_length = 8
         for i, child in enumerate(data['children']):
-            total_length += len(child['pre_offset_payload']) + len(child['post_offset_payload'])
-            total_length += self.item_block.estimate_packed_size(data=child['item'], ctx=ctx)
+            total_length += sum(self.entry_sizes(child, ctx))
             total_length += 4
         return total_length
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         block_start = ctx.buffer.tell()
-        res = super().read(ctx, name, read_bytes_amount)
-        end_pos = ctx.buffer.tell()
-        ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
-        res['children'] = []
+        res, self_ctx, region_start, region_length = self.read_header(ctx, name, read_bytes_amount)
+        end_pos = region_start + region_length
 
         offsets = [block_start + x for x in res['items_descr']]
-        lengths = []
-        for offset in offsets:
-            try:
-                lengths.append(sorted(x for x in offsets if x > offset)[0] - offset)
-            except IndexError:
-                lengths.append(block_start + read_bytes_amount - offset)
-        abs_offsets = list(zip(offsets, lengths))
-
-        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
-        try:
-            bytes_choice = self.item_block.get_choice_index_by_class_name('BytesBlock')
-        except StopIteration:
-            bytes_choice = -1
-        for i, (offset, length) in enumerate(abs_offsets):
-            child = {'item': None, 'pre_offset_payload': b'', 'post_offset_payload': b''}
-            res['children'].append(child)
-            if offset > ctx.buffer.tell():
-                child['pre_offset_payload'] = ctx.buffer.read(offset - ctx.buffer.tell())
-            elif offset == block_start:
-                # self-reference, ignore
-                child['item'] = {'choice_index': bytes_choice, 'data': b''}
-                continue
-            else:
-                ctx.buffer.seek(offset)
-            try:
-                child['item'] = self.item_block.unpack(ctx=self_ctx, name=str(i), read_bytes_amount=length)
-            except Exception:
-                traceback.print_exc()
-                ctx.buffer.seek(offset)
-                child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
+        items = [(i, offset) for i, offset in enumerate(offsets) if offset != block_start]
+        lengths = slot_lengths([offset for _, offset in items], end_pos)
+        first_offset = min((offset for _, offset in items), default=None)
+        # entries are parsed later in lazy mode: keep header (with io-only fields) for their contexts
+        entry_ctx = self_ctx.detached(ctx.buffer, data=dict(res)) if self_ctx.lazy else self_ctx
+        # self-reference, ignore
+        children = [
+            {
+                'item': {'choice_index': self.bytes_choice, 'data': b''},
+                'pre_offset_payload': b'',
+                'post_offset_payload': b'',
+            }
+            for _ in offsets
+        ]
+        for (i, offset), length in zip(items, lengths):
+            children[i] = self.read_entry(
+                entry_ctx,
+                name=str(i),
+                offset=offset,
+                length=length,
+                pre_offset_payload=read_gap(ctx, region_start, offset) if offset == first_offset else b'',
+            )
+        res['children'] = children
         ctx.buffer.seek(end_pos)
         del res['items_descr']
-        del res['data_bytes']
         return res
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         data['data_bytes'] = b''
         data['items_descr'] = []
         for i, child in enumerate(data['children']):
-            item_data = self.item_block.pack(data=child['item'], ctx=ctx, name=str(i))
-            data['data_bytes'] += child['pre_offset_payload']
+            pre, item_data, post = self.entry_bytes(child, ctx, str(i))
+            data['data_bytes'] += pre
             data['items_descr'].append(len(data['data_bytes']))
             data['data_bytes'] += item_data
-            data['data_bytes'] += child['post_offset_payload']
+            data['data_bytes'] += post
         heap_offset = 8 + len(data['items_descr']) * 4
         data['items_descr'] = [x + heap_offset for x in data['items_descr']]
         ret = super().write(data=data, ctx=ctx, name=name)
@@ -276,69 +263,55 @@ class BigfBlock(ArchiveBlock):
         """Value of "length" header field: block size, or (NFS6) size without padding between items. The second
         one is used when the field read from file has it"""
         size = self.estimate_packed_size(data)
-        unpadded = size - sum(len(c['pre_offset_payload']) + len(c['post_offset_payload']) for c in data['children'])
+        unpadded = size - sum(pre + post for (pre, _, post) in (self.entry_sizes(c) for c in data['children']))
         return unpadded if data.get('length') == unpadded else size
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         total_length = 16
         for i, child in enumerate(data['children']):
-            total_length += len(child['pre_offset_payload']) + len(child['post_offset_payload'])
-            total_length += self.item_block.estimate_packed_size(data=child['item'], ctx=ctx)
+            total_length += sum(self.entry_sizes(child, ctx))
             total_length += 9 + len(child['alias'])
         return total_length
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         block_start = ctx.buffer.tell()
-        res = super().read(ctx, name, read_bytes_amount)
-        end_pos = ctx.buffer.tell()
-        ctx.buffer.seek(-len(res['data_bytes']), SEEK_CUR)
-        res['children'] = []
+        res, self_ctx, region_start, region_length = self.read_header(ctx, name, read_bytes_amount)
+        end_pos = region_start + region_length
 
-        abs_offsets = [
-            (i, x['name'], block_start + x['offset'], x['length'])
-            for i, x in sorted(list(enumerate(res['items_descr'])), key=lambda x: x[1]['offset'])
-        ]
-        self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount, res)
-        try:
-            bytes_choice = self.item_block.get_choice_index_by_class_name('BytesBlock')
-        except StopIteration:
-            bytes_choice = -1
-        children_map = [None] * len(abs_offsets)
-        for i, (descr_index, alias, offset, length) in enumerate(abs_offsets):
-            child = {'item': None, 'alias': alias, 'pre_offset_payload': b'', 'post_offset_payload': b''}
-            children_map[descr_index] = [child]
-            if offset > ctx.buffer.tell():
-                child['pre_offset_payload'] = ctx.buffer.read(offset - ctx.buffer.tell())
-            else:
-                ctx.buffer.seek(offset)
-            try:
-                child['item'] = self.item_block.unpack(
-                    ctx=self_ctx, name=f'{descr_index}_{alias}', read_bytes_amount=length
-                )
-            except Exception:
-                traceback.print_exc()
-                ctx.buffer.seek(offset)
-                child['item'] = {'choice_index': bytes_choice, 'data': ctx.buffer.read(length)}
-        if res.get('length') is not None and ctx.buffer.tell() < block_start + res['length']:
-            diff = block_start + res['length'] - ctx.buffer.tell()
-            children_map[abs_offsets[-1][0]][-1]['post_offset_payload'] = ctx.buffer.read(diff)
-        res['children'] = []
-        for cs in children_map:
-            res['children'].extend(cs)
+        entries = sorted(list(enumerate(res['items_descr'])), key=lambda x: x[1]['offset'])
+        offsets = [block_start + x['offset'] for _, x in entries]
+        lengths = []
+        if entries:
+            # the last item owns bytes up to the block length from the header (NFS6 has it without padding)
+            last_item_end = offsets[-1] + entries[-1][1]['length']
+            lengths = slot_lengths(offsets, min(end_pos, max(block_start + (res.get('length') or 0), last_item_end)))
+        # entries are parsed later in lazy mode: keep header (with io-only fields) for their contexts
+        entry_ctx = self_ctx.detached(ctx.buffer, data=dict(res)) if self_ctx.lazy else self_ctx
+        children = [None] * len(entries)
+        for i, ((descr_index, descr), offset, length) in enumerate(zip(entries, offsets, lengths)):
+            children[descr_index] = self.read_entry(
+                entry_ctx,
+                name=f'{descr_index}_{descr["name"]}',
+                offset=offset,
+                length=length,
+                item_length=descr['length'],
+                alias=descr['name'],
+                pre_offset_payload=read_gap(ctx, region_start, offset) if i == 0 else b'',
+            )
+        res['children'] = children
         ctx.buffer.seek(end_pos)
         del res['items_descr']
-        del res['data_bytes']
         return res
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         data['data_bytes'] = b''
         children = []
         for i, child in enumerate(data['children']):
-            data['data_bytes'] += child['pre_offset_payload']
-            item_data = self.item_block.pack(data=child['item'], ctx=ctx, name=str(i))
+            pre, item_data, post = self.entry_bytes(child, ctx, str(i))
+            data['data_bytes'] += pre
             children.append((child['alias'], len(data['data_bytes']), len(item_data)))
             data['data_bytes'] += item_data
-            data['data_bytes'] += child['post_offset_payload']
+            data['data_bytes'] += post
         data['items_descr'] = [
             {'name': name, 'offset': offset, 'length': length}
             for (name, offset, length) in children

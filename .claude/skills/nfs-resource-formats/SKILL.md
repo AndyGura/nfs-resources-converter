@@ -21,7 +21,7 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 | `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `replays.py` (TNFS SE `.RPL` race replay), `misc.py`, `compressions/` (RefPack, QFS2, QFS3, JDLZ, HUFF decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
 | `resources/eac/maps/{tnfs,nfs2,nfs3,nfs6,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5,nfs6}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
-| `resources/blackbox/` | Blackbox-studio (NFS Underground) chunk bundles: every file is a tree of u32 id + u32 length chunks (bit 0x80000000 = container), payloads padded with 0x11 bytes to 16-byte (vertices, textures: 128-byte) absolute file offsets. `chunks.py` has `chunk_delegate`/`nfsu_sub_chunks_field` to dispatch sub-chunks by id (unknown ids fall back to raw bytes); `maps/nfsu.py` `walk_nfsu_chunk_ids` is what the loader uses to recognise a bundle. Geometry packs (`geometries/nfsu.py`), texture packs (`bitmaps/nfsu.py`), scenery and streaming sections (`maps/nfsu.py`). NFSU2 reuses the chunk ids with other layouts: the geometry blocks branch on the mesh header version (0x13 NFSU, 0x16 NFSU2) and chunk lengths; when one id has two layouts (scenery 0x80034100, section table 0x34107), `chunk_delegate` asks each candidate block's `matches_chunk(ctx)` (peek helpers in `chunks.py`). NFSU2 section table is chunk 0x34110 of `TRACKS/LxRA.BUN`; NFSU2 and NFSMW car `TEXTURES.BIN` packs compress every texture separately (0x33310003 entries, JDLZ or HUFF, texture info + format in the last 156 bytes). NFS Most Wanted (`Nfsmw*` blocks) keeps the ids again: mesh header with null-terminated name (also version 0x16, told from NFSU2 by its fixed 28-byte name at offset 164), 48-byte mesh info, 104-byte materials with an effect id, one vertex buffer chunk per run of materials with the same effect (`nfsmw_vertex_buffer_materials`; vertex size 36/44/60 by effect), material names (0x134C02), scenery with 24-byte-named definitions and 64-byte instances, 92-byte section table entries. `determine_chunks_class` (geometry packs) also asks `matches_chunk`; the vertex/faces/materials chunks match when the container's first chunk is an NFSMW mesh info. NFSMW car meshes reference run time texture slots (`HEADLIGHT_LEFT`, `WINDOW_LEFT_FRONT`, ...): `nfsmw_car_runtime_texture` in `serializers/geometries.py` maps them to the car's textures; the body paint `<CAR>_SKIN1` stays untextured. Texture and mesh ids are `bin_hash` of the name. |
+| `resources/blackbox/` | Blackbox-studio (NFS Underground) chunk bundles: every file is a tree of u32 id + u32 length chunks (bit 0x80000000 = container), payloads padded with 0x11 bytes to 16-byte (vertices, textures: 128-byte) absolute file offsets. `chunks.py` has `chunk_delegate`/`nfsu_sub_chunks_field` to dispatch sub-chunks by id (unknown ids fall back to raw bytes; chunks are lazy parts seeded with their `chunk_id`/`header` id, so code picking chunks by id parses only the matches); `maps/nfsu.py` `walk_nfsu_chunk_ids` is what the loader uses to recognise a bundle. Geometry packs (`geometries/nfsu.py`), texture packs (`bitmaps/nfsu.py`), scenery and streaming sections (`maps/nfsu.py`). NFSU2 reuses the chunk ids with other layouts: the geometry blocks branch on the mesh header version (0x13 NFSU, 0x16 NFSU2) and chunk lengths; when one id has two layouts (scenery 0x80034100, section table 0x34107), `chunk_delegate` asks each candidate block's `matches_chunk(ctx)` (peek helpers in `chunks.py`). NFSU2 section table is chunk 0x34110 of `TRACKS/LxRA.BUN`; NFSU2 and NFSMW car `TEXTURES.BIN` packs compress every texture separately (0x33310003 entries, JDLZ or HUFF, texture info + format in the last 156 bytes). NFS Most Wanted (`Nfsmw*` blocks) keeps the ids again: mesh header with null-terminated name (also version 0x16, told from NFSU2 by its fixed 28-byte name at offset 164), 48-byte mesh info, 104-byte materials with an effect id, one vertex buffer chunk per run of materials with the same effect (`nfsmw_vertex_buffer_materials`; vertex size 36/44/60 by effect), material names (0x134C02), scenery with 24-byte-named definitions and 64-byte instances, 92-byte section table entries. `determine_chunks_class` (geometry packs) also asks `matches_chunk`; the vertex/faces/materials chunks match when the container's first chunk is an NFSMW mesh info. NFSMW car meshes reference run time texture slots (`HEADLIGHT_LEFT`, `WINDOW_LEFT_FRONT`, ...): `nfsmw_car_runtime_texture` in `serializers/geometries.py` maps them to the car's textures; the body paint `<CAR>_SKIN1` stays untextured. Texture and mesh ids are `bin_hash` of the name. |
 | `resources/eac/fields/misc.py`, `resources/eac/fields/numbers.py` | Small reusable domain blocks: `Point2D`/`Point3D`/`RGBBlock`, `Nfs1Angle8`/`Nfs1Angle14`, `Nfs1TimeField`. Check here before writing a new one. |
 
 ## Cheat-sheet: existing blocks (import from `library.read_blocks` unless noted)
@@ -65,8 +65,9 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
   `OptionalBlock`, the criteria can't be recomputed while writing. Renders as its own GUI
   component (a presence checkbox wrapping the child's editor), not the child's, since `None` has
   to be toggleable by hand.
-- `DelegateBlock(possible_blocks, choice_index)` — reads one of several block types, storing
-  `{'choice_index', 'data'}`. `AutoDetectBlock(possible_blocks)` — auto-detect via
+- `DelegateBlock(possible_blocks, choice_index, part_length=None, part_seed=None)` — reads one of
+  several block types, storing `{'choice_index', 'data'}`. With `part_length(ctx)` (exact byte length
+  known before parsing) `data` is a lazy part in lazy read context, seeded by `part_seed(ctx, block)`. `AutoDetectBlock(possible_blocks)` — auto-detect via
   `library.probe_block_class` (used e.g. inside `ShpiBlock` item slots).
   `EnumLookupDelegateBlock(enum_field, blocks)` — picks by looking up a sibling enum field's value.
 - `ArchiveBlock` (`library.read_blocks.archives`) — base for name/offset-indexed archives; see the
@@ -180,10 +181,18 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    the raw offset-table/data-bytes fields `usage: 'io,doc'` (hidden from the edit UI).
 3. Add `children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})` to `Fields` — this is the
    GUI-facing reconstructed item list.
-4. Override `read()` to build `children` from the offset table (walk offsets, read each item via
-   `self.item_block.unpack(...)`, capture inter-item bytes as `pre_offset_payload`/`post_offset_payload`).
-5. Override `write()` to flatten `children` back into the offset table + raw data bytes.
-6. Override `estimate_packed_size()` (sum header + per-child sizes).
+4. Override `read()` to build `children` from the offset table: `read_header()` reads every io field
+   before the items region (`data_bytes`, the last io field) without reading the region, then one
+   `read_entry(ctx, name, offset, length, item_length, alias, pre_offset_payload)` per item, where
+   `offset`/`length` is the item's slot (up to the next item offset, see `slot_lengths`). Bytes after
+   the item's own end inside its slot become its `post_offset_payload`; only the first item gets a
+   `pre_offset_payload` (bytes between the region start and itself, `read_gap`). In a lazy read
+   context `read_entry` returns an unloaded `LazyDict` (see "Lazy parts" in skill
+   `read-block-framework`), so item blocks must not depend on bytes outside their slot except via
+   header values (`ctx.data('items_descr')` etc. are kept for them).
+5. Override `write()` to flatten `children` back into the offset table + raw data bytes, taking each
+   entry's `(pre, item, post)` bytes from `entry_bytes()` (an unloaded entry gives its original slot).
+6. Override `estimate_packed_size()` (header + `sum(self.entry_sizes(child))` per child).
 
 ## Registering a brand-new top-level file format
 

@@ -31,7 +31,7 @@ class TestNfsuGeometry(unittest.TestCase):
 
     def test_world_meshes_with_24_byte_vertices_should_be_read_and_remain_the_same(self):
         # a streamed section of NFSU world (STREAML1RA.BUN): its geometry pack has 24-byte vertices without normal
-        (name, block, data) = require_file('test/samples/NFSU_B36.BUN')
+        (name, block, data) = require_file('test/samples/NFSU_B36.BUN', lazy=False)
         with open('test/samples/NFSU_B36.BUN', 'rb') as bdata:
             original = bdata.read()
         self.assertEqual(original, block.pack(data, name=name))
@@ -52,7 +52,7 @@ NFSU2_CAR_DIR = 'test/samples/claude_tmp/nfsu2/CARS/SUPRA'
 class TestNfsu2CarGeometry(unittest.TestCase):
     def test_geometry_should_remain_the_same(self):
         path = f'{NFSU2_CAR_DIR}/GEOMETRY.BIN'
-        (name, block, data) = require_file(path)
+        (name, block, data) = require_file(path, lazy=False)
         with open(path, 'rb') as f:
             self.assertEqual(f.read(), block.pack(data, name=name))
         meshes = nfsu_geometry_meshes(data)
@@ -82,7 +82,7 @@ class TestNfsmwWorldGeometry(unittest.TestCase):
         # a streamed section of NFSMW world (STREAML2RA.BUN): meshes with several vertex buffers (one per effect),
         # 36- and 60-byte vertices, null-terminated mesh names
         path = 'test/samples/NFSMW_C52.BUN'
-        (name, block, data) = require_file(path)
+        (name, block, data) = require_file(path, lazy=False)
         with open(path, 'rb') as f:
             self.assertEqual(f.read(), block.pack(data, name=name))
         geometry = next(c['data'] for c in data['chunks'] if c['data'].get('header') == 0x80_13_40_00)
@@ -102,7 +102,7 @@ NFSMW_CAR_DIR = 'test/samples/claude_tmp/nfsmw/Cars/BMWM3GTR'
 class TestNfsmwCarGeometry(unittest.TestCase):
     def test_geometry_should_remain_the_same(self):
         path = f'{NFSMW_CAR_DIR}/GEOMETRY.BIN'
-        (name, block, data) = require_file(path)
+        (name, block, data) = require_file(path, lazy=False)
         with open(path, 'rb') as f:
             self.assertEqual(f.read(), block.pack(data, name=name))
         meshes = nfsu_geometry_meshes(data)

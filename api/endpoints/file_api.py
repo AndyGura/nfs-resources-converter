@@ -11,6 +11,7 @@ from api.bridge import bridge
 from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
 from library.changes_service import ChangesService
+from library.lazy import close_file_source
 from library.loader import clear_file_cache
 from library.utils import path_join
 from library.utils.file_utils import start_file, find_files_case_insensitive
@@ -167,6 +168,8 @@ class FileAPI:
             Updated file data
         """
         bts = self.current_file_block.pack(self.current_file_data)
+        # unloaded parts of the old tree must not read the file being overwritten
+        close_file_source(path)
         with open(path, 'wb') as file:
             file.write(bts)
         ChangesService.on_file_saved()

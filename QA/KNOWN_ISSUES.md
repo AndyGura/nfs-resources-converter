@@ -185,12 +185,10 @@ markers are exhaust and light points), so all four wheels sit at the origin.
 
 ## Unknown / not yet investigated (flagged, not silently assumed fine)
 
-- Byte-for-byte round-trip mismatches on compressed formats (QFS-family) in the golden-corpus
-  check — **Expected behavior**, not a bug: QFS's LZ-style compressor is not guaranteed to
-  reproduce the exact original byte stream on re-compression (multiple valid encodings of the same
-  decompressed content exist); the check that matters for these is decompressed-content equality,
-  which was not separately asserted this pass (only "no exception" was) — worth adding if a
-  stronger corpus check is written later.
+- Compressed formats (QFS-family, JDLZ) are written back as their original compressed bytes while the
+  decompressed bytes are unchanged (`CompressedData` in `resources/eac/archives/compressed_block.py`), so they
+  round-trip byte-exact when the inner format does. After an edit they are recompressed with QFS2 (JDLZ for
+  `.lzc`), which doesn't reproduce the original byte stream and can be bigger (alps.fsh: 9.0 MB to 18.7 MB).
 - NFS6 BIGF archives store header `length` as header size plus item lengths, without the padding between items
   (car.viv, skin.viv); `BigfBlock` keeps that convention when the read value matches it, so they round-trip
   byte-exact. `persist.viv` (described earlier as "file size minus 14") was not re-checked.

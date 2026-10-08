@@ -32,8 +32,7 @@ class NfsuJdlzCompressedBlock(EacCompressedBlock):
 
         return JdlzCompression()
 
-    def write(self, data, ctx=None, name: str = '') -> bytes:
+    def compress(self, uncompressed_bytes: bytes) -> bytes:
         from resources.eac.compressions.jdlz import JdlzCompression
 
-        uncompressed_bytes = super(EacCompressedBlock, self).write(data, ctx, name)
         return JdlzCompression().compress(BytesIO(uncompressed_bytes), len(uncompressed_bytes))
