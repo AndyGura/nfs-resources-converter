@@ -284,6 +284,9 @@ files_cache = {}
 
 
 def clear_file_cache(path: str):
+    from library.lazy import close_file_source
+
+    close_file_source(path)
     try:
         name = path_to_name(path)
         del files_cache[name]
@@ -295,17 +298,35 @@ def clear_file_cache(path: str):
         pass
 
 
-def require_file(path: str) -> Tuple[str, 'DataBlock', dict]:
+def require_file(path: str, lazy: bool = None) -> Tuple[str, 'DataBlock', dict]:
+    """Parsed file from cache, or read now. With `lazy` (default: "lazy_loading" setting) archive entries and chunks
+    are read as unloaded parts, which are parsed on first access, see library/lazy.py. With `lazy=False` all of them
+    are loaded, also when the file is in cache already"""
+    from library.lazy import LOAD_LOCK, load_all, open_file_source
+
+    if lazy is None:
+        import config
+
+        lazy = config.general_config().lazy_loading
     name = path_to_name(path)
-    (block, data) = files_cache.get(name, (None, None))
-    if block is None or data is None:
-        with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
-            file_size = getsize(path)
-            block_class = probe_block_class(bdata, path, file_size)
-            block = block_class()
-            DataBlock.root_read_ctx.buffer = bdata
-            DataBlock.root_read_ctx.read_start_offset = 0
-            DataBlock.root_read_ctx.read_bytes_amount = file_size
-            data = block.unpack(DataBlock.root_read_ctx, name=name, read_bytes_amount=file_size)
-            files_cache[name] = (block, data)
+    with LOAD_LOCK:
+        (block, data) = files_cache.get(name, (None, None))
+        if block is None or data is None:
+            with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
+                file_size = getsize(path)
+                block_class = probe_block_class(bdata, path, file_size)
+                block = block_class()
+                if lazy:
+                    open_file_source(path)
+                DataBlock.root_read_ctx.buffer = bdata
+                DataBlock.root_read_ctx.read_start_offset = 0
+                DataBlock.root_read_ctx.read_bytes_amount = file_size
+                DataBlock.root_read_ctx.lazy = lazy
+                try:
+                    data = block.unpack(DataBlock.root_read_ctx, name=name, read_bytes_amount=file_size)
+                finally:
+                    DataBlock.root_read_ctx.lazy = False
+                files_cache[name] = (block, data)
+        elif not lazy:
+            load_all(data)
     return name, block, data

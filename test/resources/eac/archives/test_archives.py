@@ -85,7 +85,7 @@ class TestShpiBlock(unittest.TestCase):
         self.assertEqual(reread['children'][0]['item']['data']['resource_id'], '16Bit_0565 color format palette')
 
     def test_fsh_should_remain_the_same(self):
-        (name, block, fsh) = require_file('test/samples/VERTBST.FSH')
+        (name, block, fsh) = require_file('test/samples/VERTBST.FSH', lazy=False)
         output = block.pack(fsh, name=name)
         with open('test/samples/VERTBST.FSH', 'rb') as bdata:
             original = bdata.read()
@@ -94,7 +94,7 @@ class TestShpiBlock(unittest.TestCase):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
     def test_fsh_should_reconstruct_offsets(self):
-        (name, block, fsh) = require_file('test/samples/VERTBST.FSH')
+        (name, block, fsh) = require_file('test/samples/VERTBST.FSH', lazy=False)
         fsh['num_items'] = 0
         fsh['items_descr'] = []
         output = block.pack(fsh, name=name)
@@ -107,7 +107,7 @@ class TestShpiBlock(unittest.TestCase):
 
 class TestWwwwBlock(unittest.TestCase):
     def test_cfm_should_remain_the_same(self):
-        (name, block, res) = require_file('test/samples/TSUPRA.CFM')
+        (name, block, res) = require_file('test/samples/TSUPRA.CFM', lazy=False)
         output = block.pack(res, name=name)
         with open('test/samples/TSUPRA.CFM', 'rb') as bdata:
             original = bdata.read()
@@ -139,7 +139,7 @@ class TestSoundBankBlock(unittest.TestCase):
 
 class TestBigfBlock(unittest.TestCase):
     def test_bigf_should_remain_the_same(self):
-        (name, block, res) = require_file('test/samples/CARDATA.VIV')
+        (name, block, res) = require_file('test/samples/CARDATA.VIV', lazy=False)
         output = block.pack(res, name=name)
         with open('test/samples/CARDATA.VIV', 'rb') as bdata:
             original = bdata.read()

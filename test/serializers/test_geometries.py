@@ -244,7 +244,7 @@ class TestFce3GeometrySerializer(unittest.TestCase):
         from io import BytesIO
 
         from library import require_resource
-        from library.loader import clear_file_cache
+        from library.loader import clear_file_cache, path_to_name
         from resources.eac.archives import BigfBlock
         from serializers import get_serializer
         from test.resources.eac.test_geometries import build_fce3_data
@@ -271,7 +271,7 @@ class TestFce3GeometrySerializer(unittest.TestCase):
         with open(viv_path, 'wb') as f:
             f.write(bigf.pack(bigf_data))
         clear_file_cache(viv_path)
-        fce_id = viv_path + '__children/0/item/data'
+        fce_id = path_to_name(viv_path) + '__children/0/item/data'
         (fce_id, block, data), _ = require_resource(fce_id)
         self.assertEqual(block.__class__, fce_block.__class__)
         serializer = get_serializer(block, data)
@@ -388,14 +388,14 @@ class TestNfs6CarSerializer(unittest.TestCase):
         return out_path, paths
 
     def test_car_model_without_textures(self):
-        from library.loader import clear_file_cache
+        from library.loader import clear_file_cache, path_to_name
         from test.resources.eac.test_geometries import build_eagl_model
 
         path = os.path.join(self.tmp_dir, 'car.o')
         with open(path, 'wb') as f:
             f.write(build_eagl_model(car=True))
         clear_file_cache(path)
-        out_path, paths = self._serialize(path)
+        out_path, paths = self._serialize(path_to_name(path))
         self.assertTrue(any(x.endswith('skins.json') for x in paths))
         with open(os.path.join(out_path, 'geometry.obj')) as f:
             obj = f.read()

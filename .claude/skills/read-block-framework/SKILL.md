@@ -61,6 +61,34 @@ Commonly overridden:
   Python built-ins that don't work on `DocumentationCtxData`. If a lambda can't be made doc-safe,
   it's fine — `size_doc_str` swallows exceptions and shows `'?'`/`'custom_func'`.
 
+## Lazy parts (`library/lazy.py`)
+
+`require_file(path, lazy=None)` reads lazily by default (`lazy_loading` setting in the General config
+section, env `NFS_RESOURCES_CONVERTER_GENERAL_LAZY_LOADING`); `ReadContext.lazy` carries the flag down
+the context tree (`unpack_from_bytes` and bare `ReadContext`s are eager).
+- Lazy parts are archive entries (`ArchiveBlock.read_entry`) and `DelegateBlock` data with
+  `part_length` (NFSU bundle chunks). Each is an unloaded `LazyDict` (a real `dict`) with a `Slot`
+  (source, absolute offset, length, parse function, parent context) and seeded values (alias, gap
+  bytes, chunk id). First access to another key parses the part with
+  `slot.parent_ctx.detached(buffer)` — same name, data, parent chain and offsets as the eager read,
+  over a reopened buffer — and fills the same object. Whole-dict readers (iteration, `items()`,
+  `dict()`, `json.dumps`, `==`, `copy`, `pickle`) load first; `deepcopy` of an unloaded part is an
+  unloaded twin, equal to the original without parsing; `clear()` marks it loaded without parsing.
+- Writing: a block holding a lazy part writes `slot.raw()` while it is unloaded (`unloaded_slot(data)`),
+  so untouched parts round-trip byte for byte. Validation of a part runs when it loads.
+- Sources: `FileSource` per file (`open_file_source` in `require_file`, `close_file_source` in
+  `clear_file_cache` and before saving over a file; a changed or closed file raises
+  `FileChangedError`/`SourceClosedError`), `MemorySource` for a `BytesIO` buffer (decompressed data).
+  `source_for_buffer` maps a context buffer to its source; a part over any other buffer is read eagerly.
+- Helpers: `is_loaded`, `load_all(tree)`, `transient(node)` (parse, use, drop again), `lazy_unpack`
+  (generic deferred `block.unpack`), `stats['parses']` (counter used by tests).
+- Parse of a part may depend only on its own bytes, fixed file offsets and header values, never on
+  where a previous part's parse stopped. `test/library/test_lazy.py` checks lazy vs eager reads of
+  every archive/bundle/compressed sample.
+- `EacCompressedBlock` data is `CompressedData` (dict remembering the compressed bytes and a digest of
+  the uncompressed ones): written back as the original compressed bytes while the inner bytes are
+  unchanged; `estimate_packed_size` is the compressed size.
+
 ## Adding a new generic block class
 
 1. Add it to the right file under `library/read_blocks/` (new file if it's a new concern), and
