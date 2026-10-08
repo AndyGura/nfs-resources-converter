@@ -155,17 +155,23 @@ When you do:
 - Sample roles, as the game uses them (tnfs-1995: DOS TNFS_DOS_FULL `sfx_00066056` / `sfx_00065eb1`, PSX, Win95 SE):
   car bank 3 horn (player channel 0xe), 0x20 gear click; collision bank 0x21 light hit / prop, 0x22 medium hit, 0x23
   fence hit, 0x24 heavy hit, 0x25 landing / bump, 0x27 body scrape loop, 0x29 wind loop, 0x2d tyre squeal loop, 0x2e
-  gravel squeal loop, 0x3e waterfall loop (TRI `item_mode` 14 = waterfall to the left, 15 = to the right), 0x3f AI car
-  horn (opponent banks: 0x41; DOS channel 4, pitch table 0x81aa9); Win95 SE only: 0x3d left waterfall loop and 0x50
+  gravel squeal loop, 0x3e waterfall loop (TRI `item_mode` 14 = waterfall to the left, 15 = to the right), 0x3f traffic
+  horn loop (DOS channel 4, pitch value `table[index] * doppler >> 8`, table at DOS 0x81aa9, index = the traffic car's
+  PDN `gear_count`); opponent banks `O*MB.BNK` / `TRAFFCO.BNK` 0x41 the opponent car's horn loop (racers: car slot 1,
+  pitch index 1, channel 4, DOS `tnfs_sfx_horn_other` 0x82cd4); Win95 SE only: 0x3d left waterfall loop and 0x50
   cave drips in a tunnel, each on one track; `NFS_FMMB` 0x61 radar detector beep, 0x62 police siren loop, 0x64 police
-  siren loop in a tunnel (played along with 0x62 while the player is in a tunnel). No caller found for `NFS_FMMB`
-  0x69 / 0x6a. The GUI's bank viewer labels them.
-- Entry fields (`SoundBankHeaderEntry`): 0x00 `voice_mask` (DOS voice allocator `sfx_voice_alloc` 0x96760), 0x0c
+  siren loop in a tunnel (played along with 0x62 while the player is in a tunnel). `NFS_FMMB` 0x69 / 0x6a are one-shots
+  (0.19 s, 0.65 s, voice mask bit 8, priority 0x64) that no code in DOS or SE plays. The GUI's bank viewer labels them.
+- Entry fields (`SoundBankHeaderEntry`): 0x00 `voice_mask` (DOS voice allocator `sfx_voice_alloc` 0x96760), 0x04
+  `eacs_header_offset` (a pointer after load), 0x08 `play_time_limit` in driver ticks (voice+4 = value - 1, the driver
+  tick DOS 0xaada7 / SE 0x4a4ac0 stops the voice below 0; 0 = no limit, in every shipped entry), 0x0c
   `random_range` and 0x10 `pitch_offset` in cents (voice start, DOS 0x96d22: offset = pitch_offset +- random up to
   random_range), 0x17 `bend_range_semitones` (cents = (pitch - 64) * bend * 100 / 64 + offset, rate = base *
   2^(cents/1200), DOS 0xa6fbd), 0x19 `volume` (+- random 0x1a; final = master * volume * channel volume / 127^2), 0x1b
-  `driver`, 0x1c `flags` (bit 0: stereo pair, the next sample is the other channel). 0x16 (`unk4`, meta
-  `unknown_0x16`) is read by no binary.
+  `driver` (written by the demo's bank loader 0x79a62 at run time: non-zero 0x1b and later bytes in shipped banks are
+  leftovers), 0x1c `flags` (bit 0: stereo pair, the next sample is the other channel). 0x15 (`unk3`, 0x80 everywhere)
+  is copied to voice+0x14 by DOS and the demo and never read; 0x16 (`unk4`, meta `unknown_0x16`) is read by no binary
+  (DOS, demo, SE), probably an authoring transpose.
 - PSX TNFS has its own sound patch format, which the converter does not read: 0x08 base pitch, 0x0e ushort random
   range in cents (max 1200), 0x13 bend range, 0x17 reverb flag (voices with it get the SPU reverb in tunnels).
 

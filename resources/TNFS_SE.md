@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-08 21:56:38.294583+00:00*
+*Last time updated: 2026-10-08 23:07:23.699094+00:00*
 
 
 # **Info by file extensions** #
@@ -358,7 +358,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 28 | **power_curve** | 400 | Array of `100` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
 | 428 | **top_speeds** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Maximum car speed (m/s) per gear |
 | 452 | **max_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max engine RPM |
-| 456 | **gear_count** | 4 | 4-bytes unsigned integer (little endian) | Gears amount |
+| 456 | **gear_count** | 4 | 4-bytes unsigned integer (little endian) | Gears amount (5 in every racer PDN; tnfs-1995 names it `pdn_number_of_gears`, DOS car+0x461). Traffic and cop car PDNs use it as the horn pitch index: the game plays the traffic horn (collision bank sample 0x3f) at pitch value `table[index] * doppler >> 8`, table at DOS 0x81aa9 = 0x40, 0x40, 0x64, 0x5a, 0x50, 0x46, 0x3c, 0x32, 0x2d, 0x28. Values: crx 2, bmw 3, jetta 3, sunbird 4, wagon 4, pickup 5, probe 5, traffc 5, axxess 6, jeep 6, lemans 6, rodeo 8, vandura 8, copmust 0 (the cop never honks); 7 and 9 unused |
 ## **Images** ##
 ### **EacImage** ###
 #### **Size**: 16..? bytes ####
@@ -491,20 +491,20 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **voice_mask** | 4 | 4-bytes unsigned integer (little endian) | Bit mask of the game's mixer channels (voices) this sample may play on (bit n = channel n), used by the DOS voice allocator `sfx_voice_alloc` (0x96760). The collision bank duplicates looped wavs under several indices, each with a different bit. Examples: collision bank wind 0x29 has bit 5 (wind channel 5), waterfall 0x3e bit 11 (channel 0xb), the hits bits 4 and 5 (one-shot channel 4), car bank engine_off bit 1 (channel 1), car bank horn bit 14 (player horn channel 0xe). The exception is car bank engine_on: bit 6, played on channel 0 |
-| 4 | **eacs_header_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of `eacs_header` in the file: offset of this entry + 40 |
-| 8 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 4 | **eacs_header_offset** | 4 | 4-bytes unsigned integer (little endian) | Offset of `eacs_header` in the file: offset of this entry + 40. The game turns it into a pointer when it loads the bank |
+| 8 | **play_time_limit** | 4 | 4-bytes unsigned integer (little endian) | Play time limit in sound driver ticks. At voice start the game stores this value - 1 in the voice (voice+4; DOS `sfx_voice_start_one` 0x96d22, demo 0x79ca2, Win95 SE 0x48eed8), the driver tick (DOS `sfx_driver_tick` 0xaada7, Win95 SE 0x4a4ac0) decrements it and stops the voice when it goes below 0. 0 = no limit, the value of every entry in the shipped banks |
 | 12 | **random_range** | 4 | 4-bytes unsigned integer (little endian) | Random pitch range in cents. At every voice start (DOS 0x96d22) the pitch offset of the voice is `pitch_offset` + a random value in [-random_range, +random_range]. 300 for hits, 150-250 for gear clicks, 600 for collision bank entry 0x50, 0 for loops |
 | 16 | **pitch_offset** | 4 | 4-bytes signed integer (little endian) | Base pitch offset in cents, added to every pitch the voice plays at (see `random_range`, `bend_range_semitones`). 0 in all TNFS banks |
 | 20 | **priority** | 1 | 1-byte unsigned integer | Playback priority |
-| 21 | **unk3** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 22 | **unk4** | 1 | 1-byte signed integer | Read by no binary (DOS voice start, DOS driver code, Win95 SE voice start 0x48eed8): meaning unknown. 0 in most entries; -5, -6, -12 and 2 in some collision bank entries |
+| 21 | **unk3** | 1 | 1-byte unsigned integer | DOS and the demo copy it to the voice (voice+0x14), no code reads it there; Win95 SE does not copy it. 0x80 in every entry of the shipped banks |
+| 22 | **unk4** | 1 | 1-byte signed integer | Read by no binary (DOS, demo, Win95 SE): probably an authoring transpose the games ignore. 0 in most entries; -5, -6, -12 (e.g. collision bank 0x3d) and 2 in some collision bank entries |
 | 23 | **bend_range_semitones** | 1 | 1-byte unsigned integer | Pitch bend range in semitones. The game plays a sample at pitch value 0..127 (64 = original pitch). Every pitch set computes cents = (value - 64) * bend_range_semitones * 100 / 64 + the pitch offset of the voice (`pitch_offset` + random, see `random_range`), the playback rate is the base rate * 2 ^ (cents / 1200) (DOS 0xa6fbd, table 0xa5470) |
 | 24 | **pan** | 1 | 1-byte unsigned integer | Pan, 0..127, 64 is center |
 | 25 | **volume** | 1 | 1-byte unsigned integer | Volume, 0..127, with a random +-`random_volume_range`. The final volume is master volume * entry volume * channel volume / 127^2 |
 | 26 | **random_volume_range** | 1 | 1-byte unsigned integer | Random volume range: the volume is `volume` +- a random value up to it. 0 in all TNFS banks |
-| 27 | **driver** | 1 | 1-byte unsigned integer | Sound driver of the sample. 0 or 0x0a in TNFS banks |
+| 27 | **driver** | 1 | 1-byte unsigned integer | Sound driver of the sample, a run time field: the demo's bank loader (0x79a62) writes it when it loads the bank, so a non-zero value here and in the following bytes of a shipped bank is a leftover of the tool that saved it. 0 or 0x0a in TNFS banks (0xcc in one entry) |
 | 28 | **flags** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: stereo_pair</details> | Bit 0: stereo pair, the next sample of the bank is the other channel (`*3D` / `*3` banks: collision bank 0x30-0x3a even entries and 0x3f, opponent bank 0x43 and 0x45) |
-| 29 | **unk5** | 11 | Bytes | Unknown purpose |
+| 29 | **unk5** | 11 | Bytes | Run time voice data (see `driver`): zeros, or leftovers in the entries with a non-zero `driver` |
 | 40 | **eacs_header** | 32 | [EacsAudioHeader](#eacsaudioheader) | EACS header. Its `wave_data_offset` points into the wave data region of the sound bank file |
 ### **EacsAudioHeader** ###
 #### **Size**: 32 bytes ####

@@ -352,7 +352,17 @@ class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):
             {'description': 'Maximum car speed (m/s) per gear'},
         )
         max_rpm = (FixedPointBlock(length=4, fraction_bits=16, is_signed=True), {'description': 'Max engine RPM'})
-        gear_count = (IntegerBlock(length=4), {'description': 'Gears amount'})
+        gear_count = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Gears amount (5 in every racer PDN; tnfs-1995 names it `pdn_number_of_gears`, DOS '
+                'car+0x461). Traffic and cop car PDNs use it as the horn pitch index: the '
+                'game plays the traffic horn (collision bank sample 0x3f) at pitch value `table[index] * doppler '
+                '>> 8`, table at DOS 0x81aa9 = 0x40, 0x40, 0x64, 0x5a, 0x50, 0x46, 0x3c, 0x32, 0x2d, 0x28. Values: '
+                'crx 2, bmw 3, jetta 3, sunbird 4, wagon 4, pickup 5, probe 5, traffc 5, axxess 6, jeep 6, lemans 6, '
+                'rodeo 8, vandura 8, copmust 0 (the cop never honks); 7 and 9 unused'
+            },
+        )
 
     def serializer_class(self):
         from serializers import JsonSerializer

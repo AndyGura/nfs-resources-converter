@@ -94,9 +94,20 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
         )
         eacs_header_offset = (
             IntegerBlock(length=4),
-            {'description': 'Offset of `eacs_header` in the file: offset of this entry + 40'},
+            {
+                'description': 'Offset of `eacs_header` in the file: offset of this entry + 40. The game turns it '
+                'into a pointer when it loads the bank'
+            },
         )
-        unk1 = (IntegerBlock(length=4), {'is_unknown': True})
+        play_time_limit = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Play time limit in sound driver ticks. At voice start the game stores this value - 1 '
+                'in the voice (voice+4; DOS `sfx_voice_start_one` 0x96d22, demo 0x79ca2, Win95 SE 0x48eed8), the '
+                'driver tick (DOS `sfx_driver_tick` 0xaada7, Win95 SE 0x4a4ac0) decrements it and stops the voice '
+                'when it goes below 0. 0 = no limit, the value of every entry in the shipped banks'
+            },
+        )
         random_range = (
             IntegerBlock(length=4),
             {
@@ -113,13 +124,21 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
             },
         )
         priority = (IntegerBlock(length=1), {'description': 'Playback priority'})
-        unk3 = (IntegerBlock(length=1), {'is_unknown': True})
+        unk3 = (
+            IntegerBlock(length=1),
+            {
+                'is_unknown': True,
+                'description': 'DOS and the demo copy it to the voice (voice+0x14), no code reads it there; Win95 SE '
+                'does not copy it. 0x80 in every entry of the shipped banks',
+            },
+        )
         unk4 = (
             IntegerBlock(length=1, is_signed=True),
             {
                 'is_unknown': True,
-                'description': 'Read by no binary (DOS voice start, DOS driver code, Win95 SE voice start 0x48eed8): '
-                'meaning unknown. 0 in most entries; -5, -6, -12 and 2 in some collision bank entries',
+                'description': 'Read by no binary (DOS, demo, Win95 SE): probably an authoring transpose the games '
+                'ignore. 0 in most entries; -5, -6, -12 (e.g. collision bank 0x3d) and 2 in some collision bank '
+                'entries',
             },
         )
         bend_range_semitones = (
@@ -145,7 +164,14 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
                 'description': 'Random volume range: the volume is `volume` +- a random value up to it. 0 in all TNFS banks'
             },
         )
-        driver = (IntegerBlock(length=1), {'description': 'Sound driver of the sample. 0 or 0x0a in TNFS banks'})
+        driver = (
+            IntegerBlock(length=1),
+            {
+                'description': "Sound driver of the sample, a run time field: the demo's bank loader (0x79a62) writes "
+                'it when it loads the bank, so a non-zero value here and in the following bytes of a shipped bank is '
+                'a leftover of the tool that saved it. 0 or 0x0a in TNFS banks (0xcc in one entry)'
+            },
+        )
         flags = (
             BitFlagsBlock(length=1, flag_names=[(0, 'stereo_pair')]),
             {
@@ -153,7 +179,14 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
                 'banks: collision bank 0x30-0x3a even entries and 0x3f, opponent bank 0x43 and 0x45)'
             },
         )
-        unk5 = (BytesBlock(length=11), {'is_unknown': True})
+        unk5 = (
+            BytesBlock(length=11),
+            {
+                'is_unknown': True,
+                'description': 'Run time voice data (see `driver`): zeros, or leftovers in the entries with a '
+                'non-zero `driver`',
+            },
+        )
         eacs_header = (
             EacsAudioHeader(),
             {
