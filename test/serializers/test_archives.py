@@ -1,6 +1,10 @@
 import unittest
 import tempfile
 import os
+from unittest import mock
+
+import serializers
+from library import require_file, require_resource
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import EacImage
 from serializers.archives import ShpiArchiveSerializer
@@ -62,6 +66,34 @@ class TestShpiArchiveSerializer(unittest.TestCase):
             self.assertEqual(len(deserialized_data['children']), 2)
             self.assertEqual(deserialized_data['children'][0]['alias'], alias)
             self.assertEqual(deserialized_data['children'][1]['alias'], alias)
+
+    def test_item_ids_are_built_from_indexes(self):
+        name, block, data = require_file('test/samples/VERTBST.FSH')
+        serializer = ShpiArchiveSerializer()
+        serializer.patch_settings({'images__save_image_positions': False, 'images__save_palettes': True})
+        real_get_serializer = serializers.get_serializer
+        ids = []
+
+        def recording_get_serializer(*args, **kwargs):
+            item_serializer = real_get_serializer(*args, **kwargs)
+            real_serialize = item_serializer.serialize
+
+            def serialize(*a, **kw):
+                ids.append(kw['id'])
+                return real_serialize(*a, **kw)
+
+            item_serializer.serialize = serialize
+            return item_serializer
+
+        with (
+            tempfile.TemporaryDirectory() as tmp_dir,
+            mock.patch.object(serializers, 'get_serializer', recording_get_serializer),
+        ):
+            serializer.serialize(data, tmp_dir, block=block, id=name)
+        self.assertEqual(ids, [f'{name}__children/{i}/item/data' for i in range(len(data['children']))])
+        for i, item_id in enumerate(ids):
+            (_, _, item_data), _ = require_resource(item_id)
+            self.assertIs(item_data, data['children'][i]['item']['data'])
 
 
 if __name__ == '__main__':

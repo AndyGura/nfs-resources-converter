@@ -115,6 +115,16 @@ class TestWwwwBlock(unittest.TestCase):
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
+    def test_fam_with_gaps_between_items_should_remain_the_same(self):
+        # nested WWWW archives here have alignment gaps before items, item offsets must point after them
+        (name, block, res) = require_file('test/golden_corpus/AL1_001.FAM')
+        output = block.pack(res, name=name)
+        with open('test/golden_corpus/AL1_001.FAM', 'rb') as bdata:
+            original = bdata.read()
+            self.assertEqual(len(original), len(output))
+            for i, x in enumerate(original):
+                self.assertEqual(x, output[i], f'Wrong value at index {i}')
+
 
 class TestSoundBankBlock(unittest.TestCase):
     def test_bnk_should_remain_the_same(self):
@@ -136,6 +146,26 @@ class TestBigfBlock(unittest.TestCase):
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
+
+    def test_bigf_tga_item_takes_only_its_own_length(self):
+        (name, block, res) = require_file('test/samples/nfs3_f355.viv')
+        with open('test/samples/nfs3_f355.viv', 'rb') as bdata:
+            original = bdata.read()
+        # directory entry: offset, length (big endian), null-terminated name, starting at byte 16
+        pos = 16
+        entries = {}
+        for _ in range(res['num_items']):
+            offset = int.from_bytes(original[pos : pos + 4], 'big')
+            length = int.from_bytes(original[pos + 4 : pos + 8], 'big')
+            end = original.index(0, pos + 8)
+            entries[original[pos + 8 : end].decode()] = (offset, length)
+            pos = end + 1
+        offset, length = entries['car00.tga']
+        child = next(x for x in res['children'] if x['alias'] == 'car00.tga')
+        self.assertEqual(
+            block.item_block.possible_blocks[child['item']['choice_index']].__class__.__name__, 'TargaImage'
+        )
+        self.assertEqual(child['item']['data'], original[offset : offset + length])
 
     def test_bigf_length_field_without_padding(self):
         from resources.eac.archives import BigfBlock

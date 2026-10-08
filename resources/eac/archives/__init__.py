@@ -152,8 +152,8 @@ class WwwwBlock(ArchiveBlock):
         data['items_descr'] = []
         for i, child in enumerate(data['children']):
             item_data = self.item_block.pack(data=child['item'], ctx=ctx, name=str(i))
-            data['items_descr'].append(len(data['data_bytes']))
             data['data_bytes'] += child['pre_offset_payload']
+            data['items_descr'].append(len(data['data_bytes']))
             data['data_bytes'] += item_data
             data['data_bytes'] += child['post_offset_payload']
         heap_offset = 8 + len(data['items_descr']) * 4

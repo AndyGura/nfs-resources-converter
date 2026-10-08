@@ -112,3 +112,11 @@ When you do:
 - Nothing repo-specific overrides standard slash commands (`/code-review`, `/simplify`, etc.).
 - Real game files for broader validation live under the gitignored `games/<game>/` folders (e.g. every
   QFS3-compressed file across nfs1/nfs2/nfs2se/nfs3), beyond the few samples in `test/samples/`.
+  `test/resources/test_games_directory.py` round-trips (read → write → compare) every one of them in
+  `cpu_count() // 2` processes, writing `game_files_stats.txt`, `game_files_failures.txt` and
+  `game_files_regressions.txt` (gitignored) next to it, then fails if any extension has fewer passed files than in
+  the `game_files_stats.txt` committed at git HEAD (committing new stats accepts them as the baseline). Extensions
+  without a single read file are left out of the stats. It takes more than 10 minutes, so it's opt-in:
+  `NFS_GAMES_ROUNDTRIP=1`; `NFS_GAMES_DIR=test/samples` makes it a seconds-long smoke run without the regression
+  check, `NFS_GAMES_EXTENSIONS=.FSH,.QFS` limits it to some extensions (both only print the reports, without
+  overwriting the files).
