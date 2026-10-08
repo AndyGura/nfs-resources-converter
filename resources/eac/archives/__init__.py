@@ -369,7 +369,9 @@ class SoundBank(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': 'A pack of SFX samples (short audios). Used mostly for car engine sounds, '
-            'crash sounds etc.',
+            'crash sounds etc. In TNFS all banks of a race share one 128-entry sample id table: the game loads the '
+            'car bank, the opponent banks, the collision bank (`COLL*`), then `NFS_FMMB`, and a bank loaded later '
+            'replaces the ids it has',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):

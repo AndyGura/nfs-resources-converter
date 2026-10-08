@@ -84,8 +84,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                     (4, 'tunnel'),
                     (5, 'cobbled_road'),
                     (7, 'right_tunnel_A9_A2'),
-                    # OpenNFS1: left wall appeared to move across the track - snapped back as we got closer
-                    (8, 'unk_cl3_forest'),
+                    (8, 'no_sky'),
                     (9, 'left_tunnel_A4_A7'),
                     (11, 'unk_autumn_valley_tribunes'),
                     (12, 'left_tunnel_A4_A8'),
@@ -101,13 +100,16 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                 'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features. '
                 'Effects found in the game code ([tnfs-1995](https://github.com/marcos2250/tnfs-1995) '
                 "`tnfs_track_item_mode_flags`, PSX 0x80030fe8, DOS 0x5b2b9): 4, 7, 9, 12 and 13 set the car's "
-                'in-tunnel flag (wind loop +20 volume and pitch value 0x5e; on PSX a voice mode switch, probably '
-                'reverb; the police siren adds a sample in tunnels; the DOS camera 0x6b5a5 skips the horizon for 4, 7, '
-                '9 and 8). 5 is cobbles: the wind loop pitch wobbles between 0x40 and 0x5e with speed; a side with '
-                'a fence (`fence_flag`) also gets a different fence offset in 3D crash collisions unless the mode is '
-                '5. 14 / 15 play the waterfall loop (collision bank sample 0x3e on mixer channel 0xb), panned hard '
-                'left / right and fading in and out by 5 per tick. 8 sets a second engine flag next to the in-tunnel '
-                'one, which is never read: its effect is unknown. Values in the game tracks besides 1 and 3: 0 / 2 at single '
+                'in-tunnel flag (wind loop +20 volume and pitch value 0x5e; on PSX the voices whose patch has the '
+                'reverb flag get the SPU reverb; the police siren plays `NFS_FMMB.BNK` sample 0x64 along with 0x62; '
+                'the DOS camera 0x6b5a5 skips the horizon for 4, 7, 9 and 8). 5 is cobbles: the wind loop pitch '
+                'wobbles between 0x40 and 0x5e with speed; a side with a fence (`fence_flag`) also gets a different '
+                'fence offset in 3D crash collisions unless the mode is 5. 14 / 15 are a waterfall to the left / '
+                'right: they play the waterfall loop (collision bank sample 0x3e on mixer channel 0xb), panned hard '
+                'left / right and fading in and out by 5 per tick. 8 only means "no sky": the DOS camera skips the '
+                'horizon, the PSX sky drawing (0x800357ec) hides the sky when the slices -0xe and -9 from the camera '
+                'are both mode 8; the road renders like plain road, and the second engine flag 8 sets next to the '
+                'in-tunnel one is never read. Values in the game tracks besides 1 and 3: 0 / 2 at single '
                 'points, 4 in most tracks, 5 in AL2, TR4, TR7, 7 in CL2, 8 in CL3, 9 in AL3, 11 in TR2, 12 and 13 in '
                 'TR3, 14 in TR2 and TR3, 15 in TR3, 16 in AL1 and TR3, 17 in TR7, 18 in TR6'
             },
@@ -538,6 +540,10 @@ class TriMap(DeclarativeCompoundBlock):
             elif vertex['item_mode'] == 'lane_merge':
                 vertex['item_mode'] = 'lane_split'
                 # lane_effects.append(i)
+            elif vertex['item_mode'] == 'waterfall_audio_left_channel':
+                vertex['item_mode'] = 'waterfall_audio_right_channel'
+            elif vertex['item_mode'] == 'waterfall_audio_right_channel':
+                vertex['item_mode'] = 'waterfall_audio_left_channel'
 
         for index in lane_effects:
             (read_data['road_spline'][index]['item_mode'], read_data['road_spline'][index - 1]['item_mode']) = (

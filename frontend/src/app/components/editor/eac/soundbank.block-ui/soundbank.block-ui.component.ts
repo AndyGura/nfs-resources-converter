@@ -3,8 +3,11 @@ import { GuiComponent } from '../../gui.component';
 import { joinId } from '../../../../utils/join-id';
 import { BlockSchema, Resource } from '../../types';
 
-// TNFS collision bank (SIMDATA/SOUNDBNK/COL*.BNK) samples, as the game uses them (decoded by tnfs-1995)
-const COLLISION_BANK_SAMPLES: { [index: number]: string } = {
+// TNFS race sound bank samples, as the game uses them (decoded by tnfs-1995). All banks of a race (car *SW, opponent
+// O*MB*, collision COL*, NFS_FMMB) share one sample id table, so an id means the same in every one of them
+const RACE_BANK_SAMPLES: { [index: number]: string } = {
+  0x03: 'horn',
+  0x20: 'gear click',
   0x21: 'light hit / prop',
   0x22: 'medium hit',
   0x23: 'fence hit',
@@ -22,7 +25,14 @@ const COLLISION_BANK_SAMPLES: { [index: number]: string } = {
   0x36: 'body scrape loop',
   0x38: 'tyre squeal loop',
   0x3a: 'tyre squeal loop',
+  0x3d: 'left waterfall loop, Win95 SE',
   0x3e: 'waterfall loop',
+  0x3f: 'AI car horn',
+  0x41: 'AI car horn',
+  0x50: 'cave drips in a tunnel, Win95 SE',
+  0x61: 'radar detector beep',
+  0x62: 'police siren loop',
+  0x64: 'police siren loop in a tunnel',
 };
 
 @Component({
@@ -51,9 +61,10 @@ export class SoundbankBlockUiComponent extends GuiComponent implements OnChanges
         .filter(([x, i]) => x > 0)
         .sort((a, b) => a[0] - b[0])
         .map(([x, i]) => i);
-      const isCollisionBank = /(^|[\\/])COL[^\\/]*\.BNK$/i.test(this.resourceId || '');
+      // the frontend bank is not loaded in a race
+      const isRaceBank = !/(^|[\\/])FRONT[^\\/]*\.BNK$/i.test(this.resourceId || '');
       for (let i = 0; i < this.resourceData!.children.length; i++) {
-        const meaning = isCollisionBank ? COLLISION_BANK_SAMPLES[idxs[i]] : undefined;
+        const meaning = isRaceBank ? RACE_BANK_SAMPLES[idxs[i]] : undefined;
         this.resourceMap['0x' + idxs[i].toString(16) + (meaning ? ` (${meaning})` : '')] = {
           id: joinId(this.resourceId || '', `children/${i}`),
           data: this.resourceData!.children[i],

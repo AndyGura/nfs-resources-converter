@@ -150,11 +150,24 @@ When you do:
   0x3e in all but `*MT*`, 0x3d in `*MT*`, `COLL_SW` and `COLLSW3D` (two different wavs), 0x40 in the `*3D`/`*3` ones;
   otherwise one index is one wav in all of them. The `*SB*` variants share only some of them. Inside a `*SW*` bank several indices are one wav, one per mixer channel of the game:
   0x2d = 0x2a = 0x2b = 0x38 = 0x3a, 0x2e = 0x26 = 0x28, 0x27 = 0x34 = 0x36, 0x29 = 0x30 = 0x32.
-- Collision bank samples, as the game uses them (tnfs-1995, DOS `sfx_00066056` / `sfx_00065eb1`): 0x21 light hit /
-  prop, 0x22 medium hit, 0x23 fence hit, 0x24 heavy hit, 0x25 landing / bump, 0x27 body scrape loop, 0x29 wind loop,
-  0x2d tyre squeal loop, 0x2e gravel squeal loop, 0x3e waterfall loop (TRI `item_mode` 14 / 15). The GUI's bank
-  viewer labels them. In `COLLSWWT`, 0x3f (16 kHz, steady 370 Hz tone, looped) is nfs-web's traffic horn (picked by
-  ear); 0x50 (22 kHz one-shot, decaying 1 kHz tone, random range 600) has an unknown use.
+- All banks of a race share one 128-entry sample id table, loaded in this order: car, opponents, `COLL*`, `NFS_FMMB`;
+  a later bank replaces the ids it has. So an id means the same in every race bank (not in `FRONT_MW`).
+- Sample roles, as the game uses them (tnfs-1995: DOS TNFS_DOS_FULL `sfx_00066056` / `sfx_00065eb1`, PSX, Win95 SE):
+  car bank 3 horn (player channel 0xe), 0x20 gear click; collision bank 0x21 light hit / prop, 0x22 medium hit, 0x23
+  fence hit, 0x24 heavy hit, 0x25 landing / bump, 0x27 body scrape loop, 0x29 wind loop, 0x2d tyre squeal loop, 0x2e
+  gravel squeal loop, 0x3e waterfall loop (TRI `item_mode` 14 = waterfall to the left, 15 = to the right), 0x3f AI car
+  horn (opponent banks: 0x41; DOS channel 4, pitch table 0x81aa9); Win95 SE only: 0x3d left waterfall loop and 0x50
+  cave drips in a tunnel, each on one track; `NFS_FMMB` 0x61 radar detector beep, 0x62 police siren loop, 0x64 police
+  siren loop in a tunnel (played along with 0x62 while the player is in a tunnel). No caller found for `NFS_FMMB`
+  0x69 / 0x6a. The GUI's bank viewer labels them.
+- Entry fields (`SoundBankHeaderEntry`): 0x00 `voice_mask` (DOS voice allocator `sfx_voice_alloc` 0x96760), 0x0c
+  `random_range` and 0x10 `pitch_offset` in cents (voice start, DOS 0x96d22: offset = pitch_offset +- random up to
+  random_range), 0x17 `bend_range_semitones` (cents = (pitch - 64) * bend * 100 / 64 + offset, rate = base *
+  2^(cents/1200), DOS 0xa6fbd), 0x19 `volume` (+- random 0x1a; final = master * volume * channel volume / 127^2), 0x1b
+  `driver`, 0x1c `flags` (bit 0: stereo pair, the next sample is the other channel). 0x16 (`unk4`, meta
+  `unknown_0x16`) is read by no binary.
+- PSX TNFS has its own sound patch format, which the converter does not read: 0x08 base pitch, 0x0e ushort random
+  range in cents (max 1200), 0x13 bend range, 0x17 reverb flag (voices with it get the SPU reverb in tunnels).
 
 ## EA sound banks of NFS2-NFS6 (BNKl)
 

@@ -12,6 +12,7 @@ from library.read_blocks import (
     ArrayBlock,
     EnumByteBlock,
     OptionalBlock,
+    BitFlagsBlock,
 )
 from library.read_blocks.misc.value_validators import Eq
 
@@ -80,15 +81,15 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        unk0 = (
+        voice_mask = (
             IntegerBlock(length=4),
             {
-                'is_unknown': True,
-                'description': "Presumably a bit mask of the game's mixer channels for this sample (bit n = channel "
-                'n): the collision bank duplicates looped wavs under several indices, each with a different bit. '
-                'It matches the channels of the DOS sound code: collision bank wind 0x29 has bit 5 (wind channel 5), '
-                'waterfall 0x3e bit 11 (channel 0xb), the hits bits 4 and 5 (one-shot channel 4), car bank '
-                'engine_off bit 1 (channel 1). The exception is car bank engine_on: bit 6, played on channel 0',
+                'description': "Bit mask of the game's mixer channels (voices) this sample may play on (bit n = "
+                'channel n), used by the DOS voice allocator `sfx_voice_alloc` (0x96760). The collision bank '
+                'duplicates looped wavs under several indices, each with a different bit. Examples: collision bank '
+                'wind 0x29 has bit 5 (wind channel 5), waterfall 0x3e bit 11 (channel 0xb), the hits bits 4 and 5 '
+                '(one-shot channel 4), car bank engine_off bit 1 (channel 1), car bank horn bit 14 (player horn '
+                'channel 0xe). The exception is car bank engine_on: bit 6, played on channel 0',
             },
         )
         eacs_header_offset = (
@@ -99,24 +100,60 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
         random_range = (
             IntegerBlock(length=4),
             {
-                'description': 'Random range of one-shot samples (300 for hits, 200 for gear, 600 for collision bank entry 0x50), '
-                'unit unknown'
+                'description': 'Random pitch range in cents. At every voice start (DOS 0x96d22) the pitch offset of '
+                'the voice is `pitch_offset` + a random value in [-random_range, +random_range]. 300 for hits, '
+                '150-250 for gear clicks, 600 for collision bank entry 0x50, 0 for loops'
             },
         )
-        unk2 = (IntegerBlock(length=4), {'is_unknown': True})
+        pitch_offset = (
+            IntegerBlock(length=4, is_signed=True),
+            {
+                'description': 'Base pitch offset in cents, added to every pitch the voice plays at (see '
+                '`random_range`, `bend_range_semitones`). 0 in all TNFS banks'
+            },
+        )
         priority = (IntegerBlock(length=1), {'description': 'Playback priority'})
         unk3 = (IntegerBlock(length=1), {'is_unknown': True})
-        unk4 = (IntegerBlock(length=1, is_signed=True), {'is_unknown': True})
+        unk4 = (
+            IntegerBlock(length=1, is_signed=True),
+            {
+                'is_unknown': True,
+                'description': 'Read by no binary (DOS voice start, DOS driver code, Win95 SE voice start 0x48eed8): '
+                'meaning unknown. 0 in most entries; -5, -6, -12 and 2 in some collision bank entries',
+            },
+        )
         bend_range_semitones = (
             IntegerBlock(length=1),
             {
                 'description': 'Pitch bend range in semitones. The game plays a sample at pitch value 0..127 '
-                '(64 = original pitch), the playback rate is 2 ^ ((value - 64) / 64 * bend_range_semitones / 12)'
+                '(64 = original pitch). Every pitch set computes cents = (value - 64) * bend_range_semitones * 100 / '
+                '64 + the pitch offset of the voice (`pitch_offset` + random, see `random_range`), the playback rate '
+                'is the base rate * 2 ^ (cents / 1200) (DOS 0xa6fbd, table 0xa5470)'
             },
         )
         pan = (IntegerBlock(length=1), {'description': 'Pan, 0..127, 64 is center'})
-        volume = (IntegerBlock(length=1), {'description': 'Volume, 0..127'})
-        unk5 = (BytesBlock(length=14), {'is_unknown': True})
+        volume = (
+            IntegerBlock(length=1),
+            {
+                'description': 'Volume, 0..127, with a random +-`random_volume_range`. The final volume is master '
+                'volume * entry volume * channel volume / 127^2'
+            },
+        )
+        random_volume_range = (
+            IntegerBlock(length=1),
+            {
+                'description': 'Random volume range: the volume is `volume` +- a random value up to it. 0 in all TNFS banks'
+            },
+        )
+        driver = (IntegerBlock(length=1), {'description': 'Sound driver of the sample. 0 or 0x0a in TNFS banks'})
+        flags = (
+            BitFlagsBlock(length=1, flag_names=[(0, 'stereo_pair')]),
+            {
+                'description': 'Bit 0: stereo pair, the next sample of the bank is the other channel (`*3D` / `*3` '
+                'banks: collision bank 0x30-0x3a even entries and 0x3f, opponent bank 0x43 and 0x45)'
+            },
+        )
+        unk5 = (BytesBlock(length=11), {'is_unknown': True})
         eacs_header = (
             EacsAudioHeader(),
             {

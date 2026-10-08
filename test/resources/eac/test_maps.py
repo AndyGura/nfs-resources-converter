@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 
 from library import require_file
 
@@ -12,6 +13,16 @@ class TestTriMap(unittest.TestCase):
             self.assertEqual(len(original), len(output))
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
+
+    def test_reverse_track_should_swap_waterfall_sides(self):
+        (name, block, tri) = require_file('test/samples/AL1.TRI')
+        tri = deepcopy(tri)
+        length = len(tri['terrain']) * 4
+        tri['road_spline'][100]['item_mode'] = 'waterfall_audio_left_channel'
+        tri['road_spline'][200]['item_mode'] = 'waterfall_audio_right_channel'
+        block.action_reverse_track(tri)
+        self.assertEqual(tri['road_spline'][length - 1 - 100]['item_mode'], 'waterfall_audio_right_channel')
+        self.assertEqual(tri['road_spline'][length - 1 - 200]['item_mode'], 'waterfall_audio_left_channel')
 
 
 class TestNfs4FrdMap(unittest.TestCase):
