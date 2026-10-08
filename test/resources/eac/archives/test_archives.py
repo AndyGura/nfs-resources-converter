@@ -1,3 +1,6 @@
+import os
+import struct
+import tempfile
 import unittest
 
 from library import require_file
@@ -126,6 +129,32 @@ class TestWwwwBlock(unittest.TestCase):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
 
+def write_out_of_order_bnk(dir_path: str) -> str:
+    """DIABLOSW.BNK (indices 0x1, 0x2, 0x3, 0x20 at ascending offsets) with its offset table permuted so that the
+    entries are not stored in index order, like in TNFS collision banks: file order becomes 0x1, 0x3, 0x20, 0x2.
+    0x2 is the gear entry (random range 250, priority 30), 0x20 the one with priority 80"""
+    with open('test/samples/DIABLOSW.BNK', 'rb') as f:
+        original = f.read()
+    table = [0] * 128
+    table[0x1], table[0x2], table[0x3], table[0x20] = 0x200, 0x2D8, 0x248, 0x290
+    path = os.path.join(dir_path, 'OUTORDER.BNK')
+    with open(path, 'wb') as f:
+        f.write(struct.pack('<128I', *table) + original[512:])
+    return path
+
+
+def write_shared_wave_data_bnk(dir_path: str) -> str:
+    """DIABLOSW.BNK with the EACS header of entry 0x3 replaced by the one of entry 0x1, so both play the same wave
+    data, like the indices of one wav in TNFS collision banks. The wave data of 0x3 stays in the file, unreferenced"""
+    with open('test/samples/DIABLOSW.BNK', 'rb') as f:
+        data = bytearray(f.read())
+    data[0x290 + 40 : 0x290 + 72] = data[0x200 + 40 : 0x200 + 72]
+    path = os.path.join(dir_path, 'SHARED.BNK')
+    with open(path, 'wb') as f:
+        f.write(data)
+    return path
+
+
 class TestSoundBankBlock(unittest.TestCase):
     def test_bnk_should_remain_the_same(self):
         (name, block, res) = require_file('test/samples/DIABLOSW.BNK')
@@ -146,6 +175,29 @@ class TestSoundBankBlock(unittest.TestCase):
         self.assertEqual(gear['pan'], 64)
         self.assertEqual(gear['volume'], 127)
         self.assertEqual(res['items'][0]['bend_range_semitones'], 12)
+
+    def test_bnk_item_indices_follow_file_order(self):
+        (name, block, res) = require_file('test/samples/DIABLOSW.BNK')
+        self.assertEqual(block.item_indices(res), [0x1, 0x2, 0x3, 0x20])
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = write_out_of_order_bnk(tmp_dir)
+            (name, block, res) = require_file(path)
+            with open(path, 'rb') as f:
+                original = f.read()
+            self.assertEqual(block.pack(res, name=name), original)
+        indices = block.item_indices(res)
+        self.assertEqual(indices, [0x1, 0x3, 0x20, 0x2])
+        for index, item in zip(indices, res['items']):
+            self.assertEqual(item['eacs_header_offset'], res['items_descr'][index] + 40)
+
+    def test_bnk_with_shared_wave_data_should_remain_the_same(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = write_shared_wave_data_bnk(tmp_dir)
+            (name, block, res) = require_file(path)
+            with open(path, 'rb') as f:
+                original = f.read()
+            self.assertEqual(res['children'][2]['wave_data'], res['children'][0]['wave_data'])
+            self.assertEqual(block.pack(res, name=name), original)
 
 
 class TestBigfBlock(unittest.TestCase):

@@ -73,7 +73,10 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
             {
                 'is_unknown': True,
                 'description': "Presumably a bit mask of the game's mixer channels for this sample (bit n = channel "
-                'n): the collision bank duplicates looped wavs under several indices, each with a different bit',
+                'n): the collision bank duplicates looped wavs under several indices, each with a different bit. '
+                'It matches the channels of the DOS sound code: collision bank wind 0x29 has bit 5 (wind channel 5), '
+                'waterfall 0x3e bit 11 (channel 0xb), the hits bits 4 and 5 (one-shot channel 4), car bank '
+                'engine_off bit 1 (channel 1). The exception is car bank engine_on: bit 6, played on channel 0',
             },
         )
         eacs_header_offset = (
@@ -84,7 +87,8 @@ class SoundBankHeaderEntry(DeclarativeCompoundBlock):
         random_range = (
             IntegerBlock(length=4),
             {
-                'description': 'Random range of one-shot samples (300 for hits, 200 for gear, 600 for horn), unit unknown'
+                'description': 'Random range of one-shot samples (300 for hits, 200 for gear, 600 for collision bank entry 0x50), '
+                'unit unknown'
             },
         )
         unk2 = (IntegerBlock(length=4), {'is_unknown': True})

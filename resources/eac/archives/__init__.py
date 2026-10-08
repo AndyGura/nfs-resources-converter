@@ -1,7 +1,7 @@
 import traceback
 from copy import deepcopy
 from io import SEEK_CUR
-from typing import Dict
+from typing import Dict, List
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (
@@ -372,7 +372,11 @@ class SoundBank(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
         items_descr = (
             ArrayBlock(child=IntegerBlock(length=4, is_signed=False), length=128),
-            {'description': 'An array of offsets to items data in file. Zero values ignored'},
+            {
+                'description': 'Offsets of `items` in the file, the array index being the sample index used by the '
+                'game. Zero values ignored. Entries are not always stored in index order (in TNFS collision banks '
+                'entry 0x50 precedes 0x3d-0x40)'
+            },
         )
         items = (
             ArrayBlock(
@@ -383,7 +387,8 @@ class SoundBank(DeclarativeCompoundBlock):
                 ),
             ),
             {
-                'description': 'EACS audio headers. Separate audios can be read easily using these because '
+                'description': 'Sound bank entries in file order (see `items_descr` for their indices). '
+                'EACS audio headers in them can be read easily because '
                 'it contains file-wide offset to wave data, so it does not care wave data located, '
                 'right after EACS header, or somewhere else like it is here in sound bank file'
             },
@@ -400,6 +405,12 @@ class SoundBank(DeclarativeCompoundBlock):
             {'description': 'EACS audios', 'usage': 'ui'},
         )
 
+    @staticmethod
+    def item_indices(data: dict) -> List[int]:
+        """`items_descr` index of every entry of `items` / `children`, which are in file order, not index order"""
+        used = [(i, offset) for (i, offset) in enumerate(data['items_descr']) if offset > 0]
+        return [i for (i, _) in sorted(used, key=lambda x: x[1])]
+
     def serializer_class(self):
         from serializers import SoundBankSerializer
 
@@ -415,7 +426,9 @@ class SoundBank(DeclarativeCompoundBlock):
         global_wave_offset = bnk_start + self.offset_to_child_when_packed(res, 'wave_data')
         res['children'] = []
         res['children_offsets'] = []
-        slices = []
+        # bytes between the end of the wave data seen so far and the next one. Entries can share wave data (several
+        # indices for one wav in collision banks): such an entry points back into the data already seen, gets an empty
+        # gap and is found again by `write`, which reuses identical wave data
         last_slice_end = 0
         for item in res['items']:
             offset = item['eacs_header']['wave_data_offset'] - global_wave_offset
@@ -425,8 +438,7 @@ class SoundBank(DeclarativeCompoundBlock):
                 * item['eacs_header']['channels']
             )
             res['children_offsets'].append(res['wave_data'][last_slice_end:offset])
-            last_slice_end = offset + length
-            slices.append((offset, offset + length))
+            last_slice_end = max(last_slice_end, offset + length)
             res['children'].append(
                 {'header': item['eacs_header'], 'offset': b'', 'wave_data': res['wave_data'][offset : offset + length]}
             )

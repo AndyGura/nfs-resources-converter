@@ -9,6 +9,7 @@ from library import require_file, require_resource
 from resources.eac.archives import ShpiBlock
 from resources.eac.bitmaps import EacImage
 from serializers.archives import ShpiArchiveSerializer, SoundBankSerializer
+from test.resources.eac.archives.test_archives import write_out_of_order_bnk
 
 
 class TestShpiArchiveSerializer(unittest.TestCase):
@@ -117,6 +118,25 @@ class TestSoundBankSerializer(unittest.TestCase):
         self.assertEqual(gear['volume'], 127)
         self.assertEqual(gear['pan'], 64)
         self.assertEqual(gear['unknown_0x16'], 0)
+
+    def test_samples_are_named_by_their_own_index_when_not_stored_in_index_order(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (name, block, res) = require_file(write_out_of_order_bnk(tmp_dir))
+            out_dir = os.path.join(tmp_dir, 'out')
+            SoundBankSerializer().serialize(res, out_dir, id=name, block=block)
+            self.assertEqual(
+                sorted(x for x in os.listdir(out_dir) if x.endswith('.wav')),
+                ['0x1.wav', '0x2.wav', '0x20.wav', '0x3.wav'],
+            )
+            with open(os.path.join(out_dir, '0x2.meta.json')) as f:
+                gear = json.load(f)
+            with open(os.path.join(out_dir, '0x20.meta.json')) as f:
+                entry_0x20 = json.load(f)
+        self.assertFalse(gear['loop'])
+        self.assertEqual(gear['random_range'], 250)
+        self.assertEqual(gear['priority'], 30)
+        self.assertTrue(entry_0x20['loop'])
+        self.assertEqual(entry_0x20['priority'], 80)
 
 
 if __name__ == '__main__':

@@ -123,6 +123,14 @@ When you do:
 
 ## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
 
+- `items` / `children` are in file order, which is not always the index order of the 128-entry offset table
+  `items_descr`: every collision bank with an entry 0x50 stores it before 0x3d–0x40. `SoundBank.item_indices(data)`
+  gives each entry's table index; the serializer and the GUI's bank viewer name samples with it. Never pair the n-th
+  non-zero table index with the n-th entry.
+- Entries can share wave data (several indices of one wav point at the same bytes). `SoundBank.read` keeps in
+  `children_offsets` only the bytes between the end of the wave data seen so far and the next entry's, and `write`
+  reuses identical wave data. The `*SB*` collision banks and `OSUPMB3D` still don't round-trip byte-exact: entries
+  there overlap only partly (one starts inside another and runs past it, or past the end of the file).
 - Output: one folder per bank, `0x<index>.wav` (16-bit) + `0x<index>.meta.json` with `loop`, `loop_start_time_ms`,
   `loop_end_time_ms` and the bank entry's `bend_range_semitones`, `volume`, `pan`, `priority`, `random_range`,
   `unknown_0x16`. Car banks (`*SW.BNK`, `TRAFFC.BNK`, `TESTBANK.BNK` with 4 samples) name their samples `engine_on`,
@@ -130,10 +138,12 @@ When you do:
 - A sample without a loop has `repeat_loop_length` 0 (and start 0); the serializer's `start + (length - 1)` then gives
   `loop_end_time_ms` -0.0625 (-1 sample at 16 kHz). Standalone `.EAS` files mark it with loop start 0xFFFFFFFF.
 - Collision bank variants `COLL_SW`, `COLLSWWT`, `COLLSWMT`, `COLLSW3D`, `COLSWWT3`, `COLSWMT3` hold byte-identical
-  wavs at 0x21–0x3a (the `*3D`/`*3` ones add 0x31–0x3b odd); from 0x3d up the indices differ per variant. The `*SB*`
-  variants share only some of them. Inside a `*SW*` bank several indices are one wav, one per mixer channel of the game:
+  wavs at 0x21–0x3a (the `*3D`/`*3` ones add 0x31–0x3b odd). From 0x3d up each has a subset: 0x3f and 0x50 in all,
+  0x3e in all but `*MT*`, 0x3d in `*MT*`, `COLL_SW` and `COLLSW3D` (two different wavs), 0x40 in the `*3D`/`*3` ones;
+  otherwise one index is one wav in all of them. The `*SB*` variants share only some of them. Inside a `*SW*` bank several indices are one wav, one per mixer channel of the game:
   0x2d = 0x2a = 0x2b = 0x38 = 0x3a, 0x2e = 0x26 = 0x28, 0x27 = 0x34 = 0x36, 0x29 = 0x30 = 0x32.
 - Collision bank samples, as the game uses them (tnfs-1995, DOS `sfx_00066056` / `sfx_00065eb1`): 0x21 light hit /
   prop, 0x22 medium hit, 0x23 fence hit, 0x24 heavy hit, 0x25 landing / bump, 0x27 body scrape loop, 0x29 wind loop,
-  0x2d tyre squeal loop, 0x2e gravel squeal loop; 0x50 is nfs-web's traffic horn (picked by ear). The GUI's bank
-  viewer labels them.
+  0x2d tyre squeal loop, 0x2e gravel squeal loop, 0x3e waterfall loop (TRI `item_mode` 14 / 15). The GUI's bank
+  viewer labels them. In `COLLSWWT`, 0x3f (16 kHz, steady 370 Hz tone, looped) is nfs-web's traffic horn (picked by
+  ear); 0x50 (22 kHz one-shot, decaying 1 kHz tone, random range 600) has an unknown use.

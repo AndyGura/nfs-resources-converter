@@ -22,6 +22,7 @@ const COLLISION_BANK_SAMPLES: { [index: number]: string } = {
   0x36: 'body scrape loop',
   0x38: 'tyre squeal loop',
   0x3a: 'tyre squeal loop',
+  0x3e: 'waterfall loop',
 };
 
 @Component({
@@ -44,9 +45,11 @@ export class SoundbankBlockUiComponent extends GuiComponent implements OnChanges
         (x: { name: string; schema: BlockSchema }) => x.name === 'children',
       )?.schema.child_schema;
       if (!childSchema) return;
-      let idxs = (this.resourceData!.items_descr as number[])
+      // children are in file order, which is not always the index order of items_descr: sort indices by offset
+      const idxs = (this.resourceData!.items_descr as number[])
         .map((x, i) => [x, i])
         .filter(([x, i]) => x > 0)
+        .sort((a, b) => a[0] - b[0])
         .map(([x, i]) => i);
       const isCollisionBank = /(^|[\\/])COL[^\\/]*\.BNK$/i.test(this.resourceId || '');
       for (let i = 0; i < this.resourceData!.children.length; i++) {

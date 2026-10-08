@@ -189,8 +189,14 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
             FixedPointBlock(length=4, fraction_bits=16, is_signed=True),
             {'description': 'Normal coefficient loss'},
         )
-        max_rpm = (IntegerBlock(length=4), {'description': 'Engine max RPM'})
-        min_rpm = (IntegerBlock(length=4), {'description': 'Engine min RPM'})
+        max_rpm = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Engine redline RPM (`rpm_redline` in the game engine). Among others it scales the '
+                'engine sound pitch: pitch value = rpm * 127 / (max_rpm + 2000), at most 127 (DOS 0x668ab)'
+            },
+        )
+        min_rpm = (IntegerBlock(length=4), {'description': 'Engine idle RPM (`rpm_idle` in the game engine)'})
         torques = (
             ArrayBlock(
                 length=60,

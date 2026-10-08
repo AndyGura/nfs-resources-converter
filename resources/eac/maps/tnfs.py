@@ -58,13 +58,20 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                 'second number is fence on right side. Used for physics simulation'
             },
         )
-        verge_slide = (
+        shoulder_surface_type = (
             SubByteArrayBlock(length=2, bits_per_value=4),
             {
-                'description': 'A slidiness of road areas between verge distance and barrier. First number for '
-                'left verge, second number for right verge. Values above 3 cause unbearable slide '
-                'in the game and make it impossible to return back to road. High values around '
-                'maximum (15) cause lags and even crashes'
+                'description': 'Surface type of the road shoulders, the areas between the verge distance and the '
+                'barrier: first number for the left shoulder, second number for the right one (the game takes '
+                '`>> 4` and `& 0xf` of this byte). The car gets this surface while it is between `left_verge` / '
+                "`right_verge` and the barrier, 0 elsewhere. It is an index into the game's road surface table "
+                '(grip, drag, is_unpaved): 0 is tarmac like the road, 1 and 2 are unpaved shoulders with 20 times '
+                'the velocity drag. Higher values read past the table: values above 3 cause unbearable slide in the '
+                'game and make it impossible to return back to road, values around the maximum (15) cause lags and '
+                "even crashes. Also used for sound: a non-zero value turns the player's wind loop into a gravel "
+                'rumble (pitch value 0x18, volume +25%), an unpaved surface picks the gravel tyre squeal and dust. '
+                'Decoded by [tnfs-1995](https://github.com/marcos2250/tnfs-1995) (`shoulder_surface_type`; DOS '
+                'sound code 0x668ab)'
             },
         )
         item_mode = (
@@ -90,7 +97,18 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                     (18, 'water_audio'),  # OpenNFS1: water right channel
                 ]
             ),
-            {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features'},
+            {
+                'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features. '
+                'Effects found in the game code ([tnfs-1995](https://github.com/marcos2250/tnfs-1995) '
+                "`tnfs_track_item_mode_flags`, PSX 0x80030fe8, DOS 0x5b2b9): 4, 7, 9, 12 and 13 set the car's "
+                'in-tunnel flag (wind loop +20 volume and pitch value 0x5e; on PSX a voice mode switch, probably '
+                'reverb; the police siren adds a sample in tunnels; the DOS camera 0x6b5a5 skips the horizon for 4, 7, '
+                '9 and 8). 5 is cobbles: the wind loop pitch wobbles between 0x40 and 0x5e with speed; a side with '
+                'a fence (`fence_flag`) also gets a different fence offset in 3D crash collisions unless the mode is '
+                '5. 14 / 15 play the waterfall loop (collision bank sample 0x3e on mixer channel 0xb), panned hard '
+                'left / right and fading in and out by 5 per tick. 8 sets a second engine flag next to the in-tunnel '
+                'one, which is never read: its effect is unknown'
+            },
         )
         position = (
             Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
@@ -506,7 +524,7 @@ class TriMap(DeclarativeCompoundBlock):
             # swap lanes
             vertex['num_lanes'] = [vertex['num_lanes'][1], vertex['num_lanes'][0]]
             vertex['fence_flag'] = [vertex['fence_flag'][1], vertex['fence_flag'][0]]
-            vertex['verge_slide'] = [vertex['verge_slide'][1], vertex['verge_slide'][0]]
+            vertex['shoulder_surface_type'] = [vertex['shoulder_surface_type'][1], vertex['shoulder_surface_type'][0]]
             # change sign of slope/slant values
             vertex['slope'] = -vertex['slope']
             vertex['slant'] = -vertex['slant']
