@@ -121,6 +121,14 @@ When you do:
   check, `NFS_GAMES_EXTENSIONS=.FSH,.QFS` limits it to some extensions (both only print the reports, without
   overwriting the files).
 
+## TNFS track export (SIMDATA/MISC/*.TRI)
+
+- `TriMapSerializer` writes the road spline as the curve `road_path` of `map.meta` / `map.glb` (gg-web-engine export),
+  with one array per point property, in point order: slope, slant, barrier / verge distances, lanes, AI / traffic speeds
+  (per chunk of 4 points), `item_mode` (raw byte value), `left_shoulder_surface_type` / `right_shoulder_surface_type`
+  and `left_fence` / `right_fence` (the nibbles of `shoulder_surface_type` / `fence_flag`, left = high nibble). nfs-web
+  reads these keys and mirrors the track itself (left / right arrays swapped): keep them stable and unmirrored.
+
 ## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
 
 - `items` / `children` are in file order, which is not always the index order of the 128-entry offset table
@@ -147,3 +155,23 @@ When you do:
   0x2d tyre squeal loop, 0x2e gravel squeal loop, 0x3e waterfall loop (TRI `item_mode` 14 / 15). The GUI's bank
   viewer labels them. In `COLLSWWT`, 0x3f (16 kHz, steady 370 Hz tone, looped) is nfs-web's traffic horn (picked by
   ear); 0x50 (22 kHz one-shot, decaying 1 kHz tone, random range 600) has an unknown use.
+
+## EA sound banks of NFS2-NFS6 (BNKl)
+
+- `EaSoundBank` (`resources/eac/archives`, magic `BNKl`, versions 2/4/5) holds a slot table of `EaSoundPatch` "PT"
+  headers (tag list, `resources/eac/audios.py`) and the wave data. The loader picks it by magic before the TNFS `.BNK`
+  rule; it is also a BIGF item (NFS3 `car.viv` `car.bnk`, `ocar.bnk`, `ocard.bnk`, `scar.bnk`; NFS4 `careng.bnk`...).
+  Patch tags are written back in place, so a tag value can change but not its length; wave data is not editable.
+- A patch can have several layers (tag 0xFE between them), each with its own settings and wave data: NFS3 player
+  engines layer a stereo sample with a short mono loop.
+- Codecs: 16-bit PCM, EA-XA v1 (`codec` 7) and v2, signed 8-bit PCM (`library/utils/audio_ea_xa_codec.py`; the EA-XA
+  decoder matches the 8-bit PCM copies NFS5 keeps of the same samples). EA MicroTalk (`codec` 9, NFS3/NFS4 speech) is
+  not decoded: those layers go to the bank's `skipped.txt`.
+- Output: one folder per bank, `0x<index>.wav` + `0x<index>.meta.json` (`0x<index>_layer_<n>` for the next layers)
+  with `loop`, `loop_start_time_ms`, `loop_end_time_ms` and the layer's named tags (`volume`, `pan`, `priority`,
+  `bend_range_semitones`, `random_detune_range`...). Default sampling rate is 22050.
+- Car banks: 0 and 1 engine loops, 2 gear shift (one-shot, random detune 200-250), 3 horn (loop). Opponent banks
+  have the engine and the horn only: NFS2 `O<car>.BNK` in 0 and 1 (2-slot table), NFS3 `ocar.bnk` / NFS4
+  `ocareng.bnk` in 0 and 3. `GEN.BNK` (NFS2 SE, NFS3) seems to keep TNFS collision bank indices: hits
+  0x1d-0x25 (one-shots with random detune 250-300), loops 0x28 (scrape?), 0x29 (wind?), 0x2a-0x2d (tyre squeal?),
+  0x2e (gravel?). Picked by signal analysis, not confirmed by game code or by ear.

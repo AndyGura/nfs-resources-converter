@@ -255,3 +255,136 @@ class TestBigfBlock(unittest.TestCase):
         reread = block.unpack_from_bytes(nfs6_style)
         self.assertEqual(reread['length'], size - 3)
         self.assertEqual(block.pack(reread), nfs6_style)
+
+
+def build_ea_sound_bank() -> bytes:
+    """BNKl version 2 with 3 slots: 16-bit PCM stereo sound with a mono EA-XA layer, an empty slot, a one-shot"""
+
+    def patch(tags: list) -> bytes:
+        res = b'PT\x00\x00'
+        for tag, value, length in tags:
+            res += bytes([tag]) if value is None else bytes([tag, length]) + value.to_bytes(length, 'big')
+        res += b'\xff'
+        return res + bytes((-len(res)) % 4)
+
+    pcm_stereo = struct.pack('<8h', 1, -1, 2, -2, 3, -3, 4, -4)
+    ea_xa = bytes([0x0C]) + bytes([0x12] * 14)
+    pcm_mono = struct.pack('<3h', 100, 200, 300)
+    header_length = 12 + 3 * 4 + 3 * 64
+    data_offsets = [header_length, header_length + len(pcm_stereo), header_length + len(pcm_stereo) + len(ea_xa)]
+    patches = [
+        patch(
+            [
+                (0x0E, 90, 1),
+                (0xFD, None, 0),
+                (0x85, 4, 2),
+                (0x82, 2, 1),
+                (0x86, 1, 1),
+                (0x87, 3, 1),
+                (0x88, data_offsets[0], 4),
+                (0x8A, 0, 4),
+                (0xFE, None, 0),
+                (0x0E, 30, 1),
+                (0xFD, None, 0),
+                (0x83, 7, 1),
+                (0x85, 28, 1),
+                (0x86, 0, 0),
+                (0x88, data_offsets[1], 4),
+                (0x8A, 0, 4),
+            ]
+        ),
+        patch([(0x11, 200, 1), (0xFD, None, 0), (0x84, 11025, 2), (0x85, 3, 1), (0x88, data_offsets[2], 4)]),
+    ]
+    patches = [x + bytes(64 - len(x)) for x in patches]
+    # offsets are relative to the table slot: slot 0 at 12, slot 2 at 20, patches from 24
+    table = struct.pack('<3I', 24 - 12, 0, 24 + 64 - 20)
+    header = b'BNKl' + struct.pack('<HHI', 2, 3, header_length)
+    return header + table + patches[0] + patches[1] + bytes(64) + pcm_stereo + ea_xa + pcm_mono
+
+
+class TestEaSoundBank(unittest.TestCase):
+    def test_bank_should_remain_the_same(self):
+        from resources.eac.archives import EaSoundBank
+
+        original = build_ea_sound_bank()
+        block = EaSoundBank()
+        data = block.unpack_from_bytes(original)
+        self.assertEqual(block.item_indices(data), [0, 2])
+        self.assertEqual(block.pack(data), original)
+        self.assertEqual(block.estimate_packed_size(data), len(original))
+
+    def test_patch_layers(self):
+        from resources.eac.archives import EaSoundBank
+        from resources.eac.audios import EaSoundPatch
+
+        block = EaSoundBank()
+        data = block.unpack_from_bytes(build_ea_sound_bank())
+        layers = EaSoundPatch.layers(data['items'][0])
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(layers[0]['volume'], 90)
+        self.assertEqual(layers[0]['channels'], 2)
+        self.assertEqual((layers[0]['loop_start'], layers[0]['loop_end']), (1, 3))
+        self.assertEqual(layers[1]['codec'], 7)
+        self.assertEqual(layers[1]['loop_start'], 0)
+        self.assertEqual(block.wave_data(data, layers[0])[:4], struct.pack('<2h', 1, -1))
+
+    def test_tag_value_is_written_in_place(self):
+        from resources.eac.archives import EaSoundBank
+
+        block = EaSoundBank()
+        data = block.unpack_from_bytes(build_ea_sound_bank())
+        volume = next(x for x in data['items'][0]['tags'] if x['tag'] == 'volume')
+        volume['value'] = 127
+        reread = block.unpack_from_bytes(block.pack(data))
+        self.assertEqual(reread['items'][0]['tags'][0]['value'], 127)
+        volume['value'] = 0x1234
+        with self.assertRaises(OverflowError):
+            block.pack(data)
+
+    def test_serialized_wavs(self):
+        import json
+        import wave
+        from resources.eac.archives import EaSoundBank
+        from serializers import EaSoundBankSerializer
+
+        block = EaSoundBank()
+        data = block.unpack_from_bytes(build_ea_sound_bank())
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            EaSoundBankSerializer().serialize(data, tmp_dir, id='test.BNK', block=block)
+            self.assertEqual(
+                sorted(os.listdir(tmp_dir)),
+                ['0x0.meta.json', '0x0.wav', '0x0_layer_1.meta.json', '0x0_layer_1.wav', '0x2.meta.json', '0x2.wav'],
+            )
+            with wave.open(os.path.join(tmp_dir, '0x0.wav')) as wf:
+                self.assertEqual((wf.getnchannels(), wf.getframerate(), wf.getnframes()), (2, 22050, 4))
+            with wave.open(os.path.join(tmp_dir, '0x0_layer_1.wav')) as wf:
+                # coefficients 0, shift 12: every nibble 1 / 2 becomes a sample 1 / 2
+                self.assertEqual(struct.unpack('<28h', wf.readframes(28)), (1, 2) * 14)
+            with wave.open(os.path.join(tmp_dir, '0x2.wav')) as wf:
+                self.assertEqual((wf.getframerate(), wf.readframes(3)), (11025, struct.pack('<3h', 100, 200, 300)))
+            with open(os.path.join(tmp_dir, '0x0.meta.json')) as f:
+                meta = json.load(f)
+            self.assertTrue(meta['loop'])
+            self.assertAlmostEqual(meta['loop_start_time_ms'], 1000 / 22050)
+            self.assertAlmostEqual(meta['loop_end_time_ms'], 3000 / 22050)
+            self.assertEqual(meta['volume'], 90)
+            with open(os.path.join(tmp_dir, '0x2.meta.json')) as f:
+                meta = json.load(f)
+            self.assertFalse(meta['loop'])
+            self.assertEqual(meta['random_detune_range'], 200)
+
+    def test_nfs3_car_viv_banks(self):
+        (name, block, res) = require_file('test/samples/nfs3_f355.viv')
+        with open('test/samples/nfs3_f355.viv', 'rb') as f:
+            original = f.read()
+        banks = {
+            x['alias']: x
+            for x in res['children']
+            if block.item_block.possible_blocks[x['item']['choice_index']].__class__.__name__ == 'EaSoundBank'
+        }
+        self.assertEqual(sorted(banks), ['car.bnk', 'ocar.bnk', 'ocard.bnk', 'scar.bnk'])
+        bank_block = next(x for x in block.item_block.possible_blocks if x.__class__.__name__ == 'EaSoundBank')
+        bank = banks['car.bnk']['item']['data']
+        self.assertEqual(bank_block.item_indices(bank), [0, 1, 2, 3])
+        packed = bank_block.pack(bank)
+        self.assertIn(packed, original)

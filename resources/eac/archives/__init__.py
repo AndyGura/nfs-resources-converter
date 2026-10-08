@@ -11,11 +11,12 @@ from library.read_blocks import (
     ArrayBlock,
     AutoDetectBlock,
     BytesBlock,
+    OptionalBlock,
 )
 from library.read_blocks.archives import ArchiveBlock
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
-from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry
+from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry, EaSoundPatch
 from resources.common.bitmaps.targa_image import TargaImage
 from .shpi_block import ShpiBlock
 from .compressed_block import EacCompressedBlock
@@ -219,6 +220,7 @@ class BigfBlock(ArchiveBlock):
                     ShpiBlock(),
                     EacCompressedBlock(),
                     TargaImage(),
+                    EaSoundBank(),
                     self,
                     BytesBlock(
                         length=(
@@ -267,6 +269,7 @@ class BigfBlock(ArchiveBlock):
                 '<br/>- [Fce4Geometry](#fce4geometry)'
                 '<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file'
                 '<br/>- [BigfBlock](#bigfblock)'
+                '<br/>- [EaSoundBank](#easoundbank)'
                 '<br/>- pure TGA image',
             },
         )
@@ -464,3 +467,128 @@ class SoundBank(DeclarativeCompoundBlock):
         data_to_write['wave_data'] = wave_data_heap
         data_to_write['children'] = []
         return super().write(data_to_write, ctx, name)
+
+
+class EaSoundBank(DeclarativeCompoundBlock):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'EA sound bank "BNKl" (*.BNK of NFS2, NFS2 SE, NFS3, NFS4, NFS5, NFS6): a table of '
+            'sound patches, then their wave data. Car banks (NFS2 `<car>.BNK` / `O<car>.BNK` (opponent) / '
+            '`S<car>.BNK`, NFS3 `car.bnk` / `ocar.bnk` / `scar.bnk` in car.viv, NFS4 `careng.bnk` / `ocareng.bnk` / '
+            '`scareng.bnk`, NFS3/NFS4 `GENCAR.BNK`, traffic `TRUCK.BNK`...) use indices 0 and 1 for the engine '
+            '(looped), 2 for a one-shot with random detune range 200-250 (gear shift, like `gear` of TNFS car banks) '
+            'and 3 for the horn (looped). Opponent banks have the engine and the horn only: NFS2 `O<car>.BNK` in '
+            'slots 0 and 1 of a 2-slot table, NFS3 `ocar.bnk` / NFS4 `ocareng.bnk` in slots 0 and 3. NFS4 '
+            '`careng.bnk` has more engine samples at higher indices (presumably one per RPM range). `W*.BNK` of NFS2 '
+            'SE are car speech',
+        }
+
+    class Fields(DeclarativeCompoundBlock.Fields):
+        resource_id = (UTF8Block(length=4, value_validator=Eq('BNKl')), {'description': 'Resource ID'})
+        version = (
+            IntegerBlock(length=2),
+            {
+                'description': '2 (NFS2, NFS2 SE, most of NFS3 GameData/Audio/SFX), 4 (NFS3 car.viv, NFS4, NFS5, NFS6) or 5 (NFS6)'
+            },
+        )
+        num_items = (
+            IntegerBlock(length=2, programmatic_value=lambda ctx: len(ctx.data('items_descr'))),
+            {'description': 'Amount of slots in `items_descr`'},
+        )
+        header_length = (
+            IntegerBlock(length=4),
+            {
+                'description': 'Version 2 and 4: offset of the wave data, i.e. the length of the table and the '
+                'patches. Version 5: file length'
+            },
+        )
+        wave_data_length = (
+            OptionalBlock(
+                IntegerBlock(length=4), criteria=(lambda ctx: ctx.data('version') >= 4, 'version >= 4'), default_value=0
+            ),
+            {'description': 'Version 4: length of the wave data. Version 5: 0'},
+        )
+        unk0 = (
+            OptionalBlock(
+                IntegerBlock(length=4), criteria=(lambda ctx: ctx.data('version') >= 4, 'version >= 4'), default_value=0
+            ),
+            {'is_unknown': True},
+        )
+        items_descr = (
+            ArrayBlock(child=IntegerBlock(length=4), length=lambda ctx: ctx.data('num_items')),
+            {
+                'description': 'Offset of every patch, relative to its own position in this table, the array index '
+                'being the sample index used by the game. 0 is an empty slot'
+            },
+        )
+        data_bytes = (
+            BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
+            {
+                'description': 'Sound patches ([EaSoundPatch](#easoundpatch)) at the offsets of `items_descr`, then '
+                'wave data',
+                'usage': 'io,doc',
+            },
+        )
+        items = (
+            ArrayBlock(child=EaSoundPatch(), length=(0, 'amount of non-zero elements in items_descr')),
+            {
+                'description': 'Sound patches of non-empty slots, in table order. Their tags are written back in '
+                'place: a value can change, the length of a value can not',
+                'usage': 'ui',
+            },
+        )
+
+    def _table_offset(self, data) -> int:
+        return 20 if data['version'] >= 4 else 12
+
+    def item_indices(self, data) -> List[int]:
+        """`items_descr` index of every entry of `items`"""
+        return [i for (i, x) in enumerate(data['items_descr']) if x > 0]
+
+    def _patch_positions(self, data) -> List[int]:
+        """Position of every patch of `items` in `data_bytes`"""
+        table_offset = self._table_offset(data)
+        data_bytes_offset = table_offset + 4 * len(data['items_descr'])
+        return [table_offset + 4 * i + data['items_descr'][i] - data_bytes_offset for i in self.item_indices(data)]
+
+    def wave_data(self, data, layer: Dict) -> bytes:
+        """Wave data of a layer (see `EaSoundPatch.layers`), from the bank's data bytes; `layer['data_offset']` is
+        relative to the start of the bank"""
+        offset = layer['data_offset'] - self._table_offset(data) - 4 * len(data['items_descr'])
+        return data['data_bytes'][offset:]
+
+    def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        res = super().read(ctx, name, read_bytes_amount)
+        patch_block = self.field_blocks_map['items'].child
+        res['items'] = [
+            patch_block.unpack_from_bytes(res['data_bytes'][pos:], name=f'items/{i}')
+            for (i, pos) in enumerate(self._patch_positions(res))
+        ]
+        return res
+
+    def _native_data(self, data):
+        data = deepcopy(data)
+        patch_block = self.field_blocks_map['items'].child
+        data_bytes = bytearray(data['data_bytes'])
+        for pos, item in zip(self._patch_positions(data), data['items']):
+            packed = patch_block.pack(item)
+            original_length = patch_block.estimate_packed_size(patch_block.unpack_from_bytes(data['data_bytes'][pos:]))
+            if len(packed) != original_length:
+                raise ValueError('Cannot change the length of a sound patch tag value')
+            data_bytes[pos : pos + len(packed)] = packed
+        data['data_bytes'] = bytes(data_bytes)
+        data['items'] = []
+        return data
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        return self._table_offset(data) + 4 * len(data['items_descr']) + len(data['data_bytes'])
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        return super().write(self._native_data(data), ctx, name)
+
+    def serializer_class(self):
+        from serializers import EaSoundBankSerializer
+
+        return EaSoundBankSerializer

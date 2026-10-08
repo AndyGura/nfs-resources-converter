@@ -437,6 +437,7 @@ for obj in bpy.context.selected_objects:
 
         # add road spline to map scene
         spline = data['road_spline'][: len(data['terrain']) * 4]
+        item_mode_names = RoadSplinePoint().field_blocks_map['item_mode'].enum_name_map
         curve = {
             'name': 'road_path',
             'closed': not is_opened,
@@ -451,6 +452,12 @@ for obj in bpy.context.selected_objects:
                 'right_verge_distance': [x['right_verge'] for x in spline],
                 'lanes_backward': [x['num_lanes'][0] for x in spline],
                 'lanes_forward': [x['num_lanes'][1] for x in spline],
+                # raw byte values, not enum names
+                'item_mode': [item_mode_names.index(x['item_mode']) for x in spline],
+                'left_shoulder_surface_type': [x['shoulder_surface_type'][0] for x in spline],
+                'right_shoulder_surface_type': [x['shoulder_surface_type'][1] for x in spline],
+                'left_fence': [x['fence_flag'][0] for x in spline],
+                'right_fence': [x['fence_flag'][1] for x in spline],
                 'max_ai_speed': [
                     data['ai_info'][math.floor(i / 4)]['top_speed'] for i in range(len(data['terrain']) * 4)
                 ],

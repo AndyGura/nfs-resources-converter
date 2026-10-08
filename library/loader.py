@@ -16,7 +16,7 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
         header_str = None
 
     if file_path:
-        if file_path.endswith('.BNK'):
+        if file_path.endswith('.BNK') and header_bytes != b'BNKl':
             from resources.eac.archives import SoundBank
 
             return SoundBank
@@ -83,6 +83,10 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.misc import DashDeclarationFile
 
             return DashDeclarationFile
+        elif header_str == 'BNKl':
+            from resources.eac.archives import EaSoundBank
+
+            return EaSoundBank
         elif header_str == '1SNh':
             from resources.eac.audios import AsfAudio
 

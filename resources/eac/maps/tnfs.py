@@ -107,7 +107,9 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                 'a fence (`fence_flag`) also gets a different fence offset in 3D crash collisions unless the mode is '
                 '5. 14 / 15 play the waterfall loop (collision bank sample 0x3e on mixer channel 0xb), panned hard '
                 'left / right and fading in and out by 5 per tick. 8 sets a second engine flag next to the in-tunnel '
-                'one, which is never read: its effect is unknown'
+                'one, which is never read: its effect is unknown. Values in the game tracks besides 1 and 3: 0 / 2 at single '
+                'points, 4 in most tracks, 5 in AL2, TR4, TR7, 7 in CL2, 8 in CL3, 9 in AL3, 11 in TR2, 12 and 13 in '
+                'TR3, 14 in TR2 and TR3, 15 in TR3, 16 in AL1 and TR3, 17 in TR7, 18 in TR6'
             },
         )
         position = (

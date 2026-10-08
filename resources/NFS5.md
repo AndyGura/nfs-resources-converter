@@ -1,9 +1,11 @@
 # **NFS 5 Porsche Unleashed file specs** #
 
-*Last time updated: 2026-10-06 13:28:56.223157+00:00*
+*Last time updated: 2026-10-08 21:41:48.050767+00:00*
 
 
 # **Info by file extensions** #
+
+**\*.BNK** sound bank. [EaSoundBank](#easoundbank)
 
 **\*.crp** geometry file. [CrpGeometry](#crpgeometry), [compressed](eac_compressions.md)
         
@@ -42,7 +44,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (big endian) | An amount of items |
 | 12 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 16 | **items_descr** | num_items\*9..? | Array of `num_items` items<br/>Item type: [BigfItemDescriptionBlock](#bigfitemdescriptionblock) | Descriptions of items: offset, length and name of each of them |
-| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock)<br/>- pure TGA image |
+| 16 + num_items\*9..? | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets and lengths are defined in previous block. Possible item types:<br/>- [ShpiBlock](#shpiblock), can be compressed like QFS file<br/>- [BigfBlock](#bigfblock)<br/>- [EaSoundBank](#easoundbank)<br/>- pure TGA image |
 ### **BigfItemDescriptionBlock** ###
 #### **Size**: 9..? bytes ####
 #### **Description**: Description of a single item of BIGF archive ####
@@ -51,6 +53,19 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **offset** | 4 | 4-bytes unsigned integer (big endian) | Offset of item data, relative to BIGF block start |
 | 4 | **length** | 4 | 4-bytes unsigned integer (big endian) | Length of item data in bytes |
 | 8 | **name** | 1..? | Null-terminated UTF-8 string. Ends with first occurrence of zero byte | Item name (file name). Used as file name when the archive is unpacked |
+### **EaSoundBank** ###
+#### **Size**: 12..? bytes ####
+#### **Description**: EA sound bank "BNKl" (*.BNK of NFS2, NFS2 SE, NFS3, NFS4, NFS5, NFS6): a table of sound patches, then their wave data. Car banks (NFS2 `<car>.BNK` / `O<car>.BNK` (opponent) / `S<car>.BNK`, NFS3 `car.bnk` / `ocar.bnk` / `scar.bnk` in car.viv, NFS4 `careng.bnk` / `ocareng.bnk` / `scareng.bnk`, NFS3/NFS4 `GENCAR.BNK`, traffic `TRUCK.BNK`...) use indices 0 and 1 for the engine (looped), 2 for a one-shot with random detune range 200-250 (gear shift, like `gear` of TNFS car banks) and 3 for the horn (looped). Opponent banks have the engine and the horn only: NFS2 `O<car>.BNK` in slots 0 and 1 of a 2-slot table, NFS3 `ocar.bnk` / NFS4 `ocareng.bnk` in slots 0 and 3. NFS4 `careng.bnk` has more engine samples at higher indices (presumably one per RPM range). `W*.BNK` of NFS2 SE are car speech ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **resource_id** | 4 | UTF-8 string. Always == "BNKl" | Resource ID |
+| 4 | **version** | 2 | 2-bytes unsigned integer (little endian) | 2 (NFS2, NFS2 SE, most of NFS3 GameData/Audio/SFX), 4 (NFS3 car.viv, NFS4, NFS5, NFS6) or 5 (NFS6) |
+| 6 | **num_items** | 2 | 2-bytes unsigned integer (little endian) | Amount of slots in `items_descr` |
+| 8 | **header_length** | 4 | 4-bytes unsigned integer (little endian) | Version 2 and 4: offset of the wave data, i.e. the length of the table and the patches. Version 5: file length |
+| 12 | **wave_data_length** | 0..4 | Optional (if version >= 4): 4-bytes unsigned integer (little endian) | Version 4: length of the wave data. Version 5: 0 |
+| 12..16 | **unk0** | 0..4 | Optional (if version >= 4): 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 12..20 | **items_descr** | num_items\*4 | Array of `num_items` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Offset of every patch, relative to its own position in this table, the array index being the sample index used by the game. 0 is an empty slot |
+| 12 + num_items\*4..20 + num_items\*4 | **data_bytes** | up to end of block | Bytes | Sound patches ([EaSoundPatch](#easoundpatch)) at the offsets of `items_descr`, then wave data |
 ## **Geometries** ##
 ### **CrpGeometry** ###
 #### **Size**: 16..? bytes ####
@@ -444,3 +459,20 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **left** | 2 | 2-bytes unsigned integer (little endian) | Code of left glyph |
 | 2 | **kerning** | 1 | 1-byte signed integer | Kerning amount in pixels, added to the gap between the glyphs |
 | 3 | **right** | 1 | 1-byte unsigned integer | Code of right glyph |
+## **Audio** ##
+### **EaSoundPatch** ###
+#### **Size**: 4..? bytes ####
+#### **Description**: EA sound patch ("PT" header): a sound of a BNKl sound bank as a list of tags. Tags before `info_start` are playback settings (priority, volume, pan, pitch bend range...), tags after it describe the wave data: `num_samples`, `channels` (default 1), `sampling_rate` (default 22050), loop sample indices `loop_start` and `loop_end` (inclusive; a sample loops when it has one of them, from 0 / up to the last sample when the other one is missing), `data_offset` (wave data offset from the start of the bank file) and the codec. Without the `version` tag, `codec` 7 is EA-XA ADPCM v1, 9 is EA MicroTalk 10:1 (speech), no `codec` tag is 16-bit little endian PCM. With `version` 1, `codec_2` 8 is 16-bit little endian PCM, 9 is signed 8-bit PCM, no `codec_2` tag is EA-XA ADPCM v2. Stereo samples are interleaved. A sound can have several layers, played together, separated by the `layer_end` tag, each one with its own settings and wave data (NFS3 player car engines add a short mono loop to the stereo engine sample) ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **platform_magic** | 2 | UTF-8 string. Always == "PT" | Patch header magic |
+| 2 | **platform** | 2 | 2-bytes unsigned integer (little endian) | Platform id, 0 is PC |
+| 4 | **tags** | up to and including tag "end"..? | Array of `up to and including tag "end"` items<br/>Item type: [EaSoundPatchTag](#easoundpatchtag) | Tags |
+### **EaSoundPatchTag** ###
+#### **Size**: 1..? bytes ####
+#### **Description**: A tag of EA sound patch: tag id, then (except for tags 0xFC-0xFF) the length of the value and the value, big endian unsigned. Tag meanings follow [vgmstream](https://github.com/vgmstream/vgmstream) (`ea_schl.c`), the ones named `unk_*` are not known ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **tag** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>6 (0x6): priority<br/>7 (0x7): unk_0x07<br/>8 (0x8): release_envelope<br/>9 (0x9): playback_envelope<br/>10 (0xa): bend_range_semitones<br/>11 (0xb): bank_channels<br/>12 (0xc): pan<br/>13 (0xd): random_pan_range<br/>14 (0xe): volume<br/>15 (0xf): random_volume_range<br/>16 (0x10): detune<br/>17 (0x11): random_detune_range<br/>18 (0x12): unk_0x12<br/>19 (0x13): effect_bus<br/>128 (0x80): version<br/>130 (0x82): channels<br/>131 (0x83): codec<br/>132 (0x84): sampling_rate<br/>133 (0x85): num_samples<br/>134 (0x86): loop_start<br/>135 (0x87): loop_end<br/>136 (0x88): data_offset<br/>137 (0x89): data_offset_channel_2<br/>138 (0x8a): unk_0x8a<br/>139 (0x8b): unk_0x8b<br/>140 (0x8c): flags<br/>145 (0x91): unk_0x91<br/>146 (0x92): unk_0x92<br/>147 (0x93): unk_0x93<br/>160 (0xa0): codec_2<br/>252 (0xfc): padding<br/>253 (0xfd): info_start<br/>254 (0xfe): layer_end<br/>255 (0xff): end</details> | Tag id |
+| 1 | **value_length** | 0..1 | Optional (if tag is not padding, info_start, layer_end or end): 1-byte unsigned integer | Length of value in bytes. 0 means value 0 |
+| 1..2 | **value** | 0..value_length | Optional (if tag is not padding, info_start, layer_end or end): Bytes | Value, big endian unsigned integer |
