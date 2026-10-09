@@ -21,20 +21,20 @@ class TriMapSerializer(BaseFileSerializer):
         super().__init__(is_dir=True)
 
     class TerrainChunk:
-        def get_fence_height(self, fence_texture_name):
-            # TODO determine where to get fence height from resource file
-            # resource = self.tri_block.fam.resources[0]
-            # for path in fence_texture_name.split('/'):
-            #     resource = resource.get_resource_by_name(path)
-            if self.tri_id.split('/')[-1][:3] in ['TR1', 'TR3']:
-                # TR1 texture height == 64; TR3: 51
-                return 1
-            elif self.tri_id.split('/')[-1][:3] in ['AL1', 'TR2', 'TR6']:
-                return 2  # TR2 95; TR6: 65; AL1: 64
-            elif self.tri_id.split('/')[-1][:3] in ['TR7']:
-                return 1.5  # TR7: 47
-            # didn't test other tracks
-            return 1
+        # Fence heights of the original game (16.16 fixed point 0x20000 and 0xe666, chunk fence bit 0x20 = low)
+        FENCE_HEIGHT = 2.0
+        LOW_FENCE_HEIGHT = 0xE666 / 0x10000
+        # matrix column indices: A10 A9 A8 A7 A6 A0 A1 A2 A3 A4 A5 = 0..10
+        A2, A7, A8 = 7, 3, 2
+        # item_mode (raw byte) of the chunk's first node -> the fence bottom vertex, from the game's terrain geometry
+        # records (SE g_terrain_geometry 0x4c49d4, picked by g_terrain_geometry_by_item_mode 0x4bba64; DOS, PSX the
+        # same). Tunnels draw no fence near the camera (SE only draws A2 / A8 at mid / far distance), so none here
+        TUNNEL_ITEM_MODES = (7, 9, 12, 13)
+        A8_FENCE_ITEM_MODES = (1, 14, 15, 16, 17, 18)
+        LANE_SPLIT_ITEM_MODE, LANE_MERGE_ITEM_MODE = 0, 2
+        # z-fighting workaround, see build_fence
+        FENCE_WALL_MAX_ANGLE = math.radians(10)
+        FENCE_WALL_SHIFT = 0.2
 
         def __init__(self, tri_id, tri_block, tri_data):
             self.tri_id = tri_id
@@ -43,13 +43,11 @@ class TriMapSerializer(BaseFileSerializer):
             self.next_chunk = None
             self.matrix = None
             self.fence_texture_name = None
+            self.fence_height = self.FENCE_HEIGHT
+            # raw item_mode byte of the chunk's first node
+            self.fence_item_mode = None
             self.has_left_fence = False
-            self.left_fence_polygon_index = 3
-            # FIXME hardcode
-            if self.tri_id.split('/')[-1][:3] == 'TR3':
-                self.left_fence_polygon_index = 2
             self.has_right_fence = False
-            self.right_fence_polygon_index = 7
             self.lane_merge_initiated = False
 
         # for lane split and merge chunks. Happens in TNFS open tracks
@@ -183,36 +181,82 @@ class TriMapSerializer(BaseFileSerializer):
                 model.texture_id = 'background/' + texture_names[i - 5 if i >= 5 else 9 - i]
                 model.name = f'terrain_chunk_{counter}_{i}_{model.texture_id}'
                 models.append(model)
-            if self.has_left_fence:
-                models.append(self.build_fence(counter, self.left_fence_polygon_index))
-            if self.has_right_fence:
-                models.append(self.build_fence(counter, self.right_fence_polygon_index))
+            for is_left, has_fence in [(True, self.has_left_fence), (False, self.has_right_fence)]:
+                fence = self.build_fence(counter, is_left) if has_fence else None
+                if fence:
+                    models.append(fence)
             return models
 
-        def build_fence(self, counter, index):
-            is_left = index < 5
-            matrix = deepcopy(self.matrix)
+        def _fence_columns(self, is_left) -> Optional[List[int]]:
+            """Column of the fence bottom vertex in rows 0..3 of this chunk and in the next chunk's row 0"""
+            mode = self.fence_item_mode
+            if mode in self.TUNNEL_ITEM_MODES:
+                return None
+            if not is_left:
+                return [self.A2] * 5
+            if mode == self.LANE_SPLIT_ITEM_MODE:
+                return [self.A7] + [self.A8] * 4
+            if mode == self.LANE_MERGE_ITEM_MODE:
+                return [self.A8] * 4 + [self.A7]
+            if mode in self.A8_FENCE_ITEM_MODES:
+                return [self.A8] * 5
+            return [self.A7] * 5
+
+        def _terrain_rows(self) -> list:
+            """Rows 0..3 of this chunk and the next chunk's row 0 (if any) with the vertices the terrain polygons use.
+            A lane split row of build_matrix lacks A8 (its columns are shifted), the matrix row has it on the A9-A7
+            line instead; after a lane merge the terrain lacks the next chunk's row 0 A7, its build_matrix row has it on
+            the A8-A6 line: the vertices of both lie on the rendered terrain edges"""
+            rows = [
+                self.matrix[3 - r]
+                if self.reference_points[r]['item_mode'] == 'lane_split'
+                else self.build_matrix[3 - r]
+                for r in range(4)
+            ]
             if self.next_chunk:
-                matrix = [self.next_chunk.matrix[-1]] + matrix
-            model = SubMesh()
-            for i in range(len(matrix)):
-                road_point = matrix[i][index]
-                # shift a bit (20cm) fence to fix z-fighting specifically on transtropolis track.
-                # It has vertical walls, intersecting with fence
-                # FIXME remove this after finding a way to render with custom z-buffer, required for NFS1 wheels
-                if self.tri_id.split('/')[-1][:3] == 'TR7':
-                    neighbour_point = matrix[i][index + 1 if is_left else index - 1]
-                    distance = math.sqrt(sum(pow(neighbour_point[c] - road_point[c], 2) for c in ['x', 'y', 'z']))
-                    koef = 0.2 / distance
-                    road_point = {c: road_point[c] * (1 - koef) + neighbour_point[c] * koef for c in ['x', 'y', 'z']}
-                model.vertices.append([road_point['x'], road_point['y'], road_point['z']])
-                model.vertices.append(
-                    [road_point['x'], road_point['y'] + self.get_fence_height(self.fence_texture_name), road_point['z']]
+                rows.append(
+                    self.next_chunk.build_matrix[3] if self.lane_merge_initiated else self.next_chunk.matrix[-1]
                 )
-            for i in range(len(matrix) - 1):
+            return rows
+
+        def _fence_bottom(self, row, column, is_left) -> List[float]:
+            # The original draws the fence straight on the terrain vertex, after the terrain of its row (painter's
+            # algorithm), so the fence covers whatever terrain is coplanar with it. The web game uses a z-buffer: where a
+            # vertical terrain wall rises from the fence vertex (e.g. ~220 nodes of TR7), the wall polygon and the fence
+            # are coplanar and z-fight. Move the fence bottom there a bit towards the road along the terrain edge, so it
+            # stays on the terrain and in front of the wall
+            bottom = row[column]
+            outward = row[column - 1 if is_left else column + 1]
+            inward = row[column + 1 if is_left else column - 1]
+            rise = outward['y'] - bottom['y']
+            run = math.hypot(outward['x'] - bottom['x'], outward['z'] - bottom['z'])
+            if rise > 0 and run <= rise * math.tan(self.FENCE_WALL_MAX_ANGLE):
+                distance = math.dist([bottom[c] for c in 'xyz'], [inward[c] for c in 'xyz'])
+                if distance > 0:
+                    k = min(self.FENCE_WALL_SHIFT, distance / 2) / distance
+                    return [bottom[c] * (1 - k) + inward[c] * k for c in 'xyz']
+            return [bottom[c] for c in 'xyz']
+
+        def build_fence(self, counter, is_left) -> Optional[SubMesh]:
+            # The game (SE tnfs_render_track_fence 0x44a2b4, DOS 0x69719, PSX 0x80046484) draws one vertical quad per
+            # node to the next node, from a terrain vertex picked by the item_mode of the chunk's first node, up by the
+            # fence height
+            columns = self._fence_columns(is_left)
+            if columns is None:
+                return None
+            rows = self._terrain_rows()
+            # in the order of the terrain polygons' matrix: the next chunk's row 0 first, then rows 3..0
+            bottoms = [self._fence_bottom(rows[r], columns[r], is_left) for r in reversed(range(len(rows)))]
+            model = SubMesh()
+            for bottom in bottoms:
+                model.vertices.append(bottom)
+                model.vertices.append([bottom[0], bottom[1] + self.fence_height, bottom[2]])
+            for i in range(len(bottoms) - 1):
                 model.polygons.append([i * 2, i * 2 + 1, i * 2 + 3])
                 model.polygons.append([i * 2 + 2, i * 2, i * 2 + 3])
-            model.vertex_uvs = [[math.floor(x / 2), 0 if x % 2 == 1 else 1] for x in range(len(model.vertices))]
+            # the game maps the fence with the road polygon descriptor of its row, like the terrain polygons: half a
+            # texture width per node, the full texture height from bottom (v = 1) to top (v = 0)
+            model.vertex_uvs = [[(x // 2) / 2, 0 if x % 2 == 1 else 1] for x in range(len(model.vertices))]
             model.texture_id = self.fence_texture_name
             model.name = f'terrain_chunk_{counter}_{"left" if is_left else "right"}fence_{self.fence_texture_name}'
             return model
@@ -276,6 +320,34 @@ for obj in bpy.context.selected_objects:
             return (
                 '0/' + str(math.floor(texture_id / 3)).zfill(2) + hex(10 + texture_id % 3)[2:].upper() + '0'
             )  # zero scale is the biggest and always presented in FAM file
+
+    def _background_texture_names(self, id) -> Optional[Dict[str, str]]:
+        """Lower case -> on-disk case of the `<resource>/<alias>` names of the track's FAM background bitmaps, None
+        if the FAM can't be read"""
+        from library import require_resource
+
+        fam_id = path_join('/'.join(id.split('/')[:-2]), f'ETRACKFM/{id.split("/")[-1][:3]}_001.FAM')
+        try:
+            (_, _, fam), _ = require_resource(fam_id)
+            names = {}
+            for i, resource in enumerate(fam['children'][0]['item']['data']['children']):
+                for bitmap in resource['item']['data']['children']:
+                    names[f'{i}/{bitmap["alias"]}'.lower()] = f'{i}/{bitmap["alias"]}'
+            return names
+        except OSError, KeyError, IndexError, TypeError:
+            return None
+
+    def _fence_texture_name(self, data, is_opened, texture_id, background_names) -> Optional[str]:
+        # SE tnfs_render_load_track_textures 0x44c36c: on closed tracks the bitmaps ga00 / ga10 / ga20 replace
+        # the ids (fence_texture_id // 3) * 3 + 0..2. It looks names up in upper, then in lower case; an id without a
+        # bitmap stays empty and tnfs_render_track_fence draws nothing with it
+        if not is_opened and texture_id // 3 == data['fence_texture_id'] // 3:
+            name = f'0/ga{texture_id % 3}0'
+        else:
+            name = self._get_texture_name_from_id(is_opened, texture_id)
+        if background_names is None:
+            return name
+        return background_names.get(name.lower())
 
     def _texture_ids(self, tex_id, frame_count, is_opened_track):
         tex_id = math.floor(tex_id / 4)
@@ -474,32 +546,22 @@ for obj in bpy.context.selected_objects:
         map_scene.curves.append(curve)
 
         # build terrain chunks
+        background_names = self._background_texture_names(id)
         chunks = []
         for i, terrain_entry in enumerate(data['terrain']):
             road_path_index = i * 4
             chunk = self.TerrainChunk(id, block, data)
             chunk.read_matrix(terrain_entry['rows'], data['road_spline'][road_path_index : road_path_index + 4])
-            if (
-                terrain_entry['fence']['texture_id'] != 0
-                or terrain_entry['fence']['has_left_fence']
-                or terrain_entry['fence']['has_right_fence']
-            ):
-                fence_texture_id = terrain_entry['fence']['texture_id']
-                if is_opened:
-                    if id.endswith('AL1.TRI') and fence_texture_id == 16:
-                        fence_texture_id = fence_texture_id * 3
-                    chunk.fence_texture_name = 'background/' + self._get_texture_name_from_id(
-                        is_opened, fence_texture_id
-                    )
-                else:
-                    chunk.fence_texture_name = (
-                        'background/0/GA00'
-                        if id.split('/')[-1] in ['TR3.TRI', 'TR4.TRI', 'TR5.TRI']
-                        else 'background/0/ga00'
-                    )
-                chunk.has_left_fence = terrain_entry['fence']['has_left_fence']
-                chunk.has_right_fence = terrain_entry['fence']['has_right_fence']
-                map_scene.mtl_texture_names.append(chunk.fence_texture_name)
+            fence = terrain_entry['fence']
+            if fence['has_left_fence'] or fence['has_right_fence']:
+                texture_name = self._fence_texture_name(data, is_opened, fence['texture_id'] + 32, background_names)
+                if texture_name:
+                    chunk.fence_texture_name = f'background/{texture_name}'
+                    chunk.fence_height = chunk.LOW_FENCE_HEIGHT if fence['is_low'] else chunk.FENCE_HEIGHT
+                    chunk.fence_item_mode = item_mode_names.index(data['road_spline'][road_path_index]['item_mode'])
+                    chunk.has_left_fence = fence['has_left_fence']
+                    chunk.has_right_fence = fence['has_right_fence']
+                    map_scene.mtl_texture_names.append(chunk.fence_texture_name)
             chunks.append(chunk)
         for i, chunk in enumerate(chunks):
             chunk.next_chunk = chunks[i + 1] if (i < len(chunks) - 1) else (None if is_opened else chunks[0])

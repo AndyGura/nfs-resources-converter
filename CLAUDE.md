@@ -128,6 +128,19 @@ When you do:
   (per chunk of 4 points), `item_mode` (raw byte value), `left_shoulder_surface_type` / `right_shoulder_surface_type`
   and `left_fence` / `right_fence` (the nibbles of `shoulder_surface_type` / `fence_flag`, left = high nibble). nfs-web
   reads these keys and mirrors the track itself (left / right arrays swapped): keep them stable and unmirrored.
+- Fences follow the game's `tnfs_render_track_fence` (SE 0x44a2b4, DOS 0x69719, PSX 0x80046484; `TerrainChunk.build_fence`):
+  only the chunk's `fence` byte decides them (`fence_flag` of the spline points is collision only). One vertical quad per
+  node, 2 m or 0.9 m (`is_low`) high, standing on the terrain vertex picked by the `item_mode` of the chunk's first node
+  (`TerrainChunk._fence_columns`: right A2; left A7, or A8 for 1 and 14..18, lane split / merge mixed; tunnels 7, 9, 12,
+  13 none). The vertex comes from the rows the terrain polygons use (`_terrain_rows`), so it stays on the rendered
+  edge across the lane split / merge vertex shuffling. Texture id `texture_id` + 32; closed tracks use `ga00` / `ga10`
+  / `ga20` for the ids of `fence_texture_id` // 3. The name gets the on-disk case of the FAM bitmap (S3 is case
+  sensitive; `GA00` in TR3-TR5, `ga00` elsewhere), and a chunk whose texture the FAM lacks gets no fence, as in SE
+  (TR4's 109 chunks with texture `18B0`). UV: half a texture width per node, like the terrain along the road.
+- Z-buffer workaround (the game paints the fence over its row's terrain): where the terrain rises (nearly) vertically
+  outwards from the fence vertex (within `FENCE_WALL_MAX_ANGLE`), the fence bottom moves `FENCE_WALL_SHIFT` towards
+  the road along the terrain edge, or the wall and the fence z-fight (TR7, TR4). Mesh names are
+  `terrain_chunk_{i}_{left|right}fence_{texture}`: nfs-web picks the material from the text after the last `_`.
 
 ## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
 

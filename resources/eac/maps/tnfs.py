@@ -55,7 +55,9 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
             SubByteArrayBlock(length=2, bits_per_value=4),
             {
                 'description': 'Flags whether there is fence or not. First number is fence on left side, '
-                'second number is fence on right side. Used for physics simulation'
+                'second number is fence on right side. Used for physics simulation: only the fence collision '
+                '(Win95 SE 0x430600) and `tnfs_collision_main` read it. Rendering ignores it: fences are drawn from '
+                'the `fence` byte of the terrain chunks'
             },
         )
         shoulder_surface_type = (
@@ -321,14 +323,26 @@ class TerrainEntry(DeclarativeCompoundBlock):
             SubByteCompoundBlock(
                 length=1,
                 schema=[
-                    (1, 'has_left_fence', 'boolean', [], 'flag is add left fence'),
-                    (1, 'has_right_fence', 'boolean', [], 'flag is add right fence'),
-                    (6, 'texture_id', 'number', [], 'texture id'),
+                    (1, 'has_left_fence', 'boolean', [], 'Fence on the left side (A6..A10)'),
+                    (1, 'has_right_fence', 'boolean', [], 'Fence on the right side (A1..A5)'),
+                    (1, 'is_low', 'boolean', [], 'Low fence: 0.9 m high instead of 2 m'),
+                    (5, 'texture_id', 'number', [], 'Fence texture id - 32'),
                 ],
             ),
             {
-                'description': 'Fence settings: whether to build a fence on the left/right side of this chunk, and '
-                'the id of the fence texture (same id space as `texture_ids`)'
+                'description': 'Fence of this chunk, as the game draws it (`tnfs_render_track_fence`: Win95 SE 0x44a2b4, '
+                'DOS 0x69719, PSX 0x80046484). It is the only thing that decides fence drawing: the road spline '
+                "points' `fence_flag` is for collisions. One vertical quad per node to the next node (the last one to "
+                "the next chunk's first node) on each side with a flag, from terrain vertices up by 2 m, or by 0.9 m "
+                '(0xe666 in 16.16) for a low fence. The bottom vertex is picked by the `item_mode` of the '
+                "chunk's first node: the right fence stands on A2; the left one on A7 for item modes 3, 4, 5, 6, 8, "
+                '10 and 11, on A8 for 1 and 14..18, on A7 at the first node and A8 after it for 0 (lane split), on A8 '
+                "and at the next chunk's first node on A7 for 2 (lane merge). Tunnel modes 7, 9, 12 and 13 draw no "
+                'fence near the camera (SE draws A2 / A8 at mid and far distance only). The texture id is '
+                '`texture_id` + 32 (same id space as `texture_ids`; on closed tracks the ids of '
+                '`fence_texture_id` // 3 are replaced by the `ga00` / `ga10` / `ga20` bitmaps); SE draws no fence '
+                "when the track's FAM has no bitmap for it (TR4's 0xb7 chunks, id 55 = `18B0`). The fence maps the "
+                'texture like the road polygon of its node: half the texture width per node, full height'
             },
         )
         texture_ids = (
@@ -411,12 +425,13 @@ class TriMap(DeclarativeCompoundBlock):
             IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('terrain')) * 0x120),
             {'description': 'Size of terrain array in bytes (num_chunks * 0x120)'},
         )
-        rail_tex_id = (
+        fence_texture_id = (
             IntegerBlock(length=4),
             {
-                'description': 'Do not know what is "railing". Doesn\'t look like a fence '
-                'texture id, tested in TR1_001.FAM',
-                'is_unknown': True,
+                'description': "The texture id of the track's fence (`fence.texture_id` + 32 of the terrain chunks "
+                'with a fence, or of most of them). The texture loader (Win95 SE `tnfs_render_load_track_textures` '
+                '0x44c36c, reading the low 16 bits) uses it on closed tracks only: it gives the ids '
+                '(value // 3) * 3 + 0, 1 and 2 the FAM bitmaps `ga00`, `ga10` and `ga20` instead of `%02d%c0`'
             },
         )
         lookup_table = (
