@@ -9,7 +9,13 @@ import {
   ResourceError,
 } from '../../components/editor/types';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
-import { ConversionConfig, ExecutableDetectionResult, ExecutableKind, GeneralConfig } from './api-types';
+import {
+  ConversionConfig,
+  ConversionPresets,
+  ExecutableDetectionResult,
+  ExecutableKind,
+  GeneralConfig,
+} from './api-types';
 import { findNestedObjects } from '../../utils/find-nested-object';
 
 declare const eel: { expose: (func: Function, alias: string) => void } & { [key: string]: Function; _websocket: any };
@@ -173,16 +179,35 @@ export class ApiDelegateImplService {
     return this.wrapCall('get_general_config');
   }
 
-  public async getConversionConfig(): Promise<ConversionConfig> {
-    return this.wrapCall('get_conversion_config');
+  public async getConversionConfig(preset: string | null = null): Promise<ConversionConfig> {
+    return this.wrapCall('get_conversion_config', preset);
   }
 
   public async patchGeneralConfig(data: Partial<GeneralConfig>): Promise<GeneralConfig> {
     return this.wrapCall('patch_general_config', data);
   }
 
-  public async patchConversionConfig(data: Partial<ConversionConfig>): Promise<ConversionConfig> {
-    return this.wrapCall('patch_conversion_config', data);
+  public async patchConversionConfig(
+    data: Partial<ConversionConfig>,
+    preset: string | null = null,
+  ): Promise<ConversionConfig> {
+    return this.wrapCall('patch_conversion_config', data, preset);
+  }
+
+  public async getConversionPresets(): Promise<ConversionPresets> {
+    return this.wrapCall('get_conversion_presets');
+  }
+
+  public async selectConversionPreset(preset: string | null): Promise<ConversionPresets> {
+    return this.wrapCall('select_conversion_preset', preset);
+  }
+
+  public async createConversionPreset(name: string, copyFrom: string | null): Promise<ConversionPresets> {
+    return this.wrapCall('create_conversion_preset', name, copyFrom);
+  }
+
+  public async deleteConversionPreset(name: string): Promise<ConversionPresets> {
+    return this.wrapCall('delete_conversion_preset', name);
   }
 
   public async testExecutable(executablePath: string): Promise<any> {

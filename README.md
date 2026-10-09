@@ -184,6 +184,16 @@ This command will recursively walk over the `/media/fast/NFSSE` directory, parse
 in common formats in the `/tmp/NFSSE_PARSED` directory. Output directory will have the same structure as input one.
 You can also point the script to a single file to convert just that file.
 
+Conversion settings come from the settings file: without `--preset` the default ones (the `[Conversion]` section, "No
+preset" in the GUI converter), with `--preset` a user-defined preset, created and edited in the GUI converter. A preset
+also keeps input and output paths, used when the command doesn't give them:
+```
+./nfs-resources-converter convert --preset "My Preset"
+./nfs-resources-converter convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED --preset "My Preset"
+```
+A preset is a `[Conversion: <name>]` section of the settings file. Its name has letters, digits, spaces, `-`, `_` and `.`
+only; quote it if it has spaces.
+
 **WARNING**: Please do not set as output an existing directory with important data, as it can be overwritten!
 
 ### Show Settings Location
@@ -191,7 +201,7 @@ You can also point the script to a single file to convert just that file.
 ./nfs-resources-converter show_settings
 ```
 
-This command displays the full path to the settings file used by the application. The settings file is stored in your home directory.
+This command displays the full path to the settings file used by the application, and the names of the conversion presets. The settings file is stored in your home directory.
 
 ### Uncompress File
 ```

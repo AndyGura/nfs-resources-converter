@@ -3,7 +3,13 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
 import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
-import { ConversionConfig, ExecutableDetectionResult, ExecutableKind, GeneralConfig } from './api-types';
+import {
+  ConversionConfig,
+  ConversionPresets,
+  ExecutableDetectionResult,
+  ExecutableKind,
+  GeneralConfig,
+} from './api-types';
 
 export abstract class BaseApiDelegateService {
   private _implPromise: Promise<any> | null = null;
@@ -153,16 +159,35 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).getGeneralConfig();
   }
 
-  public async getConversionConfig(): Promise<ConversionConfig> {
-    return (await this.getImpl()).getConversionConfig();
+  public async getConversionConfig(preset: string | null = null): Promise<ConversionConfig> {
+    return (await this.getImpl()).getConversionConfig(preset);
   }
 
   public async patchGeneralConfig(data: Partial<GeneralConfig>): Promise<GeneralConfig> {
     return (await this.getImpl()).patchGeneralConfig(data);
   }
 
-  public async patchConversionConfig(data: Partial<ConversionConfig>): Promise<ConversionConfig> {
-    return (await this.getImpl()).patchConversionConfig(data);
+  public async patchConversionConfig(
+    data: Partial<ConversionConfig>,
+    preset: string | null = null,
+  ): Promise<ConversionConfig> {
+    return (await this.getImpl()).patchConversionConfig(data, preset);
+  }
+
+  public async getConversionPresets(): Promise<ConversionPresets> {
+    return (await this.getImpl()).getConversionPresets();
+  }
+
+  public async selectConversionPreset(preset: string | null): Promise<ConversionPresets> {
+    return (await this.getImpl()).selectConversionPreset(preset);
+  }
+
+  public async createConversionPreset(name: string, copyFrom: string | null): Promise<ConversionPresets> {
+    return (await this.getImpl()).createConversionPreset(name, copyFrom);
+  }
+
+  public async deleteConversionPreset(name: string): Promise<ConversionPresets> {
+    return (await this.getImpl()).deleteConversionPreset(name);
   }
 
   public async testExecutable(executablePath: string): Promise<any> {

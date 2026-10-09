@@ -120,13 +120,22 @@ observed behavior). Fields:
 - **Input Directory/File*** (required, text input + Browse → directory/file picker). Accepts
   manual typing, not just Browse — Confirmed (live).
 - **Output Directory*** (required, same). Confirmed (live).
-- **Conversion Settings** (collapsible `mat-expansion-panel`, "Customize conversion settings")
+- **Conversion preset** select (first row, above the paths): "No preset" (the default paths and settings,
+  `[Conversion]` section) plus the user-defined presets (`[Conversion: <name>]` sections), with a hint showing the
+  matching `--preset` CLI argument. Every field below, paths included, belongs to the selected preset.
+  **New preset** swaps the row for a name field (validated while typing: letters, digits, spaces, `-`, `_`, `.`,
+  unique case-insensitively, not "No preset"; Enter creates, Escape cancels); the new preset copies the shown values,
+  gets selected and the settings panel expands. The **delete** icon (only with a preset selected) removes it, falls back
+  to "No preset" and offers **Undo** in a snackbar. The selected preset is remembered (`selected_preset` in
+  `[Conversion]`). Confirmed (live, 2026-10-09).
+- **Conversion Settings** (collapsible `mat-expansion-panel`, its description names the selected preset)
   containing: `multiprocess_processes_count`, and per-domain checkboxes — Images (save positions /
   palettes / mipmaps / embedded palette / texts), Maps (save as chunked / invisible-wall collisions
   / terrain collisions / spherical skybox texture / add props to obj), Geometry (save OBJ / save
   BLEND / export to gg-web-engine). Not expanded/inspected field-by-field this pass — Unknown
   defaults beyond what `converter.component.ts`'s form group shows in code (`maps__save_spherical_skybox_texture`
   and `geometry__save_obj`/`geometry__save_blend` default **on**; everything else defaults **off**).
+  Every change, paths included, is saved right away (300 ms debounce) to the selected preset.
 - On load, **Blender is tested automatically** (`testBlenderExecutable`); if it's not working,
   `save_blend` and `export_to_gg_web_engine` are programmatically **disabled** (not just
   unchecked) — Confirmed (code); the disabling itself wasn't visually verified this pass (form was
