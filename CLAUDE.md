@@ -52,7 +52,7 @@ docs and a working GUI editor for free.
 | `resources/*.md` | **Auto-generated** per-game docs (`generate_resource_doc.py`). Never hand-edit — edit the block definitions/descriptions and regenerate. |
 | `serializers/` | Turn parsed block data into common output formats and back. One serializer class per resource kind, returned by a block's `serializer_class()`. |
 | `api/` | Python↔JS bridge (pywebview/eel) exposing library + serializers to the GUI. |
-| `frontend/` | Angular GUI. `.../editor/library/*.block-ui` = generic components, one per `read_blocks` base class. `.../editor/eac/*` and `.../editor/common/*` = bespoke rich viewers (image, 3D geometry, map, audio, font, hex/targa). |
+| `frontend/` | Angular GUI. `.../editor/library/*.block-ui` = generic components, one per `read_blocks` base class. `.../editor/eac/*` and `.../editor/common/*` = bespoke rich viewers (image, 3D geometry, map, audio, font, hex/targa, TNFS car specs) and widgets they share (`curve-editor` = editable SVG charts, `stat-tiles`). |
 | `actions/` | OS-integration entry points (convert all, open in GUI editor, uncompress) wired to file-manager context menus / installers. |
 | `test/` | unittest suite mirroring `library/`/`resources/`. `test/golden_corpus/` + `test/test_gui_golden_corpus.sh` = manual smoke test that opens every sample file through `run.py`. |
 | `docs/milestones.md` | AI-maintained roadmap of format coverage by game. |
@@ -147,12 +147,18 @@ When you do:
 - `resources/eac/car_specs.py`, field meanings and readers verified against the DOS, Win95 SE and PSX code
   (tnfs-1995). Value formats follow the game: 16.16 fixed point, 8.8 for `thrust_scale` / `force_to_accel` /
   `unknown_0x320*` / `gear_efficiency`, plain ints for 24-bit angles (`slip_cutoff`, `auto_steer`, PDN
-  `handling_factor`; 0x1000000 = full turn), raw u8 grip tables (grip = value / 128). Derived fields (`mass`, inverses,
+  `handling_factor`; 0x1000000 = full turn; `slip_cutoff` and `handling_factor` are `IntegerAngleBlock`s, so the GUI
+  shows them in degrees / radians while the data stays the int), raw u8 grip tables (grip = value / 128). Derived fields (`mass`, inverses,
   `brake_bias_r`, `force_to_accel`) and the PBS `checksum` are programmatic (all 9 PBS and 22 PDN round-trip byte-exact).
 - nfs-web (`classic-world/utils/load-pbs.ts`) reads `*.PBS.json` keys: body_len, body_width, brake_bias_f,
   max_brake_force_1, drag, drive_bias, final_drive, force_to_accel, friction_f, friction_r, gear_ratios,
   incar_camera_height, lat_acc_cutoff, mass, max_rpm, min_rpm, mps_to_rpm, num_torques, rpm_acc, rpm_dec, torques,
   upshifts, wheel_base, wheel_track. Renaming one or changing its value format breaks it: tell the nfs-web side.
+- GUI: `PlayerCarPhysicsBlockUiComponent` / `CarAiAndCrashBodyBlockUiComponent` (`frontend/.../editor/eac/`)
+  edit them on charts (torque / power, gearing, grip tables, pedal ramps, brake caps; PDN AI acceleration, top speed
+  markers, corner slowdown). Their derived curves follow the formulas in the field descriptions: keep the two in sync.
+  Programmatic fields (`mass`, inverses, `force_to_accel`, checksum) are recomputed on save only, so the charts compute
+  from the source fields.
 
 ## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
 

@@ -1,51 +1,76 @@
-#wrapper {
+.angle-field {
   display: flex;
-  padding-bottom: 1.34375em;
-}
+  align-items: flex-start;
+  gap: 0.5rem;
 
-#name-span {
-  font-weight: 500;
-}
-
-.circle-container {
-  width: 52px;
-  height: 52px;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.6);
-  border-radius: 50%;
-  position: relative;
-  display: inline-block;
-
-  .ui-anglepicker-pointer {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 50%;
-    margin: -2px 0 0 -2px;
-    transform-origin: 2px 2px;
-
-    .ui-anglepicker-dot {
-      height: 4px;
-      width: 4px;
-      position: absolute;
-      background: #838383;
-      -moz-border-radius: 50%;
-      -webkit-border-radius: 50%;
-      border-radius: 50%;
-    }
-
-    .ui-anglepicker-line {
-      margin-top: 1.5px;
-      margin-right: -2px;
-      height: 1px;
-      background: #838383;
-    }
+  mat-form-field {
+    flex: 1;
+    min-width: 0;
   }
 }
 
-#labels {
-  display: flex;
-  flex-direction: column;
-  margin-left: 1rem;
-  min-width: 6rem;
+.dial {
+  flex-shrink: 0;
+  margin-top: 8px;
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .face {
+    fill: rgba(0, 0, 0, 0.04);
+    stroke: rgba(0, 0, 0, 0.35);
+    stroke-width: 1;
+  }
+
+  .ticks {
+    stroke: rgba(0, 0, 0, 0.35);
+    stroke-width: 1;
+  }
+
+  .sweep {
+    fill: var(--mat-sys-primary, #3f51b5);
+    opacity: 0.12;
+  }
+
+  .needle {
+    stroke: var(--mat-sys-primary, #3f51b5);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .hub,
+  .tip {
+    fill: var(--mat-sys-primary, #3f51b5);
+  }
+}
+
+.unit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 28px;
+  height: 22px;
+  line-height: 1;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  padding: 0 6px;
+  margin-right: 8px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.7);
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.12);
+  }
 }

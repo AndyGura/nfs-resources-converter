@@ -78,7 +78,8 @@ enumerated value (e.g. a magic-number field).
 
 **Domain helpers** (`resources.eac.fields`): `Point2D(child, normalized=False)`,
 `Point3D(child, normalized=False)`, `Quaternion(child)` (x, y, z, w; NFS2/NFS3 animation keyframes use 2.14 fixed
-point), `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle → radians float), `Nfs1TimeField()` (ticks →
+point), `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle → radians float), `IntegerAngleBlock(full_turn, length=...)` (angle
+kept as the stored integer, `full_turn` units per 360°; the GUI shows it in degrees / radians), `Nfs1TimeField()` (ticks →
 seconds float). `normalized=True` rescales the vector to unit length on write, which breaks a byte-exact round trip
 of stored vectors that are slightly off unit length or zero; leave it off for data read from game files.
 
@@ -416,6 +417,35 @@ ops (each with its own `id` from `joinId`) and emit them together as
 `TrailingOptionalBlock` field from absent to present outside its own checkbox component, fetch
 `child.new_data()` via `mainService.getTrailingOptionalFieldData(fieldId)` rather than fabricating
 a value.
+
+### Shared widgets for bespoke viewers: editable curves and key figures
+
+`frontend/.../editor/common/` holds widgets any bespoke viewer can reuse (declared in `editor.module.ts`):
+
+- `app-curve-editor` (`curve-editor/`): an SVG chart of `CurveSeries` (line, step, bars or points; left or
+  right y axis; `activeCount` dims the unused tail of a fixed-length table and keeps it out of the axis range
+  and the edits) with draggable `CurveMarker`s (vertical or horizontal lines for a scalar field). Series with
+  `editable` `'y'`, `'x'` or `'xy'` are edited by dragging any of their points (falloff on neighbours, freehand
+  draw and smooth brushes for dense tables), arrow-key nudges or the selected point's inputs; `constrain` moves
+  a dragged point along a derived line. It never touches block data: it emits `seriesChange` /
+  `markerChange` once per finished gesture (plus `seriesPreview` / `markerPreview` while dragging), and the host
+  turns that into one `'set'` change (or a `'bundle'`), i.e. one undo step. Pure geometry / brush code is in
+  `curve-editor.utils.ts`.
+- `app-stat-tiles` (`stat-tiles/`): a row of key figures (`StatTile`: label, value, sub line, hint). A tile with
+  `id` + `edit` shows an inline number input and emits `tileChange`; the host maps it onto fields (e.g. a peak
+  torque that scales the torque table).
+- `app-slider-field` (`slider-field/`): a number with a slider over its usual range (`SliderSpec`: min, max, step,
+  display `scale` and unit), for bounded factors and fractions; emits `valueChange` on release or a typed value.
+- Angle fields (`Nfs1Angle8`, `Nfs1Angle14`, `IntegerAngleBlock`) render through `AngleBlockUiComponent`
+  (`editor/eac/angle.block-ui/`): a dial plus a number in degrees or radians, the unit shared by all angle fields
+  and kept in `localStorage`.
+
+`PlayerCarPhysicsBlockUiComponent` (PBS) and `CarAiAndCrashBodyBlockUiComponent` (PDN) in
+`editor/eac/` are the reference users: each chart's series are derived from the block data in a `refresh()`
+that runs on every change under the resource (`CarSpecEditorBase` in `car-specs.ts` listens to
+`ChangesService.change$`, since an embedded array editor would otherwise take the change notification), the
+remaining scalar fields are grouped through `<app-compound-block-ui [fieldWhitelist]>`, and an "All fields" tab
+keeps the generic editor.
 
 ## Roadmap awareness
 

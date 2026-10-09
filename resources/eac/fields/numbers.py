@@ -63,6 +63,24 @@ class Nfs1Angle14(AngleBlock, IntegerBlock):
         return super().write(value, ctx, name)
 
 
+class IntegerAngleBlock(IntegerBlock):
+    """Angle kept as the plain integer the game stores, `full_turn` units per 360 degrees. Unlike `Nfs1Angle8` /
+    `Nfs1Angle14` the value is not converted to radians: only the GUI shows it as an angle (`angle_full_turn`)"""
+
+    def __init__(self, full_turn: int, **kwargs):
+        super().__init__(**kwargs)
+        self.full_turn = full_turn
+
+    @property
+    def schema(self) -> Dict:
+        super_schema = super().schema
+        return {
+            **super_schema,
+            'angle_full_turn': self.full_turn,
+            'block_description': f'{super_schema["block_description"]}, angle: {hex(self.full_turn)} means 360 degrees',
+        }
+
+
 class Nfs1TimeField(IntegerBlock):
     @property
     def schema(self) -> Dict:

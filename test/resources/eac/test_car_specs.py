@@ -3,7 +3,7 @@ import unittest
 from library import require_file
 
 
-class TestCarPerformanceSpec(unittest.TestCase):
+class TestPlayerCarPhysics(unittest.TestCase):
     def test_pbs_hash_can_be_reconstructed(self):
         (name, block, data) = require_file('test/samples/LDIABL.PBS__uncompressed')
         data['checksum'] = None

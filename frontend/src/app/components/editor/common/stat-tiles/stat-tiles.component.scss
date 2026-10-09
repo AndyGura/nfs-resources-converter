@@ -1,0 +1,116 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+
+.tile {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  background: #fff;
+  min-width: 0;
+
+  .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(0, 0, 0, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .value {
+    font-size: 18px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sub {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.55);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &.editable {
+    .label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .edit-icon {
+      font-size: 12px;
+      width: 12px;
+      height: 12px;
+      opacity: 0.45;
+    }
+
+    .value {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      cursor: text;
+    }
+
+    input {
+      font: inherit;
+      font-size: 18px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      border: none;
+      border-bottom: 1px dashed rgba(0, 0, 0, 0.35);
+      background: none;
+      padding: 0;
+      min-width: 3ch;
+      max-width: 100%;
+      -moz-appearance: textfield;
+
+      &::-webkit-inner-spin-button,
+      &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      &:hover {
+        border-bottom-color: var(--mat-sys-primary, #3f51b5);
+      }
+
+      &:focus {
+        outline: none;
+        border-bottom: 2px solid var(--mat-sys-primary, #3f51b5);
+      }
+    }
+
+    .unit {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    &:hover .edit-icon {
+      opacity: 0.8;
+    }
+  }
+
+  &.tone-accent {
+    border-color: rgba(63, 81, 181, 0.35);
+    background: rgba(63, 81, 181, 0.04);
+  }
+
+  &.tone-muted .value {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  &.tone-warn {
+    border-color: rgba(230, 120, 0, 0.5);
+    background: rgba(230, 120, 0, 0.05);
+  }
+}

@@ -1,10 +1,10 @@
 --- Test Statistics ---
 Total files tested: 10894
-Files without parser: 4907
-Files read successfully: 5529
-Files written successfully: 5372
-Files read again successfully: 5171
-Files passed comparison test: 5053
+Files without parser: 4643
+Files read successfully: 6138
+Files written successfully: 5981
+Files read again successfully: 5798
+Files passed comparison test: 5677
 Files with compressed blocks written: 1922
 Files with compressor round-trip failures: 0
 
@@ -14,6 +14,7 @@ Files with compressor round-trip failures: 0
 .AST: 100.00% (9/9)
 .BAK: 100.00% (2/2)
 .BIG: 100.00% (2/2)
+.BNK: 100.00% (647/647)
 .CFM: 100.00% (39/39)
 .COL: 100.00% (24/24)
 .CRP: 100.00% (63/63)
@@ -58,13 +59,13 @@ Files with compressor round-trip failures: 0
 .ITA: 9.09% (1/11)
 .SPA: 9.09% (1/11)
 .SWE: 9.09% (1/11)
-.BNK: 5.87% (38/647)
 .SPL: 0.99% (1/101)
 .CAN: 0.62% (2/324)
 
 --- File Extension Write Success Rates (Test 2) ---
 .AS4: 100.00% (12/12)
 .BAK: 100.00% (2/2)
+.BNK: 100.00% (647/647)
 .CFM: 100.00% (39/39)
 .COL: 100.00% (24/24)
 .CRP: 100.00% (63/63)
@@ -105,7 +106,6 @@ Files with compressor round-trip failures: 0
 .ITA: 9.09% (1/11)
 .SPA: 9.09% (1/11)
 .SWE: 9.09% (1/11)
-.BNK: 5.87% (38/647)
 .ASF: 5.36% (3/56)
 .SPL: 0.99% (1/101)
 .CAN: 0.62% (2/324)
@@ -131,6 +131,7 @@ Files with compressor round-trip failures: 0
 .LZC: 100.00% (41/41)
 .MMB: 100.00% (2/2)
 .MSK: 100.00% (13/13)
+.PBS: 100.00% (9/9)
 .PDN: 100.00% (22/22)
 .PFN: 100.00% (1/1)
 .QAL: 100.00% (23/23)
@@ -140,6 +141,7 @@ Files with compressor round-trip failures: 0
 .QPS: 100.00% (23/23)
 .RPL: 100.00% (4/4)
 .TGA: 100.00% (2/2)
+.BNK: 99.85% (646/647)
 .QFS: 99.19% (1588/1601)
 .VIV: 91.10% (389/427)
 .TRK: 88.89% (16/18)
@@ -149,12 +151,10 @@ Files with compressor round-trip failures: 0
 .FAM: 61.54% (48/78)
 .TRI: 58.82% (10/17)
 .BACC: 50.00% (1/2)
-.PBS: 33.33% (3/9)
 .FRD: 23.68% (9/38)
 .DAT: 16.78% (24/143)
 .ART: 12.50% (2/16)
 .ASF: 5.36% (3/56)
-.BNK: 3.86% (25/647)
 .SPL: 0.99% (1/101)
 .CAN: 0.62% (2/324)
 (no extension): 0.00% (0/78)
@@ -182,6 +182,7 @@ Files with compressor round-trip failures: 0
 .LZC: 100.00% (41/41)
 .MMB: 100.00% (2/2)
 .MSK: 100.00% (13/13)
+.PBS: 100.00% (9/9)
 .PDN: 100.00% (22/22)
 .PFN: 100.00% (1/1)
 .QAL: 100.00% (23/23)
@@ -191,6 +192,7 @@ Files with compressor round-trip failures: 0
 .QPS: 100.00% (23/23)
 .RPL: 100.00% (4/4)
 .TGA: 100.00% (2/2)
+.BNK: 99.38% (643/647)
 .FSH: 98.17% (749/763)
 .EAS: 95.85% (185/193)
 .QFS: 94.07% (1506/1601)
@@ -202,11 +204,9 @@ Files with compressor round-trip failures: 0
 .FAM: 61.54% (48/78)
 .TRI: 58.82% (10/17)
 .BACC: 50.00% (1/2)
-.PBS: 33.33% (3/9)
 .FRD: 23.68% (9/38)
 .FSB: 20.00% (1/5)
 .DAT: 16.78% (24/143)
-.BNK: 3.86% (25/647)
 (no extension): 0.00% (0/78)
 .ART: 0.00% (0/16)
 .ASF: 0.00% (0/56)
@@ -240,4 +240,4 @@ Files with compressor round-trip failures: 0
 .VIV: 100.00% (15/15)
 
 --- Time Spent ---
-Total time: 00:12:2.75
+Total time: 00:10:43.57

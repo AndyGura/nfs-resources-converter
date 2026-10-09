@@ -3,7 +3,7 @@ from typing import Dict
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import AutoDetectBlock, BytesBlock
-from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
+from resources.eac.car_specs import CarAiAndCrashBody, PlayerCarPhysics
 from .shpi_block import ShpiBlock
 
 
@@ -14,8 +14,8 @@ class EacCompressedBlock(AutoDetectBlock):
         super().__init__(
             possible_blocks=[
                 ShpiBlock(),
-                CarSimplifiedPerformanceSpec(),
-                CarPerformanceSpec(),
+                CarAiAndCrashBody(),
+                PlayerCarPhysics(),
                 CrpGeometry(),
                 BytesBlock(length=(lambda ctx: ctx.read_bytes_amount)),
             ],

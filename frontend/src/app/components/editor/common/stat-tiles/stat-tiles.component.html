@@ -1,0 +1,41 @@
+<div class="tiles">
+  @for (t of tiles; track t.label) {
+    @let editable = !!t.edit && !disabled;
+    <div
+      [class]="'tile tone-' + (t.tone || 'default')"
+      [class.editable]="editable"
+      [matTooltip]="t.hint || ''"
+      matTooltipPosition="above">
+      <div class="label">
+        {{ t.label }}
+        @if (editable) {
+          <mat-icon class="edit-icon">edit</mat-icon>
+        }
+      </div>
+      @if (editable) {
+        <label class="value">
+          <input
+            #input
+            type="number"
+            [attr.aria-label]="t.label"
+            [style.width.ch]="inputWidth(t)"
+            [step]="t.edit!.step ?? 'any'"
+            [min]="t.edit!.min ?? null"
+            [max]="t.edit!.max ?? null"
+            [value]="t.edit!.value"
+            (change)="onEdit(t, input)"
+            (keydown.enter)="input.blur()"
+            (keydown.escape)="cancel(t, input)" />
+          @if (t.edit!.unit) {
+            <span class="unit">{{ t.edit!.unit }}</span>
+          }
+        </label>
+      } @else {
+        <div class="value">{{ t.value }}</div>
+      }
+      @if (t.sub) {
+        <div class="sub">{{ t.sub }}</div>
+      }
+    </div>
+  }
+</div>
