@@ -1,9 +1,11 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -86,9 +88,7 @@ export class ConverterComponent implements OnInit, OnDestroy {
   settingsExpanded = false;
   isUpdatingPresets = false;
 
-  @ViewChild('newPresetInput') set newPresetInput(input: ElementRef<HTMLInputElement> | undefined) {
-    input?.nativeElement.focus();
-  }
+  @ViewChild('newPresetInput') newPresetInput?: ElementRef<HTMLInputElement>;
 
   // settings edited in place, waiting to be saved to the preset that was selected when they changed
   private pendingSettingsSave: { preset: string | null; values: Partial<ConversionConfig> } | null = null;
@@ -102,6 +102,7 @@ export class ConverterComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private dialogRef: MatDialogRef<ConfigComponent>,
     private destroyRef: DestroyRef,
+    private injector: Injector,
   ) {
     this.converterForm = this.fb.group({
       input_path: ['', Validators.required],
@@ -273,6 +274,9 @@ export class ConverterComponent implements OnInit, OnDestroy {
       nonNullable: true,
       validators: control => this.validatePresetName(control),
     });
+    // not during change detection (e.g. from the ViewChild setter): the form field would miss the focus and keep its
+    // label over the placeholder
+    afterNextRender(() => this.newPresetInput?.nativeElement.focus(), { injector: this.injector });
   }
 
   cancelNewPreset(): void {
