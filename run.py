@@ -111,6 +111,8 @@ if __name__ == '__main__':
                 'file argument is required for convert action'
                 + (f' (preset "{args.preset}" has no input path)' if args.preset else '')
             )
+        if not input_path.exists():
+            parser.error(f'input path "{input_path}" does not exist')
         from actions.convert_all import convert_all
 
         convert_all(input_path, out_path or pathlib.Path('out/'), preset=args.preset or None)

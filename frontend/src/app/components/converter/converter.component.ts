@@ -78,6 +78,8 @@ export class ConverterComponent implements OnInit, OnDestroy {
 
   readonly noPresetName = NO_PRESET_NAME;
   presets: string[] = [];
+  // mat-select shows null as no selection, so "No preset" is the empty string here
+  presetControl = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   // null = no preset (default settings)
   selectedPreset: string | null = null;
   // non-null while a new preset name is being entered
@@ -186,6 +188,7 @@ export class ConverterComponent implements OnInit, OnDestroy {
       this.blenderExecutablePath = generalConfig.blender_executable;
       this.converterForm.patchValue(conversionConfig, { emitEvent: false });
       this.configLoaded = true;
+      this.updatePresetControlState();
       this.cdr.markForCheck();
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -226,6 +229,7 @@ export class ConverterComponent implements OnInit, OnDestroy {
     const conversionConfig = await this.api.patchConversionConfig(this.presetSettingsValue(), this.selectedPreset);
     this.isConverting = true;
     this.converterForm.disable({ emitEvent: false });
+    this.updatePresetControlState();
     this.api.conversionProgress$.next([0, 0]);
     this.cdr.markForCheck();
     try {
@@ -253,6 +257,7 @@ export class ConverterComponent implements OnInit, OnDestroy {
     } finally {
       this.isConverting = false;
       this.converterForm.enable({ emitEvent: false });
+      this.updatePresetControlState();
       this.cdr.markForCheck();
     }
   }
@@ -322,6 +327,11 @@ export class ConverterComponent implements OnInit, OnDestroy {
   }
 
   private async restorePreset(name: string, settings: Partial<ConversionConfig>): Promise<void> {
+    // a preset with this name may have been created meanwhile
+    if (this.presets.some(preset => preset.toLowerCase() === name.toLowerCase())) {
+      this.snackBar.open(`Preset "${name}" exists again, nothing restored`, 'OK', { duration: 5000 });
+      return;
+    }
     await this.runPresetsUpdate(async () => {
       await this.flushSettingsSave();
       await this.api.createConversionPreset(name, null);
@@ -333,20 +343,39 @@ export class ConverterComponent implements OnInit, OnDestroy {
 
   private async runPresetsUpdate(update: () => Promise<void>): Promise<void> {
     this.isUpdatingPresets = true;
+    this.updatePresetControlState();
     this.cdr.markForCheck();
     try {
       await update();
     } catch (error) {
       console.error('Failed to update conversion presets:', error);
+      // the select already shows the preset the user picked: put the view back to what is actually selected
+      try {
+        this.applyPresets(await this.api.getConversionPresets());
+        await this.loadPresetSettings();
+      } catch (resyncError) {
+        console.error('Failed to reload conversion presets:', resyncError);
+      }
     } finally {
       this.isUpdatingPresets = false;
+      this.updatePresetControlState();
       this.cdr.markForCheck();
+    }
+  }
+
+  private updatePresetControlState(): void {
+    if (!this.configLoaded || this.isConverting || this.isUpdatingPresets) {
+      this.presetControl.disable({ emitEvent: false });
+    } else {
+      this.presetControl.enable({ emitEvent: false });
     }
   }
 
   private applyPresets(state: ConversionPresets): void {
     this.presets = state.presets;
     this.selectedPreset = state.selected;
+    // through the control: a plain [value] binding would not reset the select after a failed switch
+    this.presetControl.setValue(state.selected ?? '', { emitEvent: false });
   }
 
   private async loadPresetSettings(): Promise<void> {

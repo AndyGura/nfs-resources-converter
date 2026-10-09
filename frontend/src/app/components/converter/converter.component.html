@@ -36,10 +36,7 @@
       <div class="form-row preset-row">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Conversion preset</mat-label>
-          <mat-select
-            [value]="selectedPreset ?? ''"
-            [disabled]="!configLoaded || isConverting || isUpdatingPresets"
-            (selectionChange)="selectPreset($event.value || null)">
+          <mat-select [formControl]="presetControl" (selectionChange)="selectPreset($event.value || null)">
             <!-- mat-select shows null as no selection -->
             <mat-option value="">{{ noPresetName }}</mat-option>
             @for (preset of presets; track preset) {
