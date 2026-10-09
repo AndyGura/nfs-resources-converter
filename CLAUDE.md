@@ -142,6 +142,18 @@ When you do:
   the road along the terrain edge, or the wall and the fence z-fight (TR7, TR4). Mesh names are
   `terrain_chunk_{i}_{left|right}fence_{texture}`: nfs-web picks the material from the text after the last `_`.
 
+## TNFS car specs (SIMDATA/CARSPECS/*.PBS, SIMDATA/CARFAMS/*.PDN)
+
+- `resources/eac/car_specs.py`, field meanings and readers verified against the DOS, Win95 SE and PSX code
+  (tnfs-1995). Value formats follow the game: 16.16 fixed point, 8.8 for `thrust_scale` / `force_to_accel` /
+  `unknown_0x320*` / `gear_efficiency`, plain ints for 24-bit angles (`slip_cutoff`, `auto_steer`, PDN
+  `handling_factor`; 0x1000000 = full turn), raw u8 grip tables (grip = value / 128). Derived fields (`mass`, inverses,
+  `brake_bias_r`, `force_to_accel`) and the PBS `checksum` are programmatic (all 9 PBS and 22 PDN round-trip byte-exact).
+- nfs-web (`classic-world/utils/load-pbs.ts`) reads `*.PBS.json` keys: body_len, body_width, brake_bias_f,
+  max_brake_force_1, drag, drive_bias, final_drive, force_to_accel, friction_f, friction_r, gear_ratios,
+  incar_camera_height, lat_acc_cutoff, mass, max_rpm, min_rpm, mps_to_rpm, num_torques, rpm_acc, rpm_dec, torques,
+  upshifts, wheel_base, wheel_track. Renaming one or changing its value format breaks it: tell the nfs-web side.
+
 ## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
 
 - `items` / `children` are in file order, which is not always the index order of the 128-entry offset table

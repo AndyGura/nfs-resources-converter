@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-09 01:18:37.545276+00:00*
+*Last time updated: 2026-10-09 07:33:12.486185+00:00*
 
 
 # **Info by file extensions** #
@@ -29,7 +29,7 @@
 
 **\*.PBS** car physics. [CarPerformanceSpec](#carperformancespec), [compressed](eac_compressions.md)
 
-**\*.PDN** car characteristic for unknown purpose. [CarSimplifiedPerformanceSpec](#carsimplifiedperformancespec), [compressed](eac_compressions.md)
+**\*.PDN** car characteristics for the AI driving model and the crash body. [CarSimplifiedPerformanceSpec](#carsimplifiedperformancespec), [compressed](eac_compressions.md)
 
 **\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 
@@ -270,95 +270,107 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Physics** ##
 ### **CarPerformanceSpec** ###
 #### **Size**: 1912 bytes ####
-#### **Description**: This block describes full car physics specification for car that player can drive. Thanks to [Five-Damned-Dollarz](https://gist.github.com/Five-Damned-Dollarz/99e955994ebbcf970532406a197b580e) and [marcos2250](https://github.com/marcos2250/tnfs-1995/blob/main/tnfs_files.c) ####
+#### **Description**: Full physics specification of a car the player can drive (`SIMDATA/CARSPECS/*.PBS`, QFS-compressed, 1912 bytes uncompressed). Loaded by `Fiziks_PreInitCar` (SE 0x4400f4, DOS 0x63e72, PSX 0x80038ea4); the game keeps the same layout in memory (DOS, SE, PSX). Readers are named as in [tnfs-1995](https://github.com/marcos2250/tnfs-1995) with Win95 SE addresses; "not read" = no reader in the DOS, SE and PSX executables. Physics ticks are 1/30 s, angles are 24-bit (0x1000000 = full turn). Rally mode changes some fields in memory after loading (DOS, SE): rear grip table := front, `unknown_0x320` and `thrust_scale` halved and their inverses recomputed, `friction_f/r` and `max_brake_force_1/2` halved, `cog_height` x 1.5, `efficiency` x 0x14c/256 on track 3, else x 0x133/256. PSX rally: `lat_acc_cutoff` x 0.625, `cog_height` x 7/4, `efficiency` x a per-track value, `drive_bias` = 0.5. Thanks to [Five-Damned-Dollarz](https://gist.github.com/Five-Damned-Dollarz/99e955994ebbcf970532406a197b580e) and [marcos2250](https://github.com/marcos2250/tnfs-1995/blob/main/tnfs_files.c) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **mass_front** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Mass applied to front axle (kg) |
-| 4 | **mass_rear** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Mass applied to rear axle (kg) |
-| 8 | **mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Total car mass (kg). Always == `mass_front + mass_rear` |
-| 12 | **inv_mass_f** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Inverted mass applied to front axle in kg, `1 / mass_front` |
-| 16 | **inv_mass_r** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Inverted mass applied to rear axle in kg, `1 / mass_rear` |
-| 20 | **inv_mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Inverted mass in kg, `1 / mass` |
-| 24 | **drive_bias** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Bias for drive force (0.0-1.0, where 0 is RWD, 1 is FWD), determines the amount of force applied to front and rear axles: 0.7 will distribute force 70% on the front, 30% on the rear |
-| 28 | **brake_bias_f** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Bias for brake force (0.0-1.0), determines the amount of braking force applied to front and rear axles: 0.7 will distribute braking force 70% on the front, 30% on the rear |
-| 32 | **brake_bias_r** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Bias for brake force for rear axle. Always == `1 - brake_bias_f` |
-| 36 | **mass_y** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Probably the height of mass center in meters |
-| 40 | **brake_force** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Brake force in unknown units |
-| 44 | **brake_force2** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Brake force, equals to `brake_force`. Not clear why PBS has two of these, first number is responsible for braking on reverse, neutral and first gears, second number is responsible for braking on second gear. Interestingly, all gears > 2 use both numbers with unknown rules. Tested it on lamborghini |
-| 48 | **unk0** | 4 | Bytes | Unknown purpose |
-| 52 | **drag** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Drag force, units are unknown |
-| 56 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max vehicle speed in meters per second |
-| 60 | **efficiency** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part |  |
-| 64 | **wheel_base** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen rear and front axles in meters |
-| 68 | **burnout_div** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part |  |
-| 72 | **wheel_track** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | The distance betweeen left and right wheels in meters |
-| 76 | **unk1** | 8 | Bytes | Unknown purpose |
-| 84 | **mps_to_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Used for optimization: speed(m/s) = RPM / (mpsToRpmFactor * gearRatio) |
-| 88 | **num_gears** | 4 | 4-bytes unsigned integer (little endian) | Amount of drive gears + 2 (R,N?) |
-| 92 | **final_drive** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Final drive ratio |
-| 96 | **wheel_radius** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Wheel radius in meters |
-| 100 | **inv_wheel_rad** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Inverted wheel radius in meters, `1 / wheel_radius` |
-| 104 | **gear_ratios** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Only first `num_gears` values are used. First element is the reverse gear ratio, second one is unknown |
-| 136 | **num_torques** | 4 | 4-bytes unsigned integer (little endian) | Torques LUT (lookup table) size |
-| 140 | **roll_stiff_f** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Roll stiffness front axle |
-| 144 | **roll_stiff_r** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Roll stiffness rear axle |
-| 148 | **roll_axis_y** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Roll axis height |
-| 152 | **unk2** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | those are 0.5,0.5,0.18 (F512TR) center of mass? Position of collision cube? |
-| 164 | **slip_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Slip angle cut-off |
-| 168 | **normal_loss** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Normal coefficient loss |
-| 172 | **max_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine redline RPM (`rpm_redline` in the game engine). Among others it scales the engine sound pitch: pitch value = rpm * 127 / (max_rpm + 2000), at most 127 (DOS 0x668ab) |
-| 176 | **min_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine idle RPM (`rpm_idle` in the game engine) |
-| 180 | **torques** | 480 | Array of `60` items<br/>Item size: 8 bytes<br/>Item type: Two 32bit unsigned integers (little-endian). First one is RPM, second is a torque | LUT of engine torque depending on RPM. `num_torques` first elements used |
-| 660 | **upshifts** | 28 | Array of `7` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | RPM value, when automatic gear box should upshift. 1 element per drive gear |
-| 688 | **gear_efficiency** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) |  |
-| 720 | **inertia_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part |  |
-| 724 | **roll_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Body roll factor |
-| 728 | **pitch_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Body pitch factor |
-| 732 | **friction_f** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Front axle friction factor |
-| 736 | **friction_r** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Rear axle friction factor |
-| 740 | **body_len** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Chassis body length in meters |
-| 744 | **body_width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Chassis body width in meters |
-| 748 | **auto_steer** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max auto steer angle |
-| 752 | **steer_mult** | 4 | 4-bytes unsigned integer (little endian) | auto_steer_mult_shift |
-| 756 | **steer_div** | 4 | 4-bytes unsigned integer (little endian) | auto_steer_div_shift |
-| 760 | **steer_model** | 4 | 4-bytes unsigned integer (little endian) | Steering model |
-| 764 | **steer_vel** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Auto steer velocities |
-| 780 | **steer_vel_ramp** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Auto steer velocity ramp |
-| 784 | **steer_vel_att** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Auto steer velocity attenuation |
-| 788 | **steer_ramp_mult** | 4 | 4-bytes unsigned integer (little endian) | auto_steer_ramp_mult_shift |
-| 792 | **steer_ramp_div** | 4 | 4-bytes unsigned integer (little endian) | auto_steer_ramp_div_shift |
-| 796 | **lat_acc_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Lateral acceleration cut-off |
-| 800 | **unk3** | 8 | Bytes | First 4 bytes is integer number, and TNFS after reading file divides it in half at 0x00440364 |
-| 808 | **final_ratio** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Final drive torque ratio |
-| 812 | **thrust_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Thrust to acceleration factor |
-| 816 | **unk4** | 36 | Bytes | Unknown purpose |
-| 852 | **shift_timer** | 4 | 4-bytes unsigned integer (little endian) | Seems to be ticks taken to shift. Tick is 1 / 60 of a second |
-| 856 | **rpm_dec** | 4 | 4-bytes unsigned integer (little endian) | RPM decrease when gas pedal released |
-| 860 | **rpm_acc** | 4 | 4-bytes unsigned integer (little endian) | RPM increase when gas pedal pressed |
-| 864 | **drop_rpm_dec** | 4 | 4-bytes unsigned integer (little endian) | Clutch drop RPM decrease |
-| 868 | **drop_rpm_inc** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Clutch drop RPM increase |
-| 872 | **neg_torque** | 4 | 32-bit real number (little-endian, signed), where last 7 bits is a fractional part | Negative torque |
-| 876 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Body height in meters |
-| 880 | **center_y** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part |  |
-| 884 | **grip_table_f** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 8-bit real number (little-endian, not signed), where last 4 bits is a fractional part | Grip table for front axle. Unit is unknown |
-| 1396 | **grip_table_r** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 8-bit real number (little-endian, not signed), where last 4 bits is a fractional part | Grip table for rear axle. Unit is unknown. Windows version overwrites this table with values from "grip_table_f" at 0x00440349 |
-| 1908 | **checksum** | 4 | 4-bytes unsigned integer (little endian) | Check sum of this block contents. Equals to sum of 1880 first bytes. If wrong, game sets field "efficiency" to zero |
+| 0 | **mass_front** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Mass on the front axle (kg). Front weight fraction = `mass_front * inv_mass` (`Fiziks_InitCar`, SE 0x42ff60). Equals `mass_rear` in all files |
+| 4 | **mass_rear** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Mass on the rear axle (kg) |
+| 8 | **mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Total car mass (kg), `mass_front + mass_rear`. Only feeds car fields that nothing reads (`Fiziks_InitCar`): the game uses `inv_mass` |
+| 12 | **inv_mass_f** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | `1 / mass_front`, rounded down. Only feeds a car field that nothing reads |
+| 16 | **inv_mass_r** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | `1 / mass_rear`, rounded down. Only feeds a car field that nothing reads |
+| 20 | **inv_mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | `1 / mass`, rounded down. Used for the weight distribution, drag / mass (`Fiziks_InitCar`) and the torque table (`tnfs_load_torque_table`, SE 0x409990) |
+| 24 | **drive_bias** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Front share of the drive force, 0.0 = RWD, 1.0 = FWD (`tnfs_physics_update`, SE 0x430cb0). 0 also enables the burnout rule of `tnfs_engine_thrust` (SE 0x42f138). 0 in all files but LDIABL (0.35) and TRAFFC (0.4) |
+| 28 | **brake_bias_f** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Front share of the pedal brake force, 0.0-1.0 (`tnfs_physics_update`); the rear gets the rest |
+| 32 | **brake_bias_r** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Rear share of the brake force, `1 - brake_bias_f` (raw 65536 - `brake_bias_f` in all files). Not read: the game uses total - front |
+| 36 | **cog_height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height of the centre of gravity (m). Weight transfer factor = `cog_height * wheel_base_inv` (`Fiziks_InitCar`): moves grip between front and rear under longitudinal force. Rally mode x 1.5 (PSX x 7/4) |
+| 40 | **max_brake_force_1** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Cap of the absolute longitudinal tire force while braking (brake > 100 or handbrake) below 26.8 m/s (60 mph); also the brake force when the car rolls against the selected gear (`tnfs_physics_update`). Deceleration (m/s²) = this * `force_to_accel` (~10 for ANSX). Rally mode halves it |
+| 44 | **max_brake_force_2** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Same cap from 26.8 to 40 m/s; above 40 m/s the larger of `max_brake_force_1` and this. Differs from `max_brake_force_1` in 6 of 9 files (ANSX 25.5 / 37.5). Rally mode halves it |
+| 48 | **max_tire_coeff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Maximal tire coefficient (0.84-1.35). Not read |
+| 52 | **drag** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Air drag (kg/m, ½ * air density * drag coefficient * frontal area). `Fiziks_InitCar` replaces it in memory with `drag * inv_mass`; deceleration = that * surface factor * speed² (`tnfs_drag_force`, SE 0x42f630) |
+| 56 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Top speed (m/s). Above it `tnfs_physics_update` raises the drag so that it cancels the thrust, except on track id 6 |
+| 60 | **efficiency** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Drivetrain efficiency (0.5-2.0), multiplies the torque table (`tnfs_load_torque_table`); x 0xf8/256 with the automatic gearbox. `Fiziks_PreInitCar` sets it to 0 on a `checksum` mismatch, and when the file `By_R&T` can be created in the CARSPECS folder (DOS flag 0xf7bbe, SE 0x4c5ccc; probably an anti-copy trap, the folder being read-only on the CD). Rally mode: x 0x14c/256 on track 3, else x 0x133/256 |
+| 64 | **wheel_base** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Distance between the front and rear axles (m): car wheelbase and yaw factors |
+| 68 | **wheel_base_inv** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | `1 / wheel_base`, rounded down. Weight transfer factor (`Fiziks_InitCar`) |
+| 72 | **wheel_track** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Distance between the left and right wheels (m). Not read |
+| 76 | **wheel_track_inv** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | `1 / wheel_track`, rounded down. Not read |
+| 80 | **rear_weight_fraction** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Rear weight fraction, `mass_rear / mass` (0.5 in all files). Not read |
+| 84 | **mps_to_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Engine rpm = speed (m/s) * this * gear ratio (`tnfs_engine_rev_limiter` SE 0x42ee68, `tnfs_engine_auto_shift_change` SE 0x4098a0, `tnfs_engine_thrust`) |
+| 88 | **num_gears** | 4 | 4-bytes unsigned integer (little endian) | Number of used `gear_ratios` entries: reverse, neutral and `num_gears - 2` forward gears. Upshifts stop at gear index `num_gears - 3` (`tnfs_control_shift_gears` SE 0x438c84, `tnfs_engine_auto_shift_change`) |
+| 92 | **final_drive** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Final drive ratio. Only read by `tnfs_load_torque_table` |
+| 96 | **wheel_radius** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Wheel radius (m). Not read, the game uses `inv_wheel_rad` |
+| 100 | **inv_wheel_rad** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | `1 / wheel_radius`, rounded down. Only read by `tnfs_load_torque_table` |
+| 104 | **gear_ratios** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Gear ratios, index = selected gear + 2: [0] reverse (negative), [1] neutral, [2] first gear and up (`tnfs_engine_rev_limiter`, `tnfs_engine_auto_shift_change`, `tnfs_engine_thrust`). The neutral ratio only gives the wheel rpm in neutral. The first `num_gears` entries are used, the rest is garbage |
+| 136 | **num_torques** | 4 | 4-bytes unsigned integer (little endian) | Number of used `torques` entries (51; 41 in P911) |
+| 140 | **roll_stiff_f** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Front roll stiffness (10000.0 in all files). Not read |
+| 144 | **roll_stiff_r** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Rear roll stiffness (10000.0 in all files). Not read |
+| 148 | **roll_axis_y** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Roll axis height (m). Not read |
+| 152 | **front_roll_stiffness_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | 0.5 in all files. Not read |
+| 156 | **rear_roll_stiffness_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | 0.5 in all files. Not read |
+| 160 | **weight_transfer_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | 0.001-0.27. Not read: the weight transfer factor of the game is `cog_height * wheel_base_inv` |
+| 164 | **slip_cutoff** | 4 | 4-bytes signed integer (little endian) | Max tire slip angle, 24-bit angle: 0x1FE667 = 44.9° in all files. Larger slip angles are clamped to it and set skid bit 1 (`tnfs_tire_forces`, SE 0x42fb88) |
+| 168 | **normal_loss** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Normal coefficient loss. Not read |
+| 172 | **max_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine redline rpm (`rpm_redline` in the game engine). Rpm limit with the throttle = this * throttle / 256 (`tnfs_engine_rev_limiter`, `tnfs_engine_thrust`). Engine sound pitch value = rpm * 127 / (max_rpm + 2000), at most 127 (`tnfs_sfx_engine_player`, SE 0x4444b8, DOS 0x668ab). Tachometer needle: min(rpm, max_rpm + 980) * 600 / max_rpm (SE 0x42221c, 0x420d0c) |
+| 176 | **min_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine idle rpm (`rpm_idle`), engine rpm floor (`tnfs_engine_rev_limiter`) |
+| 180 | **torques** | 480 | Array of `60` items<br/>Item size: 8 bytes<br/>Item type: Two 32bit unsigned integers (little-endian): rpm and torque (N*m) | Engine torque by rpm, the first `num_torques` entries are used, the rest is garbage. The game reads only the first rpm and assumes 200 rpm steps (true in all files): entry = (rpm rounded to 200 - rpm[0]) / 200 (`tnfs_engine_get_torque`, SE 0x409a04). `tnfs_load_torque_table` turns each torque in memory into the 16.16 acceleration per unit of gear ratio, `torque * final_drive * efficiency * inv_wheel_rad * inv_mass` |
+| 660 | **upshifts** | 28 | Array of `7` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Automatic gearbox rpm: [g] = upshift from gear index g to g + 1; it shifts down when the rpm in the lower gear would be below 15/16 of [g - 1] (`tnfs_engine_auto_shift_change`). `tnfs_engine_thrust` uses [1] - 500 as the burnout rpm limit. The first `num_gears - 3` entries are used, the rest is garbage |
+| 688 | **gear_efficiency** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 8 bits is a fractional part | Per-gear multiplier of the wheel torque, index = selected gear + 2 like `gear_ratios` (`tnfs_engine_thrust`). The first `num_gears` entries are used, the rest is garbage |
+| 720 | **inertia_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | 0.5 in all files. Only feeds the car moment of inertia (`Fiziks_InitCar`), which nothing reads |
+| 724 | **roll_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Visual body roll from the lateral acceleration (`tnfs_physics_update`), no unit |
+| 728 | **pitch_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Visual body pitch from the longitudinal acceleration (`tnfs_physics_update`), no unit |
+| 732 | **friction_f** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Front tire friction coefficient: front grip = this * front weight fraction * 9.81 (`Fiziks_InitCar`). Rally mode halves it |
+| 736 | **friction_r** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Rear tire friction coefficient, like `friction_f`. Rally mode halves it |
+| 740 | **body_len** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Body length (m). Copied to the car length, then overwritten by `half_length * 2` of the car PDN in `tnfs_ai_init_car` (SE 0x4407b8): no effect, all 9 cars have PDN sizes |
+| 744 | **body_width** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Body width (m). Overwritten by `half_width * 2` of the car PDN, like `body_len` |
+| 748 | **auto_steer** | 4 | 4-bytes signed integer (little endian) | 24-bit angle per m/s (983 in all files). Digital steering, wheel centred, moving forward: the auto-steer target (road heading) is taken only if its absolute value < this * speed (`tnfs_control_steering_a`, SE 0x438954) |
+| 752 | **steer_mult** | 4 | 4-bytes unsigned integer (little endian) | Auto-steer ramp multiplier shift (1). Not read |
+| 756 | **steer_div** | 4 | 4-bytes unsigned integer (little endian) | Auto-steer ramp divider shift (1). Not read |
+| 760 | **steer_model** | 4 | 4-bytes unsigned integer (little endian) | Steering model (2). Not read |
+| 764 | **steer_vel** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | Auto-steer velocities (2, 4, 8, 16). Only [1] is read: steering rate per tick = min(`steer_vel_ramp` - min(speed * `steer_vel_att`, 1.5), 1.6) * [1] (`tnfs_control_steering_a`) |
+| 780 | **steer_vel_ramp** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Base steering rate (2.2-2.5), see `steer_vel` (`tnfs_control_steering_a`) |
+| 784 | **steer_vel_att** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Steering rate reduction per m/s, at most 1.5 in total (`tnfs_control_steering_a`) |
+| 788 | **steer_ramp_mult** | 4 | 4-bytes unsigned integer (little endian) | Shift count: steering rate << this when the target and the auto-steer angle are on the same side of the current angle (`tnfs_control_steering_a`) |
+| 792 | **steer_ramp_div** | 4 | 4-bytes unsigned integer (little endian) | Shift count: steering rate >> this otherwise (`tnfs_control_steering_a`; SE and PSX only, DOS has no such branch) |
+| 796 | **lat_acc_cutoff** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max absolute lateral acceleration (m/s², 17.5-40), also the road grip increment (`tnfs_physics_update`). PSX rally mode x 0.625 |
+| 800 | **unknown_0x320** | 4 | 32-bit real number (little-endian, signed), where last 8 bits is a fractional part | Equals `thrust_scale` in all files (2.5; TRAFFC 5.5, TSUPRA 2.7). Not read; rally mode (DOS, SE) halves it and recomputes `unknown_0x320_inv` |
+| 804 | **unknown_0x320_inv** | 4 | 32-bit real number (little-endian, signed), where last 8 bits is a fractional part | `1 / unknown_0x320`, rounded down (raw 65536 / raw). Not read |
+| 808 | **thrust_scale** | 4 | 32-bit real number (little-endian, signed), where last 8 bits is a fractional part | Thrust multiplier (`tnfs_engine_thrust`): 2.5, TRAFFC 5.5, TSUPRA 2.7. Rally mode halves it and recomputes `force_to_accel` |
+| 812 | **force_to_accel** | 4 | 32-bit real number (little-endian, signed), where last 8 bits is a fractional part | `1 / thrust_scale`, rounded down (raw 65536 / raw): summed longitudinal tire force * this = acceleration (m/s²) (`tnfs_physics_update`) |
+| 816 | **unknown_0x330** | 4 | 4-bytes unsigned integer (little endian) | 102 in all files. Not read |
+| 820 | **has_abs** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Car has ABS if > 0 (1.0); ABS is on if this and the player option are both set (`Fiziks_PreInitCar`) |
+| 824 | **has_tcs** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Car has traction control if > 0 (1.0), like `has_abs` |
+| 828 | **throttle_on_ramp** | 4 | 4-bytes unsigned integer (little endian) | Throttle (0-255) rise per tick (`tnfs_control_throttle`, SE 0x438b70) |
+| 832 | **throttle_off_ramp** | 4 | 4-bytes unsigned integer (little endian) | Throttle (0-255) fall per tick (`tnfs_control_throttle`) |
+| 836 | **brake_on_ramp_1** | 4 | 4-bytes unsigned integer (little endian) | Brake (0-255) rise per tick, x 1.25, while the brake is below 144 (`tnfs_control_brake`, SE 0x438bc8) |
+| 840 | **brake_on_ramp_2** | 4 | 4-bytes unsigned integer (little endian) | Brake rise per tick, x 1.25, from 144 up (`tnfs_control_brake`) |
+| 844 | **brake_off_ramp_1** | 4 | 4-bytes unsigned integer (little endian) | Brake fall per tick while the brake is below 144 (`tnfs_control_brake`) |
+| 848 | **brake_off_ramp_2** | 4 | 4-bytes unsigned integer (little endian) | Brake fall per tick from 144 up (`tnfs_control_brake`) |
+| 852 | **shift_timer** | 4 | 4-bytes unsigned integer (little endian) | Ticks with the gear disengaged while shifting (`tnfs_control_shift_gears`, `tnfs_engine_auto_shift_control` SE 0x42ed94). Manual downshift: half of it; automatic N -> D: +1; F512TR (car model 4): +3 when (time & 0x31) == 0x10 |
+| 856 | **rpm_dec** | 4 | 4-bytes unsigned integer (little endian) | Rpm fall per tick towards idle without throttle while the gear is disengaged, half in neutral (`tnfs_engine_rev_limiter`) |
+| 860 | **rpm_acc** | 4 | 4-bytes unsigned integer (little endian) | Rpm rise per tick, x throttle / 256, while the gear is disengaged, half in neutral (`tnfs_engine_rev_limiter`) |
+| 864 | **drop_rpm_dec** | 4 | 4-bytes unsigned integer (little endian) | In gear: engine rpm fall per tick towards the wheel rpm; / 8 while the rear wheels spin with throttle > 220 (`tnfs_engine_rev_limiter`) |
+| 868 | **drop_rpm_inc** | 4 | 4-bytes unsigned integer (little endian) | In gear: engine rpm rise per tick towards the wheel rpm (`tnfs_engine_rev_limiter`; its branch multiplying this by a per-gear table is unreachable) |
+| 872 | **neg_torque** | 4 | 4-bytes unsigned integer (little endian) | Engine braking: force = rpm difference * this / 256 * gear ratio, x 8 when the wheels drive the engine (`tnfs_engine_thrust`) |
+| 876 | **incar_camera_height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | In-car camera height (m, ~1.0) (in-car camera setup, SE 0x405630). Not read by PSX |
+| 880 | **center_y** | 4 | 4-bytes unsigned integer (little endian) | In-car view vertical centre (pixels of 320x200): the in-car view windows get the y offset (center_y - 108) * screen height / 200 (in-car camera setup, SE 0x405630). Not read by PSX. The formula is certain, its meaning (projection centre) is an interpretation |
+| 884 | **grip_table_f** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Front tire grip by slip angle, grip = value / 128 (the game: value << 9 as 16.16). Index = slip angle (24-bit) >> 12: 0.088° steps over 0-45° (`tnfs_tire_slide_table`, read in `tnfs_tire_forces`; DOS 0x593d5). Index 511 is unreachable with the 44.9° `slip_cutoff` and holds garbage |
+| 1396 | **grip_table_r** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Rear tire grip by slip angle, like `grip_table_f`. Rally mode (DOS, SE) replaces it with the front table in memory |
+| 1908 | **checksum** | 4 | 4-bytes unsigned integer (little endian) | Byte sum of the first 1880 bytes (0x758: all but the last 28 bytes of `grip_table_r`). On a mismatch `Fiziks_PreInitCar` sets `efficiency` to 0 |
 ### **CarSimplifiedPerformanceSpec** ###
 #### **Size**: 460 bytes ####
-#### **Description**: This block describes simpler version of car physics. Used by game for other cars ####
+#### **Description**: Car characteristics for the AI driving model and the crash body (`SIMDATA/CARFAMS/*.PDN`, QFS-compressed, 460 bytes uncompressed), one per car slot, player included. Loaded by `tnfs_ai_pdn_file` (SE 0x40fa3c, DOS 0x47425, PSX 0x8001eaa8), applied by `tnfs_ai_init_car` (SE 0x4407b8). Angles are 24-bit (0x1000000 = full turn) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **col_size_x** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Collision model size (x) in meters. Zero for all non-playable cars |
-| 4 | **col_size_y** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Collision model size (y) in meters. Zero for all non-playable cars |
-| 8 | **col_size_z** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Collision model size (z) in meters. Zero for all non-playable cars |
-| 12 | **moment_of_inertia** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
-| 16 | **mass** | 4 | 32-bit real number (little-endian, not signed), where last 6 bits is a fractional part | Vehicle mass (kg?) |
-| 20 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 24 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 28 | **power_curve** | 400 | Array of `100` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Not clear how to interpret |
-| 428 | **top_speeds** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Maximum car speed (m/s) per gear |
-| 452 | **max_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Max engine RPM |
-| 456 | **gear_count** | 4 | 4-bytes unsigned integer (little endian) | Gears amount (5 in every racer PDN; tnfs-1995 names it `pdn_number_of_gears`, DOS car+0x461). Traffic and cop car PDNs use it as the horn pitch index: the game plays the traffic horn (collision bank sample 0x3f) at pitch value `table[index] * doppler >> 8`, table at DOS 0x81aa9 = 0x40, 0x40, 0x64, 0x5a, 0x50, 0x46, 0x3c, 0x32, 0x2d, 0x28. Values: crx 2, bmw 3, jetta 3, sunbird 4, wagon 4, pickup 5, probe 5, traffc 5, axxess 6, jeep 6, lemans 6, rodeo 8, vandura 8, copmust 0 (the cop never honks); 7 and 9 unused |
+| 0 | **half_width** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Half width (x) of the collision body (m); car width = 2 * this, it overrides PBS `body_width` (`tnfs_ai_init_car`). Zero in all traffic and cop PDNs: if any of the three half sizes is 0, the sizes come from the car 3D model |
+| 4 | **half_height** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Half height (y) of the collision body (m), also the collision height offset |
+| 8 | **half_length** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Half length (z) of the collision body (m); car length = 2 * this, it overrides PBS `body_len` |
+| 12 | **moment_of_inertia** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Crash-body moment of inertia (1.4-2.25), no physical unit; angular acceleration factor = 1 / this (`tnfs_collision_data_reset` and the rebound functions) |
+| 16 | **mass** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Relative crash-body mass (1.0 typical, 0.5-1.5), no physical unit; linear acceleration factor = 1 / this. Car to car impulses are split by the mass ratio |
+| 20 | **handling_factor** | 4 | 4-bytes signed integer (little endian) | Racers only (`tnfs_ai_racer_speed`, SE 0x470a9c, DOS 0x80c50, PSX 0x8005bcc8), 24-bit angle (0xA0000 = 14.1°): target speed * (0.8 + 0.203 * (1 - turn / this)), turn = road heading change per track node. 0xFF0000 (TSUPRA, TRAFFC, traffic, cops) = no corner slowdown. Copied to car+0x168, its inverse to car+0x16c |
+| 24 | **speed_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Racers only: target speed multiplier (0.92-1.0) (`tnfs_ai_racer_speed`, car+0x170). 1.0 in traffic and cop PDNs |
+| 28 | **power_curve** | 400 | Array of `100` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | AI acceleration by speed (`tnfs_ai_drive_car`, SE 0x46f3e8, DOS 0x7e961, PSX 0x80059d68): speed gain per AI update at index abs(speed in m/s) + 1, x 8 (traffic), x 4 (racers), x 6 (cops), minus the drive argument of the function. The car slows down when [index - 1] is 0. In racer PDNs the first 0 is at the top gear speed rounded up; traffic PDNs have a linear 0.2 -> 0 curve, COPMUST the P911 curve. Uncertain: the exact time scale and the drive argument |
+| 428 | **top_speeds** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Top speed (m/s) per AI gear, 0 = gear skipped (leading zeros); all 0 in traffic and cop PDNs. Racers' engine rpm = 0.75 * `max_rpm` * speed / top speed of the gear, a shift timer starts at each gear change (`tnfs_ai_opp_engine_and_cornering`, SE 0x46c278, DOS 0x79af9) |
+| 452 | **max_rpm** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Racers' engine rpm cap, drives the opponent engine sound. 0 in traffic and cop PDNs |
+| 456 | **gear_count** | 4 | 4-bytes unsigned integer (little endian) | Read only as the traffic horn pitch index, when `tnfs_ai_lane_change` starts the horn (tnfs-1995 names it `pdn_number_of_gears`). Not the number of gears: 5 in every racer PDN, also in CZR1, DVIPER, P911 and TSUPRA with 6 `top_speeds`. The game plays the traffic horn (collision bank sample 0x3f) at pitch value `table[index] * doppler >> 8`, table at DOS 0x81aa9 = 0x40, 0x40, 0x64, 0x5a, 0x50, 0x46, 0x3c, 0x32, 0x2d, 0x28. Values: crx 2, bmw 3, jetta 3, sunbird 4, wagon 4, pickup 5, probe 5, traffc 5, axxess 6, jeep 6, lemans 6, rodeo 8, vandura 8, copmust 0 (the cop never honks); 7 and 9 unused |
 ## **Images** ##
 ### **EacImage** ###
 #### **Size**: 16..? bytes ####
@@ -566,8 +578,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **unk0** | 1 | Bytes | Unknown purpose |
 | 9 | **car_id** | 4 | 4-bytes signed integer (little endian) | Index of the car in the car list of the game |
 | 13 | **transmission** | 4 | 4-bytes signed integer (little endian) | Boolean. Used as the "automatic gear" flag of the car, and selects the variant of the car physics |
-| 17 | **option_a** | 4 | 4-bytes signed integer (little endian) | Boolean, a car option. Applied only if the car physics (PBS) allow it (field at 0x338) |
-| 21 | **option_b** | 4 | 4-bytes signed integer (little endian) | Boolean, a car option. Applied only if the car physics (PBS) allow it (field at 0x334) |
+| 17 | **option_a** | 4 | 4-bytes signed integer (little endian) | Boolean, traction control option. Applied only if the car PBS `has_tcs` (0x338) is set |
+| 21 | **option_b** | 4 | 4-bytes signed integer (little endian) | Boolean, ABS option. Applied only if the car PBS `has_abs` (0x334) is set |
 | 25 | **unk1** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
 | 29 | **sound_value_0** | 4 | 4-bytes signed integer (little endian) | Taken from the sound configuration when the replay is saved, 0 without a sound card |
 | 33 | **sound_value_1** | 4 | 4-bytes signed integer (little endian) | Taken from the sound configuration when the replay is saved, 0 without a sound card |

@@ -101,7 +101,7 @@ EXPORT_RESOURCES = {
 
 **\\*.PBS** car physics. {render_type(eac.car_specs.CarPerformanceSpec())}, [compressed](eac_compressions.md)
 
-**\\*.PDN** car characteristic for unknown purpose. {render_type(eac.car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
+**\\*.PDN** car characteristics for the AI driving model and the crash body. {render_type(eac.car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
 
 **\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
