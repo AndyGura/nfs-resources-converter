@@ -1,12 +1,24 @@
 import configparser
 import os
-from typing import Any, Dict
+import re
+from typing import Any, Dict, List, Optional
 
 from library.utils.class_dict import ClassDict
 
 # Define configuration sections
 SECTION_GENERAL = 'General'
 SECTION_CONVERSION = 'Conversion'
+# A user-defined conversion preset lives in its own section "[Conversion: <name>]" and holds the conversion settings
+# with the input / output paths. "No preset" (the default one) is [Conversion] itself, which also keeps the preset
+# selected in the GUI converter.
+CONVERSION_PRESET_SECTION_PREFIX = 'Conversion: '
+# [Conversion] keys that are not conversion settings, so presets don't have them
+CONVERSION_NON_PRESET_KEYS = ('selected_preset',)
+# Letters, digits, spaces, "-", "_" and ".", starting and ending with a letter or a digit: no quoting trouble in a
+# shell besides the spaces (--preset "My Preset"), and a valid ini section name
+CONVERSION_PRESET_NAME_PATTERN = re.compile(r'^[A-Za-z0-9](?:[A-Za-z0-9 _.\-]*[A-Za-z0-9])?$')
+CONVERSION_PRESET_NAME_MAX_LENGTH = 64
+NO_PRESET_NAME = 'No preset'
 
 # Define configuration file path
 CONFIG_FILE_NAME = 'nfs-resources-converter-settings.ini'
@@ -72,8 +84,14 @@ class ConfigManager:
                 'geometry__save_obj': True,
                 'geometry__save_blend': True,
                 'geometry__export_to_gg_web_engine': False,
+                'selected_preset': '',
             },
         }
+
+    def _defaults_section(self, section: str) -> str:
+        if section.startswith(CONVERSION_PRESET_SECTION_PREFIX):
+            return SECTION_CONVERSION
+        return section
 
     def _load_config(self):
         """
@@ -113,12 +131,14 @@ class ConfigManager:
         Returns:
             Configuration value
         """
-        default = self._get_defaults().get(section, {}).get(key)
-        # Check environment variable first
-        env_var_name = self._get_env_var_name(section, key)
-        env_value = os.environ.get(env_var_name)
-        if env_value is not None:
-            return self._convert_value(env_value, default)
+        defaults_section = self._defaults_section(section)
+        default = self._get_defaults().get(defaults_section, {}).get(key)
+        # Check environment variable first (not for presets: their section names make no variable names)
+        if defaults_section == section:
+            env_var_name = self._get_env_var_name(section, key)
+            env_value = os.environ.get(env_var_name)
+            if env_value is not None:
+                return self._convert_value(env_value, default)
 
         # Check config file
         try:
@@ -129,8 +149,8 @@ class ConfigManager:
             pass
 
         # Check defaults
-        if section in self._defaults and key in self._defaults[section]:
-            return self._defaults[section][key]
+        if defaults_section in self._defaults and key in self._defaults[defaults_section]:
+            return self._defaults[defaults_section][key]
 
         # Return provided default or None
         return default
@@ -210,9 +230,24 @@ class ConfigManager:
         # Set value in config
         self._config.set(section, key, str(value))
 
-        # Write to config file
+        self._write()
+
+    def _write(self):
         with open(CONFIG_FILE_PATH, 'w') as config_file:
             self._config.write(config_file)
+
+    def sections(self) -> List[str]:
+        return self._config.sections()
+
+    def add_section(self, section: str, values: Dict[str, Any]) -> None:
+        self._config.add_section(section)
+        for key, value in values.items():
+            self._config.set(section, key, str(value))
+        self._write()
+
+    def remove_section(self, section: str) -> None:
+        self._config.remove_section(section)
+        self._write()
 
 
 # Create a singleton instance
@@ -269,25 +304,122 @@ def general_config(patch: Dict = None) -> ClassDict:
     return ClassDict.wrap(config)
 
 
-def conversion_config(patch: Dict = None) -> ClassDict:
-    config = {
-        'multiprocess_processes_count': get_config(SECTION_CONVERSION, 'multiprocess_processes_count'),
-        'input_path': get_config(SECTION_CONVERSION, 'input_path'),
-        'output_path': get_config(SECTION_CONVERSION, 'output_path'),
-        'images__save_image_positions': get_config(SECTION_CONVERSION, 'images__save_image_positions'),
-        'images__save_palettes': get_config(SECTION_CONVERSION, 'images__save_palettes'),
-        'images__save_mipmaps': get_config(SECTION_CONVERSION, 'images__save_mipmaps'),
-        'images__save_embedded_palette': get_config(SECTION_CONVERSION, 'images__save_embedded_palette'),
-        'images__save_texts': get_config(SECTION_CONVERSION, 'images__save_texts'),
-        'maps__save_as_chunked': get_config(SECTION_CONVERSION, 'maps__save_as_chunked'),
-        'maps__save_invisible_wall_collisions': get_config(SECTION_CONVERSION, 'maps__save_invisible_wall_collisions'),
-        'maps__save_terrain_collisions': get_config(SECTION_CONVERSION, 'maps__save_terrain_collisions'),
-        'maps__save_spherical_skybox_texture': get_config(SECTION_CONVERSION, 'maps__save_spherical_skybox_texture'),
-        'maps__add_props_to_obj': get_config(SECTION_CONVERSION, 'maps__add_props_to_obj'),
-        'geometry__save_obj': get_config(SECTION_CONVERSION, 'geometry__save_obj'),
-        'geometry__save_blend': get_config(SECTION_CONVERSION, 'geometry__save_blend'),
-        'geometry__export_to_gg_web_engine': get_config(SECTION_CONVERSION, 'geometry__export_to_gg_web_engine'),
+def _conversion_preset_section(preset: str) -> str:
+    return CONVERSION_PRESET_SECTION_PREFIX + preset
+
+
+def list_conversion_presets() -> List[str]:
+    """
+    Names of the user-defined conversion presets, in settings file order.
+    """
+    return [
+        section[len(CONVERSION_PRESET_SECTION_PREFIX) :]
+        for section in _config_manager.sections()
+        if section.startswith(CONVERSION_PRESET_SECTION_PREFIX)
+    ]
+
+
+def _require_conversion_preset(preset: str) -> str:
+    if preset not in list_conversion_presets():
+        available = ', '.join(f'"{x}"' for x in list_conversion_presets()) or 'none'
+        raise ValueError(f'Conversion preset "{preset}" does not exist. Available presets: {available}')
+    return _conversion_preset_section(preset)
+
+
+def validate_conversion_preset_name(name: str) -> Optional[str]:
+    """
+    Check a name for a new conversion preset.
+
+    Returns:
+        The error message, or None if the name can be used
+    """
+    if not name:
+        return 'Preset name is required'
+    if len(name) > CONVERSION_PRESET_NAME_MAX_LENGTH:
+        return f'Preset name must be at most {CONVERSION_PRESET_NAME_MAX_LENGTH} characters long'
+    if not CONVERSION_PRESET_NAME_PATTERN.match(name):
+        return (
+            'Preset name can contain only letters, digits, spaces, "-", "_" and ".", '
+            'and must start and end with a letter or a digit'
+        )
+    if name.lower() == NO_PRESET_NAME.lower():
+        return f'"{NO_PRESET_NAME}" is reserved'
+    if name.lower() in (x.lower() for x in list_conversion_presets()):
+        return f'Preset "{name}" already exists'
+    return None
+
+
+def create_conversion_preset(name: str, copy_from: Optional[str] = None) -> None:
+    """
+    Create a conversion preset with the settings of another one.
+
+    Args:
+        name: New preset name
+        copy_from: Preset to copy the settings from, None for the default settings (no preset)
+    """
+    error = validate_conversion_preset_name(name)
+    if error:
+        raise ValueError(error)
+    values = conversion_preset_settings(copy_from)
+    _config_manager.add_section(_conversion_preset_section(name), values)
+
+
+def delete_conversion_preset(name: str) -> None:
+    _config_manager.remove_section(_require_conversion_preset(name))
+    if get_selected_conversion_preset() is None and get_config(SECTION_CONVERSION, 'selected_preset'):
+        set_config(SECTION_CONVERSION, 'selected_preset', '')
+
+
+def get_selected_conversion_preset() -> Optional[str]:
+    """
+    The preset selected in the GUI converter, None for no preset (or if the selected one no longer exists).
+    """
+    preset = get_config(SECTION_CONVERSION, 'selected_preset')
+    return preset if preset in list_conversion_presets() else None
+
+
+def set_selected_conversion_preset(preset: Optional[str]) -> None:
+    if preset:
+        _require_conversion_preset(preset)
+    set_config(SECTION_CONVERSION, 'selected_preset', preset or '')
+
+
+def conversion_preset_settings(preset: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Conversion settings, with the input / output paths, of a preset.
+
+    Args:
+        preset: Preset name, None for the default settings ([Conversion] section). A preset misses no setting: the
+            ones it has no value for take the built-in defaults, not the [Conversion] ones.
+    """
+    section = _require_conversion_preset(preset) if preset else SECTION_CONVERSION
+    return {
+        key: get_config(section, key)
+        for key in _config_manager._get_defaults()[SECTION_CONVERSION]
+        if key not in CONVERSION_NON_PRESET_KEYS
     }
+
+
+def patch_conversion_preset_settings(values: Dict[str, Any], preset: Optional[str] = None) -> None:
+    """
+    Save conversion settings to a preset (None = default settings).
+    """
+    section = _require_conversion_preset(preset) if preset else SECTION_CONVERSION
+    for key, value in values.items():
+        if key in CONVERSION_NON_PRESET_KEYS:
+            raise ValueError(f'"{key}" is not a conversion setting')
+        set_config(section, key, value)
+
+
+def conversion_config(patch: Dict = None, preset: Optional[str] = None) -> ClassDict:
+    """
+    Conversion settings with the input / output paths.
+
+    Args:
+        patch: Values overriding the stored ones
+        preset: Conversion preset name, None for the default settings (no preset)
+    """
+    config = conversion_preset_settings(preset)
     if patch:
         config = {**config, **patch}
     return ClassDict.wrap(config)

@@ -2,6 +2,78 @@
   <h1>Converter to Common Formats</h1>
 
   <form [formGroup]="converterForm" (ngSubmit)="convertFiles()">
+    <!-- Conversion preset: paths and settings below are edited in place in the selected one -->
+    @if (newPresetName) {
+      <div class="form-row preset-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>New preset name</mat-label>
+          <input
+            #newPresetInput
+            matInput
+            [formControl]="newPresetName"
+            [errorStateMatcher]="showErrorWhileTyping"
+            [maxlength]="64"
+            placeholder="e.g. nfs-web-assets"
+            (keydown.enter)="$event.preventDefault(); createPreset()"
+            (keydown.escape)="$event.stopPropagation(); cancelNewPreset()" />
+          @if (newPresetName.dirty && newPresetName.errors?.['presetName']; as error) {
+            <mat-error>{{ error }}</mat-error>
+          } @else {
+            <mat-hint>Starts with the paths and settings of "{{ selectedPreset ?? noPresetName }}"</mat-hint>
+          }
+        </mat-form-field>
+        <button
+          type="button"
+          mat-raised-button
+          color="primary"
+          [disabled]="newPresetName.invalid || isUpdatingPresets"
+          (click)="createPreset()">
+          Create
+        </button>
+        <button type="button" mat-button [disabled]="isUpdatingPresets" (click)="cancelNewPreset()">Cancel</button>
+      </div>
+    } @else {
+      <div class="form-row preset-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Conversion preset</mat-label>
+          <mat-select [formControl]="presetControl" (selectionChange)="selectPreset($event.value || null)">
+            <!-- mat-select shows null as no selection -->
+            <mat-option value="">{{ noPresetName }}</mat-option>
+            @for (preset of presets; track preset) {
+              <mat-option [value]="preset">{{ preset }}</mat-option>
+            }
+          </mat-select>
+          @if (selectedPreset) {
+            <mat-hint>
+              Edits are saved to this preset. CLI: <code>{{ presetCommandLineArgument(selectedPreset) }}</code>
+            </mat-hint>
+          } @else {
+            <mat-hint>Default paths and settings. CLI: no <code>--preset</code></mat-hint>
+          }
+        </mat-form-field>
+        <button
+          type="button"
+          mat-stroked-button
+          [disabled]="!configLoaded || isConverting || isUpdatingPresets"
+          matTooltip="Create a preset from the current settings"
+          (click)="startNewPreset()">
+          <mat-icon>add</mat-icon>
+          New preset
+        </button>
+        @if (selectedPreset) {
+          <button
+            type="button"
+            mat-icon-button
+            [disabled]="isConverting || isUpdatingPresets"
+            [matTooltip]="'Remove preset &quot;' + selectedPreset + '&quot;'"
+            aria-label="Remove preset"
+            (click)="deletePreset()">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+      </div>
+    }
+
     <div class="form-row">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Input Directory/File</mat-label>
@@ -39,10 +111,12 @@
     </div>
 
     <!-- Settings Accordion -->
-    <mat-expansion-panel class="settings-panel">
+    <mat-expansion-panel class="settings-panel" [(expanded)]="settingsExpanded">
       <mat-expansion-panel-header>
         <mat-panel-title> Conversion Settings </mat-panel-title>
-        <mat-panel-description> Customize conversion settings </mat-panel-description>
+        <mat-panel-description>{{
+          selectedPreset ? 'Preset "' + selectedPreset + '"' : noPresetName
+        }}</mat-panel-description>
       </mat-expansion-panel-header>
 
       @if (configLoaded) {
@@ -201,6 +275,14 @@
       The converter will process all files in the input directory (including subdirectories) and save the converted
       files to the output directory.
     </p>
-    <p>You can customize conversion settings by expanding the "Conversion Settings" panel.</p>
+    <p>
+      You can customize conversion settings by expanding the "Conversion Settings" panel. The paths and settings are
+      saved right away, to the selected conversion preset, or to the default ones with "{{ noPresetName }}" selected.
+    </p>
+    <p>
+      Presets keep several sets of paths and settings: "New preset" copies the current ones to a new preset and selects
+      it. The command line converter uses a preset with <code>--preset "Preset name"</code>, with the preset's input and
+      output paths unless they are given, and the default settings without it.
+    </p>
   </div>
 </div>

@@ -109,6 +109,11 @@ When you do:
   `frontend/.../editor/eac/` are copied into the nfs-web game as they are (only import paths change): keep them free
   of GUI services, depending on three.js, gg-web-engine and rxjs only. nfs-web loads the converter's gg-web-engine
   export with "Add props to obj" off, so a track's props must reach it as dummies.
+- Conversion settings presets (`config.py`): "No preset" is the `[Conversion]` section, a user-defined preset is a
+  `[Conversion: <name>]` section with the conversion settings and input / output paths (everything but
+  `selected_preset`, see `CONVERSION_NON_PRESET_KEYS`); a setting missing in a preset takes the built-in default.
+  `run.py convert --preset "<name>"` (input and `--out` default to the preset's paths) and the GUI converter's preset
+  select use them; a new conversion setting goes into `ConfigManager._get_defaults()` and the converter's form.
 - Nothing repo-specific overrides standard slash commands (`/code-review`, `/simplify`, etc.).
 - Real game files for broader validation live under the gitignored `games/<game>/` folders (e.g. every
   QFS3-compressed file across nfs1/nfs2/nfs2se/nfs3), beyond the few samples in `test/samples/`.
