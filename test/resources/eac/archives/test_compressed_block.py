@@ -7,6 +7,7 @@ from library.context import ReadContext
 from library.utils.asm_runner import AsmRunner
 from resources.eac.archives import EacCompressedBlock
 from resources.eac.compressions.base import BaseCompressionAlgorithm
+from resources.eac.compressions.huff import HuffCompression
 from resources.eac.compressions.qfs2 import Qfs2Compression
 from resources.eac.compressions.qfs3 import Qfs3Compression
 from resources.eac.compressions.ref_pack import RefPackCompression
@@ -24,50 +25,35 @@ class TestEacCompressedBlock(unittest.TestCase):
         self.assertEqual(mock_data, bytes(decompressed_asm), 'Decompressed ASM data does not match original data')
         self.assertEqual(mock_data, decompressed['data'], 'Decompressed data does not match original data')
 
-    def test_qfs2_escaping_recursive_patterns_issue(self):
-        # real part of file that was broken with first iteration of qfs2 algo, at the offset where something went wrong
-        original_data = b'\x00\xee\x00\x00\x00\x00\x00\x17'
-        # real patterns, generated for given file when scanned fully
-        patterns = [[(0xEE, 0x0, 0x0)], [(0x9E, 0xEE, 0xEE)]]
-        # the problem is following:
-        # 1) we replace 0x00-s with 0xee and escape existing 0xee's: \xee\x00\x00\x00\x00 -> \xff\xee\xee\xee
-        # 2) now we replace 0xee-s with 0x9e, but we have to skip escaped 0xee: \xff\xee\xee\xee -> \xff\xee\x9e
-        compressed = Qfs2Compression().compress(BytesIO(original_data), len(original_data), hardcoded_patterns=patterns)
-        self.assertEqual(
-            compressed, b'F\xfb\x00\x00\x08\xff\x02\xee\x00\x00\x9e\xee\xee\x00\xff\xee\x9e\x00\x17\xff\x00'
-        )
+    def test_should_write_back_with_original_algorithm(self):
+        for file_name, flags in [
+            ('test/samples/AL3.QFS', 0x10),
+            ('test/samples/AL2.QFS', 0x46),
+            ('test/samples/AL1.QFS', 0x30),
+            ('test/samples/VERTBST.QFS', 0x32),
+        ]:
+            with self.subTest(file_name=file_name):
+                with open(file_name, 'rb') as file:
+                    original = file.read()
+                block = EacCompressedBlock()
+                data = block.unpack(ReadContext.from_bytes(original), read_bytes_amount=len(original))
+                self.assertEqual(data['compression_flags'], flags)
+                packed = block.pack(data)
+                self.assertEqual(packed[:2], bytes([flags, 0xFB]))
+                self.assertEqual(_uncompressed_sample(file_name), _uncompressed_bytes(packed))
 
-        decompressed = Qfs2Compression().uncompress(BytesIO(compressed), len(compressed))
-        self.assertEqual(original_data, decompressed)
+    def test_new_data_should_be_written_as_qfs2(self):
+        block = EacCompressedBlock()
+        data = block.new_data({'choice_index': block.get_choice_index_by_class_name('ShpiBlock')})
+        self.assertEqual(block.pack(data)[:2], b'\x46\xfb')
 
-    # def test_qfs2_compression_efficiency(self):
-    #     import tempfile
-    #     import urllib.request
-    #     from eac.archives import ShpiBlock
-    #     from eac.bitmaps import EacImage
-    #     from serializers import ImageSerializer
-    #     shpi_block = ShpiBlock()
-    #     data = shpi_block.new_data()
-    #     data['children'].append({
-    #         'pre_offset_payload': b'',
-    #         'post_offset_payload': b'',
-    #         'alias': 'AAAA',
-    #         'item': {
-    #             'choice_index': shpi_block.item_block.get_choice_index_by_class_name('EacImage'),
-    #             'data': EacImage().new_data()
-    #         }
-    #     })
-    #     with tempfile.TemporaryDirectory() as tmpdir:
-    #         image_url = "https://picsum.photos/512/512?hmac=pJQXx7frJ1QUXHF_ysDKy3gb54RDtfk9C09G-iswhZE"
-    #         tmp_dir = tempfile.gettempdir()
-    #         image_path = os.path.join(tmp_dir, "sample_image.png")
-    #         urllib.request.urlretrieve(image_url, image_path)
-    #         data['children'][0]['item']['data'] = ImageSerializer().deserialize([image_path], block=EacImage())
-    #     # shpi_block.action_convert_to_8bit(data, '', '!pal', '32Bit color format palette', 256, '')
-    #     pure_data = shpi_block.write(data)
-    #     compressed = Qfs2Compression().compress(BytesIO(pure_data), len(pure_data))
-    #     decompressed = Qfs2Compression().uncompress(BytesIO(compressed), len(compressed))
-    #     self.assertEqual(pure_data, decompressed)
+    def test_compressed_size_should_come_before_uncompressed_size(self):
+        raw = b'abcabcabcabc' * 50
+        for compression, flags in [(RefPackCompression(), 0x11), (Qfs2Compression(), 0x47)]:
+            with self.subTest(compression=type(compression).__name__):
+                compressed = compression.compress(BytesIO(raw), len(raw))
+                with_size = bytes([flags, 0xFB]) + (len(compressed) + 3).to_bytes(3, 'big') + compressed[2:]
+                self.assertEqual(compression.uncompress(BytesIO(with_size), len(with_size)), raw)
 
     def test_qfs2_asm_decompression(self):
         parser_py = Qfs2Compression()
@@ -151,6 +137,112 @@ class TestEacCompressedBlock(unittest.TestCase):
                 self.assertEqual(len(fsh), len(uncompressed))
                 for i in range(len(fsh)):
                     self.assertEqual(fsh[i], uncompressed[i])
+
+
+def _uncompressed_sample(file_name: str) -> bytes:
+    with open(file_name, 'rb') as file:
+        data = file.read()
+    return _uncompressed_bytes(data)
+
+
+def _uncompressed_bytes(data: bytes) -> bytes:
+    return EacCompressedBlock()._detect_compression(BytesIO(data)).uncompress(BytesIO(data), len(data))
+
+
+# edge cases: empty, single bytes, 0x00 and 0xFF (QFS2 escape / terminator), runs, all 256 values, noise, nested pairs
+_EDGE_CASES = [
+    b'',
+    b'a',
+    b'\x00',
+    b'\xff',
+    b'ab',
+    b'\x00' * 1000,
+    b'\xff' * 1000,
+    b'abc' * 1000,
+    bytes(range(256)) * 20,
+    bytes((i * 7919) % 251 for i in range(5000)),
+    b'\x00\xee\x00\x00\x00\x00\x00\x17' * 300,
+]
+
+
+class TestCompressors(unittest.TestCase):
+    def _assert_round_trip(self, compression, raw: bytes, asm_compression=None):
+        compressed = compression.compress(BytesIO(raw), len(raw))
+        self.assertEqual(compression.uncompress(BytesIO(compressed), len(compressed)), raw)
+        if asm_compression is not None:
+            self.assertEqual(bytes(asm_compression.uncompress(BytesIO(compressed), len(compressed))), raw)
+        return compressed
+
+    def test_round_trip(self):
+        samples = [
+            _uncompressed_sample(f) for f in ['test/samples/AL1.QFS', 'test/samples/AL3.QFS', 'test/samples/LDIABL.PBS']
+        ]
+        for compression in [RefPackCompression(), Qfs2Compression(), Qfs3Compression(), HuffCompression()]:
+            for raw in _EDGE_CASES + samples:
+                with self.subTest(compression=type(compression).__name__, length=len(raw), start=raw[:8]):
+                    self._assert_round_trip(compression, raw)
+
+    def test_game_decoders_should_read_compressed(self):
+        # the decoders run the games' ASM, so they get a few KB only
+        raw = _uncompressed_sample('test/samples/AL1.QFS')[:6000]
+        cases = [
+            (RefPackCompression(), RefPackASMCompression),
+            (Qfs2Compression(), Qfs2ASMCompression),
+            (Qfs3Compression(), Qfs3ASMCompression),
+        ]
+        for compression, asm_compression in cases:
+            for data in [raw, b'\x00\xee\x00\x00\x00\x00\x00\x17' * 300, bytes(range(256)) * 4 + b'\xff' * 500]:
+                with self.subTest(compression=type(compression).__name__, length=len(data)):
+                    self._assert_round_trip(compression, data, asm_compression())
+
+    def test_qfs3_should_try_delta_coding(self):
+        # smooth gradient: delta-coded once it's a single repeated value
+        raw = bytes(i & 0xFF for i in range(10000))
+        compressed = self._assert_round_trip(Qfs3Compression(), raw, Qfs3ASMCompression())
+        self.assertEqual(compressed[0], 0x32)
+        self.assertLess(len(compressed), 100)
+        plain = Qfs3Compression().compress(BytesIO(raw), len(raw), delta_passes=(0,))
+        self.assertEqual(plain[0], 0x30)
+
+    def test_qfs2_escape_should_be_rarest_byte(self):
+        raw = bytes(range(1, 256)) * 10 + b'\x00' * 100 + b'\x37' * 5
+        raw = raw.replace(b'\x42', b'')
+        compressed = self._assert_round_trip(Qfs2Compression(), raw)
+        self.assertEqual(compressed[5], 0x42)
+        # no byte value missing: the least frequent one but 0x00 (escape + 0x00 ends the stream)
+        raw = bytes(range(256)) * 3 + bytes(range(0x81)) + bytes(range(0x82, 256))
+        compressed = self._assert_round_trip(Qfs2Compression(), raw)
+        self.assertEqual(compressed[5], 0x81)
+        raw = bytes(range(1, 256)) * 3
+        compressed = self._assert_round_trip(Qfs2Compression(), raw)
+        self.assertNotEqual(compressed[5], 0x00)
+
+    def test_qfs2_should_compress_data_full_of_ff(self):
+        raw = (b'\xff' * 7 + b'\x01') * 2000
+        compressed = self._assert_round_trip(Qfs2Compression(), raw)
+        self.assertLess(len(compressed), len(raw) // 10)
+
+    def test_should_not_lose_to_ea_compressors(self):
+        for file_name, compression in [
+            ('test/samples/AL2.QFS', Qfs2Compression()),
+            ('test/samples/AL1.QFS', Qfs3Compression()),
+        ]:
+            with self.subTest(file_name=file_name):
+                raw = _uncompressed_sample(file_name)
+                compressed = self._assert_round_trip(compression, raw)
+                self.assertLessEqual(len(compressed), os.path.getsize(file_name))
+        # EA's RefPack is a bit better than ours
+        raw = _uncompressed_sample('test/samples/AL3.QFS')
+        compressed = self._assert_round_trip(RefPackCompression(), raw)
+        self.assertLessEqual(len(compressed), os.path.getsize('test/samples/AL3.QFS') * 1.03)
+
+    def test_huff_should_wrap_plain_qfs3(self):
+        raw = _uncompressed_sample('test/samples/AL1.QFS')[:20000]
+        compressed = self._assert_round_trip(HuffCompression(), raw)
+        self.assertEqual(compressed[:8], b'HUFF\x01\x10\x00\x00')
+        self.assertEqual(int.from_bytes(compressed[8:12], 'little'), len(raw))
+        self.assertEqual(int.from_bytes(compressed[12:16], 'little'), len(compressed) - 16)
+        self.assertEqual(compressed[16:18], b'\x30\xfb')
 
 
 class Qfs2ASMCompression(BaseCompressionAlgorithm, AsmRunner):

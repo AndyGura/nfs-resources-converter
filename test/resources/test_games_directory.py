@@ -146,7 +146,7 @@ def _install_compression_tracking():
 
         cls.uncompress = uncompress
 
-    for cls in [Qfs2Compression, JdlzCompression]:
+    for cls in [RefPackCompression, Qfs2Compression, Qfs3Compression, JdlzCompression, HuffCompression]:
 
         def compress(self, buffer, input_length, *args, _original=cls.compress, _cls=cls, **kwargs):
             start = buffer.tell()
