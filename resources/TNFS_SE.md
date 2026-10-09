@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-09 07:33:12.486185+00:00*
+*Last time updated: 2026-10-09 10:11:23.016232+00:00*
 
 
 # **Info by file extensions** #
@@ -27,9 +27,9 @@
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
 
-**\*.PBS** car physics. [CarPerformanceSpec](#carperformancespec), [compressed](eac_compressions.md)
+**\*.PBS** player car physics. [PlayerCarPhysics](#playercarphysics), [compressed](eac_compressions.md)
 
-**\*.PDN** car characteristics for the AI driving model and the crash body. [CarSimplifiedPerformanceSpec](#carsimplifiedperformancespec), [compressed](eac_compressions.md)
+**\*.PDN** car AI and crash body. [CarAiAndCrashBody](#caraiandcrashbody), [compressed](eac_compressions.md)
 
 **\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 
@@ -268,9 +268,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 6 | **width_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Width in meters of second bitmap |
 | 10 | **height** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Height in meters |
 ## **Physics** ##
-### **CarPerformanceSpec** ###
+### **PlayerCarPhysics** ###
 #### **Size**: 1912 bytes ####
-#### **Description**: Full physics specification of a car the player can drive (`SIMDATA/CARSPECS/*.PBS`, QFS-compressed, 1912 bytes uncompressed). Loaded by `Fiziks_PreInitCar` (SE 0x4400f4, DOS 0x63e72, PSX 0x80038ea4); the game keeps the same layout in memory (DOS, SE, PSX). Readers are named as in [tnfs-1995](https://github.com/marcos2250/tnfs-1995) with Win95 SE addresses; "not read" = no reader in the DOS, SE and PSX executables. Physics ticks are 1/30 s, angles are 24-bit (0x1000000 = full turn). Rally mode changes some fields in memory after loading (DOS, SE): rear grip table := front, `unknown_0x320` and `thrust_scale` halved and their inverses recomputed, `friction_f/r` and `max_brake_force_1/2` halved, `cog_height` x 1.5, `efficiency` x 0x14c/256 on track 3, else x 0x133/256. PSX rally: `lat_acc_cutoff` x 0.625, `cog_height` x 7/4, `efficiency` x a per-track value, `drive_bias` = 0.5. Thanks to [Five-Damned-Dollarz](https://gist.github.com/Five-Damned-Dollarz/99e955994ebbcf970532406a197b580e) and [marcos2250](https://github.com/marcos2250/tnfs-1995/blob/main/tnfs_files.c) ####
+#### **Description**: Player car physics: the full physics specification of a car the player can drive (`SIMDATA/CARSPECS/*.PBS`, QFS-compressed, 1912 bytes uncompressed). Loaded by `Fiziks_PreInitCar` (SE 0x4400f4, DOS 0x63e72, PSX 0x80038ea4); the game keeps the same layout in memory (DOS, SE, PSX). Readers are named as in [tnfs-1995](https://github.com/marcos2250/tnfs-1995) with Win95 SE addresses; "not read" = no reader in the DOS, SE and PSX executables. Physics ticks are 1/30 s, angles are 24-bit (0x1000000 = full turn). Rally mode changes some fields in memory after loading (DOS, SE): rear grip table := front, `unknown_0x320` and `thrust_scale` halved and their inverses recomputed, `friction_f/r` and `max_brake_force_1/2` halved, `cog_height` x 1.5, `efficiency` x 0x14c/256 on track 3, else x 0x133/256. PSX rally: `lat_acc_cutoff` x 0.625, `cog_height` x 7/4, `efficiency` x a per-track value, `drive_bias` = 0.5. Thanks to [Five-Damned-Dollarz](https://gist.github.com/Five-Damned-Dollarz/99e955994ebbcf970532406a197b580e) and [marcos2250](https://github.com/marcos2250/tnfs-1995/blob/main/tnfs_files.c) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **mass_front** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Mass on the front axle (kg). Front weight fraction = `mass_front * inv_mass` (`Fiziks_InitCar`, SE 0x42ff60). Equals `mass_rear` in all files |
@@ -307,7 +307,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 152 | **front_roll_stiffness_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | 0.5 in all files. Not read |
 | 156 | **rear_roll_stiffness_2** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | 0.5 in all files. Not read |
 | 160 | **weight_transfer_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | 0.001-0.27. Not read: the weight transfer factor of the game is `cog_height * wheel_base_inv` |
-| 164 | **slip_cutoff** | 4 | 4-bytes signed integer (little endian) | Max tire slip angle, 24-bit angle: 0x1FE667 = 44.9° in all files. Larger slip angles are clamped to it and set skid bit 1 (`tnfs_tire_forces`, SE 0x42fb88) |
+| 164 | **slip_cutoff** | 4 | 4-bytes signed integer (little endian), angle: 0x1000000 means 360 degrees | Max tire slip angle, 24-bit angle: 0x1FE667 = 44.9° in all files. Larger slip angles are clamped to it and set skid bit 1 (`tnfs_tire_forces`, SE 0x42fb88) |
 | 168 | **normal_loss** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Normal coefficient loss. Not read |
 | 172 | **max_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine redline rpm (`rpm_redline` in the game engine). Rpm limit with the throttle = this * throttle / 256 (`tnfs_engine_rev_limiter`, `tnfs_engine_thrust`). Engine sound pitch value = rpm * 127 / (max_rpm + 2000), at most 127 (`tnfs_sfx_engine_player`, SE 0x4444b8, DOS 0x668ab). Tachometer needle: min(rpm, max_rpm + 980) * 600 / max_rpm (SE 0x42221c, 0x420d0c) |
 | 176 | **min_rpm** | 4 | 4-bytes unsigned integer (little endian) | Engine idle rpm (`rpm_idle`), engine rpm floor (`tnfs_engine_rev_limiter`) |
@@ -355,9 +355,9 @@ Did not find what you need or some given data is wrong? Please submit an
 | 884 | **grip_table_f** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Front tire grip by slip angle, grip = value / 128 (the game: value << 9 as 16.16). Index = slip angle (24-bit) >> 12: 0.088° steps over 0-45° (`tnfs_tire_slide_table`, read in `tnfs_tire_forces`; DOS 0x593d5). Index 511 is unreachable with the 44.9° `slip_cutoff` and holds garbage |
 | 1396 | **grip_table_r** | 512 | Array of `512` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Rear tire grip by slip angle, like `grip_table_f`. Rally mode (DOS, SE) replaces it with the front table in memory |
 | 1908 | **checksum** | 4 | 4-bytes unsigned integer (little endian) | Byte sum of the first 1880 bytes (0x758: all but the last 28 bytes of `grip_table_r`). On a mismatch `Fiziks_PreInitCar` sets `efficiency` to 0 |
-### **CarSimplifiedPerformanceSpec** ###
+### **CarAiAndCrashBody** ###
 #### **Size**: 460 bytes ####
-#### **Description**: Car characteristics for the AI driving model and the crash body (`SIMDATA/CARFAMS/*.PDN`, QFS-compressed, 460 bytes uncompressed), one per car slot, player included. Loaded by `tnfs_ai_pdn_file` (SE 0x40fa3c, DOS 0x47425, PSX 0x8001eaa8), applied by `tnfs_ai_init_car` (SE 0x4407b8). Angles are 24-bit (0x1000000 = full turn) ####
+#### **Description**: Car AI and crash body: the AI driving model and the collision body of a car (`SIMDATA/CARFAMS/*.PDN`, QFS-compressed, 460 bytes uncompressed), one per car slot, player included. Loaded by `tnfs_ai_pdn_file` (SE 0x40fa3c, DOS 0x47425, PSX 0x8001eaa8), applied by `tnfs_ai_init_car` (SE 0x4407b8). Angles are 24-bit (0x1000000 = full turn) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **half_width** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Half width (x) of the collision body (m); car width = 2 * this, it overrides PBS `body_width` (`tnfs_ai_init_car`). Zero in all traffic and cop PDNs: if any of the three half sizes is 0, the sizes come from the car 3D model |
@@ -365,7 +365,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **half_length** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Half length (z) of the collision body (m); car length = 2 * this, it overrides PBS `body_len` |
 | 12 | **moment_of_inertia** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Crash-body moment of inertia (1.4-2.25), no physical unit; angular acceleration factor = 1 / this (`tnfs_collision_data_reset` and the rebound functions) |
 | 16 | **mass** | 4 | 32-bit real number (little-endian, not signed), where last 16 bits is a fractional part | Relative crash-body mass (1.0 typical, 0.5-1.5), no physical unit; linear acceleration factor = 1 / this. Car to car impulses are split by the mass ratio |
-| 20 | **handling_factor** | 4 | 4-bytes signed integer (little endian) | Racers only (`tnfs_ai_racer_speed`, SE 0x470a9c, DOS 0x80c50, PSX 0x8005bcc8), 24-bit angle (0xA0000 = 14.1°): target speed * (0.8 + 0.203 * (1 - turn / this)), turn = road heading change per track node. 0xFF0000 (TSUPRA, TRAFFC, traffic, cops) = no corner slowdown. Copied to car+0x168, its inverse to car+0x16c |
+| 20 | **handling_factor** | 4 | 4-bytes signed integer (little endian), angle: 0x1000000 means 360 degrees | Racers only (`tnfs_ai_racer_speed`, SE 0x470a9c, DOS 0x80c50, PSX 0x8005bcc8), 24-bit angle (0xA0000 = 14.1°): target speed * (0.8 + 0.203 * (1 - turn / this)), turn = road heading change per track node. 0xFF0000 (TSUPRA, TRAFFC, traffic, cops) = no corner slowdown. Copied to car+0x168, its inverse to car+0x16c |
 | 24 | **speed_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Racers only: target speed multiplier (0.92-1.0) (`tnfs_ai_racer_speed`, car+0x170). 1.0 in traffic and cop PDNs |
 | 28 | **power_curve** | 400 | Array of `100` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | AI acceleration by speed (`tnfs_ai_drive_car`, SE 0x46f3e8, DOS 0x7e961, PSX 0x80059d68): speed gain per AI update at index abs(speed in m/s) + 1, x 8 (traffic), x 4 (racers), x 6 (cops), minus the drive argument of the function. The car slows down when [index - 1] is 0. In racer PDNs the first 0 is at the top gear speed rounded up; traffic PDNs have a linear 0.2 -> 0 curve, COPMUST the P911 curve. Uncertain: the exact time scale and the drive argument |
 | 428 | **top_speeds** | 24 | Array of `6` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Top speed (m/s) per AI gear, 0 = gear skipped (leading zeros); all 0 in traffic and cop PDNs. Racers' engine rpm = 0.75 * `max_rpm` * speed / top speed of the gear, a shift timer starts at each gear change (`tnfs_ai_opp_engine_and_cornering`, SE 0x46c278, DOS 0x79af9) |

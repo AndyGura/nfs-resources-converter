@@ -1,0 +1,104 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+h2 {
+  margin: 0;
+  cursor: pointer;
+}
+
+h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: help;
+  align-self: flex-start;
+}
+
+.note,
+.muted {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  margin: 0;
+}
+
+.note {
+  margin-top: -0.25rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 0.75rem;
+  min-width: 0;
+}
+
+.box {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+
+  .body {
+    fill: rgba(63, 81, 181, 0.12);
+    stroke: #3f51b5;
+    stroke-width: 1.5;
+  }
+
+  .nose {
+    fill: #3f51b5;
+    opacity: 0.6;
+  }
+
+  .ground {
+    stroke: rgba(0, 0, 0, 0.35);
+    stroke-dasharray: 4 3;
+  }
+
+  .view-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    fill: rgba(0, 0, 0, 0.5);
+  }
+
+  .dim {
+    font-size: 12px;
+    fill: rgba(0, 0, 0, 0.75);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// parameter fields in an even grid, arrays (tables) on a row of their own
+:host ::ng-deep app-compound-block-ui .container.horizontal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0 1rem;
+
+  > app-editor > * > mat-form-field,
+  > app-editor > app-number-block-ui mat-form-field {
+    width: 100%;
+  }
+
+  > app-editor > app-array-block-ui {
+    grid-column: 1 / -1;
+  }
+}
+
+.sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem 1rem;
+}

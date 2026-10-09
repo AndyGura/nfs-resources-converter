@@ -8,6 +8,7 @@ from library.read_blocks import (
     CompoundBlock,
     FixedPointBlock,
 )
+from resources.eac.fields.numbers import IntegerAngleBlock
 
 
 # TNFS when saving some of the calculated values, uses `floor` instead of `round`
@@ -36,16 +37,22 @@ def _int(**kwargs):
     return IntegerBlock(length=4, is_signed=True, **kwargs)
 
 
+# TNFS 24-bit angle: 0x1000000 = full turn
+def _angle24(**kwargs):
+    return IntegerAngleBlock(full_turn=0x1000000, length=4, is_signed=True, **kwargs)
+
+
 def _uint(**kwargs):
     return IntegerBlock(length=4, is_signed=False, **kwargs)
 
 
-class CarPerformanceSpec(DeclarativeCompoundBlock):
+class PlayerCarPhysics(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Full physics specification of a car the player can drive (`SIMDATA/CARSPECS/'
+            'block_description': 'Player car physics: the full physics specification of a car the player can drive '
+            '(`SIMDATA/CARSPECS/'
             '*.PBS`, QFS-compressed, 1912 bytes uncompressed). Loaded by `Fiziks_PreInitCar` (SE 0x4400f4, DOS '
             '0x63e72, PSX 0x80038ea4); the game keeps the same layout in memory (DOS, SE, PSX). Readers are named '
             'as in [tnfs-1995](https://github.com/marcos2250/tnfs-1995) with Win95 SE addresses; "not read" = no '
@@ -226,7 +233,7 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
             },
         )
         slip_cutoff = (
-            _int(),
+            _angle24(),
             {
                 'description': 'Max tire slip angle, 24-bit angle: 0x1FE667 = 44.9° in all files. Larger slip '
                 'angles are clamped to it and set skid bit 1 (`tnfs_tire_forces`, SE 0x42fb88)'
@@ -503,12 +510,12 @@ class CarPerformanceSpec(DeclarativeCompoundBlock):
         return JsonSerializer
 
 
-class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):
+class CarAiAndCrashBody(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Car characteristics for the AI driving model and the crash body '
+            'block_description': 'Car AI and crash body: the AI driving model and the collision body of a car '
             '(`SIMDATA/CARFAMS/*.PDN`, QFS-compressed, 460 bytes uncompressed), one per car slot, player included. '
             'Loaded by `tnfs_ai_pdn_file` (SE 0x40fa3c, DOS 0x47425, PSX 0x8001eaa8), applied by `tnfs_ai_init_car` '
             '(SE 0x4407b8). Angles are 24-bit (0x1000000 = full turn)',
@@ -549,7 +556,7 @@ class CarSimplifiedPerformanceSpec(DeclarativeCompoundBlock):
             },
         )
         handling_factor = (
-            _int(),
+            _angle24(),
             {
                 'description': 'Racers only (`tnfs_ai_racer_speed`, SE 0x470a9c, DOS 0x80c50, PSX 0x8005bcc8), '
                 '24-bit angle (0xA0000 = 14.1°): target speed * (0.8 + 0.203 * (1 - turn / this)), turn = road '

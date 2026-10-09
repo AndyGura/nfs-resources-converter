@@ -1,19 +1,47 @@
-<div id="wrapper" [matTooltip]="resourceDescription || ''" matTooltipPosition="above">
-  <div #picker class="circle-container">
-    <div class="ui-anglepicker-pointer" [ngStyle]="{ transform: 'rotate(' + (resourceData || 0) + 'rad)' }">
-      <div class="ui-anglepicker-dot"></div>
-      <div class="ui-anglepicker-line"></div>
-    </div>
+@if (resourceId) {
+  <div class="angle-field" [matTooltip]="tooltip" matTooltipPosition="above" matTooltipClass="multiline-tooltip">
+    <svg
+      #dial
+      class="dial"
+      [class.disabled]="disabled"
+      viewBox="0 0 40 40"
+      width="40"
+      height="40"
+      role="slider"
+      [attr.aria-label]="resourceName"
+      [attr.aria-valuenow]="displayValue"
+      (pointerdown)="onDialDown($event)"
+      (pointermove)="onDialMove($event)"
+      (pointerup)="onDialUp()"
+      (pointercancel)="onDialUp()">
+      <circle class="face" cx="20" cy="20" r="18" />
+      <path class="ticks" d="M38,20h-3M20,38v-3M2,20h3M20,2v3" />
+      <path class="sweep" [attr.d]="sweepPath" />
+      <line class="needle" x1="20" y1="20" [attr.x2]="pointer.x" [attr.y2]="pointer.y" />
+      <circle class="hub" cx="20" cy="20" r="2" />
+      <circle class="tip" [attr.cx]="pointer.x" [attr.cy]="pointer.y" r="3" />
+    </svg>
+    <mat-form-field appearance="fill">
+      @if (!hideName && resourceName) {
+        <mat-label>{{ resourceName }}</mat-label>
+      }
+      <input
+        matInput
+        type="number"
+        [step]="step"
+        [disabled]="!!disabled"
+        [value]="displayValue"
+        (change)="onInput($any($event.target).value)"
+        (focus)="onFocus()"
+        (blur)="onBlur()" />
+      <button
+        matSuffix
+        type="button"
+        class="unit"
+        [matTooltip]="unit === 'deg' ? 'Degrees: click for radians' : 'Radians: click for degrees'"
+        (click)="toggleUnit()">
+        {{ unit === 'deg' ? '°' : 'rad' }}
+      </button>
+    </mat-form-field>
   </div>
-  <div id="labels">
-    @if (resourceName && !hideName) {
-      <mat-label id="name-span">{{ resourceName }}</mat-label>
-    }
-    @if (resourceData !== undefined) {
-      <mat-label>{{ (resourceData * 180) / pi || 0 | number: '1.2-2' }} deg</mat-label>
-    }
-    @if (resourceData !== undefined) {
-      <mat-label>{{ resourceData || 0 | number: '1.2-2' }} rad</mat-label>
-    }
-  </div>
-</div>
+}

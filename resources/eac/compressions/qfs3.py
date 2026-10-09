@@ -1,5 +1,9 @@
+import heapq
+import re
 from io import BufferedReader, BytesIO
 from itertools import accumulate
+
+import numpy as np
 
 from resources.eac.compressions.base import BaseCompressionAlgorithm
 
@@ -42,6 +46,36 @@ class _BitReader:
         value = self.peek(n)
         self.skip(n)
         return value
+
+
+_MAX_CODE_LENGTH = 16
+_RUN = re.compile(rb'(.)\1+', re.DOTALL)
+
+
+def _number_bits(number: int) -> str:
+    """Number encoding of QFS3 as a string of bits, see Qfs3Compression"""
+    value = bin(number + 4)[2:]
+    return '0' * (len(value) - 3) + value
+
+
+def _huffman_code_lengths(frequencies: dict[int, int]) -> dict[int, int]:
+    """Code length of every symbol, at most _MAX_CODE_LENGTH. Needs 2 symbols at least, gives a complete code"""
+    while True:
+        heap = [(frequency, i, (symbol,)) for i, (symbol, frequency) in enumerate(sorted(frequencies.items()))]
+        heapq.heapify(heap)
+        lengths = dict.fromkeys(frequencies, 0)
+        counter = len(heap)
+        while len(heap) > 1:
+            frequency_a, _, symbols_a = heapq.heappop(heap)
+            frequency_b, _, symbols_b = heapq.heappop(heap)
+            for symbol in symbols_a + symbols_b:
+                lengths[symbol] += 1
+            heapq.heappush(heap, (frequency_a + frequency_b, counter, symbols_a + symbols_b))
+            counter += 1
+        if max(lengths.values()) <= _MAX_CODE_LENGTH:
+            return lengths
+        # flatter frequencies give shorter longest codes
+        frequencies = {symbol: max(1, frequency >> 1) for symbol, frequency in frequencies.items()}
 
 
 class Qfs3Compression(BaseCompressionAlgorithm):
@@ -175,3 +209,97 @@ class Qfs3Compression(BaseCompressionAlgorithm):
                 symbol_index += 1
             code <<= 1
         return lut_symbol, lut_length
+
+    def compress(self, buffer: [BufferedReader, BytesIO], input_length: int, delta_passes=(0, 1, 2)) -> bytes:
+        """Tries the output delta-coded given numbers of times, returns the shortest result"""
+        data = np.frombuffer(bytes(buffer.read(input_length)), dtype=np.uint8)
+        if len(data) > 0xFFFFFF:
+            raise ValueError(f'QFS3: {len(data)} bytes do not fit 24-bit uncompressed size')
+        results = []
+        for passes in delta_passes:
+            delta = data.copy()
+            for _ in range(passes):
+                delta[1:] = delta[1:] - delta[:-1]
+            results.append(self._compress(delta.tobytes(), 0x30 + 2 * passes))
+        return min(results, key=len)
+
+    @staticmethod
+    def _compress(data: bytes, flags: int) -> bytes:
+        counts = np.bincount(np.frombuffer(data, dtype=np.uint8), minlength=256)
+        # escaped literals cost the escape code + 12 bits, the rarest byte is the cheapest escape
+        escape = int(np.argmin(counts))
+        # every byte of a run but the first one can be repeated by the escape code + number of repeats instead
+        runs = [(match.start(), match.end() - match.start() - 1) for match in _RUN.finditer(data)]
+        literal_frequencies = {symbol: int(count) for symbol, count in enumerate(counts) if count and symbol != escape}
+        # an escape for every escaped literal and the end of stream
+        escape_frequency = int(counts[escape]) + 1
+        lengths = None
+        used_runs = []
+        # code lengths depend on which runs get repeated, which depends on code lengths. Starting from long runs only,
+        # a few rounds settle (TNFS files come out a bit shorter than EA's)
+        for _ in range(4):
+            frequencies = dict(literal_frequencies)
+            frequencies[escape] = escape_frequency
+            used_runs = []
+            for start, repeats in runs:
+                byte = data[start]
+                if lengths is None:
+                    use = repeats >= 8
+                else:
+                    literal_bits = lengths[byte] if byte != escape else lengths[escape] + 12
+                    use = lengths[escape] + 2 * (repeats + 4).bit_length() - 3 < repeats * literal_bits
+                if use:
+                    used_runs.append((start, repeats))
+                    frequencies[escape] += 1
+                    if byte != escape:
+                        frequencies[byte] -= repeats
+                    else:
+                        frequencies[escape] -= repeats
+            frequencies = {symbol: frequency for symbol, frequency in frequencies.items() if frequency > 0}
+            if len(frequencies) == 1:
+                frequencies[(escape + 1) & 0xFF] = 1
+            lengths = dict.fromkeys(range(256), 0) | _huffman_code_lengths(frequencies)
+
+        # canonical codes in the order the decoder assigns them: by length, then by value
+        symbols = sorted(
+            (symbol for symbol in range(256) if lengths[symbol]), key=lambda symbol: (lengths[symbol], symbol)
+        )
+        max_length = lengths[symbols[-1]]
+        codes = {}
+        code = 0
+        length = 1
+        for symbol in symbols:
+            code <<= lengths[symbol] - length
+            length = lengths[symbol]
+            codes[symbol] = format(code, f'0{length}b')
+            code += 1
+        bits = []
+        for length in range(1, max_length + 1):
+            bits.append(_number_bits(sum(1 for symbol in symbols if lengths[symbol] == length)))
+        used = bytearray(256)
+        previous = 0xFF
+        for symbol in symbols:
+            distance = 0
+            value = previous
+            while value != symbol:
+                value = (value + 1) & 0xFF
+                if not used[value]:
+                    distance += 1
+            bits.append(_number_bits(distance - 1))
+            used[symbol] = 1
+            previous = symbol
+
+        escape_code = codes[escape]
+        literal_codes = [codes.get(byte) or escape_code + '1000' + format(byte, '08b') for byte in range(256)]
+        literal_codes[escape] = escape_code + '1000' + format(escape, '08b')
+        position = 0
+        for start, repeats in used_runs:
+            bits.append(''.join(map(literal_codes.__getitem__, data[position : start + 1])))
+            bits.append(escape_code + _number_bits(repeats))
+            position = start + 1 + repeats
+        bits.append(''.join(map(literal_codes.__getitem__, data[position:])))
+        bits.append(escape_code + '1001')
+        bit_string = ''.join(bits)
+        bit_string += '0' * (-len(bit_string) % 8)
+        header = bytes([flags, 0xFB]) + len(data).to_bytes(3, 'big') + bytes([escape])
+        return header + int('1' + bit_string, 2).to_bytes(len(bit_string) // 8 + 1, 'big')[1:]

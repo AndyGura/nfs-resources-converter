@@ -29,3 +29,9 @@ class HuffCompression(BaseCompressionAlgorithm):
         if len(out) != uncompressed_size:
             raise ValueError(f'HUFF: expected length {uncompressed_size}, actual length: {len(out)}')
         return out
+
+    def compress(self, buffer: [BufferedReader, BytesIO], input_length: int) -> bytes:
+        data = bytes(buffer.read(input_length))
+        # delta-coded QFS3 streams are not known to be used (nor checked in the game) behind a HUFF header
+        payload = Qfs3Compression().compress(BytesIO(data), len(data), delta_passes=(0,))
+        return b'HUFF\x01\x10\x00\x00' + len(data).to_bytes(4, 'little') + len(payload).to_bytes(4, 'little') + payload

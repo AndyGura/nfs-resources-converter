@@ -21,13 +21,13 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
 
             return SoundBank
         elif file_path.endswith('.PBS__uncompressed'):
-            from resources.eac.car_specs import CarPerformanceSpec
+            from resources.eac.car_specs import PlayerCarPhysics
 
-            return CarPerformanceSpec
+            return PlayerCarPhysics
         elif file_path.endswith('.PDN__uncompressed'):
-            from resources.eac.car_specs import CarSimplifiedPerformanceSpec
+            from resources.eac.car_specs import CarAiAndCrashBody
 
-            return CarSimplifiedPerformanceSpec
+            return CarAiAndCrashBody
         elif file_path.endswith('CONFIG.DAT'):
             from resources.eac.configs import TnfsConfigDat
 

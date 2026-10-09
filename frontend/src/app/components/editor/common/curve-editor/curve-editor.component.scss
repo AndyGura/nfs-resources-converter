@@ -1,0 +1,355 @@
+:host {
+  display: block;
+  outline: none;
+  min-width: 0;
+}
+
+.curve-editor {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+:host(:focus-visible) .curve-editor {
+  border-color: var(--mat-sys-primary, #3f51b5);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  min-height: 32px;
+}
+
+.title {
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.hint-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: rgba(0, 0, 0, 0.45);
+  cursor: help;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  &.active {
+    border-color: rgba(0, 0, 0, 0.25);
+    background: rgba(63, 81, 181, 0.06);
+    font-weight: 500;
+  }
+
+  &.muted {
+    opacity: 0.45;
+  }
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .edit-icon {
+    display: none;
+  }
+
+  &.active .edit-icon {
+    display: inline-block;
+  }
+
+  .eye-icon {
+    opacity: 0.6;
+  }
+}
+
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+
+  &.dashed {
+    background-image: repeating-linear-gradient(90deg, transparent 0 3px, #fff 3px 5px) !important;
+  }
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tool-group {
+  display: inline-flex;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.65);
+
+  & + .tool {
+    border-left: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  &.selected {
+    background: rgba(63, 81, 181, 0.14);
+    color: var(--mat-sys-primary, #3f51b5);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.radius {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
+
+  white-space: nowrap;
+
+  mat-slider {
+    width: 110px;
+    margin: 0 0 0 12px;
+  }
+}
+
+.plot {
+  position: relative;
+  width: 100%;
+  user-select: none;
+
+  svg {
+    display: block;
+    touch-action: none;
+    overflow: visible;
+
+    &.cursor-pan {
+      cursor: grab;
+    }
+
+    &.cursor-brush {
+      cursor: crosshair;
+    }
+
+    &.cursor-grab {
+      cursor: pointer;
+    }
+  }
+}
+
+.plot-bg {
+  fill: #fcfcfd;
+}
+
+.grid {
+  stroke: rgba(0, 0, 0, 0.07);
+  stroke-width: 1;
+}
+
+.axis {
+  stroke: rgba(0, 0, 0, 0.35);
+}
+
+.tick {
+  font-size: 11px;
+  fill: rgba(0, 0, 0, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+.axis-label {
+  font-size: 12px;
+  fill: rgba(0, 0, 0, 0.7);
+}
+
+.series {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+
+  &.dashed {
+    stroke-dasharray: 5 4;
+  }
+
+  &.inactive {
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    opacity: 0.35;
+  }
+}
+
+.bar {
+  opacity: 0.75;
+
+  &.active {
+    opacity: 0.9;
+  }
+
+  &.inactive {
+    opacity: 0.18;
+  }
+}
+
+.marker {
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  opacity: 0.85;
+
+  &.editable {
+    stroke-width: 2;
+    cursor: ew-resize;
+  }
+}
+
+.marker-grip {
+  cursor: ew-resize;
+}
+
+.marker-label {
+  font-size: 11px;
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.crosshair {
+  stroke: rgba(0, 0, 0, 0.25);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.handle {
+  fill: #fff;
+  stroke-width: 1.5;
+
+  &.passive {
+    pointer-events: none;
+  }
+
+  &.hover {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  // fill comes from the series color (style binding: a CSS fill would override the attribute)
+  &.selected {
+    stroke: #fff;
+    stroke-width: 1.5;
+    pointer-events: none;
+  }
+}
+
+.selected-halo {
+  fill-opacity: 0.18;
+  stroke-width: 1.5;
+  stroke-opacity: 0.7;
+  pointer-events: none;
+}
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(33, 33, 33, 0.92);
+  color: #fff;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 2;
+  font-variant-numeric: tabular-nums;
+
+  &.flip {
+    transform: translateX(-100%);
+  }
+
+  .tooltip-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .tooltip-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tooltip-label {
+    flex-grow: 1;
+    opacity: 0.85;
+  }
+
+  .tooltip-value {
+    margin-left: 12px;
+    font-weight: 500;
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.25rem 0 0.25rem;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.75);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-variant-numeric: tabular-nums;
+
+  .footer-label {
+    font-weight: 500;
+  }
+
+  input {
+    width: 90px;
+    font: inherit;
+    padding: 2px 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+}

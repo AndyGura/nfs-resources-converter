@@ -44,7 +44,7 @@ docs and a working GUI editor for free.
 | `library/loader.py` | File-type auto-detection (`probe_block_class`) by extension/magic bytes; top-level `require_file`/`require_resource` with an in-process file cache. |
 | `library/changes_service.py` | Tracks unsaved GUI edits against the loaded data tree. |
 | `library/utils/asm_runner.py` | 32-bit x86 snippet interpreter (IDA syntax) used to execute and progressively port disassembled game routines; production code never uses it, the ASM-driven decompressor twins in `test/resources/eac/archives/test_compressed_block.py` do. |
-| `resources/eac/` | EA Canada format definitions built from `read_blocks` primitives (bitmaps, archives, fonts, audio, geometries, maps, car specs, TNFS replays). Shared across many NFS titles. `compressions/` holds the pure-Python decompressors (RefPack, QFS2, QFS3, NFSU's JDLZ, NFSU2's HUFF = QFS3 behind a 16-byte header) behind `EacCompressedBlock`. |
+| `resources/eac/` | EA Canada format definitions built from `read_blocks` primitives (bitmaps, archives, fonts, audio, geometries, maps, car specs, TNFS replays). Shared across many NFS titles. `compressions/` holds the pure-Python decompressors and compressors (RefPack, QFS2, QFS3, NFSU's JDLZ, NFSU2's HUFF = QFS3 behind a 16-byte header) behind `EacCompressedBlock`, which writes a resource back with the algorithm it was read with (`compression_flags` in its data, new data gets QFS2). Formats, game addresses and compressor notes: `resources/eac_compressions.md`. Compressor output is checked with the games' ASM decoders in `test_compressed_block.py`. |
 | `resources/eac/maps/`, `resources/eac/geometries/` | Per-game specializations (`tnfs.py`, `nfs2.py`, `nfs3.py`, `nfs5.py`, ...). |
 | `resources/common/` | Vendor-neutral formats reused as fallbacks (e.g. Targa image). |
 | `resources/blackbox/` | Blackbox-studio (later NFS titles) formats, NFS Underground 1, 2 and Most Wanted: `chunks.py` (generic id+length chunk dispatch helpers), `geometries/` (car and world geometry packs), `bitmaps/` (texture packs, TPK), `maps/` (chunk bundles, scenery, streaming sections; `NfsuTrackBundle` is a race's `TRACKBnnnn.lzc` or an NFSU2/NFSMW location bundle `LxRA.BUN`), `archives.py` (JDLZ-compressed files). |
@@ -52,7 +52,7 @@ docs and a working GUI editor for free.
 | `resources/*.md` | **Auto-generated** per-game docs (`generate_resource_doc.py`). Never hand-edit — edit the block definitions/descriptions and regenerate. |
 | `serializers/` | Turn parsed block data into common output formats and back. One serializer class per resource kind, returned by a block's `serializer_class()`. |
 | `api/` | Python↔JS bridge (pywebview/eel) exposing library + serializers to the GUI. |
-| `frontend/` | Angular GUI. `.../editor/library/*.block-ui` = generic components, one per `read_blocks` base class. `.../editor/eac/*` and `.../editor/common/*` = bespoke rich viewers (image, 3D geometry, map, audio, font, hex/targa). |
+| `frontend/` | Angular GUI. `.../editor/library/*.block-ui` = generic components, one per `read_blocks` base class. `.../editor/eac/*` and `.../editor/common/*` = bespoke rich viewers (image, 3D geometry, map, audio, font, hex/targa, TNFS car specs) and widgets they share (`curve-editor` = editable SVG charts, `stat-tiles`). |
 | `actions/` | OS-integration entry points (convert all, open in GUI editor, uncompress) wired to file-manager context menus / installers. |
 | `test/` | unittest suite mirroring `library/`/`resources/`. `test/golden_corpus/` + `test/test_gui_golden_corpus.sh` = manual smoke test that opens every sample file through `run.py`. |
 | `docs/milestones.md` | AI-maintained roadmap of format coverage by game. |
@@ -147,12 +147,18 @@ When you do:
 - `resources/eac/car_specs.py`, field meanings and readers verified against the DOS, Win95 SE and PSX code
   (tnfs-1995). Value formats follow the game: 16.16 fixed point, 8.8 for `thrust_scale` / `force_to_accel` /
   `unknown_0x320*` / `gear_efficiency`, plain ints for 24-bit angles (`slip_cutoff`, `auto_steer`, PDN
-  `handling_factor`; 0x1000000 = full turn), raw u8 grip tables (grip = value / 128). Derived fields (`mass`, inverses,
+  `handling_factor`; 0x1000000 = full turn; `slip_cutoff` and `handling_factor` are `IntegerAngleBlock`s, so the GUI
+  shows them in degrees / radians while the data stays the int), raw u8 grip tables (grip = value / 128). Derived fields (`mass`, inverses,
   `brake_bias_r`, `force_to_accel`) and the PBS `checksum` are programmatic (all 9 PBS and 22 PDN round-trip byte-exact).
 - nfs-web (`classic-world/utils/load-pbs.ts`) reads `*.PBS.json` keys: body_len, body_width, brake_bias_f,
   max_brake_force_1, drag, drive_bias, final_drive, force_to_accel, friction_f, friction_r, gear_ratios,
   incar_camera_height, lat_acc_cutoff, mass, max_rpm, min_rpm, mps_to_rpm, num_torques, rpm_acc, rpm_dec, torques,
   upshifts, wheel_base, wheel_track. Renaming one or changing its value format breaks it: tell the nfs-web side.
+- GUI: `PlayerCarPhysicsBlockUiComponent` / `CarAiAndCrashBodyBlockUiComponent` (`frontend/.../editor/eac/`)
+  edit them on charts (torque / power, gearing, grip tables, pedal ramps, brake caps; PDN AI acceleration, top speed
+  markers, corner slowdown). Their derived curves follow the formulas in the field descriptions: keep the two in sync.
+  Programmatic fields (`mass`, inverses, `force_to_accel`, checksum) are recomputed on save only, so the charts compute
+  from the source fields.
 
 ## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
 
