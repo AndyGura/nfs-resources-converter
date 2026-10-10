@@ -40,6 +40,23 @@ A top `mat-toolbar` is always present. Its content depends on whether a resource
 Same File/Edit/Tools items are reachable from the toolbar icon buttons when a file is open (Undo,
 Redo, Save icons) — these mirror the menu items 1:1, same enablement rules. **Confirmed (live)**.
 
+### Keyboard shortcuts — Confirmed (live, dev server in Chrome on macOS)
+
+`AppComponent.onKeyDown` (`window:keydown`), keys in `utils/hotkeys.ts`; the menu items show them on the right.
+Ctrl on Windows/Linux, ⌘ on macOS; a non-latin layout uses the physical key.
+
+| Shortcut | Action | Notes |
+|---|---|---|
+| Ctrl/⌘+Z | Undo | same enablement as the menu item |
+| Ctrl/⌘+Shift+Z, Ctrl+Y (not macOS) | Redo | same enablement as the menu item |
+| Ctrl/⌘+S | Save | commits the value being typed in the focused field first (focus stays), then saves if there are unsaved changes |
+| Ctrl/⌘+O | Open | |
+| Ctrl/⌘+N | New... | |
+
+- In a focused text / number field, undo / redo are left to the field (its typed text isn't a change until blur /
+  Enter).
+- While a dialog is open none of them run (Ctrl/⌘+S is only kept from reaching the browser).
+
 ### "Changes (n)" debug menu — Confirmed (live)
 
 Guarded by `@if (!isProduction)` in the template. `environment.ts` (the file used by the

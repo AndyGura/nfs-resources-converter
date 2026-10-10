@@ -25,7 +25,7 @@
       mat-icon-button
       (click)="undo()"
       [disabled]="!(changes.isUndoAvailable$ | async) || isUndoing"
-      matTooltip="Undo">
+      [matTooltip]="'Undo (' + hotkeys.undo + ')'">
       @if (!isUndoing) {
         <mat-icon fontIcon="undo"></mat-icon>
       } @else {
@@ -36,7 +36,7 @@
       mat-icon-button
       (click)="redo()"
       [disabled]="!(changes.isRedoAvailable$ | async) || isRedoing"
-      matTooltip="Redo">
+      [matTooltip]="'Redo (' + hotkeys.redo + ')'">
       @if (!isRedoing) {
         <mat-icon fontIcon="redo"></mat-icon>
       } @else {
@@ -49,7 +49,7 @@
       [disabled]="
         !(mainService.resource$ | async) || !(changes.hasUnsavedChanges$ | async) || (mainService.isSaving$ | async)
       "
-      matTooltip="Save changes to file">
+      [matTooltip]="'Save changes to file (' + hotkeys.save + ')'">
       @if (!(mainService.isSaving$ | async)) {
         <mat-icon fontIcon="save"></mat-icon>
       }
@@ -84,10 +84,12 @@
     <button mat-menu-item (click)="createNewFile()">
       <mat-icon>note_add</mat-icon>
       <span>New...</span>
+      <span class="menu-hotkey">{{ hotkeys.new }}</span>
     </button>
     <button mat-menu-item (click)="openFile()">
       <mat-icon>folder_open</mat-icon>
       <span>Open</span>
+      <span class="menu-hotkey">{{ hotkeys.open }}</span>
     </button>
     <button
       mat-menu-item
@@ -124,6 +126,7 @@
           style="margin-right: 16px; display: inline-block; vertical-align: middle"></mat-progress-spinner>
       }
       <span>Save</span>
+      <span class="menu-hotkey">{{ hotkeys.save }}</span>
     </button>
     <button mat-menu-item (click)="reloadResource()" [disabled]="!(this.mainService.api.openedResourcePath$ | async)">
       <mat-icon>refresh</mat-icon>
@@ -142,6 +145,7 @@
           style="margin-right: 16px; display: inline-block; vertical-align: middle"></mat-progress-spinner>
       }
       <span>Undo</span>
+      <span class="menu-hotkey">{{ hotkeys.undo }}</span>
     </button>
     <button mat-menu-item (click)="redo()" [disabled]="!(changes.isRedoAvailable$ | async) || isRedoing">
       @if (!isRedoing) {
@@ -153,6 +157,7 @@
           style="margin-right: 16px; display: inline-block; vertical-align: middle"></mat-progress-spinner>
       }
       <span>Redo</span>
+      <span class="menu-hotkey">{{ hotkeys.redo }}</span>
     </button>
   </mat-menu>
   <button mat-button [matMenuTriggerFor]="viewMenu">View</button>
