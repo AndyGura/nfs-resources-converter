@@ -17,8 +17,7 @@
     @if (
       !(main.hideHiddenFields$ | async) ||
       (!resourceSchema?.fields[f.index].is_unknown &&
-        (resourceSchema?.fields[f.index].schema.value_validator === undefined ||
-          resourceSchema?.fields[f.index].schema.value_validator?.type === 'or') &&
+        resourceSchema?.fields[f.index].schema.value_validator?.type !== 'eq' &&
         !resourceSchema?.fields[f.index].schema.is_programmatic)
     ) {
       <app-editor

@@ -187,13 +187,13 @@
           <input
             #focusableInput
             type="number"
-            [max]="schema.max_value"
-            [min]="schema.min_value"
+            [max]="numberRange(schema).max"
+            [min]="numberRange(schema).min"
             [step]="schema.value_interval"
             [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
             [ngModel]="value"
             (focus)="onFocus(index, field, subField)"
-            (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
+            (change)="onTableNumberChange(index, field, subField, schema, $any($event.target))" />
         }
         @if (isString(schema.block_class_mro)) {
           <input

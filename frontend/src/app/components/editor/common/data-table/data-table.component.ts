@@ -12,6 +12,7 @@ import {
   QueryList,
   ElementRef,
 } from '@angular/core';
+import { clampToRange, NumberRange, numberRange } from '../../value-validators';
 
 export interface ArrayTableColumn {
   key: string;
@@ -204,6 +205,23 @@ export class DataTableComponent implements DoCheck {
       return +schema.length;
     }
     return null;
+  }
+
+  numberRange(schema: any): NumberRange {
+    return numberRange(schema);
+  }
+
+  // a typed value outside the range of the field is set to the nearest bound
+  onTableNumberChange(
+    index: number,
+    field: string | null,
+    subField: string | null,
+    schema: any,
+    input: HTMLInputElement,
+  ): void {
+    const value = clampToRange(+input.value, numberRange(schema));
+    input.value = String(value);
+    this.onTableFieldChange(index, field, subField, value);
   }
 
   onTableFieldChange(index: number, field: string | null, subField: string | null, value: any): void {

@@ -73,8 +73,11 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
   ShpiBlock walkthrough below.
 
 **Value validators** (`library.read_blocks.misc.value_validators`): `Eq(value)`,
-`Or([values])` — pass as `value_validator=` to any leaf block to assert/document a fixed or
-enumerated value (e.g. a magic-number field).
+`Or([values])`, `Lt(value)`, `Lte(value)`, `Gt(value)`, `Gte(value)`, `And(*validators)` — pass as
+`value_validator=` to any leaf block to assert/document a fixed or enumerated value (e.g. a magic-number field) or a
+range (`Lte(60)` for a count of a 60-item array; an unsigned int needs no `Gte(0)`). Reading a value that fails the
+validator raises `DataIntegrityException`. The GUI shows `Eq` fields read-only and hides them with the hidden fields,
+`Or` as a select, and limits number inputs to the comparison bounds (`frontend/.../editor/value-validators.ts`).
 
 **Domain helpers** (`resources.eac.fields`): `Point2D(child, normalized=False)`,
 `Point3D(child, normalized=False)`, `Quaternion(child)` (x, y, z, w; NFS2/NFS3 animation keyframes use 2.14 fixed

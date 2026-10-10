@@ -8,6 +8,7 @@ from library.read_blocks import (
     CompoundBlock,
     FixedPointBlock,
 )
+from library.read_blocks.misc.value_validators import Lte
 from resources.eac.fields.numbers import IntegerAngleBlock
 
 
@@ -219,7 +220,14 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
                 '`num_gears` entries are used, the rest is garbage'
             },
         )
-        num_torques = (_uint(), {'description': 'Number of used `torques` entries (51; 41 in P911)'})
+        num_torques = (
+            _uint(value_validator=Lte(60)),
+            {
+                'description': 'Number of used `torques` entries (51; 41 in P911), at most 60, the length of '
+                '`torques`. The game loads that many entries and uses the last one for any higher rpm '
+                '(`tnfs_load_torque_table`, `tnfs_engine_get_torque`)'
+            },
+        )
         roll_stiff_f = (_fixed(), {'description': 'Front roll stiffness (10000.0 in all files). Not read'})
         roll_stiff_r = (_fixed(), {'description': 'Rear roll stiffness (10000.0 in all files). Not read'})
         roll_axis_y = (_fixed(), {'description': 'Roll axis height (m). Not read'})
