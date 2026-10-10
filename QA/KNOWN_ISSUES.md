@@ -183,6 +183,28 @@ markers are exhaust and light points), so all four wheels sit at the origin.
 
 ---
 
+## KI-5 — TNFS car spec editors (PBS / PDN) accept edits that silently break the car
+
+**Status**: Open (found 2026-10-10). **Classification**: Confirmed bug (items 1, 4), Unclear / needs product
+decision (items 2, 3). Full report with repro steps and engine measurements:
+https://claude.ai/artifact/7UQmqmxtaK8MenZQcDqpEo (private to the repo owner).
+
+1. Letters typed into a numeric field become 0 and are recorded as a change (TSUPRA `drop_rpm_dec` "abc" → 0).
+   Confirmed live.
+2. No warning when an automatic `upshifts` entry is ≥ `max_rpm` × 255/256: dragging F512TR's redline to 6000
+   (upshifts 7140) leaves the gearbox stuck in 1st in the tnfs-1995 engine (top speed 20 m/s). Confirmed live
+   (GUI) + engine.
+3. The Top speed tile shows the `top_speed` field, not the reachable speed (stock F512TR: 324 km/h shown, 309 km/h
+   reached in 5th at the rev cap). Confirmed live + engine.
+4. Raising `num_torques` exposes leftover entries (TSUPRA 51–59 ≈ 4×10⁹ N·m) and rescales the torque chart so the
+   real curve flattens. Confirmed live.
+
+Lower-severity items in the same report: brake pedal chart uses float ×1.25 (game: `ramp + ramp/4`), steering-rate
+chart ignores the `steer_ramp_div` / `steer_ramp_mult` shifts, `drive_bias` slider thumb doesn't move after a drag,
+mixed decimal formatting, Changes list prints arrays as "[object Object]", no Ctrl/⌘+Z shortcut.
+
+---
+
 ## Unknown / not yet investigated (flagged, not silently assumed fine)
 
 - Byte-for-byte round-trip mismatches on compressed formats (QFS-family) in the golden-corpus
