@@ -158,6 +158,8 @@ export class ChangesService {
   private _localRevision: number = 0;
   private _fileRevision: number = 0;
   private _cdrSubscribers: { [id: string]: SubscribableGuiComponent[] } = {};
+  // backend calls of edits / undo / redo not finished yet: saving waits for them
+  private _pendingCalls: Set<Promise<unknown>> = new Set();
   public change$: Subject<string> = new Subject();
 
   public hasUnsavedChanges$: BehaviorSubject<boolean> = new BehaviorSubject(false);
@@ -193,7 +195,7 @@ export class ChangesService {
         }
       }
       this.notifyUi(Array.from(affectedIds));
-      this.refreshRevisions().then();
+      this.track(this.refreshRevisions()).then();
     });
     this.api.onFileOpened$.subscribe(() => {
       this.clear();
@@ -237,12 +239,27 @@ export class ChangesService {
       }
     }
     this.notifyUi(Array.from(affectedIds));
-    await this.api.onFeUpdate({
-      newLocalRevision: this._localRevision,
-      newChanges: newChanges,
-      poppedChanges: poppedChanges,
-    });
-    this.refreshRevisions().then();
+    await this.track(
+      this.api.onFeUpdate({
+        newLocalRevision: this._localRevision,
+        newChanges: newChanges,
+        poppedChanges: poppedChanges,
+      }),
+    );
+    this.track(this.refreshRevisions()).then();
+  }
+
+  private track<T>(call: Promise<T>): Promise<T> {
+    this._pendingCalls.add(call);
+    call.finally(() => this._pendingCalls.delete(call)).catch(() => {});
+    return call;
+  }
+
+  // resolves when the backend has every change made so far
+  public async settled(): Promise<void> {
+    while (this._pendingCalls.size > 0) {
+      await Promise.allSettled(Array.from(this._pendingCalls));
+    }
   }
 
   public clear() {
@@ -258,12 +275,14 @@ export class ChangesService {
     if (this._localRevision === 0) return;
     let affectedIds = ChangeExecutor.revertChange(this.api, this.changes[this._localRevision - 1]);
     this._localRevision -= 1;
-    await this.api.onFeUpdate({
-      newLocalRevision: this._localRevision,
-      newChanges: [],
-      poppedChanges: 0,
-    });
-    await this.refreshRevisions();
+    await this.track(
+      this.api.onFeUpdate({
+        newLocalRevision: this._localRevision,
+        newChanges: [],
+        poppedChanges: 0,
+      }),
+    );
+    await this.track(this.refreshRevisions());
     this.notifyUi(affectedIds);
   }
 
@@ -271,12 +290,14 @@ export class ChangesService {
     if (this._localRevision === this._changes.length) return;
     let affectedIds = ChangeExecutor.applyChange(this.api, this.changes[this._localRevision]);
     this._localRevision += 1;
-    await this.api.onFeUpdate({
-      newLocalRevision: this._localRevision,
-      newChanges: [],
-      poppedChanges: 0,
-    });
-    await this.refreshRevisions();
+    await this.track(
+      this.api.onFeUpdate({
+        newLocalRevision: this._localRevision,
+        newChanges: [],
+        poppedChanges: 0,
+      }),
+    );
+    await this.track(this.refreshRevisions());
     this.notifyUi(affectedIds);
   }
 

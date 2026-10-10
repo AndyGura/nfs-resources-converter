@@ -50,8 +50,8 @@ Two things make this app unusual to test:
    process — the *conversion feature* is broken, but the *app* degrades gracefully. Verify this
    pattern holds for other RPCs, don't assume it from one example.
 9. **Keyboard/mouse interaction** — menu keyboard navigation, Escape-to-close on dialogs/menus
-   (used throughout this pass without issue), any app-level keyboard shortcuts (Unknown — none
-   found documented; don't assume any exist beyond standard Angular Material menu/dialog behavior).
+   (used throughout this pass without issue), app-level keyboard shortcuts (undo / redo / save /
+   open / new, listed in `UI_MAP.md`; check them with focus in a field, outside fields and with a dialog open).
 10. **File / import-export behavior** — the actual conversion and serialize/deserialize actions;
     highest real-world stakes (this is the product's whole purpose) and, per the CLAUDE.md
     warning, the editor "does not make backups" — so testing Save/serialize against throwaway

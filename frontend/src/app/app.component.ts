@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MainService } from './services/main.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -12,6 +12,7 @@ import { ChangeEntry, ChangesService } from './services/changes.service';
 import { ApiDelegateService } from './services/api/api-delegate.service';
 import { GeneralConfig } from './services/api/api-types';
 import { Title } from '@angular/platform-browser';
+import { HotkeyAction, hotkeyAction, hotkeyLabels, isTextField } from './utils/hotkeys';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,7 @@ import { Title } from '@angular/platform-browser';
 })
 export class AppComponent implements OnInit {
   readonly isProduction = environment.production;
+  readonly hotkeys = hotkeyLabels();
 
   public isUndoing = false;
   public isRedoing = false;
@@ -78,6 +80,44 @@ export class AppComponent implements OnInit {
         .subscribe(() => this.openConfig());
     } catch {
       // best-effort only - the user can always configure the paths manually in Settings
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(e: KeyboardEvent) {
+    const action = hotkeyAction(e);
+    if (!action || e.defaultPrevented) return;
+    if (this.dialog.openDialogs.length > 0) {
+      // dialogs have their own forms: only keep the browser from saving the page
+      if (action === 'save') e.preventDefault();
+      return;
+    }
+    if ((action === 'undo' || action === 'redo') && isTextField(document.activeElement)) return;
+    e.preventDefault();
+    if (e.repeat && action !== 'undo' && action !== 'redo') return;
+    this.runHotkey(action).then();
+  }
+
+  private async runHotkey(action: HotkeyAction) {
+    const fileOpened = !!this.mainService.api.openedResourcePath$.getValue();
+    if (action === 'undo') {
+      if (fileOpened && this.changes.isUndoAvailable$.value && !this.isUndoing && !this.isRedoing) await this.undo();
+    } else if (action === 'redo') {
+      if (fileOpened && this.changes.isRedoAvailable$.value && !this.isUndoing && !this.isRedoing) await this.redo();
+    } else if (action === 'save') {
+      if (!this.mainService.resource$.value || this.mainService.isSaving$.value) return;
+      // fields commit the typed value on blur
+      const focused = document.activeElement as HTMLElement | null;
+      if (isTextField(focused)) {
+        focused!.blur();
+        focused!.focus();
+      }
+      await this.changes.settled();
+      if (this.changes.hasUnsavedChanges$.value) await this.saveResource();
+    } else if (action === 'open') {
+      await this.openFile();
+    } else if (action === 'new') {
+      await this.createNewFile();
     }
   }
 
