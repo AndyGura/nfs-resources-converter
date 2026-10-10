@@ -268,7 +268,8 @@ class MapProp(DeclarativeCompoundBlock):
             **super().schema,
             'block_description': 'The prop on the map. For instance: exactly the same road sign used 5 '
             'times on the map. In this case file will have 1 PropDescr for this road sign '
-            'and 5 MapProps',
+            'and 5 MapProps. The game engine refers to a prop (road object) by its index in the TRI `props` array: '
+            '`SignStatus` has 2 bytes per object, nonzero once a car knocked it down',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -290,7 +291,15 @@ class MapProp(DeclarativeCompoundBlock):
                 'descriptions for now and it seems to look good'
             },
         )
-        rotation = (Nfs1Angle8(), {'description': 'Y-rotation, relative to rotation of referenced road spline vertex'})
+        rotation = (
+            Nfs1Angle8(),
+            {
+                'description': 'Y-rotation, relative to rotation of referenced road spline vertex. A bitmap or '
+                'two-sided bitmap prop knocked down is drawn lying flat, falling to the other side when the raw byte '
+                'is > 64 (DOS tnfs_render_terrain_vertex_list 0x627f3, Win95 SE 0x43eea5). 3D model props are never '
+                'drawn knocked down'
+            },
+        )
         flags = (IntegerBlock(length=4), {'is_unknown': True})
         position = (
             Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
@@ -479,7 +488,11 @@ class TriMap(DeclarativeCompoundBlock):
         )
         props = (
             ArrayBlock(child=MapProp(), length=lambda ctx: ctx.data('num_props')),
-            {'description': 'Props placed on the map. Unused trailing items have `road_point_idx` == -1'},
+            {
+                'description': 'Props placed on the map. Unused trailing items have `road_point_idx` == -1. The '
+                'game engine refers to props (road objects) by their index in this array: `SignStatus` has 2 bytes '
+                'per object, nonzero once a car knocked it down'
+            },
         )
         terrain = (
             ArrayBlock(child=TerrainEntry(), length=lambda ctx: ctx.data('num_chunks')),

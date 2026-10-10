@@ -146,6 +146,10 @@ When you do:
   outwards from the fence vertex (within `FENCE_WALL_MAX_ANGLE`), the fence bottom moves `FENCE_WALL_SHIFT` towards
   the road along the terrain edge, or the wall and the fence z-fight (TR7, TR4). Mesh names are
   `terrain_chunk_{i}_{left|right}fence_{texture}`: nfs-web picks the material from the text after the last `_`.
+- Props are dummies `proxy_<n>` (`_prop_json`) with properties `is_prop`, `type`, `road_index`, `object_index` (index
+  in the TRI `props` array, the game's road object index for `get_sign_status`) and `object_rotation` (raw 8-bit
+  `rotation` byte; a knocked-down bitmap sign falls the other way when > 64), plus the model / texture keys of the
+  prop type. nfs-web reads them: keep them stable.
 
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 

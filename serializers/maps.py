@@ -356,7 +356,9 @@ for obj in bpy.context.selected_objects:
             for i in range(max(frame_count, 1))
         ]
 
-    def _prop_json(self, data: dict, instance, is_opened_track, use_local_coordinates) -> Dict:
+    def _prop_json(self, data: dict, object_index: int, instance, is_opened_track, use_local_coordinates) -> Dict:
+        """object_index: index of the instance in the TRI's `props` (file order), the index the game engine refers to
+        road objects by (tnfs-1995 `g_road_objects`, `g_sign_status`)"""
         prop_definition = data['prop_descr'][instance['prop_descr_idx'] % len(data['prop_descr'])]
         spline_index = instance['road_point_idx']
         road_spline_vertex = data['road_spline'][spline_index]
@@ -372,6 +374,9 @@ for obj in bpy.context.selected_objects:
                 'is_prop': True,
                 'type': prop_definition['type'],
                 'road_index': spline_index,
+                'object_index': object_index,
+                # raw 8-bit rotation byte of the instance (relative to the road spline point), Nfs1Angle8 reads radians
+                'object_rotation': round(instance['rotation'] * 256 / (2 * math.pi)) & 0xFF,
             },
         }
         if use_local_coordinates:
@@ -608,8 +613,8 @@ for obj in bpy.context.selected_objects:
                     map_scene.mtl_texture_names.extend(txs)
                 else:
                     scene.dummies = [
-                        self._prop_json(data, o, is_opened, True)
-                        for o in data['props']
+                        self._prop_json(data, k, o, is_opened, True)
+                        for k, o in enumerate(data['props'])
                         if (i + 1) * 4 > o['road_point_idx'] >= i * 4
                     ]
                     for j, d in enumerate(scene.dummies):
@@ -624,8 +629,8 @@ for obj in bpy.context.selected_objects:
                 map_scene.mtl_texture_names.extend(txs)
             else:
                 prop_dummies = [
-                    self._prop_json(data, o, is_opened, False)
-                    for o in data['props']
+                    self._prop_json(data, k, o, is_opened, False)
+                    for k, o in enumerate(data['props'])
                     if len(data['terrain']) * 4 > o['road_point_idx'] >= 0
                 ]
                 for i, d in enumerate(prop_dummies):

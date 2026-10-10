@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-10 06:18:34.021872+00:00*
+*Last time updated: 2026-10-10 10:03:52.907089+00:00*
 
 
 # **Info by file extensions** #
@@ -174,7 +174,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 90656 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x428c | Unknown purpose |
 | 90660 | **unk2** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
 | 90664 | **prop_descr** | num_prop_descr\*16 | Array of `num_prop_descr` items<br/>Item type: [PropDescr](#propdescr) | Prop descriptions: 3D models, bitmaps and two-sided bitmaps, which can be placed on the map |
-| 90664 + num_prop_descr\*16 | **props** | num_props\*16 | Array of `num_props` items<br/>Item type: [MapProp](#mapprop) | Props placed on the map. Unused trailing items have `road_point_idx` == -1 |
+| 90664 + num_prop_descr\*16 | **props** | num_props\*16 | Array of `num_props` items<br/>Item type: [MapProp](#mapprop) | Props placed on the map. Unused trailing items have `road_point_idx` == -1. The game engine refers to props (road objects) by their index in this array: `SignStatus` has 2 bytes per object, nonzero once a car knocked it down |
 | 90664 + num_prop_descr\*16 + num_props\*16 | **terrain** | num_chunks\*288 | Array of `num_chunks` items<br/>Item type: [TerrainEntry](#terrainentry) | Terrain chunks, one per 4 road spline points |
 ### **RoadSplinePoint** ###
 #### **Size**: 36 bytes ####
@@ -206,12 +206,12 @@ Did not find what you need or some given data is wrong? Please submit an
 | 2 | **data** | 14 | Type according to enum `type`:<br/>- [ModelPropDescrData](#modelpropdescrdata)<br/>- [BitmapPropDescrData](#bitmappropdescrdata)<br/>- [TwoSidedBitmapPropDescrData](#twosidedbitmappropdescrdata)<br/>- Bytes | Settings of the prop. Block class picked according to `type` |
 ### **MapProp** ###
 #### **Size**: 16 bytes ####
-#### **Description**: The prop on the map. For instance: exactly the same road sign used 5 times on the map. In this case file will have 1 PropDescr for this road sign and 5 MapProps ####
+#### **Description**: The prop on the map. For instance: exactly the same road sign used 5 times on the map. In this case file will have 1 PropDescr for this road sign and 5 MapProps. The game engine refers to a prop (road object) by its index in the TRI `props` array: `SignStatus` has 2 bytes per object, nonzero once a car knocked it down ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **road_point_idx** | 4 | 4-bytes signed integer (little endian) | Index of point of the road path spline, where prop is located. Sometimes has too big value, I skip those instances for now and it seems to look good. Probably should consider this value to be 16-bit integer, having some unknown 16-integer as next field. Also, why it is signed? |
 | 4 | **prop_descr_idx** | 1 | 1-byte unsigned integer | Index of prop description, which should be used for this prop. Sometimes has too big value, I use object index % amount of prop descriptions for now and it seems to look good |
-| 5 | **rotation** | 1 | EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees | Y-rotation, relative to rotation of referenced road spline vertex |
+| 5 | **rotation** | 1 | EA games 8-bit angle. 0 means 0 degrees, 0x100 (max value + 1) means 360 degrees | Y-rotation, relative to rotation of referenced road spline vertex. A bitmap or two-sided bitmap prop knocked down is drawn lying flat, falling to the other side when the raw byte is > 64 (DOS tnfs_render_terrain_vertex_list 0x627f3, Win95 SE 0x43eea5). 3D model props are never drawn knocked down |
 | 6 | **flags** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
 | 10 | **position** | 6 | Point in 3D space (x,y,z), where each coordinate is: 16-bit real number (little-endian, signed), where last 8 bits is a fractional part | Position in 3D space, relative to position of referenced road spline vertex. The unit is meter |
 ### **TerrainEntry** ###
