@@ -128,3 +128,26 @@ code read.
   both untouched by this fix (only the Linux `dev_mode` branch changed), not independently
   re-checked end-to-end.
 - KI-3 — untouched, not in scope this pass.
+
+---
+
+## 2026-10-10 — TNFS PBS / PDN car editors, checked against the tnfs-1995 engine
+
+**Commit**: `d0dcdad` (branch `claude-1`). **Scope**: the `PlayerCarPhysicsBlockUiComponent` and
+`CarAiAndCrashBodyBlockUiComponent` editors only, GUI-only edits on scratch copies of `games/tnfsse/SIMDATA`
+`ANSX.PBS`, `TSUPRA.PBS`, `F512TR.PBS`, `ANSX.PDN`. Full report:
+https://claude.ai/artifact/7UQmqmxtaK8MenZQcDqpEo.
+
+### Findings
+- Saving: 4/4 files byte-exact for the edited fields, derived fields and `checksum` recomputed, QFS3 (0x30FB) kept;
+  the Win95 SE QFS3 decoder (ASM twin, `asm_runner`) reads all of them (Confirmed live).
+- 24 edits driven in the tnfs-1995 engine (headless harness, see `TEST_ENVIRONMENT.md`): 17 as described, 7 show
+  behaviour missing from field descriptions (TCS vs `throttle_on_ramp`, brake bias only ≤ 240, unreachable
+  `top_speed`, upshift above the rev cap, `rpm_dec` both directions, PDN `speed_factor` vs catch-up glue).
+- Editor issues → `KNOWN_ISSUES.md` KI-5.
+- Undo / redo buttons, Reload from disk (in-app confirmation) and the `num_torques` ≤ 60 validator work
+  (Confirmed live). No keyboard shortcut for undo.
+
+### Not tested
+Real game (DOSBox / Win95 SE), rally mode, PDN collision fields, `handling_factor`, 3DO `.BigSpecsFam`, the native
+macOS window.

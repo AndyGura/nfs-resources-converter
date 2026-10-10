@@ -22,7 +22,7 @@ standing regression set (`REGRESSION.md`), — = one-off/exploratory only.
 | F-1 | Open via dialog | File → Open, pick a file | File loads, appears in Recent Files, title updates | P0 | ✅ | **Pass** (Confirmed live, via Tk-dialog automation — see `TEST_ENVIRONMENT.md`) |
 | F-2 | Recent Files persistence | Open a file, reload the whole page (`F5`-equivalent) | File still listed under Recent Files | P1 | ✅ | **Pass** (Confirmed live) |
 | F-3 | Close | File → Close with a file open | Returns to Landing Page; toolbar reverts to no-file-open state | P1 | ✅ | **Pass** (Confirmed live) |
-| F-4 | Reload from disk | Edit a field, then File → Reload from disk | In-memory edit is discarded, field reverts to on-disk value | P1 | ✅ | Not run — Unknown |
+| F-4 | Reload from disk | Edit a field, then File → Reload from disk | In-memory edit is discarded, field reverts to on-disk value | P1 | ✅ | **Pass** (Confirmed live 2026-10-10, ANSX.PDN: in-app confirmation, undo history cleared) |
 | F-5 | Save | Edit a field, File → Save | File is enabled only once dirty; after save, file on disk reflects the edit and dirty flag clears | P0 | ✅ | Not run — Unknown |
 | F-6 | New File | File → New..., pick each of FFN/FSH/QFS, save-as a temp path | A minimal valid file of that format is created and re-openable | P2 | ✅ | Not run |
 | F-7 | Open unsupported/corrupt file | Open a file with no matching format (e.g. a `.txt`) or a truncated/garbage binary | Inline error state in the editor pane (not a crash, not a silent no-op) | P0 | ✅ | Not run — see also `KNOWN_ISSUES.md` "Unknown" list |
