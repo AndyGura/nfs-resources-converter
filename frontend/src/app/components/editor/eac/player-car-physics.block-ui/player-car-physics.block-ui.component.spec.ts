@@ -144,4 +144,44 @@ describe('PlayerCarPhysicsBlockUiComponent', () => {
     expect(change.id).toBe('ANSX.PBS__data/grip_table_r');
     expect(change.newValue.every((v: number) => v === 100)).toBeTrue();
   });
+
+  describe('TNFS 3DO', () => {
+    // ANSX.bigSpecsFam figures: no gear efficiency, one brake cap in m/s²
+    const spec3do = () => {
+      const d: { [key: string]: any } = {
+        ...spec(),
+        max_brake_force: 11.5,
+        front_grip_mult: 1.796875,
+        rear_grip_mult: 1.796875,
+      };
+      for (const key of ['max_brake_force_1', 'max_brake_force_2', 'gear_efficiency', 'thrust_scale']) delete d[key];
+      return d;
+    };
+
+    beforeEach(() => {
+      component.resourceId = 'ANSX.bigSpecsFam__data';
+      component.resourceSchema = {
+        block_class_mro: 'Tnfs3doCarPhysics__PlayerCarPhysics__DataBlock',
+        fields: [],
+      };
+      component.resourceData = spec3do();
+      fixture.detectChanges();
+    });
+
+    it('treats gear efficiency as 1', () => {
+      expect(component.is3do).toBeTrue();
+      expect(component.gears.every(g => g.efficiency === 1)).toBeTrue();
+      expect(component.accelSeries[0].points.length).toBeGreaterThan(0);
+    });
+
+    it('edits the single brake cap as an acceleration', () => {
+      expect(component.brakeSeries[0].points.map(p => p.y)).toEqual([11.5, 11.5]);
+      const points = component.brakeSeries[0].points.map(p => ({ ...p }));
+      points[0] = { ...points[0], y: 9.25 };
+      component.onBrakeChange({ seriesId: 'brake_decel', points, changed: [0] });
+      const change = appendChanges.calls.mostRecent().args[0];
+      expect(change.id).toBe('ANSX.bigSpecsFam__data/max_brake_force');
+      expect(change.newValue).toBe(9.25);
+    });
+  });
 });

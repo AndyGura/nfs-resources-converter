@@ -164,6 +164,13 @@ When you do:
   markers, corner slowdown). Their derived curves follow the formulas in the field descriptions: keep the two in sync.
   Programmatic fields (`mass`, inverses, `force_to_accel`, checksum) are recomputed on save only, so the charts compute
   from the source fields.
+- TNFS 3DO `DriveData/CarData/*.BigSpecsFam` (`Tnfs3doCarPhysics`, doc `resources/TNFS_3DO.md`): a big-endian wwww
+  archive of 3 fixed items, the PBS physics fields without `max_brake_force_2` / `gear_efficiency` / checksum, then
+  the front and rear grip tables. The block subclasses `PlayerCarPhysics` and builds its `Fields` from the PBS ones
+  (big-endian copies, `_TNFS_3DO_REPLACED_FIELDS` for the slots with another meaning on 3DO: `max_brake_force` in m/s²,
+  `front_grip_mult` / `rear_grip_mult` and inverses, `burnout_div`); `_TNFS_3DO_DESCRIPTIONS` has a description for
+  every field, from the 3DO `LaunchMe` code (tnfs-1995 Ghidra). The PBS editor renders it through the
+  `block_class_mro` fallback and switches on `is3do` (no gear efficiency column, one brake cap).
 
 ## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
 

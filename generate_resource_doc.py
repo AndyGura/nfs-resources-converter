@@ -175,6 +175,16 @@ EXPORT_RESOURCES = {
             ],
         },
     },
+    'tnfs_3do': {
+        'file_name': 'TNFS_3DO.md',
+        'title': 'TNFS (3DO) file specs',
+        'file_list': f"""**DriveData/CarData/\\*.BigSpecsFam** player car physics. {render_type(eac.car_specs.Tnfs3doCarPhysics())}""",
+        'blocks': {
+            'Physics': [
+                eac.car_specs.Tnfs3doCarPhysics(),
+            ],
+        },
+    },
     'nfs2': {
         'file_name': 'NFS2.md',
         'title': 'NFS2 file specs',

@@ -1,10 +1,10 @@
 --- Test Statistics ---
-Total files tested: 10894
+Total files tested: 10902
 Files without parser: 4643
-Files read successfully: 6138
-Files written successfully: 5981
-Files read again successfully: 5798
-Files passed comparison test: 5677
+Files read successfully: 6146
+Files written successfully: 5989
+Files read again successfully: 5806
+Files passed comparison test: 5685
 Files with compressed blocks written: 1922
 Files with compressor round-trip failures: 0
 
@@ -14,6 +14,7 @@ Files with compressor round-trip failures: 0
 .AST: 100.00% (9/9)
 .BAK: 100.00% (2/2)
 .BIG: 100.00% (2/2)
+.BIGSPECSFAM: 100.00% (8/8)
 .BNK: 100.00% (647/647)
 .CFM: 100.00% (39/39)
 .COL: 100.00% (24/24)
@@ -65,6 +66,7 @@ Files with compressor round-trip failures: 0
 --- File Extension Write Success Rates (Test 2) ---
 .AS4: 100.00% (12/12)
 .BAK: 100.00% (2/2)
+.BIGSPECSFAM: 100.00% (8/8)
 .BNK: 100.00% (647/647)
 .CFM: 100.00% (39/39)
 .COL: 100.00% (24/24)
@@ -119,6 +121,7 @@ Files with compressor round-trip failures: 0
 --- File Extension Read-Again Success Rates (Test 3) ---
 .AS4: 100.00% (12/12)
 .BAK: 100.00% (2/2)
+.BIGSPECSFAM: 100.00% (8/8)
 .COL: 100.00% (24/24)
 .EAS: 100.00% (193/193)
 .ENV: 100.00% (15/15)
@@ -173,6 +176,7 @@ Files with compressor round-trip failures: 0
 --- File Extension Comparison Success Rates (Test 4) ---
 .AS4: 100.00% (12/12)
 .BAK: 100.00% (2/2)
+.BIGSPECSFAM: 100.00% (8/8)
 .COL: 100.00% (24/24)
 .ENV: 100.00% (15/15)
 .FCE: 100.00% (16/16)
@@ -240,4 +244,4 @@ Files with compressor round-trip failures: 0
 .VIV: 100.00% (15/15)
 
 --- Time Spent ---
-Total time: 00:10:43.57
+Total time: 00:11:0.89

@@ -51,8 +51,9 @@ export type GearRow = {
 
 export const gearName = (index: number) => (index === 0 ? 'R' : index === 1 ? 'N' : ordinal(index - 1));
 
-// Rich editor of TNFS player car physics (SIMDATA/CARSPECS/*.PBS): dyno chart, gearing, grip tables, pedals and
-// brakes, with every parameter grouped by subsystem
+// Rich editor of TNFS player car physics (PC SIMDATA/CARSPECS/*.PBS, 3DO DriveData/CarData/*.BigSpecsFam): dyno chart,
+// gearing, grip tables, pedals and brakes, with every parameter grouped by subsystem. 3DO files have no gear
+// efficiency, a single brake cap in m/s² and per-axle grip multipliers in place of thrust_scale
 @Component({
   selector: 'app-player-car-physics-block-ui',
   templateUrl: './player-car-physics.block-ui.component.html',
@@ -76,11 +77,24 @@ export class PlayerCarPhysicsBlockUiComponent extends CarSpecEditorBase {
       'unknown_0x320',
       'unknown_0x320_inv',
       'unknown_0x330',
+      'burnout_div',
     ],
     gearbox: ['num_gears', 'final_drive', 'mps_to_rpm', 'wheel_radius', 'inv_wheel_rad', 'shift_timer'],
-    tires: ['friction_f', 'friction_r', 'lat_acc_cutoff', 'slip_cutoff', 'max_tire_coeff', 'normal_loss'],
+    tires: [
+      'friction_f',
+      'friction_r',
+      'front_grip_mult',
+      'front_grip_mult_inv',
+      'rear_grip_mult',
+      'rear_grip_mult_inv',
+      'lat_acc_cutoff',
+      'slip_cutoff',
+      'max_tire_coeff',
+      'normal_loss',
+    ],
     brakes: [
       'brake_bias_r',
+      'max_brake_force',
       'max_brake_force_1',
       'max_brake_force_2',
       'has_abs',
@@ -200,6 +214,11 @@ export class PlayerCarPhysicsBlockUiComponent extends CarSpecEditorBase {
 
   get mass(): number {
     return (this.d['mass_front'] || 0) + (this.d['mass_rear'] || 0);
+  }
+
+  // TNFS 3DO (*.BigSpecsFam)
+  get is3do(): boolean {
+    return !!this.resourceSchema?.block_class_mro?.startsWith('Tnfs3doCarPhysics__');
   }
 
   get forceToAccel(): number {
@@ -336,7 +355,7 @@ export class PlayerCarPhysicsBlockUiComponent extends CarSpecEditorBase {
         name: gearName(i),
         color: i >= 2 ? GEAR_COLORS[(i - 2) % GEAR_COLORS.length] : '#9e9e9e',
         ratio: ratios[i],
-        efficiency: d['gear_efficiency'][i],
+        efficiency: d['gear_efficiency']?.[i] ?? 1,
         redlineSpeed: this.speedAt(maxRpm, ratios[i]) * MPS_TO_KMH,
         upshiftIndex,
         upshift,
@@ -573,10 +592,33 @@ export class PlayerCarPhysicsBlockUiComponent extends CarSpecEditorBase {
       },
     ].map(s => ({ ...s, style: 'step' as const, formatY: (v: number) => fmt(v, 0) }));
 
+    const end = Math.max(BRAKE_SPEED_2 * 1.4, (d['top_speed'] || 0) * 1.05) * MPS_TO_KMH;
+    const formatY = (v: number) => `${fmt(v, 1)} m/s² · ${fmt(v / G, 2)} g`;
+    if (this.is3do) {
+      // `tnfs_physics_update` (3DO): one cap at every speed, already an acceleration
+      const a = d['max_brake_force'] || 0;
+      this.brakeSeries = [
+        {
+          id: 'brake_decel',
+          label: 'Brake force cap',
+          color: '#c62828',
+          style: 'step',
+          points: [
+            { x: 0, y: a },
+            { x: end, y: a },
+          ],
+          editable: 'y',
+          lockedIndices: [1],
+          y: { min: 0, step: 0.1 },
+          pointLabels: ['max_brake_force', ''],
+          formatY,
+        },
+      ];
+      return;
+    }
     const fta = this.forceToAccel;
     const a1 = (d['max_brake_force_1'] || 0) * fta;
     const a2 = (d['max_brake_force_2'] || 0) * fta;
-    const end = Math.max(BRAKE_SPEED_2 * 1.4, (d['top_speed'] || 0) * 1.05) * MPS_TO_KMH;
     this.brakeSeries = [
       {
         id: 'brake_decel',
@@ -598,12 +640,16 @@ export class PlayerCarPhysicsBlockUiComponent extends CarSpecEditorBase {
           'above 90 mph: larger one',
           '',
         ],
-        formatY: v => `${fmt(v, 1)} m/s² · ${fmt(v / G, 2)} g`,
+        formatY,
       },
     ];
   }
 
   onBrakeChange(e: CurveSeriesChange) {
+    if (this.is3do) {
+      if (e.changed.includes(0)) this.setValue(['max_brake_force'], Math.round(e.points[0].y * 100) / 100);
+      return;
+    }
     const fta = this.forceToAccel;
     if (!fta) return;
     const entries: [(string | number)[], any][] = [];
@@ -642,7 +688,7 @@ export class PlayerCarPhysicsBlockUiComponent extends CarSpecEditorBase {
       },
     ];
 
-    // `tnfs_control_steering_a`: rate per tick = min(steer_vel_ramp - min(speed * steer_vel_att, 1.5), 1.6) * steer_vel[1]
+    // `tnfs_control_steering_a` (3DO `tnfs_control_steering`): rate per tick = min(steer_vel_ramp - min(speed * steer_vel_att, 1.5), 1.6) * steer_vel[1]
     const rate = (v: number) =>
       Math.min((d['steer_vel_ramp'] || 0) - Math.min(v * (d['steer_vel_att'] || 0), 1.5), 1.6) *
       (d['steer_vel']?.[1] || 0);
@@ -731,7 +777,7 @@ export class PlayerCarPhysicsBlockUiComponent extends CarSpecEditorBase {
         value: '0',
         sub: 'the car has no drive force',
         tone: 'warn',
-        hint: 'The game also zeroes it on a checksum mismatch; the checksum is recomputed on save',
+        hint: this.is3do ? '' : 'The game also zeroes it on a checksum mismatch; the checksum is recomputed on save',
       });
     }
   }
