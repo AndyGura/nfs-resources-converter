@@ -83,13 +83,11 @@ class OripGeometrySerializer(BaseFileSerializer):
             polygon_type = polygon['polygon_type']
             mapping = polygon['mapping']
             texture_id = data['tex_ids'][polygon['texture_index']]['file_name']
+            # fx_polys are vertex indices, exported as dummies (orip_fx_dummies), not as meshes
             label = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['labels'])] or [None])[0]
-            fx_name = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['fx_polys'])] or [None])[0]
             sub_model_parts = []
             if label:
                 sub_model_parts.append('lbl__' + label)
-            if fx_name:
-                sub_model_parts.append('fx__' + fx_name)
             if texture_id:
                 sub_model_parts.append(texture_id)
             sub_model_id = '__'.join(sub_model_parts)
@@ -145,6 +143,7 @@ class OripGeometrySerializer(BaseFileSerializer):
 
         scene = Scene()
         scene.sub_meshes = [sm for sm in sub_models.values()]
+        scene.dummies = orip_fx_dummies(data)
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
@@ -162,6 +161,36 @@ class OripGeometrySerializer(BaseFileSerializer):
 
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id, textures_shpi_block)
         return export_scenes([scene], path, self.settings)
+
+
+def orip_fx_dummies(data: dict) -> List[dict]:
+    """Dummies of ORIP `fx_polys` (named vertices: wheel ground points FL0..RR1, engine point smok...): one per entry,
+    named "fx_<name>" (with "_<n>" suffix for repeated names), at the vertex in the space of the exported meshes (y and z
+    swapped, like `OripGeometrySerializer.build_mesh` does), with properties "fx" (name as in the file) and "vertex"
+    (vertex index). Entries with a non-printable name (garbage, like DVIPER's "\\x02") are skipped"""
+    vertices = data['vertices']['data']
+    dummies = []
+    names = set()
+    for entry in data['fx_polys']:
+        fx_name, index = entry['name'], entry['index']
+        if not fx_name or not all(0x20 < ord(c) < 0x7F for c in fx_name) or index >= len(vertices):
+            continue
+        name = f'fx_{fx_name}'
+        suffix = 1
+        while name in names:
+            name = f'fx_{fx_name}_{suffix}'
+            suffix += 1
+        names.add(name)
+        vertex = vertices[index]
+        dummies.append(
+            {
+                'name': name,
+                'position': [vertex['x'], vertex['z'], vertex['y']],
+                'rotation': [0, 0, 0],
+                'properties': {'fx': fx_name, 'vertex': index},
+            }
+        )
+    return dummies
 
 
 class GeoGeometrySerializer(BaseFileSerializer):

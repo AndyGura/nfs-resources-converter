@@ -147,6 +147,14 @@ When you do:
   the road along the terrain edge, or the wall and the fence z-fight (TR7, TR4). Mesh names are
   `terrain_chunk_{i}_{left|right}fence_{texture}`: nfs-web picks the material from the text after the last `_`.
 
+## TNFS car models (SIMDATA/CARFAMS/*.CFM)
+
+- `OripGeometrySerializer` splits meshes by texture and by ORIP `labels` (polygon indices): mesh names
+  `lbl__<label>__<texture>` (`lbl__lt_frnt`, `lbl__bkll__rsid`...), nfs-web reads them. ORIP `fx_polys` are vertex
+  indices (wheel ground points `FL0`..`RR1` / `fl0`..`rr1`, engine point `smok`, `d`): they go to the meta as dummies
+  `fx_<name>` with properties `fx` and `vertex` (`orip_fx_dummies`), at the vertex in mesh space. Field descriptions in
+  `resources/eac/geometries/tnfs.py` list what each name marks.
+
 ## TNFS car specs (SIMDATA/CARSPECS/*.PBS, SIMDATA/CARFAMS/*.PDN)
 
 - `resources/eac/car_specs.py`, field meanings and readers verified against the DOS, Win95 SE and PSX code

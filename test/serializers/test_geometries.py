@@ -15,6 +15,7 @@ from serializers.geometries import (
     crp_car_is_image_used,
     crp_car_texture_page_sources,
     crp_image_atlas_position,
+    orip_fx_dummies,
     texture_alpha_mode,
 )
 
@@ -28,6 +29,34 @@ class TestCrpImageAtlasPosition(unittest.TestCase):
 
     def test_values_are_signed(self):
         self.assertEqual(crp_image_atlas_position({'position': {'x': 191, 'y': 0xFFFF}}), (191, -1))
+
+
+class TestOripFxDummies(unittest.TestCase):
+    data = {
+        'vertices': {'data': [{'x': 0.5, 'y': 0.0, 'z': 1.5}, {'x': 0.0, 'y': 0.25, 'z': -2.0}]},
+        'fx_polys': [
+            {'name': 'FR0', 'index': 0},
+            {'name': 'smok', 'index': 1},
+            {'name': '\x02', 'index': 1},
+            {'name': 'smok', 'index': 0},
+        ],
+    }
+
+    def test_dummy_per_named_vertex_in_mesh_space(self):
+        dummies = orip_fx_dummies(self.data)
+        self.assertEqual(
+            dummies[0],
+            {
+                'name': 'fx_FR0',
+                'position': [0.5, 1.5, 0.0],
+                'rotation': [0, 0, 0],
+                'properties': {'fx': 'FR0', 'vertex': 0},
+            },
+        )
+        self.assertEqual(dummies[1]['position'], [0.0, -2.0, 0.25])
+
+    def test_skips_garbage_names_and_makes_names_unique(self):
+        self.assertEqual([d['name'] for d in orip_fx_dummies(self.data)], ['fx_FR0', 'fx_smok', 'fx_smok_1'])
 
 
 class TestComposeTexturePage(unittest.TestCase):
