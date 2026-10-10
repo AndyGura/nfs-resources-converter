@@ -18,12 +18,12 @@
       <input
         matInput
         type="number"
-        [max]="resourceSchema.max_value"
-        [min]="resourceSchema.min_value"
+        [max]="range.max"
+        [min]="range.min"
         [step]="resourceSchema.value_interval"
         [disabled]="disabled || resourceSchema.value_validator?.type === 'eq'"
         [value]="resourceData"
-        (change)="onValueSet(+$any($event.target).value)"
+        (change)="onInputChange($any($event.target))"
         (focus)="onFocus()"
         (blur)="onBlur()" />
     }

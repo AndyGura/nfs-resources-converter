@@ -28,6 +28,10 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.car_specs import CarAiAndCrashBody
 
             return CarAiAndCrashBody
+        elif file_path.lower().endswith('.bigspecsfam'):
+            from resources.eac.car_specs import Tnfs3doCarPhysics
+
+            return Tnfs3doCarPhysics
         elif file_path.endswith('CONFIG.DAT'):
             from resources.eac.configs import TnfsConfigDat
 

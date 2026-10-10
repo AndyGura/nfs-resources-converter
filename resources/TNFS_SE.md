@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-09 10:11:23.016232+00:00*
+*Last time updated: 2026-10-09 19:04:22.340366+00:00*
 
 
 # **Info by file extensions** #
@@ -300,7 +300,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | 96 | **wheel_radius** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Wheel radius (m). Not read, the game uses `inv_wheel_rad` |
 | 100 | **inv_wheel_rad** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | `1 / wheel_radius`, rounded down. Only read by `tnfs_load_torque_table` |
 | 104 | **gear_ratios** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Gear ratios, index = selected gear + 2: [0] reverse (negative), [1] neutral, [2] first gear and up (`tnfs_engine_rev_limiter`, `tnfs_engine_auto_shift_change`, `tnfs_engine_thrust`). The neutral ratio only gives the wheel rpm in neutral. The first `num_gears` entries are used, the rest is garbage |
-| 136 | **num_torques** | 4 | 4-bytes unsigned integer (little endian) | Number of used `torques` entries (51; 41 in P911) |
+| 136 | **num_torques** | 4 | 4-bytes unsigned integer (little endian). Always <= 60 | Number of used `torques` entries (51; 41 in P911), at most 60, the length of `torques`. The game loads that many entries and uses the last one for any higher rpm (`tnfs_load_torque_table`, `tnfs_engine_get_torque`) |
 | 140 | **roll_stiff_f** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Front roll stiffness (10000.0 in all files). Not read |
 | 144 | **roll_stiff_r** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Rear roll stiffness (10000.0 in all files). Not read |
 | 148 | **roll_axis_y** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Roll axis height (m). Not read |

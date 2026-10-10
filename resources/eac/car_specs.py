@@ -1,13 +1,17 @@
 import math
+from copy import deepcopy
 from typing import Dict
 
 from library.read_blocks import (
+    DataBlock,
     DeclarativeCompoundBlock,
     IntegerBlock,
     ArrayBlock,
     CompoundBlock,
     FixedPointBlock,
+    UTF8Block,
 )
+from library.read_blocks.misc.value_validators import Eq, Lte
 from resources.eac.fields.numbers import IntegerAngleBlock
 
 
@@ -219,7 +223,14 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
                 '`num_gears` entries are used, the rest is garbage'
             },
         )
-        num_torques = (_uint(), {'description': 'Number of used `torques` entries (51; 41 in P911)'})
+        num_torques = (
+            _uint(value_validator=Lte(60)),
+            {
+                'description': 'Number of used `torques` entries (51; 41 in P911), at most 60, the length of '
+                '`torques`. The game loads that many entries and uses the last one for any higher rpm '
+                '(`tnfs_load_torque_table`, `tnfs_engine_get_torque`)'
+            },
+        )
         roll_stiff_f = (_fixed(), {'description': 'Front roll stiffness (10000.0 in all files). Not read'})
         roll_stiff_r = (_fixed(), {'description': 'Rear roll stiffness (10000.0 in all files). Not read'})
         roll_axis_y = (_fixed(), {'description': 'Roll axis height (m). Not read'})
@@ -610,3 +621,240 @@ class CarAiAndCrashBody(DeclarativeCompoundBlock):
         from serializers import JsonSerializer
 
         return JsonSerializer
+
+
+# PBS fields the 3DO physics item doesn't have
+_TNFS_3DO_MISSING_FIELDS = {'max_brake_force_2', 'gear_efficiency', 'checksum'}
+
+
+def _big_endian_copy(block: DataBlock) -> DataBlock:
+    block = deepcopy(block)
+    stack = [block]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, IntegerBlock):
+            current.byte_order = 'big'
+        elif isinstance(current, ArrayBlock):
+            stack.append(current.child)
+        elif isinstance(current, CompoundBlock):
+            stack.extend(child for _, child in current.field_blocks)
+    return block
+
+
+def _tnfs_3do_car_physics_fields():
+    # same layout as PBS: big-endian copies of its blocks, with the 3DO meaning in the descriptions
+    fields = {}
+    for name, (block, _) in PlayerCarPhysics.Fields.fields:
+        if name in _TNFS_3DO_MISSING_FIELDS:
+            continue
+        if name in _TNFS_3DO_REPLACED_FIELDS:
+            (name, block) = _TNFS_3DO_REPLACED_FIELDS[name]
+        else:
+            block = _big_endian_copy(block)
+        if name == 'torques':
+            block.child.inline_description = 'Two 32bit unsigned integers (big-endian): rpm and torque (N*m)'
+        fields[name] = (block, {'description': _TNFS_3DO_DESCRIPTIONS[name]})
+    fields['grip_table_f'][1]['description'] += (
+        '. Item 1 of the wwww archive (`tnfs_carspecs_002` 0x16de0 loads it to car+0x4a8)'
+    )
+    fields['grip_table_r'][1]['description'] += (
+        '. Item 2 of the wwww archive (`tnfs_carspecs_002` 0x16de0 loads it to car+0x4ac)'
+    )
+    return type(
+        'Fields',
+        (DeclarativeCompoundBlock.Fields,),
+        {**_TNFS_3DO_WWWW_HEADER_FIELDS, **fields},
+    )
+
+
+def _fixed8_be(**kwargs):
+    return FixedPointBlock(length=4, fraction_bits=8, is_signed=True, byte_order='big', **kwargs)
+
+
+_TNFS_3DO_WWWW_HEADER_FIELDS = {
+    'resource_id': (UTF8Block(length=4, value_validator=Eq('wwww')), {'description': 'Resource ID'}),
+    'num_items': (
+        IntegerBlock(length=4, byte_order='big', value_validator=Eq(3)),
+        {'description': 'Number of wwww items: the physics fields (up to `center_y`), `grip_table_f`, `grip_table_r`'},
+    ),
+    'items_descr': (
+        ArrayBlock(
+            length=3,
+            child=IntegerBlock(length=4, byte_order='big'),
+            programmatic_value=lambda ctx: [0x14, 0x364, 0x564],
+        ),
+        {'usage': 'io,doc', 'description': 'Item offsets: 0x14, 0x364, 0x564'},
+    ),
+}
+
+# PBS fields with another meaning on 3DO: PBS name -> (3DO name, block)
+_TNFS_3DO_REPLACED_FIELDS = {
+    'max_brake_force_1': (
+        'max_brake_force',
+        FixedPointBlock(length=4, fraction_bits=16, is_signed=False, byte_order='big'),
+    ),
+    'unknown_0x320': ('front_grip_mult', _fixed8_be()),
+    'unknown_0x320_inv': (
+        'front_grip_mult_inv',
+        _fixed8_be(programmatic_value=lambda ctx: floor_8(1 / ctx.data('front_grip_mult'))),
+    ),
+    'thrust_scale': ('rear_grip_mult', _fixed8_be()),
+    'force_to_accel': (
+        'rear_grip_mult_inv',
+        _fixed8_be(programmatic_value=lambda ctx: floor_8(1 / ctx.data('rear_grip_mult'))),
+    ),
+    'unknown_0x330': ('burnout_div', _fixed8_be()),
+}
+
+# function names and addresses: 3DO LaunchMe (raw ARM, address = file offset), see the PlayerCarPhysics block description
+_TNFS_3DO_DESCRIPTIONS = {
+    'mass_front': 'Mass on the front axle (kg), `mass - mass_rear` in the spec compiler. Front weight fraction = '
+    '`mass_front * inv_mass` (`tnfs_Fiziks_InitCar` 0x11530). Equals `mass_rear` in all files',
+    'mass_rear': 'Mass on the rear axle (kg), `mass * rear_weight_fraction` in the spec compiler',
+    'mass': 'Total car mass (kg), `mass_front + mass_rear`, the input of the spec compiler. `tnfs_Fiziks_InitCar` '
+    'multiplies it by `inv_mass_f` / `inv_mass_r` into car fields',
+    'inv_mass_f': '`1 / mass_front`, rounded down (`tnfs_Fiziks_InitCar`)',
+    'inv_mass_r': '`1 / mass_rear`, rounded down (`tnfs_Fiziks_InitCar`)',
+    'inv_mass': '`1 / mass`, rounded down. Used for the weight distribution, drag / mass (`tnfs_Fiziks_InitCar`) '
+    'and the torque table (`tnfs_load_torque_table` 0x1e40)',
+    'drive_bias': 'Front share of the drive force, 0.0 = RWD, 1.0 = FWD (`tnfs_physics_update` 0x11f78). 0 also '
+    'enables the burnout rule of `tnfs_engine_thrust` (0x10784). 0 in all files but LDIABLO (0.3)',
+    'brake_bias_f': 'Front share of the pedal brake force, 0.0-1.0 (`tnfs_physics_update`); the rear gets the rest. '
+    'Pedal brake force = brake * 1.29 / 256 * (front grip + rear grip)',
+    'brake_bias_r': 'Rear share of the brake force, `1 - brake_bias_f`. Not read: the game uses total - front',
+    'cog_height': 'Height of the centre of gravity (m). Weight transfer factor = `cog_height * wheel_base_inv` '
+    '(`tnfs_Fiziks_InitCar`): moves grip between front and rear under longitudinal acceleration',
+    'max_brake_force': 'Braking cap, an acceleration (m/s², 8.3-11.5): with the brake above 100 the longitudinal '
+    'acceleration from the tires is capped to this and the lateral one to 1.5 x this (`tnfs_physics_update`). '
+    'Also the rear brake force with the handbrake, and the brake force when the car rolls against the selected '
+    'gear. PC splits it by speed into `max_brake_force_1` / `_2`, scaled by `force_to_accel`',
+    'max_tire_coeff': 'Braking deceleration in g: the spec compiler takes a speed (mph) and its stopping distance '
+    '(ft) and stores v² / 2d / g (0.84-1.35). `tnfs_Fiziks_InitCar` adds `normal_loss * mass_front / 2` in memory '
+    'and logs it ("Adjusted max tire co"); nothing else reads it',
+    'drag': 'Air drag (kg/m, ½ * air density * drag coefficient * frontal area). `tnfs_Fiziks_InitCar` replaces it '
+    'in memory with `drag * inv_mass`; deceleration = that * surface factor * speed² (`tnfs_physics_drag_forces` '
+    '0x109e0)',
+    'top_speed': 'Top speed (m/s). Above it `tnfs_physics_update` raises the drag so that it cancels the thrust',
+    'efficiency': 'Drivetrain efficiency (0.5-0.86), multiplies the torque table (`tnfs_load_torque_table`): x '
+    '0xb4/256 with the automatic gearbox, + 0xd/256 when the option byte 0x10 is 5, and, in a game mode not '
+    'identified yet, + 0x37/256 (tracks 1, 4, 5), 0x44/256 (other tracks below 6) or 0x55/256 (from 6 up)',
+    'wheel_base': 'Distance between the front and rear axles (m): car wheelbase, moment of inertia and yaw factors '
+    '(`tnfs_Fiziks_InitCar`)',
+    'wheel_base_inv': '`1 / wheel_base`, rounded down. Weight transfer factor (`tnfs_Fiziks_InitCar`)',
+    'wheel_track': 'Distance between the left and right wheels (m). Not read',
+    'wheel_track_inv': '`1 / wheel_track`, rounded down. Not read',
+    'rear_weight_fraction': 'Rear weight fraction, the spec compiler always writes 0.5. Not read',
+    'mps_to_rpm': 'Engine rpm = speed (m/s) * this * gear ratio (`tnfs_engine_rev_limiter` 0x10564, '
+    '`tnfs_engine_auto_shift` 0x1d68, `tnfs_engine_thrust`)',
+    'num_gears': 'Number of used `gear_ratios` entries: reverse, neutral and `num_gears - 2` forward gears. '
+    'Upshifts stop at gear index `num_gears - 3` (`tnfs_control_shift_gears` 0x138bc, `tnfs_engine_auto_shift`)',
+    'final_drive': 'Final drive ratio. Only read by `tnfs_load_torque_table`',
+    'wheel_radius': 'Wheel radius (m). Not read, the game uses `inv_wheel_rad`',
+    'inv_wheel_rad': '`1 / wheel_radius`, rounded down. Only read by `tnfs_load_torque_table`',
+    'gear_ratios': 'Gear ratios, index = selected gear + 2: [0] reverse (negative), [1] neutral, [2] first gear and '
+    'up (`tnfs_engine_rev_limiter`, `tnfs_engine_auto_shift`, `tnfs_engine_thrust`). The neutral ratio only gives '
+    'the wheel rpm in neutral. The first `num_gears` entries are used, the rest is garbage',
+    'num_torques': 'Number of used `torques` entries (51; 41 in P911), at most 60, the length of `torques`. The '
+    'game uses the last one for any higher rpm (`tnfs_engine_torque_table` 0x1f2c)',
+    'roll_stiff_f': 'Front roll stiffness (10000.0 in all files). Not read: only the spec compiler uses it for '
+    '`front_roll_stiffness_2`',
+    'roll_stiff_r': 'Rear roll stiffness (10000.0 in all files). Not read',
+    'roll_axis_y': 'Roll axis height (m). Not read: only the spec compiler uses it for `weight_transfer_factor`',
+    'front_roll_stiffness_2': 'Front share of the roll stiffness, `roll_stiff_f / (roll_stiff_f + roll_stiff_r)` '
+    'in the spec compiler (0.5 in all files). Not read',
+    'rear_roll_stiffness_2': '`1 - front_roll_stiffness_2` in the spec compiler (0.5 in all files). Not read',
+    'weight_transfer_factor': '`cog_height - roll_axis_y` in the spec compiler (0.18-0.23). Not read: the weight '
+    'transfer factor of the game is `cog_height * wheel_base_inv`',
+    'slip_cutoff': 'Max tire slip angle, 24-bit angle: 0x200000 = 45° in all files. Larger slip angles are clamped '
+    'to it and set skid bit 1 (`tnfs_tire_forces` 0x10f70)',
+    'normal_loss': 'Normal coefficient loss (0.0007 in all files). Only adjusts `max_tire_coeff` in '
+    '`tnfs_Fiziks_InitCar`',
+    'max_rpm': 'Engine redline rpm. Rpm limit with the throttle = this * throttle / 256 (`tnfs_engine_thrust`). '
+    'Tachometer needle: min(rpm, max_rpm + 1500) (0xcbb0); race statistics count the gear shifts above max_rpm - '
+    '400 (0x13824)',
+    'min_rpm': 'Engine idle rpm, engine rpm floor (`tnfs_engine_rev_limiter`)',
+    'torques': 'Engine torque by rpm, the first `num_torques` entries are used, the rest is garbage. The game reads '
+    'only the first rpm and assumes 200 rpm steps (true in all files): entry = (rpm rounded to 200 - rpm[0]) / 200 '
+    '(`tnfs_engine_torque_table`). `tnfs_load_torque_table` turns each torque in memory into the 16.16 '
+    'acceleration per unit of gear ratio, `torque * final_drive * efficiency * inv_wheel_rad * inv_mass`',
+    'upshifts': 'Automatic gearbox rpm: [g] = upshift from gear index g to g + 1; it shifts down when the rpm in the '
+    'lower gear would be below 15/16 of [g - 1] (`tnfs_engine_auto_shift`). `tnfs_engine_thrust` uses [1] - 500 '
+    'as the burnout rpm limit. The first `num_gears - 3` entries are used, the rest is garbage',
+    'inertia_factor': '0.5 in all files. Car moment of inertia factor (`tnfs_Fiziks_InitCar`)',
+    'roll_factor': 'Visual body roll from the lateral acceleration (`tnfs_physics_update`), no unit',
+    'pitch_factor': 'Visual body pitch from the longitudinal acceleration (`tnfs_physics_update`), no unit',
+    'friction_f': 'Front tire friction coefficient: front grip = this * front weight fraction * 9.81 '
+    '(`tnfs_Fiziks_InitCar`)',
+    'friction_r': 'Rear tire friction coefficient, like `friction_f`',
+    'body_len': 'Body length (m), copied to the car length of player 1 (`tnfs_carspecs_002` 0x16de0); other cars '
+    'get 5.0 m',
+    'body_width': 'Body width (m), copied to the car width of player 1; other cars get 2.5 m',
+    'auto_steer': '24-bit angle per m/s (983 in all files). Moving forward without steering input: the auto-steer '
+    'target (road heading) is taken only if its absolute value < this * speed (`tnfs_control_steering` 0x134e0)',
+    'steer_mult': 'Auto-steer ramp multiplier shift (1). Not read',
+    'steer_div': 'Auto-steer ramp divider shift (1). Not read',
+    'steer_model': 'Steering model (2). Not read',
+    'steer_vel': 'Steering rates (2, 4, 8, 16), by the pad buttons held: [0] with a 33.75° (0x180000) steering '
+    'lock, [1] with 37.97° (0x1b0000) and for centring, [2] with 42.19° (0x1e0000); [3] not read. Rate per tick = '
+    'min(`steer_vel_ramp` - min(speed * `steer_vel_att`, 1.5), 1.6) * entry (`tnfs_control_steering`)',
+    'steer_vel_ramp': 'Base steering rate (2.2-2.5), see `steer_vel` (`tnfs_control_steering`)',
+    'steer_vel_att': 'Steering rate reduction per m/s, at most 1.5 in total (`tnfs_control_steering`)',
+    'steer_ramp_mult': 'Shift count: steering rate << this when the target and the auto-steer angle are on the same '
+    'side of the current angle (`tnfs_control_steering`)',
+    'steer_ramp_div': 'Shift count (1). Not read',
+    'lat_acc_cutoff': 'Lateral acceleration cutoff (m/s², 13-17). Not read on 3DO',
+    'front_grip_mult': 'Front lateral grip multiplier (1.8 in all files): front lateral force cap = grip table value '
+    '* front grip * this (`tnfs_tire_forces`). The PC PBS keeps this slot unused (`unknown_0x320`)',
+    'front_grip_mult_inv': '`1 / front_grip_mult`, rounded down (raw 65536 / raw): scales the lateral force back '
+    'when `tnfs_tire_forces` checks lateral + longitudinal force against the grip',
+    'rear_grip_mult': 'Rear lateral grip multiplier, like `front_grip_mult` (1.8 in all files). The PC PBS uses this '
+    'slot as `thrust_scale`',
+    'rear_grip_mult_inv': '`1 / rear_grip_mult`, rounded down (raw 65536 / raw), like `front_grip_mult_inv`',
+    'burnout_div': '0.4 in all files (8.8 fixed point, "burnOutDiv" in the 3DO debug symbols). Not read',
+    'has_abs': 'Car has ABS if > 0 (1.0); ABS is on if this and the player option are both set '
+    '(`tnfs_carspecs_002`). Off in DVIPER and LDIABLO',
+    'has_tcs': 'Car has traction control if > 0 (1.0), like `has_abs`. On in ANSX, CZR1 and TSUPRA',
+    'throttle_on_ramp': 'Throttle (0-255) rise per tick (`tnfs_control_throttle` 0x13764)',
+    'throttle_off_ramp': 'Throttle (0-255) fall per tick (`tnfs_control_throttle`)',
+    'brake_on_ramp_1': 'Brake (0-255) rise per tick, x 1.25, while the brake is below 144 (`tnfs_control_brake` '
+    '0x137ac)',
+    'brake_on_ramp_2': 'Brake rise per tick, x 1.25, from 144 up (`tnfs_control_brake`)',
+    'brake_off_ramp_1': 'Brake fall per tick while the brake is below 144 (`tnfs_control_brake`)',
+    'brake_off_ramp_2': 'Brake fall per tick from 144 up (`tnfs_control_brake`)',
+    'shift_timer': 'Ticks with the gear disengaged while shifting (`tnfs_control_shift_gears`, '
+    '`tnfs_engine_autoshift` 0x10484). Manual downshift: half of it; car model 4: +3 when (time & 0x31) == 0x10',
+    'rpm_dec': 'Rpm fall per tick towards idle without throttle while the gear is disengaged, half in neutral '
+    '(`tnfs_engine_rev_limiter`)',
+    'rpm_acc': 'Rpm rise per tick, x throttle / 256, while the gear is disengaged, half in neutral '
+    '(`tnfs_engine_rev_limiter`)',
+    'drop_rpm_dec': 'In gear: engine rpm fall per tick towards the wheel rpm; / 8 while the rear wheels spin with '
+    'throttle > 220 (`tnfs_engine_rev_limiter`)',
+    'drop_rpm_inc': 'In gear: engine rpm rise per tick towards the wheel rpm (`tnfs_engine_rev_limiter`)',
+    'neg_torque': 'Engine braking: force = rpm difference * this / 256 * gear ratio, at most 16 * speed; x 4 when '
+    'the wheels drive the engine (`tnfs_engine_thrust`)',
+    'incar_camera_height': 'In-car camera height (m, ~1.0) (in-car camera setup 0x168c)',
+    'center_y': 'In-car view vertical centre: the camera setup (0x168c) uses center_y - 120',
+    'grip_table_f': 'Front tire grip by slip angle, grip = value / 128 (the game: value << 9 as 16.16). Index = slip '
+    'angle (24-bit) >> 12: 0.088° steps over 0-45° (`tnfs_tire_slide_table` 0x1045c, read in `tnfs_tire_forces`); '
+    'slip angles from 0x1ffffe up read index 511',
+    'grip_table_r': 'Rear tire grip by slip angle, like `grip_table_f`',
+}
+
+
+class Tnfs3doCarPhysics(PlayerCarPhysics):
+    @property
+    def schema(self) -> Dict:
+        return {
+            **super().schema,
+            'block_description': 'Player car physics of TNFS 3DO (`DriveData/CarData/*.BigSpecsFam`, 1892 bytes): a '
+            'big-endian wwww archive of three items, the physics fields (0x350 bytes) and the front and rear grip '
+            'tables. The physics fields are the PC `PlayerCarPhysics` (PBS) layout without `max_brake_force_2` and '
+            '`gear_efficiency`, the grip tables are the same, there is no checksum. Readers are named as in the '
+            '3DO `LaunchMe` executable (raw ARM binary, address = file offset) of '
+            '[tnfs-1995](https://github.com/marcos2250/tnfs-1995); "not read" = no reader there. The file is '
+            'loaded by `tnfs_carspecs_002` (0x16de0) for player 1; in a debug mode the game instead compiles a '
+            'text `<car>.spec` (`tnfs_car_specs` 0x1f8c, which computes the derived fields) and writes it as '
+            '`<car>.SpecsBin`. Physics ticks are 1/30 s, angles are 24-bit (0x1000000 = full turn)',
+        }
+
+    Fields = _tnfs_3do_car_physics_fields()

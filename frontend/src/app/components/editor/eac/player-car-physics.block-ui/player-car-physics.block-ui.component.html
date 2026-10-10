@@ -93,7 +93,9 @@
               <tr>
                 <th>Gear</th>
                 <th [matTooltip]="descriptions['gear_ratios']">Ratio</th>
-                <th [matTooltip]="descriptions['gear_efficiency']">Efficiency</th>
+                @if (!is3do) {
+                  <th [matTooltip]="descriptions['gear_efficiency']">Efficiency</th>
+                }
                 <th matTooltip="Road speed at the redline in this gear">At redline</th>
                 <th [matTooltip]="descriptions['upshifts']">Automatic upshift</th>
               </tr>
@@ -110,14 +112,16 @@
                       [disabled]="!!disabled"
                       (change)="onNumberInput(['gear_ratios', g.index], $any($event.target).value)" />
                   </td>
-                  <td>
-                    <input
-                      type="number"
-                      step="0.00390625"
-                      [value]="round(g.efficiency, 4)"
-                      [disabled]="!!disabled"
-                      (change)="onNumberInput(['gear_efficiency', g.index], $any($event.target).value)" />
-                  </td>
+                  @if (!is3do) {
+                    <td>
+                      <input
+                        type="number"
+                        step="0.00390625"
+                        [value]="round(g.efficiency, 4)"
+                        [disabled]="!!disabled"
+                        (change)="onNumberInput(['gear_efficiency', g.index], $any($event.target).value)" />
+                    </td>
+                  }
                   <td class="num">{{ g.index === 1 ? '–' : fmt(g.redlineSpeed, 0) + ' km/h' }}</td>
                   <td>
                     @if (g.upshiftIndex !== null) {
@@ -139,7 +143,11 @@
 
           <app-curve-editor
             title="Drive acceleration by gear"
-            hint="Estimate from the game's torque table: torque × final_drive × efficiency / wheel_radius / mass × gear ratio × gear efficiency. No drag, rolling resistance or grip limit"
+            [hint]="
+              'Estimate from the game\'s torque table: torque × final_drive × efficiency / wheel_radius / mass × gear ratio' +
+              (is3do ? '' : ' × gear efficiency') +
+              '. No drag, rolling resistance or grip limit'
+            "
             [series]="accelSeries"
             [xAxis]="speedAxis"
             [yAxis]="accelAxis"
@@ -204,7 +212,11 @@
               [describeX]="describeTime"></app-curve-editor>
             <app-curve-editor
               title="Braking by speed"
-              hint="Cap of the braking deceleration: max_brake_force × force_to_accel (1 / thrust_scale). max_brake_force_1 below 26.8 m/s, max_brake_force_2 up to 40 m/s, the larger one above. Drag the first two steps"
+              [hint]="
+                is3do
+                  ? 'Cap of the braking deceleration with the brake above 100: max_brake_force at every speed (lateral: 1.5 × it). Drag the line'
+                  : 'Cap of the braking deceleration: max_brake_force × force_to_accel (1 / thrust_scale). max_brake_force_1 below 26.8 m/s, max_brake_force_2 up to 40 m/s, the larger one above. Drag the first two steps'
+              "
               [series]="brakeSeries"
               [xAxis]="speedAxis"
               [yAxis]="decelAxis"
