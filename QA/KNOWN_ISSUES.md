@@ -201,7 +201,7 @@ https://claude.ai/artifact/7UQmqmxtaK8MenZQcDqpEo (private to the repo owner).
 
 Lower-severity items in the same report: brake pedal chart uses float ×1.25 (game: `ramp + ramp/4`), steering-rate
 chart ignores the `steer_ramp_div` / `steer_ramp_mult` shifts, `drive_bias` slider thumb doesn't move after a drag,
-mixed decimal formatting, Changes list prints arrays as "[object Object]", no Ctrl/⌘+Z shortcut.
+mixed decimal formatting, Changes list prints arrays as "[object Object]".
 
 ---
 

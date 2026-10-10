@@ -69,3 +69,10 @@ body {
 .multiline-tooltip {
   white-space: pre-line;
 }
+
+// keyboard shortcut of a menu item, right-aligned
+.menu-hotkey {
+  float: right;
+  margin-left: 32px;
+  opacity: 0.6;
+}
