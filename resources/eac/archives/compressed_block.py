@@ -82,8 +82,8 @@ class EacCompressedBlock(AutoDetectBlock):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         uncompressed_bytes = super().write(data, ctx, name)
-        # new data: QFS2, which TNFS reads
-        flags = data.get('compression_flags', 0x46)
+        # new data: RefPack, which every EA game reads
+        flags = data.get('compression_flags', 0x10)
         compression = self._compression_for_header(flags)
         from resources.eac.compressions.qfs3 import Qfs3Compression
 

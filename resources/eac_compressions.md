@@ -23,7 +23,7 @@ decompiled TNFS (DOS) code, when a file does not start with a valid QFS header t
 (uncompressed), so an uncompressed payload is also a valid input (see [Uncompressed data](#uncompressed-data)). Later
 games are not checked, and NFS3 / NFS5 ship RefPack files only, so the converter writes a resource back with the
 algorithm (and QFS3 delta mode) it was read with, kept as `compression_flags` (the first header byte) in the data of
-`EacCompressedBlock`. New data is written as QFS2.
+`EacCompressedBlock`. New data is written as RefPack.
 
 In every algorithm, bit `0x01` of the first byte means a 3-byte compressed size comes right after the magic, before
 the uncompressed size. No shipped file uses it, and the compressors don't write it.
