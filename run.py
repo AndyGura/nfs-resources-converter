@@ -32,7 +32,13 @@ if __name__ == '__main__':
         except ValueError:
             pass
     parser = argparse.ArgumentParser()
-    parser.add_argument('file', type=pathlib.Path, nargs='?', default=None, help='Input path')
+    parser.add_argument(
+        'file',
+        type=pathlib.Path,
+        nargs='?',
+        default=None,
+        help='Input path. Action "convert" with --preset: default is the input path of the preset',
+    )
     parser.add_argument(
         '--custom-command',
         type=str,
@@ -50,8 +56,17 @@ if __name__ == '__main__':
         '--out',
         type=pathlib.Path,
         required=False,
-        help='Output path for converted files (action "convert" only)',
-        default='out/',
+        help='Output path for converted files (action "convert" only). Default: the output path of the --preset if it '
+        'has one, otherwise out/',
+        default=None,
+    )
+    parser.add_argument(
+        '--preset',
+        type=str,
+        required=False,
+        default=None,
+        help='Conversion preset name, quoted if it has spaces: --preset "My Preset" (action "convert" only). Its '
+        'input and output paths are used unless given. Default: the conversion settings without a preset',
     )
     parser.add_argument(
         '--dev',
@@ -79,17 +94,34 @@ if __name__ == '__main__':
         dev_server_url = args.dev_server if args.dev else None
         run_gui_editor(file_to_open, dev_server_url=dev_server_url)
     elif action == Action.convert:
-        if args.file is None:
-            raise Exception('file argument is required for convert action')
-        if not args.out:
-            raise Exception('--out argument has to be provided for convert action')
+        input_path, out_path = args.file, args.out
+        if args.preset:
+            from config import conversion_preset_settings, list_conversion_presets
+
+            if args.preset not in list_conversion_presets():
+                presets = ', '.join(f'"{x}"' for x in list_conversion_presets()) or 'none'
+                parser.error(f'conversion preset "{args.preset}" does not exist. Available presets: {presets}')
+            preset_settings = conversion_preset_settings(args.preset)
+            if input_path is None and preset_settings['input_path']:
+                input_path = pathlib.Path(preset_settings['input_path'])
+            if out_path is None and preset_settings['output_path']:
+                out_path = pathlib.Path(preset_settings['output_path'])
+        if input_path is None:
+            parser.error(
+                'file argument is required for convert action'
+                + (f' (preset "{args.preset}" has no input path)' if args.preset else '')
+            )
+        if not input_path.exists():
+            parser.error(f'input path "{input_path}" does not exist')
         from actions.convert_all import convert_all
 
-        convert_all(args.file, args.out)
+        convert_all(input_path, out_path or pathlib.Path('out/'), preset=args.preset or None)
     elif action == Action.show_settings:
-        from config import get_config_file_location
+        from config import get_config_file_location, list_conversion_presets
 
         print(f'Settings file location: {get_config_file_location()}')
+        presets = list_conversion_presets()
+        print(f'Conversion presets: {", ".join(f'"{x}"' for x in presets) if presets else "none"}')
     elif action == Action.uncompress:
         if args.file is None:
             raise Exception('file argument is required for uncompress action')
@@ -106,7 +138,7 @@ if __name__ == '__main__':
         if not args.custom_command:
             raise Exception('--custom-command argument has to be provided for custom command action')
         if not args.out:
-            raise Exception('--out argument has to be provided for custom command action')
+            args.out = pathlib.Path('out/')
         from library import require_file
 
         (name, block, resource) = require_file(str(args.file))

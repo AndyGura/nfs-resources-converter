@@ -12,14 +12,12 @@ from library.utils import format_exception, path_join
 from library.utils.logging_setup import setup_logging, is_stdout_redirected
 from serializers import get_serializer
 
-general_config = config.general_config()
-conversion_config = config.conversion_config()
 
-
-def export_file(base_input_path, path, out_path):
+def export_file(base_input_path, path, out_path, settings):
     try:
         (name, block, data) = require_file(path)
         serializer = get_serializer(block, data)
+        serializer.patch_settings(settings)
         rel_path = path[len(base_input_path) :]
         if not rel_path:
             is_dir = serializer.is_dir
@@ -34,8 +32,18 @@ def export_file(base_input_path, path, out_path):
         return ex
 
 
-def convert_all(path, out_path):
+def convert_all(path, out_path, preset=None):
+    """
+    Convert a file, or every file in a directory tree, to common formats.
+
+    Args:
+        path: Input file or directory
+        out_path: Output directory
+        preset: Conversion preset name, None for the default conversion settings
+    """
     start_time = time.time()
+    # resolved here, so a missing preset fails before any work, and passed to the workers explicitly
+    settings = config.conversion_preset_settings(preset)
     base_input_path = str(path)
     files_to_open = []
     if os.path.isdir(path):
@@ -44,18 +52,17 @@ def convert_all(path, out_path):
     else:
         files_to_open = [str(path).replace('\\', '/')]
 
-    processes = (
-        cpu_count()
-        if conversion_config.multiprocess_processes_count == 0
-        else conversion_config.multiprocess_processes_count
-    )
+    processes = settings['multiprocess_processes_count'] or cpu_count()
     import logging
 
-    logging.info(f'Starting conversion of {len(files_to_open)} files using {processes} processes')
+    logging.info(
+        f'Starting conversion of {len(files_to_open)} files from {path} to {out_path} using {processes} processes, '
+        + (f'preset "{preset}"' if preset else 'no preset')
+    )
     with Pool(processes=processes, initializer=setup_logging, initargs=(is_stdout_redirected(),)) as pool:
         pbar = tqdm(total=len(files_to_open))
         results = [
-            pool.apply_async(export_file, (base_input_path, f, out_path), callback=lambda *a: pbar.update())
+            pool.apply_async(export_file, (base_input_path, f, out_path, settings), callback=lambda *a: pbar.update())
             for f in files_to_open
         ]
         results = list(result.get() for result in results)

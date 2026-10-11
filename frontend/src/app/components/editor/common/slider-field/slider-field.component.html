@@ -1,0 +1,25 @@
+<div class="slider-field" [class.disabled]="disabled" [matTooltip]="description" matTooltipPosition="above">
+  <div class="head">
+    <label class="label" [attr.for]="label + '-value'">{{ label }}</label>
+    <span class="value">
+      <input
+        [id]="label + '-value'"
+        type="number"
+        [step]="spec.step * scale"
+        [value]="displayValue"
+        [disabled]="!!disabled"
+        (change)="onTyped($any($event.target).value)" />
+      @if (spec.unit) {
+        <span class="unit">{{ spec.unit }}</span>
+      }
+    </span>
+  </div>
+  <mat-slider [min]="spec.min * scale" [max]="spec.max * scale" [step]="spec.step * scale" [disabled]="!!disabled">
+    <input
+      matSliderThumb
+      [value]="sliderValue"
+      [attr.aria-label]="label"
+      (input)="onSlide($any($event.target).value)"
+      (change)="onSlideEnd($any($event.target).value)" />
+  </mat-slider>
+</div>

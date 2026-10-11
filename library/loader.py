@@ -16,18 +16,22 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
         header_str = None
 
     if file_path:
-        if file_path.endswith('.BNK'):
+        if file_path.endswith('.BNK') and header_bytes != b'BNKl':
             from resources.eac.archives import SoundBank
 
             return SoundBank
         elif file_path.endswith('.PBS__uncompressed'):
-            from resources.eac.car_specs import CarPerformanceSpec
+            from resources.eac.car_specs import PlayerCarPhysics
 
-            return CarPerformanceSpec
+            return PlayerCarPhysics
         elif file_path.endswith('.PDN__uncompressed'):
-            from resources.eac.car_specs import CarSimplifiedPerformanceSpec
+            from resources.eac.car_specs import CarAiAndCrashBody
 
-            return CarSimplifiedPerformanceSpec
+            return CarAiAndCrashBody
+        elif file_path.lower().endswith('.bigspecsfam'):
+            from resources.eac.car_specs import Tnfs3doCarPhysics
+
+            return Tnfs3doCarPhysics
         elif file_path.endswith('CONFIG.DAT'):
             from resources.eac.configs import TnfsConfigDat
 
@@ -83,6 +87,10 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.misc import DashDeclarationFile
 
             return DashDeclarationFile
+        elif header_str == 'BNKl':
+            from resources.eac.archives import EaSoundBank
+
+            return EaSoundBank
         elif header_str == '1SNh':
             from resources.eac.audios import AsfAudio
 

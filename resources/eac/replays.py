@@ -62,11 +62,11 @@ class TnfsReplayPlayer(DeclarativeCompoundBlock):
         )
         option_a = (
             _int(),
-            {'description': 'Boolean, a car option. Applied only if the car physics (PBS) allow it (field at 0x338)'},
+            {'description': 'Boolean, traction control option. Applied only if the car PBS `has_tcs` (0x338) is set'},
         )
         option_b = (
             _int(),
-            {'description': 'Boolean, a car option. Applied only if the car physics (PBS) allow it (field at 0x334)'},
+            {'description': 'Boolean, ABS option. Applied only if the car PBS `has_abs` (0x334) is set'},
         )
         unk1 = (_int(), {'is_unknown': True})
         sound_value_0 = (

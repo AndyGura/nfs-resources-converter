@@ -1,4 +1,5 @@
 import { deepEqual } from '../../utils/deep-equals';
+import { ValueValidator } from './value-validators';
 
 export type Resource<BD = BlockData> = {
   id: string;
@@ -24,7 +25,7 @@ export type BlockSchema = {
     reversible: boolean;
     reversible_settings_patch: any;
   } | null;
-  value_validator?: { type: 'eq'; expected_value: any } | { type: 'or'; possible_values: any[] };
+  value_validator?: ValueValidator;
   custom_actions?: CustomAction[];
 } & any;
 

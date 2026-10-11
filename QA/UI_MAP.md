@@ -40,6 +40,23 @@ A top `mat-toolbar` is always present. Its content depends on whether a resource
 Same File/Edit/Tools items are reachable from the toolbar icon buttons when a file is open (Undo,
 Redo, Save icons) — these mirror the menu items 1:1, same enablement rules. **Confirmed (live)**.
 
+### Keyboard shortcuts — Confirmed (live, dev server in Chrome on macOS)
+
+`AppComponent.onKeyDown` (`window:keydown`), keys in `utils/hotkeys.ts`; the menu items show them on the right.
+Ctrl on Windows/Linux, ⌘ on macOS; a non-latin layout uses the physical key.
+
+| Shortcut | Action | Notes |
+|---|---|---|
+| Ctrl/⌘+Z | Undo | same enablement as the menu item |
+| Ctrl/⌘+Shift+Z, Ctrl+Y (not macOS) | Redo | same enablement as the menu item |
+| Ctrl/⌘+S | Save | commits the value being typed in the focused field first (focus stays), then saves if there are unsaved changes |
+| Ctrl/⌘+O | Open | |
+| Ctrl/⌘+N | New... | |
+
+- In a focused text / number field, undo / redo are left to the field (its typed text isn't a change until blur /
+  Enter).
+- While a dialog is open none of them run (Ctrl/⌘+S is only kept from reaching the browser).
+
 ### "Changes (n)" debug menu — Confirmed (live)
 
 Guarded by `@if (!isProduction)` in the template. `environment.ts` (the file used by the
@@ -120,13 +137,22 @@ observed behavior). Fields:
 - **Input Directory/File*** (required, text input + Browse → directory/file picker). Accepts
   manual typing, not just Browse — Confirmed (live).
 - **Output Directory*** (required, same). Confirmed (live).
-- **Conversion Settings** (collapsible `mat-expansion-panel`, "Customize conversion settings")
+- **Conversion preset** select (first row, above the paths): "No preset" (the default paths and settings,
+  `[Conversion]` section) plus the user-defined presets (`[Conversion: <name>]` sections), with a hint showing the
+  matching `--preset` CLI argument. Every field below, paths included, belongs to the selected preset.
+  **New preset** swaps the row for a name field (validated while typing: letters, digits, spaces, `-`, `_`, `.`,
+  unique case-insensitively, not "No preset"; Enter creates, Escape cancels); the new preset copies the shown values,
+  gets selected and the settings panel expands. The **delete** icon (only with a preset selected) removes it, falls back
+  to "No preset" and offers **Undo** in a snackbar. The selected preset is remembered (`selected_preset` in
+  `[Conversion]`). Confirmed (live, 2026-10-09).
+- **Conversion Settings** (collapsible `mat-expansion-panel`, its description names the selected preset)
   containing: `multiprocess_processes_count`, and per-domain checkboxes — Images (save positions /
   palettes / mipmaps / embedded palette / texts), Maps (save as chunked / invisible-wall collisions
   / terrain collisions / spherical skybox texture / add props to obj), Geometry (save OBJ / save
   BLEND / export to gg-web-engine). Not expanded/inspected field-by-field this pass — Unknown
   defaults beyond what `converter.component.ts`'s form group shows in code (`maps__save_spherical_skybox_texture`
   and `geometry__save_obj`/`geometry__save_blend` default **on**; everything else defaults **off**).
+  Every change, paths included, is saved right away (300 ms debounce) to the selected preset.
 - On load, **Blender is tested automatically** (`testBlenderExecutable`); if it's not working,
   `save_blend` and `export_to_gg_web_engine` are programmatically **disabled** (not just
   unchecked) — Confirmed (code); the disabling itself wasn't visually verified this pass (form was

@@ -1,0 +1,123 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+h2 {
+  margin: 0;
+  cursor: pointer;
+}
+
+h3 {
+  margin: 0.5rem 0 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 0.25rem 1rem;
+  min-width: 0;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 0.75rem;
+}
+
+.note,
+.muted {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+}
+
+.note {
+  margin: -0.25rem 0 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.gear-table {
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  align-self: flex-start;
+
+  th {
+    text-align: left;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.65);
+    padding: 4px 12px 4px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    cursor: help;
+  }
+
+  td {
+    padding: 3px 12px 3px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .gear-name {
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .num {
+    white-space: nowrap;
+  }
+
+  input {
+    width: 84px;
+    font: inherit;
+    padding: 3px 5px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    margin-right: 6px;
+
+    &:focus {
+      outline: 2px solid var(--mat-sys-primary, #3f51b5);
+      outline-offset: -1px;
+    }
+  }
+}
+
+// parameter fields in an even grid, arrays (tables) on a row of their own
+:host ::ng-deep app-compound-block-ui .container.horizontal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0 1rem;
+
+  > app-editor > * > mat-form-field,
+  > app-editor > app-number-block-ui mat-form-field {
+    width: 100%;
+  }
+
+  > app-editor > app-array-block-ui {
+    grid-column: 1 / -1;
+  }
+}
+
+.sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem 1rem;
+}

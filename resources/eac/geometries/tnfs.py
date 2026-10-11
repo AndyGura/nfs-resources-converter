@@ -118,7 +118,8 @@ class NamedIndex(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': '12-bytes record, first 8 bytes is null-terminated UTF-8 string, last'
-            ' 4 bytes is an unsigned integer (little-endian)',
+            ' 4 bytes is an unsigned integer (little-endian). Used by ORIP `fx_polys` (index is a vertex index) and '
+            '`labels` (index is a polygon index)',
             'inline_description': True,
         }
 
@@ -127,13 +128,16 @@ class NamedIndex(DeclarativeCompoundBlock):
         return '12'
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        name = NullTerminatedUTF8Block(length=8)
+        name = (
+            NullTerminatedUTF8Block(length=8),
+            {'description': 'Name of the entry (up to 7 characters). A few entries have a garbage name, like "\\x02"'},
+        )
         offset = ArrayBlock(
             child=IntegerBlock(length=1),
             length=(lambda ctx: 8 - ctx.buffer.tell() + ctx.read_start_offset, '7 - len(name)'),
             programmatic_value=lambda ctx: [0] * (7 - len(ctx.data('name'))),
         )
-        index = IntegerBlock(length=4)
+        index = (IntegerBlock(length=4), {'description': 'Index of the vertex (`fx_polys`) or polygon (`labels`)'})
 
 
 # TODO check additional info in http://3dodev.com/documentation/file_formats/games/nfs
@@ -312,8 +316,18 @@ class OripGeometry(DeclarativeCompoundBlock):
         fx_polys = (
             ArrayBlock(child=NamedIndex(), length=lambda ctx: ctx.data('num_fxp')),
             {
-                'description': 'Indexes of polygons which participate in visual effects such as engine smoke, '
-                'dust particles, tyre trails? Presented in car CFM-s. '
+                'description': 'Named points of the model for visual effects, in high-poly car models (CFM). Despite '
+                'the name, `index` is the index of an item of `vertices`, not of a polygon. Names (the case differs '
+                'between cars: F512M, F512TR, TRAFFC and WARRIOR use lower case): `FL0`, `FL1`, `FR0`, `FR1`, '
+                '`RL0`, `RL1`, `RR0`, `RR1` are the ground contact points of the wheels (front/rear, left/right), '
+                '0 at the front edge of the wheel, 1 at the rear edge (the bottom corners of the wheel polygon '
+                'labelled `lt_frnt`, `rt_rear`...); guess: sources of tyre smoke, dust and skid marks. `smok` is a '
+                'point at the engine: on the hood of front-engined cars (DVIPER, CZR1, MRX7, TSUPRA), at the '
+                'exhaust or the engine lid of the others; guess: source of engine smoke and fire of a wrecked car. '
+                '`d` (only in the M*.CFM models) is a point near the bottom of the front left wheel, unknown '
+                'purpose. DVIPER has one more entry with garbage name "\\x02" (the top of a wheel polygon). The '
+                'gg-web-engine export writes every entry as a dummy "fx_<name>" at the vertex, with properties `fx` '
+                '(the name) and `vertex` (the index), skipping entries with a non-printable name like "\\x02"'
             },
         )
         unk_lbl = (
@@ -323,8 +337,16 @@ class OripGeometry(DeclarativeCompoundBlock):
         labels = (
             ArrayBlock(child=NamedIndex(), length=lambda ctx: ctx.data('num_lbl')),
             {
-                'description': 'Marks special polygons for the game, where it should change texture on runtime such '
-                'as tyres, tail lights'
+                'description': 'Named polygons of high-poly car models (CFM), `index` is the index of an item of '
+                '`polygons`. Names: `lt_frnt`, `rt_frnt`, `lt_rear`, `rt_rear`: the outer side of the wheels '
+                '(left/right, front/rear), mostly untextured (guess: the game draws the tyre textures `tyr*` there); '
+                '`bkll` / `bklr`: left / right rear light (guess: lit when braking); `bott`: a horizontal quad over '
+                'the whole underside of the body of the simple traffic car models (texture `bott`), purpose unknown. '
+                'Guesses: `bacr` (P911) the centre part of the rear light bar; `mm` (LDIABLO; garbage name "\\x01" on '
+                'the same polygon of LDIABL) a two-sided quad at the inner side of the front right wheel (texture '
+                '`circ`); `W` (TRAFFC, WARRIOR) a triangle at the top rear left corner of the body (texture `abox`); '
+                'COPMUST: `hll0` / `hlr0` headlights, `bkl0` / `bkr0` rear lights, `lfl0` / `lfr0` and `lrl0` / '
+                '`lrr0` the front and rear left / right parts of the siren light bar on the roof, flashed by the game'
             },
         )
         unk_vrtx = (

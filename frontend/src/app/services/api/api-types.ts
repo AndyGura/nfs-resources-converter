@@ -32,3 +32,9 @@ export type ConversionConfig = {
   geometry__save_blend: boolean;
   geometry__export_to_gg_web_engine: boolean;
 };
+
+export type ConversionPresets = {
+  // user-defined presets, "no preset" (default settings) is null
+  presets: string[];
+  selected: string | null;
+};

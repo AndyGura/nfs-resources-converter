@@ -84,10 +84,11 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 if '.FAM__' in id:
                     # build TNFS horizon texture
                     horz = next(x for name, x, _ in items if name == 'horz')
+                    from library.loader import id_to_path
                     from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
 
                     nfs1_panorama_to_spherical(
-                        id[id.index('.FAM') - 7 : id.index('.FAM') - 4],
+                        id_to_path(id),
                         path_join(path, 'horz.png'),
                         path_join(path, 'spherical.png'),
                         horz['pivot']['y'],
@@ -232,15 +233,26 @@ class SoundBankSerializer(BaseFileSerializer):
             # car soundbanks
             names = ['engine_on', 'engine_off', 'honk', 'gear']
         else:
-            names = [hex(i) for (i, x) in enumerate(data['items_descr']) if x > 0]
+            names = [hex(i) for i in block.item_indices(data)]
         items = zip(names, data['children'])
         skipped_resources = []
         item_block = block.field_blocks_map['children'].child
         output = []
         for i, (name, item) in enumerate(items):
+            entry = data['items'][i]
+            meta = {
+                'bend_range_semitones': entry['bend_range_semitones'],
+                'volume': entry['volume'],
+                'pan': entry['pan'],
+                'priority': entry['priority'],
+                'random_range': entry['random_range'],
+                'unknown_0x16': entry['unk4'],
+            }
             try:
                 serializer = serializers.get_serializer(item_block, item)
-                output.extend(serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', str(i))))
+                output.extend(
+                    serializer.serialize(item, path_join(path, name), id=join_id(id, 'children', str(i)), meta=meta)
+                )
             except Exception as ex:
                 traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))

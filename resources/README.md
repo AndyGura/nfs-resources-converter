@@ -2,6 +2,8 @@
 
 - [TNFSSE (PC) file specs](TNFS_SE.md)
 
+- [TNFS (3DO) file specs](TNFS_3DO.md)
+
 - [NFS2 file specs](NFS2.md)
 
 - [NFS2SE file specs](NFS2_SE.md)

@@ -1,7 +1,7 @@
 from library.read_blocks import DataBlock
 from serializers.base import BaseFileSerializer, DelegateBlockSerializer, PlainBinarySerializer
 from .archives import ShpiArchiveSerializer, WwwwArchiveSerializer, SoundBankSerializer, BigfArchiveSerializer
-from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer
+from .audios import EacsAudioSerializer, FfmpegSupportedAudioSerializer, EaSoundBankSerializer
 from .bitmaps import (
     ImageSerializer,
     TargaImageSerializer,

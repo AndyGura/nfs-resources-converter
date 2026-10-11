@@ -8,7 +8,7 @@
 
 [✓] QFS image archives (compressed)
 
-[ ] PDN, PBS car characteristics (compressed)
+[✓] PDN, PBS car characteristics (compressed)
 
 [ ] FAM wwww block with geometry
 

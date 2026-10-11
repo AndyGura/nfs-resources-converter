@@ -391,9 +391,10 @@ class EacImage(DeclarativeCompoundBlock):
             Point2D(child=IntegerBlock(length=2)),
             {
                 'is_unknown': True,
-                'description': 'Seems like x coordinate is not used at all. y coordinate is used in horizon '
-                'textures in TNFS FAM files: higher value = image as horizon will be put higher '
-                'on the screen. Seems to affect only open tracks',
+                'description': 'Seems like x coordinate is not used at all. y coordinate is used by the horizon '
+                'bitmap "horz" of TNFS FAM files when the game scrolls it (horizon "ring type" 0, the open road '
+                'tracks by default): this row of the bitmap lies on the horizon line (Win95 SE FUN_0043ae64). The '
+                'horizon ring (ring type 1, the closed tracks) does not use it',
             },
         )
         position = (

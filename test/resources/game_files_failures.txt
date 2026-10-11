@@ -157,7 +157,7 @@ tnfsse/SIMDATA/MISC/TR6INFO		NotImplementedError:
 tnfsse/SIMDATA/MISC/TR7INFO		NotImplementedError: 
 tnfsse/SIMDATA/MISC/TRXINFO		NotImplementedError: 
 
---- Read-again failures (Test 3): 201 ---
+--- Read-again failures (Test 3): 183 ---
 nfs2se/SETUP/ENGLISH/_INST32I.EX_		Read-again data differs from original data
 nfs2se/SETUP/SPANISH/_INST32I.EX_		Read-again data differs from original data
 nfs2se/UTILITY/MP/_INST32I.EX_		Read-again data differs from original data
@@ -303,12 +303,6 @@ tnfsse/SIMDATA/CARFAMS/F512TR.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/LDIABL.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/LDIABLO.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/MP911T.CFM		Read-again data differs from original data
-tnfsse/SIMDATA/CARSPECS/ANSX.PBS		Read-again data differs from original data
-tnfsse/SIMDATA/CARSPECS/CZR1.PBS		Read-again data differs from original data
-tnfsse/SIMDATA/CARSPECS/F512TR.PBS		Read-again data differs from original data
-tnfsse/SIMDATA/CARSPECS/MRX7.PBS		Read-again data differs from original data
-tnfsse/SIMDATA/CARSPECS/P911.PBS		Read-again data differs from original data
-tnfsse/SIMDATA/CARSPECS/TSUPRA.PBS		Read-again data differs from original data
 tnfsse/SIMDATA/ETRACKFM/CY3_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/ETRACKFM/TR1_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/ETRACKFM/TR2_001.FAM		Read-again data differs from original data
@@ -346,21 +340,9 @@ tnfsse/SIMDATA/NTRACKFM/TR6_R01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR7_M01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR7_R01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR8_R01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLLSBMT.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLLSBWT.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLLSW3D.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLLSWMT.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLLSWWT.BNK		Read-again data differs from original data
 tnfsse/SIMDATA/SOUNDBNK/COLL_SB.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLL_SW.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLSWMT3.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/COLSWWT3.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/ODIAMB3D.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/ORX7MB3D.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/OSUPMB3D.BNK		Read-again data differs from original data
-tnfsse/SIMDATA/SOUNDBNK/OVIPMB3D.BNK		Read-again data differs from original data
 
---- Comparison failures (Test 4): 118 ---
+--- Comparison failures (Test 4): 121 ---
 nfs2/GAMEDATA/TMPTRK/MAIN.TRK		Output length (966706) differs from input length (1126400)
 nfs2/GAMEDATA/TRACKS/DATA/PC/TR0601.CAN		Output length (178) differs from input length (1088)
 nfs2/GAMEDATA/TRACKS/DATA/PC/TR0701.CAN		Output length (178) differs from input length (1088)
@@ -368,97 +350,97 @@ nfs2se/GAMEDATA/DASHHUD/PC/HUDDATA.VIV		Output differs from input at offset 0x22
 nfs3/GameData/Render/PC/CONE.ART		Output length (16) differs from input length (32788)
 nfs4/Data/GameArt/median.art		Output length (16) differs from input length (8728)
 nfs5/GameData/Sounds/993Tcoupe36.spl		Output length (16) differs from input length (52)
-tnfsse/FRONTEND/ART/CHECK/CHKMENU.QFS		Output length (299137) differs from input length (252427); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CHECK/FINMENU.QFS		Output length (302328) differs from input length (246203); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/ANI.QFS		Output length (96114) differs from input length (61819); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/CENTRAL.QFS		Output length (430368) differs from input length (142054); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/CHAT.QFS		Output length (346001) differs from input length (170672); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/GAMEMOD2.QFS		Output length (277303) differs from input length (235903); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/GAMEMODE.QFS		Output length (286207) differs from input length (242083); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/TOURNY1.QFS		Output length (42711) differs from input length (16207); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/VET2.QFS		Output length (41540) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CHECK/CHKMENU.QFS		Output length (257486) differs from input length (252427); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CHECK/FINMENU.QFS		Output length (250656) differs from input length (246203); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/ANI.QFS		Output length (63368) differs from input length (61819); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/CENTRAL.QFS		Output length (142556) differs from input length (142054); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/CHAT.QFS		Output length (177455) differs from input length (170672); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/GAMEMOD2.QFS		Output length (240107) differs from input length (235903); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/GAMEMODE.QFS		Output length (246657) differs from input length (242083); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/TOURNY1.QFS		Output length (16848) differs from input length (16207); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/VET2.QFS		Output length (15515) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/CREDITS.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/ART/CREDITS.QFS		Output length (1136568) differs from input length (1010667); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CREDITS.QFS		Output length (1036260) differs from input length (1010667); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/GMOUSE.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/ART/IART/INSTCARD.QFS		Output length (343490) differs from input length (271799); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTINST.QFS		Output length (316737) differs from input length (234774); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTLOAD.QFS		Output length (728491) differs from input length (509130); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTMENU.QFS		Output length (418568) differs from input length (336554); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTPATH.QFS		Output length (551244) differs from input length (334167); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTREAD.QFS		Output length (113552) differs from input length (86009); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTUNIN.QFS		Output length (223303) differs from input length (187080); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTVIDO.QFS		Output length (283348) differs from input length (227774); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTCARD.QFS		Output length (270708) differs from input length (271799); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTINST.QFS		Output length (234055) differs from input length (234774); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTLOAD.QFS		Output length (530315) differs from input length (509130); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTMENU.QFS		Output length (322842) differs from input length (336554); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTPATH.QFS		Output length (347774) differs from input length (334167); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTREAD.QFS		Output length (91557) differs from input length (86009); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTUNIN.QFS		Output length (195980) differs from input length (187080); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTVIDO.QFS		Output length (234011) differs from input length (227774); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/JOYCONF.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/ART/OPTION/AUDIO.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/ART/OPTION/AUDIO.QFS		Output length (454238) differs from input length (312853); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/OPTION/MODEMSET.QFS		Output length (806814) differs from input length (416524); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/OPTION/NETSET.QFS		Output length (529381) differs from input length (329523); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/OPTION/OPTIONS.QFS		Output length (331264) differs from input length (269048); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/FINSTND.QFS		Output length (224678) differs from input length (163488); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/SGMTSTND.QFS		Output length (293144) differs from input length (205074); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/STANDBST.QFS		Output length (295479) differs from input length (198719); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/STANDLO1.QFS		Output length (266081) differs from input length (191139); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/STANDLO2.QFS		Output length (298166) differs from input length (210491); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/TRMTSTND.QFS		Output length (185763) differs from input length (139392); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TITLE.QFS		Output length (247757) differs from input length (196917); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/ALPSEL.QFS		Output length (547938) differs from input length (415155); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/AUTSEL.QFS		Output length (304778) differs from input length (240893); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/BRUNBST.QFS		Output length (217408) differs from input length (169466); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/BRUNSEL.QFS		Output length (258562) differs from input length (215504); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/CITYSEL.QFS		Output length (550478) differs from input length (394081); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/COASTSEL.QFS		Output length (419169) differs from input length (259761); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/RUSTSEL.QFS		Output length (254157) differs from input length (182789); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/TROPBST.QFS		Output length (156548) differs from input length (121857); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/TROPSEL.QFS		Output length (246949) differs from input length (209670); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/VERTSEL.QFS		Output length (261565) differs from input length (185266); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CHECK/CHKMENU.QFS		Output length (351441) differs from input length (278049); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CHECK/FINMENU.QFS		Output length (336415) differs from input length (260428); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/AUDIO.QFS		Output length (314598) differs from input length (312853); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/MODEMSET.QFS		Output length (428347) differs from input length (416524); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/NETSET.QFS		Output length (325114) differs from input length (329523); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/OPTIONS.QFS		Output length (275326) differs from input length (269048); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/FINSTND.QFS		Output length (168764) differs from input length (163488); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/SGMTSTND.QFS		Output length (217221) differs from input length (205074); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/STANDBST.QFS		Output length (211805) differs from input length (198719); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/STANDLO1.QFS		Output length (199847) differs from input length (191139); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/STANDLO2.QFS		Output length (223764) differs from input length (210491); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/TRMTSTND.QFS		Output length (145728) differs from input length (139392); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TITLE.QFS		Output length (200770) differs from input length (196917); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/ALPSEL.QFS		Output length (423003) differs from input length (415155); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/AUTSEL.QFS		Output length (239065) differs from input length (240893); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/BRUNBST.QFS		Output length (175065) differs from input length (169466); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/BRUNSEL.QFS		Output length (213771) differs from input length (215504); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/CITYSEL.QFS		Output length (399705) differs from input length (394081); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/COASTSEL.QFS		Output length (269692) differs from input length (259761); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/RUSTSEL.QFS		Output length (185552) differs from input length (182789); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/TROPBST.QFS		Output length (129786) differs from input length (121857); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/TROPSEL.QFS		Output length (209325) differs from input length (209670); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/VERTSEL.QFS		Output length (184925) differs from input length (185266); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CHECK/CHKMENU.QFS		Output length (281159) differs from input length (278049); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CHECK/FINMENU.QFS		Output length (262384) differs from input length (260428); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CHECK/LOOP6.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/GART/CHECK/LOOP6.QFS		Output length (77098) differs from input length (63615); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CHECK/LOOP6.QFS		Output length (65739) differs from input length (63615); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CHECK/LOOP7.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/GART/CHECK/LOOP7.QFS		Output length (75349) differs from input length (64858); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/ANI.QFS		Output length (96114) differs from input length (61819); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/CENTRAL.QFS		Output length (434727) differs from input length (141319); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/CHAT.QFS		Output length (349168) differs from input length (175663); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/GAMEMOD2.QFS		Output length (293513) differs from input length (252188); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/GAMEMODE.QFS		Output length (304179) differs from input length (241146); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/VET2.QFS		Output length (41540) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CHECK/LOOP7.QFS		Output length (66562) differs from input length (64858); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/ANI.QFS		Output length (63368) differs from input length (61819); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/CENTRAL.QFS		Output length (139597) differs from input length (141319); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/CHAT.QFS		Output length (177791) differs from input length (175663); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/GAMEMOD2.QFS		Output length (256299) differs from input length (252188); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/GAMEMODE.QFS		Output length (245627) differs from input length (241146); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/VET2.QFS		Output length (15515) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CREDITS.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/GART/CREDITS.QFS		Output length (1158486) differs from input length (1021888); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CREDITS.QFS		Output length (1048853) differs from input length (1021888); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/GMOUSE.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/GART/IART/INSTCARD.QFS		Output length (358024) differs from input length (274874); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTINST.QFS		Output length (340885) differs from input length (240973); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTLOAD.QFS		Output length (742245) differs from input length (520433); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTMENU.QFS		Output length (385540) differs from input length (288272); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTPATH.QFS		Output length (597205) differs from input length (369430); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTREAD.QFS		Output length (140266) differs from input length (105619); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTUNIN.QFS		Output length (229545) differs from input length (194596); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTVIDO.QFS		Output length (304112) differs from input length (236006); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTCARD.QFS		Output length (274380) differs from input length (274874); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTINST.QFS		Output length (249880) differs from input length (240973); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTLOAD.QFS		Output length (541573) differs from input length (520433); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTMENU.QFS		Output length (300485) differs from input length (288272); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTPATH.QFS		Output length (381530) differs from input length (369430); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTREAD.QFS		Output length (111132) differs from input length (105619); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTUNIN.QFS		Output length (199504) differs from input length (194596); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTVIDO.QFS		Output length (241995) differs from input length (236006); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/JOYCONF.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/GART/OPTION/AUDIO.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/GART/OPTION/AUDIO.QFS		Output length (463785) differs from input length (320394); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/OPTION/MODEMSET.QFS		Output length (804445) differs from input length (421367); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/OPTION/NETSET.QFS		Output length (557974) differs from input length (359073); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/OPTION/OPTIONS.QFS		Output length (347235) differs from input length (281261); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/FINSTND.QFS		Output length (231781) differs from input length (165488); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/SGMTSTND.QFS		Output length (298839) differs from input length (206197); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/STANDBST.QFS		Output length (299175) differs from input length (201811); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/STANDLO1.QFS		Output length (272423) differs from input length (194763); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/STANDLO2.QFS		Output length (304218) differs from input length (219162); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/TRMTSTND.QFS		Output length (188484) differs from input length (140859); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TICKET.QFS		Output length (234771) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/ALPSEL.QFS		Output length (547079) differs from input length (413349); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/AUTSEL.QFS		Output length (302114) differs from input length (239422); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/BRUNBST.QFS		Output length (238387) differs from input length (203155); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/BRUNSEL.QFS		Output length (261372) differs from input length (208743); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/CITYSEL.QFS		Output length (552948) differs from input length (393185); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/COASTSEL.QFS		Output length (421896) differs from input length (259507); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/LOSTSEL.QFS		Output length (203015) differs from input length (148221); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/RUSTSEL.QFS		Output length (257642) differs from input length (188744); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/TROPBST.QFS		Output length (185561) differs from input length (145058); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/TROPSEL.QFS		Output length (247512) differs from input length (191989); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/VERTSEL.QFS		Output length (261513) differs from input length (181425); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/WINNER.QFS		Output length (234771) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/OPTION/AUDIO.QFS		Output length (326064) differs from input length (320394); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/OPTION/MODEMSET.QFS		Output length (432193) differs from input length (421367); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/OPTION/NETSET.QFS		Output length (346295) differs from input length (359073); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/OPTION/OPTIONS.QFS		Output length (277714) differs from input length (281261); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/FINSTND.QFS		Output length (171148) differs from input length (165488); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/SGMTSTND.QFS		Output length (218794) differs from input length (206197); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/STANDBST.QFS		Output length (214867) differs from input length (201811); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/STANDLO1.QFS		Output length (206840) differs from input length (194763); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/STANDLO2.QFS		Output length (233640) differs from input length (219162); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/TRMTSTND.QFS		Output length (147535) differs from input length (140859); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TICKET.QFS		Output length (147991) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/ALPSEL.QFS		Output length (422340) differs from input length (413349); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/AUTSEL.QFS		Output length (239403) differs from input length (239422); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/BRUNBST.QFS		Output length (202936) differs from input length (203155); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/BRUNSEL.QFS		Output length (215053) differs from input length (208743); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/CITYSEL.QFS		Output length (400826) differs from input length (393185); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/COASTSEL.QFS		Output length (270494) differs from input length (259507); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/LOSTSEL.QFS		Output length (153634) differs from input length (148221); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/RUSTSEL.QFS		Output length (190950) differs from input length (188744); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/TROPBST.QFS		Output length (151158) differs from input length (145058); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/TROPSEL.QFS		Output length (199724) differs from input length (191989); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/VERTSEL.QFS		Output length (187302) differs from input length (181425); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/WINNER.QFS		Output length (147991) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GSPEECH/CON4_B16.EAS		Output length (104914) differs from input length (104916)
 tnfsse/FRONTEND/MUSIC/CREDITS.ASF		Output length (3683886) differs from input length (9134864)
 tnfsse/FRONTEND/MUSIC/PAUSE.ASF		Output length (706600) differs from input length (1415844)
@@ -478,9 +460,12 @@ tnfsse/SIMDATA/MISC/MASKLO.FSB		Output differs from input at offset 0x24
 tnfsse/SIMDATA/MISC/MASKLO.FSH		Output differs from input at offset 0x24
 tnfsse/SIMDATA/MISC/MASKLOG.FSB		Output differs from input at offset 0x24
 tnfsse/SIMDATA/MISC/MASKLOG.FSH		Output differs from input at offset 0x24
-tnfsse/SIMDATA/MISC/SMOKE.QFS		Output length (24946) differs from input length (8087); uncompressed contents of 1 compressed block(s) differ
+tnfsse/SIMDATA/MISC/SMOKE.QFS		Output length (8364) differs from input length (8087); uncompressed contents of 1 compressed block(s) differ
+tnfsse/SIMDATA/SOUNDBNK/COLLSBMT.BNK		Output length (438796) differs from input length (284044)
+tnfsse/SIMDATA/SOUNDBNK/COLLSBWT.BNK		Output length (434092) differs from input length (279340)
+tnfsse/SIMDATA/SOUNDBNK/OSUPMB3D.BNK		Output length (26638) differs from input length (17744)
 
---- Read failures (Test 1): 458 ---
+--- Read failures (Test 1): 113 ---
 nfs2/FEDATA/PC/STATS/MED.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/FEDATA/PC/STATS/MED.SSF/colors] Block read went out of available size
 nfs2/FEDATA/PC/STATS/MONO.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/FEDATA/PC/STATS/MONO.SSF/colors] Block read went out of available size
 nfs2/FEDATA/PC/STATS/MYST.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/FEDATA/PC/STATS/MYST.SSF/colors] Block read went out of available size
@@ -488,63 +473,6 @@ nfs2/FEDATA/PC/STATS/NORT.SSF		EndOfBufferException: [//Users/andy/Development/n
 nfs2/FEDATA/PC/STATS/OVAL.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/FEDATA/PC/STATS/OVAL.SSF/colors] Block read went out of available size
 nfs2/FEDATA/PC/STATS/OZ.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/FEDATA/PC/STATS/OZ.SSF/colors] Block read went out of available size
 nfs2/FEDATA/PC/STATS/PAC.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/FEDATA/PC/STATS/PAC.SSF/colors] Block read went out of available size
-nfs2/GAMEDATA/AUDIO/SFX/PC/CNTENG.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/AUDIO/SFX/PC/CNTENG.BNK/items/0/eacs_header] Expected Always == "EACS", found ! at resource_id
-nfs2/GAMEDATA/AUDIO/SFX/PC/CNTFRN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 1: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/CNTGER.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe3 in position 1: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/CNTITL.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/CNTSPN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xee in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/CRATE.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd6 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/FERF50.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe0 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/FESFX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xaf in position 1: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/FGT90.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x86 in position 2: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/FINDI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/GEN.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/AUDIO/SFX/PC/GEN.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs2/GAMEDATA/AUDIO/SFX/PC/IDCALA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/ISD112I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdf in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/JXJ220.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe0 in position 3: unexpected end of data
-nfs2/GAMEDATA/AUDIO/SFX/PC/LESV8.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xeb in position 1: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/LIMO.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 2: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/LOGT1.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/AUDIO/SFX/PC/LOGT1.BNK/items/0/eacs_header] Expected Always == "EACS", found r( at resource_id
-nfs2/GAMEDATA/AUDIO/SFX/PC/MACF1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa4 in position 2: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OFERF50.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OFGT90.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OFINDI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OIDCALA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OISD112.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x90 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OJXJ220.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OLESV8.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 1: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OLOGT1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbf in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OMACF1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xac in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/OTRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/PUTT.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa9 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SCRATE.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9a in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SFERF50.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/AUDIO/SFX/PC/SFERF50.BNK/items/0/eacs_header] Expected Always == "EACS", found /y( at resource_id
-nfs2/GAMEDATA/AUDIO/SFX/PC/SFGT90.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe3 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SFINDI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd8 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SIDCALA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SISD112.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x8e in position 2: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SJXJ220.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb2 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SLESV8.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbc in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SLIMO.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x81 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SLOGT1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdd in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SMACF1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa6 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SPCHENG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SPCHFRN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xec in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SPCHGER.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfb in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SPCHITL.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SPCHSPN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/SPUTT.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xac in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/STREX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa4 in position 0: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/STRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB00.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 1: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB02.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB02.BNK/items/0/eacs_header] Expected Always == "EACS", found %^ at resource_id
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB03.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdc in position 0: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB05.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 1: invalid start byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB06.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB06.BNK/items/0/eacs_header] Expected Always == "EACS", found 'f%S at resource_id
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB07.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcf in position 1: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRAMB08.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/TREX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 1: invalid continuation byte
-nfs2/GAMEDATA/AUDIO/SFX/PC/TRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 0: invalid start byte
 nfs2/GAMEDATA/SIM/AICARDT/COMPRESS.BAT		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/SIM/AICARDT/COMPRESS.BAT/bitmap] Block read went out of available size
 nfs2/GAMEDATA/SIM/AICARDT/ESPR.DTA		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/SIM/AICARDT/ESPR.DTA/bitmap] Block read went out of available size
 nfs2/GAMEDATA/SIM/AICARDT/FF50.AII		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2/GAMEDATA/SIM/AICARDT/FF50.AII/bitmap] Block read went out of available size
@@ -563,148 +491,6 @@ nfs2se/FEDATA/PC/STATS/NORT.SSF		EndOfBufferException: [//Users/andy/Development
 nfs2se/FEDATA/PC/STATS/OVAL.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/FEDATA/PC/STATS/OVAL.SSF/colors] Block read went out of available size
 nfs2se/FEDATA/PC/STATS/OZ.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/FEDATA/PC/STATS/OZ.SSF/colors] Block read went out of available size
 nfs2se/FEDATA/PC/STATS/PAC.SSF		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/FEDATA/PC/STATS/PAC.SSF/colors] Block read went out of available size
-nfs2se/GAMEDATA/AUDIO/SFX/PC/CNTENG.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/CNTENG.BNK/items/0/eacs_header] Expected Always == "EACS", found ! at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/CNTFRN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/CNTGER.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe3 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/CNTITL.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/CNTSPN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xee in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/CRATE.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd6 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/FERF50.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe0 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/FESFX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xaf in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/FGT90.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x86 in position 2: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/FINDI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/FUTUR.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/FUTUR.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/GEN.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/GEN.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/IDCALA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/ISD112I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdf in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/JXJ220.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe0 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/LESV8.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xeb in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/LIMO.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 2: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/LOGT1.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/LOGT1.BNK/items/0/eacs_header] Expected Always == "EACS", found r( at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/MACF1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa4 in position 2: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/MUSCL.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/MUST.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x8d in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/NAZCA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf2 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OFERF50.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OFGT90.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OFINDI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OFUTUR.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OIDCALA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf8 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OISD112.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x90 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OJXJ220.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OLESV8.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OLOGT1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbf in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OMACF1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xac in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OMUSCL.BNK		UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OMUST.BNK		UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/ONAZCA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdd in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OSTOCK.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/OSTOCK.BNK/items/0/eacs_header] Expected Always == "EACS", found +8%9 at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OTR355.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbe in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/OTRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/PUTT.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa9 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/RAIN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfb in position 2: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SCRATE.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9a in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SFERF50.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/SFERF50.BNK/items/0/eacs_header] Expected Always == "EACS", found /y( at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SFGT90.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe3 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SFINDI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd8 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SFUTUR.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xce in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SIDCALA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SISD112.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x8e in position 2: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SJXJ220.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb2 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SLESV8.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbc in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SLIMO.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x81 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SLOGT1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdd in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SMACF1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa6 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SMUSCL.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd8 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SMUST.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfa in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SNAZCA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf5 in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SPCHENG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SPCHFRN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xec in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SPCHGER.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfb in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SPCHITL.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SPCHSPN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SPUTT.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xac in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/SSTOCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd0 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/STOCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/STR355.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x96 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/STREX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa4 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/STRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TR355.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB00.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB02.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB02.BNK/items/0/eacs_header] Expected Always == "EACS", found %^ at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB03.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdc in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB04.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc3 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB05.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB06.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB06.BNK/items/0/eacs_header] Expected Always == "EACS", found 'f%S at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB07.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcf in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRAMB08.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TREX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/TRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WBONUS.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WBONUSF.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf5 in position 2: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WBONUSG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe0 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WBONUSI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WBONUSS.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFERF50.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe4 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFERF50F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFERF50G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf2 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFERF50I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFERF50S.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFGT90.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe3 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFGT90F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd2 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFGT90G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFGT90I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcf in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFGT90S.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xef in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFINDI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFINDIF.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf2 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFINDIG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFINDII.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd3 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WFINDIS.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 2: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WIDCALA.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/WIDCALA.BNK/items/0/eacs_header] Expected Always == "EACS", found   at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WIDCALAF.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf6 in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WIDCALAG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 2: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WIDCALAI.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/WIDCALAI.BNK/items/0/eacs_header] Expected Always == "EACS", found U3&6 at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WIDCALAS.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf4 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WISD112.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdc in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WISD112F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf6 in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WISD112G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WISD112I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe2 in position 2: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WISD112S.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/WISD112S.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WJXJ220.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd1 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WJXJ220F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa6 in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WJXJ220G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd0 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WJXJ220I.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/WJXJ220I.BNK/items/0/eacs_header] Expected Always == "EACS", found   at resource_id
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WJXJ220S.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbd in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLESV8.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd3 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLESV8F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe4 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLESV8G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xec in position 2: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLESV8I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc1 in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLESV8S.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLOGT1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLOGT1F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe5 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLOGT1G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcf in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLOGT1I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf2 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WLOGT1S.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd4 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMACF1.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd4 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMACF1F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMACF1G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMACF1I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMACF1S.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMUST.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x90 in position 3: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMUSTF.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc2 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMUSTG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfb in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMUSTI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd0 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WMUSTS.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xec in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WNAZCA.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbc in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WNAZCAF.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe3 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WNAZCAG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf2 in position 1: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WNAZCAI.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xef in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WNAZCAS.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 0: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WTR355.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd6 in position 3: unexpected end of data
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WTR355F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xad in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WTR355G.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe2 in position 0: invalid continuation byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WTR355I.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc0 in position 1: invalid start byte
-nfs2se/GAMEDATA/AUDIO/SFX/PC/WTR355S.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/AUDIO/SFX/PC/WTR355S.BNK/items/0/eacs_header] Expected Always == "EACS", found !! at resource_id
 nfs2se/GAMEDATA/SIM/AI/MTRAF.BAT		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/SIM/AI/MTRAF.BAT/bitmap] Block read went out of available size
 nfs2se/GAMEDATA/SIM/AI/PRSONAL.DAT		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/SIM/AI/PRSONAL.DAT/bitmap] Block read went out of available size
 nfs2se/GAMEDATA/TRACKS/SPEEDS/TR00.SPL		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/GAMEDATA/TRACKS/SPEEDS/TR00.SPL/bitmap] Block read went out of available size
@@ -717,153 +503,8 @@ nfs2se/REDIST/DIRECTX/DRIVERS/USA/CWBAUDIO.BIN		EndOfBufferException: [//Users/a
 nfs2se/SETUP/EXTRA/CONFIG.DAT		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs2se/SETUP/EXTRA/CONFIG.DAT] Block read went out of available size
 nfs3/FeData/text/TEXT.CMT		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/FeData/text/TEXT.CMT/colors] Block read went out of available size
 nfs3/FeData/text/TEXT.MET		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/FeData/text/TEXT.MET/colors] Block read went out of available size
-nfs3/GameData/Audio/SFX/CRATE.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd6 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/FESFX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xaf in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/GEN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x88 in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/GEN3D.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/GENCAR.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/GENOCAR.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbe in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/GENSCAR.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x96 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/LIMO.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/OTRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/PUTT.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa9 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/RAIN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe2 in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/SCRATE.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9a in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/SIREN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xce in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/SIREN3D.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/SIREN3D.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs3/GameData/Audio/SFX/SLIMO.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x81 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/SPUTT.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xac in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/STREX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa4 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/STRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D00.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D00N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xef in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D00NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xef in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D00W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdf in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D01.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 3: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D01N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa1 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D01NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa1 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D01W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa1 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D02.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D02N.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TR3D02N.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs3/GameData/Audio/SFX/TR3D02NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x93 in position 3: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D02W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D03.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb3 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D03N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf2 in position 2: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D03NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D03W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D04.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TR3D04.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs3/GameData/Audio/SFX/TR3D04N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D04NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D04W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D05.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D05N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D05NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D05W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D06.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D06N.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TR3D06N.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs3/GameData/Audio/SFX/TR3D06NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D06W.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TR3D06W.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs3/GameData/Audio/SFX/TR3D07.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdf in position 3: unexpected end of data
-nfs3/GameData/Audio/SFX/TR3D07N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D07NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D07W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TR3D08.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9b in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D08N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D08NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte
-nfs3/GameData/Audio/SFX/TR3D08W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9b in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM00.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TRAM00.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs3/GameData/Audio/SFX/TRAM00N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM00NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM00W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xeb in position 3: unexpected end of data
-nfs3/GameData/Audio/SFX/TRAM01.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 3: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM01N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM01NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM01W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM02.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TRAM02.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs3/GameData/Audio/SFX/TRAM02N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x88 in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM02NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM02W.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TRAM02W.BNK/items/0/eacs_header] Expected Always == "EACS", found  at resource_id
-nfs3/GameData/Audio/SFX/TRAM03.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM03N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM03NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe5 in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM03W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe5 in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM04.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/SFX/TRAM04.BNK/items/0/eacs_header] Expected Always == "EACS", found 0 at resource_id
-nfs3/GameData/Audio/SFX/TRAM04N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd0 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM04NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd0 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM04W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd0 in position 0: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM05.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa1 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM05N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa1 in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM05NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM05W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM06.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x8e in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM06N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x86 in position 2: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM06NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x86 in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM06W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x8e in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM07.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 2: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM07N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAM07NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM07W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfe in position 0: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM08.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x87 in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAM08N.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc2 in position 3: unexpected end of data
-nfs3/GameData/Audio/SFX/TRAM08NW.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc2 in position 3: unexpected end of data
-nfs3/GameData/Audio/SFX/TRAM08W.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x87 in position 1: invalid start byte
-nfs3/GameData/Audio/SFX/TRAMB09.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcf in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAMB0A.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAMB0C.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAMB0D.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAMB0E.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRAMB0F.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TREX.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe1 in position 1: invalid continuation byte
-nfs3/GameData/Audio/SFX/TRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 0: invalid start byte
-nfs3/GameData/Audio/speech/English/CNTENG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0: invalid continuation byte
-nfs3/GameData/Audio/speech/English/COPSPCH.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x88 in position 0: invalid start byte
-nfs3/GameData/Audio/speech/English/DISP00.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/DISP00.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs3/GameData/Audio/speech/English/DISP01.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/DISP01.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs3/GameData/Audio/speech/English/DISP02.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/DISP02.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs3/GameData/Audio/speech/English/DISP03.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/DISP03.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs3/GameData/Audio/speech/English/DISP08.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/DISP08.BNK/items/0/eacs_header] Expected Always == "EACS", found PT at resource_id
-nfs3/GameData/Audio/speech/English/LAPENG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF00A.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF00B.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF00C.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF01A.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF01B.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF01C.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF02A.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF02B.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF02C.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF03A.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF03B.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF03C.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF08A.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF08B.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte
-nfs3/GameData/Audio/speech/English/OFF08C.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 2: invalid start byte
-nfs3/GameData/Audio/speech/English/PGBEGT.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/PGBEGT.BNK/items/0/eacs_header] Expected Always == "EACS", found 4,# at resource_id
-nfs3/GameData/Audio/speech/English/PGBEGTSP.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs3/GameData/Audio/speech/English/PGCOP.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 1: invalid continuation byte
-nfs3/GameData/Audio/speech/English/PGCOPSP.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc0 in position 0: invalid start byte
-nfs3/GameData/Audio/speech/English/PGEXPT.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs3/GameData/Audio/speech/English/PGEXPTSP.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf1 in position 0: invalid continuation byte
-nfs3/GameData/Audio/speech/English/PGKNOC.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 2: invalid continuation byte
-nfs3/GameData/Audio/speech/English/PGKNOCSP.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/PGKNOCSP.BNK/items/0/eacs_header] Expected Always == "EACS", found 1- at resource_id
-nfs3/GameData/Audio/speech/English/PGNORM.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xdf in position 0: invalid continuation byte
-nfs3/GameData/Audio/speech/English/PGNORMSP.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xee in position 1: invalid continuation byte
-nfs3/GameData/Audio/speech/English/TDENG00.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 1: invalid continuation byte
-nfs3/GameData/Audio/speech/English/TDENG01.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 0: invalid continuation byte
-nfs3/GameData/Audio/speech/English/TDENG02.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xee in position 0: invalid continuation byte
-nfs3/GameData/Audio/speech/English/TDENG03.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf0 in position 1: invalid continuation byte
-nfs3/GameData/Audio/speech/English/TDENG04.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/TDENG04.BNK/items/0/eacs_header] Expected Always == "EACS", found 1A2# at resource_id
-nfs3/GameData/Audio/speech/English/TDENG05.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/TDENG05.BNK/items/0/eacs_header] Expected Always == "EACS", found M at resource_id
-nfs3/GameData/Audio/speech/English/TDENG06.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfc in position 3: invalid start byte
-nfs3/GameData/Audio/speech/English/TDENG07.BNK		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Audio/speech/English/TDENG07.BNK/items/0/eacs_header] Expected Always == "EACS", found 2R2  at resource_id
-nfs3/GameData/Audio/speech/English/TDENG08.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 2: invalid continuation byte
-nfs3/GameData/Audio/speech/English/TUTORENG.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfd in position 3: invalid start byte
-nfs3/GameData/Audio/speech/English/VOCASST.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 3: invalid start byte
 nfs3/GameData/Tracks/TRK008/TUT08F.BIN		DataIntegrityException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/GameData/Tracks/TRK008/TUT08F.BIN] Expected Always == 0x6, found 0x0 at unk0
 nfs3/eauninst.dat		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs3/eauninst.dat/colors] Block read went out of available size
-nfs4/Data/Audio/SFX/OTRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 0: invalid start byte
-nfs4/Data/Audio/SFX/STRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcc in position 0: invalid continuation byte
-nfs4/Data/Audio/SFX/TRUCK.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 0: invalid start byte
 nfs4/Data/Tracks/GT2/spdFA.bin		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs4/Data/Tracks/GT2/spdFA.bin/bitmap] Block read went out of available size
 nfs4/Data/Tracks/Park/spdfa.bin		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs4/Data/Tracks/Park/spdfa.bin/bitmap] Block read went out of available size
 nfs4/Data/Tracks/Snowy/spdfa.bin		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs4/Data/Tracks/Snowy/spdfa.bin/bitmap] Block read went out of available size
@@ -886,7 +527,6 @@ nfs5/GameData/Track/Data/tr08a.viv		ValueError: Unknown compression algorithm: c
 nfs5/GameData/Track/Data/tr09a.viv		ValueError: Unknown compression algorithm: c0 fb
 nfs5/GameData/Track/Data/tr10a.viv		ValueError: Unknown compression algorithm: c0 fb
 nfs5/GameData/Track/castle.edg		EndOfBufferException: [//Users/andy/Development/nfs-resources-converter/test/resources/../../games/nfs5/GameData/Track/castle.edg/bitmap] Block read went out of available size
-nfs6/audio/sfx/SIREN.BNK		UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9d in position 2: invalid start byte
 nfsmw/FRONTEND/PLATFORMS/CAREER_SAFEHOUSE.BIN		Exception: Unknown chunk: ChunkB3300000
 nfsmw/FRONTEND/PLATFORMS/CAR_LOT.BIN		Exception: Unknown chunk: ChunkB3300000
 nfsmw/FRONTEND/PLATFORMS/CUSTOMIZATION_SHOP.BIN		Exception: Unknown chunk: ChunkB3300000

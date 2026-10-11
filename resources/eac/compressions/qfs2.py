@@ -1,9 +1,15 @@
-from heapq import nsmallest, nlargest
 from io import BufferedReader, SEEK_CUR, BytesIO
-from time import time
 
-from library.utils.douby_linked_list import DoublyLinkedList
+import numpy as np
+
 from resources.eac.compressions.base import BaseCompressionAlgorithm
+
+# QFS2: byte pair encoding. Header 0x46FB (0x47FB: 3 more bytes, the compressed size, follow), uncompressed size (u24
+# BE), escape byte, number of patterns (u8), then 3 bytes per pattern: id, left byte, right byte. The game expands every
+# byte of a pattern recursively with the final tables (TNFS DOS 0xa9c24, SE 0x4a96f4). In data, a pattern id gives
+# its expansion, escape + 0 ends the stream, escape + any other byte gives that byte, any other byte is itself.
+_PATTERN = 0x100
+_ESCAPED = 0x200
 
 
 class Qfs2Compression(BaseCompressionAlgorithm):
@@ -16,11 +22,12 @@ class Qfs2Compression(BaseCompressionAlgorithm):
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int):
         start_offset = buffer.tell()
         uncompressed: bytearray = bytearray()
-        # skip header
-        buffer.seek(1, SEEK_CUR)
-        hdr2 = buffer.read(1)[0]
-        if hdr2 != 0xFB:
+        hdr1, hdr2 = buffer.read(2)
+        if hdr2 != 0xFB or (hdr1 & 0xFE) != 0x46:
             raise ValueError('Invalid QFS2 file header')
+        if hdr1 & 1:
+            # compressed size
+            buffer.seek(3, SEEK_CUR)
         output_length = int.from_bytes(buffer.read(3), byteorder='big')
         value_indicator = buffer.read(1)[0]
         patterns_count = buffer.read(1)[0]
@@ -43,7 +50,7 @@ class Qfs2Compression(BaseCompressionAlgorithm):
                 uncompressed.extend(value)
             else:
                 value = self._read_value(buffer, patterns)
-                if int.from_bytes(value, byteorder='little') == value_indicator:
+                if len(value) == 1 and value[0] == value_indicator:
                     use_value = True
                 else:
                     uncompressed.extend(value)
@@ -53,144 +60,79 @@ class Qfs2Compression(BaseCompressionAlgorithm):
             )
         return bytes(uncompressed)
 
-    def compress(self, buffer: [BufferedReader, BytesIO], input_length: int, hardcoded_patterns=None):
-        # constants; middle ground between speed and compression ratio
-        passes = 8
-        pairs_per_pass = 10
-
-        start_time = time()
-        data_dll = DoublyLinkedList.from_list(buffer.read(input_length))
-        terminate_int = 0x00
-        # TODO test if other escape ints supported on real NFS. Some files have many of them, and after compression they take more space than uncompressed
-        escape_int = 0xFF
-        patterns = {}
-
-        def build_frequency_map():
-            freq_array = [0] * 256
-            freq_array_2 = [0] * (256 * 256)
-            node = data_dll.head
-            while node and node.next:
-                # escape characters and patter ids are already escaped
-                if node.data == escape_int:
-                    if node.next:
-                        node = node.next.next
-                        continue
-                    else:
-                        break
-                freq_array[node.data] += 1
-                if node.next.data != escape_int:
-                    freq_array_2[(node.data << 8) | (node.next.data)] += 1
-                node = node.next
-            return (
-                nsmallest(
-                    256,
-                    (x for x in enumerate(freq_array) if x[0] not in [escape_int, terminate_int]),
-                    key=lambda item: item[1],
-                ),
-                nlargest(256, (x for x in enumerate(freq_array_2) if x[1] > 0), key=lambda item: item[1]),
-            )
-
-        def replace_pattern_in_data(replacements):
-            len_delta = 0
-            node = data_dll.head
-            while node:
-                if node.data == escape_int:
-                    node = node.next.next
-                    continue
-                node_next = node.next
-                for pattern, left, right in replacements:
-                    if node.data == pattern:
-                        data_dll.insert(escape_int, node.prev, node)
-                        len_delta += 1
-                        node = node_next
-                        break
-                    elif node_next is not None and node.data == left and node_next.data == right:
-                        data_dll.insert(pattern, node.prev, node_next.next)
-                        len_delta -= 1
-                        node = node_next.next
-                        break
-                else:
-                    node = node_next
-            return len_delta
-
-        # escape "escape character"
-        escape_chars_count = 0
-        for node in data_dll.nodes():
-            if node.data == escape_int:
-                escape_chars_count += 1
-                data_dll.insert(escape_int, node.prev, node)
-        print(f'Escaping bytes added: {escape_chars_count}')
-
-        # when we create pattern X = YZ, we never allow to use Y or Z as pattern id, since
-        # if we then define Y = AB, original X will produce ABZ
-        forbidden_pattern_ids = set()
-        forbidden_pattern_ids.add(escape_int)
-        forbidden_pattern_ids.add(terminate_int)
-
-        for p in range(passes):
-            if hardcoded_patterns is None:
-                (frequency_map, frequency_map_2) = build_frequency_map()
-                pass_locked_values = set()
-                this_pass_replacements = []
-                for _ in range(pairs_per_pass):
-                    if len(frequency_map_2) == 0:
-                        break
-                    (pattern_id, lfreq) = frequency_map.pop(0)
-                    try:
-                        while (
-                            pattern_id in forbidden_pattern_ids
-                            or pattern_id in pass_locked_values
-                            or pattern_id in patterns
-                        ):
-                            (pattern_id, lfreq) = frequency_map.pop(0)
-                    except IndexError:
-                        # exhausted list of indexes
-                        break
-                    pass_locked_values.add(pattern_id)
-                    (most_frequent_pair, pfreq) = frequency_map_2.pop(0)
-                    if pfreq < (3 + lfreq) * 16:
-                        break
-                    (left, right) = most_frequent_pair >> 8, most_frequent_pair & 0xFF
-                    if left in pass_locked_values or right in pass_locked_values:
-                        continue
-                    pass_locked_values.add(left)
-                    pass_locked_values.add(right)
-                    forbidden_pattern_ids.add(left)
-                    forbidden_pattern_ids.add(right)
-                    this_pass_replacements.append((pattern_id, left, right))
-                if len(this_pass_replacements) == 0:
-                    print(f'Pass {p}: No replace patterns found.')
-                    break
-            else:
-                try:
-                    this_pass_replacements = hardcoded_patterns[p]
-                except IndexError:
-                    this_pass_replacements = []
-            for pid, l, r in this_pass_replacements:
-                patterns[pid] = (l, r)
-            saved_bytes_this_pass = -replace_pattern_in_data(this_pass_replacements)
-            print(f'Pass {p}: {saved_bytes_this_pass} bytes saved. Replaced patterns: {len(this_pass_replacements)}')
-            if hardcoded_patterns is None and saved_bytes_this_pass < input_length // 200:
-                print('Saved less than 0.5% of input length, breaking.')
+    def compress(self, buffer: [BufferedReader, BytesIO], input_length: int) -> bytes:
+        data = np.frombuffer(bytes(buffer.read(input_length)), dtype=np.uint8)
+        if len(data) > 0xFFFFFF:
+            raise ValueError(f'QFS2: {len(data)} bytes do not fit 24-bit uncompressed size')
+        # The escape byte can be any byte but 0, escape followed by 0 ends the stream. The rarest one (EA's files use
+        # one that the data doesn't have) costs least: every its occurrence takes 2 bytes
+        counts = np.bincount(data, minlength=256)
+        escape = 255 - int(np.argmin(counts[:0:-1]))
+        # Tokens: byte value, _PATTERN + id of a pattern, _ESCAPED + byte value of an escaped literal (never in a pair)
+        tokens = data.astype(np.int32)
+        tokens[tokens == escape] |= _ESCAPED
+        # Byte values that can't be ids: 0 (can't be escaped), escape and the components of earlier patterns (the game
+        # expands components with the final tables, an id defined later would change an earlier pattern) and ids
+        not_id = np.zeros(256, dtype=bool)
+        not_id[[0, escape]] = True
+        patterns = []
+        while len(patterns) < 255 and len(tokens) > 1:
+            pair = self._best_pair(tokens, not_id)
+            if pair is None:
                 break
+            left, right, pattern_id, positions = pair
+            tokens[tokens == pattern_id] |= _ESCAPED
+            tokens[positions] = _PATTERN | pattern_id
+            keep = np.ones(len(tokens), dtype=bool)
+            keep[positions + 1] = False
+            tokens = tokens[keep]
+            for component in (left, right):
+                if component < _PATTERN:
+                    not_id[component] = True
+            not_id[pattern_id] = True
+            patterns.append((pattern_id, left & 0xFF, right & 0xFF))
 
-        compressed = bytearray()
-        compressed.append(0b0100_0110)
-        compressed.append(0xFB)
-        compressed.extend(input_length.to_bytes(3, byteorder='big'))
-        compressed.append(escape_int)
+        escaped = tokens >= _ESCAPED
+        stream = np.stack([np.full(len(tokens), escape, dtype=np.uint8), (tokens & 0xFF).astype(np.uint8)], axis=1)
+        stream = stream.ravel()[np.stack([escaped, np.ones(len(tokens), dtype=bool)], axis=1).ravel()]
+        compressed = bytearray(b'\x46\xfb')
+        compressed.extend(len(data).to_bytes(3, byteorder='big'))
+        compressed.append(escape)
         compressed.append(len(patterns))
-        for pattern_id, (left, right) in patterns.items():
-            compressed.append(pattern_id)
-            compressed.append(left)
-            compressed.append(right)
-        for item in data_dll.items():
-            compressed.append(item)
-        compressed.append(escape_int)
-        compressed.append(terminate_int)
-
-        print(
-            f'Compressed {input_length} -> {len(compressed)} ({(100 * (input_length - len(compressed)) / input_length):.2f}%). Time spent: {time() - start_time:.2f} seconds'
-        )
-
+        for pattern in patterns:
+            compressed.extend(pattern)
+        compressed.extend(stream.tobytes())
+        compressed.extend((escape, 0))
         return bytes(compressed)
+
+    @staticmethod
+    def _best_pair(tokens: np.ndarray, not_id: np.ndarray):
+        """The pair of tokens which saves most bytes when replaced by a new pattern, as (left token, right token,
+        pattern id, positions of non-overlapping occurrences), or None if no pair saves anything"""
+        left, right = tokens[:-1], tokens[1:]
+        pairable = (left < _ESCAPED) & (right < _ESCAPED)
+        pair_counts = np.bincount((left[pairable] << 10) | right[pairable], minlength=_ESCAPED << 10)
+        literal_counts = np.bincount(tokens[tokens < _PATTERN], minlength=256)
+        id_candidates = np.flatnonzero(~not_id)
+        id_candidates = id_candidates[np.argsort(literal_counts[id_candidates], kind='stable')][:3]
+        if len(id_candidates) == 0:
+            return None
+        # the pair table entry and the escaped literals of the id cost 3 + their count bytes. Counts of pairs like
+        # (a, a) include overlapping ones, so the exact count of the best candidates is checked
+        top = np.argpartition(pair_counts, -16)[-16:]
+        for key in top[np.argsort(-pair_counts[top])]:
+            if pair_counts[key] <= 3:
+                return None
+            l, r = int(key) >> 10, int(key) & 0x3FF
+            pattern_id = next((int(c) for c in id_candidates if c not in (l, r)), None)
+            if pattern_id is None:
+                continue
+            positions = np.flatnonzero((left == l) & (right == r))
+            if l == r:
+                run_start = np.ones(len(positions), dtype=bool)
+                run_start[1:] = positions[1:] != positions[:-1] + 1
+                indices = np.arange(len(positions))
+                positions = positions[(indices - np.maximum.accumulate(np.where(run_start, indices, 0))) % 2 == 0]
+            if len(positions) - literal_counts[pattern_id] > 3:
+                return l, r, pattern_id, positions
+        return None

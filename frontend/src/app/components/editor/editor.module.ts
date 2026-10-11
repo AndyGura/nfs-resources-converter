@@ -48,7 +48,7 @@ import { GeoGeometryBlockUiComponent } from './eac/geo-geometry.block-ui/geo-geo
 import { FceGeometryBlockUiComponent } from './eac/fce-geometry.block-ui/fce-geometry.block-ui.component';
 import { CrpGeometryBlockUiComponent } from './eac/crp-geometry.block-ui/crp-geometry.block-ui.component';
 import { FontBlockUiComponent } from './eac/font.block-ui/font.block-ui.component';
-import { MatTab, MatTabGroup } from '@angular/material/tabs';
+import { MatTab, MatTabContent, MatTabGroup } from '@angular/material/tabs';
 import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.block-ui.component';
 import { ArchiveItemEditDialogComponent } from './common/archive-item-edit.dialog/archive-item-edit.dialog.component';
 import { ArchiveDelegateItemTypeDialogComponent } from './common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
@@ -56,6 +56,11 @@ import { TargaImageBlockUiComponent } from './common/targa-image.block-ui/targa-
 import { ImageViewerComponent } from './common/image-viewer/image-viewer.component';
 import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.block-ui/nfsu-bin-geometry.block-ui.component';
 import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.block-ui.component';
+import { CurveEditorComponent } from './common/curve-editor/curve-editor.component';
+import { StatTilesComponent } from './common/stat-tiles/stat-tiles.component';
+import { SliderFieldComponent } from './common/slider-field/slider-field.component';
+import { PlayerCarPhysicsBlockUiComponent } from './eac/player-car-physics.block-ui/player-car-physics.block-ui.component';
+import { CarAiAndCrashBodyBlockUiComponent } from './eac/car-ai-and-crash-body.block-ui/car-ai-and-crash-body.block-ui.component';
 
 @NgModule({
   declarations: [
@@ -70,6 +75,9 @@ import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.
     ArchiveItemEditDialogComponent,
     ArchiveDelegateItemTypeDialogComponent,
     ImageViewerComponent,
+    CurveEditorComponent,
+    StatTilesComponent,
+    SliderFieldComponent,
 
     // common data blocks
     NumberBlockUiComponent,
@@ -100,6 +108,8 @@ import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.
     CrpGeometryBlockUiComponent,
     NfsuBinGeometryBlockUiComponent,
     EaglModelBlockUiComponent,
+    PlayerCarPhysicsBlockUiComponent,
+    CarAiAndCrashBodyBlockUiComponent,
   ],
   imports: [
     CommonModule,
@@ -125,6 +135,7 @@ import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.
     HexEditorComponent,
     MatTab,
     MatTabGroup,
+    MatTabContent,
   ],
   exports: [EditorComponent, SidenavResListComponent, BlockActionsComponent],
 })

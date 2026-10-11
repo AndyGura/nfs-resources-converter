@@ -1,0 +1,144 @@
+@if (resourceId && resourceName && !hideName) {
+  <h2 [matTooltip]="resourceDescription || ''" matTooltipPosition="above">{{ resourceName }}</h2>
+}
+@if (!hideBlockActions) {
+  <app-block-actions
+    [resource]="{
+      id: resourceId!,
+      name: resourceName!,
+      data: resourceData,
+      schema: resourceSchema,
+    }"></app-block-actions>
+}
+
+<ng-template #sliderFields let-specs>
+  <div class="sliders">
+    @for (s of specs; track s[0]) {
+      <app-slider-field
+        [label]="s[0]"
+        [description]="descriptions[s[0]]"
+        [value]="resourceData?.[s[0]]"
+        [spec]="s[1]"
+        [disabled]="disabled"
+        (valueChange)="setField(s[0], $event)"></app-slider-field>
+    }
+  </div>
+</ng-template>
+
+<ng-template #fields let-names>
+  <app-compound-block-ui
+    [resourceId]="resourceId"
+    [resourceName]="resourceName"
+    [resourceSchema]="resourceSchema"
+    [resourceData]="resourceData"
+    [hideName]="true"
+    [hideBlockActions]="true"
+    [preferHorizontalLayout]="true"
+    [disabled]="disabled"
+    [fieldWhitelist]="names"></app-compound-block-ui>
+</ng-template>
+
+@if (resourceData && resourceSchema) {
+  <app-stat-tiles [tiles]="tiles" [disabled]="disabled" (tileChange)="onTileChange($event)"></app-stat-tiles>
+
+  <app-curve-editor
+    title="AI acceleration by speed"
+    [hint]="descriptions['power_curve'] + '. Markers: ' + descriptions['top_speeds']"
+    [series]="powerSeries"
+    [markers]="powerMarkers"
+    [xAxis]="speedAxis"
+    [yAxis]="gainAxis"
+    [height]="320"
+    [disabled]="disabled"
+    [describeX]="describeSpeed"
+    (seriesChange)="onPowerChange($event)"
+    (markerChange)="onPowerMarker($event)"></app-curve-editor>
+  @if (isRacer) {
+    <p class="note">Drag the gear markers to change the AI top speed of each gear (<b>top_speeds</b>).</p>
+  }
+
+  <div class="row">
+    <section class="card">
+      <h3 [matTooltip]="descriptions['half_length']" matTooltipPosition="above">Collision body</h3>
+      @if (box.fromModel) {
+        <p class="muted">
+          A half size is 0: the game takes the collision body from the car 3D model, as for every traffic and cop car.
+        </p>
+      } @else {
+        <svg class="box" viewBox="0 0 300 210" role="img" aria-label="Collision box, top and side view">
+          @let k = box.k;
+          <!-- top view -->
+          <text class="view-label" x="0" y="12">Top</text>
+          <rect
+            class="body"
+            [attr.x]="150 - (box.length * k) / 2"
+            y="22"
+            [attr.width]="box.length * k"
+            [attr.height]="box.width * k"
+            rx="6" />
+          <path
+            class="nose"
+            [attr.d]="'M' + (150 + (box.length * k) / 2 - 14) + ',' + (22 + (box.width * k) / 2) + 'l-10,-6v12z'" />
+          <text class="dim" text-anchor="middle" x="150" [attr.y]="22 + box.width * k + 14">
+            {{ fmt(box.length, 2) }} m
+          </text>
+          <text
+            class="dim"
+            text-anchor="start"
+            [attr.x]="150 + (box.length * k) / 2 + 6"
+            [attr.y]="22 + (box.width * k) / 2 + 4">
+            {{ fmt(box.width, 2) }} m
+          </text>
+          <!-- side view -->
+          @let sideTop = 22 + box.width * k + 34;
+          <text class="view-label" x="0" [attr.y]="sideTop - 6">Side</text>
+          <rect
+            class="body"
+            [attr.x]="150 - (box.length * k) / 2"
+            [attr.y]="sideTop"
+            [attr.width]="box.length * k"
+            [attr.height]="box.height * k"
+            rx="4" />
+          <line
+            class="ground"
+            x1="20"
+            x2="280"
+            [attr.y1]="sideTop + box.height * k"
+            [attr.y2]="sideTop + box.height * k" />
+          <text
+            class="dim"
+            text-anchor="start"
+            [attr.x]="150 + (box.length * k) / 2 + 6"
+            [attr.y]="sideTop + (box.height * k) / 2 + 4">
+            {{ fmt(box.height, 2) }} m
+          </text>
+        </svg>
+      }
+      <ng-container *ngTemplateOutlet="sliderFields; context: { $implicit: sliders.body }"></ng-container>
+      <ng-container *ngTemplateOutlet="fields; context: { $implicit: groups.body }"></ng-container>
+    </section>
+
+    <section class="card">
+      <app-curve-editor
+        title="Corner slowdown"
+        [hint]="descriptions['handling_factor']"
+        [series]="cornerSeries"
+        [markers]="cornerMarkers"
+        [xAxis]="turnAxis"
+        [yAxis]="factorAxis"
+        [height]="220"
+        [disabled]="disabled"
+        [describeX]="describeTurn"
+        (markerChange)="onCornerMarker($event)"></app-curve-editor>
+      <mat-checkbox
+        [checked]="handlingDeg !== null"
+        [disabled]="!!disabled"
+        matTooltip="Racers slow down in corners; 0xFF0000 (traffic, cops, TSUPRA) turns it off"
+        (change)="toggleCornerSlowdown($event.checked)">
+        Slow down in corners
+      </mat-checkbox>
+      <ng-container *ngTemplateOutlet="sliderFields; context: { $implicit: sliders.ai }"></ng-container>
+      <ng-container *ngTemplateOutlet="fields; context: { $implicit: groups.ai }"></ng-container>
+    </section>
+  </div>
+}

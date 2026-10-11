@@ -26,18 +26,41 @@ class ConversionAPI:
     def get_general_config(self) -> Dict[str, Any]:
         return config.general_config().to_dict()
 
-    def get_conversion_config(self) -> Dict[str, Any]:
-        return config.conversion_config().to_dict()
+    def get_conversion_config(self, preset: str = None) -> Dict[str, Any]:
+        return config.conversion_config(preset=preset or None).to_dict()
 
     def patch_general_config(self, config_obj: Dict) -> Dict[str, Any]:
         for key, value in config_obj.items():
             config.set_config(config.SECTION_GENERAL, key, value)
         return config.general_config().to_dict()
 
-    def patch_conversion_config(self, config_obj: Dict) -> Dict[str, Any]:
-        for key, value in config_obj.items():
-            config.set_config(config.SECTION_CONVERSION, key, value)
-        return config.conversion_config().to_dict()
+    def patch_conversion_config(self, config_obj: Dict, preset: str = None) -> Dict[str, Any]:
+        config.patch_conversion_preset_settings(config_obj, preset or None)
+        return config.conversion_config(preset=preset or None).to_dict()
+
+    def _conversion_presets_state(self) -> Dict[str, Any]:
+        return {
+            'presets': config.list_conversion_presets(),
+            'selected': config.get_selected_conversion_preset(),
+        }
+
+    def get_conversion_presets(self) -> Dict[str, Any]:
+        """User-defined conversion presets and the one selected in the converter (None = no preset)."""
+        return self._conversion_presets_state()
+
+    def select_conversion_preset(self, preset: str = None) -> Dict[str, Any]:
+        config.set_selected_conversion_preset(preset or None)
+        return self._conversion_presets_state()
+
+    def create_conversion_preset(self, name: str, copy_from: str = None) -> Dict[str, Any]:
+        """Create a preset with the settings of copy_from (None = no preset) and select it."""
+        config.create_conversion_preset(name, copy_from or None)
+        config.set_selected_conversion_preset(name)
+        return self._conversion_presets_state()
+
+    def delete_conversion_preset(self, name: str) -> Dict[str, Any]:
+        config.delete_conversion_preset(name)
+        return self._conversion_presets_state()
 
     def test_executable(self, executable_path: str) -> Dict[str, Any]:
         """

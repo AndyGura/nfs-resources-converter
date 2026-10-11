@@ -9,6 +9,14 @@
     <comment>FSH Image Archive File</comment>
     <glob pattern="*.fsh"/>
   </mime-type>
+  <mime-type type="application/x-pbs">
+    <comment>PBS Player Car Physics File</comment>
+    <glob pattern="*.pbs"/>
+  </mime-type>
+  <mime-type type="application/x-pdn">
+    <comment>PDN Car AI and Crash Body File</comment>
+    <glob pattern="*.pdn"/>
+  </mime-type>
   <mime-type type="application/x-qfs">
     <comment>QFS Compressed Image Archive File</comment>
     <glob pattern="*.qfs"/>

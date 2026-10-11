@@ -4,7 +4,7 @@ from typing import Dict
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import AutoDetectBlock, BytesBlock
-from resources.eac.car_specs import CarSimplifiedPerformanceSpec, CarPerformanceSpec
+from resources.eac.car_specs import CarAiAndCrashBody, PlayerCarPhysics
 from .shpi_block import ShpiBlock
 
 
@@ -22,8 +22,8 @@ class EacCompressedBlock(AutoDetectBlock):
         super().__init__(
             possible_blocks=[
                 ShpiBlock(),
-                CarSimplifiedPerformanceSpec(),
-                CarPerformanceSpec(),
+                CarAiAndCrashBody(),
+                PlayerCarPhysics(),
                 CrpGeometry(),
                 BytesBlock(length=(lambda ctx: ctx.read_bytes_amount)),
             ],
@@ -52,32 +52,31 @@ class EacCompressedBlock(AutoDetectBlock):
             ],
         }
 
-    def _detect_compression(self, buffer) -> 'BaseCompressionAlgorithm':
-        header_bytes = buffer.read(2)
-        buffer.seek(-2, SEEK_CUR)
-        if header_bytes[1] == 0xFB and (header_bytes[0] & 0b1111_1110) == 0x10:
+    @staticmethod
+    def _compression_for_header(flags: int, magic: int = 0xFB) -> 'BaseCompressionAlgorithm':
+        if magic == 0xFB and (flags & 0b1111_1110) == 0x10:
             from resources.eac.compressions.ref_pack import RefPackCompression
 
             return RefPackCompression()
-        elif header_bytes[1] == 0xFB and header_bytes[0] == 0b0100_0110:
+        elif magic == 0xFB and (flags & 0b1111_1110) == 0x46:
             from resources.eac.compressions.qfs2 import Qfs2Compression
 
             return Qfs2Compression()
-        elif header_bytes[1] == 0xFB and header_bytes[0] in [
-            0b0011_0000,
-            0b0011_0010,
-            0b0011_0100,
-            0b0011_0001,
-            0b0011_0011,
-            0b0011_0101,
-        ]:
+        elif magic == 0xFB and (flags & 0b1111_1110) in [0x30, 0x32, 0x34]:
             from resources.eac.compressions.qfs3 import Qfs3Compression
 
             return Qfs3Compression()
         else:
-            raise ValueError(f'Unknown compression algorithm: {header_bytes[0]:02x} {header_bytes[1]:02x}')
+            raise ValueError(f'Unknown compression algorithm: {flags:02x} {magic:02x}')
+
+    def _detect_compression(self, buffer) -> 'BaseCompressionAlgorithm':
+        header_bytes = buffer.read(2)
+        buffer.seek(-2, SEEK_CUR)
+        return self._compression_for_header(header_bytes[0], header_bytes[1])
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
+        flags = ctx.buffer.read(1)[0]
+        ctx.buffer.seek(-1, SEEK_CUR)
         compression = self._detect_compression(ctx.buffer)
         start = ctx.buffer.tell()
         uncompressed_bytes = compression.uncompress(ctx.buffer, read_bytes_amount)
@@ -87,17 +86,26 @@ class EacCompressedBlock(AutoDetectBlock):
         self_ctx.buffer = uncompressed
         self_ctx.read_bytes_amount = len(uncompressed_bytes)
         res = CompressedData(super().read(ctx=self_ctx, name='uncompressed', read_bytes_amount=len(uncompressed_bytes)))
+        # written back with the same algorithm: not every game is known to read every algorithm
+        res['compression_flags'] = flags
         ctx.buffer.seek(start)
         res.compressed = ctx.buffer.read(read_bytes_amount if read_bytes_amount is not None else end - start)
         res.digest = hashlib.sha1(uncompressed_bytes).digest()
         ctx.buffer.seek(end)
         return res
 
-    def compress(self, uncompressed_bytes: bytes) -> bytes:
-        # NFS does not care which algorithm is used anyway
-        from resources.eac.compressions.qfs2 import Qfs2Compression
+    def compress(self, uncompressed_bytes: bytes, data) -> bytes:
+        # new data: QFS2, which TNFS reads
+        flags = data.get('compression_flags', 0x46)
+        compression = self._compression_for_header(flags)
+        from resources.eac.compressions.qfs3 import Qfs3Compression
 
-        return Qfs2Compression().compress(BytesIO(uncompressed_bytes), len(uncompressed_bytes))
+        if isinstance(compression, Qfs3Compression):
+            # same delta coding as the original
+            return compression.compress(
+                BytesIO(uncompressed_bytes), len(uncompressed_bytes), delta_passes=((flags >> 1) & 3,)
+            )
+        return compression.compress(BytesIO(uncompressed_bytes), len(uncompressed_bytes))
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         uncompressed_bytes = super().write(data, ctx, name)
@@ -105,10 +113,11 @@ class EacCompressedBlock(AutoDetectBlock):
         if digest == getattr(data, 'digest', None):
             return data.compressed
         # size estimation packs the data too: don't compress the same bytes twice in a row
-        last_digest, last_compressed = getattr(self, '_last_compressed', (None, None))
-        if digest != last_digest:
-            last_compressed = self.compress(uncompressed_bytes)
-            self._last_compressed = (digest, last_compressed)
+        key = (digest, data.get('compression_flags'))
+        last_key, last_compressed = getattr(self, '_last_compressed', (None, None))
+        if key != last_key:
+            last_compressed = self.compress(uncompressed_bytes, data)
+            self._last_compressed = (key, last_compressed)
         return last_compressed
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):

@@ -18,7 +18,7 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
 
 | Path | Contents |
 |---|---|
-| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py`, `configs.py`, `replays.py` (TNFS SE `.RPL` race replay), `misc.py`, `compressions/` (RefPack, QFS2, QFS3, JDLZ, HUFF decompressors; porting new ones from disassembly → skill `asm-runner-porting`). |
+| `resources/eac/` | EA Canada formats shared across many NFS titles: `bitmaps.py` (EacImage/EacPalette), `archives/` (SHPI/WWWW/BIGF/SoundBank (TNFS)/EaSoundBank (NFS2-NFS6 `BNKl`)/compressed), `fonts.py`, `audios.py`, `videos.py`, `geometries/`, `maps/`, `car_specs.py` (TNFS PC PBS/PDN, TNFS 3DO `.BigSpecsFam`), `configs.py`, `replays.py` (TNFS SE `.RPL` race replay), `misc.py`, `compressions/` (RefPack, QFS2, QFS3, JDLZ, HUFF decompressors and compressors; porting new ones from disassembly → skill `asm-runner-porting`). |
 | `resources/eac/maps/{tnfs,nfs2,nfs3,nfs6,nfs_common}.py`, `resources/eac/geometries/{tnfs,nfs2,nfs3,nfs4,nfs5,nfs6}.py` | Per-game specializations of a shared concept. |
 | `resources/common/bitmaps/targa_image.py` | Vendor-neutral TGA, used as an `AutoDetectBlock` fallback. |
 | `resources/blackbox/` | Blackbox-studio (NFS Underground) chunk bundles: every file is a tree of u32 id + u32 length chunks (bit 0x80000000 = container), payloads padded with 0x11 bytes to 16-byte (vertices, textures: 128-byte) absolute file offsets. `chunks.py` has `chunk_delegate`/`nfsu_sub_chunks_field` to dispatch sub-chunks by id (unknown ids fall back to raw bytes; chunks are lazy parts seeded with their `chunk_id`/`header` id, so code picking chunks by id parses only the matches); `maps/nfsu.py` `walk_nfsu_chunk_ids` is what the loader uses to recognise a bundle. Geometry packs (`geometries/nfsu.py`), texture packs (`bitmaps/nfsu.py`), scenery and streaming sections (`maps/nfsu.py`). NFSU2 reuses the chunk ids with other layouts: the geometry blocks branch on the mesh header version (0x13 NFSU, 0x16 NFSU2) and chunk lengths; when one id has two layouts (scenery 0x80034100, section table 0x34107), `chunk_delegate` asks each candidate block's `matches_chunk(ctx)` (peek helpers in `chunks.py`). NFSU2 section table is chunk 0x34110 of `TRACKS/LxRA.BUN`; NFSU2 and NFSMW car `TEXTURES.BIN` packs compress every texture separately (0x33310003 entries, JDLZ or HUFF, texture info + format in the last 156 bytes). NFS Most Wanted (`Nfsmw*` blocks) keeps the ids again: mesh header with null-terminated name (also version 0x16, told from NFSU2 by its fixed 28-byte name at offset 164), 48-byte mesh info, 104-byte materials with an effect id, one vertex buffer chunk per run of materials with the same effect (`nfsmw_vertex_buffer_materials`; vertex size 36/44/60 by effect), material names (0x134C02), scenery with 24-byte-named definitions and 64-byte instances, 92-byte section table entries. `determine_chunks_class` (geometry packs) also asks `matches_chunk`; the vertex/faces/materials chunks match when the container's first chunk is an NFSMW mesh info. NFSMW car meshes reference run time texture slots (`HEADLIGHT_LEFT`, `WINDOW_LEFT_FRONT`, ...): `nfsmw_car_runtime_texture` in `serializers/geometries.py` maps them to the car's textures; the body paint `<CAR>_SKIN1` stays untextured. Texture and mesh ids are `bin_hash` of the name. |
@@ -74,12 +74,16 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
   ShpiBlock walkthrough below.
 
 **Value validators** (`library.read_blocks.misc.value_validators`): `Eq(value)`,
-`Or([values])` — pass as `value_validator=` to any leaf block to assert/document a fixed or
-enumerated value (e.g. a magic-number field).
+`Or([values])`, `Lt(value)`, `Lte(value)`, `Gt(value)`, `Gte(value)`, `And(*validators)` — pass as
+`value_validator=` to any leaf block to assert/document a fixed or enumerated value (e.g. a magic-number field) or a
+range (`Lte(60)` for a count of a 60-item array; an unsigned int needs no `Gte(0)`). Reading a value that fails the
+validator raises `DataIntegrityException`. The GUI shows `Eq` fields read-only and hides them with the hidden fields,
+`Or` as a select, and limits number inputs to the comparison bounds (`frontend/.../editor/value-validators.ts`).
 
 **Domain helpers** (`resources.eac.fields`): `Point2D(child, normalized=False)`,
 `Point3D(child, normalized=False)`, `Quaternion(child)` (x, y, z, w; NFS2/NFS3 animation keyframes use 2.14 fixed
-point), `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle → radians float), `Nfs1TimeField()` (ticks →
+point), `RGBBlock()`, `Nfs1Angle8()`/`Nfs1Angle14()` (8/14-bit angle → radians float), `IntegerAngleBlock(full_turn, length=...)` (angle
+kept as the stored integer, `full_turn` units per 360°; the GUI shows it in degrees / radians), `Nfs1TimeField()` (ticks →
 seconds float). `normalized=True` rescales the vector to unit length on write, which breaks a byte-exact round trip
 of stored vectors that are slightly off unit length or zero; leave it off for data read from game files.
 
@@ -127,6 +131,17 @@ class SomeThing(DeclarativeCompoundBlock):
 - Length/condition lambdas can reach any already-parsed sibling/ancestor via `ctx.data('path')` /
   `ctx.data('../parent_field')` — see `read-block-framework`'s context section; keep them
   documentation-safe (pure arithmetic/comparisons).
+
+### Another platform's variant of an existing layout
+
+When a console version stores the same structure in another byte order, with a few fields missing or reused
+(TNFS 3DO `.BigSpecsFam` vs PC `.PBS`), subclass the existing block and build its `Fields` class from the
+existing one with `type('Fields', (DeclarativeCompoundBlock.Fields,), {...})` (field order = dict order): deep
+copies of the blocks with `byte_order` switched, the missing fields left out, renamed / retyped ones replaced, and
+the platform's own descriptions (see `_tnfs_3do_car_physics_fields` in `resources/eac/car_specs.py`). The subclass
+keeps the parent in `block_class_mro`, so the parent's bespoke GUI component renders it; let the component branch on
+`block_class_mro` for the differences. Give the variant its own `EXPORT_RESOURCES` game entry when the platform has
+its own doc.
 
 ### Post-processing raw bytes into a nicer shape
 
@@ -425,6 +440,35 @@ ops (each with its own `id` from `joinId`) and emit them together as
 `TrailingOptionalBlock` field from absent to present outside its own checkbox component, fetch
 `child.new_data()` via `mainService.getTrailingOptionalFieldData(fieldId)` rather than fabricating
 a value.
+
+### Shared widgets for bespoke viewers: editable curves and key figures
+
+`frontend/.../editor/common/` holds widgets any bespoke viewer can reuse (declared in `editor.module.ts`):
+
+- `app-curve-editor` (`curve-editor/`): an SVG chart of `CurveSeries` (line, step, bars or points; left or
+  right y axis; `activeCount` dims the unused tail of a fixed-length table and keeps it out of the axis range
+  and the edits) with draggable `CurveMarker`s (vertical or horizontal lines for a scalar field). Series with
+  `editable` `'y'`, `'x'` or `'xy'` are edited by dragging any of their points (falloff on neighbours, freehand
+  draw and smooth brushes for dense tables), arrow-key nudges or the selected point's inputs; `constrain` moves
+  a dragged point along a derived line. It never touches block data: it emits `seriesChange` /
+  `markerChange` once per finished gesture (plus `seriesPreview` / `markerPreview` while dragging), and the host
+  turns that into one `'set'` change (or a `'bundle'`), i.e. one undo step. Pure geometry / brush code is in
+  `curve-editor.utils.ts`.
+- `app-stat-tiles` (`stat-tiles/`): a row of key figures (`StatTile`: label, value, sub line, hint). A tile with
+  `id` + `edit` shows an inline number input and emits `tileChange`; the host maps it onto fields (e.g. a peak
+  torque that scales the torque table).
+- `app-slider-field` (`slider-field/`): a number with a slider over its usual range (`SliderSpec`: min, max, step,
+  display `scale` and unit), for bounded factors and fractions; emits `valueChange` on release or a typed value.
+- Angle fields (`Nfs1Angle8`, `Nfs1Angle14`, `IntegerAngleBlock`) render through `AngleBlockUiComponent`
+  (`editor/eac/angle.block-ui/`): a dial plus a number in degrees or radians, the unit shared by all angle fields
+  and kept in `localStorage`.
+
+`PlayerCarPhysicsBlockUiComponent` (PBS) and `CarAiAndCrashBodyBlockUiComponent` (PDN) in
+`editor/eac/` are the reference users: each chart's series are derived from the block data in a `refresh()`
+that runs on every change under the resource (`CarSpecEditorBase` in `car-specs.ts` listens to
+`ChangesService.change$`, since an embedded array editor would otherwise take the change notification), the
+remaining scalar fields are grouped through `<app-compound-block-ui [fieldWhitelist]>`, and an "All fields" tab
+keeps the generic editor.
 
 ## Roadmap awareness
 

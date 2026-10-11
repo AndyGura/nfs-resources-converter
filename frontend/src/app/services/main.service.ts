@@ -69,6 +69,7 @@ export class MainService {
   public async saveResource() {
     this.isSaving$.next(true);
     try {
+      await this.changes.settled();
       await this.api.saveFile();
       await this.changes.syncState();
     } finally {

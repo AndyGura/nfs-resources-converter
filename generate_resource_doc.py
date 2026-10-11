@@ -99,9 +99,9 @@ EXPORT_RESOURCES = {
 
 **\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
-**\\*.PBS** car physics. {render_type(eac.car_specs.CarPerformanceSpec())}, [compressed](eac_compressions.md)
+**\\*.PBS** player car physics. {render_type(eac.car_specs.PlayerCarPhysics())}, [compressed](eac_compressions.md)
 
-**\\*.PDN** car characteristic for unknown purpose. {render_type(eac.car_specs.CarSimplifiedPerformanceSpec())}, [compressed](eac_compressions.md)
+**\\*.PDN** car AI and crash body. {render_type(eac.car_specs.CarAiAndCrashBody())}, [compressed](eac_compressions.md)
 
 **\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
@@ -136,8 +136,8 @@ EXPORT_RESOURCES = {
                 eac.maps.TwoSidedBitmapPropDescrData(),
             ],
             'Physics': [
-                eac.car_specs.CarPerformanceSpec(),
-                eac.car_specs.CarSimplifiedPerformanceSpec(),
+                eac.car_specs.PlayerCarPhysics(),
+                eac.car_specs.CarAiAndCrashBody(),
             ],
             'Images': [
                 eac.bitmaps.EacImage(),
@@ -175,10 +175,22 @@ EXPORT_RESOURCES = {
             ],
         },
     },
+    'tnfs_3do': {
+        'file_name': 'TNFS_3DO.md',
+        'title': 'TNFS (3DO) file specs',
+        'file_list': f"""**DriveData/CarData/\\*.BigSpecsFam** player car physics. {render_type(eac.car_specs.Tnfs3doCarPhysics())}""",
+        'blocks': {
+            'Physics': [
+                eac.car_specs.Tnfs3doCarPhysics(),
+            ],
+        },
+    },
     'nfs2': {
         'file_name': 'NFS2.md',
         'title': 'NFS2 file specs',
-        'file_list': f"""**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
+        'file_list': f"""**\\*.BNK** sound bank. {render_type(eac.archives.EaSoundBank())}
+
+**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
         
 **\\*.GEO** car 3D model. {render_type(eac.geometries.GeoGeometry())}
         
@@ -200,6 +212,7 @@ EXPORT_RESOURCES = {
                 eac.archives.ShpiBlock(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
+                eac.archives.EaSoundBank(),
             ],
             'Geometries': [
                 eac.geometries.GeoGeometry(),
@@ -240,8 +253,10 @@ EXPORT_RESOURCES = {
                 eac.fonts.GlyphDefinition(),
                 eac.fonts.KerningItem(),
             ],
-            # 'Audio': [
-            # ],
+            'Audio': [
+                eac.audios.EaSoundPatch(),
+                eac.audios.EaSoundPatchTag(),
+            ],
             # 'Misc': [
             # ]
         },
@@ -249,7 +264,9 @@ EXPORT_RESOURCES = {
     'nfs2se': {
         'file_name': 'NFS2_SE.md',
         'title': 'NFS2SE file specs',
-        'file_list': f"""**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
+        'file_list': f"""**\\*.BNK** sound bank. {render_type(eac.archives.EaSoundBank())}
+
+**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
         
 **\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
@@ -267,6 +284,7 @@ EXPORT_RESOURCES = {
                 eac.archives.ShpiBlock(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
+                eac.archives.EaSoundBank(),
             ],
             'Geometries': [
                 eac.geometries.GeoGeometry(),
@@ -307,8 +325,10 @@ EXPORT_RESOURCES = {
                 eac.fonts.GlyphDefinition(),
                 eac.fonts.KerningItem(),
             ],
-            # 'Audio': [
-            # ],
+            'Audio': [
+                eac.audios.EaSoundPatch(),
+                eac.audios.EaSoundPatchTag(),
+            ],
             # 'Misc': [
             # ]
         },
@@ -316,7 +336,9 @@ EXPORT_RESOURCES = {
     'nfs3': {
         'file_name': 'NFS3.md',
         'title': 'NFS 3 Hot Pursuit file specs',
-        'file_list': f"""**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
+        'file_list': f"""**\\*.BNK** sound bank. {render_type(eac.archives.EaSoundBank())}
+
+**\\*.COL** track additional data. {render_type(eac.maps.MapColFile())}
         
 **\\*.FCE** 3D model (car.fce in car.viv: car model). {render_type(eac.geometries.Fce3Geometry())}
 
@@ -334,6 +356,7 @@ EXPORT_RESOURCES = {
                 eac.archives.ShpiBlock(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
+                eac.archives.EaSoundBank(),
             ],
             'Geometries': [
                 eac.geometries.Fce3Geometry(),
@@ -390,8 +413,10 @@ EXPORT_RESOURCES = {
                 eac.fonts.GlyphDefinition(),
                 eac.fonts.KerningItem(),
             ],
-            # 'Audio': [
-            # ],
+            'Audio': [
+                eac.audios.EaSoundPatch(),
+                eac.audios.EaSoundPatchTag(),
+            ],
             # 'Misc': [
             # ]
         },
@@ -399,7 +424,9 @@ EXPORT_RESOURCES = {
     'nfs4': {
         'file_name': 'NFS4.md',
         'title': 'NFS 4 High Stakes file specs',
-        'file_list': f"""**\\*.FCE** 3D model (car.fce in car.viv: car model). {render_type(eac.geometries.Fce4Geometry())}
+        'file_list': f"""**\\*.BNK** sound bank. {render_type(eac.archives.EaSoundBank())}
+
+**\\*.FCE** 3D model (car.fce in car.viv: car model). {render_type(eac.geometries.Fce4Geometry())}
 
 **\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
@@ -415,6 +442,7 @@ EXPORT_RESOURCES = {
                 eac.archives.ShpiBlock(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
+                eac.archives.EaSoundBank(),
             ],
             'Geometries': [
                 eac.geometries.Fce4Geometry(),
@@ -451,8 +479,10 @@ EXPORT_RESOURCES = {
                 eac.fonts.GlyphDefinition(),
                 eac.fonts.KerningItem(),
             ],
-            # 'Audio': [
-            # ],
+            'Audio': [
+                eac.audios.EaSoundPatch(),
+                eac.audios.EaSoundPatchTag(),
+            ],
             # 'Misc': [
             # ]
         },
@@ -460,7 +490,9 @@ EXPORT_RESOURCES = {
     'nfs5': {
         'file_name': 'NFS5.md',
         'title': 'NFS 5 Porsche Unleashed file specs',
-        'file_list': f"""**\\*.crp** geometry file. {render_type(eac.geometries.CrpGeometry())}, [compressed](eac_compressions.md)
+        'file_list': f"""**\\*.BNK** sound bank. {render_type(eac.archives.EaSoundBank())}
+
+**\\*.crp** geometry file. {render_type(eac.geometries.CrpGeometry())}, [compressed](eac_compressions.md)
         
 **\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
@@ -474,6 +506,7 @@ EXPORT_RESOURCES = {
                 eac.archives.ShpiBlock(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
+                eac.archives.EaSoundBank(),
             ],
             'Geometries': [
                 eac.geometries.nfs5.CrpGeometry(),
@@ -520,8 +553,10 @@ EXPORT_RESOURCES = {
                 eac.fonts.GlyphDefinition(),
                 eac.fonts.KerningItem(),
             ],
-            # 'Audio': [
-            # ],
+            'Audio': [
+                eac.audios.EaSoundPatch(),
+                eac.audios.EaSoundPatchTag(),
+            ],
             # 'Misc': [
             # ]
         },
@@ -537,6 +572,8 @@ EXPORT_RESOURCES = {
 
 **levelNN\\aipaths.dat** race route. {render_type(eac.maps.Nfs6AiPaths())}
 
+**\\*.BNK** sound bank. {render_type(eac.archives.EaSoundBank())}
+
 **\\*.FFN** bitmap font. {render_type(eac.fonts.FfnFont())}
 
 **\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
@@ -547,6 +584,7 @@ EXPORT_RESOURCES = {
                 eac.archives.ShpiBlock(),
                 eac.archives.BigfBlock(),
                 eac.archives.BigfItemDescriptionBlock(),
+                eac.archives.EaSoundBank(),
             ],
             'Geometries': [
                 eac.geometries.EaglModel(),
@@ -571,8 +609,10 @@ EXPORT_RESOURCES = {
                 eac.fonts.GlyphDefinition(),
                 eac.fonts.KerningItem(),
             ],
-            # 'Audio': [
-            # ],
+            'Audio': [
+                eac.audios.EaSoundPatch(),
+                eac.audios.EaSoundPatchTag(),
+            ],
             # 'Misc': [
             # ]
         },

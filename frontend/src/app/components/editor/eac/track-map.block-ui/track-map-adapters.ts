@@ -186,7 +186,7 @@ export const TNFS_TRACK_ADAPTER: TrackMapAdapter = {
     'position',
     'unknowns0',
     'chunks_size',
-    'rail_tex_id',
+    'fence_texture_id',
     'num_prop_descr',
     'num_props',
     'unk2',

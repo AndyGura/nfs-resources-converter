@@ -183,6 +183,18 @@ shows up there before it shows up in the picture.
   (`pkill -f "ng serve"` inside a command that also contains "ng serve" kills that command itself):
   use `pgrep`, then `kill` by PID.
 
+### Checking edited TNFS car files in the physics engine (tnfs-1995)
+
+To see what a PBS / PDN edit does to the car, drive the saved file in `../tnfs-1995` headlessly: compile its `*.c`
+except `tnfs_sdl_main.c` as one unit (`#include` them, with `tnfs_sfx_play` renamed as in nfs-web's
+`tnfs-physics.c`) plus a `main` that calls `tnfs_init_sim(tri, pbs)`, sets `g_total_cars_in_scene = 1` (traffic
+otherwise hits the player), and loops `tnfs_update()` setting `g_control_throttle` / `g_control_brake` /
+`g_control_steer` / `g_control_gear` (shifting works from `iSimTimeClock` 300). The port reads **uncompressed**
+files: decode the saved file with the games' ASM decoders (`Qfs3ASMCompression` etc. in
+`test/resources/eac/archives/test_compressed_block.py`) rather than the converter's Python decoder. AI cars read
+`carspecs.pdn` from the working directory. A straight open TRI is easy to generate from `read_tri_file`'s layout
+(header byte 0x11, nodes at 0x98C × 36 bytes, speed table at 0x15B0C, prop counts at 0x16214).
+
 ### Known friction with this setup
 
 - `computer` screenshot capture can hang (CDP `Page.captureScreenshot` times out) on a tab that

@@ -45,7 +45,7 @@ docs and a working GUI editor for free.
 | `library/loader.py` | File-type auto-detection (`probe_block_class`) by extension/magic bytes; top-level `require_file`/`require_resource` with an in-process file cache. |
 | `library/changes_service.py` | Tracks unsaved GUI edits against the loaded data tree. |
 | `library/utils/asm_runner.py` | 32-bit x86 snippet interpreter (IDA syntax) used to execute and progressively port disassembled game routines; production code never uses it, the ASM-driven decompressor twins in `test/resources/eac/archives/test_compressed_block.py` do. |
-| `resources/eac/` | EA Canada format definitions built from `read_blocks` primitives (bitmaps, archives, fonts, audio, geometries, maps, car specs, TNFS replays). Shared across many NFS titles. `compressions/` holds the pure-Python decompressors (RefPack, QFS2, QFS3, NFSU's JDLZ, NFSU2's HUFF = QFS3 behind a 16-byte header) behind `EacCompressedBlock`. |
+| `resources/eac/` | EA Canada format definitions built from `read_blocks` primitives (bitmaps, archives, fonts, audio, geometries, maps, car specs, TNFS replays). Shared across many NFS titles. `compressions/` holds the pure-Python decompressors and compressors (RefPack, QFS2, QFS3, NFSU's JDLZ, NFSU2's HUFF = QFS3 behind a 16-byte header) behind `EacCompressedBlock`, which writes a resource back with the algorithm it was read with (`compression_flags` in its data, new data gets QFS2). Formats, game addresses and compressor notes: `resources/eac_compressions.md`. Compressor output is checked with the games' ASM decoders in `test_compressed_block.py`. |
 | `resources/eac/maps/`, `resources/eac/geometries/` | Per-game specializations (`tnfs.py`, `nfs2.py`, `nfs3.py`, `nfs5.py`, ...). |
 | `resources/common/` | Vendor-neutral formats reused as fallbacks (e.g. Targa image). |
 | `resources/blackbox/` | Blackbox-studio (later NFS titles) formats, NFS Underground 1, 2 and Most Wanted: `chunks.py` (generic id+length chunk dispatch helpers), `geometries/` (car and world geometry packs), `bitmaps/` (texture packs, TPK), `maps/` (chunk bundles, scenery, streaming sections; `NfsuTrackBundle` is a race's `TRACKBnnnn.lzc` or an NFSU2/NFSMW location bundle `LxRA.BUN`), `archives.py` (JDLZ-compressed files). |
@@ -53,7 +53,7 @@ docs and a working GUI editor for free.
 | `resources/*.md` | **Auto-generated** per-game docs (`generate_resource_doc.py`). Never hand-edit — edit the block definitions/descriptions and regenerate. |
 | `serializers/` | Turn parsed block data into common output formats and back. One serializer class per resource kind, returned by a block's `serializer_class()`. |
 | `api/` | Python↔JS bridge (pywebview/eel) exposing library + serializers to the GUI. |
-| `frontend/` | Angular GUI. `.../editor/library/*.block-ui` = generic components, one per `read_blocks` base class. `.../editor/eac/*` and `.../editor/common/*` = bespoke rich viewers (image, 3D geometry, map, audio, font, hex/targa). |
+| `frontend/` | Angular GUI. `.../editor/library/*.block-ui` = generic components, one per `read_blocks` base class. `.../editor/eac/*` and `.../editor/common/*` = bespoke rich viewers (image, 3D geometry, map, audio, font, hex/targa, TNFS car specs) and widgets they share (`curve-editor` = editable SVG charts, `stat-tiles`). |
 | `actions/` | OS-integration entry points (convert all, open in GUI editor, uncompress) wired to file-manager context menus / installers. |
 | `test/` | unittest suite mirroring `library/`/`resources/`. `test/golden_corpus/` + `test/test_gui_golden_corpus.sh` = manual smoke test that opens every sample file through `run.py`. |
 | `docs/milestones.md` | AI-maintained roadmap of format coverage by game. |
@@ -110,6 +110,11 @@ When you do:
   `frontend/.../editor/eac/` are copied into the nfs-web game as they are (only import paths change): keep them free
   of GUI services, depending on three.js, gg-web-engine and rxjs only. nfs-web loads the converter's gg-web-engine
   export with "Add props to obj" off, so a track's props must reach it as dummies.
+- Conversion settings presets (`config.py`): "No preset" is the `[Conversion]` section, a user-defined preset is a
+  `[Conversion: <name>]` section with the conversion settings and input / output paths (everything but
+  `selected_preset`, see `CONVERSION_NON_PRESET_KEYS`); a setting missing in a preset takes the built-in default.
+  `run.py convert --preset "<name>"` (input and `--out` default to the preset's paths) and the GUI converter's preset
+  select use them; a new conversion setting goes into `ConfigManager._get_defaults()` and the converter's form.
 - Nothing repo-specific overrides standard slash commands (`/code-review`, `/simplify`, etc.).
 - Real game files for broader validation live under the gitignored `games/<game>/` folders (e.g. every
   QFS3-compressed file across nfs1/nfs2/nfs2se/nfs3), beyond the few samples in `test/samples/`.
@@ -121,3 +126,137 @@ When you do:
   `NFS_GAMES_ROUNDTRIP=1`; `NFS_GAMES_DIR=test/samples` makes it a seconds-long smoke run without the regression
   check, `NFS_GAMES_EXTENSIONS=.FSH,.QFS` limits it to some extensions (both only print the reports, without
   overwriting the files).
+
+## TNFS track export (SIMDATA/MISC/*.TRI)
+
+- `TriMapSerializer` writes the road spline as the curve `road_path` of `map.meta` / `map.glb` (gg-web-engine export),
+  with one array per point property, in point order: slope, slant, barrier / verge distances, lanes, AI / traffic speeds
+  (per chunk of 4 points), `item_mode` (raw byte value), `left_shoulder_surface_type` / `right_shoulder_surface_type`
+  and `left_fence` / `right_fence` (the nibbles of `shoulder_surface_type` / `fence_flag`, left = high nibble). nfs-web
+  reads these keys and mirrors the track itself (left / right arrays swapped): keep them stable and unmirrored.
+- Fences follow the game's `tnfs_render_track_fence` (SE 0x44a2b4, DOS 0x69719, PSX 0x80046484; `TerrainChunk.build_fence`):
+  only the chunk's `fence` byte decides them (`fence_flag` of the spline points is collision only). One vertical quad per
+  node, 2 m or 0.9 m (`is_low`) high, standing on the terrain vertex picked by the `item_mode` of the chunk's first node
+  (`TerrainChunk._fence_columns`: right A2; left A7, or A8 for 1 and 14..18, lane split / merge mixed; tunnels 7, 9, 12,
+  13 none). The vertex comes from the rows the terrain polygons use (`_terrain_rows`), so it stays on the rendered
+  edge across the lane split / merge vertex shuffling. Texture id `texture_id` + 32; closed tracks use `ga00` / `ga10`
+  / `ga20` for the ids of `fence_texture_id` // 3. The name gets the on-disk case of the FAM bitmap (S3 is case
+  sensitive; `GA00` in TR3-TR5, `ga00` elsewhere), and a chunk whose texture the FAM lacks gets no fence, as in SE
+  (TR4's 109 chunks with texture `18B0`). UV: half a texture width per node, like the terrain along the road.
+- Z-buffer workaround (the game paints the fence over its row's terrain): where the terrain rises (nearly) vertically
+  outwards from the fence vertex (within `FENCE_WALL_MAX_ANGLE`), the fence bottom moves `FENCE_WALL_SHIFT` towards
+  the road along the terrain edge, or the wall and the fence z-fight (TR7, TR4). Mesh names are
+  `terrain_chunk_{i}_{left|right}fence_{texture}`: nfs-web picks the material from the text after the last `_`.
+- Props are dummies `proxy_<n>` (`_prop_json`) with properties `is_prop`, `type`, `road_index`, `object_index` (index
+  in the TRI `props` array, the game's road object index for `get_sign_status`) and `object_rotation` (raw 8-bit
+  `rotation` byte; a knocked-down bitmap sign falls the other way when > 64), plus the model / texture keys of the
+  prop type. nfs-web reads them: keep them stable.
+
+## TNFS horizon (SIMDATA/*TRACKFM/*.FAM, bitmap `horz`)
+
+- `ShpiArchiveSerializer` writes `spherical.png` (2048x1024 equirectangular, eye level in the middle, heading 0 at the
+  centre) with `library/utils/nfs1_panorama_to_spherical.py`, which places `horz` as Win95 SE draws it: ring type 0
+  scrolls it (1280 texels per turn, 2 px rows at 640x480, row `pivot_y` on the horizon line), ring type 1 draws a ring
+  of 180 degrees per bitmap (mirrored second half with the mirror flag), texel rows 1..H-2 over
+  `ring_y_offset +- ring_height` px. Screen px become angles with the focal length of the 96 degrees chase cameras
+  (320 / tan(48 deg)). Settings: `MISC/<track>INFO` for `_T01` FAMs, the executable's table (`SE_HORIZON_SETTINGS`)
+  otherwise. nfs-web makes cube map faces of `spherical.png`.
+
+## TNFS car models (SIMDATA/CARFAMS/*.CFM)
+
+- `OripGeometrySerializer` splits meshes by texture and by ORIP `labels` (polygon indices): mesh names
+  `lbl__<label>__<texture>` (`lbl__lt_frnt`, `lbl__bkll__rsid`...), nfs-web reads them. ORIP `fx_polys` are vertex
+  indices (wheel ground points `FL0`..`RR1` / `fl0`..`rr1`, engine point `smok`, `d`): they go to the meta as dummies
+  `fx_<name>` with properties `fx` and `vertex` (`orip_fx_dummies`), at the vertex in mesh space. Field descriptions in
+  `resources/eac/geometries/tnfs.py` list what each name marks.
+
+## TNFS car specs (SIMDATA/CARSPECS/*.PBS, SIMDATA/CARFAMS/*.PDN)
+
+- `resources/eac/car_specs.py`, field meanings and readers verified against the DOS, Win95 SE and PSX code
+  (tnfs-1995). Value formats follow the game: 16.16 fixed point, 8.8 for `thrust_scale` / `force_to_accel` /
+  `unknown_0x320*` / `gear_efficiency`, plain ints for 24-bit angles (`slip_cutoff`, `auto_steer`, PDN
+  `handling_factor`; 0x1000000 = full turn; `slip_cutoff` and `handling_factor` are `IntegerAngleBlock`s, so the GUI
+  shows them in degrees / radians while the data stays the int), raw u8 grip tables (grip = value / 128). Derived fields (`mass`, inverses,
+  `brake_bias_r`, `force_to_accel`) and the PBS `checksum` are programmatic (all 9 PBS and 22 PDN round-trip byte-exact).
+- nfs-web (`classic-world/utils/load-pbs.ts`) reads `*.PBS.json` keys: body_len, body_width, brake_bias_f,
+  max_brake_force_1, drag, drive_bias, final_drive, force_to_accel, friction_f, friction_r, gear_ratios,
+  incar_camera_height, lat_acc_cutoff, mass, max_rpm, min_rpm, mps_to_rpm, num_torques, rpm_acc, rpm_dec, torques,
+  upshifts, wheel_base, wheel_track. Renaming one or changing its value format breaks it: tell the nfs-web side.
+- GUI: `PlayerCarPhysicsBlockUiComponent` / `CarAiAndCrashBodyBlockUiComponent` (`frontend/.../editor/eac/`)
+  edit them on charts (torque / power, gearing, grip tables, pedal ramps, brake caps; PDN AI acceleration, top speed
+  markers, corner slowdown). Their derived curves follow the formulas in the field descriptions: keep the two in sync.
+  Programmatic fields (`mass`, inverses, `force_to_accel`, checksum) are recomputed on save only, so the charts compute
+  from the source fields.
+- TNFS 3DO `DriveData/CarData/*.BigSpecsFam` (`Tnfs3doCarPhysics`, doc `resources/TNFS_3DO.md`): a big-endian wwww
+  archive of 3 fixed items, the PBS physics fields without `max_brake_force_2` / `gear_efficiency` / checksum, then
+  the front and rear grip tables. The block subclasses `PlayerCarPhysics` and builds its `Fields` from the PBS ones
+  (big-endian copies, `_TNFS_3DO_REPLACED_FIELDS` for the slots with another meaning on 3DO: `max_brake_force` in m/s²,
+  `front_grip_mult` / `rear_grip_mult` and inverses, `burnout_div`); `_TNFS_3DO_DESCRIPTIONS` has a description for
+  every field, from the 3DO `LaunchMe` code (tnfs-1995 Ghidra). The PBS editor renders it through the
+  `block_class_mro` fallback and switches on `is3do` (no gear efficiency column, one brake cap).
+
+## TNFS sound banks (SIMDATA/SOUNDBNK/*.BNK)
+
+- `items` / `children` are in file order, which is not always the index order of the 128-entry offset table
+  `items_descr`: every collision bank with an entry 0x50 stores it before 0x3d–0x40. `SoundBank.item_indices(data)`
+  gives each entry's table index; the serializer and the GUI's bank viewer name samples with it. Never pair the n-th
+  non-zero table index with the n-th entry.
+- Entries can share wave data (several indices of one wav point at the same bytes). `SoundBank.read` keeps in
+  `children_offsets` only the bytes between the end of the wave data seen so far and the next entry's, and `write`
+  reuses identical wave data. The `*SB*` collision banks and `OSUPMB3D` still don't round-trip byte-exact: entries
+  there overlap only partly (one starts inside another and runs past it, or past the end of the file).
+- Output: one folder per bank, `0x<index>.wav` (16-bit) + `0x<index>.meta.json` with `loop`, `loop_start_time_ms`,
+  `loop_end_time_ms` and the bank entry's `bend_range_semitones`, `volume`, `pan`, `priority`, `random_range`,
+  `unknown_0x16`. Car banks (`*SW.BNK`, `TRAFFC.BNK`, `TESTBANK.BNK` with 4 samples) name their samples `engine_on`,
+  `engine_off`, `honk`, `gear` instead. nfs-web reads these file names and the `loop_*` keys: keep them stable.
+- A sample without a loop has `repeat_loop_length` 0 (and start 0); the serializer's `start + (length - 1)` then gives
+  `loop_end_time_ms` -0.0625 (-1 sample at 16 kHz). Standalone `.EAS` files mark it with loop start 0xFFFFFFFF.
+- Collision bank variants `COLL_SW`, `COLLSWWT`, `COLLSWMT`, `COLLSW3D`, `COLSWWT3`, `COLSWMT3` hold byte-identical
+  wavs at 0x21–0x3a (the `*3D`/`*3` ones add 0x31–0x3b odd). From 0x3d up each has a subset: 0x3f and 0x50 in all,
+  0x3e in all but `*MT*`, 0x3d in `*MT*`, `COLL_SW` and `COLLSW3D` (two different wavs), 0x40 in the `*3D`/`*3` ones;
+  otherwise one index is one wav in all of them. The `*SB*` variants share only some of them. Inside a `*SW*` bank several indices are one wav, one per mixer channel of the game:
+  0x2d = 0x2a = 0x2b = 0x38 = 0x3a, 0x2e = 0x26 = 0x28, 0x27 = 0x34 = 0x36, 0x29 = 0x30 = 0x32.
+- All banks of a race share one 128-entry sample id table, loaded in this order: car, opponents, `COLL*`, `NFS_FMMB`;
+  a later bank replaces the ids it has. So an id means the same in every race bank (not in `FRONT_MW`).
+- Sample roles, as the game uses them (tnfs-1995: DOS TNFS_DOS_FULL `sfx_00066056` / `sfx_00065eb1`, PSX, Win95 SE):
+  car bank 3 horn (player channel 0xe), 0x20 gear click; collision bank 0x21 light hit / prop, 0x22 medium hit, 0x23
+  fence hit, 0x24 heavy hit, 0x25 landing / bump, 0x27 body scrape loop, 0x29 wind loop, 0x2d tyre squeal loop, 0x2e
+  gravel squeal loop, 0x3e waterfall loop (TRI `item_mode` 14 = waterfall to the left, 15 = to the right), 0x3f traffic
+  horn loop (DOS channel 4, pitch value `table[index] * doppler >> 8`, table at DOS 0x81aa9, index = the traffic car's
+  PDN `gear_count`); opponent banks `O*MB.BNK` / `TRAFFCO.BNK` 0x41 the opponent car's horn loop (racers: car slot 1,
+  pitch index 1, channel 4, DOS `tnfs_sfx_horn_other` 0x82cd4); Win95 SE only: 0x3d left waterfall loop and 0x50
+  cave drips in a tunnel, each on one track; `NFS_FMMB` 0x61 radar detector beep, 0x62 police siren loop, 0x64 police
+  siren loop in a tunnel (played along with 0x62 while the player is in a tunnel). `NFS_FMMB` 0x69 / 0x6a are one-shots
+  (0.19 s, 0.65 s, voice mask bit 8, priority 0x64) that no code in DOS or SE plays. The GUI's bank viewer labels them.
+- Entry fields (`SoundBankHeaderEntry`): 0x00 `voice_mask` (DOS voice allocator `sfx_voice_alloc` 0x96760), 0x04
+  `eacs_header_offset` (a pointer after load), 0x08 `play_time_limit` in driver ticks (voice+4 = value - 1, the driver
+  tick DOS 0xaada7 / SE 0x4a4ac0 stops the voice below 0; 0 = no limit, in every shipped entry), 0x0c
+  `random_range` and 0x10 `pitch_offset` in cents (voice start, DOS 0x96d22: offset = pitch_offset +- random up to
+  random_range), 0x17 `bend_range_semitones` (cents = (pitch - 64) * bend * 100 / 64 + offset, rate = base *
+  2^(cents/1200), DOS 0xa6fbd), 0x19 `volume` (+- random 0x1a; final = master * volume * channel volume / 127^2), 0x1b
+  `driver` (written by the demo's bank loader 0x79a62 at run time: non-zero 0x1b and later bytes in shipped banks are
+  leftovers), 0x1c `flags` (bit 0: stereo pair, the next sample is the other channel). 0x15 (`unk3`, 0x80 everywhere)
+  is copied to voice+0x14 by DOS and the demo and never read; 0x16 (`unk4`, meta `unknown_0x16`) is read by no binary
+  (DOS, demo, SE), probably an authoring transpose.
+- PSX TNFS has its own sound patch format, which the converter does not read: 0x08 base pitch, 0x0e ushort random
+  range in cents (max 1200), 0x13 bend range, 0x17 reverb flag (voices with it get the SPU reverb in tunnels).
+
+## EA sound banks of NFS2-NFS6 (BNKl)
+
+- `EaSoundBank` (`resources/eac/archives`, magic `BNKl`, versions 2/4/5) holds a slot table of `EaSoundPatch` "PT"
+  headers (tag list, `resources/eac/audios.py`) and the wave data. The loader picks it by magic before the TNFS `.BNK`
+  rule; it is also a BIGF item (NFS3 `car.viv` `car.bnk`, `ocar.bnk`, `ocard.bnk`, `scar.bnk`; NFS4 `careng.bnk`...).
+  Patch tags are written back in place, so a tag value can change but not its length; wave data is not editable.
+- A patch can have several layers (tag 0xFE between them), each with its own settings and wave data: NFS3 player
+  engines layer a stereo sample with a short mono loop.
+- Codecs: 16-bit PCM, EA-XA v1 (`codec` 7) and v2, signed 8-bit PCM (`library/utils/audio_ea_xa_codec.py`; the EA-XA
+  decoder matches the 8-bit PCM copies NFS5 keeps of the same samples). EA MicroTalk (`codec` 9, NFS3/NFS4 speech) is
+  not decoded: those layers go to the bank's `skipped.txt`.
+- Output: one folder per bank, `0x<index>.wav` + `0x<index>.meta.json` (`0x<index>_layer_<n>` for the next layers)
+  with `loop`, `loop_start_time_ms`, `loop_end_time_ms` and the layer's named tags (`volume`, `pan`, `priority`,
+  `bend_range_semitones`, `random_detune_range`...). Default sampling rate is 22050.
+- Car banks: 0 and 1 engine loops, 2 gear shift (one-shot, random detune 200-250), 3 horn (loop). Opponent banks
+  have the engine and the horn only: NFS2 `O<car>.BNK` in 0 and 1 (2-slot table), NFS3 `ocar.bnk` / NFS4
+  `ocareng.bnk` in 0 and 3. `GEN.BNK` (NFS2 SE, NFS3) seems to keep TNFS collision bank indices: hits
+  0x1d-0x25 (one-shots with random detune 250-300), loops 0x28 (scrape?), 0x29 (wind?), 0x2a-0x2d (tyre squeal?),
+  0x2e (gravel?). Picked by signal analysis, not confirmed by game code or by ear.

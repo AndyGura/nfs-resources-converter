@@ -55,16 +55,25 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
             SubByteArrayBlock(length=2, bits_per_value=4),
             {
                 'description': 'Flags whether there is fence or not. First number is fence on left side, '
-                'second number is fence on right side. Used for physics simulation'
+                'second number is fence on right side. Used for physics simulation: only the fence collision '
+                '(Win95 SE 0x430600) and `tnfs_collision_main` read it. Rendering ignores it: fences are drawn from '
+                'the `fence` byte of the terrain chunks'
             },
         )
-        verge_slide = (
+        shoulder_surface_type = (
             SubByteArrayBlock(length=2, bits_per_value=4),
             {
-                'description': 'A slidiness of road areas between verge distance and barrier. First number for '
-                'left verge, second number for right verge. Values above 3 cause unbearable slide '
-                'in the game and make it impossible to return back to road. High values around '
-                'maximum (15) cause lags and even crashes'
+                'description': 'Surface type of the road shoulders, the areas between the verge distance and the '
+                'barrier: first number for the left shoulder, second number for the right one (the game takes '
+                '`>> 4` and `& 0xf` of this byte). The car gets this surface while it is between `left_verge` / '
+                "`right_verge` and the barrier, 0 elsewhere. It is an index into the game's road surface table "
+                '(grip, drag, is_unpaved): 0 is tarmac like the road, 1 and 2 are unpaved shoulders with 20 times '
+                'the velocity drag. Higher values read past the table: values above 3 cause unbearable slide in the '
+                'game and make it impossible to return back to road, values around the maximum (15) cause lags and '
+                "even crashes. Also used for sound: a non-zero value turns the player's wind loop into a gravel "
+                'rumble (pitch value 0x18, volume +25%), an unpaved surface picks the gravel tyre squeal and dust. '
+                'Decoded by [tnfs-1995](https://github.com/marcos2250/tnfs-1995) (`shoulder_surface_type`; DOS '
+                'sound code 0x668ab)'
             },
         )
         item_mode = (
@@ -77,8 +86,7 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                     (4, 'tunnel'),
                     (5, 'cobbled_road'),
                     (7, 'right_tunnel_A9_A2'),
-                    # OpenNFS1: left wall appeared to move across the track - snapped back as we got closer
-                    (8, 'unk_cl3_forest'),
+                    (8, 'no_sky'),
                     (9, 'left_tunnel_A4_A7'),
                     (11, 'unk_autumn_valley_tribunes'),
                     (12, 'left_tunnel_A4_A8'),
@@ -90,7 +98,23 @@ class RoadSplinePoint(DeclarativeCompoundBlock):
                     (18, 'water_audio'),  # OpenNFS1: water right channel
                 ]
             ),
-            {'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features'},
+            {
+                'description': 'Modifier of this point. Affects terrain geometry and/or some gameplay features. '
+                'Effects found in the game code ([tnfs-1995](https://github.com/marcos2250/tnfs-1995) '
+                "`tnfs_track_item_mode_flags`, PSX 0x80030fe8, DOS 0x5b2b9): 4, 7, 9, 12 and 13 set the car's "
+                'in-tunnel flag (wind loop +20 volume and pitch value 0x5e; on PSX the voices whose patch has the '
+                'reverb flag get the SPU reverb; the police siren plays `NFS_FMMB.BNK` sample 0x64 along with 0x62; '
+                'the DOS camera 0x6b5a5 skips the horizon for 4, 7, 9 and 8). 5 is cobbles: the wind loop pitch '
+                'wobbles between 0x40 and 0x5e with speed; a side with a fence (`fence_flag`) also gets a different '
+                'fence offset in 3D crash collisions unless the mode is 5. 14 / 15 are a waterfall to the left / '
+                'right: they play the waterfall loop (collision bank sample 0x3e on mixer channel 0xb), panned hard '
+                'left / right and fading in and out by 5 per tick. 8 only means "no sky": the DOS camera skips the '
+                'horizon, the PSX sky drawing (0x800357ec) hides the sky when the slices -0xe and -9 from the camera '
+                'are both mode 8; the road renders like plain road, and the second engine flag 8 sets next to the '
+                'in-tunnel one is never read. Values in the game tracks besides 1 and 3: 0 / 2 at single '
+                'points, 4 in most tracks, 5 in AL2, TR4, TR7, 7 in CL2, 8 in CL3, 9 in AL3, 11 in TR2, 12 and 13 in '
+                'TR3, 14 in TR2 and TR3, 15 in TR3, 16 in AL1 and TR3, 17 in TR7, 18 in TR6'
+            },
         )
         position = (
             Point3D(child=FixedPointBlock(length=4, fraction_bits=16, is_signed=True)),
@@ -244,7 +268,8 @@ class MapProp(DeclarativeCompoundBlock):
             **super().schema,
             'block_description': 'The prop on the map. For instance: exactly the same road sign used 5 '
             'times on the map. In this case file will have 1 PropDescr for this road sign '
-            'and 5 MapProps',
+            'and 5 MapProps. The game engine refers to a prop (road object) by its index in the TRI `props` array: '
+            '`SignStatus` has 2 bytes per object, nonzero once a car knocked it down',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -266,7 +291,15 @@ class MapProp(DeclarativeCompoundBlock):
                 'descriptions for now and it seems to look good'
             },
         )
-        rotation = (Nfs1Angle8(), {'description': 'Y-rotation, relative to rotation of referenced road spline vertex'})
+        rotation = (
+            Nfs1Angle8(),
+            {
+                'description': 'Y-rotation, relative to rotation of referenced road spline vertex. A bitmap or '
+                'two-sided bitmap prop knocked down is drawn lying flat, falling to the other side when the raw byte '
+                'is > 64 (DOS tnfs_render_terrain_vertex_list 0x627f3, Win95 SE 0x43eea5). 3D model props are never '
+                'drawn knocked down'
+            },
+        )
         flags = (IntegerBlock(length=4), {'is_unknown': True})
         position = (
             Point3D(child=FixedPointBlock(length=2, fraction_bits=8, is_signed=True)),
@@ -299,14 +332,26 @@ class TerrainEntry(DeclarativeCompoundBlock):
             SubByteCompoundBlock(
                 length=1,
                 schema=[
-                    (1, 'has_left_fence', 'boolean', [], 'flag is add left fence'),
-                    (1, 'has_right_fence', 'boolean', [], 'flag is add right fence'),
-                    (6, 'texture_id', 'number', [], 'texture id'),
+                    (1, 'has_left_fence', 'boolean', [], 'Fence on the left side (A6..A10)'),
+                    (1, 'has_right_fence', 'boolean', [], 'Fence on the right side (A1..A5)'),
+                    (1, 'is_low', 'boolean', [], 'Low fence: 0.9 m high instead of 2 m'),
+                    (5, 'texture_id', 'number', [], 'Fence texture id - 32'),
                 ],
             ),
             {
-                'description': 'Fence settings: whether to build a fence on the left/right side of this chunk, and '
-                'the id of the fence texture (same id space as `texture_ids`)'
+                'description': 'Fence of this chunk, as the game draws it (`tnfs_render_track_fence`: Win95 SE 0x44a2b4, '
+                'DOS 0x69719, PSX 0x80046484). It is the only thing that decides fence drawing: the road spline '
+                "points' `fence_flag` is for collisions. One vertical quad per node to the next node (the last one to "
+                "the next chunk's first node) on each side with a flag, from terrain vertices up by 2 m, or by 0.9 m "
+                '(0xe666 in 16.16) for a low fence. The bottom vertex is picked by the `item_mode` of the '
+                "chunk's first node: the right fence stands on A2; the left one on A7 for item modes 3, 4, 5, 6, 8, "
+                '10 and 11, on A8 for 1 and 14..18, on A7 at the first node and A8 after it for 0 (lane split), on A8 '
+                "and at the next chunk's first node on A7 for 2 (lane merge). Tunnel modes 7, 9, 12 and 13 draw no "
+                'fence near the camera (SE draws A2 / A8 at mid and far distance only). The texture id is '
+                '`texture_id` + 32 (same id space as `texture_ids`; on closed tracks the ids of '
+                '`fence_texture_id` // 3 are replaced by the `ga00` / `ga10` / `ga20` bitmaps); SE draws no fence '
+                "when the track's FAM has no bitmap for it (TR4's 0xb7 chunks, id 55 = `18B0`). The fence maps the "
+                'texture like the road polygon of its node: half the texture width per node, full height'
             },
         )
         texture_ids = (
@@ -389,12 +434,13 @@ class TriMap(DeclarativeCompoundBlock):
             IntegerBlock(length=4, programmatic_value=lambda ctx: len(ctx.data('terrain')) * 0x120),
             {'description': 'Size of terrain array in bytes (num_chunks * 0x120)'},
         )
-        rail_tex_id = (
+        fence_texture_id = (
             IntegerBlock(length=4),
             {
-                'description': 'Do not know what is "railing". Doesn\'t look like a fence '
-                'texture id, tested in TR1_001.FAM',
-                'is_unknown': True,
+                'description': "The texture id of the track's fence (`fence.texture_id` + 32 of the terrain chunks "
+                'with a fence, or of most of them). The texture loader (Win95 SE `tnfs_render_load_track_textures` '
+                '0x44c36c, reading the low 16 bits) uses it on closed tracks only: it gives the ids '
+                '(value // 3) * 3 + 0, 1 and 2 the FAM bitmaps `ga00`, `ga10` and `ga20` instead of `%02d%c0`'
             },
         )
         lookup_table = (
@@ -442,7 +488,11 @@ class TriMap(DeclarativeCompoundBlock):
         )
         props = (
             ArrayBlock(child=MapProp(), length=lambda ctx: ctx.data('num_props')),
-            {'description': 'Props placed on the map. Unused trailing items have `road_point_idx` == -1'},
+            {
+                'description': 'Props placed on the map. Unused trailing items have `road_point_idx` == -1. The '
+                'game engine refers to props (road objects) by their index in this array: `SignStatus` has 2 bytes '
+                'per object, nonzero once a car knocked it down'
+            },
         )
         terrain = (
             ArrayBlock(child=TerrainEntry(), length=lambda ctx: ctx.data('num_chunks')),
@@ -506,7 +556,7 @@ class TriMap(DeclarativeCompoundBlock):
             # swap lanes
             vertex['num_lanes'] = [vertex['num_lanes'][1], vertex['num_lanes'][0]]
             vertex['fence_flag'] = [vertex['fence_flag'][1], vertex['fence_flag'][0]]
-            vertex['verge_slide'] = [vertex['verge_slide'][1], vertex['verge_slide'][0]]
+            vertex['shoulder_surface_type'] = [vertex['shoulder_surface_type'][1], vertex['shoulder_surface_type'][0]]
             # change sign of slope/slant values
             vertex['slope'] = -vertex['slope']
             vertex['slant'] = -vertex['slant']
@@ -518,6 +568,10 @@ class TriMap(DeclarativeCompoundBlock):
             elif vertex['item_mode'] == 'lane_merge':
                 vertex['item_mode'] = 'lane_split'
                 # lane_effects.append(i)
+            elif vertex['item_mode'] == 'waterfall_audio_left_channel':
+                vertex['item_mode'] = 'waterfall_audio_right_channel'
+            elif vertex['item_mode'] == 'waterfall_audio_right_channel':
+                vertex['item_mode'] = 'waterfall_audio_left_channel'
 
         for index in lane_effects:
             (read_data['road_spline'][index]['item_mode'], read_data['road_spline'][index - 1]['item_mode']) = (

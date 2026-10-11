@@ -1,0 +1,331 @@
+<div class="curve-editor" [class.disabled]="disabled">
+  <div class="header">
+    @if (title) {
+      <span class="title">{{ title }}</span>
+    }
+    @if (hint) {
+      <mat-icon class="hint-icon" [matTooltip]="hint" matTooltipPosition="above">info_outline</mat-icon>
+    }
+    <div class="legend">
+      @for (s of legend; track s.id) {
+        <button
+          type="button"
+          class="legend-item"
+          [class.active]="s.id === activeSeriesId && isEditable"
+          [class.muted]="hidden.has(s.id)"
+          [matTooltip]="
+            s.editable && s.editable !== 'none' && !disabled
+              ? s.id === activeSeriesId
+                ? 'Edited curve'
+                : 'Click to edit this curve'
+              : 'Click to show / hide'
+          "
+          (click)="onLegendClick(s)">
+          <span class="swatch" [class.dashed]="s.dashed" [style.background]="s.color"></span>
+          {{ s.label }}
+          @if (s.editable && s.editable !== 'none' && !disabled) {
+            <mat-icon class="edit-icon">edit</mat-icon>
+            <mat-icon class="eye-icon" (click)="toggleVisibility(s, $event)">{{
+              hidden.has(s.id) ? 'visibility_off' : 'visibility'
+            }}</mat-icon>
+          }
+        </button>
+      }
+    </div>
+    <span class="flex-spacer"></span>
+    @if (isEditable) {
+      <div class="tools">
+        @if (brushesAvailable) {
+          <div class="tool-group">
+            <button
+              type="button"
+              class="tool"
+              [class.selected]="tool === 'drag'"
+              matTooltip="Drag points. With a falloff, the neighbours follow"
+              (click)="setTool('drag')">
+              <mat-icon>open_with</mat-icon>
+            </button>
+            <button
+              type="button"
+              class="tool"
+              [class.selected]="tool === 'draw'"
+              matTooltip="Draw the curve freehand"
+              (click)="setTool('draw')">
+              <mat-icon>draw</mat-icon>
+            </button>
+            <button
+              type="button"
+              class="tool"
+              [class.selected]="tool === 'smooth'"
+              matTooltip="Smooth the curve under the brush"
+              (click)="setTool('smooth')">
+              <mat-icon>blur_on</mat-icon>
+            </button>
+          </div>
+          @if (tool !== 'draw') {
+            <label
+              class="radius"
+              [matTooltip]="
+                tool === 'drag'
+                  ? 'Falloff: how many neighbouring points on each side follow the dragged one'
+                  : 'Brush radius, in points'
+              ">
+              {{ tool === 'drag' ? 'Falloff' : 'Radius' }}
+              <mat-slider [min]="tool === 'drag' ? 0 : 1" [max]="40" [step]="1" discrete>
+                <input matSliderThumb [(ngModel)]="radius" />
+              </mat-slider>
+            </label>
+          }
+        }
+      </div>
+    }
+    @if (zoom) {
+      <button type="button" class="tool" matTooltip="Reset zoom (Esc)" (click)="resetZoom()">
+        <mat-icon>zoom_out_map</mat-icon>
+      </button>
+    }
+    <mat-icon
+      class="hint-icon"
+      matTooltipClass="curve-editor-help"
+      [matTooltip]="
+        (isEditable
+          ? 'Drag a point (or a dashed marker) to edit it. Click a point, then use ↑ / ↓ to nudge it (Shift: x10) and ← / → to go to the next one. '
+          : '') + (xAxis.categories ? '' : 'Ctrl + wheel or pinch zooms the x axis, Shift + wheel or drag pans it.')
+      "
+      matTooltipPosition="above"
+      >help_outline</mat-icon
+    >
+  </div>
+
+  <div class="plot" [style.height.px]="height">
+    <svg
+      #svg
+      [attr.width]="width"
+      [attr.height]="height"
+      [class.cursor-grab]="!!hoverHandle"
+      [class.cursor-brush]="isEditable && brushesAvailable && tool !== 'drag'"
+      [class.cursor-pan]="!!zoom && !hoverHandle"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+      (pointerleave)="onPointerLeave()"
+      (wheel)="onWheel($event)">
+      <defs>
+        <clipPath [attr.id]="clipId">
+          <rect
+            [attr.x]="plot.left"
+            [attr.y]="plot.top - 4"
+            [attr.width]="plot.width"
+            [attr.height]="plot.height + 8" />
+        </clipPath>
+      </defs>
+
+      <rect
+        class="plot-bg"
+        [attr.x]="plot.left"
+        [attr.y]="plot.top"
+        [attr.width]="plot.width"
+        [attr.height]="plot.height" />
+
+      <!-- grid and axes -->
+      @for (t of yTicks; track $index) {
+        <line class="grid" [attr.x1]="plot.left" [attr.x2]="plot.right" [attr.y1]="t.pos" [attr.y2]="t.pos" />
+        <text class="tick" text-anchor="end" [attr.x]="plot.left - 6" [attr.y]="t.pos + 4">{{ t.label }}</text>
+      }
+      @for (t of y2Ticks; track $index) {
+        <text class="tick" text-anchor="start" [attr.x]="plot.right + 6" [attr.y]="t.pos + 4">{{ t.label }}</text>
+      }
+      @for (t of xTicks; track $index) {
+        @if (!xAxis.categories) {
+          <line class="grid" [attr.x1]="t.pos" [attr.x2]="t.pos" [attr.y1]="plot.top" [attr.y2]="plot.bottom" />
+        }
+        <text class="tick" text-anchor="middle" [attr.x]="t.pos" [attr.y]="plot.bottom + 16">{{ t.label }}</text>
+      }
+      <line class="axis" [attr.x1]="plot.left" [attr.x2]="plot.right" [attr.y1]="plot.bottom" [attr.y2]="plot.bottom" />
+      <text class="axis-label" text-anchor="middle" [attr.x]="plot.left + plot.width / 2" [attr.y]="height - 4">
+        {{ xAxis.label }}
+      </text>
+      <text
+        class="axis-label"
+        text-anchor="middle"
+        [attr.transform]="'translate(14,' + (plot.top + plot.height / 2) + ') rotate(-90)'">
+        {{ yAxis.label }}
+      </text>
+      @if (y2Axis) {
+        <text
+          class="axis-label"
+          text-anchor="middle"
+          [attr.transform]="'translate(' + (width - 10) + ',' + (plot.top + plot.height / 2) + ') rotate(90)'">
+          {{ y2Axis.label }}
+        </text>
+      }
+
+      <g [attr.clip-path]="'url(#' + clipId + ')'">
+        @for (s of seriesVm; track s.id) {
+          @if (s.inactivePath) {
+            <path class="series inactive" [attr.d]="s.inactivePath" [attr.stroke]="s.color" />
+          }
+          @if (s.activePath) {
+            <path
+              class="series"
+              [class.dashed]="s.dashed"
+              [class.active]="s.isActive"
+              [attr.d]="s.activePath"
+              [attr.stroke]="s.color"
+              [attr.stroke-width]="s.width" />
+          }
+          @for (b of s.bars; track $index) {
+            <rect
+              class="bar"
+              [class.inactive]="b.inactive"
+              [class.active]="s.isActive"
+              [attr.x]="b.x"
+              [attr.y]="b.y"
+              [attr.width]="b.w"
+              [attr.height]="b.h"
+              [attr.fill]="s.color" />
+          }
+        }
+
+        @for (m of markersVm; track m.id) {
+          @if (m.vertical) {
+            <line
+              class="marker"
+              [class.editable]="m.editable"
+              [attr.x1]="m.pos"
+              [attr.x2]="m.pos"
+              [attr.y1]="plot.top"
+              [attr.y2]="plot.bottom"
+              [attr.stroke]="m.color" />
+          } @else {
+            <line
+              class="marker"
+              [class.editable]="m.editable"
+              [attr.x1]="plot.left"
+              [attr.x2]="plot.right"
+              [attr.y1]="m.pos"
+              [attr.y2]="m.pos"
+              [attr.stroke]="m.color" />
+          }
+        }
+
+        @if (crosshairX !== null) {
+          <line
+            class="crosshair"
+            [attr.x1]="crosshairX"
+            [attr.x2]="crosshairX"
+            [attr.y1]="plot.top"
+            [attr.y2]="plot.bottom" />
+        }
+
+        @for (s of seriesVm; track s.id) {
+          @for (h of s.handles; track h.index) {
+            <circle
+              class="handle"
+              [class.passive]="!s.isActive"
+              [attr.cx]="h.cx"
+              [attr.cy]="h.cy"
+              r="3.5"
+              [attr.stroke]="s.color" />
+          }
+        }
+        @if (hoverHandle) {
+          <circle
+            class="handle hover"
+            [attr.cx]="hoverHandle.cx"
+            [attr.cy]="hoverHandle.cy"
+            r="6"
+            [attr.stroke]="hoverHandle.color" />
+        }
+        @if (selectedHandle) {
+          <circle
+            class="selected-halo"
+            [attr.cx]="selectedHandle.cx"
+            [attr.cy]="selectedHandle.cy"
+            r="10"
+            [style.fill]="selectedHandle.color"
+            [style.stroke]="selectedHandle.color" />
+          <circle
+            class="handle selected"
+            [attr.cx]="selectedHandle.cx"
+            [attr.cy]="selectedHandle.cy"
+            r="5"
+            [style.fill]="selectedHandle.color" />
+        }
+      </g>
+
+      @for (m of markersVm; track m.id) {
+        @if (m.vertical) {
+          @if (m.editable) {
+            <path
+              class="marker-grip"
+              [attr.d]="'M' + (m.pos - 5) + ',' + (plot.top - 7) + 'h10l-5,7z'"
+              [attr.fill]="m.color" />
+          }
+          <text
+            class="marker-label"
+            [attr.x]="m.labelX"
+            [attr.text-anchor]="m.labelAnchor"
+            [attr.y]="m.labelY"
+            [attr.fill]="m.color">
+            {{ m.label }}
+          </text>
+        } @else {
+          <text
+            class="marker-label"
+            text-anchor="end"
+            [attr.x]="plot.right - 4"
+            [attr.y]="m.pos - 4"
+            [attr.fill]="m.color">
+            {{ m.label }}
+          </text>
+        }
+      }
+    </svg>
+
+    @if (tooltip) {
+      <div class="tooltip" [class.flip]="tooltip.flip" [style.left.px]="tooltip.left" [style.top.px]="tooltip.top">
+        <div class="tooltip-title">{{ tooltip.title }}</div>
+        @for (r of tooltip.rows; track $index) {
+          <div class="tooltip-row">
+            <span class="swatch" [style.background]="r.color"></span>
+            <span class="tooltip-label">{{ r.label }}</span>
+            <span class="tooltip-value">{{ r.value }}</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (selectedInfo; as info) {
+    <div class="footer">
+      <span class="swatch" [style.background]="info.series.color"></span>
+      <span class="footer-label">{{ info.series.label }} · {{ info.label }}</span>
+      @if (info.canX) {
+        <label>
+          x
+          <input
+            type="number"
+            [step]="info.series.x?.step || 'any'"
+            [value]="info.xValue"
+            (change)="onSelectedInput('x', $any($event.target).value)" />
+        </label>
+      } @else {
+        <span class="footer-x">{{ info.x }}</span>
+      }
+      @if (info.canY) {
+        <label>
+          y
+          <input
+            type="number"
+            [step]="info.series.y?.step || 'any'"
+            [value]="info.y"
+            (change)="onSelectedInput('y', $any($event.target).value)" />
+        </label>
+      } @else {
+        <span>{{ formatY(info.series, info.y) }}</span>
+      }
+    </div>
+  }
+</div>

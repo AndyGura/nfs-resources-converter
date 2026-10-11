@@ -20,6 +20,14 @@ h1 {
   flex: 1;
 }
 
+.preset-row {
+  margin-bottom: 28px;
+
+  code {
+    font-size: 12px;
+  }
+}
+
 .actions {
   margin-top: 30px;
   display: flex;

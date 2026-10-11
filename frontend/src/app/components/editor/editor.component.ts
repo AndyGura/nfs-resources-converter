@@ -38,6 +38,8 @@ import { ArchiveBlockUiComponent } from './library/archive.block-ui/archive.bloc
 import { TargaImageBlockUiComponent } from './common/targa-image.block-ui/targa-image.block-ui.component';
 import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.block-ui/nfsu-bin-geometry.block-ui.component';
 import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.block-ui.component';
+import { PlayerCarPhysicsBlockUiComponent } from './eac/player-car-physics.block-ui/player-car-physics.block-ui.component';
+import { CarAiAndCrashBodyBlockUiComponent } from './eac/car-ai-and-crash-body.block-ui/car-ai-and-crash-body.block-ui.component';
 
 @Component({
   selector: 'app-editor',
@@ -70,6 +72,7 @@ export class EditorComponent implements OnDestroy {
 
     // misc
     AngleBlock: AngleBlockUiComponent,
+    IntegerAngleBlock: AngleBlockUiComponent,
 
     // Common classic Need For Speed blocks
     EacImage: ImageBlockUiComponent,
@@ -81,6 +84,8 @@ export class EditorComponent implements OnDestroy {
     EacsAudioFile: EacsAudioBlockUiComponent,
     SoundBank: SoundbankBlockUiComponent,
     TriMap: TrackMapBlockUiComponent,
+    PlayerCarPhysics: PlayerCarPhysicsBlockUiComponent,
+    CarAiAndCrashBody: CarAiAndCrashBodyBlockUiComponent,
 
     // NFS2-specific blocks
     GeoGeometry: GeoGeometryBlockUiComponent,
@@ -166,11 +171,12 @@ export class EditorComponent implements OnDestroy {
     if (this._component) {
       this._component.setInput('resourceId', this._resourceId);
       this._component.setInput('resourceName', this._resourceName);
-      this._component.setInput('resourceData', this._resourceData);
       this._component.setInput('resourceDescription', this._resourceDescription);
       this._component.setInput('hideName', this._hideName);
       this._component.setInput('hideBlockActions', this._hideBlockActions);
       this._component.setInput('disabled', this._disabled);
+      // data last: a component that fails on it must still get the inputs above (e.g. a shown top-level name)
+      this._component.setInput('resourceData', this._resourceData);
       this.cdr.markForCheck();
     }
   }
