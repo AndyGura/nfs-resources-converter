@@ -84,10 +84,11 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                 if '.FAM__' in id:
                     # build TNFS horizon texture
                     horz = next(x for name, x, _ in items if name == 'horz')
+                    from library.loader import id_to_path
                     from library.utils.nfs1_panorama_to_spherical import nfs1_panorama_to_spherical
 
                     nfs1_panorama_to_spherical(
-                        id[id.index('.FAM') - 7 : id.index('.FAM') - 4],
+                        id_to_path(id),
                         path_join(path, 'horz.png'),
                         path_join(path, 'spherical.png'),
                         horz['pivot']['y'],

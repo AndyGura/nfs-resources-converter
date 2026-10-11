@@ -151,6 +151,16 @@ When you do:
   `rotation` byte; a knocked-down bitmap sign falls the other way when > 64), plus the model / texture keys of the
   prop type. nfs-web reads them: keep them stable.
 
+## TNFS horizon (SIMDATA/*TRACKFM/*.FAM, bitmap `horz`)
+
+- `ShpiArchiveSerializer` writes `spherical.png` (2048x1024 equirectangular, eye level in the middle, heading 0 at the
+  centre) with `library/utils/nfs1_panorama_to_spherical.py`, which places `horz` as Win95 SE draws it: ring type 0
+  scrolls it (1280 texels per turn, 2 px rows at 640x480, row `pivot_y` on the horizon line), ring type 1 draws a ring
+  of 180 degrees per bitmap (mirrored second half with the mirror flag), texel rows 1..H-2 over
+  `ring_y_offset +- ring_height` px. Screen px become angles with the focal length of the 96 degrees chase cameras
+  (320 / tan(48 deg)). Settings: `MISC/<track>INFO` for `_T01` FAMs, the executable's table (`SE_HORIZON_SETTINGS`)
+  otherwise. nfs-web makes cube map faces of `spherical.png`.
+
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 
 - `OripGeometrySerializer` splits meshes by texture and by ORIP `labels` (polygon indices): mesh names
