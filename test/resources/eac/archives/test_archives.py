@@ -23,7 +23,6 @@ class TestShpiBlock(unittest.TestCase):
             ]
             data['children'].append(
                 {
-                    'pre_offset_payload': b'',
                     'post_offset_payload': b'',
                     'alias': alias,
                     'item': {'choice_index': image_choice, 'data': img_data},
@@ -64,7 +63,6 @@ class TestShpiBlock(unittest.TestCase):
         img_data['bitmap'] = [(x * 0x60 << 24) | (y * 0x60 << 16) | 0xFF for y in range(2) for x in range(2)]
         data['children'].append(
             {
-                'pre_offset_payload': b'',
                 'post_offset_payload': b'',
                 'alias': 'img0',
                 'item': {'choice_index': image_choice, 'data': img_data},
@@ -240,10 +238,9 @@ class TestBigfBlock(unittest.TestCase):
             {
                 'alias': alias,
                 'item': {'choice_index': bytes_choice, 'data': payload},
-                'pre_offset_payload': pre,
-                'post_offset_payload': b'',
+                'post_offset_payload': post,
             }
-            for alias, payload, pre in [('a.bin', b'12345', b''), ('b.bin', b'678', bytes(3))]
+            for alias, payload, post in [('a.bin', b'12345', bytes(3)), ('b.bin', b'678', b'')]
         ]
         # header 16 + 2 * (8 + 6), items 5 + 3, padding 3
         size = 16 + 28 + 8 + 3

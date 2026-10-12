@@ -49,8 +49,9 @@ class MemorySource:
 
 
 class FileSource:
-    """A file on disk. A handle is opened on the first deferred read and kept open. Raises `FileChangedError` if the
-    file was modified since it was read, and `SourceClosedError` after `close()` (the file was saved or closed)"""
+    """A file on disk. A handle is opened on the first deferred read and kept open while the source is referenced by
+    some tree. Raises `FileChangedError` if the file was modified since it was read, and `SourceClosedError` after
+    `close()` (the file was saved or closed)"""
 
     def __init__(self, path: str):
         self.path = path
@@ -78,9 +79,16 @@ class FileSource:
 
     def close(self):
         self.closed = True
+        self._close_handle()
+
+    def _close_handle(self):
         if self._handle is not None:
             self._handle.close()
             self._handle = None
+
+    def __del__(self):
+        # the last tree holding parts of this file is gone
+        self._close_handle()
 
 
 _file_sources: Dict[str, FileSource] = {}
@@ -96,10 +104,17 @@ def open_file_source(path: str) -> FileSource:
 
 def close_file_source(path: str):
     """Lazy parts read from this file can't be loaded anymore. Called before the file is overwritten or when it is
-    dropped from the file cache"""
+    closed"""
     source = _file_sources.pop(os.path.abspath(path), None)
     if source is not None:
         source.close()
+
+
+def release_file_source(path: str):
+    """Forgets the source of a file without closing it: the trees holding its lazy parts can still load them (the
+    file is checked for changes on every read) and its handle closes with the last of them. The next read of the
+    file gets a new source. Called when a file is evicted from the file cache"""
+    _file_sources.pop(os.path.abspath(path), None)
 
 
 def source_for_buffer(buffer) -> Optional[Any]:
@@ -407,6 +422,13 @@ def data_keys_of(block) -> Optional[FrozenSet[str]]:
                 block.field_extras_map.get(name, {}).get('usage', 'everywhere')
             )
         )
+    return None
+
+
+def unloaded_items(data):
+    """Items an unloaded part holds now (the seeded values) without parsing it, None for anything else"""
+    if isinstance(data, LazyDict) and not data._loaded:
+        return list(dict.items(data))
     return None
 
 

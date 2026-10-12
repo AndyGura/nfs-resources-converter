@@ -1,6 +1,7 @@
+from collections import OrderedDict
 from io import BufferedReader, BytesIO, SEEK_CUR
 from os.path import getsize
-from typing import Tuple
+from typing import Set, Tuple
 
 from library.read_blocks import DataBlock, OptionalBlock
 
@@ -286,24 +287,55 @@ def _unwrap_present_optional(res_block: 'DataBlock', res) -> 'DataBlock':
 # not shared between processes: in most cases if file requires another resource, it is in the same file, or it
 # requires one external file multiple times. It will be more time-consuming to serialize/deserialize it for sharing
 # between processes than load some file multiple times. + we avoid potential memory leaks
+#
+# Bounded: holds at most "file_cache_size" (General settings) files, least recently required ones are dropped first.
+# Pinned files (`pin_file`, the file open in the GUI, which holds references into its tree) are never dropped.
 
 # TODO use root_ctx instead?
-files_cache = {}
+files_cache: 'OrderedDict[str, Tuple[DataBlock, dict]]' = OrderedDict()
+pinned_files: Set[str] = set()
+
+
+def _file_cache_size() -> int:
+    import config
+
+    return max(1, int(config.general_config().file_cache_size))
+
+
+def pin_file(path: str):
+    """Keeps the file in the cache whatever amount of other files is required later (the file open in the GUI)"""
+    pinned_files.add(path_to_name(path))
+
+
+def unpin_file(path: str):
+    pinned_files.discard(path_to_name(path))
+
+
+def _drop_cached_file(name: str, close_source: bool):
+    from library.lazy import close_file_source, release_file_source
+
+    (close_file_source if close_source else release_file_source)(id_to_path(name))
+    files_cache.pop(name, None)
+    if name in DataBlock.root_read_ctx.children:
+        del DataBlock.root_read_ctx.children[name]
+
+
+def _evict_files_cache():
+    """Drops least recently required files over the cache size. Their lazy parts stay readable by whoever still
+    holds the tree (the file is just not shared anymore)"""
+    limit = _file_cache_size()
+    for name in list(files_cache.keys()):
+        if len(files_cache) <= limit:
+            break
+        if name not in pinned_files:
+            _drop_cached_file(name, close_source=False)
 
 
 def clear_file_cache(path: str):
-    from library.lazy import close_file_source
-
-    close_file_source(path)
-    try:
-        name = path_to_name(path)
-        del files_cache[name]
-        from library.read_blocks import DataBlock
-
-        if name in DataBlock.root_read_ctx.children:
-            del DataBlock.root_read_ctx.children[name]
-    except KeyError:
-        pass
+    """Forgets the file: it is read again on the next `require_file`, and unloaded lazy parts of the old tree can't
+    be read anymore (the file is about to be overwritten, or is closed)"""
+    unpin_file(path)
+    _drop_cached_file(path_to_name(path), close_source=True)
 
 
 def require_file(path: str, lazy: bool = None) -> Tuple[str, 'DataBlock', dict]:
@@ -319,7 +351,11 @@ def require_file(path: str, lazy: bool = None) -> Tuple[str, 'DataBlock', dict]:
     name = path_to_name(path)
     with LOAD_LOCK:
         (block, data) = files_cache.get(name, (None, None))
-        if block is None or data is None:
+        if block is not None:
+            files_cache.move_to_end(name)
+            if not lazy:
+                load_all(data)
+        else:
             with open(path, 'rb', buffering=100 * 1024 * 1024) as bdata:
                 file_size = getsize(path)
                 block_class = probe_block_class(bdata, path, file_size)
@@ -335,6 +371,5 @@ def require_file(path: str, lazy: bool = None) -> Tuple[str, 'DataBlock', dict]:
                 finally:
                     DataBlock.root_read_ctx.lazy = False
                 files_cache[name] = (block, data)
-        elif not lazy:
-            load_all(data)
+                _evict_files_cache()
     return name, block, data

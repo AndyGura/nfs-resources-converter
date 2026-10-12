@@ -9,11 +9,12 @@ import { ArchiveDelegateItemTypeDialogComponent } from '../../common/archive-del
 import { firstValueFrom } from 'rxjs';
 import { blockClassStr } from '../../../../utils/block_class_str';
 import { MatSelectionList } from '@angular/material/list';
+import { isLazyStub } from '../../../../utils/lazy';
 
+// an unloaded entry (`isLazyStub`) has `alias` only, until it is selected
 type ArchiveChildData = {
   alias: string | null;
   item: BlockData;
-  pre_offset_payload: number[];
   post_offset_payload: number[];
 };
 
@@ -64,7 +65,34 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     this.updateSelectionOnDataChange();
   }
 
-  selectedValue: [number, ArchiveChildData] | '___headers___' | null = null;
+  private _selectedValue: [number, ArchiveChildData] | '___headers___' | null = null;
+
+  get selectedValue(): [number, ArchiveChildData] | '___headers___' | null {
+    return this._selectedValue;
+  }
+
+  set selectedValue(value: [number, ArchiveChildData] | '___headers___' | null) {
+    this._selectedValue = value;
+    if (value && value !== '___headers___' && isLazyStub(value[1])) {
+      this.ensureChildLoaded(value[0]).then(() => {
+        if (this._selectedValue === value) {
+          this.cdr.markForCheck();
+        }
+      });
+    }
+  }
+
+  // the entry is parsed by the backend on first use, its object is filled in place
+  private ensureChildLoaded(index: number): Promise<void> {
+    return this.mainService.ensureLoaded(
+      joinId(this.resourceId!, `children/${index}`),
+      this.resourceData!.children[index],
+    );
+  }
+
+  isChildLoading(child: ArchiveChildData): boolean {
+    return isLazyStub(child);
+  }
 
   private readonly dialog = inject(MatDialog);
 
@@ -141,7 +169,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     });
   }
 
-  removeItem(index: number) {
+  async removeItem(index: number) {
+    // the change keeps the removed entry for undo: it has to be the parsed one
+    await this.ensureChildLoaded(index);
     this.emitNewChange({
       op: 'array_remove',
       id: joinId(this.resourceId!, 'children'),
@@ -168,7 +198,8 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     });
   }
 
-  editItem(index: number) {
+  async editItem(index: number) {
+    await this.ensureChildLoaded(index);
     this.dialog.open(ArchiveItemEditDialogComponent, {
       data: {
         id: joinId(this.resourceId || '', `children/${index}`),
@@ -184,6 +215,8 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     let block_class_mro = '';
     if (this.childSchema) {
       if (this.childSchema.block_class_mro.includes('DelegateBlock__')) {
+        // the kind of an unloaded entry is not known yet
+        if (!child.item) return 'hourglass_empty';
         block_class_mro = this.childSchema.possible_resource_schemas[child.item.choice_index].block_class_mro;
       } else {
         block_class_mro = this.childSchema.block_class_mro;

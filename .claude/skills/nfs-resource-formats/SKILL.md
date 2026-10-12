@@ -196,18 +196,20 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    the raw offset-table/data-bytes fields `usage: 'io,doc'` (hidden from the edit UI).
 3. Add `children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})` to `Fields` — this is the
    GUI-facing reconstructed item list.
-4. Override `read()` to build `children` from the offset table: `read_header()` reads every io field
-   before the items region (`data_bytes`, the last io field) without reading the region, then one
-   `read_entry(ctx, name, offset, length, item_length, alias, pre_offset_payload)` per item, where
-   `offset`/`length` is the item's slot (up to the next item offset, see `slot_lengths`). Bytes after
-   the item's own end inside its slot become its `post_offset_payload`; only the first item gets a
-   `pre_offset_payload` (bytes between the region start and itself, `read_gap`). In a lazy read
-   context `read_entry` returns an unloaded `LazyDict` (see "Lazy parts" in skill
+4. Declare `pre_items_payload` (a `BytesBlock` sized with `pre_items_payload_length(ctx, offsets)`) right
+   before `data_bytes`: the bytes between the item descriptions and the first item (padding, or data no
+   offset points to). Override `read()` to build `children` from the offset table: `read_header()` reads
+   every io field before the items region (`data_bytes`, the last io field) without reading the region,
+   then one `read_entry(ctx, name, offset, length, item_length, alias)` per item, where `offset`/`length`
+   is the item's slot (up to the next item offset, see `slot_lengths`). Bytes after the item's own end
+   inside its slot become its `post_offset_payload`; an entry never has bytes before its item. In a lazy
+   read context `read_entry` returns an unloaded `LazyDict` (see "Lazy parts" in skill
    `read-block-framework`), so item blocks must not depend on bytes outside their slot except via
    header values (`ctx.data('items_descr')` etc. are kept for them).
 5. Override `write()` to flatten `children` back into the offset table + raw data bytes, taking each
-   entry's `(pre, item, post)` bytes from `entry_bytes()` (an unloaded entry gives its original slot).
-6. Override `estimate_packed_size()` (header + `sum(self.entry_sizes(child))` per child).
+   entry's `(item, post)` bytes from `entry_bytes()` (an unloaded entry gives its original slot); item
+   offsets count `pre_items_payload`.
+6. Override `estimate_packed_size()` (header + `pre_items_payload` + `sum(self.entry_sizes(child))` per child).
 
 ## Registering a brand-new top-level file format
 

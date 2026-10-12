@@ -12,7 +12,7 @@ from config import general_config, set_config, SECTION_GENERAL
 from library import require_file
 from library.changes_service import ChangesService
 from library.lazy import close_file_source
-from library.loader import clear_file_cache
+from library.loader import clear_file_cache, id_to_path, path_to_name, pin_file
 from library.utils import path_join
 from library.utils.file_utils import start_file, find_files_case_insensitive
 from serializers.misc.json_utils import convert_bytes, serialize_exceptions
@@ -87,7 +87,11 @@ class FileAPI:
                 set_config(SECTION_GENERAL, 'recent_files', ','.join(recent_files))
             if force_reload:
                 clear_file_cache(path)
+            # one file is open at a time: the previous one and its tree are dropped
+            if self.current_file_name and self.current_file_name != path_to_name(path):
+                clear_file_cache(id_to_path(self.current_file_name))
             (name, block, data) = require_file(path)
+            pin_file(path)
             self.current_file_name = name
             self.current_file_data = data
             self.current_file_block = block
@@ -175,6 +179,7 @@ class FileAPI:
         ChangesService.on_file_saved()
         clear_file_cache(path)
         (name, block, data) = require_file(path)
+        pin_file(path)
         self.current_file_name = name
         self.current_file_data = data
         self.current_file_block = block

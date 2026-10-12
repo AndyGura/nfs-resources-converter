@@ -11,7 +11,7 @@ from library.read_blocks import (
     BytesBlock,
     OptionalBlock,
 )
-from library.read_blocks.archives import ArchiveBlock, read_gap, slot_lengths
+from library.read_blocks.archives import ArchiveBlock, pre_items_payload_length, slot_lengths
 from library.read_blocks.misc.value_validators import Eq
 from library.read_blocks.strings import NullTerminatedUTF8Block
 from resources.eac.audios import EacsAudioFile, SoundBankHeaderEntry, EaSoundPatch
@@ -81,6 +81,18 @@ class WwwwBlock(ArchiveBlock):
                 '(where resource id string is presented)',
             },
         )
+        pre_items_payload = (
+            BytesBlock(
+                length=(
+                    lambda ctx: pre_items_payload_length(ctx, [x for x in ctx.data('items_descr') if x > 0]),
+                    'up to the first item offset',
+                )
+            ),
+            {
+                'description': 'Bytes between the end of `items_descr` and the first item: padding, or data which '
+                'no item offset points to',
+            },
+        )
         data_bytes = (
             BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
             {
@@ -96,7 +108,7 @@ class WwwwBlock(ArchiveBlock):
         children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        total_length = 8
+        total_length = 8 + len(data.get('pre_items_payload', b''))
         for i, child in enumerate(data['children']):
             total_length += sum(self.entry_sizes(child, ctx))
             total_length += 4
@@ -110,26 +122,14 @@ class WwwwBlock(ArchiveBlock):
         offsets = [block_start + x for x in res['items_descr']]
         items = [(i, offset) for i, offset in enumerate(offsets) if offset != block_start]
         lengths = slot_lengths([offset for _, offset in items], end_pos)
-        first_offset = min((offset for _, offset in items), default=None)
         # entries are parsed later in lazy mode: keep header (with io-only fields) for their contexts
         entry_ctx = self_ctx.detached(ctx.buffer, data=dict(res)) if self_ctx.lazy else self_ctx
         # self-reference, ignore
         children = [
-            {
-                'item': {'choice_index': self.bytes_choice, 'data': b''},
-                'pre_offset_payload': b'',
-                'post_offset_payload': b'',
-            }
-            for _ in offsets
+            {'item': {'choice_index': self.bytes_choice, 'data': b''}, 'post_offset_payload': b''} for _ in offsets
         ]
         for (i, offset), length in zip(items, lengths):
-            children[i] = self.read_entry(
-                entry_ctx,
-                name=str(i),
-                offset=offset,
-                length=length,
-                pre_offset_payload=read_gap(ctx, region_start, offset) if offset == first_offset else b'',
-            )
+            children[i] = self.read_entry(entry_ctx, name=str(i), offset=offset, length=length)
         res['children'] = children
         ctx.buffer.seek(end_pos)
         del res['items_descr']
@@ -139,12 +139,11 @@ class WwwwBlock(ArchiveBlock):
         data['data_bytes'] = b''
         data['items_descr'] = []
         for i, child in enumerate(data['children']):
-            pre, item_data, post = self.entry_bytes(child, ctx, str(i))
-            data['data_bytes'] += pre
+            item_data, post = self.entry_bytes(child, ctx, str(i))
             data['items_descr'].append(len(data['data_bytes']))
             data['data_bytes'] += item_data
             data['data_bytes'] += post
-        heap_offset = 8 + len(data['items_descr']) * 4
+        heap_offset = 8 + len(data['items_descr']) * 4 + len(data.get('pre_items_payload', b''))
         data['items_descr'] = [x + heap_offset for x in data['items_descr']]
         ret = super().write(data=data, ctx=ctx, name=name)
         del data['items_descr']
@@ -245,6 +244,18 @@ class BigfBlock(ArchiveBlock):
             ArrayBlock(length=lambda ctx: ctx.data('num_items'), child=BigfItemDescriptionBlock()),
             {'usage': 'io,doc', 'description': 'Descriptions of items: offset, length and name of each of them'},
         )
+        pre_items_payload = (
+            BytesBlock(
+                length=(
+                    lambda ctx: pre_items_payload_length(ctx, [x['offset'] for x in ctx.data('items_descr')]),
+                    'up to the first item offset',
+                )
+            ),
+            {
+                'description': 'Bytes between the end of `items_descr` and the first item: padding, or data which '
+                'no item offset points to',
+            },
+        )
         data_bytes = (
             BytesBlock(length=lambda ctx: ctx.read_bytes_remaining),
             {
@@ -266,11 +277,14 @@ class BigfBlock(ArchiveBlock):
         """Value of "length" header field: block size, or (NFS6) size without padding between items. The second
         one is used when the field read from file has it"""
         size = self.estimate_packed_size(data)
-        unpadded = size - sum(pre + post for (pre, _, post) in (self.entry_sizes(c) for c in data['children']))
+        padding = len(data.get('pre_items_payload', b'')) + sum(
+            post for (_, post) in map(self.entry_sizes, data['children'])
+        )
+        unpadded = size - padding
         return unpadded if data.get('length') == unpadded else size
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        total_length = 16
+        total_length = 16 + len(data.get('pre_items_payload', b''))
         for i, child in enumerate(data['children']):
             total_length += sum(self.entry_sizes(child, ctx))
             total_length += 9 + len(child['alias'])
@@ -299,7 +313,6 @@ class BigfBlock(ArchiveBlock):
                 length=length,
                 item_length=descr['length'],
                 alias=descr['name'],
-                pre_offset_payload=read_gap(ctx, region_start, offset) if i == 0 else b'',
             )
         res['children'] = children
         ctx.buffer.seek(end_pos)
@@ -310,8 +323,7 @@ class BigfBlock(ArchiveBlock):
         data['data_bytes'] = b''
         children = []
         for i, child in enumerate(data['children']):
-            pre, item_data, post = self.entry_bytes(child, ctx, str(i))
-            data['data_bytes'] += pre
+            item_data, post = self.entry_bytes(child, ctx, str(i))
             children.append((child['alias'], len(data['data_bytes']), len(item_data)))
             data['data_bytes'] += item_data
             data['data_bytes'] += post
@@ -320,7 +332,7 @@ class BigfBlock(ArchiveBlock):
             for (name, offset, length) in children
             if name is not None
         ]
-        heap_offset = 16
+        heap_offset = 16 + len(data.get('pre_items_payload', b''))
         for x in data['items_descr']:
             heap_offset += 9 + len(x['name'])
         for x in data['items_descr']:

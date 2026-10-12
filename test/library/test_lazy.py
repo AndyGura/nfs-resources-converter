@@ -59,10 +59,9 @@ class TestLazyDict(unittest.TestCase):
         self.assertIsInstance(child, LazyDict)
         self.assertFalse(is_loaded(child))
         self.assertIsInstance(child['alias'], str)
-        self.assertEqual(child['pre_offset_payload'], b'')
         self.assertIn('item', child)
         self.assertNotIn('foo', child)
-        self.assertEqual(len(child), 4)
+        self.assertEqual(len(child), 3)
         self.assertTrue(child)
         self.assertIsNone(child.get('foo'))
         self.assertEqual(stats['parses'], 0)
@@ -75,7 +74,7 @@ class TestLazyDict(unittest.TestCase):
         self.assertTrue(is_loaded(child))
         self.assertIs(child['item']['data'], image)
         self.assertEqual(stats['parses'], 1)
-        self.assertEqual(list(child.keys()), ['item', 'alias', 'pre_offset_payload', 'post_offset_payload'])
+        self.assertEqual(list(child.keys()), ['item', 'alias', 'post_offset_payload'])
         self.assertFalse(any(is_loaded(c) for i, c in enumerate(self.data['children']) if i != 1))
 
     def test_whole_dict_readers_load_first(self):
@@ -99,7 +98,7 @@ class TestLazyDict(unittest.TestCase):
             self.assertTrue(is_loaded(child), f'reader {i}')
             if isinstance(res, dict):
                 self.assertIn('item', res, f'reader {i}')
-                self.assertEqual(len(res), 4, f'reader {i}')
+                self.assertEqual(len(res), 3, f'reader {i}')
 
     def test_deepcopy_and_equality_of_unloaded_do_not_parse(self):
         before = copy.deepcopy(self.data)
@@ -129,7 +128,7 @@ class TestLazyDict(unittest.TestCase):
         with transient(child) as c:
             self.assertIn('data', c['item'])
         self.assertFalse(is_loaded(child))
-        self.assertEqual(dict.__len__(child), 2)
+        self.assertEqual(dict.__len__(child), 1)
 
     def test_untouched_and_partially_loaded_pack_is_exact(self):
         with open(self.PATH, 'rb') as f:

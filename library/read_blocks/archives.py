@@ -13,24 +13,25 @@ from library.read_blocks import CompoundBlock, DeclarativeCompoundBlock, BytesBl
 # 2) Declare own compound block fields as usual, documentation and io friendly
 # 3) Declare fields like children offsets, children array etc. usage to be "io,doc" (skip showing in UI)
 # 4) Add `children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})` to Fields class
-# 5) Update read function to produce "children" array as per structure, implemented here: `read_header` reads
+# 5) Declare `pre_items_payload = (BytesBlock(length=(<lambda>, 'doc')), {...})` right before `data_bytes`: the bytes
+#    between the end of the item descriptions and the first item (`pre_items_payload_length` computes them)
+# 6) Update read function to produce "children" array as per structure, implemented here: `read_header` reads
 #    everything but the items region (`data_bytes` field, must be the last io field), `read_entry` reads one item
-# 6) Update write function to use "children" array as per structure, and transform it to the io format, getting
-#    bytes of each entry with `entry_bytes`
-# 7) Override estimate_packed_size (look at shpi example), sizing entries with `entry_sizes`
+# 7) Update write function to use "children" array as per structure, and transform it to the io format, getting
+#    bytes of each entry with `entry_bytes`; item offsets count `pre_items_payload`
+# 8) Override estimate_packed_size (look at shpi example), sizing entries with `entry_sizes`
 #
 # Entry bytes: an entry owns its slot, from its item offset up to the offset of the next item (in the file order).
-# The item is parsed from the slot start, bytes left after the item end are `post_offset_payload`. Bytes between the
-# items region start and the first item are `pre_offset_payload` of the first item.
-# With lazy read context, entries are unloaded `LazyDict`s, seeded with `alias` and `pre_offset_payload`. Unloaded
-# entry is written back as its original slot bytes.
+# The item is parsed from the slot start, bytes left after the item end are `post_offset_payload`. Entries never
+# have bytes before their item: the offset table points at the item start.
+# With lazy read context, entries are unloaded `LazyDict`s, seeded with `alias`. Unloaded entry is written back as
+# its original slot bytes.
 class ArchiveBlock(DeclarativeCompoundBlock, ABC):
     def __init__(self, item_block, alias_field=None, **kwargs):
         super().__init__(**kwargs)
         self.item_block = item_block
         fields = [
             ('item', item_block, {}),
-            ('pre_offset_payload', BytesBlock(length=None), {}),
             ('post_offset_payload', BytesBlock(length=None), {}),
         ]
         if alias_field is not None:
@@ -75,15 +76,11 @@ class ArchiveBlock(DeclarativeCompoundBlock, ABC):
         length: int,
         item_length: Optional[int] = None,
         alias=None,
-        pre_offset_payload: bytes = b'',
     ):
         """One entry (`children` item). `offset` and `length` are the absolute slot, the item is read with
         `read_bytes_amount=item_length` (whole slot by default). `ctx` should hold the header data, including io-only
         fields, for item blocks looking them up. Returns a plain dict, or an unloaded `LazyDict` if ctx is lazy"""
-        seed = {}
-        if self.has_alias:
-            seed['alias'] = alias
-        seed['pre_offset_payload'] = pre_offset_payload
+        seed = {'alias': alias} if self.has_alias else {}
         slot = Slot(
             source=None,
             offset=offset,
@@ -102,30 +99,34 @@ class ArchiveBlock(DeclarativeCompoundBlock, ABC):
         ctx.buffer.seek(offset)
         return _parse_entry(ctx, slot)
 
-    def entry_sizes(self, child, ctx: WriteContext = None) -> Tuple[int, int, int]:
-        """Lengths of pre-offset payload, item and post-offset payload of entry when packed"""
+    def entry_sizes(self, child, ctx: WriteContext = None) -> Tuple[int, int]:
+        """Lengths of item and post-offset payload of entry when packed"""
         slot = unloaded_slot(child)
         if slot is not None:
             item_length = min(slot.item_length, slot.length)
-            return len(dict.__getitem__(child, 'pre_offset_payload')), item_length, slot.length - item_length
+            return item_length, slot.length - item_length
         return (
-            len(child['pre_offset_payload']),
             self.item_block.estimate_packed_size(data=child['item'], ctx=ctx),
             len(child['post_offset_payload']),
         )
 
-    def entry_bytes(self, child, ctx: WriteContext = None, name: str = '') -> Tuple[bytes, bytes, bytes]:
-        """Packed pre-offset payload, item and post-offset payload of entry"""
+    def entry_bytes(self, child, ctx: WriteContext = None, name: str = '') -> Tuple[bytes, bytes]:
+        """Packed item and post-offset payload of entry"""
         slot = unloaded_slot(child)
         if slot is not None:
             raw = slot.raw()
             item_length = min(slot.item_length, slot.length)
-            return dict.__getitem__(child, 'pre_offset_payload'), raw[:item_length], raw[item_length:]
+            return raw[:item_length], raw[item_length:]
         return (
-            child['pre_offset_payload'],
             self.item_block.pack(data=child['item'], ctx=ctx, name=name),
             child['post_offset_payload'],
         )
+
+
+def pre_items_payload_length(ctx: ReadContext, offsets: List[int]) -> int:
+    """Length of `pre_items_payload`: from the buffer position up to the smallest item offset (relative to the block
+    start), 0 without items or when the first item starts before the position"""
+    return max(0, min(offsets, default=ctx.local_buffer_pos) - ctx.local_buffer_pos)
 
 
 def slot_lengths(offsets: List[int], region_end: int) -> List[int]:
@@ -148,17 +149,5 @@ def _parse_entry(ctx: ReadContext, slot: Slot) -> dict:
     res = {'item': item}
     if archive.has_alias:
         res['alias'] = slot.seed['alias']
-    res['pre_offset_payload'] = slot.seed['pre_offset_payload']
     res['post_offset_payload'] = ctx.buffer.read(tail) if tail > 0 else b''
-    return res
-
-
-def read_gap(ctx: ReadContext, start: int, end: int) -> bytes:
-    """Bytes between absolute offsets (empty if end is not after start). Buffer position is not changed"""
-    if end <= start:
-        return b''
-    pos = ctx.buffer.tell()
-    ctx.buffer.seek(start)
-    res = ctx.buffer.read(end - start)
-    ctx.buffer.seek(pos)
     return res

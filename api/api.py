@@ -55,6 +55,7 @@ class API:
 
         # Resource API
         bridge.expose(self.resource_api.retrieve_value)
+        bridge.expose(self.resource_api.load_lazy_part)
         bridge.expose(self.resource_api.run_custom_action)
         bridge.expose(self.resource_api.get_new_item_data)
         bridge.expose(self.resource_api.get_trailing_optional_field_data)

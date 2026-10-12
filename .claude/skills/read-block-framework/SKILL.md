@@ -68,8 +68,8 @@ section, env `NFS_RESOURCES_CONVERTER_GENERAL_LAZY_LOADING`); `ReadContext.lazy`
 the context tree (`unpack_from_bytes` and bare `ReadContext`s are eager).
 - Lazy parts are archive entries (`ArchiveBlock.read_entry`) and `DelegateBlock` data with
   `part_length` (NFSU bundle chunks). Each is an unloaded `LazyDict` (a real `dict`) with a `Slot`
-  (source, absolute offset, length, parse function, parent context) and seeded values (alias, gap
-  bytes, chunk id). First access to another key parses the part with
+  (source, absolute offset, length, parse function, parent context) and seeded values (alias, chunk
+  id). First access to another key parses the part with
   `slot.parent_ctx.detached(buffer)` — same name, data, parent chain and offsets as the eager read,
   over a reopened buffer — and fills the same object. Whole-dict readers (iteration, `items()`,
   `dict()`, `json.dumps`, `==`, `copy`, `pickle`) load first; `deepcopy` of an unloaded part is an
@@ -78,8 +78,20 @@ the context tree (`unpack_from_bytes` and bare `ReadContext`s are eager).
   so untouched parts round-trip byte for byte. Validation of a part runs when it loads.
 - Sources: `FileSource` per file (`open_file_source` in `require_file`, `close_file_source` in
   `clear_file_cache` and before saving over a file; a changed or closed file raises
-  `FileChangedError`/`SourceClosedError`), `MemorySource` for a `BytesIO` buffer (decompressed data).
-  `source_for_buffer` maps a context buffer to its source; a part over any other buffer is read eagerly.
+  `FileChangedError`/`SourceClosedError`; `release_file_source` when the file cache evicts a file: trees
+  still holding the source keep reading, its handle closes with the last of them), `MemorySource` for a
+  `BytesIO` buffer (decompressed data). `source_for_buffer` maps a context buffer to its source; a part
+  over any other buffer is read eagerly.
+- File cache (`library/loader.py`): `files_cache` keeps at most `file_cache_size` (General settings,
+  default 16) least recently required files; `pin_file` / `unpin_file` exempt a file (the GUI pins the
+  open file, `FileAPI.open_file` drops the previous one). `clear_file_cache` forgets a file and closes
+  its source.
+- GUI: `convert_bytes` (`serializers/misc/json_utils.py`) renders an unloaded part as its seeded values
+  plus `"__lazy__": true` (`LAZY_MARKER`, `unloaded_items`), so `open_file` sends no parsed entries or
+  chunks. The frontend (`utils/lazy.ts`, `MainService.ensureLoaded`) calls `load_lazy_part(id)`
+  (`ResourceAPI`) when a stub is about to be shown (`EditorComponent`, archive list selection / edit /
+  remove) and fills the stub object in place; `retrieve_value` returns a whole value with every part
+  loaded.
 - Helpers: `is_loaded`, `load_all(tree)`, `transient(node)` (parse, use, drop again), `lazy_unpack`
   (generic deferred `block.unpack`), `stats['parses']` (counter used by tests).
 - Parse of a part may depend only on its own bytes, fixed file offsets and header values, never on

@@ -12,7 +12,7 @@ from library.read_blocks import (
     BytesBlock,
     LengthPrefixedArrayBlock,
 )
-from library.read_blocks.archives import ArchiveBlock, read_gap, slot_lengths
+from library.read_blocks.archives import ArchiveBlock, pre_items_payload_length, slot_lengths
 from library.read_blocks.misc.value_validators import Eq
 from library.utils.id import join_id
 from resources.eac.bitmaps import EacImage, EacPalette
@@ -121,6 +121,18 @@ class ShpiBlock(ArchiveBlock):
                 'resource id string is presented). Names are not always unique',
             },
         )
+        pre_items_payload = (
+            BytesBlock(
+                length=(
+                    lambda ctx: pre_items_payload_length(ctx, [x['offset'] for x in ctx.data('items_descr')]),
+                    'up to the first item offset',
+                )
+            ),
+            {
+                'description': 'Bytes between the end of `items_descr` and the first item: padding, or data which '
+                'no item offset points to',
+            },
+        )
         data_bytes = (
             BytesBlock(length=lambda ctx: determine_shpi_length(ctx)),
             {
@@ -139,6 +151,7 @@ class ShpiBlock(ArchiveBlock):
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         total_length = 16
+        total_length += len(data.get('pre_items_payload', b''))
         for i, child in enumerate(data['children']):
             total_length += sum(self.entry_sizes(child, ctx))
             if child['alias'] is not None:
@@ -169,7 +182,6 @@ class ShpiBlock(ArchiveBlock):
                 offset=offset,
                 length=length,
                 alias=descr['name'],
-                pre_offset_payload=read_gap(ctx, region_start, offset) if i == 0 else b'',
             )
         res['children'] = children
         ctx.buffer.seek(end_pos)
@@ -180,13 +192,12 @@ class ShpiBlock(ArchiveBlock):
         data['data_bytes'] = b''
         children = []
         for i, child in enumerate(data['children']):
-            pre, item_data, post = self.entry_bytes(child, ctx, str(i))
-            data['data_bytes'] += pre
+            item_data, post = self.entry_bytes(child, ctx, str(i))
             children.append((child['alias'], len(data['data_bytes']), len(item_data)))
             data['data_bytes'] += item_data
             data['data_bytes'] += post
         data['items_descr'] = [{'name': name, 'offset': offset} for (name, offset, _) in children if name is not None]
-        heap_offset = 16 + len(data['items_descr']) * 8
+        heap_offset = 16 + len(data['items_descr']) * 8 + len(data.get('pre_items_payload', b''))
         for x in data['items_descr']:
             x['offset'] += heap_offset
         ret = super().write(data=data, ctx=ctx, name=name)
@@ -242,7 +253,6 @@ class ShpiBlock(ArchiveBlock):
         read_data['children'].insert(
             0,
             {
-                'pre_offset_payload': b'',
                 'post_offset_payload': b'',
                 'alias': palette_name,
                 'item': {'choice_index': self.item_block.get_choice_index_by_class_name('EacPalette'), 'data': pal},

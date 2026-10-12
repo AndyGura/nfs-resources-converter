@@ -291,7 +291,6 @@ class TestFce3GeometrySerializer(unittest.TestCase):
             {
                 'alias': alias,
                 'item': {'choice_index': bytes_choice, 'data': item_bytes},
-                'pre_offset_payload': b'',
                 'post_offset_payload': b'',
             }
             for alias, item_bytes in [(fce_name, fce_block.pack(fce_data))] + tga_items
