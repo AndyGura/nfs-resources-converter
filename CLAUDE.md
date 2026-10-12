@@ -83,6 +83,8 @@ docs and a working GUI editor for free.
   errors, scripts that fail to load and `console.error` to it through the `log_frontend_message` endpoint, every line
   prefixed `[JS]`. On Windows the GUI needs the Edge WebView2 Runtime: without it pywebview falls back to MSHTML (IE11,
   white window), so `gui_editor_windows.py` shows a message box and exits instead; the installer installs the runtime.
+  `gui_editor_windows.py` also maps `.js` / `.mjs` / `.css` to their standard types in `mimetypes`, which takes them from
+  the Windows registry (`.js` is often `text/plain` there, and the web view refuses module scripts with it).
 - `ffmpeg` and Blender 4+ are required for audio/video/3D conversions.
 - CI (`.github/workflows/pull_request_build.yml`) runs exactly the two test commands above —
   keep both green before considering a change done.

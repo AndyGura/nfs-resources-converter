@@ -2,6 +2,7 @@ import ctypes
 import functools
 import http.server
 import logging
+import mimetypes
 import os
 import socketserver
 import sys
@@ -82,6 +83,18 @@ def _check_web_engine():
     if answer == IDYES:
         webbrowser.open(_WEBVIEW2_DOWNLOAD_URL)
     return False
+
+
+def _fix_mime_types():
+    """Serve the frontend files with their standard Content-Type.
+
+    Python's mimetypes (used by pywebview's HTTP server and the dev static server) reads file types
+    from the Windows registry, where installed programs often set ".js" to "text/plain". The web view
+    refuses to run module scripts (the Angular bundle) with a non-JavaScript type: the window stays white.
+    """
+    mimetypes.add_type('text/javascript', '.js')
+    mimetypes.add_type('text/javascript', '.mjs')
+    mimetypes.add_type('text/css', '.css')
 
 
 def _get_frontend_dist_path():
@@ -223,6 +236,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
 
     if not _check_web_engine():
         return
+    _fix_mime_types()
 
     # Directory holding files needed by the GUI: in production the frontend
     # build; in development just the eel.js shim and serialized resources. In
