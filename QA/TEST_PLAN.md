@@ -24,7 +24,7 @@ standing regression set (`REGRESSION.md`), — = one-off/exploratory only.
 | F-3 | Close | File → Close with a file open | Returns to Landing Page; toolbar reverts to no-file-open state | P1 | ✅ | **Pass** (Confirmed live) |
 | F-4 | Reload from disk | Edit a field, then File → Reload from disk | In-memory edit is discarded, field reverts to on-disk value | P1 | ✅ | **Pass** (Confirmed live 2026-10-10, ANSX.PDN: in-app confirmation, undo history cleared) |
 | F-5 | Save | Edit a field, File → Save | File is enabled only once dirty; after save, file on disk reflects the edit and dirty flag clears | P0 | ✅ | Not run — Unknown |
-| F-6 | New File | File → New..., pick each of FFN/FSH/QFS, save-as a temp path | A minimal valid file of that format is created and re-openable | P2 | ✅ | Not run |
+| F-6 | New File | File → New..., pick each of FFN/FSH/QFS/PBS/PDN/BigSpecsFam, save-as a temp path | A minimal valid file of that format is created and re-openable | P2 | ✅ | Not run |
 | F-7 | Open unsupported/corrupt file | Open a file with no matching format (e.g. a `.txt`) or a truncated/garbage binary | Inline error state in the editor pane (not a crash, not a silent no-op) | P0 | ✅ | Not run — see also `KNOWN_ISSUES.md` "Unknown" list |
 | F-8 | Undo/Redo across a session | Make 3+ edits, Undo twice, Redo once, Save | Final saved state matches the edit that was current after the Redo | P1 | ✅ | Not run |
 | F-9 | Close with unsaved changes | Edit a field, File → Close (no confirmation dialog observed in code for this path) | **Unknown**: does it warn before discarding, or silently drop edits? Verify against code (`AppComponent.closeFile`) before assuming either | P1 | — | Not run |

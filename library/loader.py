@@ -20,11 +20,11 @@ def _find_block_class(buffer: [BufferedReader, BytesIO], file_path: str, length=
             from resources.eac.archives import SoundBank
 
             return SoundBank
-        elif file_path.endswith('.PBS__uncompressed'):
+        elif file_path.upper().endswith('.PBS__UNCOMPRESSED'):
             from resources.eac.car_specs import PlayerCarPhysics
 
             return PlayerCarPhysics
-        elif file_path.endswith('.PDN__uncompressed'):
+        elif file_path.upper().endswith('.PDN__UNCOMPRESSED'):
             from resources.eac.car_specs import CarAiAndCrashBody
 
             return CarAiAndCrashBody

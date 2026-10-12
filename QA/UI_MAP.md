@@ -181,7 +181,9 @@ path) in an environment where neither is installed.
 ## New File dialog (`app-new-file.dialog`, File → New...) — Confirmed (code)
 
 Lets the user pick a template format to start a blank file from: **FFN font**, **FSH image
-archive**, **QFS image archive** (radio-style list with format icons, one preselected: `ffn`).
+archive**, **QFS image archive**, **PBS car physics (TNFS PC)**, **PDN car AI and crash body (TNFS
+PC)**, **BigSpecsFam car physics (TNFS 3DO)** (radio-style list with format icons, one preselected:
+`ffn`). The car specs files start zero-filled (derived inverses written as 0).
 Confirming opens a save-file dialog seeded with `Untitled.<ext>`, then calls `createNewFile`.
 Cancelling returns nothing. Not exercised live this pass (would need to drive both this dialog and
 a subsequent native save dialog back-to-back).

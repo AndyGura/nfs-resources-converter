@@ -12,6 +12,7 @@
 FILE_ASSOCIATIONS = [
     # {"extension": "as4", "name": "AS4 Audio File"},
     # {"extension": "asf", "name": "ASF Audio File"},
+    {'extension': 'bigspecsfam', 'name': 'BigSpecsFam Player Car Physics File'},
     # {"extension": "bnk", "name": "BNK Sound Bank File"},
     # {"extension": "cfm", "name": "CFM Car 3D Model File"},
     # {"extension": "col", "name": "COL Track Data File"},

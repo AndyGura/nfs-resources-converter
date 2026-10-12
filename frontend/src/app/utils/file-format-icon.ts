@@ -36,5 +36,8 @@ const iconMap: Record<string, string> = {
   FrdMap: 'layers',
 
   EacsAudioFile: 'audiotrack',
+
+  PlayerCarPhysics: 'speed',
+  CarAiAndCrashBody: 'speed',
 };
 const fallbackIcon = 'question_mark';
