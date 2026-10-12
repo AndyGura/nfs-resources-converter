@@ -20,7 +20,7 @@ class TestEacCompressedBlock(unittest.TestCase):
         block = EacCompressedBlock()
         compressed = block.pack({'data': mock_data, 'choice_index': block.get_choice_index_by_class_name('BytesBlock')})
 
-        decompressed_asm = Qfs2ASMCompression().uncompress(BytesIO(compressed), len(compressed))
+        decompressed_asm = RefPackASMCompression().uncompress(BytesIO(compressed), len(compressed))
         decompressed = block.unpack(ReadContext.from_bytes(compressed), read_bytes_amount=len(compressed))
         self.assertEqual(mock_data, bytes(decompressed_asm), 'Decompressed ASM data does not match original data')
         self.assertEqual(mock_data, decompressed['data'], 'Decompressed data does not match original data')
@@ -42,10 +42,10 @@ class TestEacCompressedBlock(unittest.TestCase):
                 self.assertEqual(packed[:2], bytes([flags, 0xFB]))
                 self.assertEqual(_uncompressed_sample(file_name), _uncompressed_bytes(packed))
 
-    def test_new_data_should_be_written_as_qfs2(self):
+    def test_new_data_should_be_written_as_refpack(self):
         block = EacCompressedBlock()
         data = block.new_data({'choice_index': block.get_choice_index_by_class_name('ShpiBlock')})
-        self.assertEqual(block.pack(data)[:2], b'\x46\xfb')
+        self.assertEqual(block.pack(data)[:2], b'\x10\xfb')
 
     def test_compressed_size_should_come_before_uncompressed_size(self):
         raw = b'abcabcabcabc' * 50
