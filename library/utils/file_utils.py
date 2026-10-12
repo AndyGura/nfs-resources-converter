@@ -28,12 +28,14 @@ def remove_file_or_directory(path):
 def _resolve_dir_case_insensitive(directory: str):
     # Returns the existing directory matching `directory` with any letter case per path component,
     # or None. Game files ship with inconsistent case ("Tr0.QFS" vs "tr0.qfs") and case-sensitive
-    # file systems need this to find them.
-    if directory == '' or os.path.isdir(directory):
+    # file systems need this to find them. The result has the on-disk case also on case-insensitive
+    # file systems (macOS, Windows), where `directory` itself would pass os.path.isdir.
+    if directory == '':
         return directory
     parent, name = os.path.split(directory.rstrip('/\\'))
-    if parent == directory or not name:
-        return None
+    if not name:
+        # File system root ("/", "C:\")
+        return directory if os.path.isdir(directory) else None
     parent = _resolve_dir_case_insensitive(parent)
     if parent is None:
         return None
@@ -41,6 +43,8 @@ def _resolve_dir_case_insensitive(directory: str):
         entries = os.listdir(parent or '.')
     except OSError:
         return None
+    if (name in entries or name in ('.', '..')) and os.path.isdir(os.path.join(parent, name)):
+        return os.path.join(parent, name)
     for entry in entries:
         if entry.lower() == name.lower() and os.path.isdir(os.path.join(parent, entry)):
             return os.path.join(parent, entry)

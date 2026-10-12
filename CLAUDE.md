@@ -78,6 +78,11 @@ docs and a working GUI editor for free.
 - Run the app: `python run.py [path/to/file]`; `python run.py --dev` for the hot-reload GUI
   (see `README.md` "Debugging the Angular frontend" for the full dev-server dance, incl. Linux
   differences).
+- GUI log: `~/nfs-resources-converter-logs.log` (`config.LOG_FILE_PATH`), Python logging and stdout/stderr.
+  `frontend/src/assets/js-error-logger.js` (loaded by `index.html` before the Angular bundle) sends uncaught JS
+  errors, scripts that fail to load and `console.error` to it through the `log_frontend_message` endpoint, every line
+  prefixed `[JS]`. On Windows the GUI needs the Edge WebView2 Runtime: without it pywebview falls back to MSHTML (IE11,
+  white window), so `gui_editor_windows.py` shows a message box and exits instead; the installer installs the runtime.
 - `ffmpeg` and Blender 4+ are required for audio/video/3D conversions.
 - CI (`.github/workflows/pull_request_build.yml`) runs exactly the two test commands above —
   keep both green before considering a change done.

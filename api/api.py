@@ -3,6 +3,8 @@ Main API class for the NFS Resources Converter.
 This class initializes and manages all API endpoints.
 """
 
+import logging
+
 from api.bridge import bridge
 from .endpoints.conversion_api import ConversionAPI
 from .endpoints.file_api import FileAPI
@@ -11,6 +13,8 @@ from .endpoints.resource_api import ResourceAPI
 from .endpoints.serialization_api import SerializationAPI
 from .endpoints.changes_api import ChangesAPI
 from version import __version__
+
+_frontend_logger = logging.getLogger('frontend')
 
 
 class API:
@@ -85,6 +89,9 @@ class API:
         # Version API
         bridge.expose(self.get_version)
 
+        # Frontend log (frontend/src/assets/js-error-logger.js)
+        bridge.expose(self.log_frontend_message)
+
         # File dialog API
         bridge.expose(self.file_dialog_api.open_file_dialog)
         bridge.expose(self.file_dialog_api.save_file_dialog)
@@ -93,3 +100,8 @@ class API:
     def get_version(self) -> str:
         """Return the current application version."""
         return __version__
+
+    def log_frontend_message(self, level: str, message: str):
+        """Write a frontend error (uncaught exception, console.error...) to the log, every line prefixed with [JS]."""
+        text = '\n'.join(f'[JS] {line}' for line in str(message)[:20000].splitlines())
+        _frontend_logger.log(logging.WARNING if level == 'warning' else logging.ERROR, text)
