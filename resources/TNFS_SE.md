@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-11 16:54:40.693002+00:00*
+*Last time updated: 2026-10-12 12:44:58.238189+00:00*
 
 
 # **Info by file extensions** #
@@ -57,7 +57,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 8 | **num_items** | 4 | 4-bytes unsigned integer (little endian) | An amount of items |
 | 12 | **shpi_dir** | 4 | UTF-8 string | One of: "LN32", "GIMX", "WRAP". The purpose is unknown |
 | 16 | **items_descr** | num_items\*8 | Array of `num_items` items<br/>Item size: 8 bytes<br/>Item type: 8-bytes record, first 4 bytes is a UTF-8 string, last 4 bytes is an unsigned integer (little-endian) | An array of items, each of them represents name of SHPI item (image or palette) and offset to item data in file, relatively to SHPI block start (where resource id string is presented). Names are not always unique |
-| 16 + num_items\*8 | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets to some of the entries are defined in `items_descr` block. Between them there can be non-indexed entries (palettes and texts). Possible item types:<br/>- [EacImage](#eacimage)<br/>- [EacPalette](#eacpalette) |
+| 16 + num_items\*8 | **pre_items_payload** | up to the first item offset | Bytes | Bytes between the end of `items_descr` and the first item: padding, or data which no item offset points to |
+| 16 + num_items\*8 + up to the first item offset | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets to some of the entries are defined in `items_descr` block. Between them there can be non-indexed entries (palettes and texts). Possible item types:<br/>- [EacImage](#eacimage)<br/>- [EacPalette](#eacpalette) |
 ### **WwwwBlock** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: A block-container with various data: image archives, geometries, other wwww blocks. If has ORIP 3D model, next item is always SHPI block with textures to this 3D model ####
@@ -66,7 +67,8 @@ Did not find what you need or some given data is wrong? Please submit an
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "wwww" | Resource ID |
 | 4 | **num_items** | 4 | 4-bytes unsigned integer (little endian) | An amount of items |
 | 8 | **items_descr** | num_items\*4 | Array of `num_items` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | An array of offsets to items data in file, relatively to wwww block start (where resource id string is presented) |
-| 8 + num_items\*4 | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets are defined in previous block, lengths are calculated: either up to next item offset, or up to the end of this block. Possible item types:<br/>- [ShpiBlock](#shpiblock)<br/>- [OripGeometry](#oripgeometry)<br/>- [WwwwBlock](#wwwwblock) |
+| 8 + num_items\*4 | **pre_items_payload** | up to the first item offset | Bytes | Bytes between the end of `items_descr` and the first item: padding, or data which no item offset points to |
+| 8 + num_items\*4 + up to the first item offset | **data_bytes** | up to end of block | Bytes | A part of block, where items data is located. Offsets are defined in previous block, lengths are calculated: either up to next item offset, or up to the end of this block. Possible item types:<br/>- [ShpiBlock](#shpiblock)<br/>- [OripGeometry](#oripgeometry)<br/>- [WwwwBlock](#wwwwblock) |
 ### **SoundBank** ###
 #### **Size**: 512..? bytes ####
 #### **Description**: A pack of SFX samples (short audios). Used mostly for car engine sounds, crash sounds etc. In TNFS all banks of a race share one 128-entry sample id table: the game loads the car bank, the opponent banks, the collision bank (`COLL*`), then `NFS_FMMB`, and a bank loaded later replaces the ids it has ####
