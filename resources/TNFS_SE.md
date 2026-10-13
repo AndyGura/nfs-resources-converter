@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-11 16:54:40.693002+00:00*
+*Last time updated: 2026-10-13 22:50:55.101246+00:00*
 
 
 # **Info by file extensions** #
@@ -537,13 +537,13 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Replays** ##
 ### **TnfsReplay** ###
 #### **Size**: 100374 bytes ####
-#### **Description**: Replay of the race, saved in `GAMEDATA\REPLAY`. Reverse engineered from the decompiled game code, the cars' states are copied from its physics data structures. The 4 replays REPLAY, REPLAY1, REPLAY2 and REPLAY3 are the replays of the game that cannot be replaced. ####
+#### **Description**: Replay of the race, saved in `GAMEDATA\REPLAY`. Reverse engineered from the decompiled game code, the cars' states are copied from its physics data structures. The 4 replays REPLAY, REPLAY1, REPLAY2 and REPLAY3 are the replays of the game that cannot be replaced. Time values are in units of the 60/s game clock, which starts at 300 (5 s) for the race. The recording buffer is circular (8 minutes) and not cleared between races: data past `world_state.end_clock` is stale ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **setup** | 840 | [TnfsReplaySetup](#tnfsreplaysetup) | Race settings |
 | 840 | **highlights** | 2468 | [TnfsReplayHighlights](#tnfsreplayhighlights) | Highlights of the race |
 | 3308 | **recording** | 89600 | [TnfsReplayRecording](#tnfsreplayrecording) | Controls and car states |
-| 92908 | **world_state** | 3272 | Bytes | State of the race that is not stored in the cars, every 0x708 ticks. Contains the state of the random generator, the AI tables, the police state, etc. |
+| 92908 | **world_state** | 3272 | [TnfsReplayWorldState](#tnfsreplayworldstate) | State of the race that is not stored in the cars, every keyframe |
 | 96180 | **stats** | 4194 | Array of `9` items<br/>Item type: [TnfsReplayStats](#tnfsreplaystats) | Stats of the cars |
 ### **TnfsReplaySetup** ###
 #### **Size**: 840 bytes ####
@@ -551,71 +551,98 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **unk0** | 2 | Bytes | Unknown purpose |
-| 2 | **track_index** | 4 | 4-bytes signed integer (little endian) | Selected track in the track group. With `track_group` is used as an index of the game's track tables (`track_group * 0xa6b + track_index * 0x27`) |
-| 6 | **track_group** | 4 | 4-bytes signed integer (little endian) | Selected track group, see `track_index` |
+| 2 | **track_segment** | 4 | 4-bytes signed integer (little endian) | 0-based segment of an open track (`cl2` is segment 1 of CL) |
+| 6 | **track_id** | 4 | 4-bytes signed integer (little endian) | Track: 0 CY, 1 CL, 2 AL, 3 TR1, 4 TR2, 5 TR6, 6 TR3, 7 TR7, 8 TR4 |
 | 10 | **track_name** | 10 | UTF-8 string | Track file name without extension, e.g. `cl2` for CL2.TRI |
-| 20 | **game_mode** | 4 | 4-bytes signed integer (little endian) | Same as the game mode of the best race records: 0 time trial, 1 head to head, 2 full grid race. 3 also starts a race of 8 cars |
-| 24 | **is_multiplayer** | 4 | 4-bytes signed integer (little endian) | Boolean. 1 for the multiplayer game |
-| 28 | **race_flags** | 4 | 4-bytes signed integer (little endian) | Bit flags of the race. The game checks bits 2, 3 and 5 |
-| 32 | **unk1** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 36 | **unk2** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 40 | **extra_cars_a** | 4 | 4-bytes signed integer (little endian) | Amount of the cars in addition to the racers. Set to 1 in the single player game when the game mode is head to head, race flag 4 is not set and `track_group` is less than 3, 0 otherwise |
-| 44 | **unk3** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 48 | **extra_cars_b** | 4 | 4-bytes signed integer (little endian) | Amount of the cars in addition to the racers. Set to 6 under the same conditions as `extra_cars_a`, 0 otherwise |
-| 52 | **unk4** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 56 | **random_seed** | 4 | 4-bytes signed integer (little endian) | Seed of the random generator of the race. Is a unix time in seconds of the moment the race started |
-| 60 | **unk5** | 2 | Bytes | Unknown purpose |
-| 62 | **players** | 150 | Array of `2` items<br/>Item type: [TnfsReplayPlayer](#tnfsreplayplayer) | Settings of the players of this machine (up to 2 in the multiplayer game) |
-| 212 | **unk6** | 572 | Bytes | Unknown purpose |
+| 20 | **race_type** | 4 | 4-bytes signed integer (little endian) | Race type: 0 time trial, 1 head to head, 2 single race, 3 tournament |
+| 24 | **is_linked_game** | 4 | 4-bytes signed integer (little endian) | Boolean. 1 for the linked (multiplayer) game |
+| 28 | **game_settings** | 4 | 4-bytes signed integer (little endian) | Bit flags `g_game_settings`: 4 is No Mercy |
+| 32 | **racer_count** | 4 | 4-bytes signed integer (little endian) | Number of racing cars, players included |
+| 36 | **player_count** | 4 | 4-bytes signed integer (little endian) | Number of players |
+| 40 | **cop_count** | 4 | 4-bytes signed integer (little endian) | Number of police cars |
+| 44 | **car_count** | 4 | 4-bytes signed integer (little endian) | Total number of cars: racers, cops and traffic |
+| 48 | **traffic_count** | 4 | 4-bytes signed integer (little endian) | Number of traffic cars |
+| 52 | **opponent_difficulty** | 4 | 4-bytes signed integer (little endian) | Opponent difficulty, the front-end option. Index of the table at SE 0x4c5ce0 |
+| 56 | **random_seed** | 4 | 4-bytes signed integer (little endian) | Seed of the random generator of the race: unix time in seconds of the moment the race started (`time()`, SE FUN_00487bbf) |
+| 60 | **players** | 150 | Array of `2` items<br/>Item type: [TnfsReplayPlayer](#tnfsreplayplayer) | Settings of the players of this machine (up to 2 in the linked game). Only the first `player_count` records are set for the race, the other one holds leftovers in the files (car model 8, device values out of range) |
+| 210 | **unk1** | 450 | Bytes | 0 in every file. Exactly the room of 6 more player records (0x3c + 8 * 0x4b = 0x294) |
+| 660 | **grid_order** | 32 | Array of `8` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Grid order (race positions) |
+| 692 | **car_slot_models** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Car model per car slot, 99 for none. Player slots hold 99 too, and in the files the stats `car_model` of a slot is not always the model of this table |
+| 728 | **car_slot_ids** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Id per car slot: 200 + car model for the racers (same model as the stats `car_model`), small numbers for the cop and traffic slots |
+| 764 | **has_cops** | 4 | 4-bytes signed integer (little endian) | Boolean, there is a police car in the race |
+| 768 | **unk2** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 772 | **live_player_glue** | 4 | 4-bytes signed integer (little endian) | Live player glue (multiplayer) |
+| 776 | **lap_count** | 4 | 4-bytes signed integer (little endian) | Number of laps |
+| 780 | **link_latency** | 4 | 4-bytes signed integer (little endian) | Latency of the linked game |
 | 784 | **player_id** | 4 | 4-bytes signed integer (little endian) | Index of the player car of this machine (`g_player_id` in the game code) |
-| 788 | **unk7** | 52 | Bytes | Unknown purpose |
+| 788 | **unk3** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 792 | **unk4** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 796 | **is_mirrored** | 4 | 4-bytes signed integer (little endian) | Boolean, mirror mode |
+| 800 | **is_rally** | 4 | 4-bytes signed integer (little endian) | Boolean, rally mode |
+| 804 | **track_variants** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Time of day / variant of every track, indexed by `track_id` |
 ### **TnfsReplayPlayer** ###
 #### **Size**: 75 bytes ####
-#### **Description**: Settings of one player, 0x4b bytes. The structure starts at the name, so the last field of the previous player is directly in front of it ####
+#### **Description**: Settings of one player, 0x4b bytes ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **name** | 8 | UTF-8 string | Player name |
-| 8 | **unk0** | 1 | Bytes | Unknown purpose |
-| 9 | **car_id** | 4 | 4-bytes signed integer (little endian) | Index of the car in the car list of the game |
-| 13 | **transmission** | 4 | 4-bytes signed integer (little endian) | Boolean. Used as the "automatic gear" flag of the car, and selects the variant of the car physics |
-| 17 | **option_a** | 4 | 4-bytes signed integer (little endian) | Boolean, traction control option. Applied only if the car PBS `has_tcs` (0x338) is set |
-| 21 | **option_b** | 4 | 4-bytes signed integer (little endian) | Boolean, ABS option. Applied only if the car PBS `has_abs` (0x334) is set |
-| 25 | **unk1** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 29 | **sound_value_0** | 4 | 4-bytes signed integer (little endian) | Taken from the sound configuration when the replay is saved, 0 without a sound card |
-| 33 | **sound_value_1** | 4 | 4-bytes signed integer (little endian) | Taken from the sound configuration when the replay is saved, 0 without a sound card |
-| 37 | **unk2** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 41 | **sound_value_2** | 4 | 4-bytes signed integer (little endian) | Taken from the sound configuration when the replay is saved, 0 without a sound card |
-| 45 | **unk3** | 30 | Bytes | Unknown purpose |
+| 0 | **unk0** | 2 | Bytes | 0 in every file |
+| 2 | **name** | 8 | UTF-8 string | Player name, first 8 bytes of the 9-byte name buffer |
+| 10 | **name_terminator** | 1 | 1-byte unsigned integer | Last byte of the 9-byte name buffer, the null terminator of an 8-character name. Can hold a leftover character after a shorter name |
+| 11 | **car_model** | 4 | 4-bytes signed integer (little endian) | Car model: 0 TSupra, 1 LDiabl, 2 P911, 3 CZR1, 4 F512TR, 5 DVIPER, 6 ANSX, 7 MRX7 |
+| 15 | **automatic_transmission** | 4 | 4-bytes signed integer (little endian) | Boolean, gearbox option. Used as the "automatic gear" flag of the car, and selects the variant of the car physics |
+| 19 | **traction_control** | 4 | 4-bytes signed integer (little endian) | Boolean, traction control option. Applied only if the car PBS `has_tcs` (0x338) is set |
+| 23 | **abs** | 4 | 4-bytes signed integer (little endian) | Boolean, ABS option. Applied only if the car PBS `has_abs` (0x334) is set |
+| 27 | **unk1** | 4 | 4-bytes signed integer (little endian) | Front-end / sound configuration value |
+| 31 | **sound_on** | 4 | 4-bytes signed integer (little endian) | Sound configuration, non-zero when the sound is on (taken when the replay is saved, 0 without a sound card) |
+| 35 | **sound_value_1** | 4 | 4-bytes signed integer (little endian) | Front-end / sound configuration value, taken when the replay is saved, 0 without a sound card |
+| 39 | **unk2** | 4 | 4-bytes signed integer (little endian) | Front-end / sound configuration value |
+| 43 | **sound_value_2** | 4 | 4-bytes signed integer (little endian) | Front-end / sound configuration value, taken when the replay is saved, 0 without a sound card |
+| 47 | **unk3** | 4 | 4-bytes signed integer (little endian) | Front-end / sound configuration value |
+| 51 | **steering_device** | 4 | 4-bytes signed integer (little endian) | Steering input device: 0 keyboard, 1 joystick, 2 mouse, 3 joystick buttons. Copied to the input device globals (SE 0x4fb724 / 0x4fb728 / 0x4fb72c, stride 0xc per player) by `tnfs_game_enter_drive_sim` (SE 0x4275f8) when the replay is played |
+| 55 | **pedal_device** | 4 | 4-bytes signed integer (little endian) | Throttle / brake input device: 0 keyboard, 1 joystick, 2 mouse, 3 joystick buttons. Copied to the input device globals (SE 0x4fb724 / 0x4fb728 / 0x4fb72c, stride 0xc per player) by `tnfs_game_enter_drive_sim` (SE 0x4275f8) when the replay is played |
+| 59 | **shift_device** | 4 | 4-bytes signed integer (little endian) | Gear shift input device: 0 keyboard, 1 joystick, 2 mouse, 3 joystick buttons. Copied to the input device globals (SE 0x4fb724 / 0x4fb728 / 0x4fb72c, stride 0xc per player) by `tnfs_game_enter_drive_sim` (SE 0x4275f8) when the replay is played |
+| 63 | **unk4** | 4 | 4-bytes signed integer (little endian) | Set to 0 by the game code, the files hold leftover values here |
+| 67 | **unk5** | 4 | 4-bytes signed integer (little endian) | Set to 0 by the game code, the files hold leftover values here |
+| 71 | **unk6** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
 ### **TnfsReplayHighlights** ###
 #### **Size**: 2468 bytes ####
-#### **Description**: Highlights of the race, found by the game during the race, 0x9a4 bytes ####
+#### **Description**: Highlights of the race, found by the game during the race, 0x9a4 bytes. Highlight scores: rollover 0x5c, landing after more than 10 ticks airborne 0x54, hard fence hit 0x32, sideways / spin 0x57, fast skid 0x28, first move 0x78, race order swap 0x50, cop spun out 0x52, car-car hit from the table at SE 0x4b909c (20 30 32 34 60 70 80 0 37 38 38 39 92 95 98 0; index +1 when the car in slot 2 is involved, +4 when a player is involved, +8 for a crash) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **clips** | 360 | Array of `30` items<br/>Item type: [TnfsReplayHighlightClip](#tnfsreplayhighlightclip) | Clips, selected at the end of the race from the best seconds. First `clip_count` used |
+| 0 | **clips** | 360 | Array of `30` items<br/>Item type: [TnfsReplayHighlightClip](#tnfsreplayhighlightclip) | Clips, selected at the end of the race (SE 0x44d7d8): 30 passes pick the best marked `seconds`, a clip of second s is (s - 2) * 60 .. (s + 5) * 60 rounded down to 4, overlapping clips are merged. Without a highlight, one clip of the whole race with coolness 200. First `clip_count` used |
 | 360 | **best_seconds** | 120 | Array of `30` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Numbers of the best seconds of the race, picked by the highest `seconds` score |
 | 480 | **clip_count** | 4 | 4-bytes signed integer (little endian) | Amount of used `clips` |
-| 484 | **state** | 4 | 4-bytes signed integer (little endian) | Replay playback state. -2 until the replay is started |
-| 488 | **unk0** | 24 | Bytes | Unknown purpose |
-| 512 | **seconds** | 1920 | Array of `480` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | The score of every second of the race. The value is `second_number << 8 | score`, where score is the highest highlight score of the second (0 if nothing happened), plus 0x80 until the second is selected to be a clip |
-| 2432 | **current_second** | 4 | 4-bytes signed integer (little endian) | Recording tick divided by 60, updated each time a highlight is recorded |
-| 2436 | **unk1** | 32 | Bytes | Unknown purpose |
+| 484 | **state** | 4 | 4-bytes signed integer (little endian) | Current clip index during playback: -2 none, -1 replay without clips, 0 and more the clip index |
+| 488 | **return_pending** | 4 | 4-bytes signed integer (little endian) | Playback state: return pending |
+| 492 | **saved_camera** | 4 | 4-bytes signed integer (little endian) | Playback state: camera saved before the replay |
+| 496 | **loop_clocks** | 16 | Array of `4` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Playback state: loop / return clocks |
+| 512 | **seconds** | 1920 | Array of `480` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | The score of every second of the race. The value is `clock / 60 << 8 | score`, plus 0x80 (a mark) until the second is selected for a clip. Written (SE 0x44d744) when the stored low byte, mark included, is less than the new score |
+| 2432 | **current_second** | 4 | 4-bytes signed integer (little endian) | Recording clock divided by 60, updated each time a highlight is recorded |
+| 2436 | **play_count** | 4 | 4-bytes signed integer (little endian) | Playback state: play count |
+| 2440 | **tv_camera** | 4 | 4-bytes signed integer (little endian) | Playback state: TV camera |
+| 2444 | **play_to_clock** | 4 | 4-bytes signed integer (little endian) | Playback state: clock to play to |
+| 2448 | **seek_target** | 4 | 4-bytes signed integer (little endian) | Playback state: seek target clock |
+| 2452 | **camera_restart** | 4 | 4-bytes signed integer (little endian) | Playback state: camera restart |
+| 2456 | **is_reinstating** | 4 | 4-bytes signed integer (little endian) | Playback state: a keyframe is being reinstated |
+| 2460 | **panel_state** | 4 | 4-bytes signed integer (little endian) | Playback state: replay panel state |
+| 2464 | **sound_restart** | 4 | 4-bytes signed integer (little endian) | Playback state: sound restart |
 ### **TnfsReplayHighlightClip** ###
 #### **Size**: 12 bytes ####
 #### **Description**: Interesting part of the race to be shown on the replay summary ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **start_tick** | 4 | 4-bytes signed integer (little endian) | First tick of the clip |
-| 4 | **end_tick** | 4 | 4-bytes signed integer (little endian) | Last tick of the clip |
+| 0 | **start_tick** | 4 | 4-bytes signed integer (little endian) | Clock of the clip start |
+| 4 | **end_tick** | 4 | 4-bytes signed integer (little endian) | Clock of the clip end |
 | 8 | **coolness** | 4 | 4-bytes signed integer (little endian) | Highlight score of the clip |
 ### **TnfsReplayRecording** ###
 #### **Size**: 89600 bytes ####
-#### **Description**: Replay recording buffer (0x15e00 bytes). A replay is played by restoring the state of the cars from the last keyframe and then simulating the game with the recorded controls ####
+#### **Description**: Replay recording buffer (0x15e00 bytes), circular. A replay is played by restoring the state of the cars from a keyframe and then simulating the game with the recorded controls. Control words are built by SE 0x43915c and decoded by SE 0x438f00 (DOS 0x5e9c9). Bits 0-5: steering (keyboard: 0 left, 0x20 centre, 0x3c right; joystick: `g_joy_x` + 0x20); bits 6-11: throttle / brake axis (keyboard: 0x1e released, 5 throttle, 0x3c brake, brake wins when both are pressed; joystick: `g_joy_y` + 0x1e); bit 12 shift up, bit 13 shift down, bit 14 horn, bit 15 handbrake. The neutral word 0x7a0 is forced before clock 0x78, a disconnected linked player gets 0xffff87a0 ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **controls_low** | 14400 | Array of `2` items<br/>Item size: 7200 bytes<br/>Item type: Bytes | Low bytes of the control word of every player, one sample per 4 ticks. Bits 0-5 of the word is the steering (0x20 is the centre), bits 6-11 the throttle/brake axis (0x1e is the neutral) |
-| 14400 | **controls_high** | 14400 | Array of `2` items<br/>Item size: 7200 bytes<br/>Item type: Bytes | High bytes of the control word of every player, one sample per 4 ticks. Bits 12-15 of the word are the gear change (bits 12 and 13), bit 14 is a flag, bit 15 is the handbrake. Neutral word is 0x07a0 |
-| 28800 | **player_frames** | 13440 | Array of `2` items<br/>Item size: 6720 bytes<br/>Item type: Array of `16` items<br/>Item type: [TnfsReplayPlayerFrame](#tnfsreplayplayerframe) | Keyframes of the player cars, a keyframe every 0x708 ticks (30 seconds) |
-| 42240 | **other_frames** | 47360 | Array of `16` items<br/>Item size: 2960 bytes<br/>Item type: Array of `8` items<br/>Item type: [TnfsReplayOtherFrame](#tnfsreplayotherframe) | Keyframes of the other cars, a keyframe every 0x708 ticks (30 seconds) |
+| 0 | **controls_low** | 14400 | Array of `2` items<br/>Item size: 7200 bytes<br/>Item type: Bytes | Low bytes of the control word of every player, one sample per control step (4 clock units), sample index (clock % 0x7080) / 4 |
+| 14400 | **controls_high** | 14400 | Array of `2` items<br/>Item size: 7200 bytes<br/>Item type: Bytes | High bytes of the control word of every player, one sample per control step (4 clock units), sample index (clock % 0x7080) / 4 |
+| 28800 | **player_frames** | 13440 | Array of `2` items<br/>Item size: 6720 bytes<br/>Item type: Array of `16` items<br/>Item type: [TnfsReplayPlayerFrame](#tnfsreplayplayerframe) | Keyframes of the player cars, a keyframe every 0x708 clock units (30 seconds), slot (clock % 0x7080) / 0x708 |
+| 42240 | **other_frames** | 47360 | Array of `16` items<br/>Item size: 2960 bytes<br/>Item type: Array of `8` items<br/>Item type: [TnfsReplayOtherFrame](#tnfsreplayotherframe) | Keyframes of the other cars, a keyframe every 0x708 clock units (30 seconds), slot (clock % 0x7080) / 0x708 |
 ### **TnfsReplayPlayerFrame** ###
 #### **Size**: 420 bytes ####
 #### **Description**: State of a car driven by a player, 0x1a4 bytes ####
@@ -636,11 +663,11 @@ Did not find what you need or some given data is wrong? Please submit an
 | 388 | **gear_auto_selected** | 1 | 1-byte unsigned integer | - |
 | 389 | **gear_selected** | 1 | 1-byte unsigned integer | Game value + 2 |
 | 390 | **flags** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: wheels_on_ground<br/>1: is_engine_cutoff<br/>2: handbrake<br/>3: is_gear_engaged<br/>5: tire_skid_rear</details> | - |
-| 391 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 391 | **unused** | 1 | 1-byte unsigned integer | Never written by the game, a leftover byte |
 | 392 | **time_off_ground** | 4 | 4-bytes signed integer (little endian) | - |
-| 396 | **unk1** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 396 | **last_shift_button** | 4 | 4-bytes signed integer (little endian) | Last gear shift button: 0 none, 1 down, 2 up |
 | 400 | **slope_force_lat** | 4 | 4-bytes signed integer (little endian) | - |
-| 404 | **unk2** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 404 | **unk0** | 4 | 4-bytes signed integer (little endian) | Car data field +0x3dd |
 | 408 | **slope_force_lon** | 4 | 4-bytes signed integer (little endian) | - |
 | 412 | **thrust** | 4 | 4-bytes signed integer (little endian) | - |
 | 416 | **surface_type** | 4 | 4-bytes signed integer (little endian) | - |
@@ -653,16 +680,16 @@ Did not find what you need or some given data is wrong? Please submit an
 | 360 | **speed_target** | 4 | 4-bytes signed integer (little endian) | - |
 | 364 | **target_center_line** | 4 | 4-bytes signed integer (little endian) | - |
 | 368 | **wheels_on_ground** | 1 | 1-byte unsigned integer | - |
-| 369 | **unk0** | 1 | 1-byte unsigned integer | Unknown purpose |
+| 369 | **unused** | 1 | 1-byte unsigned integer | Byte at car data +0x340, not used |
 ### **TnfsReplayCarState** ###
 #### **Size**: 360 bytes ####
-#### **Description**: Physics state of a car, copied from the car data structure (0x168 bytes). Field names are the names of the car data fields in the game code ####
+#### **Description**: Physics state of a car, copied from the car data structure (0x168 bytes). Field names are the names of the car data fields in the game code. Restoring it (SE 0x44dd9c) also zeroes `slide_front` / `slide_rear` and recomputes `track_slice_lap`; a player restore sets `tire_skid_front` to 0 and `tire_skid_rear` to 0 or 2 ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 4 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 8 | **unk2** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 9 | **unk3** | 2 | 2-bytes unsigned integer (little endian) | Unknown purpose |
+| 0 | **control_handler** | 4 | 4-bytes signed integer (little endian) | Control handler: 1 player, 2 AI |
+| 4 | **crash_state** | 4 | 4-bytes signed integer (little endian) | Crash state: 1 busted, 2 player driving, 3 AI driving, 4 crash model, 5 wrecked, 6 hidden |
+| 8 | **unk0** | 1 | 1-byte unsigned integer | Always 0 |
+| 9 | **collision_flags** | 2 | 2-bytes unsigned integer (little endian) | Collision flags (car field +0x4e9) |
 | 11 | **car_index** | 1 | 1-byte unsigned integer | Index of the car, 0 is the first player |
 | 12 | **position** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Position x, y, z |
 | 24 | **angle** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Angle x, y, z (24-bit angles) |
@@ -688,18 +715,79 @@ Did not find what you need or some given data is wrong? Please submit an
 | 176 | **road_position** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
 | 188 | **ai_state** | 4 | 4-bytes signed integer (little endian) | Bit flags of the AI state of the car |
 | 192 | **collision_height_offset** | 4 | 4-bytes signed integer (little endian) | - |
-| 196 | **collision_data** | 148 | Bytes | Collision data of the car |
+| 196 | **collision_data** | 148 | [TnfsReplayCollisionData](#tnfsreplaycollisiondata) | Rigid body of the car |
 | 344 | **car_road_speed** | 4 | 4-bytes signed integer (little endian) | - |
 | 348 | **field_158** | 4 | 4-bytes signed integer (little endian) | Random group index |
 | 352 | **lane_slack** | 4 | 4-bytes signed integer (little endian) | - |
-| 356 | **unk4** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 356 | **is_wrecked** | 4 | 4-bytes signed integer (little endian) | Boolean, the car is wrecked |
+### **TnfsReplayCollisionData** ###
+#### **Size**: 148 bytes ####
+#### **Description**: Rigid body of the car for the crash model and the collisions, 0x94 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **matrix** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Rotation matrix |
+| 36 | **position** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Position x, y, z |
+| 48 | **speed** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Speed x, y, z |
+| 60 | **angular_speed** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Angular speed x, y, z |
+| 72 | **unk0** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | (0, -9.81, 0) in every active car of the files, gravity? |
+| 84 | **unk1** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Unknown purpose |
+| 96 | **mass** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Mass |
+| 100 | **inertia** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Moment of inertia |
+| 104 | **linear_acceleration_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Linear acceleration factor |
+| 108 | **angular_acceleration_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Angular acceleration factor |
+| 112 | **edge_length** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Edge length |
+| 116 | **half_size** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Half size of the body x, y, z |
+| 128 | **crash_timer** | 4 | 4-bytes signed integer (little endian) | Crash timer |
+| 132 | **ai_countdown** | 4 | 4-bytes signed integer (little endian) | AI countdown |
+| 136 | **car_type_value** | 4 | 4-bytes signed integer (little endian) | 0xa0 for traffic and cop cars, about 100 for racers, 0 for players |
+| 140 | **unk2** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 144 | **traffic_speed_factor** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | Speed factor of a traffic car |
+### **TnfsReplayWorldState** ###
+#### **Size**: 3272 bytes ####
+#### **Description**: State of the race that is not stored in the cars, 0xcc8 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **unk0** | 4 | 4-bytes signed integer (little endian) | 0 in every file |
+| 4 | **end_clock** | 4 | 4-bytes signed integer (little endian) | Last recorded clock, the end of the recording |
+| 8 | **unused_0** | 4 | 4-bytes signed integer (little endian) | Not used |
+| 12 | **unused_1** | 4 | 4-bytes signed integer (little endian) | Not used |
+| 16 | **keyframe_countdown** | 4 | 4-bytes signed integer (little endian) | Control steps until the next keyframe (set to 0x1c2 = 450 in SE, 300 in DOS, at every keyframe) |
+| 20 | **keyframes** | 3240 | Array of `20` items<br/>Item type: [TnfsReplayWorldKeyframe](#tnfsreplayworldkeyframe) | One record per keyframe slot ((clock % 0x7080) / 0x708), 16 used, 4 spare. Records past `end_clock` are stale |
+| 3260 | **saved_timers** | 12 | Array of `3` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | 3 saved timers |
+### **TnfsReplayWorldKeyframe** ###
+#### **Size**: 162 bytes ####
+#### **Description**: Race state that is not stored in the cars, taken with every keyframe, 0xa2 bytes ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **handler_order** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Car handler order |
+| 36 | **race_order** | 36 | Array of `9` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Race order of the cars |
+| 72 | **unused_0** | 4 | 4-bytes signed integer (little endian) | Not used |
+| 76 | **unused_1** | 4 | 4-bytes signed integer (little endian) | Not used |
+| 80 | **other_car_count** | 4 | 4-bytes signed integer (little endian) | Number of cars other than the player |
+| 84 | **ai_frame_counter** | 4 | 4-bytes signed integer (little endian) | AI frame counter |
+| 88 | **is_police_chasing** | 4 | 4-bytes signed integer (little endian) | Boolean, the police is chasing |
+| 92 | **random_state_0** | 12 | Bytes | 12 bytes of `g_random_struct[0]`, from its offset 2 |
+| 104 | **random_state_1** | 12 | Bytes | 12 bytes of `g_random_struct[1]`, from its offset 2 |
+| 116 | **police_chase_time** | 4 | 4-bytes signed integer (little endian) | Police chase time |
+| 120 | **is_siren_on** | 4 | 4-bytes signed integer (little endian) | Boolean, siren sound flag |
+| 124 | **random_lcg_mod** | 4 | 4-bytes signed integer (little endian) | Modulus variable of the random generator (seed * 3, made odd, at the race start). Differs from keyframe to keyframe in the files (odd values below 0x10000) |
+| 128 | **cop_park_position** | 4 | 4-bytes signed integer (little endian) | Park position of the cop (track node) |
+| 132 | **random_direction_counter_0** | 4 | 4-bytes signed integer (little endian) | Random direction counter |
+| 136 | **random_direction_counter_1** | 4 | 4-bytes signed integer (little endian) | Random direction counter |
+| 140 | **hidden_traffic_count** | 4 | 4-bytes signed integer (little endian) | Number of hidden traffic cars |
+| 144 | **unused_2** | 4 | 4-bytes signed integer (little endian) | Dead global, not used |
+| 148 | **unused_3** | 4 | 4-bytes signed integer (little endian) | Not used |
+| 152 | **unused_4** | 1 | 1-byte unsigned integer | Dead byte, not used |
+| 153 | **speeding_tickets** | 1 | 1-byte unsigned integer | Number of speeding tickets |
+| 154 | **player_split_checkpoint** | 4 | 4-bytes signed integer (little endian) | Split checkpoint index of the player |
+| 158 | **opponent_split_checkpoint** | 4 | 4-bytes signed integer (little endian) | Split checkpoint index of the opponent |
 ### **TnfsReplayStats** ###
 #### **Size**: 466 bytes ####
-#### **Description**: Race stats of one car, 0x1d2 bytes. Times are in ticks (1/60 of second) ####
+#### **Description**: Race stats of one car, 0x1d2 bytes. Times are in clock units (1/60 of second) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **lap_times** | 68 | Array of `17` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Race time at the end of each lap (0 until the lap is finished) |
-| 68 | **unk0** | 340 | Bytes | Unknown purpose |
+| 68 | **split_times** | 340 | Array of `85` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes signed integer (little endian) | Race time at every split checkpoint, 5 checkpoints per lap / segment |
 | 408 | **best_accel_time_1** | 4 | 4-bytes signed integer (little endian) | Best acceleration time, 99999 if none |
 | 412 | **best_accel_time_2** | 4 | 4-bytes signed integer (little endian) | Best acceleration time, 99999 if none |
 | 416 | **best_brake_time_1** | 4 | 4-bytes signed integer (little endian) | Best braking time, 999 if none |
@@ -708,11 +796,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 428 | **quarter_mile_time** | 4 | 4-bytes signed integer (little endian) | 99999 if none |
 | 432 | **penalty_count** | 4 | 4-bytes signed integer (little endian) | - |
 | 436 | **warning_count** | 4 | 4-bytes signed integer (little endian) | - |
-| 440 | **unk1** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
-| 444 | **finish_time** | 4 | 4-bytes signed integer (little endian) | Race time when the car finished the race. 0 if not finished, 999999 if timed out |
-| 448 | **unk2** | 4 | 4-bytes signed integer (little endian) | Unknown purpose |
+| 440 | **wreck_count** | 4 | 4-bytes signed integer (little endian) | Number of crash model resets while racing |
+| 444 | **finish_time** | 4 | 4-bytes signed integer (little endian) | Race time when the car finished the race. 0 if not finished, 999999 if timed out. Estimated for the cars that did not finish when the race ends (SE 0x45af80) |
+| 448 | **race_distance** | 4 | 4-bytes signed integer (little endian) | Race distance: finish node * 0x30 / 10 |
 | 452 | **top_speed** | 4 | 32-bit real number (little-endian, signed), where last 16 bits is a fractional part | - |
-| 456 | **unk3** | 10 | Bytes | Unknown purpose |
+| 456 | **tournament_points** | 2 | 2-bytes signed integer (little endian) | Tournament points |
+| 458 | **finishing_position** | 4 | 4-bytes signed integer (little endian) | Finishing position |
+| 462 | **car_model** | 4 | 4-bytes signed integer (little endian) | Car model: 0 TSupra, 1 LDiabl, 2 P911, 3 CZR1, 4 F512TR, 5 DVIPER, 6 ANSX, 7 MRX7 |
 ## **Misc** ##
 ### **TnfsConfigDat** ###
 #### **Size**: 24402 bytes ####
