@@ -66,6 +66,8 @@ class ConfigManager:
                 'print_blender_log': False,
                 'recent_files': [],
                 'show_hidden_fields': False,
+                'lazy_loading': True,
+                'file_cache_size': 16,
             },
             SECTION_CONVERSION: {
                 'multiprocess_processes_count': 0,
@@ -298,6 +300,8 @@ def general_config(patch: Dict = None) -> ClassDict:
         'print_blender_log': get_config(SECTION_GENERAL, 'print_blender_log'),
         'recent_files': get_config(SECTION_GENERAL, 'recent_files'),
         'show_hidden_fields': get_config(SECTION_GENERAL, 'show_hidden_fields'),
+        'lazy_loading': get_config(SECTION_GENERAL, 'lazy_loading'),
+        'file_cache_size': get_config(SECTION_GENERAL, 'file_cache_size'),
     }
     if patch:
         config = {**config, **patch}

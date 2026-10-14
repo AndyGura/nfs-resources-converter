@@ -3,6 +3,7 @@ import { BehaviorSubject } from 'rxjs';
 import { ApiDelegateService } from './api/api-delegate.service';
 import { CustomAction, Resource, ResourceError } from '../components/editor/types';
 import { ChangesService } from './changes.service';
+import { isLazyStub, LAZY_MARKER } from '../utils/lazy';
 
 @Injectable({
   providedIn: 'root',
@@ -16,6 +17,9 @@ export class MainService {
 
   public hideHiddenFields$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
   public focusedResourceId$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+
+  // lazy parts being loaded, by id: one backend call per part however many components show it
+  private readonly lazyLoads: Map<string, Promise<void>> = new Map();
 
   constructor(
     public readonly api: ApiDelegateService,
@@ -43,6 +47,28 @@ export class MainService {
         this.error$.next(null);
       }
     });
+  }
+
+  /**
+   * Makes sure a lazy part of the opened resource is loaded. The backend parses it and the stub object is filled in
+   * place, so every reference to it in the data tree sees the loaded data. Resolves at once for anything else
+   */
+  public async ensureLoaded(id: string, stub: any): Promise<void> {
+    if (!isLazyStub(stub)) return;
+    let load = this.lazyLoads.get(id);
+    if (!load) {
+      load = this.api.loadLazyPart(id).then(loaded => {
+        if (!isLazyStub(stub)) return;
+        for (const key of Object.keys(stub)) {
+          delete stub[key];
+        }
+        Object.assign(stub, loaded);
+        delete stub[LAZY_MARKER];
+      });
+      this.lazyLoads.set(id, load);
+      load.finally(() => this.lazyLoads.delete(id)).catch(() => {});
+    }
+    return load;
   }
 
   public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {

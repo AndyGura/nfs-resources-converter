@@ -146,7 +146,6 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
             new_shpi['children'].append(
                 {
-                    'pre_offset_payload': b'',
                     'post_offset_payload': b'',
                     'alias': file_name[:-4][:4],
                     'item': {'choice_index': block.item_block.get_choice_index_by_class_name('EacImage'), 'data': img},

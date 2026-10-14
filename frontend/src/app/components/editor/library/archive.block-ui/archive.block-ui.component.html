@@ -94,6 +94,10 @@
           [hideName]="hideName"
           [hideBlockActions]="true"
           [fieldBlacklist]="['children']"></app-compound-block-ui>
+      } @else if (isChildLoading(selectedValue[1])) {
+        <div class="child-loading">
+          <mat-spinner mode="indeterminate" [diameter]="40"></mat-spinner>
+        </div>
       } @else {
         <app-editor
           [resourceOrError]="{

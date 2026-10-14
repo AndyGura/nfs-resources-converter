@@ -19,7 +19,7 @@ def _chunk(data, key, value):
 
 class TestNfsuChunkBundle(unittest.TestCase):
     def test_section_should_be_read_and_remain_the_same(self):
-        (name, block, data) = require_file(SECTION)
+        (name, block, data) = require_file(SECTION, lazy=False)
         self.assertIsInstance(block, NfsuChunkBundle)
         with open(SECTION, 'rb') as f:
             self.assertEqual(f.read(), block.pack(data, name=name))
@@ -93,7 +93,7 @@ NFSU2_DIR = 'test/samples/claude_tmp/nfsu2'
 class TestNfsu2LocationBundle(unittest.TestCase):
     def test_location_bundle_should_be_read_and_remain_the_same(self):
         path = f'{NFSU2_DIR}/L4RA.BUN'
-        (name, block, data) = require_file(path)
+        (name, block, data) = require_file(path, lazy=False)
         self.assertIsInstance(block, NfsuTrackBundle)
         with open(path, 'rb') as f:
             self.assertEqual(f.read(), block.pack(data, name=name))
@@ -136,7 +136,7 @@ NFSMW_DIR = 'test/samples/claude_tmp/nfsmw'
 class TestNfsmwLocationBundle(unittest.TestCase):
     def test_location_bundle_should_be_read_and_remain_the_same(self):
         path = f'{NFSMW_DIR}/Tracks/L2RA.BUN'
-        (name, block, data) = require_file(path)
+        (name, block, data) = require_file(path, lazy=False)
         self.assertIsInstance(block, NfsuTrackBundle)
         with open(path, 'rb') as f:
             self.assertEqual(f.read(), block.pack(data, name=name))

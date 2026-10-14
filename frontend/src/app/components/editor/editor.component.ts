@@ -40,6 +40,7 @@ import { NfsuBinGeometryBlockUiComponent } from './blackbox/nfsu-bin-geometry.bl
 import { EaglModelBlockUiComponent } from './eac/eagl-model.block-ui/eagl-model.block-ui.component';
 import { PlayerCarPhysicsBlockUiComponent } from './eac/player-car-physics.block-ui/player-car-physics.block-ui.component';
 import { CarAiAndCrashBodyBlockUiComponent } from './eac/car-ai-and-crash-body.block-ui/car-ai-and-crash-body.block-ui.component';
+import { isLazyStub } from '../../utils/lazy';
 
 @Component({
   selector: 'app-editor',
@@ -128,6 +129,30 @@ export class EditorComponent implements OnDestroy {
       return;
     }
 
+    if (value && isLazyStub(value.data)) {
+      // unloaded lazy part: show the spinner, render once the backend has parsed it (the stub is filled in place)
+      this._resourceData = undefined;
+      this._lazyResource = value;
+      this.mainService.ensureLoaded(value.id, value.data).then(
+        () => {
+          if (this._lazyResource === value) {
+            this._lazyResource = null;
+            this.resourceOrError = value;
+          }
+        },
+        () => {
+          if (this._lazyResource === value) {
+            this._lazyResource = null;
+            this.resourceError = { message: 'Failed to load ' + value.id };
+            this.cdr.markForCheck();
+          }
+        },
+      );
+      this.cdr.markForCheck();
+      return;
+    }
+    this._lazyResource = null;
+
     this._resourceData = value?.data;
     if (this._resourceSchema !== value?.schema) {
       let reuseComponent =
@@ -180,6 +205,9 @@ export class EditorComponent implements OnDestroy {
       this.cdr.markForCheck();
     }
   }
+
+  // the resource whose lazy part is being loaded now, if any
+  _lazyResource: Resource | ResourceError | null = null;
 
   _resourceDescription?: string;
   @Input()

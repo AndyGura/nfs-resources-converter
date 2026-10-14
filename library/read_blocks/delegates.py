@@ -4,15 +4,21 @@ from typing import List, Dict, Tuple, Any
 import config
 from library.context import ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException
+from library.lazy import lazy_unpack, unloaded_slot
 from library.read_blocks.basic import DataBlock, BytesBlock
 from library.utils.id import join_id
 
 
 class DelegateBlock(DataBlock):
-    def __init__(self, possible_blocks: List[DataBlock], choice_index=None, **kwargs):
+    # `part_length(ctx) -> int`: exact amount of bytes the delegated data takes, known before reading it. When given,
+    # the data is read as an unloaded `LazyDict` in lazy read context (see library/lazy.py), seeded with values from
+    # `part_seed(ctx, block) -> dict`
+    def __init__(self, possible_blocks: List[DataBlock], choice_index=None, part_length=None, part_seed=None, **kwargs):
         super().__init__(**kwargs)
         self.possible_blocks = possible_blocks
         self.choice_index = choice_index
+        self.part_length = part_length
+        self.part_seed = part_seed
 
     @property
     def schema(self) -> Dict:
@@ -92,21 +98,39 @@ class DelegateBlock(DataBlock):
             (delegated_block_index, _) = delegated_block_index
         if callable(delegated_block_index):
             delegated_block_index = delegated_block_index(ctx, name=name, read_bytes_amount=read_bytes_amount)
-        return {
-            'choice_index': delegated_block_index,
-            'data': self.possible_blocks[delegated_block_index].unpack(ctx, name, read_bytes_amount),
-        }
+        delegated_block = self.possible_blocks[delegated_block_index]
+        if self.part_length is not None and ctx.lazy:
+            data = lazy_unpack(
+                delegated_block,
+                ctx,
+                name,
+                length=self.part_length(ctx),
+                read_bytes_amount=read_bytes_amount,
+                seed=self.part_seed(ctx, delegated_block) if self.part_seed else None,
+            )
+        else:
+            data = delegated_block.unpack(ctx, name, read_bytes_amount)
+        return {'choice_index': delegated_block_index, 'data': data}
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         delegated_block, data = self.possible_blocks[data['choice_index']], data['data']
+        slot = unloaded_slot(data)
+        if slot is not None:
+            return slot.length
         return delegated_block.estimate_packed_size(data, ctx=ctx)
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         delegated_block, data = self.possible_blocks[data['choice_index']], data['data']
+        slot = unloaded_slot(data)
+        if slot is not None:
+            return slot.raw()
         return delegated_block.write(data, ctx=ctx, name=name)
 
     def validate_after_read(self, value, ctx: ReadContext = DataBlock.root_read_ctx, name: str = ''):
         delegated_block, data = self.possible_blocks[value['choice_index']], value['data']
+        if unloaded_slot(data) is not None:
+            # validated when loaded
+            return
         return delegated_block.validate_after_read(data, ctx=ctx, name=name)
 
 
