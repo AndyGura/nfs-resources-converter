@@ -164,3 +164,32 @@ class TestEacTrackSerializers(unittest.TestCase):
             self.assertEqual(sorted(os.listdir(os.path.join(out, 'props'))), sorted(models))
             # physics props are rotated by their transform matrix
             self.assertTrue(any(d['quaternion'] != [1, 0, 0, 0] for d in dummies))
+
+    def test_nfs4_frd_vroad_should_be_exported(self):
+        import json
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, 'gt1')
+            files = self._serialize(
+                'test/golden_corpus/NFS4_GT1.FRD', out, maps__save_as_chunked=True, maps__add_props_to_obj=False
+            )
+            vroad_file = os.path.join(out, 'vroad.json')
+            self.assertIn(vroad_file, files)
+            with open(vroad_file) as f:
+                vroad = json.load(f)
+            self.assertEqual(len(vroad), 832)
+            self.assertEqual(
+                vroad[0],
+                {
+                    'ref_point': {'x': -1718.070556640625, 'y': -14.33489990234375, 'z': 374.81488037109375},
+                    'normal': {'x': 0.0, 'y': 0.984375, 'z': -0.0078125},
+                    'forward': {'x': 0.421875, 'y': -0.0078125, 'z': -0.890625},
+                    'right': {'x': -0.890625, 'y': 0.0, 'z': -0.421875},
+                    'left_wall': 7.883923530578613,
+                    'right_wall': 15.767847061157227,
+                    'unk0': [4.5, 4.5],
+                    'unk1': [4294967295, 1, 2, 992, 67372036],
+                },
+            )

@@ -1406,7 +1406,14 @@ class Nfs4FrdMapSerializer(EacTrackSerializer):
         for chunk_i in range(2):
             add_extra_objects(data[f'global_objects_{chunk_i}'], f'xobj_global_{chunk_i}_', None)
 
-        return self._export_track(path, map_scene, chunks, props, prop_models, texture_archive)
+        exported = self._export_track(path, map_scene, chunks, props, prop_models, texture_archive)
+        # the virtual road (road centre line points with road orientation vectors and wall distances, the data of
+        # NFS3 COL "collision_data"), as parsed: game axes, Y up
+        vroad_file = path_join(path, 'vroad.json')
+        with open(vroad_file, 'w') as f:
+            json.dump(data['vroad'], f)
+        exported.append(vroad_file)
+        return exported
 
 
 def nfs4_extra_object_prop(model_id: str, header: dict, xobj: dict, chunk_index) -> Optional[TrackProp]:

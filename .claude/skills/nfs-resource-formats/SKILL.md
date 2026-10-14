@@ -303,6 +303,9 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    row vectors). NFS3 terrain is the high-res chunks (`FRD_TERRAIN_POLYGON_CHUNKS`) plus the block's POLYOBJ
    objects; the low/medium-res chunks are LODs of it. NFS5 (CRP) and NFS6 tracks have no prop dummies yet: NFS5
    bakes every article into the chunks, NFS6 routes don't include `levelG.o` props (`level.dat` is not parsed).
+   `Nfs4FrdMapSerializer` also writes, whatever the settings, `vroad.json` next to the chunks: the FRD's `vroad`
+   array as parsed (`Nfs4VRoadBlock` fields, unknown ones included, game axes, Y up), the NFS4 counterpart of NFS3's
+   COL `collision_data`. nfs-web builds the NFS4 race route and road surface from it: keep its keys stable.
 4. **OS integration** (optional): add the extension to `file_associations.py` if it should get a
    file-manager association/icon in the installers.
 5. **Docs**: add/extend an entry in `generate_resource_doc.py`'s `EXPORT_RESOURCES[<game>]`
