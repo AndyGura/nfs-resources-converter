@@ -178,7 +178,17 @@ When you do:
   `lbl__<label>__<texture>` (`lbl__lt_frnt`, `lbl__bkll__rsid`...), nfs-web reads them. ORIP `fx_polys` are vertex
   indices (wheel ground points `FL0`..`RR1` / `fl0`..`rr1`, engine point `smok`, `d`): they go to the meta as dummies
   `fx_<name>` with properties `fx` and `vertex` (`orip_fx_dummies`), at the vertex in mesh space. Field descriptions in
-  `resources/eac/geometries/tnfs.py` list what each name marks.
+  `resources/eac/geometries/tnfs.py` list what each name marks and which fields the game code reads.
+- A mesh holds polygons of one ORIP partition (`inside` / `surface` / `outside`, the game's draw order) only
+  (`orip_sub_mesh_names`): when a label + texture group spans several, the partition with most of its polygons keeps
+  the name, the others get `__<partition>` (`rsid__inside`; `__none` for polygons in no drawn partition, e.g. only in
+  `NON-SORT`). The partition goes to the node extras (`{"partition": "inside"}`, three.js `userData`) through
+  `Scene.object_properties`.
+- The morphs `left_tur` / `right_tu` (front wheel steering) become glTF morph targets `left_turn` / `right_turn`
+  (`mesh.extras.targetNames`, weights 0) of the meshes with moved vertices (`SubMesh.morph_targets`, deltas in mesh
+  space). The gg-web-engine Blender exporter writes no morph targets, so `export_scenes` adds them to the written GLB
+  (`serializers/common/three_d/glb_morph_targets.py`, glTF vertices matched to sub-mesh vertices by position). The
+  delta vectors are the ORIP vertices after `num_shape_vrtx`, which no polygon uses, so they never become geometry.
 
 ## TNFS car specs (SIMDATA/CARSPECS/*.PBS, SIMDATA/CARFAMS/*.PDN)
 

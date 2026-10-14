@@ -11,6 +11,10 @@ class BaseMesh(ABC):
         self.polygons = []
         self.vertex_uvs = []
         self.pivot_offset = (0, 0, 0)
+        # morph target name -> relative delta vector [dx, dy, dz] per vertex (parallel to `vertices`), exported as glTF
+        # morph targets by the gg-web-engine export (`add_glb_morph_targets`). Only `change_axes` keeps them in sync
+        # with the vertices
+        self.morph_targets = {}
 
     def rotate_z(self, angle):
         c, s = math.cos(angle), math.sin(angle)
@@ -57,14 +61,18 @@ class BaseMesh(ABC):
                 value = -value
             return value
 
-        self.vertices = [
-            [
-                get_value_from_vertex_list(v, new_x),
-                get_value_from_vertex_list(v, new_y),
-                get_value_from_vertex_list(v, new_z),
+        def convert(vectors):
+            return [
+                [
+                    get_value_from_vertex_list(v, new_x),
+                    get_value_from_vertex_list(v, new_y),
+                    get_value_from_vertex_list(v, new_z),
+                ]
+                for v in vectors
             ]
-            for v in self.vertices
-        ]
+
+        self.vertices = convert(self.vertices)
+        self.morph_targets = {name: convert(deltas) for name, deltas in self.morph_targets.items()}
 
     # after deleting polygons should call this function
     def remove_orphaned_vertices(self):

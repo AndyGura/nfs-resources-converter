@@ -121,8 +121,9 @@ EXPORT_RESOURCES = {
             'Geometries': [
                 eac.geometries.OripGeometry(),
                 eac.geometries.OripPolygon(),
-                eac.geometries.OripTextureName(),
-                eac.geometries.RenderOrderBlock(),
+                eac.geometries.OripMaterial(),
+                eac.geometries.OripMorph(),
+                eac.geometries.OripPartition(),
             ],
             'Maps': [
                 eac.maps.TriMap(),

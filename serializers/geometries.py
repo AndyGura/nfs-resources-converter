@@ -75,26 +75,26 @@ class OripGeometrySerializer(BaseFileSerializer):
         return (shpi_id, textures_shpi_block, textures_shpi_data)
 
     def build_mesh(self, data: dict, id=None):
+        """Sub-meshes by label, texture and partition (`orip_sub_mesh_names`), with the morphs of their vertices as
+        `morph_targets` (`orip_morph_deltas`). Fills `self.mesh_partitions` (mesh name -> partition) for the meshes
+        with a partition"""
         (shpi_id, textures_shpi_block, textures_shpi_data) = self.require_shpi(id)
         vertices_file_indices_map = defaultdict(lambda: dict())
         sub_models = defaultdict(SubMesh)
+        sub_model_names, partitions = orip_sub_mesh_names(data)
+        self.mesh_partitions = {}
 
         for pi, polygon in enumerate(data['polygons']):
             polygon_type = polygon['polygon_type']
             mapping = polygon['mapping']
-            texture_id = data['tex_ids'][polygon['texture_index']]['file_name']
-            # fx_polys are vertex indices, exported as dummies (orip_fx_dummies), not as meshes
-            label = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['labels'])] or [None])[0]
-            sub_model_parts = []
-            if label:
-                sub_model_parts.append('lbl__' + label)
-            if texture_id:
-                sub_model_parts.append(texture_id)
-            sub_model_id = '__'.join(sub_model_parts)
+            texture_id = data['materials'][polygon['material_index']]['file_name']
+            sub_model_id = sub_model_names[pi]
             sub_model = sub_models[sub_model_id]
             if not sub_model.name:
                 sub_model.name = sub_model_id
                 sub_model.texture_id = texture_id
+                if partitions[pi]:
+                    self.mesh_partitions[sub_model_id] = partitions[pi]
             offset_3D = polygon['offset_3d']
             offset_2D = polygon['offset_2d']
 
@@ -128,10 +128,18 @@ class OripGeometrySerializer(BaseFileSerializer):
                 if mapping['two_sided'] or mapping['flip_normal']:
                     _setup_polygon([0, 2, 1])
                     _setup_polygon([0, 3, 2])
-            elif polygon_type == 2:  # BURNT SIENNA prop. looks good without this polygon
+            elif polygon_type == 2:  # a line (TR6 mine prop). Looks good without it
                 continue
             else:
                 raise NotImplementedError(f'Unknown polygon: {polygon_type}')
+        morph_deltas = orip_morph_deltas(data)
+        for sub_model in sub_models.values():
+            vertex_indices = [None] * len(sub_model.vertices)
+            for index_3D, index in vertices_file_indices_map[sub_model].items():
+                vertex_indices[index] = data['vmap'][index_3D]
+            for name, deltas in morph_deltas.items():
+                if any(i in deltas for i in vertex_indices):
+                    sub_model.morph_targets[name] = [deltas.get(i, [0, 0, 0]) for i in vertex_indices]
         # not sure why, but seems like Z should be inverted in all geometries
         for sub_model in sub_models.values():
             sub_model.change_axes(new_z='y', new_y='z')
@@ -144,6 +152,7 @@ class OripGeometrySerializer(BaseFileSerializer):
         scene = Scene()
         scene.sub_meshes = [sm for sm in sub_models.values()]
         scene.dummies = orip_fx_dummies(data)
+        scene.object_properties = {name: {'partition': p} for name, p in self.mesh_partitions.items()}
         scene.name = 'body'
         scene.obj_name = 'geometry'
         scene.mtl_name = 'material'
@@ -161,6 +170,66 @@ class OripGeometrySerializer(BaseFileSerializer):
 
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id, textures_shpi_block)
         return export_scenes([scene], path, self.settings)
+
+
+# partitions the game draws, in this order (the others, like NON-SORT, are not drawn by the car code)
+ORIP_DRAWN_PARTITIONS = ('inside', 'surface', 'outside')
+# full names of the morphs: the files hold the first 8 characters only
+ORIP_MORPH_NAMES = {'left_tur': 'left_turn', 'right_tu': 'right_turn'}
+
+
+def orip_polygon_partitions(data: dict) -> List[Optional[str]]:
+    """Partition of each ORIP polygon among `ORIP_DRAWN_PARTITIONS`, or None"""
+    result = [None] * len(data['polygons'])
+    for partition in data['partitions']:
+        name = partition['name'].lower()
+        if name not in ORIP_DRAWN_PARTITIONS:
+            continue
+        for i in range(partition['num_polygons']):
+            polygon_index = data['vmap'][partition['polygons_start'] + i]
+            if 0 <= polygon_index < len(result) and result[polygon_index] is None:
+                result[polygon_index] = name
+    return result
+
+
+def orip_sub_mesh_names(data: dict) -> Tuple[List[str], List[Optional[str]]]:
+    """Name of the exported mesh of each ORIP polygon, and the partition of each polygon (`orip_polygon_partitions`).
+    Polygons are grouped by label and texture: "lbl__<label>__<texture>", "lbl__<label>" or "<texture>". A mesh
+    holds polygons of one partition only: when a group spans several, the partition with the most of its polygons
+    (on a tie, the one of its first polygon) keeps the name, the others get "__<partition>" ("__none" without one)"""
+    partitions = orip_polygon_partitions(data)
+    base_names = []
+    for pi, polygon in enumerate(data['polygons']):
+        texture_id = data['materials'][polygon['material_index']]['file_name']
+        label = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['labels'])] or [None])[0]
+        parts = []
+        if label:
+            parts.append('lbl__' + label)
+        if texture_id:
+            parts.append(texture_id)
+        base_names.append('__'.join(parts))
+    counts = defaultdict(lambda: defaultdict(int))
+    for base_name, partition in zip(base_names, partitions):
+        counts[base_name][partition] += 1
+    # dicts keep insertion order: max() takes the first partition met among the ones with the most polygons
+    main_partition = {name: max(c, key=lambda p: c[p]) for name, c in counts.items()}
+    names = [
+        base_name if partition == main_partition[base_name] else f'{base_name}__{partition or "none"}'
+        for base_name, partition in zip(base_names, partitions)
+    ]
+    return names, partitions
+
+
+def orip_morph_deltas(data: dict) -> Dict[str, Dict[int, List[float]]]:
+    """ORIP morphs: full morph name (`ORIP_MORPH_NAMES`) -> {index of a moved vertex: its delta vector [x, y, z]}"""
+    vertices = data['vertices']['data']
+    result = {}
+    for morph in data['morphs']:
+        deltas = result.setdefault(ORIP_MORPH_NAMES.get(morph['name'], morph['name']), {})
+        for i in range(morph['num_vertices']):
+            delta = vertices[morph['first_delta'] + i]
+            deltas[data['vmap'][morph['vmap_offset'] + i]] = [delta['x'], delta['y'], delta['z']]
+    return result
 
 
 def orip_fx_dummies(data: dict) -> List[dict]:

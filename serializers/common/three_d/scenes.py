@@ -8,6 +8,7 @@ from typing import List
 from library.utils import path_join
 from .blender_scripts import get_blender_save_script, run_blender
 from .gg_web_engine_exporter import ensure_gg_web_engine_exporter_installed
+from .glb_morph_targets import add_glb_morph_targets
 from .mesh import SubMesh
 
 
@@ -193,6 +194,13 @@ $extra_script
                 script += '\n\n' + get_blender_save_script(out_blend_name=file_path)
                 exported_files.append(file_path + '.blend')
         run_blender(path=output_path, script=script)
+        if settings.geometry__export_to_gg_web_engine:
+            # the gg-web-engine exporter writes no morph targets
+            for scene in scenes:
+                morph_meshes = [sm for sm in scene.sub_meshes if sm.morph_targets]
+                if morph_meshes:
+                    glb_path = path_join(os.getcwd(), output_path, scene.directory, scene.name) + '.glb'
+                    add_glb_morph_targets(glb_path, morph_meshes)
 
     if not settings.geometry__save_obj:
         exported_files = [

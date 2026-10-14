@@ -3,6 +3,7 @@ import math
 import os
 import re
 import shutil
+import struct
 import tempfile
 import unittest
 from configparser import ConfigParser
@@ -16,8 +17,13 @@ from serializers.geometries import (
     crp_car_texture_page_sources,
     crp_image_atlas_position,
     orip_fx_dummies,
+    orip_morph_deltas,
+    orip_polygon_partitions,
+    orip_sub_mesh_names,
     texture_alpha_mode,
 )
+from serializers.common.three_d import SubMesh
+from serializers.common.three_d.glb_morph_targets import add_glb_morph_targets, read_accessor, read_glb, write_glb
 
 
 class TestCrpImageAtlasPosition(unittest.TestCase):
@@ -57,6 +63,144 @@ class TestOripFxDummies(unittest.TestCase):
 
     def test_skips_garbage_names_and_makes_names_unique(self):
         self.assertEqual([d['name'] for d in orip_fx_dummies(self.data)], ['fx_FR0', 'fx_smok', 'fx_smok_1'])
+
+
+def _orip_data(polygons, labels=(), partitions=(), vmap=(), morphs=(), vertices=()):
+    """ORIP data with the fields the mesh building reads: polygons as (material index), materials named by index"""
+    return {
+        'polygons': [{'material_index': m} for m in polygons],
+        'materials': [{'file_name': name} for name in ['', 'rsid', 'circ']],
+        'labels': [{'name': name, 'index': index} for name, index in labels],
+        'partitions': [
+            {'name': name, 'polygons_start': start, 'num_polygons': count} for name, start, count in partitions
+        ],
+        'vmap': list(vmap),
+        'morphs': [
+            {'name': name, 'num_vertices': n, 'vmap_offset': start, 'first_delta': delta}
+            for name, n, start, delta in morphs
+        ],
+        'vertices': {'data': [{'x': x, 'y': y, 'z': z} for x, y, z in vertices]},
+    }
+
+
+class TestOripPartitionsAndMeshNames(unittest.TestCase):
+    # polygons: 0 rsid, 1 rsid, 2 rsid, 3 circ, 4 untextured wheel, 5 rsid
+    data = _orip_data(
+        polygons=[1, 1, 1, 2, 0, 1],
+        labels=[('lt_frnt', 4)],
+        # vmap: NON-SORT lists 0 and 5, inside 2 and 3, surface 0 and 1, outside 4; polygon 5 is in no drawn one
+        partitions=[('NON-SORT', 0, 2), ('inside', 2, 2), ('surface', 4, 2), ('outside', 6, 1)],
+        vmap=[0, 5, 2, 3, 0, 1, 4],
+    )
+
+    def test_partition_of_each_polygon(self):
+        self.assertEqual(
+            orip_polygon_partitions(self.data), ['surface', 'surface', 'inside', 'inside', 'outside', None]
+        )
+
+    def test_meshes_split_by_partition(self):
+        names, partitions = orip_sub_mesh_names(self.data)
+        self.assertEqual(names, ['rsid', 'rsid', 'rsid__inside', 'circ', 'lbl__lt_frnt', 'rsid__none'])
+        self.assertEqual(partitions[2], 'inside')
+
+    def test_tie_keeps_the_name_for_the_first_polygon_partition(self):
+        data = _orip_data(polygons=[1, 1], partitions=[('inside', 1, 1), ('surface', 0, 1)], vmap=[0, 1])
+        self.assertEqual(orip_sub_mesh_names(data)[0], ['rsid', 'rsid__inside'])
+
+
+class TestOripMorphDeltas(unittest.TestCase):
+    def test_full_names_and_deltas_by_vertex(self):
+        data = _orip_data(
+            polygons=[],
+            vmap=[7, 3, 5],
+            morphs=[('left_tur', 2, 1, 2), ('right_tu', 1, 0, 1)],
+            vertices=[(0, 0, 0), (0.5, 0, 0), (1, 2, 3), (4, 5, 6)],
+        )
+        self.assertEqual(
+            orip_morph_deltas(data),
+            {'left_turn': {3: [1, 2, 3], 5: [4, 5, 6]}, 'right_turn': {7: [0.5, 0, 0]}},
+        )
+
+    def test_change_axes_converts_morph_targets_like_vertices(self):
+        mesh = SubMesh()
+        mesh.vertices = [[1, 2, 3]]
+        mesh.morph_targets = {'left_turn': [[0.1, 0.2, 0.3]]}
+        mesh.change_axes(new_z='y', new_y='z')
+        self.assertEqual(mesh.vertices, [[1, 3, 2]])
+        self.assertEqual(mesh.morph_targets, {'left_turn': [[0.1, 0.3, 0.2]]})
+
+
+class TestAddGlbMorphTargets(unittest.TestCase):
+    def _write_quad_glb(self, path):
+        # one node "wheel" with a quad, its vertices in another order than the sub-mesh ones
+        positions = [(1.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0)]
+        uvs = [(1.0, 0.0), (0.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        binary = b''.join(struct.pack('<3f', *p) for p in positions) + b''.join(struct.pack('<2f', *t) for t in uvs)
+        gltf = {
+            'asset': {'version': '2.0'},
+            'scene': 0,
+            'scenes': [{'nodes': [0, 1]}],
+            'nodes': [{'name': 'wheel', 'mesh': 0}, {'name': 'fx_smok'}],
+            'meshes': [{'name': 'wheel', 'primitives': [{'attributes': {'POSITION': 0, 'TEXCOORD_0': 1}}]}],
+            'buffers': [{'byteLength': len(binary)}],
+            'bufferViews': [
+                {'buffer': 0, 'byteOffset': 0, 'byteLength': 48},
+                {'buffer': 0, 'byteOffset': 48, 'byteLength': 32},
+            ],
+            'accessors': [
+                {
+                    'bufferView': 0,
+                    'componentType': 5126,
+                    'count': 4,
+                    'type': 'VEC3',
+                    'min': [0, 0, 0],
+                    'max': [1, 1, 0],
+                },
+                {'bufferView': 1, 'componentType': 5126, 'count': 4, 'type': 'VEC2'},
+            ],
+        }
+        write_glb(path, gltf, binary)
+
+    def test_adds_targets_matched_by_position(self):
+        mesh = SubMesh()
+        mesh.name = 'wheel'
+        mesh.vertices = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]
+        mesh.vertex_uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
+        mesh.morph_targets = {
+            'left_turn': [[0.5, 0, 0], [0.25, 0, 0], [0, 0, 0], [0, 0, 0]],
+            'right_turn': [[0, 0, 0], [0, 0, 0], [0, 0, -1], [0, 0, 0]],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'body.glb')
+            self._write_quad_glb(path)
+            add_glb_morph_targets(path, [mesh])
+            gltf, binary = read_glb(path)
+        gltf_mesh = gltf['meshes'][0]
+        self.assertEqual(gltf_mesh['extras'], {'targetNames': ['left_turn', 'right_turn']})
+        self.assertEqual(gltf_mesh['weights'], [0.0, 0.0])
+        targets = gltf_mesh['primitives'][0]['targets']
+        self.assertEqual(
+            read_accessor(gltf, binary, targets[0]['POSITION']), [(0.25, 0, 0), (0.5, 0, 0), (0, 0, 0), (0, 0, 0)]
+        )
+        self.assertEqual(
+            read_accessor(gltf, binary, targets[1]['POSITION']), [(0, 0, 0), (0, 0, 0), (0, 0, -1), (0, 0, 0)]
+        )
+        accessor = gltf['accessors'][targets[1]['POSITION']]
+        self.assertEqual((accessor['min'], accessor['max']), ([0, 0, -1], [0, 0, 0]))
+        # the original data is kept
+        self.assertEqual(read_accessor(gltf, binary, 0)[0], (1.0, 0.0, 0.0))
+        self.assertEqual(gltf['buffers'][0]['byteLength'], len(binary))
+
+    def test_missing_node_is_an_error(self):
+        mesh = SubMesh()
+        mesh.name = 'other'
+        mesh.vertices = [[0, 0, 0]]
+        mesh.morph_targets = {'left_turn': [[1, 0, 0]]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'body.glb')
+            self._write_quad_glb(path)
+            with self.assertRaises(ValueError):
+                add_glb_morph_targets(path, [mesh])
 
 
 class TestComposeTexturePage(unittest.TestCase):

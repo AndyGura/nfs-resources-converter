@@ -27,8 +27,9 @@ from .nfs6 import (
 from .tnfs import (
     OripPolygon,
     OripVertexUV,
-    OripTextureName,
-    RenderOrderBlock,
+    OripMaterial,
+    OripMorph,
+    OripPartition,
     NamedIndex,
     OripGeometry,
 )

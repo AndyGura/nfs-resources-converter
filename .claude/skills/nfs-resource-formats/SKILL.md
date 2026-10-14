@@ -240,7 +240,10 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    `'blend'` for translucent textures, `'cutout'` for alpha masks; `texture_alpha_mode(image)` in
    `serializers/geometries.py` picks one from pixels) is written as an `alpha_mode` MTL statement,
    which tells the GUI preview whether to blend the material; without it the preview blends
-   every textured material. `ImageSerializer().to_image(data, block, id)` returns a
+   every textured material. `SubMesh.morph_targets` (target name -> relative delta per vertex,
+   kept in sync by `change_axes` only) reach the gg-web-engine GLB as glTF morph targets, added after the
+   Blender export (`glb_morph_targets.py`, TNFS car steering); `Scene.object_properties` (mesh name ->
+   custom properties) become glTF node extras. `ImageSerializer().to_image(data, block, id)` returns a
    PIL image of any `EacImage` (palette resolved from `id`), e.g. to compose texture atlases (see
    `compose_texture_page` in `serializers/geometries.py` for NFS5 CRP texture pages). A texture
    file that sits next to the model (track `.fsh`, car `.tpg`) is loaded with

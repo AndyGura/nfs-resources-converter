@@ -1,3 +1,4 @@
+import struct
 import unittest
 from io import BytesIO
 from os.path import getsize
@@ -405,3 +406,77 @@ class TestEaglSkeleton(unittest.TestCase):
         t = (-0.5, 0.25, -2)
         for k in range(3):
             self.assertAlmostEqual(sum(p[j] * r[3 * j + k] for j in range(3)) + t[k], 0)
+
+
+class _NamedBytesIO(BytesIO):
+    """ORIP picks the vertex format by the file name (.CFM: 32:7 fixed point)"""
+
+    def __init__(self, data: bytes, name: str):
+        super().__init__(data)
+        self.name = name
+
+
+class TestOripGeometry(unittest.TestCase):
+    @staticmethod
+    def _orip_bytes(index: int) -> bytes:
+        # TSUPRA.CFM is a wwww archive: item 0 the near ORIP, 2 the far one
+        with open('test/samples/TSUPRA.CFM', 'rb') as f:
+            cfm = f.read()
+        offset = struct.unpack_from('<I', cfm, 8 + 4 * index)[0]
+        return cfm[offset : offset + struct.unpack_from('<I', cfm, offset + 4)[0]]
+
+    @staticmethod
+    def _read(data: bytes):
+        from library.context import ReadContext
+        from resources.eac.geometries import OripGeometry
+
+        block = OripGeometry()
+        return block, block.unpack(ReadContext(_NamedBytesIO(data, 'TSUPRA.CFM')), read_bytes_amount=len(data))
+
+    def test_header_morphs_and_partitions(self):
+        _, data = self._read(self._orip_bytes(0))
+        self.assertEqual(data['version'], 700)
+        self.assertEqual(data['name'], '_SUPRA')
+        self.assertEqual((data['num_vrtx'], data['num_shape_vrtx']), (118, 102))
+        self.assertEqual((data['num_jld'], data['jld_ptr'], data['jld_runtime_ptr']), (0, 112, 0))
+        self.assertEqual(data['morphs_ptr'], 0x744)
+        self.assertEqual(
+            data['morphs'],
+            [
+                {'name': 'left_tur', 'num_vertices': 8, 'vmap_offset': 468, 'first_delta': 102},
+                {'name': 'right_tu', 'num_vertices': 8, 'vmap_offset': 476, 'first_delta': 110},
+            ],
+        )
+        self.assertEqual(
+            [(p['name'], p['unknown_0x0c'], p['polygons_start'], p['num_polygons']) for p in data['partitions']],
+            [('NON-SORT', 0, 484, 0), ('inside', 1, 484, 10), ('surface', 0, 494, 51), ('outside', -1, 545, 4)],
+        )
+        self.assertEqual(data['materials'][0]['file_name'], 'topv')
+        self.assertIn(b'frntires', [m['name'] for m in data['materials']])
+
+    def test_writes_back_byte_exact(self):
+        for index in (0, 2):
+            original = self._orip_bytes(index)
+            block, data = self._read(original)
+            self.assertEqual(block.pack(data), original)
+
+    def test_morph_table_overlapping_materials(self):
+        # LDIABLO.CFM far model: morph and partition tables start 3 bytes before the end of the materials. Build it
+        # from TSUPRA's far model (no morphs): drop the 3 bytes before the partitions, move the pointers after them
+        original = self._orip_bytes(2)
+        _, data = self._read(original)
+        partitions_ptr = data['partitions_ptr']
+        self.assertEqual(data['morphs_ptr'], partitions_ptr)
+        patched = bytearray(original[: partitions_ptr - 3] + original[partitions_ptr:])
+        for field_offset in (0x04, 0x18, 0x44, 0x4C, 0x50, 0x58, 0x60):
+            value = struct.unpack_from('<I', patched, field_offset)[0]
+            struct.pack_into('<I', patched, field_offset, value - 3)
+        block, overlapped = self._read(bytes(patched))
+        self.assertEqual(overlapped['partitions'], data['partitions'])
+        self.assertEqual(overlapped['vmap'], data['vmap'])
+        # written without the overlap, with consistent pointers
+        rewritten = block.pack(overlapped)
+        self.assertEqual(len(rewritten), len(patched) + 3)
+        _, reread = self._read(rewritten)
+        self.assertEqual(reread['partitions'], data['partitions'])
+        self.assertEqual(reread['partitions_ptr'], partitions_ptr)

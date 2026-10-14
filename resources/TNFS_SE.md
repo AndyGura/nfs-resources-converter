@@ -1,6 +1,6 @@
 # **TNFSSE (PC) file specs** #
 
-*Last time updated: 2026-10-14 16:12:28.543081+00:00*
+*Last time updated: 2026-10-14 19:57:16.959511+00:00*
 
 
 # **Info by file extensions** #
@@ -80,79 +80,93 @@ Did not find what you need or some given data is wrong? Please submit an
 ## **Geometries** ##
 ### **OripGeometry** ###
 #### **Size**: 112..? bytes ####
-#### **Description**: Geometry block for 3D model with few materials ####
+#### **Description**: Geometry block for 3D model with few materials: TNFS car models (CFM) and track props (FAM) ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. Always == "ORIP" | Resource ID |
 | 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | Total ORIP block size in bytes |
-| 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian). Always == 0x2bc | Looks like always 0x01F4 in 3DO version and 0x02BC in PC TNFSSE. ORIP type? |
-| 12 | **unk1** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Unknown purpose |
-| 16 | **num_vrtx** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertices |
-| 20 | **unk2** | 4 | Bytes | Unknown purpose |
+| 8 | **version** | 4 | 4-bytes unsigned integer (little endian). Always == 0x2bc | Format version (verified): 700 (0x2BC) on PC, the game warns about any other value. The PSX version expects 800, the 3DO version reportedly has 500 (0x1F4) |
+| 12 | **instance_counter** | 4 | 4-bytes unsigned integer (little endian). Always == 0x0 | Number of instances of the model: zeroed by the game at load and incremented per instance at run time (verified). Always 0 in the files |
+| 16 | **num_vrtx** | 4 | 4-bytes unsigned integer (little endian) | Number of items in `vertices`: the shape vertices and the morph delta vectors |
+| 20 | **num_shape_vrtx** | 4 | 4-bytes unsigned integer (little endian) | Number of shape vertices: `vertices` without the morph delta vectors (`num_vrtx` - the vertices of all morphs). The game takes the bounding box of a car from these (verified) |
 | 24 | **vrtx_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertices |
-| 28 | **num_uvs** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex UV-s (texture coordinates) |
+| 28 | **num_uvs** | 4 | 4-bytes unsigned integer (little endian) | Amount of vertex UV-s (texture coordinates). Not read by the game (verified) |
 | 32 | **uvs_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to vertex_uvs. Always equals to `112 + num_polygons*12` |
 | 36 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Amount of polygons |
 | 40 | **polygons_ptr** | 4 | 4-bytes unsigned integer (little endian). Always == 0x70 | An offset to polygons block |
-| 44 | **identifier** | 12 | UTF-8 string | Some ID of geometry, don't know the purpose |
-| 56 | **num_tex_ids** | 4 | 4-bytes unsigned integer (little endian) | Amount of texture names |
-| 60 | **tex_ids_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture names block. Always equals to `112 + num_polygons*12 + num_uvs*8` |
-| 64 | **num_tex_nmb** | 4 | 4-bytes unsigned integer (little endian) | Amount of texture numbers |
-| 68 | **tex_nmb_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to texture numbers block |
-| 72 | **num_ren_ord** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in render_order block |
-| 76 | **ren_ord_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of render_order block. Always equals to `tex_nmb_ptr + num_tex_nmb*20` |
+| 44 | **name** | 12 | UTF-8 string | Model name, like "_SUPRA" or "_TRESTLE". Never read by the game (verified) |
+| 56 | **num_materials** | 4 | 4-bytes unsigned integer (little endian) | Amount of materials |
+| 60 | **materials_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to materials. Always equals to `112 + num_polygons*12 + num_uvs*8` |
+| 64 | **num_morphs** | 4 | 4-bytes unsigned integer (little endian) | Amount of morphs |
+| 68 | **morphs_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to morphs. Equals to `materials_ptr + num_materials*20`, except in the far model of LDIABLO.CFM (see `unk_morphs`) |
+| 72 | **num_partitions** | 4 | 4-bytes unsigned integer (little endian) | Amount of partitions |
+| 76 | **partitions_ptr** | 4 | 4-bytes unsigned integer (little endian) | An offset to partitions. Always equals to `morphs_ptr + num_morphs*20` |
 | 80 | **vmap_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of polygon_vertex_map block |
 | 84 | **num_fxp** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in fx_polys block |
-| 88 | **fxp_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of fx_polys block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28` |
+| 88 | **fxp_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of fx_polys block. Always equals to `partitions_ptr + num_partitions*28` |
 | 92 | **num_lbl** | 4 | 4-bytes unsigned integer (little endian) | Amount of items in labels block |
-| 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `tex_nmb_ptr + num_tex_nmb*20 + num_ren_ord*28 + num_fxp*12` |
-| 100 | **unknowns1** | 12 | Bytes | Unknown purpose |
+| 96 | **lbl_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of labels block. Always equals to `fxp_ptr + num_fxp*12` |
+| 100 | **num_jld** | 4 | 4-bytes unsigned integer (little endian) | Number of JLD items (verified: when not 0, the game allocates num_jld * 0x24 bytes of inverse matrices at `jld_runtime_ptr`, "InitJLD"). What JLD is is unknown. 0 in every file |
+| 104 | **jld_ptr** | 4 | 4-bytes unsigned integer (little endian) | Offset of the JLD items. 112 (the end of the header) in every file, where there are none |
+| 108 | **jld_runtime_ptr** | 4 | 4-bytes unsigned integer (little endian) | Run time pointer to the JLD inverse matrices (verified), 0 in the files |
 | 112 | **polygons** | num_polygons\*12 | Array of `num_polygons` items<br/>Item type: [OripPolygon](#orippolygon) | A block with polygons of the geometry. Probably should be a start point when building model from this file |
 | 112 + num_polygons\*12 | **unk_uvs** | up to offset uvs_ptr | Padding bytes | Padding up to `uvs_ptr`, normally empty |
 | uvs_ptr | **vertex_uvs** | num_uvs\*8 | Array of `num_uvs` items<br/>Item size: 8 bytes<br/>Item type: Texture coordinates for vertex, where each coordinate is: 4-bytes unsigned integer (little endian). The unit is a pixels amount of assigned texture. So it should be changed when selecting texture with different size | A table of texture coordinates. Items are retrieved by index, located in vmap |
-| uvs_ptr + num_uvs\*8 | **unk_tex_ids** | up to offset tex_ids_ptr | Padding bytes | Padding up to `tex_ids_ptr`, normally empty |
-| tex_ids_ptr | **tex_ids** | num_tex_ids\*20 | Array of `num_tex_ids` items<br/>Item type: [OripTextureName](#oriptexturename) | A table of texture references. Items are retrieved by index, located in polygon item |
-| tex_ids_ptr + num_tex_ids\*20 | **offset** | up to offset tex_nmb_ptr | Padding bytes | In some cases contains unknown data with UTF-8 entries "left_turn", "right_turn", in case of DIABLO.CFM it's length is equal to -3, meaning that last 3 bytes from texture names block are reused by next block |
-| tex_nmb_ptr | **tex_nmb** | num_tex_nmb\*20 | Array of `num_tex_nmb` items<br/>Item size: 20 bytes<br/>Item type: Array of `20` items<br/>Item size: 1 byte<br/>Item type: 1-byte unsigned integer | Unknown purpose |
-| tex_nmb_ptr + num_tex_nmb\*20 | **unk_ren_ord** | up to offset ren_ord_ptr | Padding bytes | Padding up to `ren_ord_ptr`, normally empty |
-| ren_ord_ptr | **render_order** | num_ren_ord\*28 | Array of `num_ren_ord` items<br/>Item type: [RenderOrderBlock](#renderorderblock) | Render order. The exact mechanism how it works is unknown |
-| ren_ord_ptr + num_ren_ord\*28 | **unk_fxp** | up to offset fxp_ptr | Padding bytes | Padding up to `fxp_ptr`, normally empty |
-| fxp_ptr | **fx_polys** | num_fxp\*12 | Array of `num_fxp` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian). Used by ORIP `fx_polys` (index is a vertex index) and `labels` (index is a polygon index) | Named points of the model for visual effects, in high-poly car models (CFM). Despite the name, `index` is the index of an item of `vertices`, not of a polygon. Names (the case differs between cars: F512M, F512TR, TRAFFC and WARRIOR use lower case): `FL0`, `FL1`, `FR0`, `FR1`, `RL0`, `RL1`, `RR0`, `RR1` are the ground contact points of the wheels (front/rear, left/right), 0 at the front edge of the wheel, 1 at the rear edge (the bottom corners of the wheel polygon labelled `lt_frnt`, `rt_rear`...); guess: sources of tyre smoke, dust and skid marks. `smok` is a point at the engine: on the hood of front-engined cars (DVIPER, CZR1, MRX7, TSUPRA), at the exhaust or the engine lid of the others; guess: source of engine smoke and fire of a wrecked car. `d` (only in the M*.CFM models) is a point near the bottom of the front left wheel, unknown purpose. DVIPER has one more entry with garbage name "\x02" (the top of a wheel polygon). The gg-web-engine export writes every entry as a dummy "fx_<name>" at the vertex, with properties `fx` (the name) and `vertex` (the index), skipping entries with a non-printable name like "\x02" |
+| uvs_ptr + num_uvs\*8 | **unk_materials** | up to offset materials_ptr | Padding bytes | Padding up to `materials_ptr`, normally empty |
+| materials_ptr | **materials** | num_materials\*20 | Array of `num_materials` items<br/>Item type: [OripMaterial](#oripmaterial) | A table of materials. Items are retrieved by index, located in polygon item |
+| materials_ptr + num_materials\*20 | **unk_morphs** | up to offset morphs_ptr | Padding bytes | Padding up to `morphs_ptr`, empty in every file but one: in the far model of LDIABLO.CFM (no morphs) its length is -3, the morph and partition tables start 3 bytes before the end of the materials, so the last 3 bytes of the materials are the start of the first partition name. Written back as 0 bytes, so that model is not written byte-exact |
+| morphs_ptr | **morphs** | num_morphs\*20 | Array of `num_morphs` items<br/>Item type: [OripMorph](#oripmorph) | Morphs (verified). Only full car models have them: `left_turn` and `right_turn`, each moving the 4 vertices of its front wheel quad (labels `lt_frnt` / `rt_frnt`) and the 4 of that wheel's inner `circ` quad (TRAFFC, WARRIOR, WARIOR: the wheel quad only), no body vertex. Both turn their wheel left at a positive weight. The game applies the weight -steer_angle / 0x200000 (weight 1.0 is about 30 degrees of wheel turn), `left_turn` only when the camera sees the car's left side, `right_turn` only the right side. The gg-web-engine export writes them as glTF morph targets `left_turn` / `right_turn` of the meshes with moved vertices |
+| morphs_ptr + num_morphs\*20 | **unk_partitions** | up to offset partitions_ptr | Padding bytes | Padding up to `partitions_ptr`, normally empty |
+| partitions_ptr | **partitions** | num_partitions\*28 | Array of `num_partitions` items<br/>Item type: [OripPartition](#orippartition) | Partitions, the draw order of the polygons (verified). The gg-web-engine export writes the partition of each mesh (`inside`, `surface` or `outside`) to its node extras (`partition`) |
+| partitions_ptr + num_partitions\*28 | **unk_fxp** | up to offset fxp_ptr | Padding bytes | Padding up to `fxp_ptr`, normally empty |
+| fxp_ptr | **fx_polys** | num_fxp\*12 | Array of `num_fxp` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian). Used by ORIP `fx_polys` (index is a vertex index) and `labels` (index is a polygon index) | Named points of the model for visual effects, in high-poly car models (CFM). Despite the name, `index` is the index of an item of `vertices`, not of a polygon. The game looks up `smok` and `fl0`, `fl1`, `fr0`, `fr1`, `rl0`, `rl1`, `rr0`, `rr1`, ignoring case (verified; F512M, F512TR, TRAFFC and WARRIOR use lower case, the other cars upper case). `FL0`..`RR1` are the ground contact points of the wheels (front/rear, left/right), 0 at the front edge of the wheel, 1 at the rear edge (the bottom corners of the wheel polygon labelled `lt_frnt`, `rt_rear`...); guess: sources of tyre smoke, dust and skid marks. `smok` is a point at the engine: on the hood of front-engined cars (DVIPER, CZR1, MRX7, TSUPRA), at the exhaust or the engine lid of the others; guess: source of engine smoke and fire of a wrecked car. Never looked up: `d` (only in the M*.CFM models, a point near the bottom of the front left wheel) and the garbage name "\x02" of one more DVIPER entry (the top of a wheel polygon). The gg-web-engine export writes every entry as a dummy "fx_<name>" at the vertex, with properties `fx` (the name) and `vertex` (the index), skipping entries with a non-printable name like "\x02" |
 | fxp_ptr + num_fxp\*12 | **unk_lbl** | up to offset lbl_ptr | Padding bytes | Padding up to `lbl_ptr`, normally empty |
-| lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian). Used by ORIP `fx_polys` (index is a vertex index) and `labels` (index is a polygon index) | Named polygons of high-poly car models (CFM), `index` is the index of an item of `polygons`. Names: `lt_frnt`, `rt_frnt`, `lt_rear`, `rt_rear`: the outer side of the wheels (left/right, front/rear), mostly untextured (guess: the game draws the tyre textures `tyr*` there); `bkll` / `bklr`: left / right rear light (guess: lit when braking); `bott`: a horizontal quad over the whole underside of the body of the simple traffic car models (texture `bott`), purpose unknown. Guesses: `bacr` (P911) the centre part of the rear light bar; `mm` (LDIABLO; garbage name "\x01" on the same polygon of LDIABL) a two-sided quad at the inner side of the front right wheel (texture `circ`); `W` (TRAFFC, WARRIOR) a triangle at the top rear left corner of the body (texture `abox`); COPMUST: `hll0` / `hlr0` headlights, `bkl0` / `bkr0` rear lights, `lfl0` / `lfr0` and `lrl0` / `lrr0` the front and rear left / right parts of the siren light bar on the roof, flashed by the game |
+| lbl_ptr | **labels** | num_lbl\*12 | Array of `num_lbl` items<br/>Item size: 12 bytes<br/>Item type: 12-bytes record, first 8 bytes is null-terminated UTF-8 string, last 4 bytes is an unsigned integer (little-endian). Used by ORIP `fx_polys` (index is a vertex index) and `labels` (index is a polygon index) | Named polygons of high-poly car models (CFM), `index` is the index of an item of `polygons`. The game looks up `lt_frnt`, `rt_frnt`, `lt_rear`, `rt_rear` only (verified): the outer side of the wheels (left/right, front/rear), quads of the `outside` partition with the materials `frntires` / `rertires`, which get the animated tyre textures. Never looked up: `bkll` / `bklr` (left / right rear light), `bott` (a horizontal quad over the whole underside of the body of the simple traffic car models, texture `bott`), `bacr` (P911, the centre part of the rear light bar), `mm` (LDIABLO; garbage name "\x01" on the same polygon of LDIABL: a two-sided quad at the inner side of the front right wheel, texture `circ`), `W` (TRAFFC, WARRIOR: a triangle at the top rear left corner of the body, texture `abox`) and the COPMUST lights `hll0` / `hlr0` (headlights), `bkl0` / `bkr0` (rear lights), `lfl0` / `lfr0` and `lrl0` / `lrr0` (front and rear left / right parts of the siren light bar on the roof). Brake and siren lights are palette animations in the game, not label lookups (verified): the brake light is one palette entry, lit when the brake is at 11 or more; the siren swaps the 4 palette entries from 0xFA every 16 clock units. Parts known by their texture: `circ`, four two-sided colour-keyed quads at the inner side of the tyres (`inside` partition); `shad`, two vertical two-sided colour-keyed quads across the car at each axle (from the ground up to 0.24 m, 4x1 texture, no UVs), not the shadow of the car (the game draws that as a separate flat quad on the road); guess: the tyre bottoms seen from the front and the rear |
 | lbl_ptr + num_lbl\*12 | **unk_vrtx** | up to offset vrtx_ptr | Padding bytes | Padding up to `vrtx_ptr`, normally empty |
-| vrtx_ptr | **vertices** | num_vrtx\*12 | One of types:<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. The unit is meter |
+| vrtx_ptr | **vertices** | num_vrtx\*12 | One of types:<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 7 bits is a fractional part<br/>- Array of `num_vrtx` items<br/>Item size: 12 bytes<br/>Item type: Point in 3D space (x,y,z), where each coordinate is: 32-bit real number (little-endian, signed), where last 4 bits is a fractional part | A table of mesh vertices 3D coordinates. For cars uses 32:7 points, else 32:4. The unit is meter. The first `num_shape_vrtx` items are the vertices of the model, the others are the delta vectors of the morphs |
 | vrtx_ptr + num_vrtx\*12 | **unk_vmap** | up to offset vmap_ptr | Padding bytes | Padding up to `vmap_ptr`, normally empty |
-| vmap_ptr | **vmap** | ? | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A LUT for both 3D and 2D vertices. Every item is an index of either item in vertices or vertex_uvs. When building 3D vertex, polygon defines offset_3d, a lookup to this table, and value from here is an index of item in vertices. When building UV-s, polygon defines offset_2d, a lookup to this table, and value from here is an index of item in vertex_uvs |
+| vmap_ptr | **vmap** | ? | Array of `?` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian) | A table of indices the other blocks point into: the vertex indices (in `vertices`) and texture coordinate indices (in `vertex_uvs`) of the polygons (`offset_3d`, `offset_2d`), the indices of chained polygons, the moved vertices of the morphs and the polygon lists of the partitions |
 ### **OripPolygon** ###
 #### **Size**: 12 bytes ####
 #### **Description**: A geometry polygon ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **polygon_type** | 1 | 1-byte unsigned integer | Huh, that's a srange field. From my tests, if it is xxx0_0011, the polygon is a triangle. If xxx0_0100 - it's a quad. Also there is only one polygon for entire TNFS with type == 2 in burnt sienna props. If ignore this polygon everything still looks great |
-| 1 | **mapping** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: two_sided<br/>1: flip_normal<br/>4: use_uv</details> | Rendering properties of the polygon |
-| 2 | **texture_index** | 1 | 1-byte unsigned integer | The index of item in ORIP's tex_ids block |
-| 3 | **unk** | 1 | 1-byte unsigned integer | Unknown purpose |
-| 4 | **offset_3d** | 4 | 4-bytes unsigned integer (little endian) | The index in vmap ORIP's table. This index represents first vertex of this polygon, so in order to determine all vertex we load next 2 or 3 (if quad) indexes from polygon_vertex_map. Look at vmap description for more info |
-| 8 | **offset_2d** | 4 | 4-bytes unsigned integer (little endian) | The same as offset_3d, also points to vmap, but used for texture coordinates. Look at vmap description for more info |
-### **OripTextureName** ###
+| 0 | **polygon_type** | 1 | 1-byte unsigned integer | Polygon type (verified). Bits 0-2: number of vertices (3 triangle, 4 quad, 2 a line: the only ones in the game files are in the TR6 mine prop, the converter skips them). Bit 0x08: colour-keyed, texel 0xFF is transparent (else opaque). Bit 0x80: textured (else filled with the flat colour of the material). Bits 3-6 together pick the game's rasterizer. Values in the files: 0x84 / 0x83 textured opaque quad / triangle, 0x8C / 0x8B textured colour-keyed quad / triangle, 0x04 flat colour quad, 0x02 line |
+| 1 | **mapping** | 1 | 8 flags container<br/><details><summary>flag names (from least to most significant)</summary>0: two_sided<br/>1: flip_normal<br/>2: not_in_draw_list<br/>3: chain<br/>4: use_uv<br/>5: alt_rasterizer</details> | Polygon flags (verified): 0x01 `two_sided`, no backface culling; 0x02 `flip_normal`, reversed winding; 0x04 `not_in_draw_list`: not culled and left out of the default draw list (drawn only through a chain); 0x08 `chain`: after drawing this polygon the game draws the polygon whose index follows the vertex indices in `vmap` (vmap[offset_3d + vertex count]), only in the CY1 tunnel prop; 0x10 `use_uv`: has texture coordinates (without it `offset_2d` is garbage and the texture is mapped to the corners of the quad); 0x20 `alt_rasterizer`: another rasterizer, only in two polygons of the AL1 trestle prop |
+| 2 | **material_index** | 1 | 1-byte unsigned integer | Index of the polygon's material in `materials` (verified) |
+| 3 | **unk** | 1 | 1-byte unsigned integer | Masked off and never read by the draw code (verified). Values 0, 1, 2, 4 |
+| 4 | **offset_3d** | 4 | 4-bytes unsigned integer (little endian) | Index in `vmap` of the first vertex index of this polygon: the polygon has as many vertices as bits 0-2 of `polygon_type` tell, their indices in `vertices` are the vmap items from this one on |
+| 8 | **offset_2d** | 4 | 4-bytes unsigned integer (little endian) | The same as offset_3d for texture coordinates: index in `vmap` of the index in `vertex_uvs` of the first vertex. Garbage when `use_uv` is off |
+### **OripMaterial** ###
 #### **Size**: 20 bytes ####
-#### **Description**: A settings of the texture. From what is known, contains name of bitmap (not always a correct UTF-8) ####
+#### **Description**: A material: FSH bitmap and flat colour of the polygons that use it ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **type** | 8 | Bytes | Unknown purpose |
-| 8 | **file_name** | 4 | UTF-8 string | Name of bitmap in SHPI block |
-| 12 | **unknown** | 8 | Bytes | Unknown purpose |
-### **RenderOrderBlock** ###
+| 0 | **name** | 8 | Bytes | Material name, 8 bytes, NUL-padded when shorter, empty in most materials. The game looks materials up by name (verified): `frntires` and `rertires` (the front and rear wheel quads, which get the animated tyre textures `tyr1`..`tyr4`), `tire1`..`tire4`. Other names in the files, never looked up: `pal`, `rtir1`..`rtir4` / `rty1`..`rty4` (Warrior rear tyres, never shown), traffic car part names (`side`, `front`, `rear`, `tires`...) and a few garbage values |
+| 8 | **file_name** | 4 | UTF-8 string | Name of the bitmap in the FSH archive next to this ORIP (verified) |
+| 12 | **color** | 3 | 3-bytes unsigned integer (little endian) | Flat colour 0xRRGGBB (the game reads the 4 bytes as 0x00RRGGBB, little-endian), matched to the nearest palette entry; untextured polygons are filled with it (verified) |
+| 15 | **unknown_0x0f** | 1 | 1-byte unsigned integer | High byte of the colour, never read by the game (verified). 0, 0x80, 0x81 or 0x82 in the files |
+| 16 | **unknown_0x10** | 4 | 4-bytes unsigned integer (little endian) | Never read by the game (verified) |
+### **OripMorph** ###
+#### **Size**: 20 bytes ####
+#### **Description**: A morph (verified): vertices moved by delta vectors times a weight, `vertex = base + round(delta * weight / 0x10000)` per component (weight in 16.16 fixed point, linear) ####
+| Offset | Name | Size (bytes) | Type | Description |
+| --- | --- | --- | --- | --- |
+| 0 | **name** | 8 | UTF-8 string | Morph name, 8 bytes without NUL: the game compares 8 characters of the names it looks up, `left_turn` and `right_turn`, so the files hold `left_tur` and `right_tu` |
+| 8 | **num_vertices** | 4 | 4-bytes unsigned integer (little endian) | Number of moved vertices |
+| 12 | **vmap_offset** | 4 | 4-bytes unsigned integer (little endian) | Index in `vmap` where the indices (in `vertices`) of the moved vertices start |
+| 16 | **first_delta** | 4 | 4-bytes unsigned integer (little endian) | Index in `vertices` of the delta vector of the first moved vertex, the deltas of the others follow it in the order of the vertex indices in vmap. They have the format of vertices and are stored after the `num_shape_vrtx` shape vertices |
+### **OripPartition** ###
 #### **Size**: 28 bytes ####
+#### **Description**: A partition: a named list of polygons, depth-sorted and drawn as a whole. The game draws a car as its `inside`, then `surface`, then `outside` partition (verified), each sorted on its own and painted completely over the previous one: `inside` (the inner tyre faces `circ`, the tyre bottoms `shad`, the Warrior's `bott` and `tire`, some body parts) is always under the body, `outside` (the 4 wheel quads in every full car model) always over it ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **identifier** | 8 | UTF-8 string | identifier ('NON-SORT', 'inside', 'surface', 'outside') |
-| 8 | **unk0** | 4 | 4-bytes unsigned integer (little endian) | 0x8 for 'NON-SORT' or 0x1 for the others |
-| 12 | **polygons_amount** | 4 | 4-bytes unsigned integer (little endian) | Polygons amount (3DO). For TNFSSE sometimes too big value |
-| 16 | **polygon_sum** | 4 | 4-bytes unsigned integer (little endian) | 0 for 'NON-SORT'; block’s 10 size for 'inside'; equals block’s 10 size + number of polygons from ‘inside’ = XXX for 'surface'; equals XXX + number of polygons from 'surface' for 'outside'; (Description for 3DO orip file, TNFSSE version has only 9 blocks!) |
-| 20 | **unk1** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
-| 24 | **unk2** | 4 | 4-bytes unsigned integer (little endian) | Unknown purpose |
+| 0 | **name** | 8 | UTF-8 string | Partition name. Every ORIP has `NON-SORT`, car models also `inside` and `surface`, full car models and the M*.CFM models `outside`, COPMUST `badge`. The game looks up `inside`, `surface`, `outside` and `convex` (never present); `NON-SORT` and `badge` are never drawn by the car code (verified) |
+| 8 | **unknown_0x08** | 4 | 4-bytes unsigned integer (little endian) | Never read by the game (verified). 0, or a large value equal in all partitions of the model; in traffic and M*.CFM models `inside`'s is the others' + 1 |
+| 12 | **unknown_0x0c** | 4 | 4-bytes signed integer (little endian) | Never read by the game (verified). In the full car models 1 for `inside`, 0 for `surface`, -1 for `outside`; 0 in the other models (PICKUP: -1 for `surface`) |
+| 16 | **polygons_start** | 4 | 4-bytes unsigned integer (little endian) | Index in `vmap` where the indices (in `polygons`) of the polygons of the partition start |
+| 20 | **num_polygons** | 4 | 4-bytes unsigned integer (little endian) | Number of polygons in the partition |
+| 24 | **unknown_0x18** | 4 | 4-bytes unsigned integer (little endian) | Never read by the game (verified), always 0 |
 ## **Maps** ##
 ### **TriMap** ###
 #### **Size**: 90664..? bytes ####
