@@ -1,4 +1,3 @@
-import glob
 import unittest
 
 from library import require_file
@@ -16,8 +15,6 @@ from resources.eac.replays import (
     TnfsReplayWorldKeyframe,
     TnfsReplayStats,
 )
-
-GAME_REPLAYS = sorted(glob.glob('games/tnfsse/GAMEDATA/REPLAY/*.RPL'))
 
 
 class TestTnfsReplay(unittest.TestCase):
@@ -56,7 +53,8 @@ class TestTnfsReplay(unittest.TestCase):
         self.assertEqual((1560, 180), (highlights['play_to_clock'], highlights['seek_target']))
         for second, value in enumerate(highlights['seconds']):
             if value:
-                self.assertEqual(second, value >> 8)
+                # the index is the second of the circular 8-minute buffer, the value holds the absolute second
+                self.assertEqual(second, (value >> 8) % 480)
 
         car = data['recording']['player_frames'][0][0]['car']
         self.assertEqual((0, 1, 2), (car['car_index'], car['control_handler'], car['crash_state']))
@@ -102,25 +100,18 @@ class TestTnfsReplay(unittest.TestCase):
         self.assertEqual(len(original), len(output))
         self.assertEqual(original, output)
 
-    @unittest.skipUnless(GAME_REPLAYS, 'games/tnfsse/GAMEDATA/REPLAY not available')
-    def test_game_replays(self):
+    def test_replay_fields_are_consistent(self):
+        (name, block, data) = require_file('test/samples/REPLAY3.RPL')
         tracks = ['cy', 'cl', 'al', 'tr1', 'tr2', 'tr6', 'tr3', 'tr7', 'tr4']
-        block = TnfsReplay()
-        for path in GAME_REPLAYS:
-            with self.subTest(path=path):
-                with open(path, 'rb') as f:
-                    original = f.read()
-                data = block.unpack_from_bytes(original)
-                self.assertEqual(original, block.pack(data))
-                setup = data['setup']
-                self.assertTrue(setup['track_name'].startswith(tracks[setup['track_id']]))
-                self.assertEqual(setup['car_count'], setup['racer_count'] + setup['cop_count'] + setup['traffic_count'])
-                for player in setup['players'][: setup['player_count']]:
-                    self.assertIn(player['car_model'], range(8))
-                    for device in ('steering_device', 'pedal_device', 'shift_device'):
-                        self.assertIn(player[device], range(4))
-                world = data['world_state']
-                self.assertEqual(0, world['unk0'])
-                # the countdown runs to the next keyframe, one control step per 4 clock units
-                self.assertEqual((0x708 - world['end_clock'] % 0x708) // 4 - 1, world['keyframe_countdown'])
-                self.assertEqual(setup['car_count'] - 1, world['keyframes'][0]['other_car_count'])
+        setup = data['setup']
+        self.assertTrue(setup['track_name'].startswith(tracks[setup['track_id']]))
+        self.assertEqual(setup['car_count'], setup['racer_count'] + setup['cop_count'] + setup['traffic_count'])
+        for player in setup['players'][: setup['player_count']]:
+            self.assertIn(player['car_model'], range(8))
+            for device in ('steering_device', 'pedal_device', 'shift_device'):
+                self.assertIn(player[device], range(4))
+        world = data['world_state']
+        self.assertEqual(0, world['unk0'])
+        # the countdown runs to the next keyframe, one control step per 4 clock units
+        self.assertEqual((0x708 - world['end_clock'] % 0x708) // 4 - 1, world['keyframe_countdown'])
+        self.assertEqual(setup['car_count'] - 1, world['keyframes'][0]['other_car_count'])

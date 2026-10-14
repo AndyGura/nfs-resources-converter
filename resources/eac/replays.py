@@ -17,7 +17,8 @@ from library.read_blocks import (
 # Sizes are fixed, the file is always 100374 bytes.
 #
 # Time: the game counts a 60/s clock (`g_sim_clock`), which advances by 2 per 30 Hz simulation tick; the race timer
-# starts at 300 (5 s). Every time value of the replay (named "tick" or "clock" here) is in units of this clock.
+# starts at 300 (5 s). Every time value of the replay (named "clock" here) is in units of this clock; a "simulation
+# tick" is one 30 Hz step.
 # Controls are read and recorded every 4 clock units (every 2nd simulation tick, simulation flags 4, the "control
 # step"), keyframes are taken every 0x708 clock units (30 s).
 # The recording buffer is circular and keeps 8 minutes: control sample index = (clock % 0x7080) / 4, keyframe slot =
@@ -26,7 +27,8 @@ from library.read_blocks import (
 # Positions and speeds are 16.16 fixed point numbers, angles are 24-bit numbers (0x1000000 is a full turn).
 #
 # Random generator: `tnfs_random_seed` (SE 0x428fe0) sets the LCG multiplier to the seed (`setup.random_seed`) and
-# the modulus to seed * 3, both made odd; only the modulus variable is kept in the keyframes.
+# the state to seed * 3, both made odd. Each step is `nbr = state * multiplier; state = nbr & 0xffff`, so the state
+# (`g_lcg_random_mod` in the game code) changes with every number drawn; only the state is kept in the keyframes.
 # Playback: `tnfs_replay_reinstate` (SE 0x44e354) restores the keyframe before the wanted clock, then simulates the
 # race again with the recorded control words. Keyframes don't hold the whole game state, so only a playback from
 # the start of the race is exact.
@@ -155,10 +157,16 @@ class TnfsReplaySetup(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         unk0 = (BytesBlock(length=2), {'is_unknown': True})
-        track_segment = (_int(), {'description': '0-based segment of an open track (`cl2` is segment 1 of CL)'})
+        track_segment = (
+            _int(),
+            {
+                'description': '0-based segment of an open track (`cl2` is segment 1 of CL). With `track_id`, an '
+                "index of the game's track tables (`track_id * 0xa6b + track_segment * 0x27`)"
+            },
+        )
         track_id = (
             _int(),
-            {'description': 'Track: 0 CY, 1 CL, 2 AL, 3 TR1, 4 TR2, 5 TR6, 6 TR3, 7 TR7, 8 TR4'},
+            {'description': 'Track: 0 CY, 1 CL, 2 AL (the open tracks), 3 TR1, 4 TR2, 5 TR6, 6 TR3, 7 TR7, 8 TR4'},
         )
         track_name = (
             UTF8Block(length=10),
@@ -169,12 +177,24 @@ class TnfsReplaySetup(DeclarativeCompoundBlock):
             {'description': 'Race type: 0 time trial, 1 head to head, 2 single race, 3 tournament'},
         )
         is_linked_game = (_int(), {'description': 'Boolean. 1 for the linked (multiplayer) game'})
-        game_settings = (_int(), {'description': 'Bit flags `g_game_settings`: 4 is No Mercy'})
+        game_settings = (
+            _int(),
+            {'description': 'Bit flags `g_game_settings`. The game checks 4, 8 and 0x20; 4 is No Mercy (head to head)'},
+        )
         racer_count = (_int(), {'description': 'Number of racing cars, players included'})
         player_count = (_int(), {'description': 'Number of players'})
-        cop_count = (_int(), {'description': 'Number of police cars'})
+        cop_count = (
+            _int(),
+            {
+                'description': 'Number of police cars. The race setup (SE 0x42702c) sets 1 in a single-player head to '
+                'head on an open track (`track_id` below 3) without No Mercy (`game_settings` 4), 0 otherwise'
+            },
+        )
         car_count = (_int(), {'description': 'Total number of cars: racers, cops and traffic'})
-        traffic_count = (_int(), {'description': 'Number of traffic cars'})
+        traffic_count = (
+            _int(),
+            {'description': 'Number of traffic cars: 6 under the same conditions as `cop_count`, 0 otherwise'},
+        )
         opponent_difficulty = (
             _int(),
             {'description': 'Opponent difficulty, the front-end option. Index of the table at SE 0x4c5ce0'},
@@ -244,8 +264,8 @@ class TnfsReplayHighlightClip(DeclarativeCompoundBlock):
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
-        start_tick = (_int(), {'description': 'Clock of the clip start'})
-        end_tick = (_int(), {'description': 'Clock of the clip end'})
+        start_clock = (_int(), {'description': 'Clock of the clip start'})
+        end_clock = (_int(), {'description': 'Clock of the clip end'})
         coolness = (_int(), {'description': 'Highlight score of the clip'})
 
 
@@ -255,10 +275,11 @@ class TnfsReplayHighlights(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': 'Highlights of the race, found by the game during the race, 0x9a4 bytes. Highlight '
-            'scores: rollover 0x5c, landing after more than 10 ticks airborne 0x54, hard fence hit 0x32, sideways / '
-            'spin 0x57, fast skid 0x28, first move 0x78, race order swap 0x50, cop spun out 0x52, car-car hit from '
-            'the table at SE 0x4b909c (20 30 32 34 60 70 80 0 37 38 38 39 92 95 98 0; index +1 when the car in slot '
-            '2 is involved, +4 when a player is involved, +8 for a crash)',
+            'scores: rollover 0x5c, landing after more than 10 simulation ticks (1/3 s) airborne 0x54, hard fence '
+            'hit 0x32, sideways / spin 0x57, fast skid 0x28, first move 0x78, race order swap 0x50, cop spun out '
+            '0x52, car-car hit from the table at SE 0x4b909c (20 30 32 34 60 70 80 0 37 38 38 39 92 95 98 0; index '
+            '+1 when the car in slot 2 is involved, +2 when the car of the pointer at DOS 0x153bc4 (second player '
+            'car?) is involved, +4 when a player is involved, +8 for a crash)',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):
@@ -273,7 +294,10 @@ class TnfsReplayHighlights(DeclarativeCompoundBlock):
         )
         best_seconds = (
             ArrayBlock(child=_int(), length=30),
-            {'description': 'Numbers of the best seconds of the race, picked by the highest `seconds` score'},
+            {
+                'description': 'Numbers of the best seconds of the race (absolute seconds, `seconds` value >> 8), '
+                'picked by the highest `seconds` score'
+            },
         )
         clip_count = (_int(), {'description': 'Amount of used `clips`'})
         state = (
@@ -287,19 +311,27 @@ class TnfsReplayHighlights(DeclarativeCompoundBlock):
         saved_camera = (_int(), {'description': 'Playback state: camera saved before the replay'})
         loop_clocks = (
             ArrayBlock(child=_int(), length=4),
-            {'description': 'Playback state: loop / return clocks'},
+            {
+                'description': 'Playback state: loop / return clocks. `tnfs_replay_reinstate` with return point n sets '
+                'the clock to `loop_clocks[n]` and restores the world state keyframe record 16 + n'
+            },
         )
         seconds = (
             ArrayBlock(child=_uint(4), length=480),
             {
-                'description': 'The score of every second of the race. The value is `clock / 60 << 8 | score`, '
-                'plus 0x80 (a mark) until the second is selected for a clip. Written (SE 0x44d744) when the stored '
-                'low byte, mark included, is less than the new score'
+                'description': 'The score of every second of the race, indexed by the wrapped second (clock % '
+                '0x7080 / 60), so a race longer than 8 minutes reuses the entries. The value is the absolute second '
+                '`clock / 60 << 8 | score`, plus 0x80 (a mark) until the second is selected for a clip. Written (SE '
+                '0x44d744) when the stored low byte, mark included, is less than the new score; an entry of an '
+                'earlier second (stored second less than the current one) is reset to 0 first'
             },
         )
         current_second = (
             _int(),
-            {'description': 'Recording clock divided by 60, updated each time a highlight is recorded'},
+            {
+                'description': 'Wrapped recording clock divided by 60 (clock % 0x7080 / 60, the `seconds` index), '
+                'updated each time a highlight is recorded'
+            },
         )
         play_count = (_int(), {'description': 'Playback state: play count'})
         tv_camera = (_int(), {'description': 'Playback state: TV camera'})
@@ -539,11 +571,12 @@ class TnfsReplayWorldKeyframe(DeclarativeCompoundBlock):
         )
         police_chase_time = (_int(), {'description': 'Police chase time'})
         is_siren_on = (_int(), {'description': 'Boolean, siren sound flag'})
-        random_lcg_mod = (
+        random_lcg_state = (
             _int(),
             {
-                'description': 'Modulus variable of the random generator (seed * 3, made odd, at the race start). '
-                'Differs from keyframe to keyframe in the files (odd values below 0x10000)'
+                'description': 'State of the random generator (`g_lcg_random_mod` in the game code): seed * 3, made '
+                'odd, at the race start, then the low 16 bits of the last product state * multiplier, so it differs '
+                'from keyframe to keyframe'
             },
         )
         cop_park_position = (_int(), {'description': 'Park position of the cop (track node)'})
@@ -581,8 +614,10 @@ class TnfsReplayWorldState(DeclarativeCompoundBlock):
         keyframes = (
             ArrayBlock(child=TnfsReplayWorldKeyframe(), length=REPLAY_WORLD_KEYFRAMES),
             {
-                'description': 'One record per keyframe slot ((clock % 0x7080) / 0x708), 16 used, 4 spare. Records '
-                'past `end_clock` are stale'
+                'description': 'One record per keyframe slot ((clock % 0x7080) / 0x708) in 0..15. Records 16..19 '
+                'belong to the return points: `tnfs_replay_reinstate` with return point n restores record 16 + n '
+                'along with `highlights.loop_clocks[n]` (no caller found in the game code). Records past `end_clock` '
+                'are stale'
             },
         )
         saved_timers = (ArrayBlock(child=_int(), length=3), {'description': '3 saved timers'})
