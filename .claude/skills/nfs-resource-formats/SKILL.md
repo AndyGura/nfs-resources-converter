@@ -304,7 +304,9 @@ plumbing. To build one (see `ShpiBlock` in `resources/eac/archives/shpi_block.py
    reads as absent. When a conversion is genuinely lossy (e.g. any format down to 4Bit, which only
    keeps 4 bits per channel), don't assert the round-tripped value equals the pre-write one -
    assert it's stable after one write/read cycle instead (`twice = unpack(pack(once))`). Backend
-   suite: `./.venv/bin/python -m unittest`.
+   suite: `./.venv/bin/python -m unittest`. A test that needs a real file reads a small copy committed
+   to `test/samples/`, never `games/<game>/` (gitignored, empty in CI: the test would be skipped or
+   break there); `test/resources/test_games_directory.py` is the only test that reads `games/`.
 7. **Smoke test** (optional but valuable for archive/container formats): drop a small real sample
    into `test/golden_corpus/` and run `test/test_gui_golden_corpus.sh`, which opens every corpus
    file through `run.py` — a cheap way to catch crashes across the whole known file zoo.

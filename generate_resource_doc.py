@@ -166,6 +166,9 @@ EXPORT_RESOURCES = {
                 eac.replays.TnfsReplayPlayerFrame(),
                 eac.replays.TnfsReplayOtherFrame(),
                 eac.replays.TnfsReplayCarState(),
+                eac.replays.TnfsReplayCollisionData(),
+                eac.replays.TnfsReplayWorldState(),
+                eac.replays.TnfsReplayWorldKeyframe(),
                 eac.replays.TnfsReplayStats(),
             ],
             'Misc': [

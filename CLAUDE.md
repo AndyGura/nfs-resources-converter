@@ -132,6 +132,9 @@ When you do:
   `NFS_GAMES_ROUNDTRIP=1`; `NFS_GAMES_DIR=test/samples` makes it a seconds-long smoke run without the regression
   check, `NFS_GAMES_EXTENSIONS=.FSH,.QFS` limits it to some extensions (both only print the reports, without
   overwriting the files).
+- Unit tests never read `games/`: it is gitignored and empty in CI, so such a test is skipped there or breaks.
+  `test_games_directory.py` is the only exception. A test that needs a real file uses a copy committed to
+  `test/samples/` (keep it small); `games/` is for probe scripts and the opt-in round-trip only.
 
 ## TNFS track export (SIMDATA/MISC/*.TRI)
 
