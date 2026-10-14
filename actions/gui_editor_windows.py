@@ -1,11 +1,15 @@
+import ctypes
 import functools
 import http.server
+import logging
+import mimetypes
 import os
 import socketserver
 import sys
 import tempfile
 import threading
 import shutil
+import webbrowser
 
 import webview
 
@@ -49,6 +53,48 @@ def _start_static_server(root, port):
     httpd = _ThreadingHTTPServer(('127.0.0.1', port), handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     return httpd
+
+
+_WEBVIEW2_DOWNLOAD_URL = 'https://developer.microsoft.com/microsoft-edge/webview2/'
+
+
+def _check_web_engine():
+    """Return False (after telling the user) when pywebview would render the GUI with MSHTML.
+
+    pywebview uses Edge Chromium only when the WebView2 Runtime and .NET Framework 4.6.2+ are
+    installed, and otherwise falls back to MSHTML (Internet Explorer 11) with just a log warning.
+    IE11 can't run the Angular frontend, so the window would stay white.
+    """
+    from webview.platforms import winforms
+
+    if winforms.renderer != 'mshtml':
+        return True
+    logging.error('Edge WebView2 Runtime or .NET Framework 4.6.2+ is missing, cannot show the GUI')
+    MB_YESNO, MB_ICONERROR, IDYES = 0x04, 0x10, 6
+    answer = ctypes.windll.user32.MessageBoxW(
+        None,
+        'NFS Resources Converter needs Microsoft Edge WebView2 Runtime and .NET Framework 4.6.2 or newer '
+        'to show its window, and one of them is not installed.\n\n'
+        'Open the WebView2 Runtime download page? Install the "Evergreen Bootstrapper" there, '
+        'then start the application again.',
+        'NFS Resources Converter',
+        MB_YESNO | MB_ICONERROR,
+    )
+    if answer == IDYES:
+        webbrowser.open(_WEBVIEW2_DOWNLOAD_URL)
+    return False
+
+
+def _fix_mime_types():
+    """Serve the frontend files with their standard Content-Type.
+
+    Python's mimetypes (used by pywebview's HTTP server and the dev static server) reads file types
+    from the Windows registry, where installed programs often set ".js" to "text/plain". The web view
+    refuses to run module scripts (the Angular bundle) with a non-JavaScript type: the window stays white.
+    """
+    mimetypes.add_type('text/javascript', '.js')
+    mimetypes.add_type('text/javascript', '.mjs')
+    mimetypes.add_type('text/css', '.css')
 
 
 def _get_frontend_dist_path():
@@ -187,6 +233,10 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     # in the windowed (frozen) application on Windows, while keeping them in the log file.
     if not dev_server_url:
         setup_logging(redirect_stdout=True)
+
+    if not _check_web_engine():
+        return
+    _fix_mime_types()
 
     # Directory holding files needed by the GUI: in production the frontend
     # build; in development just the eel.js shim and serialized resources. In

@@ -196,3 +196,29 @@ class TestRunCustomActionOnNestedOptionalField(unittest.TestCase):
 
         (_, _, data), _ = library.require_resource(resource_id)
         self.assertEqual(data['value'], 10)
+
+
+class TestCreateNewFile(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.file_api = FileAPI(api=None)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_car_specs_files_load_back(self):
+        for file_name, format_name, class_name in [
+            ('Untitled.pbs', 'pbs', 'PlayerCarPhysics'),
+            ('Untitled.PDN', 'pdn', 'CarAiAndCrashBody'),
+            ('Untitled.BigSpecsFam', 'BigSpecsFam', 'Tnfs3doCarPhysics'),
+        ]:
+            with self.subTest(format_name):
+                path = os.path.join(self.temp_dir.name, file_name)
+                self.file_api.create_new_file(path, format_name)
+                (name, block, data) = library.require_file(path)
+                clear_file_cache(path)
+                if format_name == 'BigSpecsFam':
+                    self.assertEqual(block.__class__.__name__, class_name)
+                else:
+                    inner_block = block.possible_blocks[data['choice_index']]
+                    self.assertEqual(inner_block.__class__.__name__, class_name)

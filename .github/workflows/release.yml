@@ -108,6 +108,7 @@ jobs:
         shell: pwsh
         run: |
           pyinstaller nfs-resources-converter.spec
+          Invoke-WebRequest -Uri https://go.microsoft.com/fwlink/p/?LinkId=2124703 -OutFile MicrosoftEdgeWebview2Setup.exe
           iscc windows-installer.iss /DAppVersion=${{ needs.release.outputs.version }}
 
       - name: Build (macOS)

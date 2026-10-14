@@ -5,6 +5,12 @@ from serializers.maps import _require_nfs4_texture_archive
 
 
 class TestRequireNfs4TextureArchive(unittest.TestCase):
+    def setUp(self):
+        # No file lookup on disk: the gitignored games/nfs4 folder, where present, has these files in another case
+        patcher = patch('library.utils.file_utils.find_files_case_insensitive', return_value=[])
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_uses_own_archive_when_present(self):
         with patch('library.require_resource') as mock_require:
             mock_require.return_value = 'result'

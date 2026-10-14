@@ -14,6 +14,9 @@ export class NewFileDialogComponent {
     { id: 'ffn', description: 'FFN font', iconBlockClass: 'FfnFont' },
     { id: 'fsh', description: 'FSH image archive', iconBlockClass: 'ShpiBlock' },
     { id: 'qfs', description: 'QFS image archive', iconBlockClass: 'ShpiBlock' },
+    { id: 'pbs', description: 'PBS car physics (TNFS PC)', iconBlockClass: 'PlayerCarPhysics' },
+    { id: 'pdn', description: 'PDN car AI and crash body (TNFS PC)', iconBlockClass: 'CarAiAndCrashBody' },
+    { id: 'BigSpecsFam', description: 'BigSpecsFam car physics (TNFS 3DO)', iconBlockClass: 'PlayerCarPhysics' },
   ];
   public selectedFormat = 'ffn';
 

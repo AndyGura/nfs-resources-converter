@@ -211,6 +211,17 @@ class FileAPI:
 
             block = EacCompressedBlock()
             data = block.new_data({'choice_index': block.get_choice_index_by_class_name('ShpiBlock')})
+        elif format_name.lower() in ('pbs', 'pdn'):
+            from resources.eac.archives import EacCompressedBlock
+
+            block = EacCompressedBlock()
+            inner_class = 'PlayerCarPhysics' if format_name.lower() == 'pbs' else 'CarAiAndCrashBody'
+            data = block.new_data({'choice_index': block.get_choice_index_by_class_name(inner_class)})
+        elif format_name.lower() == 'bigspecsfam':
+            from resources.eac.car_specs import Tnfs3doCarPhysics
+
+            block = Tnfs3doCarPhysics()
+            data = block.new_data()
         else:
             raise Exception(f'Unsupported format: {format_name}')
 

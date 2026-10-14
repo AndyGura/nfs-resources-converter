@@ -25,6 +25,15 @@ def floor_8(value):
     return math.floor(value * 256) / 256
 
 
+# rounded down inverses of the derived fields; 0 for 0, so that a new (zero-filled) file can be written
+def inv_16(value):
+    return floor_16(1 / value) if value else 0
+
+
+def inv_8(value):
+    return floor_8(1 / value) if value else 0
+
+
 def _fixed(**kwargs):
     return FixedPointBlock(length=4, fraction_bits=16, is_signed=True, **kwargs)
 
@@ -87,15 +96,15 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
             },
         )
         inv_mass_f = (
-            _fixed(programmatic_value=lambda ctx: floor_16(1 / ctx.data('mass_front'))),
+            _fixed(programmatic_value=lambda ctx: inv_16(ctx.data('mass_front'))),
             {'description': '`1 / mass_front`, rounded down. Only feeds a car field that nothing reads'},
         )
         inv_mass_r = (
-            _fixed(programmatic_value=lambda ctx: floor_16(1 / ctx.data('mass_rear'))),
+            _fixed(programmatic_value=lambda ctx: inv_16(ctx.data('mass_rear'))),
             {'description': '`1 / mass_rear`, rounded down. Only feeds a car field that nothing reads'},
         )
         inv_mass = (
-            _fixed(programmatic_value=lambda ctx: floor_16(1 / (ctx.data('mass_front') + ctx.data('mass_rear')))),
+            _fixed(programmatic_value=lambda ctx: inv_16(ctx.data('mass_front') + ctx.data('mass_rear'))),
             {
                 'description': '`1 / mass`, rounded down. Used for the weight distribution, drag / mass '
                 '(`Fiziks_InitCar`) and the torque table (`tnfs_load_torque_table`, SE 0x409990)'
@@ -178,7 +187,7 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
             {'description': 'Distance between the front and rear axles (m): car wheelbase and yaw factors'},
         )
         wheel_base_inv = (
-            _fixed(programmatic_value=lambda ctx: floor_16(1 / ctx.data('wheel_base'))),
+            _fixed(programmatic_value=lambda ctx: inv_16(ctx.data('wheel_base'))),
             {'description': '`1 / wheel_base`, rounded down. Weight transfer factor (`Fiziks_InitCar`)'},
         )
         wheel_track = (
@@ -186,7 +195,7 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
             {'description': 'Distance between the left and right wheels (m). Not read'},
         )
         wheel_track_inv = (
-            _fixed(programmatic_value=lambda ctx: floor_16(1 / ctx.data('wheel_track'))),
+            _fixed(programmatic_value=lambda ctx: inv_16(ctx.data('wheel_track'))),
             {'description': '`1 / wheel_track`, rounded down. Not read'},
         )
         rear_weight_fraction = (
@@ -211,7 +220,7 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
         final_drive = (_fixed(), {'description': 'Final drive ratio. Only read by `tnfs_load_torque_table`'})
         wheel_radius = (_fixed(), {'description': 'Wheel radius (m). Not read, the game uses `inv_wheel_rad`'})
         inv_wheel_rad = (
-            _fixed(programmatic_value=lambda ctx: floor_16(1 / ctx.data('wheel_radius'))),
+            _fixed(programmatic_value=lambda ctx: inv_16(ctx.data('wheel_radius'))),
             {'description': '`1 / wheel_radius`, rounded down. Only read by `tnfs_load_torque_table`'},
         )
         gear_ratios = (
@@ -392,7 +401,7 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
             },
         )
         unknown_0x320_inv = (
-            _fixed8(programmatic_value=lambda ctx: floor_8(1 / ctx.data('unknown_0x320'))),
+            _fixed8(programmatic_value=lambda ctx: inv_8(ctx.data('unknown_0x320'))),
             {'is_unknown': True, 'description': '`1 / unknown_0x320`, rounded down (raw 65536 / raw). Not read'},
         )
         thrust_scale = (
@@ -403,7 +412,7 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
             },
         )
         force_to_accel = (
-            _fixed8(programmatic_value=lambda ctx: floor_8(1 / ctx.data('thrust_scale'))),
+            _fixed8(programmatic_value=lambda ctx: inv_8(ctx.data('thrust_scale'))),
             {
                 'description': '`1 / thrust_scale`, rounded down (raw 65536 / raw): summed longitudinal tire force '
                 '* this = acceleration (m/s²) (`tnfs_physics_update`)'
@@ -696,12 +705,12 @@ _TNFS_3DO_REPLACED_FIELDS = {
     'unknown_0x320': ('front_grip_mult', _fixed8_be()),
     'unknown_0x320_inv': (
         'front_grip_mult_inv',
-        _fixed8_be(programmatic_value=lambda ctx: floor_8(1 / ctx.data('front_grip_mult'))),
+        _fixed8_be(programmatic_value=lambda ctx: inv_8(ctx.data('front_grip_mult'))),
     ),
     'thrust_scale': ('rear_grip_mult', _fixed8_be()),
     'force_to_accel': (
         'rear_grip_mult_inv',
-        _fixed8_be(programmatic_value=lambda ctx: floor_8(1 / ctx.data('rear_grip_mult'))),
+        _fixed8_be(programmatic_value=lambda ctx: inv_8(ctx.data('rear_grip_mult'))),
     ),
     'unknown_0x330': ('burnout_div', _fixed8_be()),
 }
