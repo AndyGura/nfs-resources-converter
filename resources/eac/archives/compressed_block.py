@@ -1,3 +1,4 @@
+import hashlib
 from io import BytesIO, SEEK_CUR
 from typing import Dict
 
@@ -6,6 +7,13 @@ from library.read_blocks import AutoDetectBlock, BytesBlock
 from library.read_blocks.misc.compatibility import Compatibility
 from resources.eac.car_specs import CarAiAndCrashBody, PlayerCarPhysics
 from .shpi_block import ShpiBlock
+
+
+class CompressedData(dict):
+    """Data read from compressed block. Remembers the compressed bytes it was read from, which are written back as
+    they are while the uncompressed bytes stay the same"""
+
+    __slots__ = ('compressed', 'digest')
 
 
 class EacCompressedBlock(AutoDetectBlock):
@@ -71,18 +79,23 @@ class EacCompressedBlock(AutoDetectBlock):
         flags = ctx.buffer.read(1)[0]
         ctx.buffer.seek(-1, SEEK_CUR)
         compression = self._detect_compression(ctx.buffer)
+        start = ctx.buffer.tell()
         uncompressed_bytes = compression.uncompress(ctx.buffer, read_bytes_amount)
+        end = ctx.buffer.tell()
         uncompressed = BytesIO(uncompressed_bytes)
         self_ctx = ctx.get_or_create_child(name, self, read_bytes_amount)
         self_ctx.buffer = uncompressed
         self_ctx.read_bytes_amount = len(uncompressed_bytes)
-        res = super().read(ctx=self_ctx, name='uncompressed', read_bytes_amount=len(uncompressed_bytes))
+        res = CompressedData(super().read(ctx=self_ctx, name='uncompressed', read_bytes_amount=len(uncompressed_bytes)))
         # written back with the same algorithm: not every game is known to read every algorithm
         res['compression_flags'] = flags
+        ctx.buffer.seek(start)
+        res.compressed = ctx.buffer.read(read_bytes_amount if read_bytes_amount is not None else end - start)
+        res.digest = hashlib.sha1(uncompressed_bytes).digest()
+        ctx.buffer.seek(end)
         return res
 
-    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        uncompressed_bytes = super().write(data, ctx, name)
+    def compress(self, uncompressed_bytes: bytes, data) -> bytes:
         # new data: RefPack, which every EA game reads
         flags = data.get('compression_flags', 0x10)
         compression = self._compression_for_header(flags)
@@ -94,6 +107,22 @@ class EacCompressedBlock(AutoDetectBlock):
                 BytesIO(uncompressed_bytes), len(uncompressed_bytes), delta_passes=((flags >> 1) & 3,)
             )
         return compression.compress(BytesIO(uncompressed_bytes), len(uncompressed_bytes))
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        uncompressed_bytes = super().write(data, ctx, name)
+        digest = hashlib.sha1(uncompressed_bytes).digest()
+        if digest == getattr(data, 'digest', None):
+            return data.compressed
+        # size estimation packs the data too: don't compress the same bytes twice in a row
+        key = (digest, data.get('compression_flags'))
+        last_key, last_compressed = getattr(self, '_last_compressed', (None, None))
+        if key != last_key:
+            last_compressed = self.compress(uncompressed_bytes, data)
+            self._last_compressed = (key, last_compressed)
+        return last_compressed
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        return len(self.write(data, ctx))
 
     def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
         if game == 'tnfs':

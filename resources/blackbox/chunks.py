@@ -37,8 +37,16 @@ def _pick_chunk_block(ctx, blocks: List[DataBlock], blocks_by_id: Dict[int, List
     return len(blocks) - 1
 
 
+def _chunk_seed(ctx, block: DataBlock) -> Dict:
+    # chunk id is known without parsing: lets code pick chunks by id without loading all of them
+    fields = getattr(block, 'field_blocks_map', {})
+    id_field = 'chunk_id' if 'chunk_id' in fields else 'header' if 'header' in fields else None
+    return {id_field: peek_chunk_id(ctx)} if id_field else {}
+
+
 def chunk_delegate(possible_blocks: List[DataBlock]) -> DelegateBlock:
-    """One chunk of any of given kinds, picked by chunk id. Unknown chunks are read as `UnknownChunk`"""
+    """One chunk of any of given kinds, picked by chunk id. Unknown chunks are read as `UnknownChunk`. Chunks are
+    lazy parts: in lazy read context, the chosen block is parsed on first access"""
     blocks = list(possible_blocks) + [UnknownChunk()]
     blocks_by_id = chunk_blocks_by_id(blocks[:-1])
     return DelegateBlock(
@@ -47,6 +55,8 @@ def chunk_delegate(possible_blocks: List[DataBlock]) -> DelegateBlock:
             lambda ctx, **_: _pick_chunk_block(ctx, blocks, blocks_by_id),
             'by chunk id (and layout, if several kinds share the id), `UnknownChunk` for unknown ids',
         ),
+        part_length=lambda ctx: 8 + peek_chunk_length(ctx),
+        part_seed=_chunk_seed,
     )
 
 

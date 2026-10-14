@@ -4,6 +4,8 @@ export type GeneralConfig = {
   print_blender_log: boolean;
   recent_files: string[];
   show_hidden_fields: boolean;
+  lazy_loading: boolean;
+  file_cache_size: number;
 };
 
 export type ExecutableKind = 'blender' | 'ffmpeg';

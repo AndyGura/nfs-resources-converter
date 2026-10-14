@@ -4,6 +4,7 @@ Warnings and game compatibility checks of the opened file (`library.block_checks
 
 from typing import Any, Dict, List
 
+from library import lazy
 from library.block_checks import check_compatibility, collect_target_games, collect_warnings
 from library.changes_service import ChangesService
 from library.read_blocks.misc.compatibility import GAMES, GAME_ALIASES
@@ -32,7 +33,8 @@ class ChecksAPI:
         revision = ChangesService.local_revision
         last_change = ChangesService.changes[revision - 1] if 0 < revision <= len(ChangesService.changes) else None
         # a change entry is a new object every time: the same revision after undo + another edit is another key
-        key = (name, id(data), revision, id(last_change))
+        # lazy parts loaded since the last walk (the GUI opened them) get their warnings
+        key = (name, id(data), revision, id(last_change), lazy.stats['parses'])
         if key != self._warnings_cache_key:
             self._warnings_cache = collect_warnings(block, data, name)
             self._warnings_cache_key = key

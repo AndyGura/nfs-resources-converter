@@ -38,7 +38,6 @@ class TestShpiArchiveSerializer(unittest.TestCase):
                     'choice_index': shpi_block.item_block.get_choice_index_by_class_name('EacImage'),
                     'data': image_block.new_data(),
                 },
-                'pre_offset_payload': b'',
                 'post_offset_payload': b'',
             },
             {
@@ -47,7 +46,6 @@ class TestShpiArchiveSerializer(unittest.TestCase):
                     'choice_index': shpi_block.item_block.get_choice_index_by_class_name('EacImage'),
                     'data': image_block.new_data(),
                 },
-                'pre_offset_payload': b'',
                 'post_offset_payload': b'',
             },
         ]

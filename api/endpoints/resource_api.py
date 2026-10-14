@@ -9,6 +9,7 @@ from typing import Dict, Any, List
 
 from library import require_resource
 from library.changes_service import ChangesService
+from library.lazy import LazyDict, load_all
 from library.read_blocks.optional import OptionalBlock, TrailingOptionalBlock
 from library.utils.id import join_id
 from serializers.misc.json_utils import convert_bytes, serialize_exceptions
@@ -51,6 +52,23 @@ class ResourceAPI:
             The resource value
         """
         (_, _, resource), _ = require_resource(resource_id)
+        # a whole value, for code which reads it as a tree: every lazy part inside is parsed
+        return self.render_data(load_all(resource))
+
+    def load_lazy_part(self, resource_id: str) -> Any:
+        """
+        Parse an unloaded lazy part (archive entry, bundle chunk) and return its rendered data. Lazy parts
+        nested in it stay unloaded, rendered as markers.
+
+        Args:
+            resource_id: ID of the lazy part
+
+        Returns:
+            The rendered data of the part
+        """
+        (_, _, resource), _ = require_resource(resource_id)
+        if isinstance(resource, LazyDict):
+            resource.load()
         return self.render_data(resource)
 
     def run_custom_action(self, resource_id: str, action: Dict, args: Dict):

@@ -23,7 +23,6 @@ class TestShpiBlock(unittest.TestCase):
             ]
             data['children'].append(
                 {
-                    'pre_offset_payload': b'',
                     'post_offset_payload': b'',
                     'alias': alias,
                     'item': {'choice_index': image_choice, 'data': img_data},
@@ -64,7 +63,6 @@ class TestShpiBlock(unittest.TestCase):
         img_data['bitmap'] = [(x * 0x60 << 24) | (y * 0x60 << 16) | 0xFF for y in range(2) for x in range(2)]
         data['children'].append(
             {
-                'pre_offset_payload': b'',
                 'post_offset_payload': b'',
                 'alias': 'img0',
                 'item': {'choice_index': image_choice, 'data': img_data},
@@ -88,7 +86,7 @@ class TestShpiBlock(unittest.TestCase):
         self.assertEqual(reread['children'][0]['item']['data']['resource_id'], '16Bit_0565 color format palette')
 
     def test_fsh_should_remain_the_same(self):
-        (name, block, fsh) = require_file('test/samples/VERTBST.FSH')
+        (name, block, fsh) = require_file('test/samples/VERTBST.FSH', lazy=False)
         output = block.pack(fsh, name=name)
         with open('test/samples/VERTBST.FSH', 'rb') as bdata:
             original = bdata.read()
@@ -97,7 +95,7 @@ class TestShpiBlock(unittest.TestCase):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
     def test_fsh_should_reconstruct_offsets(self):
-        (name, block, fsh) = require_file('test/samples/VERTBST.FSH')
+        (name, block, fsh) = require_file('test/samples/VERTBST.FSH', lazy=False)
         fsh['num_items'] = 0
         fsh['items_descr'] = []
         output = block.pack(fsh, name=name)
@@ -110,7 +108,7 @@ class TestShpiBlock(unittest.TestCase):
 
 class TestWwwwBlock(unittest.TestCase):
     def test_cfm_should_remain_the_same(self):
-        (name, block, res) = require_file('test/samples/TSUPRA.CFM')
+        (name, block, res) = require_file('test/samples/TSUPRA.CFM', lazy=False)
         output = block.pack(res, name=name)
         with open('test/samples/TSUPRA.CFM', 'rb') as bdata:
             original = bdata.read()
@@ -202,7 +200,7 @@ class TestSoundBankBlock(unittest.TestCase):
 
 class TestBigfBlock(unittest.TestCase):
     def test_bigf_should_remain_the_same(self):
-        (name, block, res) = require_file('test/samples/CARDATA.VIV')
+        (name, block, res) = require_file('test/samples/CARDATA.VIV', lazy=False)
         output = block.pack(res, name=name)
         with open('test/samples/CARDATA.VIV', 'rb') as bdata:
             original = bdata.read()
@@ -240,10 +238,9 @@ class TestBigfBlock(unittest.TestCase):
             {
                 'alias': alias,
                 'item': {'choice_index': bytes_choice, 'data': payload},
-                'pre_offset_payload': pre,
-                'post_offset_payload': b'',
+                'post_offset_payload': post,
             }
-            for alias, payload, pre in [('a.bin', b'12345', b''), ('b.bin', b'678', bytes(3))]
+            for alias, payload, post in [('a.bin', b'12345', bytes(3)), ('b.bin', b'678', b'')]
         ]
         # header 16 + 2 * (8 + 6), items 5 + 3, padding 3
         size = 16 + 28 + 8 + 3

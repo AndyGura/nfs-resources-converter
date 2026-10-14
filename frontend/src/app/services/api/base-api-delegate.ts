@@ -112,6 +112,10 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).retrieveValue(id);
   }
 
+  public async loadLazyPart<T = any>(id: string): Promise<T> {
+    return (await this.getImpl()).loadLazyPart(id);
+  }
+
   public async runCustomAction(id: string, action: CustomAction, args: { [key: string]: any }) {
     return (await this.getImpl()).runCustomAction(id, action, args);
   }

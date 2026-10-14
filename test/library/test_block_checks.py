@@ -1,6 +1,7 @@
 import unittest
 
 from library.block_checks import check_compatibility, collect_target_games, collect_warnings
+from library.lazy import LazyDict, MemorySource, Slot, is_loaded
 from library.read_blocks import (
     ArrayBlock,
     DeclarativeCompoundBlock,
@@ -122,3 +123,33 @@ class TestCollectTargetGames(unittest.TestCase):
 
     def test_no_opinion(self):
         self.assertEqual(collect_target_games(RootBlock(), _data(), 'F'), [])
+
+
+class _FakeParentCtx:
+    def detached(self, buffer):
+        return None
+
+
+def _lazy_item(value):
+    return LazyDict(Slot(MemorySource(b''), 0, 0, lambda ctx, slot: {'value': value}, _FakeParentCtx()))
+
+
+class TestLazyParts(unittest.TestCase):
+    def test_warnings_skip_unloaded_parts(self):
+        data = _data(values=(1, 2, 2))
+        data['items'][1] = _lazy_item(5)
+        self.assertEqual(
+            collect_warnings(RootBlock(), data, 'F.BIN'), [{'id': 'F.BIN__delegated/data', 'message': 'value 7 > 2'}]
+        )
+        self.assertFalse(is_loaded(data['items'][1]))
+        data['items'][1].load()
+        self.assertIn({'id': 'F.BIN__items/1', 'message': 'value 5 > 2'}, collect_warnings(RootBlock(), data, 'F.BIN'))
+
+    def test_compatibility_loads_parts_for_the_check(self):
+        data = _data(values=(1, 1, 1), delegated=1)
+        data['items'][1] = _lazy_item(5)
+        report = check_compatibility(RootBlock(), data, 'F.BIN', 'nfs2')
+        self.assertEqual(report['state'], Compatibility.NOT_COMPATIBLE)
+        self.assertEqual([r['id'] for r in report['results']], ['F.BIN__items/1'])
+        # unloaded again after the check
+        self.assertFalse(is_loaded(data['items'][1]))

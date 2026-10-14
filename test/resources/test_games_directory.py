@@ -116,6 +116,22 @@ def file_extension(file_path: str) -> str:
 #     file (e.g. a BIGF archive around a compressed item) is still compared byte by byte. Otherwise the uncompressed
 #     content differs from the original one: returns our compressed bytes, the file won't be identical.
 _original_compressed = {}
+
+
+def _drop_compressed_passthrough(data):
+    from resources.eac.archives.compressed_block import CompressedData
+
+    stack = [data]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, CompressedData):
+            node.digest = None
+        if isinstance(node, dict):
+            stack.extend(v for v in node.values() if isinstance(v, (dict, list)))
+        elif isinstance(node, list):
+            stack.extend(v for v in node if isinstance(v, (dict, list)))
+
+
 _compression_stats = None
 
 
@@ -220,12 +236,14 @@ def check_file(file_path: str) -> Dict:
             return result
 
         try:
-            (name, block, data) = require_file(file_path)
+            (name, block, data) = require_file(file_path, lazy=False)
         except Exception as ex:
             result['outcome'] = READ_FAILED
             result['error'] = _error_text(ex)
             return result
 
+        # recompress unchanged compressed blocks too, so the compressor is checked as described above
+        _drop_compressed_passthrough(data)
         try:
             output = bytes(block.pack(data, name=name))
         except Exception as ex:

@@ -6,13 +6,13 @@ class BaseContext:
     def ctx_path(self):
         return (self.parent.ctx_path + '/' if self.parent else '') + self.name
 
-    def __init__(self, name: str = '', data=None, block=None, parent=None):
+    def __init__(self, name: str = '', data=None, block=None, parent=None, register=True):
         self.name = name
         self._data = data
         self.block = block
         self.parent = parent
         self.children = {}
-        if self.parent:
+        if self.parent and register:
             self.parent.children[name] = self
 
     def get_or_create_child(self, name: str, block=None):
@@ -89,7 +89,24 @@ class ReadContext(BaseContext):
             block=block or self.relative_block(name),
             parent=self,
             read_bytes_amount=read_bytes_amount,
+            lazy=self.lazy,
         )
+
+    def detached(self, buffer: [BufferedReader, BytesIO], data=None) -> 'ReadContext':
+        """Copy of this context reading from another buffer (the same bytes, reopened), used to parse a lazy part
+        later: same name, block, parent chain and offsets, but no children and not registered in the parent"""
+        ctx = ReadContext(
+            name=self.name,
+            data=self._data if data is None else data,
+            block=self.block,
+            parent=self.parent,
+            read_bytes_amount=self.read_bytes_amount,
+            lazy=self.lazy,
+            register=False,
+        )
+        ctx.buffer = buffer
+        ctx.read_start_offset = self.read_start_offset
+        return ctx
 
     def __init__(
         self,
@@ -99,11 +116,15 @@ class ReadContext(BaseContext):
         block=None,
         parent=None,
         read_bytes_amount=None,
+        lazy=False,
+        register=True,
     ):
-        super().__init__(name=name, data=data, block=block, parent=parent)
+        super().__init__(name=name, data=data, block=block, parent=parent, register=register)
         self.buffer = buffer
         self.read_start_offset = buffer.tell() if buffer is not None else None
         self.read_bytes_amount = read_bytes_amount
+        # parts of archives and chunk bundles are read as unloaded `LazyDict`s (library/lazy.py) when set
+        self.lazy = lazy
 
     @classmethod
     def from_bytes(cls, b, **kwargs):

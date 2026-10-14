@@ -4,12 +4,17 @@ Warnings and game compatibility checks over a read data tree, for the GUI.
 Walks the block tree along with its data, calls `DataBlock.get_warnings` / `DataBlock.get_compatibility` of every
 block on the way and returns the results with the resource id of the block (the same id the GUI uses). Subtrees
 without a block that overrides the method are skipped, so files without checks cost next to nothing.
+
+Lazy parts (`library.lazy`) that are not loaded yet are skipped by the warnings, which run in the background: the
+GUI loads the parts it opens. Target games and compatibility, run on demand, load each such part for the duration of
+its check (`transient`).
 """
 
 import logging
 from typing import Any, Dict, Iterator, List, Tuple
 
 from library.context import CheckContext
+from library.lazy import is_loaded, transient
 from library.read_blocks import ArrayBlock, CompoundBlock, DataBlock, DelegateBlock, OptionalBlock
 from library.read_blocks.misc.compatibility import GAME_ALIASES, Compatibility
 from library.utils.id import join_id
@@ -70,8 +75,13 @@ def _children_with_data(block: DataBlock, data) -> Iterator[Tuple[str, DataBlock
                 yield str(i), block.child, item
 
 
-def _walk(block: DataBlock, data, resource_id: str, ctx: CheckContext, method: str, visit):
+def _walk(block: DataBlock, data, resource_id: str, ctx: CheckContext, method: str, visit, load_lazy: bool):
     if block is None or not _has_checks(block, method):
+        return
+    if not is_loaded(data):
+        if load_lazy:
+            with transient(data):
+                _walk(block, data, resource_id, ctx, method, visit, load_lazy)
         return
     if getattr(type(block), method) is not getattr(DataBlock, method):
         visit(block, data, resource_id, ctx)
@@ -80,9 +90,9 @@ def _walk(block: DataBlock, data, resource_id: str, ctx: CheckContext, method: s
             continue
         if part:
             child_ctx = CheckContext(name=part, data=child_data, block=child, parent=ctx)
-            _walk(child, child_data, join_id(resource_id, part), child_ctx, method, visit)
+            _walk(child, child_data, join_id(resource_id, part), child_ctx, method, visit, load_lazy)
         else:
-            _walk(child, child_data, resource_id, ctx, method, visit)
+            _walk(child, child_data, resource_id, ctx, method, visit, load_lazy)
 
 
 def collect_warnings(block: DataBlock, data, name: str) -> List[Dict[str, str]]:
@@ -97,7 +107,7 @@ def collect_warnings(block: DataBlock, data, name: str) -> List[Dict[str, str]]:
             messages = [f'Could not check this block: {ex.__class__.__name__}: {ex}']
         res.extend({'id': resource_id, 'message': m} for m in messages)
 
-    _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_warnings', visit)
+    _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_warnings', visit, False)
     return res
 
 
@@ -118,7 +128,7 @@ def collect_target_games(block: DataBlock, data, name: str) -> List[str]:
         if games is not None:
             targets = set(games) if targets is None else targets & set(games)
 
-    _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_target_games', visit)
+    _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_target_games', visit, True)
     return [alias for alias in GAME_ALIASES if targets and alias in targets]
 
 
@@ -139,7 +149,7 @@ def check_compatibility(block: DataBlock, data, name: str, game: str) -> Dict[st
         if result.state != Compatibility.UNKNOWN or result.message:
             results.append({'id': resource_id, 'state': result.state, 'message': result.message})
 
-    _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_compatibility', visit)
+    _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_compatibility', visit, True)
     states = {r['state'] for r in results}
     if Compatibility.NOT_COMPATIBLE in states:
         state = Compatibility.NOT_COMPATIBLE
