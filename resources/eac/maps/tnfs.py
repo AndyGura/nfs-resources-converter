@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     BitFlagsBlock,
     DeclarativeCompoundBlock,
@@ -498,6 +499,9 @@ class TriMap(DeclarativeCompoundBlock):
             ArrayBlock(child=TerrainEntry(), length=lambda ctx: ctx.data('num_chunks')),
             {'description': 'Terrain chunks, one per 4 road spline points'},
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
 
     def serializer_class(self):
         from serializers import TriMapSerializer

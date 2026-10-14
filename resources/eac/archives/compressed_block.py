@@ -1,10 +1,10 @@
 import hashlib
 from io import BytesIO, SEEK_CUR
-from typing import Dict
+from typing import Dict, List, Optional
 
-from library.context import BaseContext, ReadContext, WriteContext
+from library.context import BaseContext, CheckContext, ReadContext, WriteContext
+from library.lazy import transient
 from library.read_blocks import AutoDetectBlock, BytesBlock
-from library.read_blocks.misc.compatibility import Compatibility
 from resources.eac.car_specs import CarAiAndCrashBody, PlayerCarPhysics
 from .shpi_block import ShpiBlock
 
@@ -70,6 +70,9 @@ class EacCompressedBlock(AutoDetectBlock):
         else:
             raise ValueError(f'Unknown compression algorithm: {flags:02x} {magic:02x}')
 
+    def _compression_for_data(self, data) -> 'BaseCompressionAlgorithm':
+        return self._compression_for_header(data.get('compression_flags', 0x10))
+
     def _detect_compression(self, buffer) -> 'BaseCompressionAlgorithm':
         header_bytes = buffer.read(2)
         buffer.seek(-2, SEEK_CUR)
@@ -124,20 +127,18 @@ class EacCompressedBlock(AutoDetectBlock):
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         return len(self.write(data, ctx))
 
-    def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
-        if game == 'tnfs':
-            try:
-                compression = self._compression_for_header(data.get('compression_flags', 0x10))
-            except ValueError:
-                return Compatibility.unknown()
-            # `sys_unpack` of DOS (0xaa928) and Win95 SE (0x4a2520) handles all three
-            name = {'RefPackCompression': 'RefPack', 'Qfs2Compression': 'QFS2', 'Qfs3Compression': 'QFS3'}.get(
-                compression.__class__.__name__
+    def get_target_games(self, data, ctx: BaseContext) -> Optional[List[str]]:
+        # the games that read both the compression algorithm and the uncompressed data
+        try:
+            games = self._compression_for_data(data).target_games
+        except ValueError:
+            return None
+        block = self.possible_blocks[data['choice_index']]
+        with transient(data['data']) as content:
+            content_games = block.get_target_games(
+                content, CheckContext(name='data', data=content, block=block, parent=ctx)
             )
-            if name is None:
-                return Compatibility.unknown()
-            return Compatibility.compatible(f'TNFS reads {name} compression')
-        return super().get_compatibility(data, game, ctx)
+        return [game for game in games if content_games is None or game in content_games]
 
     def action_save_uncompressed(self, read_data, file_path, **kwargs):
         inner_block = self.possible_blocks[read_data['choice_index']]

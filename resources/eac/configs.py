@@ -1,7 +1,7 @@
 from math import floor, ceil
-from typing import Dict
+from typing import Dict, List
 
-from library.context import WriteContext, ReadContext
+from library.context import BaseContext, WriteContext, ReadContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     UTF8Block,
@@ -179,6 +179,9 @@ class TnfsConfigDat(DeclarativeCompoundBlock):
             },
         )
         unk3 = (BytesBlock(length=1), {'is_unknown': True})
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
 
     def serializer_class(self):
         from serializers import JsonSerializer

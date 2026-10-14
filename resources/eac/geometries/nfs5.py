@@ -1,7 +1,7 @@
 from os import SEEK_CUR
-from typing import Dict
+from typing import Dict, List
 
-from library.context import ReadContext
+from library.context import BaseContext, ReadContext
 from library.exceptions import BlockDefinitionException
 from library.read_blocks import (
     DeclarativeCompoundBlock,
@@ -906,6 +906,9 @@ class CrpGeometry(DeclarativeCompoundBlock):
             article['parts'] = data['parts'][offs : offs + article['num_parts']]
         ctx.buffer.seek(raw_data_offset + raw_data_len)
         return data
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs5']
 
     def serializer_class(self):
         from serializers import CrpGeometrySerializer

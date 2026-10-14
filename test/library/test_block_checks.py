@@ -25,6 +25,8 @@ class WarnedBlock(DeclarativeCompoundBlock):
         if game == 'tnfs':
             return Compatibility.compatible()
         if game == 'nfs2':
+            if data['value'] > 2:
+                return Compatibility.not_compatible(f'value {data["value"]}', 'value above 2')
             return (
                 Compatibility.not_compatible(f'value {data["value"]}') if data['value'] > 1 else Compatibility.unknown()
             )
@@ -94,24 +96,30 @@ class TestCollectWarnings(unittest.TestCase):
 class TestCheckCompatibility(unittest.TestCase):
     def test_compatible(self):
         res = check_compatibility(RootBlock(), _data(), 'FILE.BIN', 'tnfs')
-        self.assertEqual(res['state'], Compatibility.COMPATIBLE)
-        self.assertEqual(len(res['results']), 5)
+        self.assertEqual(res, {'game': 'tnfs', 'state': Compatibility.COMPATIBLE, 'problems': []})
 
     def test_not_compatible_wins(self):
-        res = check_compatibility(RootBlock(), _data(values=(1, 1, 1), delegated=3, optional=0), 'FILE.BIN', 'nfs2')
+        res = check_compatibility(RootBlock(), _data(values=(1, 2, 1), delegated=3, optional=0), 'FILE.BIN', 'nfs2')
         self.assertEqual(res['state'], Compatibility.NOT_COMPATIBLE)
-        # unknown results without a message are left out
+        # every problem of every block, in tree order
         self.assertEqual(
-            res['results'], [{'id': 'FILE.BIN__delegated/data', 'state': 'not_compatible', 'message': 'value 3'}]
+            res['problems'],
+            [
+                {'id': 'FILE.BIN__items/1', 'message': 'value 2'},
+                {'id': 'FILE.BIN__delegated/data', 'message': 'value 3'},
+                {'id': 'FILE.BIN__delegated/data', 'message': 'value above 2'},
+            ],
         )
 
     def test_unknown_by_default(self):
         res = check_compatibility(RootBlock(), _data(), 'FILE.BIN', 'nfs6')
-        self.assertEqual(res, {'game': 'nfs6', 'state': 'unknown', 'results': []})
+        self.assertEqual(res, {'game': 'nfs6', 'state': 'unknown', 'problems': []})
 
-    def test_not_compatible_needs_message(self):
+    def test_not_compatible_needs_reasons(self):
         with self.assertRaises(ValueError):
-            Compatibility.not_compatible('')
+            Compatibility.not_compatible()
+        with self.assertRaises(ValueError):
+            Compatibility.not_compatible('reason', '')
 
 
 class TestCollectTargetGames(unittest.TestCase):
@@ -150,6 +158,6 @@ class TestLazyParts(unittest.TestCase):
         data['items'][1] = _lazy_item(5)
         report = check_compatibility(RootBlock(), data, 'F.BIN', 'nfs2')
         self.assertEqual(report['state'], Compatibility.NOT_COMPATIBLE)
-        self.assertEqual([r['id'] for r in report['results']], ['F.BIN__items/1'])
+        self.assertEqual([p['id'] for p in report['problems']], ['F.BIN__items/1', 'F.BIN__items/1'])
         # unloaded again after the check
         self.assertFalse(is_loaded(data['items'][1]))

@@ -1,6 +1,7 @@
 from math import floor
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     UTF8Block,
@@ -392,6 +393,9 @@ class OripGeometry(DeclarativeCompoundBlock):
                 'value from here is an index of item in vertex_uvs'
             },
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
 
     def serializer_class(self):
         from serializers import OripGeometrySerializer

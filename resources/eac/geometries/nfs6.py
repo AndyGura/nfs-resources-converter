@@ -3,6 +3,7 @@ from bisect import bisect_right
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from library.context import BaseContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     IntegerBlock,
@@ -121,6 +122,9 @@ class EaglModel(DeclarativeCompoundBlock):
                 'section header slot of absent relocations section',
             },
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs6']
 
     def serializer_class(self):
         from serializers import EaglModelSerializer

@@ -1,6 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
-from library.context import ReadContext
+from library.context import BaseContext, ReadContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     IntegerBlock,
@@ -202,6 +202,9 @@ class TrkMap(DeclarativeCompoundBlock):
             ArrayBlock(child=TrkSuperBlock(), length=lambda ctx: ctx.data('num_superblocks')),
             {'description': 'Superblocks'},
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs2', 'nfs2_se']
 
     def serializer_class(self):
         from serializers import TrkMapSerializer

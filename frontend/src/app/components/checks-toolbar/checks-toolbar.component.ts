@@ -42,7 +42,7 @@ export class ChecksToolbarComponent {
   }
 
   // `field` -> <code>field</code>, the rest as plain text
-  formatMessage(message: string | null): string {
+  formatMessage(message: string): string {
     const escaped = (message || '').replace(
       /[&<>"']/g,
       c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
@@ -54,12 +54,8 @@ export class ChecksToolbarComponent {
     return STATE_LABELS[state] || state;
   }
 
-  // results worth showing under a game: why it is (not) compatible
-  details(entry: GameCompatibility) {
-    const results = entry.report?.results || [];
-    if (entry.state === 'not_compatible') {
-      return results.filter(r => r.state === 'not_compatible');
-    }
-    return results.filter(r => !!r.message);
+  // why the game can't use the file
+  problems(entry: GameCompatibility) {
+    return entry.report?.problems || [];
   }
 }

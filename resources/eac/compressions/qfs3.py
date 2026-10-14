@@ -103,6 +103,8 @@ class Qfs3Compression(BaseCompressionAlgorithm):
     number = (1 << (Z+2)) + V - 4. Smallest numbers 0..3 thus take 3 bits: 1xx.
     """
 
+    target_games = ['tnfs', 'nfs2', 'nfs2_se', 'nfs3', 'nfs4', 'nfs5']
+
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int) -> bytes:
         data = buffer.read(input_length) if input_length is not None else buffer.read()
         if len(data) < 2 or data[1] != 0xFB or (data[0] & 0xF8) != 0x30:

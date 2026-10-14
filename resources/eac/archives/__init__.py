@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Dict, List
 
-from library.context import ReadContext, WriteContext
+from library.context import BaseContext, ReadContext, WriteContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     UTF8Block,
@@ -149,6 +149,9 @@ class WwwwBlock(ArchiveBlock):
         del data['items_descr']
         del data['data_bytes']
         return ret
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
 
     def serializer_class(self):
         from serializers import WwwwArchiveSerializer
@@ -342,6 +345,9 @@ class BigfBlock(ArchiveBlock):
         del data['data_bytes']
         return ret
 
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs2', 'nfs2_se', 'nfs3', 'nfs4', 'nfs5', 'nfs6']
+
     def serializer_class(self):
         from serializers import BigfArchiveSerializer
 
@@ -400,6 +406,9 @@ class SoundBank(DeclarativeCompoundBlock):
         """`items_descr` index of every entry of `items` / `children`, which are in file order, not index order"""
         used = [(i, offset) for (i, offset) in enumerate(data['items_descr']) if offset > 0]
         return [i for (i, _) in sorted(used, key=lambda x: x[1])]
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
 
     def serializer_class(self):
         from serializers import SoundBankSerializer
@@ -574,6 +583,9 @@ class EaSoundBank(DeclarativeCompoundBlock):
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         return super().write(self._native_data(data), ctx, name)
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs2', 'nfs2_se', 'nfs3', 'nfs4', 'nfs5', 'nfs6']
 
     def serializer_class(self):
         from serializers import EaSoundBankSerializer

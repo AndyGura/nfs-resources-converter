@@ -1,6 +1,7 @@
 from io import SEEK_CUR
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     ArrayBlock,
     BytesBlock,
@@ -647,6 +648,9 @@ class NfsuChunkBundle(DeclarativeCompoundBlock):
             ),
             {'description': 'Chunks'},
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfsu', 'nfsu2', 'nfsmw']
 
 
 class NfsuTrackBundle(NfsuChunkBundle):

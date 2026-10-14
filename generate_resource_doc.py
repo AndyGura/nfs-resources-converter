@@ -275,6 +275,8 @@ EXPORT_RESOURCES = {
 
 **\\*.FSH** image archive. {render_type(eac.archives.ShpiBlock())}
 
+**\\*.GEO** car 3D model, items of **GAMEDATA/SIM/CARDATA/CARDATA.VIV**. {render_type(eac.geometries.GeoGeometry())}
+
 **\\*.QFS** image archive. {render_type(eac.archives.ShpiBlock())}, [compressed](eac_compressions.md)
 
 **\\*.TRK** main track file. {render_type(eac.maps.TrkMap())}

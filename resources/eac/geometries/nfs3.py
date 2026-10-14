@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     UTF8Block,
@@ -242,6 +243,9 @@ class Fce3Geometry(DeclarativeCompoundBlock):
             BytesBlock(length=(lambda ctx: 12 * ctx.data('num_vertices'), '12 * num_vertices')),
             {'is_unknown': True},
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs3']
 
     def serializer_class(self):
         from serializers import Fce3GeometrySerializer

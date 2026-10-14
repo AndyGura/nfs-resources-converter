@@ -134,27 +134,27 @@ def collect_target_games(block: DataBlock, data, name: str) -> List[str]:
 
 def check_compatibility(block: DataBlock, data, name: str, game: str) -> Dict[str, Any]:
     """
-    Compatibility of the whole tree with a game. Returns {game, state, results: [{id, state, message}]}, results
-    leaving out blocks that don't know (unknown without a message). State: not compatible if any block is not,
-    else compatible if any block is, else unknown
+    Compatibility of the whole tree with a game. Returns {game, state, problems: [{id, message}]}, the problems of
+    every non-compatible block in tree order, one entry per problem. State: not compatible if any block is not, else
+    compatible if any block is, else unknown. A block whose check fails counts as unknown (logged)
     """
-    results = []
+    states = set()
+    problems = []
 
     def visit(b: DataBlock, d, resource_id: str, ctx: CheckContext):
         try:
             result = b.get_compatibility(d, game, ctx)
-        except Exception as ex:
+        except Exception:
             _logger.exception(f'Compatibility check failed at {resource_id}')
-            result = Compatibility.unknown(f'Could not check this block: {ex.__class__.__name__}: {ex}')
-        if result.state != Compatibility.UNKNOWN or result.message:
-            results.append({'id': resource_id, 'state': result.state, 'message': result.message})
+            return
+        states.add(result.state)
+        problems.extend({'id': resource_id, 'message': m} for m in result.problems)
 
     _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_compatibility', visit, True)
-    states = {r['state'] for r in results}
     if Compatibility.NOT_COMPATIBLE in states:
         state = Compatibility.NOT_COMPATIBLE
     elif Compatibility.COMPATIBLE in states:
         state = Compatibility.COMPATIBLE
     else:
         state = Compatibility.UNKNOWN
-    return {'game': game, 'state': state, 'results': results}
+    return {'game': game, 'state': state, 'problems': problems}

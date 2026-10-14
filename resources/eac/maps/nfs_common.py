@@ -1,6 +1,7 @@
 from io import BytesIO
+from typing import List
 
-from library.context import ReadContext
+from library.context import BaseContext, ReadContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     UTF8Block,
@@ -488,6 +489,9 @@ class MapColFile(DeclarativeCompoundBlock):
                 'usage': 'ui',
             },
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs2', 'nfs2_se', 'nfs3']
 
     def serializer_class(self):
         from serializers import JsonSerializer

@@ -1,6 +1,6 @@
 # **NFS2SE file specs** #
 
-*Last time updated: 2026-10-12 12:44:58.388189+00:00*
+*Last time updated: 2026-10-14 17:34:03.788633+00:00*
 
 
 # **Info by file extensions** #
@@ -12,6 +12,8 @@
 **\*.FFN** bitmap font. [FfnFont](#ffnfont)
 
 **\*.FSH** image archive. [ShpiBlock](#shpiblock)
+
+**\*.GEO** car 3D model, items of **GAMEDATA/SIM/CARDATA/CARDATA.VIV**. [GeoGeometry](#geogeometry)
 
 **\*.QFS** image archive. [ShpiBlock](#shpiblock), [compressed](eac_compressions.md)
 

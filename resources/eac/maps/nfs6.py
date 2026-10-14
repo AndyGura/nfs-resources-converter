@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     IntegerBlock,
@@ -98,6 +99,9 @@ class Nfs6AiPaths(DeclarativeCompoundBlock):
         version = (IntegerBlock(length=4), {'is_unknown': True, 'description': 'Always 1'})
         road_paths = (Nfs6AiPathGraph(), {'description': 'Roads for AI cars'})
         helicopter_paths = (Nfs6AiPathGraph(), {'description': 'Flight paths of police helicopter'})
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs6']
 
     def serializer_class(self):
         from serializers import Nfs6AiPathsSerializer

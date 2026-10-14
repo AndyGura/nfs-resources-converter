@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     IntegerBlock,
@@ -684,6 +685,9 @@ class TnfsReplay(DeclarativeCompoundBlock):
             {'description': 'State of the race that is not stored in the cars, every keyframe'},
         )
         stats = (ArrayBlock(child=TnfsReplayStats(), length=REPLAY_CARS), {'description': 'Stats of the cars'})
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
 
     def serializer_class(self):
         from serializers import JsonSerializer

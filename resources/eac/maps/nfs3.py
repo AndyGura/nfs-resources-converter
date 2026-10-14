@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     IntegerBlock,
@@ -670,6 +671,9 @@ class FrdMap(DeclarativeCompoundBlock):
                 'images are in <track>0.QFS'
             },
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs3']
 
     def serializer_class(self):
         from serializers import FrdMapSerializer

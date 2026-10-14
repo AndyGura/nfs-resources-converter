@@ -20,6 +20,8 @@ _LONG_MAX_LENGTH = 34
 
 
 class JdlzCompression(BaseCompressionAlgorithm):
+    target_games = ['nfsu', 'nfsu2', 'nfsmw']
+
     def uncompress(self, buffer: [BufferedReader, BytesIO], input_length: int):
         inp = buffer.read(input_length)
         if inp[:4] != b'JDLZ':

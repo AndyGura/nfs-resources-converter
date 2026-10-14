@@ -20,10 +20,27 @@ same marker: the **second byte of the file equals `0xFB`**. The **first byte** t
 Because the algorithm depends only on the header, TNFS loads a resource repacked with any of the algorithms above: the
 `sys_unpack` of both TNFS DOS (0xaa928) and Win95 SE (0x4a2520) handles RefPack, QFS2 and QFS3. According to the
 decompiled TNFS (DOS) code, when a file does not start with a valid QFS header the data is simply consumed **as is**
-(uncompressed), so an uncompressed payload is also a valid input (see [Uncompressed data](#uncompressed-data)). Later
-games are not checked, and NFS3 / NFS5 ship RefPack files only, so the converter writes a resource back with the
-algorithm (and QFS3 delta mode) it was read with, kept as `compression_flags` (the first header byte) in the data of
-`EacCompressedBlock`. New data is written as RefPack.
+(uncompressed), so an uncompressed payload is also a valid input (see [Uncompressed data](#uncompressed-data)). The
+code of later games is not checked, they are taken to read the whole `*FB` family up to NFS5. NFS6 ships no `*FB` file
+(neither loose nor in VIV archives), so it is left out. Algorithms of the files the games ship:
+
+| Game     | Algorithms of shipped files |
+|----------|-----------------------------|
+| TNFS     | RefPack, QFS2, QFS3         |
+| NFS2     | RefPack, QFS3               |
+| NFS2 SE  | RefPack, QFS3               |
+| NFS3     | RefPack, QFS3               |
+| NFS4     | RefPack, QFS2               |
+| NFS5     | RefPack                     |
+| NFSU     | JDLZ                        |
+| NFSU2    | JDLZ, HUFF                  |
+| NFSMW    | JDLZ, HUFF                  |
+
+The converter writes a resource back with the algorithm (and QFS3 delta mode) it was read with, kept as
+`compression_flags` (the first header byte) in the data of `EacCompressedBlock`. New data is written as RefPack. The
+`target_games` of each compression class are the games that read it: TNFS to NFS5 for RefPack, QFS2 and QFS3, the
+games of the table for JDLZ and HUFF. A compressed file is made for the games that read both its algorithm and its
+uncompressed data (`EacCompressedBlock.get_target_games`).
 
 In every algorithm, bit `0x01` of the first byte means a 3-byte compressed size comes right after the magic, before
 the uncompressed size. No shipped file uses it, and the compressors don't write it.
@@ -128,7 +145,7 @@ the per-algorithm choice from the first byte is made in
   compressed bundles and textures. Not an `*FB` algorithm: `NfsuJdlzCompressedBlock` always uses it.
 - **Implementation**: [resources/eac/compressions/jdlz.py](eac/compressions/jdlz.py).
 
-## HUFF (NFS Underground 2)
+## HUFF (NFS Underground 2, Most Wanted)
 - **Header**: 16 bytes: `HUFF`, `0x01`, `0x10`, 2 zero bytes, uncompressed size (u32 LE), compressed size without the
   header (u32 LE).
 - **Description**: a QFS3 stream (`0x30FB`, no delta coding) behind the header. Used by some textures of compressed

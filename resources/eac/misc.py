@@ -1,10 +1,15 @@
-from library.context import WriteContext, ReadContext
+from typing import List
+
+from library.context import BaseContext, WriteContext, ReadContext
 from library.read_blocks import UTF8Block
 
 
 class DashDeclarationFile(UTF8Block):
     def __init__(self, **kwargs):
         super().__init__(length=0, **kwargs)
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
 
     def serializer_class(self):
         from serializers import JsonSerializer

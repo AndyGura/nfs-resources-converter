@@ -13,6 +13,8 @@ _ESCAPED = 0x200
 
 
 class Qfs2Compression(BaseCompressionAlgorithm):
+    target_games = ['tnfs', 'nfs2', 'nfs2_se', 'nfs3', 'nfs4', 'nfs5']
+
     def _read_value(self, buffer, patterns) -> bytes:
         value = buffer.read(1)
         if value in patterns.keys():

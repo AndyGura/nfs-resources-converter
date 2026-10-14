@@ -73,9 +73,6 @@
   .check-detail {
     display: flex;
     flex-direction: column;
-    &.muted {
-      opacity: 0.7;
-    }
   }
 
   .check-message {

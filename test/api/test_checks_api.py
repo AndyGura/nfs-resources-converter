@@ -50,7 +50,7 @@ class TestChecksApi(unittest.TestCase):
 
     def test_compatibility(self):
         self.assertEqual(
-            self.checks_api.check_compatibility('tnfs'), {'game': 'tnfs', 'state': 'unknown', 'results': []}
+            self.checks_api.check_compatibility('tnfs'), {'game': 'tnfs', 'state': 'unknown', 'problems': []}
         )
         with self.assertRaises(ValueError):
             self.checks_api.check_compatibility('nfs99')

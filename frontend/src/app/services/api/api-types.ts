@@ -56,5 +56,6 @@ export type CompatibilityGame = {
 export type CompatibilityReport = {
   game: string;
   state: CompatibilityState;
-  results: { id: string; state: CompatibilityState; message: string | null }[];
+  // why the game can't use the file, one entry per problem (of any block), empty unless not compatible
+  problems: { id: string; message: string }[];
 };

@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     CompoundBlock,
@@ -656,6 +657,9 @@ class Nfs4FrdMap(DeclarativeCompoundBlock):
             Nfs4XObjChunk(length=lambda ctx: ctx.parent.data('num_global_objects_1')),
             {'description': 'Extra objects not attached to any track block. Special/physics props (type 6) live here'},
         )
+
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['nfs4']
 
     def serializer_class(self):
         from serializers import Nfs4FrdMapSerializer

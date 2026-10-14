@@ -84,11 +84,11 @@
         @if (entry.state === 'error') {
           <div class="check-message">{{ entry.error }}</div>
         }
-        @for (result of details(entry); track $index) {
-          <div class="check-detail" [class.muted]="entry.state !== 'not_compatible'">
-            <span class="check-message" [innerHTML]="formatMessage(result.message)"></span>
-            @if (blockPath(result.id)) {
-              <span class="check-path">{{ blockPath(result.id) }}</span>
+        @for (problem of problems(entry); track $index) {
+          <div class="check-detail">
+            <span class="check-message" [innerHTML]="formatMessage(problem.message)"></span>
+            @if (blockPath(problem.id)) {
+              <span class="check-path">{{ blockPath(problem.id) }}</span>
             }
           </div>
         }

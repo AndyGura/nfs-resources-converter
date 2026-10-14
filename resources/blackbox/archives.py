@@ -27,6 +27,11 @@ class NfsuJdlzCompressedBlock(EacCompressedBlock):
             'block_description': 'JDLZ-compressed data (LZ77 variant with "JDLZ" header): NFS Underground *.lzc files',
         }
 
+    def _compression_for_data(self, data):
+        from resources.eac.compressions.jdlz import JdlzCompression
+
+        return JdlzCompression()
+
     def _detect_compression(self, buffer):
         from resources.eac.compressions.jdlz import JdlzCompression
 

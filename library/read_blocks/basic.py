@@ -64,8 +64,9 @@ class DataBlock(ABC):
     def get_target_games(self, data, ctx: BaseContext) -> Optional[List[str]]:
         return None
 
-    # For GUI: whether the game with the alias can use this data, asked for the file's target games only. Children are
-    # checked by `library.block_checks`, a block judges its own data only
+    # For GUI: whether the game with the alias can use this data, asked for the file's target games only: not compatible
+    # with the reason of every problem, or compatible / unknown without text. Children are checked by
+    # `library.block_checks`, a block judges its own data only
     def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
         return Compatibility.unknown()
 

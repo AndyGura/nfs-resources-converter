@@ -32,6 +32,8 @@ def _common_length(data: bytes, a: int, b: int, limit: int) -> int:
 # http://wiki.niotso.org/RefPack
 # https://www.wiki.sc4devotion.com/index.php?title=DBPF_Compression
 class RefPackCompression(BaseCompressionAlgorithm):
+    target_games = ['tnfs', 'nfs2', 'nfs2_se', 'nfs3', 'nfs4', 'nfs5']
+
     def _parse_archive_flags(self, flags_byte):
         # specifies that the decompressed field and (if applicable) the compressed size field are 4-byte fields;
         # if this flag is unset, both of these fields are 3-byte fields.

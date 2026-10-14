@@ -23,7 +23,7 @@ describe('ChecksService', () => {
       checkCompatibility: jasmine
         .createSpy('checkCompatibility')
         .and.callFake(
-          (game: string) => new Promise(resolve => resolveChecks.push(state => resolve({ game, state, results: [] }))),
+          (game: string) => new Promise(resolve => resolveChecks.push(state => resolve({ game, state, problems: [] }))),
         ),
     };
     const changes: any = { settled: () => Promise.resolve() };
