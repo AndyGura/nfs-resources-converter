@@ -36,7 +36,8 @@ const FCE4_WHEEL_REGEX = /^(?:hp|mp)_\d+_[HM][LR]([FMR])W(?=__|_damaged$|$)/i;
 // FCE4: front brakes steer together with wheels, but don't spin
 const FCE4_BRAKE_REGEX = /^hp_\d+_O[LR]B(?=__|_damaged$|$)/i;
 
-const WHEEL_SPIN_SPEED = { idle: 0, slow: 5, fast: 40 };
+// wheel radius (m) for the spin rate at a speed
+const WHEEL_RADIUS = 0.33;
 
 /**
  * Animates car.fce model in preview: steers and spins wheels, shows light dummies, recolors car. Expects meshes,
@@ -67,21 +68,22 @@ export class FceCarMeshController {
   }
   private animationTimer: any = null;
 
-  private _speed: 'idle' | 'slow' | 'fast' = 'idle';
-  get speed(): 'idle' | 'slow' | 'fast' {
+  private _speed = 0;
+  /** Car speed in m/s, the wheels spin at it */
+  get speed(): number {
     return this._speed;
   }
 
-  set speed(value: 'idle' | 'slow' | 'fast') {
+  set speed(value: number) {
     this._speed = value;
     if (this.animationTimer) {
       clearInterval(this.animationTimer);
       this.animationTimer = null;
     }
-    if (value !== 'idle') {
+    if (value > 0) {
       this.animationTimer = setInterval(() => {
         // negative angle rolls wheels forward
-        this.spinAngle -= WHEEL_SPIN_SPEED[this._speed] / 60;
+        this.spinAngle -= this._speed / WHEEL_RADIUS / 60;
         this.updateWheels();
       }, 1000 / 60);
     }

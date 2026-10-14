@@ -12,6 +12,7 @@ import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { Object3D } from 'three';
 import { ObjViewerCustomControl } from '../../common/obj-viewer/obj-viewer.component';
+import { steeringControl, wheelSpeedControl } from '../../common/obj-viewer/car-preview-controls';
 import { TnfsCarMeshController } from './tnfs-car-mesh-controller';
 
 @Component({
@@ -26,6 +27,8 @@ export class OripGeometryBlockUiComponent extends GuiComponent implements AfterV
   customControls: ObjViewerCustomControl[] = [];
 
   readonly cdr = inject(ChangeDetectorRef);
+  private meshController: TnfsCarMeshController | null = null;
+  private tyresTimer: number | undefined = undefined;
   destroyed$: Subject<void> = new Subject<void>();
 
   ngAfterViewInit(): void {
@@ -47,6 +50,7 @@ export class OripGeometryBlockUiComponent extends GuiComponent implements AfterV
   }
 
   ngOnDestroy(): void {
+    this.disposeMeshController();
     this.destroyed$.next();
     this.destroyed$.complete();
   }
@@ -59,11 +63,21 @@ export class OripGeometryBlockUiComponent extends GuiComponent implements AfterV
         const shpiData = await this.mainService.api.retrieveValue(idParts.join('/'));
         const palette = shpiData.children.find((x: any) => x.alias === '!PAL');
         if (!palette) throw new Error('Not a car');
+        this.disposeMeshController();
         const meshController = new TnfsCarMeshController(
           obj,
           palette.item.data.colors.data[254] >>> 8,
           this.previewPaths$.value![0].substring(0, this.previewPaths$.value![0].lastIndexOf('/')) + `/assets`,
         );
+        this.meshController = meshController;
+        // the tyre textures animate as if the car drove along x at the wheel speed, as nfs-web's /car-tex-debug
+        let speed = 0;
+        let x = 0;
+        const dt = 1000 / 30;
+        this.tyresTimer = setInterval(() => {
+          x += (speed * 1.25 * dt) / 1000;
+          meshController.updateTyres(dt, speed, 0, 0, { x, y: 0, z: 0 });
+        }, dt) as any as number;
         this.customControls = [
           {
             title: 'TNFS car features',
@@ -76,26 +90,8 @@ export class OripGeometryBlockUiComponent extends GuiComponent implements AfterV
                   meshController.tailLightsOn = v;
                 },
               },
-              {
-                label: 'Car speed',
-                type: 'radio',
-                options: ['idle', 'slow', 'fast'],
-                value: 'idle',
-                change: v => {
-                  meshController.speed = v as any;
-                },
-              },
-              {
-                label: 'Steering angle',
-                type: 'slider',
-                minValue: -0.7,
-                maxValue: 0.7,
-                valueStep: 0.05,
-                value: 0,
-                change: v => {
-                  meshController.steeringAngle = v;
-                },
-              },
+              wheelSpeedControl(v => (speed = v)),
+              steeringControl(v => (meshController.steeringAngle = v)),
             ],
           },
         ];
@@ -104,6 +100,13 @@ export class OripGeometryBlockUiComponent extends GuiComponent implements AfterV
         // pass
       }
     }
+  }
+
+  private disposeMeshController() {
+    clearInterval(this.tyresTimer);
+    this.tyresTimer = undefined;
+    this.meshController?.dispose();
+    this.meshController = null;
   }
 
   private serializerSettings = {

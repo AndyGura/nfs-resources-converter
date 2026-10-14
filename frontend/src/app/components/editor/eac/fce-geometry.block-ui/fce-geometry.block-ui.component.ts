@@ -11,6 +11,7 @@ import {
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { steeringControl, wheelSpeedControl } from '../../common/obj-viewer/car-preview-controls';
 import { Object3D } from 'three';
 import { FceCarMeshController, fceColorToRgb, FceDummy, FceVersion } from './fce-car-mesh-controller';
 
@@ -98,22 +99,8 @@ export class FceGeometryBlockUiComponent extends GuiComponent implements AfterVi
       }
       if (meshController.hasWheels) {
         controls.push(
-          {
-            label: 'Car speed',
-            type: 'radio',
-            options: ['idle', 'slow', 'fast'],
-            value: 'idle',
-            change: v => (meshController.speed = v as any),
-          },
-          {
-            label: 'Steering angle',
-            type: 'slider',
-            minValue: -0.7,
-            maxValue: 0.7,
-            valueStep: 0.05,
-            value: 0,
-            change: v => (meshController.steeringAngle = v),
-          },
+          wheelSpeedControl(v => (meshController.speed = v)),
+          steeringControl(v => (meshController.steeringAngle = v)),
         );
       }
       this.customControls = controls.length > 0 ? [{ title: `NFS${this.version} car features`, controls }] : [];

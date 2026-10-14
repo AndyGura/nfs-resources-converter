@@ -105,7 +105,7 @@ class ViewFilter {
   }
 }
 
-type Control =
+export type ObjViewerControl =
   | {
       label: string;
       type: 'checkbox';
@@ -132,12 +132,14 @@ type Control =
       minValue: number;
       maxValue: number;
       valueStep: number;
+      // text shown next to the label
+      format?: (value: number) => string;
       change: (value: number) => void;
     };
 
 export type ObjViewerCustomControl = {
   title: string;
-  controls: Control[];
+  controls: ObjViewerControl[];
 };
 
 // TODO use this from gg-web-engine after next release

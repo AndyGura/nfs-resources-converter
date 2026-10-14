@@ -1,6 +1,7 @@
 import { Box3, Mesh, Object3D, Vector3 } from 'three';
 
-const WHEEL_SPIN_SPEED = { idle: 0, slow: 5, fast: 40 };
+// wheel radius (m) for the spin rate at a speed
+const WHEEL_RADIUS = 0.33;
 
 // mesh name: <article name>_LOD<lod>_ai<animation frame>[_<texture>][_damaged], with an optional duplicate suffix
 // ".001", which three.js GLTFLoader turns into "001" (it strips dots and replaces spaces with underscores)
@@ -39,20 +40,21 @@ export class Nfs5CarMeshController {
   // the car front is at -Y: wheels roll forward around +X
   private readonly spinSign: number;
 
-  private _speed: 'idle' | 'slow' | 'fast' = 'idle';
-  get speed(): 'idle' | 'slow' | 'fast' {
+  private _speed = 0;
+  /** Car speed in m/s, the wheels spin at it */
+  get speed(): number {
     return this._speed;
   }
 
-  set speed(value: 'idle' | 'slow' | 'fast') {
+  set speed(value: number) {
     this._speed = value;
     if (this.animationTimer) {
       clearInterval(this.animationTimer);
       this.animationTimer = null;
     }
-    if (value !== 'idle') {
+    if (value > 0) {
       this.animationTimer = setInterval(() => {
-        this.spinAngle += (this.spinSign * WHEEL_SPIN_SPEED[this._speed]) / 60;
+        this.spinAngle += (this.spinSign * this._speed) / WHEEL_RADIUS / 60;
         this.updateWheels();
       }, 1000 / 60);
     }

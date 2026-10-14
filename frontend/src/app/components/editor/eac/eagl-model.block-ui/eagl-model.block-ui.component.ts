@@ -12,6 +12,7 @@ import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { Object3D } from 'three';
 import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { steeringControl, wheelSpeedControl } from '../../common/obj-viewer/car-preview-controls';
 import { Nfs6CarDummy, Nfs6CarMeshController, Nfs6CarSkin } from './nfs6-car-mesh-controller';
 
 // NFS6 EAGL model (".o" file): 3D preview of the serialized OBJ, textured from the FSH file the model uses. Car
@@ -115,22 +116,8 @@ export class EaglModelBlockUiComponent extends GuiComponent implements AfterView
       }
       if (meshController.hasWheels) {
         controls.push(
-          {
-            label: 'Car speed',
-            type: 'radio',
-            options: ['idle', 'slow', 'fast'],
-            value: 'idle',
-            change: v => (meshController.speed = v as any),
-          },
-          {
-            label: 'Steering angle',
-            type: 'slider',
-            minValue: -0.7,
-            maxValue: 0.7,
-            valueStep: 0.05,
-            value: 0,
-            change: v => (meshController.steeringAngle = v),
-          },
+          wheelSpeedControl(v => (meshController.speed = v)),
+          steeringControl(v => (meshController.steeringAngle = v)),
         );
       }
       this.customControls = controls.length > 0 ? [{ title: 'NFS6 car features', controls }] : [];

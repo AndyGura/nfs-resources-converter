@@ -4,7 +4,8 @@ export type Nfs6CarDummy = { name: string; position: [number, number, number] };
 
 export type Nfs6CarSkin = { name: string; label: string; texture: string };
 
-const WHEEL_SPIN_SPEED = { idle: 0, slow: 5, fast: 40 };
+// wheel radius (m) for the spin rate at a speed
+const WHEEL_RADIUS = 0.33;
 
 // geometry names of wheels ("ALPHA_OPAQUE_RUBBER_1Shape", "ALPHA_OPAQUE_RUBBER_LOD_WHEEL_2Shape") and brake calipers
 // ("ALPHA_OPAQUE_BRAKE_3Shape"). Which wheel is which is not in the name, it is taken from the mesh position
@@ -69,21 +70,22 @@ export class Nfs6CarMeshController {
     });
   }
 
-  private _speed: 'idle' | 'slow' | 'fast' = 'idle';
-  get speed(): 'idle' | 'slow' | 'fast' {
+  private _speed = 0;
+  /** Car speed in m/s, the wheels spin at it */
+  get speed(): number {
     return this._speed;
   }
 
-  set speed(value: 'idle' | 'slow' | 'fast') {
+  set speed(value: number) {
     this._speed = value;
     if (this.animationTimer) {
       clearInterval(this.animationTimer);
       this.animationTimer = null;
     }
-    if (value !== 'idle') {
+    if (value > 0) {
       this.animationTimer = setInterval(() => {
         // negative angle rolls wheels forward
-        this.spinAngle -= WHEEL_SPIN_SPEED[this._speed] / 60;
+        this.spinAngle -= this._speed / WHEEL_RADIUS / 60;
         this.updateWheels();
       }, 1000 / 60);
     }

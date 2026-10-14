@@ -41,7 +41,12 @@
               (change)="onColorChange(c, $any($event.currentTarget).value)" />
           }
           @if (c.type === 'slider') {
-            <label [for]="'custom_control_' + i + '_' + j">{{ c.label }}</label>
+            <label [for]="'custom_control_' + i + '_' + j"
+              >{{ c.label }}
+              @if (c.format) {
+                <small>{{ c.format(c.value) }}</small>
+              }
+            </label>
             <input
               [id]="'custom_control_' + i + '_' + j"
               type="range"
@@ -49,7 +54,7 @@
               [max]="c.maxValue"
               [step]="c.valueStep"
               [value]="c.value"
-              (change)="c.value = $any($event.currentTarget).value; c.change(c.value)" />
+              (input)="c.value = +$any($event.currentTarget).value; c.change(c.value)" />
           }
         </div>
       }

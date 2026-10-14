@@ -23,18 +23,21 @@ export class Nfs2CarMeshController {
     this.recolorCar().then();
   }
 
-  private _speed: 'idle' | 'slow' | 'fast' = 'idle';
-  get speed(): 'idle' | 'slow' | 'fast' {
+  private _speed = 0;
+  /** Car speed in m/s: tyre texture standing (under 0.1 m/s), blurred (over 30 m/s) or flickering between them */
+  get speed(): number {
     return this._speed;
   }
 
-  set speed(value: 'idle' | 'slow' | 'fast') {
-    if (value === this._speed) return;
+  set speed(value: number) {
+    const mode = Nfs2CarMeshController.tyreMode(value);
+    const changed = mode !== Nfs2CarMeshController.tyreMode(this._speed);
     this._speed = value;
+    if (!changed) return;
     if (this.tyreTextureUpdateTimer) {
       clearInterval(this.tyreTextureUpdateTimer);
     }
-    switch (value) {
+    switch (mode) {
       case 'idle':
         this.tyreMaterial!.map = this.tyreTextures[0];
         break;
@@ -51,6 +54,10 @@ export class Nfs2CarMeshController {
         break;
     }
     this.tyreMaterial!.needsUpdate = true;
+  }
+
+  private static tyreMode(speed: number): 'idle' | 'slow' | 'fast' {
+    return speed < 0.1 ? 'idle' : speed > 30 ? 'fast' : 'slow';
   }
 
   private _steeringAngle: number = 0;

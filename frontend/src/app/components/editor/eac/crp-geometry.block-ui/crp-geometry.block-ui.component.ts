@@ -11,6 +11,7 @@ import {
 import { GuiComponent } from '../../gui.component';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
 import { ObjViewerCustomControl, ViewFilterOpts } from '../../common/obj-viewer/obj-viewer.component';
+import { steeringControl, wheelSpeedControl } from '../../common/obj-viewer/car-preview-controls';
 import { Object3D } from 'three';
 import { Nfs5CarMeshController } from './nfs5-car-mesh-controller';
 
@@ -79,22 +80,8 @@ export class CrpGeometryBlockUiComponent extends GuiComponent implements AfterVi
             {
               title: 'NFS5 car features',
               controls: [
-                {
-                  label: 'Car speed',
-                  type: 'radio',
-                  options: ['idle', 'slow', 'fast'],
-                  value: 'idle',
-                  change: v => (meshController.speed = v as any),
-                },
-                {
-                  label: 'Steering angle',
-                  type: 'slider',
-                  minValue: -0.7,
-                  maxValue: 0.7,
-                  valueStep: 0.05,
-                  value: 0,
-                  change: v => (meshController.steeringAngle = v),
-                },
+                wheelSpeedControl(v => (meshController.speed = v)),
+                steeringControl(v => (meshController.steeringAngle = v)),
               ],
             },
           ]
