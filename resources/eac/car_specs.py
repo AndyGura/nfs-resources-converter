@@ -178,10 +178,6 @@ def _car_physics_warnings(data, pc_engine: bool) -> List[str]:
     return res
 
 
-# only TNFS reads these car spec files; NFS2 / NFS2 SE not checked
-_LATER_GAMES = {'nfs3', 'nfs4', 'nfs5', 'nfs6', 'nfsu', 'nfsu2', 'nfsmw'}
-
-
 class PlayerCarPhysics(DeclarativeCompoundBlock):
     @property
     def schema(self) -> Dict:
@@ -650,15 +646,12 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
     def get_warnings(self, data, ctx: BaseContext) -> List[str]:
         return _car_physics_warnings(data, pc_engine=True)
 
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
+
     def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
         if game == 'tnfs':
             return Compatibility.compatible()
-        if game == 'tnfs_3do':
-            return Compatibility.not_compatible(
-                'TNFS 3DO reads car physics from big-endian `.BigSpecsFam` files (DriveData/CarData), not PBS'
-            )
-        if game in _LATER_GAMES:
-            return Compatibility.not_compatible('Only TNFS reads PBS car physics, this game has its own car format')
         return super().get_compatibility(data, game, ctx)
 
     def serializer_class(self):
@@ -777,11 +770,12 @@ class CarAiAndCrashBody(DeclarativeCompoundBlock):
                 res.append(f'`{name}` is 0: the game divides by it in collisions')
         return res
 
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs']
+
     def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
         if game == 'tnfs':
             return Compatibility.compatible()
-        if game in _LATER_GAMES:
-            return Compatibility.not_compatible('Only TNFS reads PDN car files, this game has its own car format')
         return super().get_compatibility(data, game, ctx)
 
     def serializer_class(self):
@@ -1030,14 +1024,10 @@ class Tnfs3doCarPhysics(PlayerCarPhysics):
         # the TCS and wheel torque cap checks are verified in the PC engine only
         return _car_physics_warnings(data, pc_engine=False)
 
+    def get_target_games(self, data, ctx: BaseContext) -> List[str]:
+        return ['tnfs_3do']
+
     def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
         if game == 'tnfs_3do':
             return Compatibility.compatible()
-        if game == 'tnfs':
-            return Compatibility.not_compatible(
-                'TNFS DOS / SE reads car physics from compressed little-endian PBS files (SIMDATA/CARSPECS), not '
-                '`.BigSpecsFam`'
-            )
-        if game in _LATER_GAMES:
-            return Compatibility.not_compatible('Only TNFS reads these car physics, this game has its own car format')
         return Compatibility.unknown()

@@ -37,7 +37,7 @@
   mat-button
   [matMenuTriggerFor]="compatibilityMenu"
   (menuOpened)="checks.checkCompatibility()"
-  matTooltip="Check which games can use this file">
+  matTooltip="Check whether the games this file is made for can use it">
   <mat-icon>fact_check</mat-icon>
   Compatibility
 </button>
@@ -53,6 +53,15 @@
       <mat-icon>refresh</mat-icon>
     </button>
   </div>
+  @if (!(checks.compatibilityGamesLoaded$ | async)) {
+    <div class="check-entry" (click)="$event.stopPropagation()">
+      <mat-spinner class="state-icon" [diameter]="20"></mat-spinner>
+    </div>
+  } @else if ((checks.compatibility$ | async)?.length === 0) {
+    <div class="check-entry check-message muted" (click)="$event.stopPropagation()">
+      This file's format doesn't say which games it is made for yet
+    </div>
+  }
   @for (entry of checks.compatibility$ | async; track entry.game.alias) {
     <div class="check-entry" (click)="$event.stopPropagation()">
       @if (entry.state === 'loading') {

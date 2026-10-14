@@ -2,7 +2,7 @@ import unittest
 from copy import deepcopy
 
 from library import require_file
-from library.block_checks import check_compatibility, collect_warnings
+from library.block_checks import check_compatibility, collect_target_games, collect_warnings
 from library.read_blocks.misc.compatibility import Compatibility
 from resources.eac.car_specs import CarAiAndCrashBody
 
@@ -97,9 +97,7 @@ class TestCarSpecsChecks(unittest.TestCase):
     def test_compatibility(self):
         name, block, data = self._pbs()
         self.assertEqual(check_compatibility(block, data, name, 'tnfs')['state'], Compatibility.COMPATIBLE)
-        self.assertEqual(check_compatibility(block, data, name, 'tnfs_3do')['state'], Compatibility.NOT_COMPATIBLE)
-        self.assertEqual(check_compatibility(block, data, name, 'nfs2')['state'], Compatibility.UNKNOWN)
-        self.assertEqual(check_compatibility(block, data, name, 'nfs3')['state'], Compatibility.NOT_COMPATIBLE)
+        self.assertEqual(collect_target_games(block, data, name), ['tnfs'])
         (name, block, data) = require_file('test/samples/LDIABLO.bigSpecsFam')
         self.assertEqual(check_compatibility(block, data, name, 'tnfs_3do')['state'], Compatibility.COMPATIBLE)
-        self.assertEqual(check_compatibility(block, data, name, 'tnfs')['state'], Compatibility.NOT_COMPATIBLE)
+        self.assertEqual(collect_target_games(block, data, name), ['tnfs_3do'])

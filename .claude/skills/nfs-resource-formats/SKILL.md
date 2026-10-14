@@ -188,7 +188,9 @@ both do.
 
 ### Warnings and game compatibility
 
-Override `get_warnings(self, data, ctx) -> List[str]` for edits the game accepts but that silently break something
+Override `get_target_games(self, data, ctx) -> List[str]` with the aliases of the games a format is made for: the GUI
+checks compatibility with the games every block that answers agrees on, and lists no game when none answers. Override
+`get_warnings(self, data, ctx) -> List[str]` for edits the game accepts but that silently break something
 (one text per problem, field names in backticks: the GUI shows them as code), and `get_compatibility(self, data, game,
 ctx) -> Compatibility` (`library.read_blocks.misc.compatibility`: `compatible()`, `not_compatible(message)` with a
 required message, `unknown()`; game aliases in `GAMES`) for which games read the data as it is. Judge the block's own

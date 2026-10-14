@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterator, List, Tuple
 
 from library.context import CheckContext
 from library.read_blocks import ArrayBlock, CompoundBlock, DataBlock, DelegateBlock, OptionalBlock
-from library.read_blocks.misc.compatibility import Compatibility
+from library.read_blocks.misc.compatibility import GAME_ALIASES, Compatibility
 from library.utils.id import join_id
 
 _logger = logging.getLogger(__name__)
@@ -99,6 +99,27 @@ def collect_warnings(block: DataBlock, data, name: str) -> List[Dict[str, str]]:
 
     _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_warnings', visit)
     return res
+
+
+def collect_target_games(block: DataBlock, data, name: str) -> List[str]:
+    """
+    Aliases of the games the file is made for, in `GAMES` order: the games every block with an opinion
+    (`get_target_games` not None) names. Empty when no block has one, or when they don't agree on any game
+    """
+    targets = None
+
+    def visit(b: DataBlock, d, resource_id: str, ctx: CheckContext):
+        nonlocal targets
+        try:
+            games = b.get_target_games(d, ctx)
+        except Exception:
+            _logger.exception(f'Target games check failed at {resource_id}')
+            return
+        if games is not None:
+            targets = set(games) if targets is None else targets & set(games)
+
+    _walk(block, data, name, CheckContext(name=name, data=data, block=block), 'get_target_games', visit)
+    return [alias for alias in GAME_ALIASES if targets and alias in targets]
 
 
 def check_compatibility(block: DataBlock, data, name: str, game: str) -> Dict[str, Any]:

@@ -54,4 +54,5 @@ class TestChecksApi(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             self.checks_api.check_compatibility('nfs99')
-        self.assertEqual(self.checks_api.get_compatibility_games()[0]['alias'], 'tnfs')
+        # no block says which games the file is made for
+        self.assertEqual(self.checks_api.get_compatibility_games(), [])

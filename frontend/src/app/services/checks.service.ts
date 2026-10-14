@@ -20,12 +20,13 @@ export class ChecksService implements OnDestroy {
 
   public readonly warnings$: BehaviorSubject<BlockWarning[]> = new BehaviorSubject<BlockWarning[]>([]);
   public readonly compatibility$: BehaviorSubject<GameCompatibility[]> = new BehaviorSubject<GameCompatibility[]>([]);
+  // false until the games of the current check are known
+  public readonly compatibilityGamesLoaded$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   private pollTimer: any = null;
   private pollInFlight = false;
   private fileGeneration = 0;
   private compatibilityRun = 0;
-  private games: CompatibilityGame[] | null = null;
   private lastPath: string | null = null;
   private readonly subscription: Subscription;
 
@@ -38,6 +39,7 @@ export class ChecksService implements OnDestroy {
         this.fileGeneration++;
         this.compatibilityRun++;
         this.compatibility$.next([]);
+        this.compatibilityGamesLoaded$.next(false);
         if (path !== this.lastPath || !resource) {
           // a save or reload of the same file keeps the shown warnings until the next poll
           this.warnings$.next([]);
@@ -90,14 +92,15 @@ export class ChecksService implements OnDestroy {
   // checks every game, one request per game, so the results come in one by one
   public async checkCompatibility(): Promise<void> {
     const run = ++this.compatibilityRun;
-    if (!this.games) {
-      this.games = await this.api.getCompatibilityGames();
-    }
-    if (run !== this.compatibilityRun) return;
-    const results: GameCompatibility[] = this.games.map(game => ({ game, state: 'loading' }));
-    this.compatibility$.next(results);
+    this.compatibilityGamesLoaded$.next(false);
     // the check sees every edit made so far
     await this.changes.settled();
+    // only the games the opened file is made for
+    const games = await this.api.getCompatibilityGames();
+    if (run !== this.compatibilityRun) return;
+    const results: GameCompatibility[] = games.map(game => ({ game, state: 'loading' }));
+    this.compatibility$.next(results);
+    this.compatibilityGamesLoaded$.next(true);
     for (let i = 0; i < results.length; i++) {
       let result: GameCompatibility;
       try {

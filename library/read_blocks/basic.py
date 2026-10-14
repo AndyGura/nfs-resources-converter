@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from io import SEEK_CUR, BytesIO
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Optional
 
 from library.context import BaseContext, ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
@@ -58,8 +58,14 @@ class DataBlock(ABC):
     def get_warnings(self, data, ctx: BaseContext) -> List[str]:
         return []
 
-    # For GUI: whether the game with the alias (`library.read_blocks.misc.compatibility.GAMES`) can use this data.
-    # Children are checked by `library.block_checks`, a block judges its own data only
+    # For GUI: aliases of the games (`library.read_blocks.misc.compatibility.GAMES`) this data is made for, None = the
+    # block doesn't say. A file is made for the games every block that says agrees on (`library.block_checks`), and
+    # its compatibility is checked with those games only
+    def get_target_games(self, data, ctx: BaseContext) -> Optional[List[str]]:
+        return None
+
+    # For GUI: whether the game with the alias can use this data, asked for the file's target games only. Children are
+    # checked by `library.block_checks`, a block judges its own data only
     def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
         return Compatibility.unknown()
 

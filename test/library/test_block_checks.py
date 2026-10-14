@@ -1,6 +1,6 @@
 import unittest
 
-from library.block_checks import check_compatibility, collect_warnings
+from library.block_checks import check_compatibility, collect_target_games, collect_warnings
 from library.read_blocks import (
     ArrayBlock,
     DeclarativeCompoundBlock,
@@ -28,6 +28,17 @@ class WarnedBlock(DeclarativeCompoundBlock):
                 Compatibility.not_compatible(f'value {data["value"]}') if data['value'] > 1 else Compatibility.unknown()
             )
         return super().get_compatibility(data, game, ctx)
+
+
+class TargetedBlock(IntegerBlock):
+    def get_target_games(self, data, ctx):
+        return ['nfs3', 'nfs2', 'tnfs'] if data else ['nfs2', 'nfs4']
+
+
+class TargetsRootBlock(DeclarativeCompoundBlock):
+    class Fields(DeclarativeCompoundBlock.Fields):
+        a = TargetedBlock(length=1)
+        b = ArrayBlock(length=2, child=TargetedBlock(length=1))
 
 
 class RootBlock(DeclarativeCompoundBlock):
@@ -100,3 +111,14 @@ class TestCheckCompatibility(unittest.TestCase):
     def test_not_compatible_needs_message(self):
         with self.assertRaises(ValueError):
             Compatibility.not_compatible('')
+
+
+class TestCollectTargetGames(unittest.TestCase):
+    def test_games_every_block_agrees_on(self):
+        block = TargetsRootBlock()
+        # in GAMES order
+        self.assertEqual(collect_target_games(block, {'a': 1, 'b': [1, 1]}, 'F'), ['tnfs', 'nfs2', 'nfs3'])
+        self.assertEqual(collect_target_games(block, {'a': 1, 'b': [1, 0]}, 'F'), ['nfs2'])
+
+    def test_no_opinion(self):
+        self.assertEqual(collect_target_games(RootBlock(), _data(), 'F'), [])
