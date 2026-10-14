@@ -12,6 +12,7 @@ from .endpoints.file_dialog_api import FileDialogAPI
 from .endpoints.resource_api import ResourceAPI
 from .endpoints.serialization_api import SerializationAPI
 from .endpoints.changes_api import ChangesAPI
+from .endpoints.checks_api import ChecksAPI
 from version import __version__
 
 _frontend_logger = logging.getLogger('frontend')
@@ -40,6 +41,7 @@ class API:
         self.serialization_api = SerializationAPI(self)
         self.conversion_api = ConversionAPI(self)
         self.changes_api = ChangesAPI(self)
+        self.checks_api = ChecksAPI(self)
         self.file_dialog_api = FileDialogAPI(self)
 
         # Register all API endpoints
@@ -85,6 +87,11 @@ class API:
         bridge.expose(self.changes_api.get_revisions)
         bridge.expose(self.changes_api.get_changes)
         bridge.expose(self.changes_api.on_fe_update)
+
+        # Checks API
+        bridge.expose(self.checks_api.get_warnings)
+        bridge.expose(self.checks_api.get_compatibility_games)
+        bridge.expose(self.checks_api.check_compatibility)
 
         # Version API
         bridge.expose(self.get_version)

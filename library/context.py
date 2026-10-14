@@ -127,6 +127,20 @@ class WriteContext(BaseContext):
         self.write_start_offset = len(result)
 
 
+class CheckContext(BaseContext):
+    # context of the warnings / compatibility checks (`library.block_checks`) over already read data
+    def get_or_create_child(self, name: str, block=None, data=None):
+        existing_child = self.children.get(name)
+        if existing_child:
+            return existing_child
+        return CheckContext(
+            name=name,
+            data=data if data is not None else self.data(name),
+            block=block or self.relative_block(name),
+            parent=self,
+        )
+
+
 class DocumentationCtxData:
     def __init__(self, label):
         self.label = label

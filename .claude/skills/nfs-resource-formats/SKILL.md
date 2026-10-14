@@ -186,6 +186,17 @@ and build the resulting `EacPalette` - reuse them for any new from-RGBA-to-8Bit 
 re-deriving a quantizer; `ShpiBlock.action_convert_to_8bit` and `EacImage.action_convert_to_8bit`
 both do.
 
+### Warnings and game compatibility
+
+Override `get_warnings(self, data, ctx) -> List[str]` for edits the game accepts but that silently break something
+(one text per problem, field names in backticks: the GUI shows them as code), and `get_compatibility(self, data, game,
+ctx) -> Compatibility` (`library.read_blocks.misc.compatibility`: `compatible()`, `not_compatible(message)` with a
+required message, `unknown()`; game aliases in `GAMES`) for which games read the data as it is. Judge the block's own
+data only: `library.block_checks` walks the children, the GUI polls the warnings and runs one compatibility request
+per game. Claim compatible / not compatible only from game code or shipped files, return `unknown()` otherwise.
+Examples: `PlayerCarPhysics` / `Tnfs3doCarPhysics` / `CarAiAndCrashBody` (`resources/eac/car_specs.py`),
+`EacCompressedBlock` (TNFS reads RefPack, QFS2, QFS3).
+
 ### Archives (name/offset-indexed containers)
 
 `ArchiveBlock` (base class) already handles the item/pre-offset-payload/post-offset-payload/alias

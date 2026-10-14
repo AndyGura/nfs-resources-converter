@@ -1,0 +1,89 @@
+@if (checks.warnings$ | async; as warnings) {
+  @if (warnings.length > 0) {
+    <button
+      mat-icon-button
+      class="warnings-button"
+      [matMenuTriggerFor]="warningsMenu"
+      [matTooltip]="warnings.length === 1 ? '1 warning' : warnings.length + ' warnings'">
+      <mat-icon
+        fontIcon="warning"
+        [matBadge]="warnings.length"
+        matBadgeSize="small"
+        matBadgeColor="warn"
+        aria-hidden="false"
+        aria-label="Warnings"></mat-icon>
+    </button>
+    <mat-menu #warningsMenu="matMenu" class="checks-menu" xPosition="before">
+      <div class="checks-menu-header" (click)="$event.stopPropagation()">
+        Warnings
+        <span class="checks-menu-hint">things the game accepts, but that probably don't work as intended</span>
+      </div>
+      @for (warning of warnings; track $index) {
+        <div class="check-entry" (click)="$event.stopPropagation()">
+          <mat-icon class="state-icon warning">warning</mat-icon>
+          <div class="check-entry-body">
+            <div class="check-message" [innerHTML]="formatMessage(warning.message)"></div>
+            @if (blockPath(warning.id)) {
+              <div class="check-path">{{ blockPath(warning.id) }}</div>
+            }
+          </div>
+        </div>
+      }
+    </mat-menu>
+  }
+}
+
+<button
+  mat-button
+  [matMenuTriggerFor]="compatibilityMenu"
+  (menuOpened)="checks.checkCompatibility()"
+  matTooltip="Check which games can use this file">
+  <mat-icon>fact_check</mat-icon>
+  Compatibility
+</button>
+<mat-menu #compatibilityMenu="matMenu" class="checks-menu" xPosition="before">
+  <div class="checks-menu-header" (click)="$event.stopPropagation()">
+    Compatibility
+    <span class="flex-spacer"></span>
+    <button
+      mat-icon-button
+      class="mat-icon-button-sm-32"
+      matTooltip="Check again"
+      (click)="$event.stopPropagation(); checks.checkCompatibility()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+  @for (entry of checks.compatibility$ | async; track entry.game.alias) {
+    <div class="check-entry" (click)="$event.stopPropagation()">
+      @if (entry.state === 'loading') {
+        <mat-spinner class="state-icon" [diameter]="20" [matTooltip]="stateLabel(entry.state)"></mat-spinner>
+      } @else {
+        <mat-icon class="state-icon {{ entry.state }}" [matTooltip]="stateLabel(entry.state)">
+          {{
+            entry.state === 'compatible'
+              ? 'check_circle'
+              : entry.state === 'not_compatible'
+                ? 'cancel'
+                : entry.state === 'error'
+                  ? 'error'
+                  : 'help_outline'
+          }}
+        </mat-icon>
+      }
+      <div class="check-entry-body">
+        <div class="check-title">{{ entry.game.title }}</div>
+        @if (entry.state === 'error') {
+          <div class="check-message">{{ entry.error }}</div>
+        }
+        @for (result of details(entry); track $index) {
+          <div class="check-detail" [class.muted]="entry.state !== 'not_compatible'">
+            <span class="check-message" [innerHTML]="formatMessage(result.message)"></span>
+            @if (blockPath(result.id)) {
+              <span class="check-path">{{ blockPath(result.id) }}</span>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</mat-menu>

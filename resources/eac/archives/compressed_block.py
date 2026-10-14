@@ -1,8 +1,9 @@
 from io import BytesIO, SEEK_CUR
 from typing import Dict
 
-from library.context import ReadContext, WriteContext
+from library.context import BaseContext, ReadContext, WriteContext
 from library.read_blocks import AutoDetectBlock, BytesBlock
+from library.read_blocks.misc.compatibility import Compatibility
 from resources.eac.car_specs import CarAiAndCrashBody, PlayerCarPhysics
 from .shpi_block import ShpiBlock
 
@@ -93,6 +94,21 @@ class EacCompressedBlock(AutoDetectBlock):
                 BytesIO(uncompressed_bytes), len(uncompressed_bytes), delta_passes=((flags >> 1) & 3,)
             )
         return compression.compress(BytesIO(uncompressed_bytes), len(uncompressed_bytes))
+
+    def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
+        if game == 'tnfs':
+            try:
+                compression = self._compression_for_header(data.get('compression_flags', 0x10))
+            except ValueError:
+                return Compatibility.unknown()
+            # `sys_unpack` of DOS (0xaa928) and Win95 SE (0x4a2520) handles all three
+            name = {'RefPackCompression': 'RefPack', 'Qfs2Compression': 'QFS2', 'Qfs3Compression': 'QFS3'}.get(
+                compression.__class__.__name__
+            )
+            if name is None:
+                return Compatibility.unknown()
+            return Compatibility.compatible(f'TNFS reads {name} compression')
+        return super().get_compatibility(data, game, ctx)
 
     def action_save_uncompressed(self, read_data, file_path, **kwargs):
         inner_block = self.possible_blocks[read_data['choice_index']]

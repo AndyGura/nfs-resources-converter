@@ -2,6 +2,7 @@
   <mat-toolbar color="primary">
     <ng-container *ngTemplateOutlet="appMenu"></ng-container>
     <span class="flex-spacer"></span>
+    <app-checks-toolbar></app-checks-toolbar>
     <mat-divider vertical></mat-divider>
     @if (!isProduction) {
       <button mat-button [matMenuTriggerFor]="stagedChangesMenu">

@@ -10,6 +10,9 @@ import {
 } from '../../components/editor/types';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 import {
+  BlockWarning,
+  CompatibilityGame,
+  CompatibilityReport,
   ConversionConfig,
   ConversionPresets,
   ExecutableDetectionResult,
@@ -233,6 +236,20 @@ export class ApiDelegateImplService {
 
   public async onFeUpdate(updateDict: ChangesFeUpdate): Promise<void> {
     return this.wrapCall('on_fe_update', updateDict);
+  }
+
+  // Checks API
+  // polled in the background: a failure is logged, not shown in a dialog every time
+  public async getWarnings(): Promise<BlockWarning[]> {
+    return this.wrapCallSilent('get_warnings');
+  }
+
+  public async getCompatibilityGames(): Promise<CompatibilityGame[]> {
+    return this.wrapCall('get_compatibility_games');
+  }
+
+  public async checkCompatibility(game: string): Promise<CompatibilityReport> {
+    return this.wrapCall('check_compatibility', game);
   }
 
   // File dialog API

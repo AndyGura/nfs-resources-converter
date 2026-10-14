@@ -4,6 +4,9 @@ import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../
 import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 import {
+  BlockWarning,
+  CompatibilityGame,
+  CompatibilityReport,
   ConversionConfig,
   ConversionPresets,
   ExecutableDetectionResult,
@@ -213,6 +216,19 @@ export abstract class BaseApiDelegateService {
 
   public async onFeUpdate(updateDict: ChangesFeUpdate): Promise<void> {
     return (await this.getImpl()).onFeUpdate(updateDict);
+  }
+
+  // Checks API
+  public async getWarnings(): Promise<BlockWarning[]> {
+    return (await this.getImpl()).getWarnings();
+  }
+
+  public async getCompatibilityGames(): Promise<CompatibilityGame[]> {
+    return (await this.getImpl()).getCompatibilityGames();
+  }
+
+  public async checkCompatibility(game: string): Promise<CompatibilityReport> {
+    return (await this.getImpl()).checkCompatibility(game);
   }
 
   // File dialog API

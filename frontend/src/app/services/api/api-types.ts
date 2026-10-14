@@ -38,3 +38,21 @@ export type ConversionPresets = {
   presets: string[];
   selected: string | null;
 };
+
+export type BlockWarning = {
+  id: string;
+  message: string;
+};
+
+export type CompatibilityState = 'compatible' | 'not_compatible' | 'unknown';
+
+export type CompatibilityGame = {
+  alias: string;
+  title: string;
+};
+
+export type CompatibilityReport = {
+  game: string;
+  state: CompatibilityState;
+  results: { id: string; state: CompatibilityState; message: string | null }[];
+};

@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from io import SEEK_CUR, BytesIO
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List
 
-from library.context import ReadContext, WriteContext, DocumentationContext
+from library.context import BaseContext, ReadContext, WriteContext, DocumentationContext
 from library.exceptions import DataIntegrityException, BlockDefinitionException, EndOfBufferException
+from library.read_blocks.misc.compatibility import Compatibility
 from library.read_blocks.misc.value_validators import ValueValidator
 from library.utils import represent_value_as_str
 
@@ -51,6 +52,16 @@ class DataBlock(ABC):
 
     def serializer_class(self):
         return None
+
+    # For GUI: problems in the data the game would not show (an edit that silently breaks something), one text per
+    # problem. Children are checked by `library.block_checks`, a block checks its own data only
+    def get_warnings(self, data, ctx: BaseContext) -> List[str]:
+        return []
+
+    # For GUI: whether the game with the alias (`library.read_blocks.misc.compatibility.GAMES`) can use this data.
+    # Children are checked by `library.block_checks`, a block judges its own data only
+    def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
+        return Compatibility.unknown()
 
     @abstractmethod
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):

@@ -28,6 +28,7 @@ import { LandingPageComponent } from './components/landing-page/landing-page.com
 import { ConverterComponent } from './components/converter/converter.component';
 import { ConfigComponent } from './components/config/config.component';
 import { NewFileDialogComponent } from './components/new-file.dialog/new-file.dialog.component';
+import { ChecksToolbarComponent } from './components/checks-toolbar/checks-toolbar.component';
 
 @NgModule({
   declarations: [
@@ -61,6 +62,7 @@ import { NewFileDialogComponent } from './components/new-file.dialog/new-file.di
     EditorModule,
     ConverterComponent,
     ConfigComponent,
+    ChecksToolbarComponent,
   ],
   providers: [ApiDelegateService],
   bootstrap: [AppComponent],

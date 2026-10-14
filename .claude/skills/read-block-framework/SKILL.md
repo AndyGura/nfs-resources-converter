@@ -41,6 +41,11 @@ Commonly overridden:
   `DocumentationContext` (see below) — arithmetic/comparison ops only, no branching on real values.
 - `serializer_class()` — return a `ResourceSerializer` subclass to make this block convertible from
   the GUI/CLI; return `None` (default) if it isn't independently convertible.
+- `get_warnings(data, ctx)` / `get_compatibility(data, game, ctx)` — GUI checks of the block's own data (default:
+  none / `Compatibility.unknown()`). `library/block_checks.py` walks the tree for them with a `CheckContext`, knowing
+  the containers `CompoundBlock`, `ArrayBlock`, `DelegateBlock` (id part `data`) and `OptionalBlock` (same id as its
+  child): a new container class with children of its own needs a branch in `_static_children` /
+  `_children_with_data` there. Subtrees with no override below are skipped (cached per block instance).
 - For container blocks, subclass `DataBlockWithChildren` too and implement
   `get_child_block(name)`, `get_child_block_with_data(unpacked_data, name)`, and
   `offset_to_child_when_packed(data, child_name, ctx)` — these back the GUI's per-field navigation

@@ -43,6 +43,7 @@ docs and a working GUI editor for free.
 | `library/context.py` | `ReadContext`/`WriteContext`/`DocumentationContext` passed through the block tree while reading/writing/documenting. |
 | `library/loader.py` | File-type auto-detection (`probe_block_class`) by extension/magic bytes; top-level `require_file`/`require_resource` with an in-process file cache. |
 | `library/changes_service.py` | Tracks unsaved GUI edits against the loaded data tree. |
+| `library/block_checks.py` | Walks a data tree for the blocks' `get_warnings` / `get_compatibility` (GUI top bar: warnings polled by `ChecksService`, compatibility per game on demand; `api/endpoints/checks_api.py`). Game aliases: `library/read_blocks/misc/compatibility.py`. |
 | `library/utils/asm_runner.py` | 32-bit x86 snippet interpreter (IDA syntax) used to execute and progressively port disassembled game routines; production code never uses it, the ASM-driven decompressor twins in `test/resources/eac/archives/test_compressed_block.py` do. |
 | `resources/eac/` | EA Canada format definitions built from `read_blocks` primitives (bitmaps, archives, fonts, audio, geometries, maps, car specs, TNFS replays). Shared across many NFS titles. `compressions/` holds the pure-Python decompressors and compressors (RefPack, QFS2, QFS3, NFSU's JDLZ, NFSU2's HUFF = QFS3 behind a 16-byte header) behind `EacCompressedBlock`, which writes a resource back with the algorithm it was read with (`compression_flags` in its data, new data gets RefPack). Formats, game addresses and compressor notes: `resources/eac_compressions.md`. Compressor output is checked with the games' ASM decoders in `test_compressed_block.py`. |
 | `resources/eac/maps/`, `resources/eac/geometries/` | Per-game specializations (`tnfs.py`, `nfs2.py`, `nfs3.py`, `nfs5.py`, ...). |
@@ -196,6 +197,10 @@ When you do:
   markers, corner slowdown). Their derived curves follow the formulas in the field descriptions: keep the two in sync.
   Programmatic fields (`mass`, inverses, `force_to_accel`, checksum) are recomputed on save only, so the charts compute
   from the source fields.
+- Warnings (`get_warnings`, `_car_physics_warnings`): edits the engine accepts but that break the car (upshift at or
+  above the full-throttle rpm cap `max_rpm` x 255 / 256, unreachable `top_speed`, TCS with `throttle_on_ramp` < 12,
+  wheel torque above the 7.0 cap of `tnfs_engine_thrust`, torque entries off the 200 rpm steps, zero ramps...), found
+  by driving edited files in tnfs-1995. The TCS and torque cap ones are PC only (`Tnfs3doCarPhysics` skips them).
 - TNFS 3DO `DriveData/CarData/*.BigSpecsFam` (`Tnfs3doCarPhysics`, doc `resources/TNFS_3DO.md`): a big-endian wwww
   archive of 3 fixed items, the PBS physics fields without `max_brake_force_2` / `gear_efficiency` / checksum, then
   the front and rear grip tables. The block subclasses `PlayerCarPhysics` and builds its `Fields` from the PBS ones

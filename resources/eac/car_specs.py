@@ -1,7 +1,8 @@
 import math
 from copy import deepcopy
-from typing import Dict
+from typing import Dict, List
 
+from library.context import BaseContext
 from library.read_blocks import (
     DataBlock,
     DeclarativeCompoundBlock,
@@ -11,6 +12,7 @@ from library.read_blocks import (
     FixedPointBlock,
     UTF8Block,
 )
+from library.read_blocks.misc.compatibility import Compatibility
 from library.read_blocks.misc.value_validators import Eq, Lte
 from resources.eac.fields.numbers import IntegerAngleBlock
 
@@ -57,6 +59,127 @@ def _angle24(**kwargs):
 
 def _uint(**kwargs):
     return IntegerBlock(length=4, is_signed=False, **kwargs)
+
+
+def _kmh(mps: float) -> str:
+    return f'{mps:.1f} m/s, {mps * 3.6:.0f} km/h'
+
+
+def _list_indices(indices: List[int], limit: int = 5) -> str:
+    res = ', '.join(str(i) for i in indices[:limit])
+    return res + (f' and {len(indices) - limit} more' if len(indices) > limit else '')
+
+
+# torque table entries above this (N*m) are leftover data, not an engine
+_MAX_SANE_TORQUE = 10000
+
+# `tnfs_engine_thrust` caps the wheel torque (table x gear ratio x gear efficiency, as acceleration) at 0x70000
+_WHEEL_TORQUE_CAP = 7.0
+
+# TCS takes this off the throttle every tick while the thrust is >= 0x70000 and the throttle > 83
+_TCS_THROTTLE_CUT = 12
+
+
+def _car_physics_warnings(data, pc_engine: bool) -> List[str]:
+    """
+    Warnings of PBS (`pc_engine`: checks verified in the DOS / SE engine only) and TNFS 3DO car physics: edits the game
+    accepts, but that break the car without telling. Found with the tnfs-1995 engine
+    """
+    res = []
+    num_gears = data['num_gears']
+    max_rpm = data['max_rpm']
+    min_rpm = data['min_rpm']
+    gear_ratios = data['gear_ratios']
+    upshifts = data['upshifts']
+    gear_efficiency = data.get('gear_efficiency') or [1.0] * len(gear_ratios)
+    if not 3 <= num_gears <= len(gear_ratios):
+        res.append(
+            f'`num_gears` is {num_gears}: the game needs reverse, neutral and at least one forward gear, '
+            f'{len(gear_ratios)} gears at most (the length of `gear_ratios`)'
+        )
+        num_gears = max(2, min(num_gears, len(gear_ratios)))
+    if min_rpm >= max_rpm:
+        res.append(f'Idle rpm `min_rpm` ({min_rpm}) is not below the redline `max_rpm` ({max_rpm})')
+    # full-throttle rpm cap of `tnfs_engine_rev_limiter`: max_rpm * throttle / 256
+    rpm_cap = max_rpm * 255 / 256
+    for g in range(min(num_gears - 3, len(upshifts))):
+        if upshifts[g] >= rpm_cap:
+            res.append(
+                f'The automatic gearbox never shifts up from gear {g + 1}: `upshifts[{g}]` ({upshifts[g]} rpm) is not '
+                f'below the full-throttle rpm cap {rpm_cap:.0f} (`max_rpm` x 255 / 256)'
+            )
+            break
+    top_ratio = gear_ratios[num_gears - 1] if num_gears >= 3 else 0
+    if top_ratio > 0 and data['mps_to_rpm'] > 0:
+        reachable_speed = rpm_cap / (data['mps_to_rpm'] * top_ratio)
+        if data['top_speed'] > reachable_speed + 0.05:
+            res.append(
+                f'`top_speed` ({_kmh(data["top_speed"])}) is never reached: in the top gear the engine hits the '
+                f'full-throttle rpm cap at {_kmh(reachable_speed)}'
+            )
+    if data['efficiency'] <= 0:
+        res.append('`efficiency` is 0: the engine has no torque (the game also sets it to 0 on a checksum mismatch)')
+
+    num_torques = data['num_torques']
+    torques = data['torques'][: max(0, num_torques)]
+    if num_torques <= 0:
+        res.append('`num_torques` is 0: the torque table is empty')
+    elif torques:
+        rpm0 = torques[0]['rpm']
+        off_steps = [i for i, t in enumerate(torques) if t['rpm'] != rpm0 + 200 * i]
+        if off_steps:
+            res.append(
+                f'`torques` entries {_list_indices(off_steps)} are not in 200 rpm steps from the first one: the game '
+                'reads only the first rpm and assumes 200 rpm steps'
+            )
+        insane = [i for i, t in enumerate(torques) if not 0 <= t['torque'] <= _MAX_SANE_TORQUE]
+        if insane:
+            res.append(
+                f'`torques` entries {_list_indices(insane)} have a torque below 0 or above {_MAX_SANE_TORQUE} N*m: '
+                'probably leftover data, e.g. after raising `num_torques`'
+            )
+
+    if pc_engine:
+        if data['has_tcs'] > 0 and 0 < data['throttle_on_ramp'] < _TCS_THROTTLE_CUT:
+            res.append(
+                f'With traction control (`has_tcs`) a `throttle_on_ramp` below {_TCS_THROTTLE_CUT} '
+                f'({data["throttle_on_ramp"]}) makes the car bog down at launch: TCS takes {_TCS_THROTTLE_CUT} off '
+                'the throttle every tick while the thrust is at least 7.0, faster than the throttle rises'
+            )
+        mass = data['mass_front'] + data['mass_rear']
+        used_torques = [t['torque'] for t in torques if 0 <= t['torque'] <= _MAX_SANE_TORQUE]
+        if mass > 0 and data['wheel_radius'] > 0 and used_torques:
+            # `tnfs_load_torque_table`: torque * final_drive * efficiency * inv_wheel_rad * inv_mass
+            peak = max(used_torques) * data['final_drive'] * data['efficiency'] / data['wheel_radius'] / mass
+            capped = [
+                g - 1 for g in range(2, num_gears) if peak * gear_ratios[g] * gear_efficiency[g] > _WHEEL_TORQUE_CAP
+            ]
+            if capped:
+                res.append(
+                    f'In gear {_list_indices(capped)} the peak wheel torque is above the {_WHEEL_TORQUE_CAP} cap of '
+                    '`tnfs_engine_thrust`: torque above it adds no acceleration'
+                )
+
+    for field, what in [
+        ('throttle_on_ramp', 'the throttle never rises'),
+        ('throttle_off_ramp', 'the throttle never falls'),
+        ('brake_on_ramp_1', 'the brake never rises'),
+        ('brake_on_ramp_2', 'the brake never rises above 144'),
+        ('rpm_acc', 'with the gear disengaged the rpm never rises'),
+        ('rpm_dec', 'with the gear disengaged the rpm never returns to idle'),
+        ('drop_rpm_dec', 'in gear the engine rpm never falls towards the wheel rpm'),
+        ('drop_rpm_inc', 'in gear the engine rpm never rises towards the wheel rpm'),
+    ]:
+        if field in data and data[field] == 0:
+            res.append(f'`{field}` is 0: {what}')
+    brake_bias_f = data.get('brake_bias_f')
+    if brake_bias_f is not None and not 0 <= brake_bias_f <= 1:
+        res.append(f'`brake_bias_f` ({brake_bias_f:g}) is outside 0.0-1.0')
+    return res
+
+
+# only TNFS reads these car spec files; NFS2 / NFS2 SE not checked
+_LATER_GAMES = {'nfs3', 'nfs4', 'nfs5', 'nfs6', 'nfsu', 'nfsu2', 'nfsmw'}
 
 
 class PlayerCarPhysics(DeclarativeCompoundBlock):
@@ -524,6 +647,20 @@ class PlayerCarPhysics(DeclarativeCompoundBlock):
             },
         )
 
+    def get_warnings(self, data, ctx: BaseContext) -> List[str]:
+        return _car_physics_warnings(data, pc_engine=True)
+
+    def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
+        if game == 'tnfs':
+            return Compatibility.compatible()
+        if game == 'tnfs_3do':
+            return Compatibility.not_compatible(
+                'TNFS 3DO reads car physics from big-endian `.BigSpecsFam` files (DriveData/CarData), not PBS'
+            )
+        if game in _LATER_GAMES:
+            return Compatibility.not_compatible('Only TNFS reads PBS car physics, this game has its own car format')
+        return super().get_compatibility(data, game, ctx)
+
     def serializer_class(self):
         from serializers import JsonSerializer
 
@@ -625,6 +762,27 @@ class CarAiAndCrashBody(DeclarativeCompoundBlock):
                 '(the cop never honks); 7 and 9 unused'
             },
         )
+
+    def get_warnings(self, data, ctx: BaseContext) -> List[str]:
+        res = []
+        half_sizes = ['half_width', 'half_height', 'half_length']
+        zero_sizes = [f'`{name}`' for name in half_sizes if data[name] == 0]
+        if 0 < len(zero_sizes) < len(half_sizes):
+            res.append(
+                f'{", ".join(zero_sizes)} {"is" if len(zero_sizes) == 1 else "are"} 0: the game then ignores all three '
+                'half sizes and takes the collision body size from the car model'
+            )
+        for name in ['moment_of_inertia', 'mass']:
+            if data[name] == 0:
+                res.append(f'`{name}` is 0: the game divides by it in collisions')
+        return res
+
+    def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
+        if game == 'tnfs':
+            return Compatibility.compatible()
+        if game in _LATER_GAMES:
+            return Compatibility.not_compatible('Only TNFS reads PDN car files, this game has its own car format')
+        return super().get_compatibility(data, game, ctx)
 
     def serializer_class(self):
         from serializers import JsonSerializer
@@ -867,3 +1025,19 @@ class Tnfs3doCarPhysics(PlayerCarPhysics):
         }
 
     Fields = _tnfs_3do_car_physics_fields()
+
+    def get_warnings(self, data, ctx: BaseContext) -> List[str]:
+        # the TCS and wheel torque cap checks are verified in the PC engine only
+        return _car_physics_warnings(data, pc_engine=False)
+
+    def get_compatibility(self, data, game: str, ctx: BaseContext) -> Compatibility:
+        if game == 'tnfs_3do':
+            return Compatibility.compatible()
+        if game == 'tnfs':
+            return Compatibility.not_compatible(
+                'TNFS DOS / SE reads car physics from compressed little-endian PBS files (SIMDATA/CARSPECS), not '
+                '`.BigSpecsFam`'
+            )
+        if game in _LATER_GAMES:
+            return Compatibility.not_compatible('Only TNFS reads these car physics, this game has its own car format')
+        return Compatibility.unknown()

@@ -1,0 +1,90 @@
+:host {
+  display: flex;
+  align-items: center;
+}
+
+.warnings-button mat-icon {
+  color: #ffc107;
+}
+
+// the menus are rendered in the overlay container, outside of this component
+::ng-deep .mat-mdc-menu-panel.checks-menu {
+  max-width: 480px;
+  min-width: 320px;
+
+  .checks-menu-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
+    padding: 4px 16px 8px;
+    font-weight: 500;
+    cursor: default;
+  }
+
+  .checks-menu-hint {
+    flex-basis: 100%;
+    font-size: 0.75rem;
+    font-weight: normal;
+    opacity: 0.7;
+  }
+
+  .check-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 16px;
+    cursor: default;
+  }
+
+  .state-icon {
+    flex-shrink: 0;
+    &.compatible {
+      color: #2e7d32;
+    }
+    &.not_compatible,
+    &.error {
+      color: #c62828;
+    }
+    &.unknown {
+      opacity: 0.5;
+    }
+    &.warning {
+      color: #ef8f00;
+    }
+  }
+
+  .check-entry-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    line-height: 20px;
+  }
+
+  .check-title {
+    font-weight: 500;
+  }
+
+  .check-detail {
+    display: flex;
+    flex-direction: column;
+    &.muted {
+      opacity: 0.7;
+    }
+  }
+
+  .check-message {
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+    code {
+      font-size: 0.8rem;
+    }
+  }
+
+  .check-path {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    overflow-wrap: anywhere;
+  }
+}
