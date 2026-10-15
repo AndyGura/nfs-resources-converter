@@ -34,10 +34,18 @@ class ShpiBlock(ArchiveBlock):
                 {
                     'method': 'convert_to_8bit',
                     'title': 'Convert all images to 8Bit',
-                    'description': 'Quantize all images in this SHPI block to 8-bit with single palette',
+                    'description': 'Quantize all images of this SHPI to 8-bit on one new palette: it replaces the '
+                    'palette of the SHPI (!pal, !PAL or 0000), or is added at the end under the name below. The '
+                    'images lose their own palettes, the other items stay. Not for TNFS car textures (CFM)',
                     'is_pure': False,
                     'args': [
-                        {'id': 'palette_name', 'title': 'Palette name', 'type': 'string', 'default': '!pal'},
+                        {
+                            'id': 'palette_name',
+                            'title': 'Palette name, when the SHPI has none',
+                            'type': 'enum_string',
+                            'default': '!pal',
+                            'choices': ['!pal', '!PAL', '0000'],
+                        },
                         {
                             'id': 'palette_type',
                             'title': 'Palette type',
@@ -206,58 +214,85 @@ class ShpiBlock(ArchiveBlock):
         return ret
 
     def action_convert_to_8bit(self, read_data, name, palette_name, palette_type, num_colors, id, **kwargs):
-        # notes for future:
-
-        # TNFS CFM files: last 6 colors are special for cars:
-        # palette name is '!PAL'
-        # 250th, 251th - cop red blinker
-        # 252th, 253th - cop blue blinker
-        # 254th is replaced with tail colors in the game
-        # 255th is transparent
-        # Also CFM has additional !xxx palette
-
-        # TNFS FAM files:
-        # palette name is '!PAL'
-
-        import tempfile
-
-        tmp_dir = tempfile.TemporaryDirectory()
-        serializer = self.serializer_class()()
-        serializer.patch_settings(
-            {
-                'images__save_image_positions': False,
-                'images__save_palettes': False,
-                'images__save_mipmaps': False,
-                'images__save_embedded_palette': False,
-                'images__save_texts': False,
-            }
-        )
-        serializer.serialize(data=read_data, path=tmp_dir.name, block=self, id=name)
-
-        bitmap_choice_index = self.item_block.get_choice_index_by_class_name('EacImage')
-        read_data['children'] = [x for x in read_data['children'] if x['item']['choice_index'] == bitmap_choice_index]
-
-        from library.utils import path_join
-        from PIL import Image
-
-        images = [Image.open(path_join(tmp_dir.name, x['alias'] + '.png')) for x in read_data['children']]
-
+        """All images become 8Bit on one new palette: each image drops its own palettes (an embedded palette is used
+        instead of the SHPI one), mipmaps are made again from the new pixels. The palette the images use now (found
+        by name, `_get_palette_from_shpi`) is replaced in place; a SHPI without one gets `palette_name` (one of the
+        names looked up) at the end (NFS2 tracks pick textures by their index). The other items stay. Not for TNFS car textures (CFM): the game recolors their
+        entries 250..254, which the export / folder import with car_colors.json keeps"""
         from resources.eac.utils import quantize_images_to_8bit, build_8bit_palette
+        from serializers.bitmaps import ImageSerializer
 
-        indices_per_image, packed_palette_colors = quantize_images_to_8bit(images, num_colors)
-        for child, indices in zip(read_data['children'], indices_per_image):
-            child['item']['data']['resource_id'] = '8Bit'
-            child['item']['data']['bitmap'] = indices
+        if '.CFM__' in (id or '').upper():
+            raise ValueError(
+                'TNFS car textures keep the light colors in palette entries 250..254, which this conversion does not '
+                'know about: export the textures and import the folder instead (car_colors.json)'
+            )
+        from resources.eac.utils import SHPI_PALETTE_NAMES, _get_palette_from_shpi
 
-        pal = build_8bit_palette(packed_palette_colors, palette_type, id=join_id(id, 'children', '0', 'item', 'data'))
-        read_data['children'].insert(
-            0,
-            {
-                'post_offset_payload': b'',
-                'alias': palette_name,
-                'item': {'choice_index': self.item_block.get_choice_index_by_class_name('EacPalette'), 'data': pal},
-            },
+        children = read_data['children']
+        # the palette the images of this SHPI use (by its name): replaced in place, keeping its name
+        _, current_palette = _get_palette_from_shpi(self, read_data)
+        palette_index = next(
+            (i for i, c in enumerate(children) if current_palette is not None and c['item']['data'] is current_palette),
+            None,
         )
+        if palette_index is None and palette_name not in SHPI_PALETTE_NAMES:
+            raise ValueError(
+                f'The images find the palette of the SHPI by its name: {", ".join(SHPI_PALETTE_NAMES)}, '
+                f'not "{palette_name}"'
+            )
+        if palette_index is None and any(c['alias'] == palette_name for c in children):
+            # the lookup takes the first item of that name
+            raise ValueError(f'An item is already named "{palette_name}": pick another palette name')
+        image_choice = self.item_block.get_choice_index_by_class_name('EacImage')
+        palette_choice = self.item_block.get_choice_index_by_class_name('EacPalette')
+        image_block = self.item_block.possible_blocks[image_choice]
+        image_indexes = [i for i, c in enumerate(children) if c['item']['choice_index'] == image_choice]
+        if not image_indexes:
+            raise ValueError('There are no images to convert')
+        serializer = ImageSerializer()
+        # 8Bit images whose palette is not in the file (NFS2 PAUSE menus): their colors are unknown here, and the new
+        # palette would become theirs
+        no_palette = [
+            children[i]['alias']
+            for i in image_indexes
+            if children[i]['item']['data']['resource_id'] == '8Bit'
+            and serializer._found_palette_colors(
+                children[i]['item']['data'], image_block, join_id(id, 'children', str(i), 'item', 'data')
+            )
+            is None
+        ]
+        if no_palette:
+            raise ValueError(
+                f'These 8Bit images have no palette in this file, their colors are not known: {", ".join(no_palette)}'
+            )
+        # the images as they look now: all of them before any is changed, the palette of an 8Bit image is found by
+        # comparing the image data
+        images = [
+            serializer.to_image(
+                children[i]['item']['data'], block=image_block, id=join_id(id, 'children', str(i), 'item', 'data')
+            )
+            for i in image_indexes
+        ]
+        indices_per_image, packed_palette_colors = quantize_images_to_8bit(images, num_colors)
+        for i, indices in zip(image_indexes, indices_per_image):
+            image = children[i]['item']['data']
+            image_block._clear_8bit_palette_fields(image)
+            image['resource_id'] = '8Bit'
+            image['bitmap'] = indices
+            if image.get('mipmaps') is not None:
+                image['mipmaps'] = None
+                image_block.action_generate_mipmaps(image)
+        if palette_index is None:
+            palette_index = len(children)
+            children.append({'post_offset_payload': b'', 'alias': palette_name, 'item': None})
+        palette = build_8bit_palette(
+            packed_palette_colors, palette_type, id=join_id(id, 'children', str(palette_index), 'item', 'data')
+        )
+        children[palette_index] = {
+            **{k: children[palette_index][k] for k in children[palette_index]},
+            'item': {'choice_index': palette_choice, 'data': palette},
+        }
 
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer

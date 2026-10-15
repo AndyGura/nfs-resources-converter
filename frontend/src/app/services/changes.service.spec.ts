@@ -58,14 +58,16 @@ describe('ChangesService', () => {
           op: 'bundle',
           changes: [
             { id: 'f__children/0/item/data/width', timestamp: 0, op: 'set', oldValue: 1, newValue: 2 },
+            { id: 'f__children/0/item', timestamp: 0, op: 'set', oldValue: {}, newValue: { data: {} } },
+            { id: 'f__children/0/alias', timestamp: 0, op: 'set', oldValue: 'pal', newValue: '!PAL' },
             { id: 'f__children/1/item/data/width', timestamp: 0, op: 'set', oldValue: 1, newValue: 3 },
             { id: 'f__children', timestamp: 0, op: 'array_insert', index: 2, value: { alias: 'sun' } },
           ],
         },
       ],
     ]);
-    expect(data.children[0]).toEqual({ alias: 'pal', __lazy__: true });
+    expect(data.children[0]).toEqual({ alias: '!PAL', __lazy__: true });
     expect(data.children[1].item!.data.width).toBe(3);
-    expect(data.children.map(c => c.alias)).toEqual(['pal', 'horz', 'sun']);
+    expect(data.children.map(c => c.alias)).toEqual(['!PAL', 'horz', 'sun']);
   });
 });

@@ -1,11 +1,12 @@
 import os
+import shutil
 import struct
 import tempfile
 import unittest
 
 from library import require_file
 from resources.eac.archives.shpi_block import ShpiBlock
-from resources.eac.bitmaps import EacImage
+from resources.eac.bitmaps import EacImage, EacPalette
 
 
 class TestShpiBlock(unittest.TestCase):
@@ -28,8 +29,7 @@ class TestShpiBlock(unittest.TestCase):
                     'item': {'choice_index': image_choice, 'data': img_data},
                 }
             )
-        # `action_convert_to_8bit` serializes children to PNGs first, so it needs a fully-shaped
-        # `read_data` - go through a real pack/unpack cycle rather than hand-building one.
+        # a fully-shaped `read_data`, as read from a file
         data = block.unpack_from_bytes(block.pack(data, name='test'))
 
         block.action_convert_to_8bit(
@@ -41,16 +41,17 @@ class TestShpiBlock(unittest.TestCase):
             id='test_id',
         )
 
-        self.assertEqual(data['children'][0]['alias'], '!pal')
+        # added at the end: the indices of the other items stay
+        self.assertEqual(data['children'][-1]['alias'], '!pal')
         self.assertEqual(len(data['children']), 3)
-        palette = data['children'][0]['item']['data']['colors']['data']
-        for child in data['children'][1:]:
+        palette = data['children'][-1]['item']['data']['colors']['data']
+        for child in data['children'][:-1]:
             self.assertEqual(child['item']['data']['resource_id'], '8Bit')
             self.assertTrue(all(0 <= idx < len(palette) for idx in child['item']['data']['bitmap']))
 
         packed = block.pack(data, name='test')
         reread = block.unpack_from_bytes(packed)
-        self.assertEqual(reread['children'][0]['item']['data']['colors']['data'], palette)
+        self.assertEqual(reread['children'][-1]['item']['data']['colors']['data'], palette)
 
     def test_convert_to_8bit_with_0565_palette_roundtrips(self):
         block = ShpiBlock()
@@ -68,8 +69,7 @@ class TestShpiBlock(unittest.TestCase):
                 'item': {'choice_index': image_choice, 'data': img_data},
             }
         )
-        # `action_convert_to_8bit` serializes children to PNGs first, so it needs a fully-shaped
-        # `read_data` - go through a real pack/unpack cycle rather than hand-building one.
+        # a fully-shaped `read_data`, as read from a file
         data = block.unpack_from_bytes(block.pack(data, name='test'))
 
         block.action_convert_to_8bit(
@@ -83,7 +83,136 @@ class TestShpiBlock(unittest.TestCase):
 
         packed = block.pack(data, name='test')
         reread = block.unpack_from_bytes(packed)
-        self.assertEqual(reread['children'][0]['item']['data']['resource_id'], '16Bit_0565 color format palette')
+        self.assertEqual(reread['children'][-1]['item']['data']['resource_id'], '16Bit_0565 color format palette')
+
+    def test_convert_to_8bit_keeps_items_and_drops_own_palettes(self):
+        from copy import deepcopy
+
+        import numpy as np
+
+        from library.utils.id import join_id
+        from serializers.bitmaps import ImageSerializer
+
+        # the action runs on the loaded file: the palettes of the images are looked up in it
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'VERTBST.FSH')
+            shutil.copy('test/samples/VERTBST.FSH', path)
+            (name, block, data) = require_file(path, lazy=False)
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        image_block = block.item_block.possible_blocks[image_choice]
+        aliases = [c['alias'] for c in data['children']]
+        palette_index = next(i for i, c in enumerate(data['children']) if c['alias'].lower() == '!pal')
+        image_indexes = [i for i, c in enumerate(data['children']) if c['item']['choice_index'] == image_choice]
+        # an image with its own palette, which wins over !pal: reversed colors
+        own = data['children'][image_indexes[0]]['item']['data']
+        own['embedded_palette'] = deepcopy(data['children'][palette_index]['item']['data'])
+        own['embedded_palette']['colors']['data'].reverse()
+        # an item which is not an image
+        data['children'].append(
+            {'post_offset_payload': b'', 'alias': 'raw ', 'item': {'choice_index': block.bytes_choice, 'data': b'abc'}}
+        )
+        images = ImageSerializer()
+
+        def look(index):
+            return np.asarray(
+                images.to_image(
+                    data['children'][index]['item']['data'],
+                    block=image_block,
+                    id=join_id(name, 'children', str(index), 'item', 'data'),
+                )
+            ).astype(int)
+
+        hot_spots = [data['children'][i]['item']['data']['hot_spots'] for i in image_indexes]
+        before = [look(i) for i in image_indexes]
+        block.action_convert_to_8bit(
+            data, name=name, palette_name='!PAL', palette_type='24Bit color format palette', num_colors=256, id=name
+        )
+        # the palette of that name (any case) is replaced in place, the other items stay
+        self.assertEqual([c['alias'] for c in data['children']], aliases + ['raw '])
+        self.assertEqual(data['children'][-1]['item']['data'], b'abc')
+        for i, previous, spots in zip(image_indexes, before, hot_spots):
+            image = data['children'][i]['item']['data']
+            self.assertEqual(image['resource_id'], '8Bit')
+            self.assertIsNone(image['embedded_palette'])
+            self.assertEqual(image['hot_spots'], spots)
+            visible = previous[..., 3] > 0
+            self.assertLess(np.abs(previous[..., :3] - look(i)[..., :3])[visible].mean(), 8)
+
+    def test_convert_to_8bit_replaces_the_palette_the_images_use(self):
+        from resources.eac.utils import _get_palette_from_shpi
+
+        block = ShpiBlock()
+        data = block.new_data()
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        palette_choice = block.item_block.get_choice_index_by_class_name('EacPalette')
+        image = EacImage().new_data()
+        image.update(resource_id='32Bit color format bitmap', width=2, height=1, bitmap=[0xFF0000FF, 0x00FF00FF])
+        for alias, choice, item in [
+            ('img0', image_choice, image),
+            ('!PAL', palette_choice, EacPalette().new_data()),
+            ('!pal', palette_choice, EacPalette().new_data()),
+        ]:
+            data['children'].append(
+                {'post_offset_payload': b'', 'alias': alias, 'item': {'choice_index': choice, 'data': item}}
+            )
+        data = block.unpack_from_bytes(block.pack(data, name='test'))
+        old_upper = data['children'][1]['item']['data']
+        # TNFS FAM horizons have both names: the lookup takes !pal
+        block.action_convert_to_8bit(
+            data, name='test', palette_name='!PAL', palette_type='24Bit color format palette', num_colors=256, id='test'
+        )
+        self.assertEqual([c['alias'] for c in data['children']], ['img0', '!PAL', '!pal'])
+        self.assertIs(data['children'][1]['item']['data'], old_upper)
+        _, palette = _get_palette_from_shpi(block, data)
+        self.assertIs(palette, data['children'][2]['item']['data'])
+        self.assertEqual(len({palette['colors']['data'][i] for i in data['children'][0]['item']['data']['bitmap']}), 2)
+
+    def test_convert_to_8bit_palette_name_is_one_the_images_find(self):
+        block = ShpiBlock()
+        data = block.new_data()
+        image = EacImage().new_data()
+        image.update(resource_id='32Bit color format bitmap', width=1, height=1, bitmap=[0xFF0000FF])
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        data['children'].append(
+            {'post_offset_payload': b'', 'alias': '0000', 'item': {'choice_index': image_choice, 'data': image}}
+        )
+        data = block.unpack_from_bytes(block.pack(data, name='test'))
+        args = dict(name='test', palette_type='24Bit color format palette', num_colors=256, id='test')
+        with self.assertRaisesRegex(ValueError, 'by its name'):
+            block.action_convert_to_8bit(data, palette_name='mypa', **args)
+        with self.assertRaisesRegex(ValueError, 'already named "0000"'):
+            block.action_convert_to_8bit(data, palette_name='0000', **args)
+
+    def test_convert_to_8bit_makes_mipmaps_again(self):
+        block = ShpiBlock()
+        data = block.new_data()
+        image = EacImage().new_data()
+        image.update(resource_id='32Bit color format bitmap', width=4, height=4, bitmap=[0xFF0000FF] * 16)
+        EacImage().action_generate_mipmaps(image)
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        data['children'].append(
+            {'post_offset_payload': b'', 'alias': 'img0', 'item': {'choice_index': image_choice, 'data': image}}
+        )
+        data = block.unpack_from_bytes(block.pack(data, name='test'))
+        block.action_convert_to_8bit(
+            data, name='test', palette_name='!pal', palette_type='24Bit color format palette', num_colors=256, id='test'
+        )
+        image = data['children'][0]['item']['data']
+        self.assertEqual(len(image['mipmaps']), 2 * 2 + 1)
+        self.assertEqual(set(image['mipmaps']), set(image['bitmap']))
+
+    def test_convert_to_8bit_refuses_tnfs_car_textures(self):
+        (name, block, cfm) = require_file('test/golden_corpus/JEEP.CFM', lazy=False)
+        shpi_id = name + '__children/1/item/data'
+        with self.assertRaisesRegex(ValueError, '250..254'):
+            block.item_block.possible_blocks[0].action_convert_to_8bit(
+                cfm['children'][1]['item']['data'],
+                name=shpi_id,
+                palette_name='!PAL',
+                palette_type='24Bit color format palette',
+                num_colors=256,
+                id=shpi_id,
+            )
 
     def test_fsh_should_remain_the_same(self):
         (name, block, fsh) = require_file('test/samples/VERTBST.FSH', lazy=False)

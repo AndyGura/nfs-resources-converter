@@ -51,8 +51,9 @@ export type ChangeEntryPayload =
 
 class ChangeExecutor {
   // null when the id lies in a lazy part this window has not loaded: the backend has the change, and the part comes
-  // from it, with the change, when it is shown (changes the backend makes, e.g. a folder import, reach such parts)
-  private static locateId(resource: Resource, id: string): any {
+  // from it, with the change, when it is shown (changes the backend makes, e.g. a folder import, reach such parts).
+  // With `stubEnd`, an unloaded part itself is returned (its known values, like an archive entry's alias, can change)
+  private static locateId(resource: Resource, id: string, stubEnd: boolean = false): any {
     if (!resource) throw new Error('No resource opened');
     if (resource.id === id) {
       throw new Error('Cannot apply change to the top-level resource');
@@ -67,13 +68,13 @@ class ChangeExecutor {
       if (isLazyStub(data)) return null;
       data = data[key] || data[+key];
     }
-    return isLazyStub(data) ? null : data;
+    return isLazyStub(data) && !stubEnd ? null : data;
   }
 
   private static setResourceValue(resource: Resource, id: string, value: any) {
     const [superId, lastKey] = splitLastIdPart(id);
-    const data = ChangeExecutor.locateId(resource, superId);
-    if (data === null) return;
+    const data = ChangeExecutor.locateId(resource, superId, true);
+    if (data === null || (isLazyStub(data) && !(lastKey in data))) return;
     if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
       data[+lastKey] = value;
     } else {

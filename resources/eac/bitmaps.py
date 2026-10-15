@@ -168,7 +168,12 @@ def chain_padding_length(ctx):
 def image_padding_criteria(ctx, **kwargs):
     if not isinstance(ctx, ReadContext) or ctx.read_bytes_remaining is None:
         return False
-    return 0 < ctx.data('next_offset') - ctx.local_buffer_pos <= ctx.read_bytes_remaining
+    gap = ctx.data('next_offset') - ctx.local_buffer_pos
+    if gap == 0:
+        # a block kept as raw bytes right after the pixels (NFS6 0x70): an empty padding marks the link, so that the
+        # offset follows the pixels on save
+        return _peek_id(ctx, ctx.local_buffer_pos) not in [None, *PALETTE_IDS, HOT_SPOTS_ID, TEXT_ID]
+    return 0 < gap <= ctx.read_bytes_remaining
 
 
 def unlinked_palette_criteria(ctx, **kwargs):
@@ -899,14 +904,20 @@ class EacImage(DeclarativeCompoundBlock):
     @staticmethod
     def _link_chained_blocks(data):
         """Sets the offsets of the chain of attached blocks parsed into fields. The last one keeps its own offset:
-        0, or a link to a block the parser keeps as raw bytes, written right after it"""
+        0, or a link to a block the parser keeps as raw bytes, written right after it. Without such fields, a link
+        marked by `pad` (a raw block after the padding) follows the pixels too"""
         chained = [name for name in CHAINED_FIELDS if data.get(name) is not None]
-        if not chained:
+        pad = data.get('pad')
+        if not chained and pad is None:
+            # no link, or a TNFS one to elsewhere (negative, to !PAL, or garbage): written as read
             return
-        pad = data.get('pad') or b''
         width, height = data['width'], data['height']
         mipmaps_len = mipmaps_byte_len(data['resource_id'], width, height) if data.get('mipmaps') else 0
-        data['next_offset'] = 16 + get_bitmap_len(data['resource_id'], width, height) + mipmaps_len + len(pad)
+        # the first attached block follows the pixels and the padding: one parsed into a field, or one kept as raw
+        # bytes (NFS6 0x69 / 0x70) when there is none
+        data['next_offset'] = 16 + get_bitmap_len(data['resource_id'], width, height) + mipmaps_len + len(pad or b'')
+        if not chained:
+            return
         blocks = {'embedded_palette': EacPalette(), 'hot_spots': ShpiHotSpots(), 'text': ShpiText()}
         for name, following in zip(chained, chained[1:]):
             gap = data.get(f'{name}_pad') or b''
@@ -1010,14 +1021,17 @@ class EacImage(DeclarativeCompoundBlock):
         presence check only looks at whether they're set, not `resource_id` - stale data here would
         get written anyway and misalign everything read after it."""
         palette = read_data['embedded_palette']
-        if (
-            palette is not None
-            and palette['next_offset'] == 0
-            and all(read_data.get(name) is None for name in CHAINED_FIELDS if name != 'embedded_palette')
+        if palette is not None and all(
+            read_data.get(name) is None for name in CHAINED_FIELDS if name != 'embedded_palette'
         ):
-            # the palette was the only attached block
-            read_data['next_offset'] = 0
-            read_data['pad'] = None
+            if palette['next_offset'] == 0:
+                # the palette was the only attached block
+                read_data['next_offset'] = 0
+                read_data['pad'] = None
+            else:
+                # it links to a block kept as raw bytes (NFS6 0x69 / 0x70), which now follows the pixels: marked by
+                # the padding, see `_link_chained_blocks`
+                read_data['pad'] = read_data.get('pad') or b''
         read_data['embedded_palette'] = None
         read_data['embedded_palette_pad'] = None
         read_data['embedded_palette_2'] = None
