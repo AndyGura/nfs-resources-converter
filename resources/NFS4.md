@@ -1,6 +1,6 @@
 # **NFS 4 High Stakes file specs** #
 
-*Last time updated: 2026-10-12 12:44:58.512945+00:00*
+*Last time updated: 2026-10-15 13:18:24.430614+00:00*
 
 
 # **Info by file extensions** #
@@ -347,47 +347,50 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>64 (0x40): 4Bit PS1<br/>96 (0x60): DXT1 compressed bitmap<br/>97 (0x61): DXT3 compressed bitmap<br/>98 (0x62): DXT5 compressed bitmap<br/>109 (0x6d): 16Bit_4444 color format bitmap<br/>120 (0x78): 16Bit_0565 color format bitmap<br/>121 (0x79): 4Bit (swapped)<br/>122 (0x7a): 4Bit<br/>123 (0x7b): 8Bit<br/>125 (0x7d): 32Bit color format bitmap<br/>126 (0x7e): 16Bit_1555 color format bitmap<br/>127 (0x7f): 24Bit color format bitmap</details> | Resource ID |
-| 1 | **palette_offset** | 3 | 3-bytes signed integer (little endian) | A local offset to the palette that should be used with this image (8Bit). In case of zero, game searches for !pal or !PAL in the SHPI |
+| 1 | **next_offset** | 3 | 3-bytes signed integer (little endian) | Offset from the start of the image to the first block attached to it: the palette of an 8Bit image, hot spots (0x7C), text (0x6F), and in NFS6 0x69 / 0x70 blocks. Every attached block starts with its id and the offset to the next one (0 in the last), so they make a chain, which this parser follows. 0 when nothing is attached (then an 8Bit image uses !pal or !PAL of the SHPI), never the size of the image block. Recomputed on save when a block parsed into a field is attached. TNFS has other values in a few car (CFM) and track (FAM) textures without attached blocks: mostly a negative offset to the !PAL item of the SHPI, sometimes garbage |
 | 4 | **width** | 2 | 2-bytes unsigned integer (little endian) | Bitmap width in pixels |
 | 6 | **height** | 2 | 2-bytes unsigned integer (little endian) | Bitmap height in pixels |
-| 8 | **pivot** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Seems like x coordinate is not used at all. y coordinate is used by the horizon bitmap "horz" of TNFS FAM files when the game scrolls it (horizon "ring type" 0, the open road tracks by default): this row of the bitmap lies on the horizon line (Win95 SE FUN_0043ae64). The horizon ring (ring type 1, the closed tracks) does not use it |
-| 12 | **position** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Bitmap position on screen. Used for menu/dash sprites. In NFS5 FSH files this is the position of the image in a texture page (atlas), which is used by CRP models: 12 lower bits of each coordinate are a signed value, 4 higher bits are flags (track textures have 6 or 7 in y flags for 64x64 or 128x128 images, likely the mipmap count) |
+| 8 | **pivot** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes signed integer (little endian) | TNFS dashboards add both coordinates to the points of `hot_spots`. y coordinate is used by the horizon bitmap "horz" of TNFS FAM files when the game scrolls it (horizon "ring type" 0, the open road tracks by default): this row of the bitmap lies on the horizon line (Win95 SE FUN_0043ae64). The horizon ring (ring type 1, the closed tracks) does not use it |
+| 12 | **position** | 4 | Point in 2D space (x,y), where each coordinate is: 2-bytes unsigned integer (little endian) | Bitmap position on screen. Used for menu/dash sprites. In NFS5 FSH files this is the position of the image in a texture page (atlas), which is used by CRP models: 12 lower bits of each coordinate are a signed value, 4 higher bits of y are the amount of `mipmaps` levels (always all of them down to 1x1, 0 without mipmaps), set on save |
 | 16 | **bitmap** | width \* height \* pixel_byteness | Bytes | Pixel color table. For 8Bit bitmap each value represents an index of color in the attached palette. Palette can be stored: <br/>- right after 8Bit image<br/>- as !pal/!PAL in the same SHPI<br/>- in a different SHPI before this one (if it is WWWW archive)<br/>- even in different QFS file (TNFS, CONTROL directory).<br/>Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md). DXT1/DXT3/DXT5 bitmaps are S3TC-compressed 4x4 pixel blocks (8, 16 and 16 bytes per block) |
-| 16 + width \* height \* pixel_byteness | **pad** | 0..up to offset palette_offset | Optional (if palette_offset > 0): Padding bytes | Zeros in the end of block data |
-| 16 + width \* height \* pixel_byteness..16 + width \* height \* pixel_byteness + up to offset palette_offset | **unk_7c** | 0..? | Optional (if 0x7C header found): [PaletteReference](#palettereference) | Unknown data with id 0x7C |
-| 16 + width \* height \* pixel_byteness..? | **embedded_palette** | 0..? | Optional (if 8-bit bitmap and palette header found): [EacPalette](#eacpalette) | Embedded palette, which should be assigned to this bitmap (except for ga00 in TR2_001.FAM) |
-| 16 + width \* height \* pixel_byteness..? | **embedded_palette_2** | 0..? | Optional (if 8-bit bitmap and palette header found): [EacPalette](#eacpalette) | Possibly one more embedded palette, unknown reason |
-| 16 + width \* height \* pixel_byteness..? | **embedded_palette_3** | 0..? | Optional (if 8-bit bitmap and palette header found): [EacPalette](#eacpalette) | Possibly one more embedded palette, unknown reason |
-| 16 + width \* height \* pixel_byteness..? | **embedded_palette_4** | 0..? | Optional (if 8-bit bitmap and palette header found): [EacPalette](#eacpalette) | Possibly one more embedded palette, unknown reason |
-| 16 + width \* height \* pixel_byteness..? | **text** | 0..? | Optional (if 0x6F header found): [ShpiText](#shpitext) | Shpi text |
-| 16 + width \* height \* pixel_byteness..? | **mipmaps** | 0..(1/4 + 1/16 + 1/64 + etc) \* width \* height \* pixel_byteness | Optional (if dimensions are powers of two and sufficient extra space): Bytes | Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order. |
+| 16 + width \* height \* pixel_byteness | **mipmaps** | 0..(1/4 + 1/16 + 1/64 + etc) \* width \* height \* pixel_byteness | Optional (if dimensions are powers of two and position.y has the amount of levels): Bytes | Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h/4, .... up to 1x1, in descending order, each padded with zeros to 16 bytes. Only NFS5 files have them: the 4 high bits of `position.y` hold the amount of levels |
+| 16 + width \* height \* pixel_byteness..16 + width \* height \* pixel_byteness + (1/4 + 1/16 + 1/64 + etc) \* width \* height \* pixel_byteness | **pad** | 0..up to offset next_offset | Optional (if next_offset points past the pixels): Padding bytes | Bytes between the pixels (and mipmaps) and the first attached block: zeros, or leftovers aligning it |
+| 16 + width \* height \* pixel_byteness..16 + width \* height \* pixel_byteness + (1/4 + 1/16 + 1/64 + etc) \* width \* height \* pixel_byteness + up to offset next_offset | **embedded_palette** | 0..? | Optional (if the chain of attached blocks has a palette here): [EacPalette](#eacpalette) | Embedded palette, which should be assigned to this bitmap (except for ga00 in TR2_001.FAM) |
+| 16 + width \* height \* pixel_byteness..? | **embedded_palette_pad** | 0..up to the next attached block | Optional (if the next attached block is 0x7C or 0x6F, not right here): Bytes | Bytes between the embedded palette and the next attached block |
+| 16 + width \* height \* pixel_byteness..? | **hot_spots** | 0..? | Optional (if the chain of attached blocks has 0x7C here): [ShpiHotSpots](#shpihotspots) | Hot spots: points of interest of the bitmap, read by TNFS dashboards |
+| 16 + width \* height \* pixel_byteness..? | **hot_spots_pad** | 0..up to the next attached block | Optional (if the next attached block is 0x7C or 0x6F, not right here): Bytes | Bytes between the hot spots and the next attached block |
+| 16 + width \* height \* pixel_byteness..? | **text** | 0..? | Optional (if the chain of attached blocks has 0x6F here): [ShpiText](#shpitext) | Shpi text |
+| 16 + width \* height \* pixel_byteness..? | **embedded_palette_2** | 0..? | Optional (if palette header after the end of the chain): [EacPalette](#eacpalette) | A palette after the last attached block, which no block links to (some textures of TNFS TR* tracks) |
+| 16 + width \* height \* pixel_byteness..? | **embedded_palette_3** | 0..? | Optional (if palette header after the end of the chain): [EacPalette](#eacpalette) | One more palette which no block links to |
+| 16 + width \* height \* pixel_byteness..? | **embedded_palette_4** | 0..? | Optional (if palette header after the end of the chain): [EacPalette](#eacpalette) | One more palette which no block links to |
 ### **EacPalette** ###
 #### **Size**: 16..? bytes ####
-#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in car textures is replaced by tail light color, 250th - 253th in car textures are rendered black: thy are reserved for cop car siren ####
+#### **Description**: Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, meaning the index of color in LUT of assigned palette. Has special colors: 255th in most cases means transparent color, 254th in TNFS car textures is replaced by tail light color, 250th - 253th are the cop car light bar (TNFS maps them to the VGA palette entries 0xFA - 0xFD: red, dark red, blue, dark blue, swapped every 16 clock ticks during a police chase, Win95 SE `gfx_draw_car_model` 0x458d4c) and are rendered black in other cars. The converter writes these colors to `car_colors.json` next to the PNGs.<br/>TNFS car models (CFM) have a second palette `!xxx` next to `!PAL` in the high-poly textures SHPI (TRAFFC in both): the car's slice of the shared 256-color VGA palette in 8-bit modes (Win95 SE `gfx_car_palettes_setup` 0x4572e0). Its first 23 colors (8 for traffic, 24 for the player in a single race / tournament) go to the car's palette entries (player 0x30, opponent 0x48, traffic 0x60 + 8 * slot), then the textures are remapped from `!PAL` to the nearest colors of the VGA palette. `!PAL` is the palette of the textures, `!xxx` is never used to draw them. Cops get none, and the `M*.CFM` models (opponents of a single race / tournament, which share `CARFAMS/CARPAL.FSH` instead) have junk there. Many `!xxx` have the 8-bit bitmap id 0x7B (256x1 or 256x3) instead of a palette id. The converter writes its used colors to `car_colors.json` (`palette_slice`) instead of a file of its own ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | Enum of 256 possible values<br/><details><summary>Value names:</summary>34 (0x22): 24BitDos color format palette<br/>36 (0x24): 24Bit color format palette<br/>41 (0x29): 16Bit_0565 color format palette<br/>42 (0x2a): 32Bit color format palette<br/>45 (0x2d): 16Bit_1555 color format palette</details> | Resource ID |
-| 1 | **unk0** | 3 | Bytes | Unknown purpose |
+| 1 | **next_offset** | 3 | 3-bytes unsigned integer (little endian) | When attached to a bitmap: offset from the start of this block to the next block attached to the same bitmap (0 when this is the last one). Recomputed on save when a block parsed into a field follows. 0 in palette items (`!pal`) |
 | 4 | **num_colors** | 2 | 2-bytes unsigned integer (little endian) | Amount of colors |
 | 6 | **unk1** | 2 | Bytes | Unknown purpose |
 | 8 | **num_colors1** | 2 | 2-bytes unsigned integer (little endian) | Equals to num_colors, except for some CRP structures in NFS5 |
 | 10 | **unk2** | 6 | Bytes | Unknown purpose |
 | 16 | **colors** | ? | Type according to enum `resource_id`:<br/>- Array of `num_colors` items<br/>Item size: 3 bytes<br/>Item type: 3-bytes unsigned integer (big endian)<br/>- Array of `num_colors` items<br/>Item size: 3 bytes<br/>Item type: 3-bytes unsigned integer (big endian)<br/>- Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian)<br/>- Array of `num_colors` items<br/>Item size: 4 bytes<br/>Item type: 4-bytes unsigned integer (little endian)<br/>- Array of `num_colors` items<br/>Item size: 2 bytes<br/>Item type: 2-bytes unsigned integer (little endian) | Colors LUT. Color model is selected according to `resource_id` field. Color models are described [here](eac_colors.md) |
-### **PaletteReference** ###
+### **ShpiHotSpots** ###
 #### **Size**: 8..? bytes ####
-#### **Description**: Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. Probably a reference to palette which should be used, that's why named so ####
+#### **Description**: A list of hot spots: points of interest of the bitmap it is attached to (after the bitmap and its embedded palette), the index of a point gives its meaning. Many bitmaps of menus, track (FAM) and car (CFM) textures have an empty list, others in the same files have none, and 1x1 placeholder bitmaps of dashboards have copies of the list of another bitmap. TNFS reads it in the dashboard loader only (DOS `tnfs_dash_000522be`, Win95 SE FUN_0041f9a0, the demo `tnfs_dashboard_load`; PSX and 3DO do not read FSH dashboards), from four bitmaps of `SIMDATA/DASH/*DH.FSH` / `*DL.FSH`:<br/>- `dash`: 10 points. 0, 1 = top left and bottom right corners of the rear-view mirror; 2 = radar detector power light; 3..7 = the 5 radar detector level lights; 8, 9 = the loader turns them into offsets from 2 and 3, nothing reads them<br/>- `tach`: tachometer needle tip at 0, 1024, 2048... RPM (the needle is interpolated between them), the last point is the needle centre<br/>- `sped`: speedometer needle tip at 0, 10, 20... mph (0, 20, 40... km/h in the German version), the last point is the needle centre. The cars with a digital speedometer draw digits instead<br/>- `gate`: gear lever knob position for every gear: 0 = reverse, 1 = neutral, then gears from 1st: 7 or 8 points. The game reads 9 points (a 9th, where present, is at the corner of the bitmap)<br/>The game walks the attached blocks until it finds 0x7C, so it hangs when one of these bitmaps has no hot spots ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
-| 0 | **resource_id** | 4 | 4-bytes unsigned integer (little endian). Always == 0x7c | Resource ID |
-| 4 | **num_unk1** | 4 | 4-bytes unsigned integer (little endian) | Length of unk1 array |
-| 8 | **unk1** | num_unk1\*8 | Array of `num_unk1` items<br/>Item size: 8 bytes<br/>Item type: Bytes | Unknown purpose |
+| 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x7c | Resource ID |
+| 1 | **next_offset** | 3 | 3-bytes unsigned integer (little endian) | Offset from the start of this block to the next block attached to the same bitmap (0 when this is the last one). Recomputed on save when a block parsed into a field follows |
+| 4 | **num_points** | 4 | 4-bytes unsigned integer (little endian) | Length of points array |
+| 8 | **points** | num_points\*8 | Array of `num_points` items<br/>Item size: 8 bytes<br/>Item type: Point in 2D space (x,y), where each coordinate is: 4-bytes signed integer (little endian) | Points in screen pixels, relative to the bitmap: the screen point is `position` + `pivot` + point, so `pivot` + point is the pixel of the bitmap. TNFS reads the low byte of the amount only |
 ### **ShpiText** ###
 #### **Size**: 8..? bytes ####
 #### **Description**: An entry, which sometimes can be seen in the SHPI archive block after bitmap, contains some text. The purpose is unclear ####
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 1 | 1-byte unsigned integer. Always == 0x6f | Resource ID |
-| 1 | **unk** | 3 | Bytes | Unknown purpose |
+| 1 | **next_offset** | 3 | 3-bytes unsigned integer (little endian) | Offset from the start of this block to the next block attached to the same bitmap (0 when this is the last one). Recomputed on save when a block parsed into a field follows |
 | 4 | **len_text** | 4 | 4-bytes unsigned integer (little endian) | Length of 'text' utf8 block |
 | 8 | **text** | len_text | UTF-8 string | Text contents |
 ## **Fonts** ##
@@ -397,7 +400,7 @@ Did not find what you need or some given data is wrong? Please submit an
 | Offset | Name | Size (bytes) | Type | Description |
 | --- | --- | --- | --- | --- |
 | 0 | **resource_id** | 4 | UTF-8 string. One of ['"FNTF"', '"FNTP"', '"FNTS"', '"FNTX"', '"FNTM"', '"FNTG"', '"FNTA"', '"FntF"', '"FntP"', '"FntS"', '"FntX"', '"FntM"', '"FntG"', '"FntA"'] | Resource ID |
-| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include bitmap embedded palette (and padding to it after bitmap data). For older versions (I set version <= 101, but it can be anywhere up to < 309), "padding_2" length not included as well |
+| 4 | **block_size** | 4 | 4-bytes unsigned integer (little endian) | The length of this FFN block in bytes. Does not include the embedded palette of an 8Bit bitmap (and padding to it after bitmap data); the palette of a 4Bit bitmap (NFS6) is included. For older versions (I set version <= 101, but it can be anywhere up to < 309), "padding_2" length not included as well |
 | 8 | **version** | 2 | 2-bytes unsigned integer (little endian) | Font format version. Defines the layout of glyph definitions (see [GlyphDefinition](#glyphdefinition)) |
 | 10 | **num_glyphs** | 2 | 2-bytes unsigned integer (little endian) | Amount of symbols, defined in this font |
 | 12 | **flags** | 4 | Sub-byte compound block (little endian):<br/>13-bits int "pad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: 12-bytes<br/>&nbsp;&nbsp;- 1: 16-bytes<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: ASCII<br/>&nbsp;&nbsp;- 1: Unicode<br/>&nbsp;&nbsp;- 2: Shift-JIS<br/>&nbsp;&nbsp;- 3: Reserved<br/>4-bits int "layoutpad"<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: LTR<br/>&nbsp;&nbsp;- 1: RTL<br/>1-bits enum:<br/>&nbsp;&nbsp;- 0: Horizontal<br/>&nbsp;&nbsp;- 1: Vertical<br/>2-bits enum:<br/>&nbsp;&nbsp;- 0: Roman (english)<br/>&nbsp;&nbsp;- 1: Ideographic (Kanji)<br/>&nbsp;&nbsp;- 2: Hanging (Arabic)<br/>&nbsp;&nbsp;- 3: Unknown<br/>4-bits int "drawpad"<br/>1-bit flag "vram"<br/>1-bit flag "outline"<br/>1-bit flag "dropshadow"<br/>1-bit flag "antialiased" | Font flags: format of glyph definitions, encoding, layout and draw attributes |
@@ -408,10 +411,10 @@ Did not find what you need or some given data is wrong? Please submit an
 | 24 | **kernings_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to kernings. 0 if there is no kernings table |
 | 28 | **bdata_ptr** | 4 | 4-bytes unsigned integer (little endian) | Pointer to bitmap block |
 | 32 | **padding_0** | up to offset definitions_ptr | Padding bytes | Unknown purpose |
-| definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*17 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font |
+| definitions_ptr | **definitions** | num_glyphs\*11..num_glyphs\*17 | Array of `num_glyphs` items<br/>Item type: [GlyphDefinition](#glyphdefinition) | Definitions of chars in this bitmap font, sorted by `code` (the writer keeps this order, stable sort by `code`) |
 | ? | **padding_1** | 0..up to offset kernings_ptr | Optional (if kernings_ptr != 0): Padding bytes | Unknown purpose |
-| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | Kerning pairs table |
-| ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Unknown purpose |
+| ? | **kernings** | 0..? | Optional (if kernings_ptr != 0): Array, prefixed with length field<br/>Length field type: 4-bytes unsigned integer (little endian)<br/>Item type: [KerningItem](#kerningitem) | Kerning pairs table. For versions > 309 (glyphs with `num_kern`) the pairs are sorted by right glyph, so the pairs of one right glyph follow each other: the writer keeps this order (stable sort by `right`) |
+| ? | **padding_2** | up to offset bdata_ptr | Padding bytes | Puts the bitmap at the offset the game files use: versions < 309 at a multiple of 16 (gap filled with 0xAD; NFS2 SWISS36 at a multiple of 8), newer ones so that the pixels after the 16-byte bitmap header start at a multiple of 128 (gap starts with "Buy ERTS", then zeros). Recomputed on save when the glyph or kerning tables change size, keeping the alignment of the file read |
 | bdata_ptr | **bitmap** | 16..? | [EacImage](#eacimage) | Font atlas bitmap data |
 | ? | **remaining_bytes** | remaining bytes | Bytes | Unknown purpose |
 ### **GlyphDefinition** ###
@@ -424,13 +427,13 @@ Did not find what you need or some given data is wrong? Please submit an
 | 3 | **height** | 1 | 1-byte unsigned integer | Height of symbol in font bitmap |
 | 4 | **x** | 2 | 2-bytes unsigned integer (little endian) | Position (x) of symbol in font bitmap |
 | 6 | **y** | 2 | 2-bytes unsigned integer (little endian) | Position (y) of symbol in font bitmap |
-| 8 | **advance** | 1 | 1-byte unsigned integer | Gap between this symbol and next one in rendered text |
+| 8 | **advance** | 1 | 1-byte unsigned integer | Distance from the start of this symbol to the start of the next one in rendered text. 0 in every game font with 16-byte glyphs, which keep it in `x_advance` |
 | 9 | **x_offset** | 1 | 1-byte signed integer | Offset (x) for drawing the character image |
 | 10 | **y_offset** | 1 | 1-byte signed integer | Offset (y) for drawing the character image |
-| 11 | **num_kern** | 0..1 | Optional (if ^^version > 309): 1-byte unsigned integer | Number of kerning pairs for this glyph |
+| 11 | **num_kern** | 0..1 | Optional (if ^^version > 309): 1-byte unsigned integer | Number of kerning pairs with this glyph as the right (second) glyph |
 | 11..12 | **pad** | 0..1 | Optional (if ^^version <= 309): 1-byte unsigned integer | Padding |
-| 11..13 | **kern_index** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Index in kerning table? |
-| 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Gap between this symbol and next one in rendered text? |
+| 11..13 | **kern_index** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Index of the first kerning pair with this glyph as the right glyph: its `num_kern` pairs follow each other in the kerning table from here. 0 if the glyph has no kerning pairs |
+| 11..15 | **x_advance** | 0..2 | Optional (if ^^flags/format == 16-bytes): 2-bytes unsigned integer (little endian) | Distance from the start of this symbol to the start of the next one in rendered text, for 16-byte glyphs (`advance` is 0 in all of them in the game files) |
 ### **KerningItem** ###
 #### **Size**: 4 bytes ####
 #### **Description**: Kerning pair: horizontal adjustment of the gap between two specific glyphs ####
