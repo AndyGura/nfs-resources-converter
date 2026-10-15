@@ -340,6 +340,12 @@ Fixed since (2026-10-16, report ids):
   context menu on macOS), "Set color" and "Shift hue" change the selection as one undoable change; the Changes list
   prints palette colors in hex and bundles as their first changes "and N more". Confirmed live (JEEP.CFM `!PAL`:
   50 colors hue-shifted in one change, undone).
+- S12 navigation: archive headers read "SHPI images" / "WWWW archive" / "BIGF archive" (block description on hover);
+  TNFS FAM / CFM levels are named as the export names them ("0 · background", "1 · high-poly textures"...);
+  unloaded entries show the icon of their kind, guessed from their first bytes (`Slot.hint`, `__kind__` next to
+  `__lazy__`), faded; duplicate names get their index; a compressed file's archive shows its algorithm (RefPack /
+  QFS2 / QFS3); the archive and block-action icon buttons have accessible names. The one selection jump after a save
+  was not reproduced (see item 7). Confirmed live (AL1_001.FAM, OZREC.QFS, iconsRace.fsh).
 
 ---
 

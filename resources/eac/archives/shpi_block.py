@@ -157,6 +157,17 @@ class ShpiBlock(ArchiveBlock):
     def new_data(self, patch=None):
         return {**super().new_data(), 'shpi_dir': 'LN32'}
 
+    def entry_kind_hint(self, head: bytes):
+        from resources.eac.bitmaps import PALETTE_IDS
+
+        if not head:
+            return None
+        if head[0] in PALETTE_IDS:
+            return 'EacPalette'
+        image_block = self.item_block.possible_blocks[self.item_block.get_choice_index_by_class_name('EacImage')]
+        image_ids = [x for x, _ in image_block.field_blocks_map['resource_id'].enum_names]
+        return 'EacImage' if head[0] in image_ids else 'BytesBlock'
+
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         total_length = 16
         total_length += len(data.get('pre_items_payload', b''))

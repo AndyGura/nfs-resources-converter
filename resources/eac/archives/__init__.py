@@ -107,6 +107,9 @@ class WwwwBlock(ArchiveBlock):
         )
         children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
+    def entry_kind_hint(self, head: bytes):
+        return {b'SHPI': 'ShpiBlock', b'ORIP': 'OripGeometry', b'wwww': 'WwwwBlock'}.get(head[:4], 'BytesBlock')
+
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         total_length = 8 + len(data.get('pre_items_payload', b''))
         for i, child in enumerate(data['children']):

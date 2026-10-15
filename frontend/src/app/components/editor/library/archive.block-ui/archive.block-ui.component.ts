@@ -285,12 +285,76 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     });
   }
 
+  // titles of the archive kinds the GUI shows, by block class
+  private static readonly ARCHIVE_TITLES: { [className: string]: string } = {
+    ShpiBlock: 'SHPI images',
+    WwwwBlock: 'WWWW archive',
+    BigfBlock: 'BIGF archive',
+  };
+
+  get archiveTitle(): string {
+    const className = blockClassStr(this.resourceSchema!);
+    return ArchiveBlockUiComponent.ARCHIVE_TITLES[className] || className || 'Headers';
+  }
+
+  // the compression of a compressed file (QFS) whose content is this archive
+  get compressionLabel(): string | null {
+    if (!this.resourceId?.endsWith('__data')) return null;
+    const opened: any = this.mainService.api.openedResource$.getValue();
+    if (!opened?.schema?.block_class_mro?.includes('EacCompressedBlock')) return null;
+    const flags = opened.data?.compression_flags;
+    if (typeof flags !== 'number') return null;
+    const kind = flags & 0xfe;
+    return kind === 0x10
+      ? 'RefPack'
+      : kind === 0x46
+        ? 'QFS2'
+        : [0x30, 0x32, 0x34].includes(kind)
+          ? 'QFS3'
+          : 'compressed';
+  }
+
+  // names the converter's export gives the entries of TNFS car (CFM) and track (FAM) files
+  private static readonly WWWW_SLOT_NAMES: { [extension: string]: string[] } = {
+    '.CFM': ['high-poly', 'high-poly textures', 'low-poly', 'low-poly textures'],
+    '.FAM': ['background', 'foreground', 'skybox', 'props'],
+  };
+
+  childLabel(child: ArchiveChildData, index: number): string {
+    if (child.alias) return child.alias;
+    const id = this.resourceId || '';
+    const extension = id.includes('__') ? null : id.slice(id.lastIndexOf('.')).toUpperCase();
+    const names = extension ? ArchiveBlockUiComponent.WWWW_SLOT_NAMES[extension] : undefined;
+    if (names && this.resourceData?.children.length === names.length) {
+      return `${index} · ${names[index]}`;
+    }
+    return index.toString();
+  }
+
+  private duplicateAliasesKey: any = null;
+  private duplicateAliasesCache = new Set<string>();
+
+  get duplicateAliases(): Set<string> {
+    const children = this.resourceData?.children;
+    if (children !== this.duplicateAliasesKey) {
+      this.duplicateAliasesKey = children;
+      const seen = new Set<string>();
+      this.duplicateAliasesCache = new Set<string>();
+      for (const c of children || []) {
+        if (!c.alias) continue;
+        if (seen.has(c.alias)) this.duplicateAliasesCache.add(c.alias);
+        seen.add(c.alias);
+      }
+    }
+    return this.duplicateAliasesCache;
+  }
+
   childIcon(child: ArchiveChildData): string {
     let block_class_mro = '';
     if (this.childSchema) {
       if (this.childSchema.block_class_mro.includes('DelegateBlock__')) {
-        // the kind of an unloaded entry is not known yet
-        if (!child.item) return 'hourglass_empty';
+        // an unloaded entry: the kind the backend guessed from its first bytes
+        if (!child.item) return (child as any).__kind__ ? fileFormatIcon((child as any).__kind__) : 'hourglass_empty';
         block_class_mro = this.childSchema.possible_resource_schemas[child.item.choice_index].block_class_mro;
       } else {
         block_class_mro = this.childSchema.block_class_mro;

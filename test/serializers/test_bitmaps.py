@@ -309,3 +309,13 @@ class TestNewImageDefaults(unittest.TestCase):
             if c['item']['data'].get('resource_id') == '8Bit':
                 expected.update(c['item']['data']['bitmap'])
         self.assertEqual(used, sorted(expected))
+
+    def test_unloaded_entries_carry_their_kind(self):
+        from serializers.misc.json_utils import convert_bytes
+
+        name, _, data = require_file(os.path.join(GOLDEN_CORPUS, 'JEEP.CFM'), lazy=True)
+        clear_file_cache(name)
+        name, _, data = require_file(os.path.join(GOLDEN_CORPUS, 'JEEP.CFM'), lazy=True)
+        kinds = [convert_bytes(c).get('__kind__') for c in data['children']]
+        self.assertEqual(kinds, ['OripGeometry', 'ShpiBlock', 'OripGeometry', 'ShpiBlock'])
+        clear_file_cache(name)
