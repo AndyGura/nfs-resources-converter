@@ -262,7 +262,7 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
 
-**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15, item 3 2026-10-16). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15, items 3, 4 2026-10-16). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
 steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
 
 1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
@@ -296,7 +296,13 @@ steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6
    opens) + headless.
 4. SHPI action "Convert all images to 8Bit" writes indices for a new `!pal` but keeps each image's embedded palette
    (which wins), so all 37 images of `LDIABLDH.FSH` render garbled; it also deletes non-image items. Confirmed live +
-   headless.
+   headless. **Fixed**: images drop their own palettes, mipmaps are made again, the other items stay, the palette
+   replaces the one the images use (by name: some TNFS FAM horizons have both `!PAL` and `!pal`) in place or goes at
+   the end (inserting at the front shifted item indices); pixels come from `ImageSerializer.to_image` (the PNG export read duplicate names twice). Refused for CFM
+   textures and for 8Bit images whose palette is not in the file (NFS2 PAUSE). Also fixed: an NFS6 image linking
+   to a raw 0x69 / 0x70 block lost the link when its pixels changed size. Partial alpha (glow textures) still
+   becomes opaque: the quantizer keeps one transparent entry only. Confirmed live (LDIABLDH) + headless (all game
+   SHPIs).
 5. Non-ASCII text in a ShpiText (or a 4-char item name) corrupts the image on save: `UTF8Block` sizes in characters,
    writes UTF-8 bytes, and its reader compares characters to bytes. Confirmed live (NFS5 `iconsRace.fsh`, "ü").
 6. Color Model → DXT1/3/5 fails with `ValueError('cannot reshape array …')` on any image with mipmaps (all 3 139 are

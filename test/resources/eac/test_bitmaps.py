@@ -548,3 +548,46 @@ class TestMipmapLevels(unittest.TestCase):
         data['position'] = {'x': 0, 'y': (1 << 12) | 7}
         raw = block.pack(copy.deepcopy(data))
         self.assertEqual(int.from_bytes(raw[14:16], 'little'), 7)
+
+
+class TestRawLinkedBlocks(unittest.TestCase):
+    """NFS6 images link to 0x69 / 0x70 blocks the parser keeps as raw bytes after the image: the link follows the
+    pixels when their size changes"""
+
+    @staticmethod
+    def _image_with_raw_block(pad: bytes) -> bytes:
+        # 2x1 32-bit image, the raw block (0x70, 8 bytes) after the pixels and the padding
+        next_offset = 16 + 8 + len(pad)
+        header = (
+            bytes([0x7D]) + next_offset.to_bytes(3, 'little') + (2).to_bytes(2, 'little') + (1).to_bytes(2, 'little')
+        )
+        return header + bytes(8) + bytes(8) + pad + b'\x70\x00\x00\x00abcd'
+
+    def test_link_follows_the_pixels(self):
+        block = EacImage()
+        for pad in [b'', bytes(16)]:
+            raw = self._image_with_raw_block(pad)
+            data = block.unpack_from_bytes(raw)
+            self.assertEqual(data['pad'], pad)
+            # written as read
+            self.assertEqual(block.pack(copy.deepcopy(data)), raw[: 16 + 8 + len(pad)])
+            # 4 pixels instead of 2: the raw block, written after the image, is 8 bytes further
+            data['width'] = 4
+            data['bitmap'] = [0xFF0000FF] * 4
+            packed = block.pack(copy.deepcopy(data))
+            self.assertEqual(int.from_bytes(packed[1:4], 'little'), 16 + 16 + len(pad))
+
+    def test_other_links_are_written_as_read(self):
+        # TNFS: a negative offset to the !PAL item of the SHPI, nothing attached to the image
+        block = EacImage()
+        header = (
+            bytes([0x7D])
+            + (-100 & 0xFFFFFF).to_bytes(3, 'little')
+            + (2).to_bytes(2, 'little')
+            + (1).to_bytes(2, 'little')
+        )
+        data = block.unpack_from_bytes(header + bytes(8) + bytes(8))
+        self.assertIsNone(data['pad'])
+        data['width'] = 4
+        data['bitmap'] = [0] * 4
+        self.assertEqual(block.pack(copy.deepcopy(data))[1:4], (-100 & 0xFFFFFF).to_bytes(3, 'little'))

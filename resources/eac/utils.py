@@ -2,11 +2,14 @@ from resources.eac.archives import ShpiBlock, WwwwBlock
 from resources.eac.bitmaps import EacPalette
 
 
+# names of the palette item of a SHPI, in the order they are looked up: some TNFS track FAM SHPIs have !PAL (some both),
+# NFS2 SE car models, dash hud and render/pc have 0000
+SHPI_PALETTE_NAMES = ['!pal', '!PAL', '0000']
+
+
 def _get_palette_from_shpi(shpi_block, shpi_data: dict):
-    # some of SHPI directories have upper-cased name of palette. Happens in TNFS track FAM files
-    # some of SHPI directories have 0000 as palette. Happens in NFS2SE car models, dash hud, render/pc
     child_possible_blocks = shpi_block.field_blocks_map['children'].child.field_blocks_map['item'].possible_blocks
-    for name in ['!pal', '!PAL', '0000']:
+    for name in SHPI_PALETTE_NAMES:
         try:
             idx = next(i for i, x in enumerate(shpi_data['children']) if x['alias'] == name)
             block = child_possible_blocks[shpi_data['children'][idx]['item']['choice_index']]

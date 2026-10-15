@@ -178,7 +178,10 @@ When you do:
   last): palette (0x22/0x24/0x29/0x2A/0x2D), hot spots (0x7C, `ShpiHotSpots`), text (0x6F), NFS6 0x69 / 0x70 (unparsed,
   kept as raw bytes). Never a block size. The parser follows the links (`chained_block_criteria`), `write` relinks the
   parsed blocks (`_link_chained_blocks`); the `next_offset` fields are programmatic only for the GUI to show them
-  read-only. TNFS has negative offsets (to `!PAL`) and garbage in some CFM / FAM textures without attached blocks.
+  read-only. NFS6 0x69 / 0x70 blocks stay in the entry's `post_offset_payload`: an image linking to one without a
+  parsed block first has `pad` (empty when the block follows the pixels), and `write` points `next_offset` past the
+  pixels + `pad`, so the link survives a size change. TNFS has negative offsets (to `!PAL`) and garbage in some CFM /
+  FAM textures without attached blocks: no `pad`, written as read.
 - Mipmaps exist only in NFS5: the 4 high bits of `position.y` hold the level count (always the full chain), each level
   is padded with zeros to 16 bytes. `write` sets the count from `mipmaps`.
 - Hot spots: TNFS reads them only in the dashboard loader (`dash`, `tach`, `sped`, `gate` of `DASH/*DH|DL.FSH`, it hangs
@@ -197,9 +200,14 @@ When you do:
   file stay, other files (`skipped.txt`, `.bin`, `spherical.png`, `_mm_n` levels) are ignored. Exporting every game
   SHPI and importing the folder back keeps every file byte-exact. `deserialize_resource` returns the importer's
   `deserialize_report`, shown in a snackbar.
+- SHPI "Convert all images to 8Bit" (`ShpiBlock.action_convert_to_8bit`): the images as they look (`to_image`)
+  quantized onto one palette, which replaces the palette the images use (`_get_palette_from_shpi`, by the names of
+  `SHPI_PALETTE_NAMES` in order: some TNFS FAM horizons have both `!PAL` and `!pal`) in place, or is added at the end
+  (NFS2 tracks pick textures by index); images drop their own palettes, mipmaps are made again, other items stay.
+  Refused for CFM textures (lights at 250..254) and for 8Bit images without a palette in the file (NFS2 PAUSE).
 - Changes the backend makes (imports, custom actions) reach the GUI diffed: entries added to an archive as
   `array_insert`, the rest as `set`; the GUI skips changes inside lazy parts it has not loaded (they come from the
-  backend, with the change, when shown).
+  backend, with the change, when shown), except values an unloaded part already shows (an archive entry's alias).
 
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 
