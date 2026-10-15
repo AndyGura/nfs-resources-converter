@@ -3,8 +3,8 @@ Total files tested: 10902
 Files without parser: 4643
 Files read successfully: 6146
 Files written successfully: 5989
-Files read again successfully: 5852
-Files passed comparison test: 5732
+Files read again successfully: 5854
+Files passed comparison test: 5834
 Files with compressed blocks written: 1922
 Files with compressor round-trip failures: 0
 
@@ -147,8 +147,8 @@ Files with compressor round-trip failures: 0
 .TGA: 100.00% (2/2)
 .BNK: 99.85% (646/647)
 .QFS: 99.19% (1588/1601)
+.CFM: 94.87% (37/39)
 .VIV: 94.38% (403/427)
-.CFM: 89.74% (35/39)
 .TRK: 88.89% (16/18)
 .BUN: 88.52% (185/209)
 .BIN: 80.40% (1399/1740)
@@ -183,6 +183,8 @@ Files with compressor round-trip failures: 0
 .FCE: 100.00% (16/16)
 .FFN: 100.00% (70/70)
 .FMM: 100.00% (36/36)
+.FSB: 100.00% (5/5)
+.FSH: 100.00% (763/763)
 .GEO: 100.00% (44/44)
 .LZC: 100.00% (41/41)
 .MMB: 100.00% (2/2)
@@ -198,18 +200,16 @@ Files with compressor round-trip failures: 0
 .RPL: 100.00% (4/4)
 .TGA: 100.00% (2/2)
 .BNK: 99.38% (643/647)
-.FSH: 98.17% (749/763)
+.QFS: 99.19% (1588/1601)
 .EAS: 95.85% (185/193)
+.CFM: 94.87% (37/39)
 .VIV: 94.38% (403/427)
-.QFS: 94.07% (1506/1601)
-.CFM: 89.74% (35/39)
 .BUN: 88.52% (185/209)
 .TRK: 83.33% (15/18)
 .BIN: 80.40% (1399/1740)
 .TRI: 58.82% (10/17)
 .BACC: 50.00% (1/2)
 .FRD: 23.68% (9/38)
-.FSB: 20.00% (1/5)
 .DAT: 16.78% (24/143)
 (no extension): 0.00% (0/78)
 .ART: 0.00% (0/16)
@@ -244,4 +244,4 @@ Files with compressor round-trip failures: 0
 .VIV: 100.00% (15/15)
 
 --- Time Spent ---
-Total time: 00:11:47.91
+Total time: 00:11:14.39

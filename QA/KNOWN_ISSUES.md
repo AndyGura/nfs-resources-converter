@@ -348,6 +348,10 @@ Fixed since (2026-10-16, report ids):
   was not reproduced (see item 7). Confirmed live (AL1_001.FAM, OZREC.QFS, iconsRace.fsh).
 - S13 mip levels: the PNG export (and so the viewer's M0..Mn buttons) goes down to 1x1 for non-square images too
   (`mipmap_level_dims`; it stopped when the shorter side reached 1). Confirmed by unit test (4x8: 2x4, 1x2, 1x1).
+- S14 SHPI layout: the reader keeps the order the item data is stored in (`heap_order`; TNFS SE menus store `!pal`
+  last, MASKHI / F512M differently again) and the writer follows it while it covers every item. 98 of the 100 FSH /
+  QFS / CFM files of the TNFS SE failure list now save byte-exact; LDIABLO (ORIP overlap, item 3) and MP911T (high
+  bits of a DOS palette the game ignores, dropped on read) still differ. Confirmed headless.
 
 ---
 

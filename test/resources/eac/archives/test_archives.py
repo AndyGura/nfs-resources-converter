@@ -514,3 +514,38 @@ class TestEaSoundBank(unittest.TestCase):
         self.assertEqual(bank_block.item_indices(bank), [0, 1, 2, 3])
         packed = bank_block.pack(bank)
         self.assertIn(packed, original)
+
+
+class TestShpiHeapOrder(unittest.TestCase):
+    def test_item_data_keeps_its_order(self):
+        block = ShpiBlock()
+        data = block.new_data()
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        for alias, color in [('img0', 0xFF0000FF), ('img1', 0x00FF00FF)]:
+            image = EacImage().new_data()
+            image.update(width=1, height=1, bitmap=[color])
+            data['children'].append(
+                {'post_offset_payload': b'', 'alias': alias, 'item': {'choice_index': image_choice, 'data': image}}
+            )
+        packed = block.pack(data, name='test')
+        # the same SHPI with the data of img1 stored first (TNFS SE menus store !pal last)
+        heap = 16 + 2 * 8
+        item0, item1 = packed[heap : heap + 20], packed[heap + 20 :]
+        swapped = (
+            packed[:16]
+            + b'img0'
+            + struct.pack('<I', heap + len(item1))
+            + b'img1'
+            + struct.pack('<I', heap)
+            + item1
+            + item0
+        )
+        read = block.unpack_from_bytes(swapped)
+        self.assertEqual([c['alias'] for c in read['children']], ['img0', 'img1'])
+        self.assertEqual(block.pack(read, name='test'), swapped)
+        # an added item: directory order
+        read['children'].append(read['children'][0])
+        reread = block.unpack_from_bytes(block.pack(read, name='test'))
+        self.assertEqual(
+            [c['item']['data']['bitmap'] for c in reread['children']], [[0xFF0000FF], [0x00FF00FF], [0xFF0000FF]]
+        )

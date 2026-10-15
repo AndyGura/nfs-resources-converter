@@ -1,5 +1,5 @@
 from io import SEEK_CUR
-from typing import Dict
+from typing import Dict, List
 
 from library.context import ReadContext, WriteContext
 from library.read_blocks import (
@@ -16,6 +16,10 @@ from library.read_blocks.archives import ArchiveBlock, pre_items_payload_length,
 from library.read_blocks.misc.value_validators import Eq
 from library.utils.id import join_id
 from resources.eac.bitmaps import EacImage, EacPalette
+
+
+# key of the data of a read SHPI with the order its item data is stored in (`ShpiBlock.heap_order`)
+HEAP_ORDER_KEY = 'heap_order'
 
 
 def determine_shpi_length(ctx):
@@ -203,19 +207,34 @@ class ShpiBlock(ArchiveBlock):
                 alias=descr['name'],
             )
         res['children'] = children
+        # the order of the item data, which is not always the directory order (TNFS SE menus have !pal last): kept,
+        # so that a saved file keeps its layout
+        res[HEAP_ORDER_KEY] = [descr_index for descr_index, _ in entries]
         ctx.buffer.seek(end_pos)
         del res['items_descr']
         return res
 
+    @staticmethod
+    def heap_order(data) -> List[int]:
+        """Indices of the children in the order their data is stored: as read when it still covers every child (a
+        moved item keeps the place of the data), else the directory order"""
+        count = len(data['children'])
+        order = data.get(HEAP_ORDER_KEY)
+        if order is not None and sorted(order) == list(range(count)):
+            return list(order)
+        return list(range(count))
+
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         data['data_bytes'] = b''
-        children = []
-        for i, child in enumerate(data['children']):
+        offsets = {}
+        for i in self.heap_order(data):
+            child = data['children'][i]
             item_data, post = self.entry_bytes(child, ctx, str(i))
-            children.append((child['alias'], len(data['data_bytes']), len(item_data)))
+            offsets[i] = len(data['data_bytes'])
             data['data_bytes'] += item_data
             data['data_bytes'] += post
-        data['items_descr'] = [{'name': name, 'offset': offset} for (name, offset, _) in children if name is not None]
+        children = [(child['alias'], offsets[i]) for i, child in enumerate(data['children'])]
+        data['items_descr'] = [{'name': name, 'offset': offset} for (name, offset) in children if name is not None]
         heap_offset = 16 + len(data['items_descr']) * 8 + len(data.get('pre_items_payload', b''))
         for x in data['items_descr']:
             x['offset'] += heap_offset
