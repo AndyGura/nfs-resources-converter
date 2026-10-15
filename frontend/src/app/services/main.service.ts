@@ -80,8 +80,10 @@ export class MainService {
     }
   }
 
-  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
-    await this.api.deserializeResource(id, filePaths, extraOpts);
+  // returns what the import did, for the user, when the importer tells it (folder import into a SHPI)
+  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<string | null> {
+    const result = await this.api.deserializeResource(id, filePaths, extraOpts);
+    return result?.report ?? null;
   }
 
   public async reloadResource() {

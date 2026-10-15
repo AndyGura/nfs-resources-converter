@@ -13,7 +13,8 @@ from library import require_file, require_resource
 from library.changes_service import ChangesService
 from library.loader import clear_file_cache
 from library.utils.id import join_id
-from resources.eac.bitmaps import EacImage
+from resources.eac.archives import ShpiBlock
+from resources.eac.bitmaps import EacImage, EacPalette
 from serializers.archives import ShpiArchiveSerializer
 from serializers.bitmaps import ImageSerializer
 
@@ -161,13 +162,83 @@ class TestImageImport(unittest.TestCase):
         # an exact-only entry is not the nearest color of anything
         self.assertEqual(ImageSerializer.to_palette_indexes([0x0000FFFF, 0x0000FEFF], palette, [4]), [0, 4])
 
-    def test_folder_import_makes_new_32bit_images(self):
+    def export_folder(self, id):
+        (_, block, data), _ = require_resource(id)
+        serializer = ShpiArchiveSerializer()
+        serializer.patch_settings(serializer.ui_serialization()['reversible_settings_patch'])
+        folder = os.path.join(self.temp_dir.name, 'folder')
+        serializer.serialize(data, folder, id=id, block=block)
+        return folder
+
+    def test_folder_import_merges_by_name(self):
         path = self.copy(os.path.join(SAMPLES, 'VERTBST.FSH'))
+        with open(path, 'rb') as f:
+            original = f.read()
         name, block, data = require_file(path, lazy=False)
+        aliases = [c['alias'] for c in data['children']]
+        folder = self.export_folder(name)
+        # exported as is: the file stays byte-exact
+        result = self.api.deserialize_resource(name, [folder])
+        self.assertEqual(result['report'], '9 replaced, 0 added')
+        self.assertEqual(block.pack(data, name=name), original)
+
+        # edited: one image painted, one file gone, a new image and other files added
+        images = [
+            (i, c['alias'], c['item']['data']) for i, c in enumerate(data['children']) if 'bitmap' in c['item']['data']
+        ]
+        (painted_index, painted_alias, painted), (kept_index, kept_alias, kept) = images[0], images[1]
+        before_painted = {k: v for k, v in painted.items() if k != 'bitmap'}
+        before_kept_bitmap = list(kept['bitmap'])
+        png = os.path.join(folder, painted_alias + '.png')
+        edited = Image.open(png).convert('RGBA')
+        edited.putpixel((0, 0), (255, 0, 0, 255))
+        edited.save(png)
+        os.remove(os.path.join(folder, kept_alias + '.png'))
+        Image.new('RGBA', (3, 2), (1, 2, 3, 255)).save(os.path.join(folder, 'new image.png'))
+        Image.new('RGBA', (2, 2)).save(os.path.join(folder, 'spherical.png'))
+        with open(os.path.join(folder, 'skipped.txt'), 'w') as f:
+            f.write('x')
+        result = self.api.deserialize_resource(name, [folder])
+        self.assertEqual(result['report'], '8 replaced, 1 added. Ignored: skipped.txt, spherical.png')
+        self.assertEqual([c['alias'] for c in data['children']], aliases + ['new '])
+        # the palette item and the image without a file are kept, the painted one keeps its format and fields
+        self.assertEqual(data['children'][kept_index]['item']['data']['bitmap'], before_kept_bitmap)
+        painted = data['children'][painted_index]['item']['data']
+        self.assertEqual({k: v for k, v in painted.items() if k != 'bitmap'}, before_painted)
+        new_image = data['children'][-1]['item']['data']
+        self.assertEqual((new_image['resource_id'], new_image['width']), ('32Bit color format bitmap', 3))
+        # the new item reaches the GUI as an insert, not as a new children list
+        changes = ChangesService.ws_instance.on_append_changes.call_args[0][0][0]['changes']
+        inserts = [c for c in changes if c['op'] == 'array_insert']
+        self.assertEqual([(c['id'], c['index']) for c in inserts], [(join_id(name, 'children'), len(aliases))])
+        self.assertFalse(any(c['id'] == join_id(name, 'children') and c['op'] == 'set' for c in changes))
+
+    def test_export_file_names(self):
+        image, palette = EacImage(), EacPalette()
+        items = [
+            ('ga00', {}, image),
+            ('!pal', {}, palette),
+            ('ga00', {}, image),
+            ('a/b<', {}, image),
+            ('!PAL', {}, palette),
+            # one file with "ga00" on Windows / macOS file systems
+            ('GA00', {}, image),
+        ]
+        self.assertEqual(
+            ShpiArchiveSerializer.export_file_names(items, False), {0: 'ga00', 2: 'ga000', 3: 'a_b--lt--', 5: 'GA001'}
+        )
+        self.assertEqual(
+            ShpiArchiveSerializer.export_file_names(items, True),
+            {0: 'ga00', 1: '!pal', 2: 'ga000', 3: 'a_b--lt--', 4: '!PAL0', 5: 'GA001'},
+        )
+
+    def test_folder_import_without_a_loaded_shpi_makes_new_images(self):
         folder = os.path.join(self.temp_dir.name, 'folder')
         os.makedirs(folder)
         Image.new('RGBA', (3, 2), (1, 2, 3, 255)).save(os.path.join(folder, 'abcd.png'))
-        new_shpi = ShpiArchiveSerializer().deserialize([folder], id=name, block=block)
+        with open(os.path.join(folder, 'positions.txt'), 'w') as f:
+            f.write('x')
+        new_shpi = ShpiArchiveSerializer().deserialize([folder], id=None, block=ShpiBlock())
         self.assertEqual([c['alias'] for c in new_shpi['children']], ['abcd'])
         image = new_shpi['children'][0]['item']['data']
         self.assertEqual((image['resource_id'], image['width'], image['height']), ('32Bit color format bitmap', 3, 2))

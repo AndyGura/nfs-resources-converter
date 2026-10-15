@@ -88,6 +88,7 @@ class SerializationAPI:
         from library.read_blocks import UTF8Block
         from library.read_blocks.archives import ArchiveBlock
         from resources.eac.bitmaps import EacImage
+        from serializers.archives import entry_alias
         from serializers.bitmaps import ImageSerializer
 
         (_, archive_block, _), _ = require_resource(id)
@@ -118,9 +119,7 @@ class SerializationAPI:
             entry = entry_block.new_data()
             entry['item'] = {'choice_index': image_choice, 'data': image}
             if alias_block is not None:
-                # the name is 1 byte per character: other characters become "_"
-                alias = ''.join(c if ' ' <= c <= '~' else '_' for c in os.path.splitext(file_name)[0])
-                entry['alias'] = alias[:alias_length] if alias_length else alias
+                entry['alias'] = entry_alias(file_name, alias_length)
             items.append(entry)
         return {'items': [self.render_data(x) for x in items], 'skipped': skipped}
 
@@ -134,7 +133,7 @@ class SerializationAPI:
             extra_opts: Additional options for deserialization
 
         Returns:
-            The deserialized resource
+            {'report': what the import did, for the user, or None}
         """
         (id, res_block, resource), _ = require_resource(id)
         serializer = get_serializer(res_block, resource)
@@ -163,4 +162,4 @@ class SerializationAPI:
                 ]
             )
         remove_file_or_directory(path_join(self.api.static_path, 'resources', *id.split('/')))
-        return self.render_data(resource)
+        return {'report': getattr(serializer, 'deserialize_report', None)}

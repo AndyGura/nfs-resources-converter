@@ -122,6 +122,16 @@ class ResourceAPI:
             if isinstance(o, dict) and isinstance(n, dict):
                 for key in n:
                     walk(join_id(cur_id, str(key)), o.get(key), n[key])
+            elif (
+                isinstance(o, list) and isinstance(n, list) and len(n) > len(o) and all(isinstance(x, dict) for x in n)
+            ):
+                # entries added at the end (an archive): the others are diffed one by one
+                for i, (oi, ni) in enumerate(zip(o, n)):
+                    walk(join_id(cur_id, str(i)), oi, ni)
+                for i in range(len(o), len(n)):
+                    changes.append(
+                        {'id': cur_id, 'timestamp': timestamp, 'op': 'array_insert', 'index': i, 'value': n[i]}
+                    )
             elif isinstance(o, list) and isinstance(n, list) and len(o) == len(n):
                 if len(n) > 0 and isinstance(n[0], (str, int, float, bool, type(None))):
                     too_different = False

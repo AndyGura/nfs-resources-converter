@@ -190,6 +190,16 @@ When you do:
   exact color only), mipmaps are made again when the pixels change. Re-importing its own export keeps every game file
   byte-exact. New images come in as 32-bit: `ImageSerializer.new_image_data`, used by SHPI folder import and by the
   archive list's "Import from disk" (`SerializationAPI.new_images_from_files`, several files, one undoable change).
+- SHPI folder import (`ShpiArchiveSerializer.deserialize`, not CFM: those go through `car_colors.json`) merges into the
+  loaded SHPI: files match items by the names the export gives them (`export_file_names`: escaped name, `0`, `1`...
+  appended to a name taken ignoring case, as Windows / macOS file systems would merge them). A matching image replaces
+  the pixels as above, a `.pal.txt` the palette, another image file is a new 32-bit item at the end; items without a
+  file stay, other files (`skipped.txt`, `.bin`, `spherical.png`, `_mm_n` levels) are ignored. Exporting every game
+  SHPI and importing the folder back keeps every file byte-exact. `deserialize_resource` returns the importer's
+  `deserialize_report`, shown in a snackbar.
+- Changes the backend makes (imports, custom actions) reach the GUI diffed: entries added to an archive as
+  `array_insert`, the rest as `set`; the GUI skips changes inside lazy parts it has not loaded (they come from the
+  backend, with the change, when shown).
 
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 

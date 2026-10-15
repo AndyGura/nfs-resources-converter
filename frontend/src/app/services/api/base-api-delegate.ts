@@ -1,6 +1,6 @@
 import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import { BlockData, CustomAction, Resource, ResourceError } from '../../components/editor/types';
 import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 import {
@@ -146,7 +146,7 @@ export abstract class BaseApiDelegateService {
     id: string,
     filePaths: string[],
     extraOpts: any = {},
-  ): Promise<BlockData | ReadError> {
+  ): Promise<{ report: string | null }> {
     return (await this.getImpl()).deserializeResource(id, filePaths, extraOpts);
   }
 

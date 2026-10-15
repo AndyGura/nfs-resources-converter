@@ -1,13 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
-import {
-  BlockData,
-  BlockSchema,
-  CustomAction,
-  ReadError,
-  Resource,
-  ResourceError,
-} from '../../components/editor/types';
+import { BlockData, BlockSchema, CustomAction, Resource, ResourceError } from '../../components/editor/types';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 import {
   ConversionConfig,
@@ -166,7 +159,7 @@ export class ApiDelegateImplService {
     id: string,
     filePaths: string[],
     extraOpts: any = {},
-  ): Promise<BlockData | ReadError> {
+  ): Promise<{ report: string | null }> {
     return this.wrapCall('deserialize_resource', id, filePaths, extraOpts);
   }
 

@@ -2,7 +2,8 @@ import json
 import os
 import traceback
 from os.path import isdir
-from typing import List
+import re
+from typing import Dict, List, Optional
 
 import config
 import serializers
@@ -16,6 +17,13 @@ from serializers import BaseFileSerializer
 from serializers.misc.path_utils import escape_chars
 
 general_config = config.general_config()
+
+
+def entry_alias(file_name: str, length: Optional[int]) -> str:
+    """Archive entry name for a file added from disk: its name without extension, 1 byte per character (other
+    characters become "_"), cut to `length`"""
+    alias = ''.join(c if ' ' <= c <= '~' else '_' for c in os.path.splitext(file_name)[0])
+    return alias[:length] if length else alias
 
 
 class ShpiArchiveSerializer(BaseFileSerializer):
@@ -44,38 +52,26 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             for x in data['children']
         ]
         skipped_resources = []
-        save_image_names = {}
-        unaliased_idx = 0
         output = []
         # textures of a TNFS car model: !xxx (often typed as a bitmap) goes to car_colors.json only
         is_tnfs_car = bool(id) and '.CFM__' in id.upper()
+        file_names = self.export_file_names(items, self.settings.images__save_palettes, is_tnfs_car)
         for i, (name, item_data, item_block) in enumerate(items):
-            if name is None:
-                raise Exception(f'No alias for SHPI resource at index {i}')
-            if is_tnfs_car and name == '!xxx':
-                continue
             if isinstance(item_data, Exception):
                 skipped_resources.append((name, format_exception(item_data)))
                 continue
+            if i not in file_names:
+                continue
             try:
-                if self.settings.images__save_palettes or not isinstance(item_block, EacPalette):
-                    serializer = serializers.get_serializer(item_block, item_data)
-                    file_name = escape_chars(name).replace('/', '_')
-                    if save_image_names.get(file_name):
-                        original_file_name = file_name
-                        n = 0
-                        while save_image_names.get(file_name):
-                            file_name = f'{original_file_name}{n}'
-                            n += 1
-                    output.extend(
-                        serializer.serialize(
-                            item_data,
-                            path_join(path, file_name),
-                            block=item_block,
-                            id=join_id(id, 'children', str(i), 'item', 'data'),
-                        )
+                serializer = serializers.get_serializer(item_block, item_data)
+                output.extend(
+                    serializer.serialize(
+                        item_data,
+                        path_join(path, file_names[i]),
+                        block=item_block,
+                        id=join_id(id, 'children', str(i), 'item', 'data'),
                     )
-                    save_image_names[file_name] = True
+                )
             except Exception as ex:
                 traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
@@ -141,7 +137,34 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             output.append(path_join(path, 'skipped.txt'))
         return output
 
-    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs) -> None:
+    @staticmethod
+    def export_file_names(items, save_palettes: bool, is_tnfs_car: bool = False) -> Dict[int, str]:
+        """File name (without extension) of every exported item by its index: the escaped item name, with 0, 1...
+        appended to a name already taken, ignoring case (Windows and macOS file systems: "AUDI" and "audi" are one
+        file). Palettes are exported only with `save_palettes`"""
+        names = {}
+        taken = set()
+        for i, (name, item_data, item_block) in enumerate(items):
+            if name is None:
+                raise Exception(f'No alias for SHPI resource at index {i}')
+            if is_tnfs_car and name == '!xxx':
+                continue
+            if isinstance(item_data, Exception) or (isinstance(item_block, EacPalette) and not save_palettes):
+                continue
+            file_name = original_file_name = escape_chars(name).replace('/', '_')
+            n = 0
+            while file_name.lower() in taken:
+                file_name = f'{original_file_name}{n}'
+                n += 1
+            taken.add(file_name.lower())
+            names[i] = file_name
+        return names
+
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs) -> dict:
+        """The SHPI loaded under `id` merged with the files of the folder, matched to its items by the names the export
+        gives them: an image file replaces the pixels of its image (`ImageSerializer.deserialize`), a `.pal.txt` file
+        its palette, an image file of no item becomes a new 32-bit image at the end. Items without a file stay as
+        they are, other files are ignored. The summary is left in `deserialize_report`"""
         if not file_paths or not isdir(file_paths[0]):
             raise Exception('A directory must be selected for ShpiArchiveSerializer')
         path = file_paths[0]
@@ -150,23 +173,85 @@ class ShpiArchiveSerializer(BaseFileSerializer):
 
             # textures of a TNFS car model: 8-bit on one palette, with the special colors of car_colors.json
             return deserialize_tnfs_car_textures(path, id, block)
-        new_shpi = block.new_data()
+        from PIL import Image, UnidentifiedImageError
+        from serializers.bitmaps import ImageSerializer, PaletteSerializer
 
-        file_names = [x for x in os.listdir(path)]
-        img_block = EacImage()
-        img_serializer = img_block.serializer_class()()
+        current = self._current_shpi(id)
+        shpi = dict(current) if current is not None else block.new_data()
+        children = list(shpi['children'])
+        items = [
+            (x['alias'], x['item']['data'], block.item_block.possible_blocks[x['item']['choice_index']])
+            for x in children
+        ]
+        image_files = {
+            name: i for i, name in self.export_file_names(items, False).items() if isinstance(items[i][2], EacImage)
+        }
+        palette_files = {
+            name: i for i, name in self.export_file_names(items, True).items() if isinstance(items[i][2], EacPalette)
+        }
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        alias_length = block.field_blocks_map['children'].child.field_blocks_map['alias']._get_static_length()
+        replaced, added, ignored = [], [], []
 
-        for file_name in file_names:
-            img = img_serializer.new_image_data(path_join(path, file_name), img_block)
+        def replace_item(i, data):
+            child = children[i]
+            children[i] = {**{k: child[k] for k in child}, 'item': {**child['item'], 'data': data}}
+            replaced.append(child['alias'])
 
-            new_shpi['children'].append(
-                {
-                    'post_offset_payload': b'',
-                    'alias': file_name[:-4][:4],
-                    'item': {'choice_index': block.item_block.get_choice_index_by_class_name('EacImage'), 'data': img},
-                }
-            )
-        return new_shpi
+        for file_name in sorted(os.listdir(path)):
+            file_path = path_join(path, file_name)
+            stem = os.path.splitext(file_name)[0]
+            if isdir(file_path):
+                ignored.append(file_name)
+            elif file_name.endswith('.pal.txt') and file_name[: -len('.pal.txt')] in palette_files:
+                i = palette_files[file_name[: -len('.pal.txt')]]
+                replace_item(i, PaletteSerializer().deserialize([file_path], block=items[i][2]))
+            else:
+                try:
+                    Image.open(file_path).close()
+                except UnidentifiedImageError, OSError:
+                    ignored.append(file_name)
+                    continue
+                mipmap_of = re.match(r'^(.*)_mm_\d+$', stem)
+                if stem in image_files:
+                    i = image_files[stem]
+                    image_id = join_id(id, 'children', str(i), 'item', 'data') if current is not None else None
+                    replace_item(i, ImageSerializer()._with_pixels_of(items[i][1], file_path, items[i][2], image_id))
+                elif file_name == 'spherical.png' or (mipmap_of and mipmap_of.group(1) in image_files):
+                    # made by the export from the items: the horizon panorama, mipmap levels
+                    ignored.append(file_name)
+                else:
+                    image_block = block.item_block.possible_blocks[image_choice]
+                    children.append(
+                        {
+                            'post_offset_payload': b'',
+                            'alias': entry_alias(file_name, alias_length),
+                            'item': {
+                                'choice_index': image_choice,
+                                'data': ImageSerializer.new_image_data(file_path, image_block),
+                            },
+                        }
+                    )
+                    added.append(children[-1]['alias'])
+        shpi['children'] = children
+        report = f'{len(replaced)} replaced, {len(added)} added'
+        if ignored:
+            report += f'. Ignored: {", ".join(ignored)}'
+        self.deserialize_report = report
+        return shpi
+
+    @staticmethod
+    def _current_shpi(id) -> Optional[dict]:
+        # the SHPI loaded under `id`, which the import merges into
+        if not id:
+            return None
+        from library import require_resource
+
+        try:
+            (_, _, current), _ = require_resource(id)
+        except Exception:
+            return None
+        return current if isinstance(current, dict) and 'children' in current else None
 
 
 class WwwwArchiveSerializer(BaseFileSerializer):

@@ -262,7 +262,7 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
 
-**Status**: Open (found 2026-10-15; item 1 fixed 2026-10-15). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
 steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
 
 1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
@@ -277,6 +277,12 @@ steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6
    `os.listdir` order, names it by its first 4 characters, drops palettes, makes everything 32-bit: of 5 067 game
    SHPIs, 2 213 come back reordered, 2 991 lose palettes, 199 gain images (`spherical.png` → `sphe`), 11 fail on
    exported `.bin` items; 1.35 GB → 4.19 GB. CFM SHPIs (car_colors.json path) are fine. Confirmed headless.
+   **Fixed**: the import merges into the loaded SHPI by the export's file names (item 1's pixel replacement), adds
+   other images at the end as 32-bit, keeps items without a file and ignores other files; a snackbar says what it
+   did. The export's duplicate-name suffix now ignores case: names differing in case only (NFS5 `AUDI` / `audi`)
+   overwrote each other on macOS / Windows. Export → import keeps all 63 014 images of 5 000 SHPIs and every
+   byte-exact file byte-exact. Changes inside parts the GUI has not loaded no longer abort the GUI's update
+   (`TypeError ... reading 'data'`). Confirmed live (AL1_001.FAM horizon) + headless.
 3. Saving 6 TNFS CFM (DVIPER, F512M, F512TR, LDIABL, LDIABLO, MP911T) and 14 FAM (TR1, CY3, TR5, TR8_R01) writes the
    ORIP `block_size` one byte short (`estimate_packed_size`), so the model re-opens as raw bytes, also after a
    texture-only edit. Confirmed live (DVIPER) + headless. In-game effect Unknown.
