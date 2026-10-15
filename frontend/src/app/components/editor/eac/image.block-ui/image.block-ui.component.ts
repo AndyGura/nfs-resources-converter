@@ -4,7 +4,12 @@ import { filter, Subject, takeUntil } from 'rxjs';
 import { BlockData, BlockSchema, CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
 import { MatSelectChange } from '@angular/material/select';
-import { ImageMarker, ImageOverlay, ImageViewerComponent } from '../../common/image-viewer/image-viewer.component';
+import {
+  ImageMarker,
+  ImageMarkerMove,
+  ImageOverlay,
+  ImageViewerComponent,
+} from '../../common/image-viewer/image-viewer.component';
 import { joinId } from '../../../../utils/join-id';
 import { ChangeEntry } from '../../../../services/changes.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -187,13 +192,57 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   get hotSpotOverlays(): ImageOverlay[] {
     const data = this.resourceData;
     const points = data?.hot_spots?.points;
-    const key = JSON.stringify([points, data?.pivot, data?.width, data?.height]);
+    const key = JSON.stringify([points, data?.pivot, data?.width, data?.height, this.resourceId, this.resourceName]);
     if (key !== this.hotSpotOverlaysKey) {
       this.hotSpotOverlaysKey = key;
       const markers = points ? this.buildHotSpotMarkers(data!) : [];
-      this.hotSpotOverlaysCache = markers.length > 0 ? [{ name: 'Hot spots', icon: 'my_location', markers }] : [];
+      this.hotSpotOverlaysCache =
+        markers.length > 0 ? [{ name: 'Hot spots', icon: 'my_location', markers, editable: true }] : [];
+      if (this.isTnfsHorizon && data) {
+        // ring type 0 scrolls the horizon with this row on the horizon line (see `pivot`)
+        this.hotSpotOverlaysCache.push({
+          name: 'Horizon line',
+          icon: 'horizontal_rule',
+          markers: [],
+          lines: [{ y: data.pivot?.y ?? 0, label: `horizon (pivot.y ${data.pivot?.y ?? 0})` }],
+        });
+      }
     }
     return this.hotSpotOverlaysCache;
+  }
+
+  // the horizon bitmap of a TNFS track (FAM)
+  private get isTnfsHorizon(): boolean {
+    return this.resourceName === 'horz' && !!this.resourceId && this.resourceId.toUpperCase().includes('.FAM__');
+  }
+
+  // a dropped marker: the point is relative to the bitmap moved by `pivot`, one undoable change for x and y
+  onHotSpotMoved(move: ImageMarkerMove) {
+    const data = this.resourceData;
+    if (move.overlay !== 'Hot spots' || !this.resourceId || !data?.hot_spots) return;
+    const index = +this.hotSpotOverlaysCache[0].markers[move.index].label;
+    const point = data.hot_spots.points[index];
+    const pivot = data.pivot ?? { x: 0, y: 0 };
+    const x = move.x - pivot.x;
+    const y = move.y - pivot.y;
+    const changes: ChangeEntry[] = [];
+    for (const [axis, value] of [
+      ['x', x],
+      ['y', y],
+    ] as const) {
+      if (point[axis] !== value) {
+        changes.push({
+          op: 'set',
+          id: joinId(this.resourceId, 'hot_spots', 'points', index, axis),
+          timestamp: Date.now(),
+          oldValue: point[axis],
+          newValue: value,
+        });
+      }
+    }
+    if (changes.length > 0) {
+      this.emitNewChange({ op: 'bundle', changes });
+    }
   }
 
   // Hot spot points are relative to the bitmap moved by `pivot` (TNFS dashboards draw them at position + pivot +

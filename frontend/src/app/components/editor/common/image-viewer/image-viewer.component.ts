@@ -4,9 +4,11 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  EventEmitter,
   inject,
   Input,
   OnDestroy,
+  Output,
   ViewChild,
 } from '@angular/core';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
@@ -22,11 +24,27 @@ export interface ImageMarker {
   title?: string;
 }
 
-// A group of markers the viewer's toolbar shows or hides
+// A horizontal line drawn over the main image, at an image pixel row
+export interface ImageRowLine {
+  y: number;
+  label: string;
+}
+
+// A group of markers (and row lines) the viewer's toolbar shows or hides. Markers of an `editable` overlay can be
+// dragged: `markerMoved` tells the new pixel when one is dropped
 export interface ImageOverlay {
   name: string;
   icon: string;
   markers: ImageMarker[];
+  lines?: ImageRowLine[];
+  editable?: boolean;
+}
+
+export interface ImageMarkerMove {
+  overlay: string;
+  index: number;
+  x: number;
+  y: number;
 }
 
 @Component({
@@ -72,6 +90,51 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   @Input() customStats?: { label: string; value: string }[];
   @Input() overlays: ImageOverlay[] = [];
   hiddenOverlays = new Set<string>();
+  @Output() markerMoved = new EventEmitter<ImageMarkerMove>();
+  // the marker being dragged and its pixel so far
+  dragged: { overlay: string; index: number; x: number; y: number } | null = null;
+
+  markerPosition(overlay: ImageOverlay, index: number): { x: number; y: number } {
+    const d = this.dragged;
+    if (d && d.overlay === overlay.name && d.index === index) return d;
+    return overlay.markers[index];
+  }
+
+  startMarkerDrag(event: MouseEvent, overlay: ImageOverlay, index: number) {
+    if (!overlay.editable || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const marker = overlay.markers[index];
+    this.dragged = { overlay: overlay.name, index, x: marker.x, y: marker.y };
+    const img = this.imageContainer?.nativeElement.querySelector('.image-frame img') as HTMLImageElement | null;
+    const move = (e: MouseEvent) => {
+      if (!this.dragged || !img || !this.imageWidth || !this.imageHeight) return;
+      const rect = img.getBoundingClientRect();
+      const scale = this.zoom / 100;
+      this.dragged = {
+        ...this.dragged,
+        x: Math.min(this.imageWidth - 1, Math.max(0, Math.floor((e.clientX - rect.left) / scale))),
+        y: Math.min(this.imageHeight - 1, Math.max(0, Math.floor((e.clientY - rect.top) / scale))),
+      };
+      this.cdr.markForCheck();
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      const d = this.dragged;
+      this.dragged = null;
+      this.cdr.markForCheck();
+      if (d && (d.x !== marker.x || d.y !== marker.y)) {
+        this.markerMoved.emit(d);
+      }
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+
+  overlayCount(overlay: ImageOverlay): number {
+    return overlay.markers.length + (overlay.lines?.length ?? 0);
+  }
 
   // background behind the image: the checkerboard hides white and alpha-only (4Bit) sprites. One for all viewers
   static background: 'checker' | 'black' | 'white' = ImageViewerComponent.storedBackground();

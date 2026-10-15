@@ -332,6 +332,9 @@ Fixed since (2026-10-16, report ids):
 - S9 viewer: an edit re-renders the image keeping zoom and scroll when its size stays (no blank flash); Fit stays
   within 10..1500 %; a viewport toolbar button cycles the background checkerboard / black / white (remembered).
   Confirmed live (LDIABLDH `sped`: 966 % kept across a hot spot edit; `sstr` fits at 1500 %).
+- S10 hot spots: markers can be dragged (one undoable change for x and y, relative to `pivot`); `pivot` is no longer
+  `is_unknown` (verified for dashboards and horizons), so it shows without hidden fields; the TNFS FAM `horz` bitmap
+  shows its horizon row (`pivot.y`) as an overlay line. Confirmed live (LDIABLDH `gate`, AL1_001.FAM `horz`).
 
 ---
 

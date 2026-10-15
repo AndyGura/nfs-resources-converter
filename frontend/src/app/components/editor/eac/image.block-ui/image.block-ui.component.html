@@ -10,6 +10,7 @@
   [hideCustomActions]="true"
   [customStats]="[{ label: 'Color model', value: resourceData?.resource_id }]"
   [overlays]="hotSpotOverlays"
+  (markerMoved)="onHotSpotMoved($event)"
   height="var(--image-viewer-height)"></app-image-viewer>
 
 @if (resourceData && resourceSchema) {

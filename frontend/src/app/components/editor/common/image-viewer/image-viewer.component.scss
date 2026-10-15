@@ -216,6 +216,21 @@
       stroke: #ffffff;
     }
 
+    .editable {
+      cursor: move;
+    }
+
+    .row-line {
+      line {
+        stroke: #00e5ff;
+        stroke-dasharray: 4 2;
+      }
+
+      .marker-label {
+        fill: #00e5ff;
+      }
+    }
+
     .marker-label {
       fill: #ffffff;
       stroke: #000000;

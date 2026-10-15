@@ -515,7 +515,6 @@ class EacImage(DeclarativeCompoundBlock):
         pivot = (
             Point2D(child=IntegerBlock(length=2, is_signed=True)),
             {
-                'is_unknown': True,
                 'description': 'TNFS dashboards add both coordinates to the points of `hot_spots`. y coordinate is '
                 'used by the horizon bitmap "horz" of TNFS FAM files when the game scrolls it (horizon "ring type" 0, '
                 'the open road tracks by default): this row of the bitmap lies on the horizon line (Win95 SE '

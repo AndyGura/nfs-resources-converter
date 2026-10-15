@@ -66,7 +66,7 @@
         (click)="toggleOverlay(overlay.name)"
         [title]="(hiddenOverlays.has(overlay.name) ? 'Show ' : 'Hide ') + overlay.name.toLowerCase()">
         <mat-icon>{{ overlay.icon }}</mat-icon>
-        <span class="mm-label">{{ overlay.markers.length }}</span>
+        <span class="mm-label">{{ overlayCount(overlay) }}</span>
       </button>
     }
   </div>
@@ -100,9 +100,37 @@
             [attr.height]="((imageHeight || 0) * zoom) / 100">
             @for (overlay of overlays; track overlay.name) {
               @if (!hiddenOverlays.has(overlay.name)) {
-                @for (marker of overlay.markers; track $index) {
-                  <g [attr.transform]="'translate(' + (marker.x + 0.5) + ' ' + (marker.y + 0.5) + ')'">
-                    <title>{{ marker.title || marker.label }}</title>
+                @for (line of overlay.lines || []; track $index) {
+                  <g class="row-line">
+                    <title>{{ line.label }}</title>
+                    <line
+                      x1="0"
+                      [attr.x2]="imageWidth"
+                      [attr.y1]="line.y + 0.5"
+                      [attr.y2]="line.y + 0.5"
+                      [attr.stroke-width]="2 * markerScale"></line>
+                    <text
+                      class="marker-label"
+                      [attr.x]="4 * markerScale"
+                      [attr.y]="line.y - 4 * markerScale"
+                      [attr.font-size]="12 * markerScale"
+                      [attr.stroke-width]="3 * markerScale">
+                      {{ line.label }}
+                    </text>
+                  </g>
+                }
+                @for (marker of overlay.markers; track $index; let i = $index) {
+                  <g
+                    [class.editable]="overlay.editable"
+                    (mousedown)="startMarkerDrag($event, overlay, i)"
+                    [attr.transform]="
+                      'translate(' +
+                      (markerPosition(overlay, i).x + 0.5) +
+                      ' ' +
+                      (markerPosition(overlay, i).y + 0.5) +
+                      ')'
+                    ">
+                    <title>{{ marker.title || marker.label }}{{ overlay.editable ? ' (drag to move)' : '' }}</title>
                     <circle
                       class="marker-dot"
                       [attr.r]="4 * markerScale"
