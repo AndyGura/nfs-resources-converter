@@ -201,18 +201,77 @@ class TestShpiBlock(unittest.TestCase):
         self.assertEqual(len(image['mipmaps']), 2 * 2 + 1)
         self.assertEqual(set(image['mipmaps']), set(image['bitmap']))
 
-    def test_convert_to_8bit_refuses_tnfs_car_textures(self):
-        (name, block, cfm) = require_file('test/golden_corpus/JEEP.CFM', lazy=False)
+    def test_convert_to_8bit_keeps_tnfs_car_light_entries(self):
+        import numpy as np
+
+        from library.utils.id import join_id
+        from serializers.bitmaps import ImageSerializer
+
+        # the action runs on the loaded file: the palettes of the images are looked up in it
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'JEEP.CFM')
+            shutil.copy('test/golden_corpus/JEEP.CFM', path)
+            (name, block, cfm) = require_file(path, lazy=False)
         shpi_id = name + '__children/1/item/data'
-        with self.assertRaisesRegex(ValueError, '250..254'):
-            block.item_block.possible_blocks[0].action_convert_to_8bit(
-                cfm['children'][1]['item']['data'],
-                name=shpi_id,
-                palette_name='!PAL',
-                palette_type='24Bit color format palette',
-                num_colors=256,
-                id=shpi_id,
+        shpi_block = block.item_block.possible_blocks[cfm['children'][1]['item']['choice_index']]
+        shpi = cfm['children'][1]['item']['data']
+        image_choice = shpi_block.item_block.get_choice_index_by_class_name('EacImage')
+        image_block = shpi_block.item_block.possible_blocks[image_choice]
+        textures = [
+            i
+            for i, c in enumerate(shpi['children'])
+            if c['item']['choice_index'] == image_choice and c['alias'] != '!xxx'
+        ]
+        xxx = next(c for c in shpi['children'] if c['alias'] == '!xxx')['item']['data']
+
+        def look(i):
+            data = shpi['children'][i]['item']['data']
+            return np.asarray(
+                ImageSerializer().to_image(
+                    data, block=image_block, id=join_id(shpi_id, 'children', str(i), 'item', 'data')
+                )
             )
+
+        before = {i: look(i) for i in textures}
+        lights = {i: [x for x in shpi['children'][i]['item']['data']['bitmap'] if 250 <= x <= 254] for i in textures}
+        shpi_block.action_convert_to_8bit(
+            shpi,
+            name=shpi_id,
+            palette_name='!PAL',
+            palette_type='same as the current palette',
+            num_colors=256,
+            id=shpi_id,
+        )
+        for i in textures:
+            # the car's colors fit the 250 entries: nothing changes on screen, the light pixels keep their entries
+            self.assertTrue(np.array_equal(before[i], look(i)))
+            self.assertEqual([x for x in shpi['children'][i]['item']['data']['bitmap'] if 250 <= x <= 254], lights[i])
+        self.assertIs(next(c for c in shpi['children'] if c['alias'] == '!xxx')['item']['data'], xxx)
+
+    def test_convert_to_8bit_keeps_partial_alpha_with_32bit_palette(self):
+        block = ShpiBlock()
+        data = block.new_data()
+        image = EacImage().new_data()
+        glow = [0xFFFF0000 | a for a in (0, 64, 128, 255)]
+        image.update(width=4, height=1, bitmap=glow)
+        image_choice = block.item_block.get_choice_index_by_class_name('EacImage')
+        data['children'].append(
+            {'post_offset_payload': b'', 'alias': 'glo1', 'item': {'choice_index': image_choice, 'data': image}}
+        )
+        data = block.unpack_from_bytes(block.pack(data, name='test'))
+        block.action_convert_to_8bit(
+            data,
+            name='test',
+            palette_name='!pal',
+            palette_type='same as the current palette',
+            num_colors=256,
+            id='test',
+        )
+        palette = data['children'][-1]['item']['data']
+        # no palette yet and partial alpha: a 32-bit palette
+        self.assertEqual(palette['resource_id'], '32Bit color format palette')
+        colors = palette['colors']['data']
+        self.assertEqual([colors[i] & 0xFF for i in data['children'][0]['item']['data']['bitmap']], [0, 64, 128, 255])
 
     def test_fsh_should_remain_the_same(self):
         (name, block, fsh) = require_file('test/samples/VERTBST.FSH', lazy=False)

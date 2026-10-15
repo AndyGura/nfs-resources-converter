@@ -91,7 +91,29 @@ def rotate_list(l, n):
     return l[n:] + l[:n]
 
 
-def quantize_images_to_8bit(images, num_colors=256):
+def _quantize_images_with_alpha(images, num_colors):
+    """`quantize_images_to_8bit` keeping partial alpha (glow textures), for palettes which hold it (32-bit)"""
+    from PIL import Image
+
+    from serializers.bitmaps import ImageSerializer
+
+    master = Image.new('RGBA', (max(img.width for img in images), sum(img.height for img in images)), (0, 0, 0, 0))
+    current_y = 0
+    for img in images:
+        master.paste(img.convert('RGBA'), (0, current_y))
+        current_y += img.height
+    rgba = master.quantize(colors=num_colors, method=Image.Quantize.FASTOCTREE).getpalette('RGBA')[: num_colors * 4]
+    palette = [rgba[i] << 24 | rgba[i + 1] << 16 | rgba[i + 2] << 8 | rgba[i + 3] for i in range(0, len(rgba), 4)]
+    pixels_per_image = [
+        [r << 24 | g << 16 | b << 8 | a for r, g, b, a in img.convert('RGBA').get_flattened_data()] for img in images
+    ]
+    if any(p & 0xFF == 0 for pixels in pixels_per_image for p in pixels) and not any(c & 0xFF == 0 for c in palette):
+        # a fully transparent entry for the transparent pixels
+        palette = (palette + [0])[:num_colors] if len(palette) < num_colors else palette[:-1] + [0]
+    return [ImageSerializer.to_palette_indexes(pixels, palette) for pixels in pixels_per_image], palette
+
+
+def quantize_images_to_8bit(images, num_colors=256, keep_alpha=False):
     """Quantizes one or more RGBA `PIL.Image`s onto a single shared up-to-`num_colors` palette
     (pass a single image to build a palette for just that one). Alpha-0 pixels collapse onto one
     reserved, genuinely-transparent entry; partial alpha is blended towards black and quantized as
@@ -99,8 +121,11 @@ def quantize_images_to_8bit(images, num_colors=256):
 
     Returns `(indices_per_image, packed_palette_colors)`: per-image 8-bit index lists, and the
     palette as packed internal RGBA ints (`red<<24|green<<16|blue<<8|alpha`) ready for
-    `EacPalette`'s `colors.data`."""
+    `EacPalette`'s `colors.data`. With `keep_alpha`, partial alpha is quantized too (for 32-bit palettes)."""
     from PIL import Image
+
+    if keep_alpha:
+        return _quantize_images_with_alpha(images, num_colors)
 
     max_width = max(img.width for img in images)
     total_height = sum(img.height for img in images)

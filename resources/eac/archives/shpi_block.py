@@ -18,6 +18,9 @@ from library.utils.id import join_id
 from resources.eac.bitmaps import EacImage, EacPalette
 
 
+# palette type choice of "Convert all images to 8Bit": the type of the palette the images use now
+SAME_PALETTE_TYPE = 'same as the current palette'
+
 # key of the data of a read SHPI with the order its item data is stored in (`ShpiBlock.heap_order`)
 HEAP_ORDER_KEY = 'heap_order'
 
@@ -40,7 +43,8 @@ class ShpiBlock(ArchiveBlock):
                     'title': 'Convert all images to 8Bit',
                     'description': 'Quantize all images of this SHPI to 8-bit on one new palette: it replaces the '
                     'palette of the SHPI (!pal, !PAL or 0000), or is added at the end under the name below. The '
-                    'images lose their own palettes, the other items stay. Not for TNFS car textures (CFM)',
+                    'images lose their own palettes, the other items stay. A 32-bit palette keeps partial transparency. In '
+                    'TNFS car textures (CFM) the light colors keep their entries 250..254',
                     'is_pure': False,
                     'args': [
                         {
@@ -54,7 +58,9 @@ class ShpiBlock(ArchiveBlock):
                             'id': 'palette_type',
                             'title': 'Palette type',
                             'type': 'enum_string',
+                            'default': SAME_PALETTE_TYPE,
                             'choices': [
+                                SAME_PALETTE_TYPE,
                                 '24BitDos color format palette',
                                 '24Bit color format palette',
                                 '16Bit_0565 color format palette',
@@ -247,18 +253,15 @@ class ShpiBlock(ArchiveBlock):
         """All images become 8Bit on one new palette: each image drops its own palettes (an embedded palette is used
         instead of the SHPI one), mipmaps are made again from the new pixels. The palette the images use now (found
         by name, `_get_palette_from_shpi`) is replaced in place; a SHPI without one gets `palette_name` (one of the
-        names looked up) at the end (NFS2 tracks pick textures by their index). The other items stay. Not for TNFS car textures (CFM): the game recolors their
-        entries 250..254, which the export / folder import with car_colors.json keeps"""
+        names looked up) at the end (NFS2 tracks pick textures by their index). The other items stay.
+        `palette_type` "same as the current palette" keeps the type the SHPI palette has; a 32-bit palette keeps
+        partial alpha. TNFS car textures (CFM) keep the entries the game recolors: 0..249 hold the colors, pixels of
+        exactly the light bar / tail light colors keep 250..254, transparent ones 255; !xxx is no texture"""
+        from resources.eac.utils import SHPI_PALETTE_NAMES, _get_palette_from_shpi
         from resources.eac.utils import quantize_images_to_8bit, build_8bit_palette
         from serializers.bitmaps import ImageSerializer
 
-        if '.CFM__' in (id or '').upper():
-            raise ValueError(
-                'TNFS car textures keep the light colors in palette entries 250..254, which this conversion does not '
-                'know about: export the textures and import the folder instead (car_colors.json)'
-            )
-        from resources.eac.utils import SHPI_PALETTE_NAMES, _get_palette_from_shpi
-
+        is_tnfs_car = '.CFM__' in (id or '').upper()
         children = read_data['children']
         # the palette the images of this SHPI use (by its name): replaced in place, keeping its name
         _, current_palette = _get_palette_from_shpi(self, read_data)
@@ -277,20 +280,22 @@ class ShpiBlock(ArchiveBlock):
         image_choice = self.item_block.get_choice_index_by_class_name('EacImage')
         palette_choice = self.item_block.get_choice_index_by_class_name('EacPalette')
         image_block = self.item_block.possible_blocks[image_choice]
-        image_indexes = [i for i, c in enumerate(children) if c['item']['choice_index'] == image_choice]
+        image_indexes = [
+            i
+            for i, c in enumerate(children)
+            if c['item']['choice_index'] == image_choice and not (is_tnfs_car and c['alias'] == '!xxx')
+        ]
         if not image_indexes:
             raise ValueError('There are no images to convert')
         serializer = ImageSerializer()
+        image_ids = {i: join_id(id, 'children', str(i), 'item', 'data') for i in image_indexes}
         # 8Bit images whose palette is not in the file (NFS2 PAUSE menus): their colors are unknown here, and the new
         # palette would become theirs
         no_palette = [
             children[i]['alias']
             for i in image_indexes
             if children[i]['item']['data']['resource_id'] == '8Bit'
-            and serializer._found_palette_colors(
-                children[i]['item']['data'], image_block, join_id(id, 'children', str(i), 'item', 'data')
-            )
-            is None
+            and serializer._found_palette_colors(children[i]['item']['data'], image_block, image_ids[i]) is None
         ]
         if no_palette:
             raise ValueError(
@@ -299,12 +304,23 @@ class ShpiBlock(ArchiveBlock):
         # the images as they look now: all of them before any is changed, the palette of an 8Bit image is found by
         # comparing the image data
         images = [
-            serializer.to_image(
-                children[i]['item']['data'], block=image_block, id=join_id(id, 'children', str(i), 'item', 'data')
-            )
-            for i in image_indexes
+            serializer.to_image(children[i]['item']['data'], block=image_block, id=image_ids[i]) for i in image_indexes
         ]
-        indices_per_image, packed_palette_colors = quantize_images_to_8bit(images, num_colors)
+        if palette_type == SAME_PALETTE_TYPE:
+            if current_palette is not None:
+                palette_type = current_palette['resource_id']
+            else:
+                # partial alpha (glows) needs a 32-bit palette
+                partial_alpha = any(0 < a < 255 for img in images for a in img.getchannel('A').get_flattened_data())
+                palette_type = '32Bit color format palette' if partial_alpha else '24Bit color format palette'
+        if is_tnfs_car:
+            indices_per_image, packed_palette_colors = self._quantize_tnfs_car_textures(
+                images, children, image_indexes, image_block, image_ids
+            )
+        else:
+            indices_per_image, packed_palette_colors = quantize_images_to_8bit(
+                images, num_colors, keep_alpha=palette_type == '32Bit color format palette'
+            )
         for i, indices in zip(image_indexes, indices_per_image):
             image = children[i]['item']['data']
             image_block._clear_8bit_palette_fields(image)
@@ -319,10 +335,55 @@ class ShpiBlock(ArchiveBlock):
         palette = build_8bit_palette(
             packed_palette_colors, palette_type, id=join_id(id, 'children', str(palette_index), 'item', 'data')
         )
+        if is_tnfs_car and current_palette is not None:
+            # the shape height of a car palette (`deserialize_tnfs_car_textures`)
+            palette['unk1'] = current_palette['unk1']
         children[palette_index] = {
             **{k: children[palette_index][k] for k in children[palette_index]},
             'item': {'choice_index': palette_choice, 'data': palette},
         }
+
+    @staticmethod
+    def _quantize_tnfs_car_textures(images, children, image_indexes, image_block, image_ids):
+        """Indices and 256-color palette (internal RGBA) of TNFS car textures: their colors on 0..249, pixels of exactly
+        the colors of the current entries 250..254 (light bar, tail lights) on those, transparent ones on 255"""
+        from serializers.bitmaps import ImageSerializer
+        from serializers.misc.tnfs_car_colors import LIGHT_BAR_INDICES, TAIL_LIGHT_INDEX, _quantize_car_textures
+
+        special_indices = LIGHT_BAR_INDICES + [TAIL_LIGHT_INDEX]
+        # the colors the export gives these entries (made unique: `car_texture_palette`)
+        current = None
+        for i in image_indexes:
+            current = ImageSerializer._found_palette_colors(children[i]['item']['data'], image_block, image_ids[i])
+            if current is not None:
+                break
+        index_of_special = {}
+        if current is not None:
+            for index in special_indices:
+                index_of_special.setdefault(current[index] >> 8, index)
+        quantized_sources = []
+        for image in images:
+            source = image.copy()
+            source.putdata(
+                [
+                    (r, g, b, 0 if (r << 16 | g << 8 | b) in index_of_special else a)
+                    for r, g, b, a in image.get_flattened_data()
+                ]
+            )
+            quantized_sources.append(source)
+        indices, palette = _quantize_car_textures(quantized_sources, LIGHT_BAR_INDICES[0])
+        colors = [c << 8 | 0xFF for c in palette] + [0xFF] * (256 - len(palette))
+        for rgb, index in index_of_special.items():
+            colors[index] = rgb << 8 | 0xFF
+        colors[255] = 0
+        result = []
+        for image, image_indices in zip(images, indices):
+            bitmap = []
+            for (r, g, b, a), index in zip(image.get_flattened_data(), image_indices):
+                rgb = r << 16 | g << 8 | b
+                bitmap.append(255 if not a else index_of_special.get(rgb, index))
+            result.append(bitmap)
+        return result, colors
 
     def serializer_class(self):
         from serializers import ShpiArchiveSerializer

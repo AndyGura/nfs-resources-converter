@@ -352,6 +352,12 @@ Fixed since (2026-10-16, report ids):
   last, MASKHI / F512M differently again) and the writer follows it while it covers every item. 98 of the 100 FSH /
   QFS / CFM files of the TNFS SE failure list now save byte-exact; LDIABLO (ORIP overlap, item 3) and MP911T (high
   bits of a DOS palette the game ignores, dropped on read) still differ. Confirmed headless.
+- S15 Convert all images to 8Bit: palette type "same as the current palette" by default (32-bit when the SHPI has
+  none and an image has partial alpha); a 32-bit palette keeps partial alpha (RGBA quantization); TNFS car textures
+  (CFM) convert with their colors on 0..249, the light bar / tail light pixels on 250..254, transparent on 255,
+  `!xxx` left alone (it was refused). Confirmed headless (AQUA.QFS glows: alpha error 0.97; JEEP / DVIPER textures
+  unchanged on screen, light entries kept) + live (JEEP dialog default, car unchanged). The first click on Run after
+  closing a select in the dialog is taken by the select's overlay (Angular Material), left as it is.
 
 ---
 
