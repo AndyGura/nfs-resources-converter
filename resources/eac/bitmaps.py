@@ -1116,15 +1116,25 @@ class EacImage(DeclarativeCompoundBlock):
             read_data['bitmap'], current_color_format, target_color_format, output_colors, width, height, palette_colors
         )
         if read_data['mipmaps']:
-            read_data['mipmaps'] = self._convert_pixels_to_rgba(
-                read_data['mipmaps'],
-                current_color_format,
-                target_color_format,
-                output_colors,
-                width,
-                height,
-                palette_colors,
-            )
+            # level by level: DXT encodes 4x4 blocks of each level, with its own size
+            mipmaps = []
+            offset = 0
+            for level_width, level_height in mipmap_level_dims(width, height):
+                # 4Bit levels are lists of rows, the other formats lists of pixels
+                count = level_height if current_color_format.startswith('4Bit') else level_width * level_height
+                mipmaps.extend(
+                    self._convert_pixels_to_rgba(
+                        read_data['mipmaps'][offset : offset + count],
+                        current_color_format,
+                        target_color_format,
+                        output_colors,
+                        level_width,
+                        level_height,
+                        palette_colors,
+                    )
+                )
+                offset += count
+            read_data['mipmaps'] = mipmaps
         if current_color_format == '8Bit':
             self._clear_8bit_palette_fields(read_data)
         read_data['resource_id'] = target_color_format

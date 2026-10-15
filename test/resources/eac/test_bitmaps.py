@@ -591,3 +591,22 @@ class TestRawLinkedBlocks(unittest.TestCase):
         data['width'] = 4
         data['bitmap'] = [0] * 4
         self.assertEqual(block.pack(copy.deepcopy(data))[1:4], (-100 & 0xFFFFFF).to_bytes(3, 'little'))
+
+
+class TestDxtMipmaps(unittest.TestCase):
+    def test_mipmapped_image_converts_to_dxt(self):
+        for color_mode in ['DXT1 compressed bitmap', 'DXT3 compressed bitmap', 'DXT5 compressed bitmap']:
+            block, data = _make_image(
+                '32Bit color format bitmap',
+                8,
+                8,
+                [((x * 32) << 24) | ((y * 32) << 16) | 0xFF for y in range(8) for x in range(8)],
+            )
+            data['position'] = {'x': 0, 'y': 0}
+            block.action_generate_mipmaps(data)
+            block.action_convert_to_rgba(data, color_mode=color_mode, output_colors='use palette', id='test')
+            self.assertEqual(data['resource_id'], color_mode)
+            self.assertEqual(len(data['mipmaps']), 4 * 4 + 2 * 2 + 1)
+            reread = _roundtrip(block, data)
+            self.assertEqual(reread['mipmaps'], data['mipmaps'])
+            self.assertEqual(reread['bitmap'], data['bitmap'])
