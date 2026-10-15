@@ -59,7 +59,11 @@ new parsing primitives. Skim the cheat-sheet below before reaching for `read-blo
   bytes (`ctx.buffer.read(n)` then `ctx.buffer.seek(-n, SEEK_CUR)` to undo the peek) and checks
   whether they look like the expected format - the way to parse a sequence of same-shaped,
   independently-optional trailing chunks in a known order (stack one `TrailingOptionalBlock` per
-  chunk, each sniffing its own signature), e.g. a bitmap's optional mipmaps/palette chunks.
+  chunk, each sniffing its own signature). When the chunks link to each other (an offset to the
+  next one), follow the links in the criteria instead of sniffing, and recompute them on write:
+  `EacImage` reads the blocks attached to an SHPI image (palette, hot spots, text) along its
+  `next_offset` chain (`chained_block_criteria`, `_chain_next_pos`) and relinks them in
+  `_link_chained_blocks`; only its mipmaps are still gated on leftover space.
   Absence reads back as `None` rather than a fabricated `child.new_data()`, and writing skips the
   field whenever the value is `None` - presence lives in the value itself since, unlike
   `OptionalBlock`, the criteria can't be recomputed while writing. Renders as its own GUI

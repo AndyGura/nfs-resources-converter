@@ -172,6 +172,19 @@ When you do:
   (320 / tan(48 deg)). Settings: `MISC/<track>INFO` for `_T01` FAMs, the executable's table (`SE_HORIZON_SETTINGS`)
   otherwise. nfs-web makes cube map faces of `spherical.png`.
 
+## SHPI images (`EacImage`, `resources/eac/bitmaps.py`, all games up to NFS6)
+
+- Bytes 1..3 of an image (`next_offset`), and of every block attached to it, link to the next attached block (0 in the
+  last): palette (0x22/0x24/0x29/0x2A/0x2D), hot spots (0x7C, `ShpiHotSpots`), text (0x6F), NFS6 0x69 / 0x70 (unparsed,
+  kept as raw bytes). Never a block size. The parser follows the links (`chained_block_criteria`), `write` relinks the
+  parsed blocks (`_link_chained_blocks`); the `next_offset` fields are programmatic only for the GUI to show them
+  read-only. TNFS has negative offsets (to `!PAL`) and garbage in some CFM / FAM textures without attached blocks.
+- Mipmaps exist only in NFS5: the 4 high bits of `position.y` hold the level count (always the full chain), each level
+  is padded with zeros to 16 bytes. `write` sets the count from `mipmaps`.
+- Hot spots: TNFS reads them only in the dashboard loader (`dash`, `tach`, `sped`, `gate` of `DASH/*DH|DL.FSH`, it hangs
+  without them); point + `pivot` is the pixel of the bitmap. The GUI's image editor draws them over the image
+  (`ImageViewerComponent.overlays`, toggled in its viewport toolbar).
+
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 
 - `OripGeometrySerializer` splits meshes by texture and by ORIP `labels` (polygon indices): mesh names

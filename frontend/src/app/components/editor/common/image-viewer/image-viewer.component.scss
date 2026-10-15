@@ -103,7 +103,7 @@
     }
   }
 
-  .mipmap-toolbar {
+  .viewer-toolbar {
     position: absolute;
     left: 8px;
     top: 8px;
@@ -146,6 +146,10 @@
         font-weight: bold;
       }
 
+      mat-icon + .mm-label {
+        margin-left: 2px;
+      }
+
       &:hover {
         background-color: #444444;
       }
@@ -177,6 +181,40 @@
 
   &.panning {
     cursor: grabbing;
+  }
+
+  .image-frame {
+    margin: auto;
+    position: relative;
+
+    img {
+      margin: 0;
+    }
+  }
+
+  .markers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+    pointer-events: none;
+
+    g {
+      pointer-events: all;
+    }
+
+    .marker-dot {
+      fill: #ff1744;
+      stroke: #ffffff;
+    }
+
+    .marker-label {
+      fill: #ffffff;
+      stroke: #000000;
+      paint-order: stroke;
+      font-family: sans-serif;
+      font-weight: bold;
+    }
   }
 
   img,

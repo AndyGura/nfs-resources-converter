@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from resources.eac.bitmaps import EacImage, EacPalette, mipmap_level_dims
+from resources.eac.bitmaps import EacImage, EacPalette, ShpiHotSpots, mipmap_level_dims
 
 
 class TestBitmap(unittest.TestCase):
@@ -452,3 +452,99 @@ class TestDxtBitmap(unittest.TestCase):
             output = self.block.pack(data)
             self.assertEqual(len(output), len(b))
             self.assertListEqual(self.block.unpack_from_bytes(output)['bitmap'], data['bitmap'])
+
+
+def _image_header(resource_id, next_offset, width, height):
+    return (
+        bytes([resource_id])
+        + next_offset.to_bytes(3, 'little', signed=True)
+        + width.to_bytes(2, 'little')
+        + height.to_bytes(2, 'little')
+        + bytes(8)
+    )
+
+
+def _palette_32bit(next_offset, colors):
+    header = bytes([0x2A]) + next_offset.to_bytes(3, 'little') + len(colors).to_bytes(2, 'little') + bytes(2)
+    return header + len(colors).to_bytes(2, 'little') + bytes(6) + b''.join(c.to_bytes(4, 'little') for c in colors)
+
+
+def _hot_spots(next_offset, points):
+    res = bytes([0x7C]) + next_offset.to_bytes(3, 'little') + len(points).to_bytes(4, 'little')
+    return res + b''.join(
+        x.to_bytes(4, 'little', signed=True) + y.to_bytes(4, 'little', signed=True) for x, y in points
+    )
+
+
+class TestAttachedBlocks(unittest.TestCase):
+    def test_chain_with_gaps_is_followed_and_round_trips(self):
+        pixels = bytes([0, 1, 1, 0])
+        palette = _palette_32bit(20 + 2, [0xFF00FF00])
+        raw = (
+            _image_header(0x7B, 16 + 4 + 4, 2, 2)
+            + pixels
+            + b'\xaa' * 4
+            + palette
+            + b'\xbb' * 2
+            + _hot_spots(0, [(3, -4)])
+        )
+        data = EacImage().unpack_from_bytes(raw)
+        self.assertEqual(data['pad'], b'\xaa' * 4)
+        self.assertIsNotNone(data['embedded_palette'])
+        self.assertEqual(data['embedded_palette_pad'], b'\xbb' * 2)
+        self.assertEqual(data['hot_spots']['points'], [{'x': 3, 'y': -4}])
+        self.assertIsNone(data['mipmaps'])
+        self.assertEqual(EacImage().pack(data), raw)
+
+    def test_blocks_without_a_link_are_not_parsed(self):
+        raw = _image_header(0x7B, 0, 3, 1) + bytes(3) + _hot_spots(0, [(1, 2)])
+        data = EacImage().unpack_from_bytes(raw)
+        self.assertIsNone(data['hot_spots'])
+        self.assertIsNone(data['embedded_palette'])
+
+    def test_mipmaps_are_not_read_when_a_block_follows_the_pixels(self):
+        raw = _image_header(0x7B, 16 + 16, 4, 4) + bytes(16) + _palette_32bit(0, [0xFF00FF00] * 4)
+        data = EacImage().unpack_from_bytes(raw)
+        self.assertIsNone(data['mipmaps'])
+        self.assertEqual(len(data['embedded_palette']['colors']['data']), 4)
+
+    def test_new_attached_blocks_get_linked_on_save(self):
+        block, data = _make_image('8Bit', 2, 2, [0, 1, 1, 0])
+        palette = EacPalette().new_data()
+        palette['resource_id'] = '32Bit color format palette'
+        palette['colors']['data'] = [0xFF0000FF] * 2
+        data['embedded_palette'] = palette
+        data['hot_spots'] = ShpiHotSpots().new_data()
+        data['hot_spots']['points'] = [{'x': 5, 'y': 6}]
+
+        reread = _roundtrip(block, data)
+        self.assertEqual(reread['next_offset'], 16 + 4)
+        self.assertEqual(reread['embedded_palette']['next_offset'], 16 + 2 * 4)
+        self.assertEqual(reread['hot_spots']['points'], [{'x': 5, 'y': 6}])
+        self.assertEqual(reread['hot_spots']['next_offset'], 0)
+
+
+class TestMipmapLevels(unittest.TestCase):
+    def test_levels_are_padded_to_16_bytes_and_counted_in_position_y(self):
+        block, data = _make_image('16Bit_1555 color format bitmap', 4, 4, [0xFF0000FF] * 16)
+        data['position'] = {'x': 0, 'y': 5}
+        block.action_generate_mipmaps(data)
+        raw = block.pack(copy.deepcopy(data))
+        # 4x4 pixels, then the 2x2 (8 bytes) and 1x1 (2 bytes) levels, each padded to 16
+        self.assertEqual(len(raw), 16 + 32 + 16 + 16)
+        self.assertEqual(raw[16 + 32 + 8 : 16 + 32 + 16], bytes(8))
+        self.assertEqual(raw[16 + 32 + 16 + 2 :], bytes(14))
+        self.assertEqual(int.from_bytes(raw[14:16], 'little'), (2 << 12) | 5)
+        reread = EacImage().unpack_from_bytes(raw)
+        self.assertEqual(reread['mipmaps'], data['mipmaps'])
+        self.assertEqual(EacImage().pack(reread), raw)
+
+    def test_mipmaps_are_not_read_without_the_level_count(self):
+        raw = _image_header(0x7D, 0, 2, 2) + bytes(16) + bytes(16)
+        self.assertIsNone(EacImage().unpack_from_bytes(raw)['mipmaps'])
+
+    def test_removing_mipmaps_clears_the_level_count(self):
+        block, data = _make_image('32Bit color format bitmap', 2, 2, [0xFF0000FF] * 4)
+        data['position'] = {'x': 0, 'y': (1 << 12) | 7}
+        raw = block.pack(copy.deepcopy(data))
+        self.assertEqual(int.from_bytes(raw[14:16], 'little'), 7)

@@ -143,7 +143,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
-                eac.bitmaps.PaletteReference(),
+                eac.bitmaps.ShpiHotSpots(),
                 eac.bitmaps.ShpiText(),
             ],
             'Fonts': [
@@ -249,7 +249,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
-                eac.bitmaps.PaletteReference(),
+                eac.bitmaps.ShpiHotSpots(),
                 eac.bitmaps.ShpiText(),
             ],
             'Fonts': [
@@ -321,7 +321,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
-                eac.bitmaps.PaletteReference(),
+                eac.bitmaps.ShpiHotSpots(),
                 eac.bitmaps.ShpiText(),
             ],
             'Fonts': [
@@ -409,7 +409,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
-                eac.bitmaps.PaletteReference(),
+                eac.bitmaps.ShpiHotSpots(),
                 eac.bitmaps.ShpiText(),
             ],
             'Fonts': [
@@ -475,7 +475,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
-                eac.bitmaps.PaletteReference(),
+                eac.bitmaps.ShpiHotSpots(),
                 eac.bitmaps.ShpiText(),
             ],
             'Fonts': [
@@ -549,7 +549,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
-                eac.bitmaps.PaletteReference(),
+                eac.bitmaps.ShpiHotSpots(),
                 eac.bitmaps.ShpiText(),
             ],
             'Fonts': [
@@ -605,7 +605,7 @@ EXPORT_RESOURCES = {
             'Images': [
                 eac.bitmaps.EacImage(),
                 eac.bitmaps.EacPalette(),
-                eac.bitmaps.PaletteReference(),
+                eac.bitmaps.ShpiHotSpots(),
                 eac.bitmaps.ShpiText(),
             ],
             'Fonts': [

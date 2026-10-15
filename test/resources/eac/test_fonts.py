@@ -54,7 +54,6 @@ class TestFfnFont(unittest.TestCase):
             (EacImage()).action_convert_to_8bit(font_res2['bitmap'], 'alpha')
             # we don't reconstruct it (yet). In order to reconstruct this particular font exactly, we need to set it
             # TODO remove later?
-            font_res2['bitmap']['palette_offset'] = font_res['bitmap']['palette_offset']
             font_res2['bitmap']['pad'] = font_res['bitmap']['pad']
             font_res2['bitmap']['embedded_palette'] = font_res['bitmap']['embedded_palette']
         output = block.pack(font_res2, name=name)

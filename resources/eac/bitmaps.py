@@ -18,7 +18,6 @@ from library.read_blocks import (
     EnumLookupDelegateBlock,
     TrailingOptionalBlock,
     LengthPrefixedArrayBlock,
-    OptionalBlock,
     Padding,
 )
 from library.read_blocks.misc.value_validators import Eq
@@ -83,81 +82,176 @@ def mipmap_level_dims(width: int, height: int):
         yield width, height
 
 
+MIPMAP_LEVEL_ALIGNMENT = 16
+
+
+def mipmap_level_byte_len(resource_id, width: int, height: int) -> int:
+    """Bytes of one mipmap level in a file: its pixels, padded with zeros to 16 bytes (NFS5)"""
+    length = get_bitmap_len(resource_id, width, height)
+    return -(-length // MIPMAP_LEVEL_ALIGNMENT) * MIPMAP_LEVEL_ALIGNMENT
+
+
 def mipmaps_byte_len(resource_id, width: int, height: int) -> int:
-    """Return the total number of bytes in all mipmap levels excluding the base level."""
-    return sum(get_bitmap_len(resource_id, w, h) for (w, h) in mipmap_level_dims(width, height))
+    """Return the total number of bytes in all mipmap levels excluding the base level, with level padding."""
+    return sum(mipmap_level_byte_len(resource_id, w, h) for (w, h) in mipmap_level_dims(width, height))
 
 
-def unk_7c_presence_criteria(ctx, **kwargs):
-    if isinstance(ctx, ReadContext):
-        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 8:
+def mipmap_count(position_y: int) -> int:
+    """Amount of mipmap levels, stored in the 4 high bits of `position.y`"""
+    return position_y >> 12
+
+
+PALETTE_IDS = [0x22, 0x24, 0x29, 0x2A, 0x2D]
+HOT_SPOTS_ID = 0x7C
+TEXT_ID = 0x6F
+# blocks of an image's chain (see `EacImage.next_offset`) parsed into named fields, in the order they come in files
+CHAINED_FIELDS = ['embedded_palette', 'hot_spots', 'text']
+
+
+def _chain_next_pos(ctx):
+    """Local offset of the next block of the image's chain after the blocks read so far, None when the chain ended"""
+    pos = ctx.data('next_offset')
+    if pos <= 0:
+        return None
+    for name in CHAINED_FIELDS:
+        block = ctx.data(name)
+        if block is not None:
+            if block['next_offset'] == 0:
+                return None
+            pos += block['next_offset']
+    return pos
+
+
+def _peek_id(ctx, pos):
+    """id byte of the block at local offset `pos`, None when it is not inside the read item"""
+    if pos is None or pos < ctx.local_buffer_pos or ctx.read_bytes_remaining is None:
+        return None
+    if pos - ctx.local_buffer_pos >= ctx.read_bytes_remaining:
+        return None
+    current = ctx.buffer.tell()
+    ctx.buffer.seek(pos - ctx.local_buffer_pos, SEEK_CUR)
+    try:
+        return ctx.buffer.read(1)[0]
+    finally:
+        ctx.buffer.seek(current)
+
+
+def chained_block_criteria(ids, min_size):
+    """Criteria of a chained block: the chain continues right here, with a block of one of `ids`"""
+
+    def criteria(ctx, **kwargs):
+        if not isinstance(ctx, ReadContext):
             return False
-        raw = ctx.buffer.read(4)
-        try:
-            rid = int.from_bytes(raw, byteorder='little', signed=False)
-            return rid == 0x7C
-        finally:
-            ctx.buffer.seek(-4, SEEK_CUR)
-    else:
-        return ctx.data('unk') is not None
+        pos = _chain_next_pos(ctx)
+        return (
+            pos == ctx.local_buffer_pos
+            and ctx.read_bytes_remaining is not None
+            and ctx.read_bytes_remaining >= min_size
+            and _peek_id(ctx, pos) in ids
+        )
+
+    return criteria
 
 
-def eac_palette_presence_criteria(ctx, **kwargs):
-    if isinstance(ctx, ReadContext):
-        if ctx.data('resource_id') != '8Bit':
-            return False
-        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 16:
-            return False
-        raw = ctx.buffer.read(1)
-        try:
-            rid = int.from_bytes(raw, signed=False)
-            return rid in [0x22, 0x24, 0x29, 0x2A, 0x2D]
-        finally:
-            ctx.buffer.seek(-1, SEEK_CUR)
-    else:
-        return ctx.data('embedded_palette') is not None
+def chain_padding_criteria(ctx, **kwargs):
+    """Bytes between the block just read and the next block of the chain, when that one is parsed into a field"""
+    if not isinstance(ctx, ReadContext):
+        return False
+    pos = _chain_next_pos(ctx)
+    return pos is not None and pos > ctx.local_buffer_pos and _peek_id(ctx, pos) in [HOT_SPOTS_ID, TEXT_ID]
 
 
-def shpi_text_presence_criteria(ctx, **kwargs):
-    if isinstance(ctx, ReadContext):
-        if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 5:
-            return False
-        raw = ctx.buffer.read(1)
-        try:
-            rid = int.from_bytes(raw, signed=False)
-            return rid == 0x6F
-        finally:
-            ctx.buffer.seek(-1, SEEK_CUR)
-    else:
-        return ctx.data('text') is not None
+def chain_padding_length(ctx):
+    return _chain_next_pos(ctx) - ctx.local_buffer_pos
+
+
+def image_padding_criteria(ctx, **kwargs):
+    if not isinstance(ctx, ReadContext) or ctx.read_bytes_remaining is None:
+        return False
+    return 0 < ctx.data('next_offset') - ctx.local_buffer_pos <= ctx.read_bytes_remaining
+
+
+def unlinked_palette_criteria(ctx, **kwargs):
+    if not isinstance(ctx, ReadContext):
+        return False
+    if ctx.data('resource_id') != '8Bit' or ctx.data('embedded_palette') is None or _chain_next_pos(ctx) is not None:
+        return False
+    if ctx.read_bytes_remaining is None or ctx.read_bytes_remaining < 16:
+        return False
+    return _peek_id(ctx, ctx.local_buffer_pos) in PALETTE_IDS
 
 
 def mipmaps_presence_criteria(ctx, **kwargs):
-    if ctx.read_bytes_remaining is None:
+    if not isinstance(ctx, ReadContext) or ctx.read_bytes_remaining is None:
         return False
-    if not is_power_of_two(ctx.data('width')) or not is_power_of_two(ctx.data('height')):
+    width, height = ctx.data('width'), ctx.data('height')
+    if not is_power_of_two(width) or not is_power_of_two(height):
         return False
-    if isinstance(ctx, ReadContext):
-        mipmaps_len = mipmaps_byte_len(ctx.data('resource_id'), ctx.data('width'), ctx.data('height'))
-        return mipmaps_len > 1 and ctx.read_bytes_remaining >= mipmaps_len
-    else:
-        return ctx.data('mipmaps') is not None
+    levels = len(list(mipmap_level_dims(width, height)))
+    # every file with mipmaps (NFS5) has the full chain of levels
+    if levels == 0 or mipmap_count(ctx.data('position/y')) != levels:
+        return False
+    mipmaps_len = mipmaps_byte_len(ctx.data('resource_id'), width, height)
+    if ctx.read_bytes_remaining < mipmaps_len:
+        return False
+    next_offset = ctx.data('next_offset')
+    if next_offset > 0:
+        # the image data, mipmaps included, ends where the first attached block starts (up to alignment)
+        return 0 <= next_offset - ctx.local_buffer_pos - mipmaps_len < 16
+    return True
 
 
-class PaletteReference(DeclarativeCompoundBlock):
+def _stored_next_offset(ctx):
+    # `EacImage.write` sets the offsets of the chain (`_link_chained_blocks`): programmatic for the GUI to show them
+    # read-only, written as they are
+    return ctx.data('next_offset')
+
+
+NEXT_OFFSET_DESCRIPTION = (
+    'Offset from the start of this block to the next block attached to the same bitmap (0 when this is the last '
+    'one). Recomputed on save when a block parsed into a field follows'
+)
+
+
+class ShpiHotSpots(DeclarativeCompoundBlock):
     class Fields(DeclarativeCompoundBlock.Fields):
-        resource_id = (IntegerBlock(length=4, value_validator=Eq(0x7C)), {'description': 'Resource ID'})
-        unk1 = (
-            LengthPrefixedArrayBlock(length_block=(IntegerBlock(length=4)), child=BytesBlock(length=8)),
-            {'is_unknown': True},
+        resource_id = (IntegerBlock(length=1, value_validator=Eq(0x7C)), {'description': 'Resource ID'})
+        next_offset = (
+            IntegerBlock(length=3, programmatic_value=_stored_next_offset),
+            {'description': NEXT_OFFSET_DESCRIPTION},
+        )
+        points = (
+            LengthPrefixedArrayBlock(
+                length_block=(IntegerBlock(length=4)), child=Point2D(child=IntegerBlock(length=4, is_signed=True))
+            ),
+            {
+                'description': 'Points in screen pixels, relative to the bitmap: the screen point is `position` + '
+                '`pivot` + point, so `pivot` + point is the pixel of the bitmap. TNFS reads the low byte of the amount '
+                'only'
+            },
         )
 
     @property
     def schema(self) -> Dict:
         return {
             **super().schema,
-            'block_description': 'Unknown resource. Happens after 8-bit bitmap, which does not contain embedded palette. '
-            "Probably a reference to palette which should be used, that's why named so",
+            'block_description': 'A list of hot spots: points of interest of the bitmap it is attached to (after the '
+            'bitmap and its embedded palette), the index of a point gives its meaning. Many bitmaps of menus, track '
+            '(FAM) and car (CFM) textures have an empty list, others in the same files have none, and 1x1 '
+            'placeholder bitmaps of dashboards have copies of the list of another bitmap. TNFS reads it in the dashboard loader only '
+            '(DOS `tnfs_dash_000522be`, Win95 SE FUN_0041f9a0, the demo `tnfs_dashboard_load`; PSX and 3DO do not '
+            'read FSH dashboards), from four bitmaps of `SIMDATA/DASH/*DH.FSH` / `*DL.FSH`:<br/>'
+            '- `dash`: 10 points. 0, 1 = top left and bottom right corners of the rear-view mirror; 2 = radar '
+            'detector power light; 3..7 = the 5 radar detector level lights; 8, 9 = the loader turns them into '
+            'offsets from 2 and 3, nothing reads them<br/>'
+            '- `tach`: tachometer needle tip at 0, 1024, 2048... RPM (the needle is interpolated between them), '
+            'the last point is the needle centre<br/>'
+            '- `sped`: speedometer needle tip at 0, 10, 20... mph (0, 20, 40... km/h in the German version), the '
+            'last point is the needle centre. The cars with a digital speedometer draw digits instead<br/>'
+            '- `gate`: gear lever knob position for every gear: 0 = reverse, 1 = neutral, then gears from 1st: 7 or 8 '
+            'points. The game reads 9 points (a 9th, where present, is at the corner of the bitmap)<br/>'
+            'The game walks the attached blocks until it finds 0x7C, so it hangs when one of these bitmaps has '
+            'no hot spots',
         }
 
 
@@ -172,7 +266,10 @@ class ShpiText(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         resource_id = (IntegerBlock(length=1, value_validator=Eq(0x6F)), {'description': 'Resource ID'})
-        unk = (BytesBlock(length=3), {'is_unknown': True})
+        next_offset = (
+            IntegerBlock(length=3, programmatic_value=_stored_next_offset),
+            {'description': NEXT_OFFSET_DESCRIPTION},
+        )
         text = (LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4)), {'description': 'Text contents'})
 
     def serializer_class(self):
@@ -196,7 +293,15 @@ class EacPalette(DeclarativeCompoundBlock):
             ),
             {'description': 'Resource ID'},
         )
-        unk0 = (BytesBlock(length=3), {'is_unknown': True})
+        next_offset = (
+            IntegerBlock(length=3, programmatic_value=_stored_next_offset),
+            {
+                'description': 'When attached to a bitmap: '
+                + NEXT_OFFSET_DESCRIPTION[0].lower()
+                + NEXT_OFFSET_DESCRIPTION[1:]
+                + '. 0 in palette items (`!pal`)'
+            },
+        )
         num_colors = (
             IntegerBlock(length=2, programmatic_value=lambda ctx: len(ctx.data('colors/data'))),
             {'usage': 'io,doc', 'description': 'Amount of colors'},
@@ -377,24 +482,28 @@ class EacImage(DeclarativeCompoundBlock):
             ),
             {'description': 'Resource ID'},
         )
-        # TODO use that in serialization logic to pick the correct palette everywhere
-        palette_offset = (
-            IntegerBlock(length=3, is_signed=True),
+        next_offset = (
+            IntegerBlock(length=3, is_signed=True, programmatic_value=_stored_next_offset),
             {
-                'description': 'A local offset to the palette that should be used with this image (8Bit). '
-                'In case of zero, game searches for !pal or !PAL in the SHPI'
+                'description': 'Offset from the start of the image to the first block attached to it: the palette '
+                'of an 8Bit image, hot spots (0x7C), text (0x6F), and in NFS6 0x69 / 0x70 blocks. Every attached '
+                'block starts with its id and the offset to the next one (0 in the last), so they make a chain, '
+                'which this parser follows. 0 when nothing is attached (then an 8Bit image uses !pal or !PAL of the '
+                'SHPI), never the size of the image block. Recomputed on save when a block parsed into a field is '
+                'attached. TNFS has other values in a few car (CFM) and track (FAM) textures without attached blocks: '
+                'mostly a negative offset to the !PAL item of the SHPI, sometimes garbage',
             },
         )
         width = (IntegerBlock(length=2), {'usage': 'io,doc', 'description': 'Bitmap width in pixels'})
         height = (IntegerBlock(length=2), {'usage': 'io,doc', 'description': 'Bitmap height in pixels'})
         pivot = (
-            Point2D(child=IntegerBlock(length=2)),
+            Point2D(child=IntegerBlock(length=2, is_signed=True)),
             {
                 'is_unknown': True,
-                'description': 'Seems like x coordinate is not used at all. y coordinate is used by the horizon '
-                'bitmap "horz" of TNFS FAM files when the game scrolls it (horizon "ring type" 0, the open road '
-                'tracks by default): this row of the bitmap lies on the horizon line (Win95 SE FUN_0043ae64). The '
-                'horizon ring (ring type 1, the closed tracks) does not use it',
+                'description': 'TNFS dashboards add both coordinates to the points of `hot_spots`. y coordinate is '
+                'used by the horizon bitmap "horz" of TNFS FAM files when the game scrolls it (horizon "ring type" 0, '
+                'the open road tracks by default): this row of the bitmap lies on the horizon line (Win95 SE '
+                'FUN_0043ae64). The horizon ring (ring type 1, the closed tracks) does not use it',
             },
         )
         position = (
@@ -402,8 +511,8 @@ class EacImage(DeclarativeCompoundBlock):
             {
                 'description': 'Bitmap position on screen. Used for menu/dash sprites. In NFS5 FSH files this is '
                 'the position of the image in a texture page (atlas), which is used by CRP models: '
-                '12 lower bits of each coordinate are a signed value, 4 higher bits are flags '
-                '(track textures have 6 or 7 in y flags for 64x64 or 128x128 images, likely the mipmap count)'
+                '12 lower bits of each coordinate are a signed value, 4 higher bits of y are the amount of '
+                '`mipmaps` levels (always all of them down to 1x1, 0 without mipmaps), set on save'
             },
         )
         bitmap = (
@@ -426,47 +535,6 @@ class EacImage(DeclarativeCompoundBlock):
                 '(8, 16 and 16 bytes per block)',
             },
         )
-        pad = (
-            OptionalBlock(
-                child=Padding(to=lambda ctx: ctx.data('palette_offset'), is_global=False),
-                criteria=lambda ctx: ctx.data('palette_offset') > 0,
-            ),
-            {'description': 'Zeros in the end of block data'},
-        )
-        unk_7c = (
-            TrailingOptionalBlock(child=PaletteReference(), criteria=(unk_7c_presence_criteria, '0x7C header found')),
-            {'description': 'Unknown data with id 0x7C', 'is_unknown': True},
-        )
-        embedded_palette = (
-            TrailingOptionalBlock(
-                child=EacPalette(), criteria=(eac_palette_presence_criteria, '8-bit bitmap and palette header found')
-            ),
-            {
-                'description': 'Embedded palette, which should be assigned to this bitmap (except for ga00 in TR2_001.FAM)'
-            },
-        )
-        embedded_palette_2 = (
-            TrailingOptionalBlock(
-                child=EacPalette(), criteria=(eac_palette_presence_criteria, '8-bit bitmap and palette header found')
-            ),
-            {'description': 'Possibly one more embedded palette, unknown reason', 'is_unknown': True},
-        )
-        embedded_palette_3 = (
-            TrailingOptionalBlock(
-                child=EacPalette(), criteria=(eac_palette_presence_criteria, '8-bit bitmap and palette header found')
-            ),
-            {'description': 'Possibly one more embedded palette, unknown reason', 'is_unknown': True},
-        )
-        embedded_palette_4 = (
-            TrailingOptionalBlock(
-                child=EacPalette(), criteria=(eac_palette_presence_criteria, '8-bit bitmap and palette header found')
-            ),
-            {'description': 'Possibly one more embedded palette, unknown reason', 'is_unknown': True},
-        )
-        text = (
-            TrailingOptionalBlock(child=ShpiText(), criteria=(shpi_text_presence_criteria, '0x6F header found')),
-            {'description': 'Shpi text'},
-        )
         mipmaps = (
             TrailingOptionalBlock(
                 child=BytesBlock(
@@ -475,11 +543,86 @@ class EacImage(DeclarativeCompoundBlock):
                         '(1/4 + 1/16 + 1/64 + etc) * width * height * pixel_byteness',
                     )
                 ),
-                criteria=(mipmaps_presence_criteria, 'dimensions are powers of two and sufficient extra space'),
+                criteria=(
+                    mipmaps_presence_criteria,
+                    'dimensions are powers of two and position.y has the amount of levels',
+                ),
             ),
             {
-                'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with sizes w/2 x h/2, w/4 x h4, .... up to 1, in descending order.'
+                'description': 'Mipmaps pixel data in the same format as `bitmap` field. There are images with '
+                'sizes w/2 x h/2, w/4 x h/4, .... up to 1x1, in descending order, each padded with zeros to 16 bytes. '
+                'Only NFS5 files have them: the 4 high bits of `position.y` hold the amount of levels'
             },
+        )
+        pad = (
+            TrailingOptionalBlock(
+                child=Padding(to=lambda ctx: ctx.data('next_offset'), is_global=False),
+                criteria=(image_padding_criteria, 'next_offset points past the pixels'),
+            ),
+            {
+                'description': 'Bytes between the pixels (and mipmaps) and the first attached block: zeros, or '
+                'leftovers aligning it',
+                'is_unknown': True,
+            },
+        )
+        embedded_palette = (
+            TrailingOptionalBlock(
+                child=EacPalette(),
+                criteria=(chained_block_criteria(PALETTE_IDS, 16), 'the chain of attached blocks has a palette here'),
+            ),
+            {
+                'description': 'Embedded palette, which should be assigned to this bitmap (except for ga00 in TR2_001.FAM)'
+            },
+        )
+        embedded_palette_pad = (
+            TrailingOptionalBlock(
+                child=BytesBlock(length=(chain_padding_length, 'up to the next attached block')),
+                criteria=(chain_padding_criteria, 'the next attached block is 0x7C or 0x6F, not right here'),
+            ),
+            {'description': 'Bytes between the embedded palette and the next attached block', 'is_unknown': True},
+        )
+        hot_spots = (
+            TrailingOptionalBlock(
+                child=ShpiHotSpots(),
+                criteria=(chained_block_criteria([HOT_SPOTS_ID], 8), 'the chain of attached blocks has 0x7C here'),
+            ),
+            {'description': 'Hot spots: points of interest of the bitmap, read by TNFS dashboards'},
+        )
+        hot_spots_pad = (
+            TrailingOptionalBlock(
+                child=BytesBlock(length=(chain_padding_length, 'up to the next attached block')),
+                criteria=(chain_padding_criteria, 'the next attached block is 0x7C or 0x6F, not right here'),
+            ),
+            {'description': 'Bytes between the hot spots and the next attached block', 'is_unknown': True},
+        )
+        text = (
+            TrailingOptionalBlock(
+                child=ShpiText(),
+                criteria=(chained_block_criteria([TEXT_ID], 8), 'the chain of attached blocks has 0x6F here'),
+            ),
+            {'description': 'Shpi text'},
+        )
+        embedded_palette_2 = (
+            TrailingOptionalBlock(
+                child=EacPalette(), criteria=(unlinked_palette_criteria, 'palette header after the end of the chain')
+            ),
+            {
+                'description': 'A palette after the last attached block, which no block links to (some textures '
+                'of TNFS TR* tracks)',
+                'is_unknown': True,
+            },
+        )
+        embedded_palette_3 = (
+            TrailingOptionalBlock(
+                child=EacPalette(), criteria=(unlinked_palette_criteria, 'palette header after the end of the chain')
+            ),
+            {'description': 'One more palette which no block links to', 'is_unknown': True},
+        )
+        embedded_palette_4 = (
+            TrailingOptionalBlock(
+                child=EacPalette(), criteria=(unlinked_palette_criteria, 'palette header after the end of the chain')
+            ),
+            {'description': 'One more palette which no block links to', 'is_unknown': True},
         )
 
     @property
@@ -706,7 +849,7 @@ class EacImage(DeclarativeCompoundBlock):
                 resource_id, level_width, level_height, bd[offset : offset + level_len]
             )
             result.extend(level_data)
-            offset += level_len
+            offset += mipmap_level_byte_len(resource_id, level_width, level_height)
         return result
 
     def _mipmaps_internal_to_native(self, resource_id, width, height, data):
@@ -719,7 +862,9 @@ class EacImage(DeclarativeCompoundBlock):
             # a flat list of one entry per pixel.
             level_count = level_height if is_4bit else level_width * level_height
             level_data = data[offset : offset + level_count]
-            result += self._internal_to_native(resource_id, level_width, level_height, level_data)
+            level_bytes = self._internal_to_native(resource_id, level_width, level_height, level_data)
+            padding = mipmap_level_byte_len(resource_id, level_width, level_height) - len(level_bytes)
+            result += level_bytes + bytes(padding)
             offset += level_count
         return result
 
@@ -740,8 +885,41 @@ class EacImage(DeclarativeCompoundBlock):
     # 5) Change color space back
     # 6) Save
     # 7) Compare with original FSH
+    @staticmethod
+    def _link_chained_blocks(data):
+        """Sets the offsets of the chain of attached blocks parsed into fields. The last one keeps its own offset:
+        0, or a link to a block the parser keeps as raw bytes, written right after it"""
+        chained = [name for name in CHAINED_FIELDS if data.get(name) is not None]
+        if not chained:
+            return
+        pad = data.get('pad') or b''
+        width, height = data['width'], data['height']
+        mipmaps_len = mipmaps_byte_len(data['resource_id'], width, height) if data.get('mipmaps') else 0
+        data['next_offset'] = 16 + get_bitmap_len(data['resource_id'], width, height) + mipmaps_len + len(pad)
+        blocks = {'embedded_palette': EacPalette(), 'hot_spots': ShpiHotSpots(), 'text': ShpiText()}
+        for name, following in zip(chained, chained[1:]):
+            gap = data.get(f'{name}_pad') or b''
+            data[name]['next_offset'] = blocks[name].estimate_packed_size(data[name]) + len(gap)
+        last = chained[-1]
+        if data.get(f'{last}_pad') is not None:
+            # padding is read only before a block parsed into a field: that one was removed
+            data[f'{last}_pad'] = None
+            data[last]['next_offset'] = 0
+
+    @staticmethod
+    def _set_mipmap_count(data):
+        """Keeps the amount of mipmap levels in `position.y` in sync with `mipmaps`"""
+        y = data['position']['y']
+        levels = len(list(mipmap_level_dims(data['width'], data['height'])))
+        if data.get('mipmaps'):
+            data['position']['y'] = (y & 0xFFF) | (levels << 12)
+        elif levels and mipmap_count(y) == levels:
+            data['position']['y'] = y & 0xFFF
+
     def write(self, data, ctx: WriteContext = None, name: str = ''):
         copied = deepcopy(data)
+        self._set_mipmap_count(copied)
+        self._link_chained_blocks(copied)
         copied['bitmap'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['bitmap'])
         if copied['mipmaps']:
             copied['mipmaps'] = self._mipmaps_internal_to_native(
@@ -818,10 +996,19 @@ class EacImage(DeclarativeCompoundBlock):
 
     def _clear_8bit_palette_fields(self, read_data):
         """Clears the trailing palette fields that only apply to 8Bit bitmaps. Their write-time
-        presence check only looks at whether they're set, not `resource_id` (see
-        `eac_palette_presence_criteria`) - stale data here would get written anyway and misalign
-        everything read after it."""
+        presence check only looks at whether they're set, not `resource_id` - stale data here would
+        get written anyway and misalign everything read after it."""
+        palette = read_data['embedded_palette']
+        if (
+            palette is not None
+            and palette['next_offset'] == 0
+            and all(read_data.get(name) is None for name in CHAINED_FIELDS if name != 'embedded_palette')
+        ):
+            # the palette was the only attached block
+            read_data['next_offset'] = 0
+            read_data['pad'] = None
         read_data['embedded_palette'] = None
+        read_data['embedded_palette_pad'] = None
         read_data['embedded_palette_2'] = None
         read_data['embedded_palette_3'] = None
         read_data['embedded_palette_4'] = None

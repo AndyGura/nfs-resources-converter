@@ -13,7 +13,7 @@ from library.read_blocks import (
     OptionalBlock,
 )
 from library.read_blocks.misc.value_validators import Or
-from resources.eac.bitmaps import EacImage
+from resources.eac.bitmaps import EacImage, get_bitmap_len
 from resources.eac.fields.misc import Point2D
 
 
@@ -113,8 +113,9 @@ def calc_ffn_block_size(ctx):
     for name, field in ctx.block.field_blocks:
         if name == 'padding_2' and ctx.data('version') <= 101:
             continue
-        if name == 'bitmap' and data['bitmap']['embedded_palette']:
-            res += data['bitmap']['palette_offset'] - len(data['bitmap']['pad'])
+        if name == 'bitmap' and data['bitmap']['resource_id'] == '8Bit' and data['bitmap']['embedded_palette']:
+            bitmap = data['bitmap']
+            res += 16 + get_bitmap_len(bitmap['resource_id'], bitmap['width'], bitmap['height'])
             continue
 
         # fallback default compound block estimate_packed_size logic
@@ -164,8 +165,9 @@ class FfnFont(DeclarativeCompoundBlock):
             IntegerBlock(length=4, programmatic_value=lambda ctx: calc_ffn_block_size(ctx)),
             {
                 'usage': 'io,doc',
-                'description': 'The length of this FFN block in bytes. Does not include bitmap embedded palette '
-                '(and padding to it after bitmap data). For older versions (I set version <= 101,'
+                'description': 'The length of this FFN block in bytes. Does not include the embedded palette of an '
+                '8Bit bitmap (and padding to it after bitmap data); the palette of a 4Bit bitmap (NFS6) is included. '
+                'For older versions (I set version <= 101,'
                 ' but it can be anywhere up to < 309), "padding_2" length not included as well',
             },
         )

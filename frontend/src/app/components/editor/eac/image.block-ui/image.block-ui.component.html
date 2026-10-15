@@ -9,6 +9,7 @@
   [hideBlockActions]="!!hideBlockActions"
   [hideCustomActions]="true"
   [customStats]="[{ label: 'Color model', value: resourceData?.resource_id }]"
+  [overlays]="hotSpotOverlays"
   height="var(--image-viewer-height)"></app-image-viewer>
 
 @if (resourceData && resourceSchema) {
@@ -50,7 +51,7 @@
 @if (showEmbeddedPalettesArray && !(mainService.hideHiddenFields$ | async)) {
   <div class="embedded-palettes-array">
     <h3
-      matTooltip="Additional embedded palettes found after the primary one, purpose unknown"
+      matTooltip="Palettes after the last attached block, which no block links to (some TNFS track textures), purpose unknown"
       matTooltipPosition="above">
       Extra embedded palettes ({{ embeddedPaletteCount }}/3)
     </h3>

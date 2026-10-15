@@ -29,7 +29,7 @@
   [hideName]="hideName"
   [fieldBlacklist]="['resource_id', 'colors']"></app-compound-block-ui>
 <div id="colors-container">
-  @for (color of resourceData?.colors.data; track color; let i = $index) {
+  @for (color of resourceData?.colors.data; track i; let i = $index) {
     <div
       class="color-box"
       [style.--color-fill]="getColorGradient(color)"
