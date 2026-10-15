@@ -6,7 +6,7 @@ import { SubscribableGuiComponent } from '../../gui.component';
 import { MatDialog } from '@angular/material/dialog';
 import { ArchiveItemEditDialogComponent } from '../../common/archive-item-edit.dialog/archive-item-edit.dialog.component';
 import { ArchiveDelegateItemTypeDialogComponent } from '../../common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
-import { firstValueFrom } from 'rxjs';
+import { filter, firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { blockClassStr } from '../../../../utils/block_class_str';
 import { MatSelectionList } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -104,6 +104,32 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyed$ = new Subject<void>();
+
+  constructor() {
+    super();
+    // a rename (edit dialog, backend) is notified to the most specific component only: the dialog
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(id => !!this.resourceId && id.startsWith(joinId(this.resourceId, 'children')) && id.endsWith('/alias')),
+      )
+      .subscribe(() => this.cdr.markForCheck());
+  }
+
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
+    this.destroyed$.next();
+    this.destroyed$.complete();
+  }
+
+  // a free name for a new entry: new0, new1...
+  private newAlias(): string {
+    const taken = new Set((this.resourceData?.children || []).map(c => (c.alias || '').toLowerCase()));
+    let n = 0;
+    while (taken.has(`new${n}`)) n++;
+    return `new${n}`;
+  }
 
   override onExternalChanges() {
     super.onExternalChanges();
@@ -170,6 +196,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     }
     const newItem = await this.mainService.getNewItemData(id, newItemKwargs);
     if (newItem === null) return;
+    if (this.supportsAliases && !newItem.alias) {
+      newItem.alias = this.newAlias();
+    }
     this.emitNewChange({
       op: 'array_insert',
       id: id,

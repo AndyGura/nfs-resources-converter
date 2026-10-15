@@ -25,6 +25,9 @@
         (change)="onTextSet($any($event.target))"
         (focus)="onFocus()"
         (blur)="onBlur()" />
+      @if (maxLength && !disabled && resourceSchema.value_validator?.type !== 'eq') {
+        <mat-hint align="end">{{ maxLength }} bytes</mat-hint>
+      }
     }
   </mat-form-field>
 }

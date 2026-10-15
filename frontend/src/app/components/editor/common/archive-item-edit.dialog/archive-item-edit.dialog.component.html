@@ -4,8 +4,16 @@
     [resourceId]="data.id"
     [resourceData]="data.data"
     [resourceSchema]="data.schema"
-    [fieldBlacklist]="['item']"
+    [fieldBlacklist]="['item', 'post_offset_payload']"
     [hideName]="true"></app-compound-block-ui>
+  @if (!(mainService.hideHiddenFields$ | async)) {
+    <app-compound-block-ui
+      [resourceId]="data.id"
+      [resourceData]="data.data"
+      [resourceSchema]="data.schema"
+      [fieldBlacklist]="['item', 'alias']"
+      [hideName]="true"></app-compound-block-ui>
+  }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">Close</button>

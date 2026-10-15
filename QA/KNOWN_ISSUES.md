@@ -326,6 +326,9 @@ Fixed since (2026-10-16, report ids):
   the other images of the SHPI use (`archive_image_stats`); a model none of them uses, and mipmaps when none has them
   (with the new `position.y`), ask first. New images are 32-bit (new FFN atlases stay 4Bit). The conversion dialog
   is "Convert color model" (DXT included) and explains Output colors. Confirmed live (LDIABLDH, AL1_001.FAM).
+- S8 item names: a new entry gets a free name (`new0`...); the edit dialog shows the name first (raw
+  `post_offset_payload` with hidden fields only); fixed-size text inputs show their size in bytes and refuse a longer
+  value; the sidebar label follows a rename at once. Confirmed live (AL1_001.FAM horizon).
 
 ---
 
