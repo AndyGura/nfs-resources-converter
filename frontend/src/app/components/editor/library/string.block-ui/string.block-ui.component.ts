@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, inject, Input, Output } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { PrimitiveGuiComponent } from '../../gui.component';
 import { BlockSchema } from '../../types';
 
@@ -25,4 +26,22 @@ export class StringBlockUiComponent extends PrimitiveGuiComponent<string> {
 
   minLength: number | null = null;
   maxLength: number | null = null;
+
+  private readonly snackBar = inject(MatSnackBar);
+
+  // a fixed-size field holds `maxLength` bytes of UTF-8: a character outside ASCII takes 2..4
+  onTextSet(input: HTMLInputElement) {
+    const value = input.value;
+    const bytes = new TextEncoder().encode(value).length;
+    if (this.maxLength !== null && bytes > this.maxLength) {
+      this.snackBar.open(
+        `${this.resourceName || 'Value'} holds ${this.maxLength} bytes: "${value}" is ${bytes}`,
+        'OK',
+        { duration: 6000 },
+      );
+      input.value = this.resourceData ?? '';
+      return;
+    }
+    this.onValueSet(value);
+  }
 }

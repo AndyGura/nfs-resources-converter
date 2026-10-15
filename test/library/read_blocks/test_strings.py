@@ -80,3 +80,20 @@ class TestStrings(unittest.TestCase):
         self.assertEqual(name, '\udc80\x02')
         self.assertEqual(field.pack(name), raw)
         self.assertEqual(field.estimate_packed_size(name), 3)
+
+    def test_lengths_are_in_bytes(self):
+        from library.read_blocks import IntegerBlock
+        from library.read_blocks.strings import LengthPrefixedUtf8Block
+
+        field = LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4))
+        self.assertEqual(field.estimate_packed_size('911 ü'), 4 + 6)
+        raw = field.pack('911 ü')
+        self.assertEqual(raw[:4], (6).to_bytes(4, 'little'))
+        self.assertEqual(field.unpack(ReadContext(BytesIO(raw))), '911 ü')
+
+    def test_fixed_length_holds_bytes(self):
+        field = UTF8Block(length=4)
+        self.assertEqual(field.pack('gü'), 'gü'.encode('utf-8') + b'\x00')
+        self.assertEqual(field.unpack(ReadContext(BytesIO(field.pack('gü')))), 'gü')
+        with self.assertRaisesRegex(DataIntegrityException, '5 bytes'):
+            field.pack('Grün')

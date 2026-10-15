@@ -262,7 +262,7 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
 
-**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15, items 3, 4 2026-10-16). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15, items 3–5 2026-10-16). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
 steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
 
 1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
@@ -305,6 +305,8 @@ steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6
    SHPIs).
 5. Non-ASCII text in a ShpiText (or a 4-char item name) corrupts the image on save: `UTF8Block` sizes in characters,
    writes UTF-8 bytes, and its reader compares characters to bytes. Confirmed live (NFS5 `iconsRace.fsh`, "ü").
+   **Fixed**: `UTF8Block` reads, sizes and pads in bytes; a value longer than a fixed-size field is refused on save
+   (`DataIntegrityException` naming the field) and in the GUI's text input ("name holds 4 bytes: "Grün" is 5").
 6. Color Model → DXT1/3/5 fails with `ValueError('cannot reshape array …')` on any image with mipmaps (all 3 139 are
    NFS5). Confirmed live (`skidpad.fsh`).
 7. Once, Save cleared the change count without writing the file (after a DXT1 conversion and closing the Changes
