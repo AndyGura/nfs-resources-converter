@@ -183,6 +183,14 @@
     cursor: grabbing;
   }
 
+  &.bg-black {
+    background: #000000;
+  }
+
+  &.bg-white {
+    background: #ffffff;
+  }
+
   .image-frame {
     margin: auto;
     position: relative;

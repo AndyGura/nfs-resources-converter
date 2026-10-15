@@ -31,38 +31,49 @@
 }
 
 <div class="preview-wrapper">
-  @if (mipmaps.length > 0 || overlays.length > 0) {
-    <div class="viewer-toolbar">
-      @if (mipmaps.length > 0) {
-        <button [class.selected]="currentMipmapLevel === null" (click)="setMipmapLevel(null)" title="Main Image">
-          <mat-icon>image</mat-icon>
-        </button>
-        <div class="separator"></div>
-        @for (mm of mipmaps; track mm.level) {
-          <button
-            [class.selected]="currentMipmapLevel === mm.level"
-            (click)="setMipmapLevel(mm.level)"
-            [title]="'Mipmap Level ' + mm.level">
-            <span class="mm-label">M{{ mm.level }}</span>
-          </button>
-        }
-      }
-      @for (overlay of overlays; track overlay.name; let first = $first) {
-        @if (first && mipmaps.length > 0) {
-          <div class="separator"></div>
-        }
+  <div class="viewer-toolbar">
+    <button
+      (click)="cycleBackground()"
+      [title]="'Background: ' + background + ' (click for the next one)'"
+      [attr.aria-label]="'Background: ' + background">
+      <mat-icon>{{
+        background === 'checker' ? 'texture' : background === 'black' ? 'dark_mode' : 'light_mode'
+      }}</mat-icon>
+    </button>
+    @if (mipmaps.length > 0 || overlays.length > 0) {
+      <div class="separator"></div>
+    }
+    @if (mipmaps.length > 0) {
+      <button [class.selected]="currentMipmapLevel === null" (click)="setMipmapLevel(null)" title="Main Image">
+        <mat-icon>image</mat-icon>
+      </button>
+      <div class="separator"></div>
+      @for (mm of mipmaps; track mm.level) {
         <button
-          [class.selected]="!hiddenOverlays.has(overlay.name)"
-          (click)="toggleOverlay(overlay.name)"
-          [title]="(hiddenOverlays.has(overlay.name) ? 'Show ' : 'Hide ') + overlay.name.toLowerCase()">
-          <mat-icon>{{ overlay.icon }}</mat-icon>
-          <span class="mm-label">{{ overlay.markers.length }}</span>
+          [class.selected]="currentMipmapLevel === mm.level"
+          (click)="setMipmapLevel(mm.level)"
+          [title]="'Mipmap Level ' + mm.level">
+          <span class="mm-label">M{{ mm.level }}</span>
         </button>
       }
-    </div>
-  }
+    }
+    @for (overlay of overlays; track overlay.name; let first = $first) {
+      @if (first && mipmaps.length > 0) {
+        <div class="separator"></div>
+      }
+      <button
+        [class.selected]="!hiddenOverlays.has(overlay.name)"
+        (click)="toggleOverlay(overlay.name)"
+        [title]="(hiddenOverlays.has(overlay.name) ? 'Show ' : 'Hide ') + overlay.name.toLowerCase()">
+        <mat-icon>{{ overlay.icon }}</mat-icon>
+        <span class="mm-label">{{ overlay.markers.length }}</span>
+      </button>
+    }
+  </div>
   <div
     class="image-container"
+    [class.bg-black]="background === 'black'"
+    [class.bg-white]="background === 'white'"
     #imageContainer
     (wheel)="onWheel($event)"
     (mousedown)="onMouseDown($event)"

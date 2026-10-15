@@ -329,6 +329,9 @@ Fixed since (2026-10-16, report ids):
 - S8 item names: a new entry gets a free name (`new0`...); the edit dialog shows the name first (raw
   `post_offset_payload` with hidden fields only); fixed-size text inputs show their size in bytes and refuse a longer
   value; the sidebar label follows a rename at once. Confirmed live (AL1_001.FAM horizon).
+- S9 viewer: an edit re-renders the image keeping zoom and scroll when its size stays (no blank flash); Fit stays
+  within 10..1500 %; a viewport toolbar button cycles the background checkerboard / black / white (remembered).
+  Confirmed live (LDIABLDH `sped`: 966 % kept across a hot spot edit; `sstr` fits at 1500 %).
 
 ---
 

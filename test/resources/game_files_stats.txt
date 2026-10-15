@@ -244,4 +244,4 @@ Files with compressor round-trip failures: 0
 .VIV: 100.00% (15/15)
 
 --- Time Spent ---
-Total time: 00:11:17.66
+Total time: 00:11:47.91
