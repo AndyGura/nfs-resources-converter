@@ -134,6 +134,10 @@ export class ApiDelegateImplService {
     return this.wrapCall('get_new_item_data', id, patch);
   }
 
+  public async paletteUsage(paletteId: string): Promise<number[]> {
+    return this.wrapCall('palette_usage', paletteId);
+  }
+
   public async archiveImageStats(
     imageId: string,
   ): Promise<{ images: number; color_models: { [model: string]: number }; with_mipmaps: number }> {

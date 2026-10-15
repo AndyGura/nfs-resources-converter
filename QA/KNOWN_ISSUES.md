@@ -335,6 +335,11 @@ Fixed since (2026-10-16, report ids):
 - S10 hot spots: markers can be dragged (one undoable change for x and y, relative to `pivot`); `pivot` is no longer
   `is_unknown` (verified for dashboards and horizons), so it shows without hidden fields; the TNFS FAM `horz` bitmap
   shows its horizon row (`pivot.y`) as an overlay line. Confirmed live (LDIABLDH `gate`, AL1_001.FAM `horz`).
+- S11 palette: colors the images of the palette do not use are faded (`palette_usage`); TNFS car entries 250..255
+  are outlined and named in the tooltip; Shift+click selects a range, Cmd/Ctrl+click toggles one (Ctrl+click is the
+  context menu on macOS), "Set color" and "Shift hue" change the selection as one undoable change; the Changes list
+  prints palette colors in hex and bundles as their first changes "and N more". Confirmed live (JEEP.CFM `!PAL`:
+  50 colors hue-shifted in one change, undone).
 
 ---
 

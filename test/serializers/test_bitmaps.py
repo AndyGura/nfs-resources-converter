@@ -299,3 +299,13 @@ class TestNewImageDefaults(unittest.TestCase):
         name, _, data = require_file(path)
         stats = ResourceAPI(api=None).archive_image_stats(join_id(name, 'children', '0', 'item', 'data'))
         self.assertEqual(stats, {'images': 8, 'color_models': {'8Bit': 8}, 'with_mipmaps': 0})
+
+    def test_palette_usage(self):
+        name, _, data = require_file(os.path.join(SAMPLES, 'VERTBST.FSH'), lazy=False)
+        palette_index = next(i for i, c in enumerate(data['children']) if c['alias'].lower() == '!pal')
+        used = ResourceAPI(api=None).palette_usage(join_id(name, 'children', str(palette_index), 'item', 'data'))
+        expected = set()
+        for c in data['children']:
+            if c['item']['data'].get('resource_id') == '8Bit':
+                expected.update(c['item']['data']['bitmap'])
+        self.assertEqual(used, sorted(expected))

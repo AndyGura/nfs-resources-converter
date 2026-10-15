@@ -220,6 +220,51 @@ class ResourceAPI:
             stats['with_mipmaps'] += item['data'].get('mipmaps') is not None
         return stats
 
+    def palette_usage(self, palette_id: str) -> List[int]:
+        """
+        Indices of the palette `palette_id` the 8Bit images using it hold: the image of an embedded palette, or the
+        images of the SHPI which take this palette item (by name, `determine_palette_for_8_bit_bitmap`)
+
+        Returns:
+            sorted indices
+        """
+        import re
+
+        from resources.eac.bitmaps import EacImage
+        from resources.eac.utils import determine_palette_for_8_bit_bitmap
+
+        (_, _, palette), _ = require_resource(palette_id)
+        images = []
+        if palette_id.endswith('/embedded_palette'):
+            image_id = palette_id[: -len('/embedded_palette')]
+            (_, image_block, image), _ = require_resource(image_id)
+            images.append(image)
+        else:
+            match = re.match(r'^(.*)(?:__|/)children/\d+/item/data$', palette_id)
+            if not match:
+                return []
+            (_, archive_block, archive), _ = require_resource(match.group(1))
+            possible_blocks = getattr(getattr(archive_block, 'item_block', None), 'possible_blocks', [])
+            for i, child in enumerate(archive.get('children', [])):
+                item = child['item']
+                if item is None or not isinstance(possible_blocks[item['choice_index']], EacImage):
+                    continue
+                image = item['data']
+                if image.get('resource_id') != '8Bit':
+                    continue
+                image_id = join_id(match.group(1), 'children', str(i), 'item', 'data')
+                _, used_palette = determine_palette_for_8_bit_bitmap(
+                    possible_blocks[item['choice_index']], image, image_id
+                )
+                if used_palette is palette:
+                    images.append(image)
+        used = set()
+        for image in images:
+            if image.get('resource_id') == '8Bit':
+                used.update(image['bitmap'])
+                used.update(image.get('mipmaps') or [])
+        return sorted(used)
+
     def get_trailing_optional_field_data(self, resource_id: str) -> Any:
         """
         Get freshly-created data for a `TrailingOptionalBlock` field itself (as opposed to

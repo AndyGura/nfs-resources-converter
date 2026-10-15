@@ -121,6 +121,11 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).getNewItemData(id, patch);
   }
 
+  // palette indices the images using the palette hold
+  public async paletteUsage(paletteId: string): Promise<number[]> {
+    return (await this.getImpl()).paletteUsage(paletteId);
+  }
+
   // color models and mipmaps of the other images of the SHPI holding the image
   public async archiveImageStats(
     imageId: string,
