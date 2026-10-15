@@ -77,6 +77,9 @@ class FfnFontSerializer(BaseFileSerializer):
             )
             write_fnt_line('page', {'id': 0, 'file': 'bitmap.png'})
             write_fnt_line('chars', {'count': data['num_glyphs']})
+            # 16-byte glyphs keep the advance in x_advance (advance is 0 in the game files). In 12-byte ones the
+            # absent x_advance reads as 0, never None
+            is_16_bytes = data['version'] >= 321 and data['flags']['format'] == '16-bytes'
             for symbol in data['definitions']:
                 char_data = {
                     'id': symbol['code'],
@@ -86,12 +89,11 @@ class FfnFontSerializer(BaseFileSerializer):
                     'height': symbol['height'],
                     'xoffset': symbol['x_offset'],
                     'yoffset': symbol['y_offset'],
-                    # 16-byte glyphs keep the advance in x_advance (advance is 0 in the game files)
-                    'xadvance': symbol['advance'] if symbol.get('x_advance') is None else symbol['x_advance'],
+                    'xadvance': symbol['x_advance'] if is_16_bytes else symbol['advance'],
                     'page': 0,
                     'chnl': 0,
                 }
-                if symbol.get('x_advance') is not None:
+                if is_16_bytes:
                     char_data['advance'] = symbol['advance']
                 if symbol.get('num_kern') is not None:
                     char_data['num_kern'] = symbol['num_kern']

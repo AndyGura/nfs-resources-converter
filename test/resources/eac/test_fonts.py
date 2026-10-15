@@ -60,6 +60,40 @@ class TestFfnFont(unittest.TestCase):
             for i, x in enumerate(original):
                 self.assertEqual(x, output[i], f'Wrong value at index {i}')
 
+    def _exported_xadvances(self, font_res, name, block):
+        import tempfile
+        from serializers import get_serializer
+
+        serializer = get_serializer(block, font_res)
+        with tempfile.TemporaryDirectory() as tmp:
+            output_files = serializer.serialize(font_res, tmp, name, block)
+            with open(next(x for x in output_files if x.endswith('.fnt'))) as f:
+                lines = [x for x in f if x.startswith('char ')]
+            font_res2 = serializer.deserialize(output_files, name, block=block)
+        xadvances = [int(next(p for p in x.split() if p.startswith('xadvance='))[len('xadvance=') :]) for x in lines]
+        return xadvances, font_res2
+
+    def test_12_bytes_ffn_exports_advance_as_xadvance(self):
+        (name, block, font_res) = require_file('test/golden_corpus/GRAVER18.FFN')
+        self.assertEqual(font_res['flags']['format'], '12-bytes')
+        (xadvances, _) = self._exported_xadvances(font_res, name, block)
+        self.assertEqual(xadvances, [x['advance'] for x in font_res['definitions']])
+        self.assertTrue(all(x > 0 for x in xadvances))
+
+    def test_16_bytes_ffn_exports_x_advance_as_xadvance(self):
+        (name, block, font_res) = require_file('test/golden_corpus/Arial12b.ffn')
+        font = deepcopy(font_res)
+        font['flags']['format'] = '16-bytes'
+        font['version'] = 366
+        for glyph in font['definitions']:
+            (glyph['advance'], glyph['x_advance']) = (0, glyph['advance'] + 1)
+        (xadvances, font2) = self._exported_xadvances(font, name, block)
+        self.assertEqual(xadvances, [x['x_advance'] for x in font['definitions']])
+        self.assertEqual(
+            [(x['advance'], x['x_advance']) for x in font2['definitions']],
+            [(x['advance'], x['x_advance']) for x in font['definitions']],
+        )
+
     def test_16_bytes_ffn_kern_index_points_to_pairs_of_right_glyph(self):
         (name, block, font_res) = require_file('test/golden_corpus/Arial12b.ffn')
         font = deepcopy(font_res)
