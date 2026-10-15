@@ -67,6 +67,7 @@ class API:
         # Serialization API
         bridge.expose(self.serialization_api.serialize_resource)
         bridge.expose(self.serialization_api.deserialize_resource)
+        bridge.expose(self.serialization_api.new_images_from_files)
 
         # Conversion API
         bridge.expose(self.conversion_api.convert_files)

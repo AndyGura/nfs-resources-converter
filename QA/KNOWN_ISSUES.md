@@ -262,13 +262,17 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
 
-**Status**: Open (found 2026-10-15). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+**Status**: Open (found 2026-10-15; item 1 fixed 2026-10-15). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
 steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
 
 1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
    pixels but makes the image 32-bit and drops position, pivot, hot spots, embedded palette, text and mipmaps.
    TNFS `LDIABLDH.FSH` `sped` lost its 18 hot spots (the game hangs without them). Over all game images 41 402 /
-   63 478 lose a field. Confirmed live + headless.
+   63 478 lose a field. Confirmed live + headless. **Fixed**: the import replaces the pixels only and keeps the format
+   (8Bit mapped to the image's palette, unchanged pixels keep their index, CFM 250..254 by exact color only; mipmaps
+   made again when the pixels change). Re-importing every image's own export keeps all game files byte-exact that
+   were before. New 32-bit images come from the archive list's "Import from disk" (several files at once).
+   Confirmed live (`sped`: 8Bit, 18 hot spots, position and palette kept) + headless.
 2. SHPI folder import (`ShpiArchiveSerializer.deserialize`, non-CFM) reads every file of the folder as an image in
    `os.listdir` order, names it by its first 4 characters, drops palettes, makes everything 32-bit: of 5 067 game
    SHPIs, 2 213 come back reordered, 2 991 lose palettes, 199 gain images (`spherical.png` → `sphe`), 11 fail on

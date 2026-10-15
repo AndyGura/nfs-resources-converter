@@ -3,6 +3,7 @@ File API endpoint for the NFS Resources Converter.
 This module handles all file-related operations.
 """
 
+import re
 from typing import Optional, List
 
 from api.bridge import bridge
@@ -22,16 +23,19 @@ class FileDialogAPI:
         """
         self.api = api
 
-    def open_file_dialog(self, multiple: bool = False) -> List[str]:
+    def open_file_dialog(self, multiple: bool = False, file_types: Optional[List[str]] = None) -> List[str]:
         """
         Open a file dialog and return the selected file paths.
 
         Args:
             multiple: Whether to allow selecting multiple files
+            file_types: Filters in pywebview's format, e.g. ['Images (*.png;*.jpg)', 'All files (*.*)'], the first
+                one is preselected. All files when empty
 
         Returns:
             The list of selected file paths
         """
+        file_types = list(file_types or [])
         window = bridge.get_window()
         if window is None:
             # No native web view (Linux/Eel): fall back to a Tk file dialog,
@@ -46,12 +50,18 @@ class FileDialogAPI:
             root.attributes('-topmost', True)
             root.after_idle(root.attributes, '-topmost', False)
             filenames = []
+            # Tk wants (description, "*.png *.jpg") pairs
+            tk_file_types = [
+                (description.strip(), patterns.replace(';', ' '))
+                for description, patterns in (re.match(r'^(.*)\((.*)\)\s*$', x).groups() for x in file_types)
+            ]
+            options = {'filetypes': tk_file_types} if tk_file_types else {}
             if multiple:
-                selection = askopenfilenames()
+                selection = askopenfilenames(**options)
                 if selection:
                     filenames = list(selection)
             else:
-                filename = askopenfilename()
+                filename = askopenfilename(**options)
                 if filename:
                     filenames = [filename]
             root.destroy()
@@ -61,6 +71,7 @@ class FileDialogAPI:
         selection = window.create_file_dialog(
             webview.FileDialog.OPEN,
             allow_multiple=multiple,
+            file_types=tuple(file_types),
         )
         if not selection:
             return []

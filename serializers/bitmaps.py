@@ -1,6 +1,8 @@
+from copy import deepcopy
 from io import BytesIO
-from typing import List
+from typing import List, Optional, Sequence
 
+import numpy as np
 from PIL import Image
 
 from resources.eac.bitmaps import EacPalette, ShpiText
@@ -34,20 +36,27 @@ class ImageSerializer(BaseFileSerializer):
             return data
 
     def _get_palette_colors(self, data: dict, block, id) -> List[int]:
-        palette_colors = []
-        if data['resource_id'].startswith('8Bit'):
-            (_, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
-            if palette_data is None:
-                palette_colors = [0xFFFFFF00 | i for i in range(256)]
-            else:
-                palette_colors = [c for c in palette_data['colors']['data']]
-                if id and '.CFM__' in id.upper():
-                    from serializers.misc.tnfs_car_colors import car_texture_palette
+        if not data['resource_id'].startswith('8Bit'):
+            return []
+        palette_colors = self._found_palette_colors(data, block, id)
+        if palette_colors is None:
+            return [0xFFFFFF00 | i for i in range(256)]
+        return palette_colors
 
-                    # TNFS car textures: unique colors of the indices car_colors.json lists
-                    palette_colors = car_texture_palette(palette_colors)
-                if palette_data['last_color_transparent']:
-                    palette_colors[255] = 0
+    @staticmethod
+    def _found_palette_colors(data: dict, block, id) -> Optional[List[int]]:
+        # the colors of the palette of an 8Bit bitmap as it is exported, None when it has none
+        (_, palette_data) = determine_palette_for_8_bit_bitmap(block, data, id)
+        if palette_data is None:
+            return None
+        palette_colors = [c for c in palette_data['colors']['data']]
+        if id and '.CFM__' in id.upper():
+            from serializers.misc.tnfs_car_colors import car_texture_palette
+
+            # TNFS car textures: unique colors of the indices car_colors.json lists
+            palette_colors = car_texture_palette(palette_colors)
+        if palette_data['last_color_transparent']:
+            palette_colors[255] = 0
         return palette_colors
 
     def to_image(self, data: dict, block=None, id=None, palette_colors=None) -> Image.Image:
@@ -105,11 +114,21 @@ class ImageSerializer(BaseFileSerializer):
         return saved_files
 
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs):
+        """The image loaded under `id` with the pixels of the image file: format, position, hot spots, text and the
+        other fields are kept, mipmaps are made again. Without such an image, a new 32-bit one"""
         if len(file_paths) == 0:
             raise Exception('No image file provided to ImageSerializer')
         if len(file_paths) != 1:
             raise Exception('ImageSerializer can only deserialize one file at once')
-        image = Image.open(file_paths[0])
+        current = self._current_image(id)
+        if current is None:
+            return self.new_image_data(file_paths[0], block)
+        return self._with_pixels_of(current, file_paths[0], block, id)
+
+    @staticmethod
+    def new_image_data(file_path: str, block) -> dict:
+        """A new 32-bit image with the pixels of the image file"""
+        image = Image.open(file_path)
         image_rgba = image.convert('RGBA')
         data = block.new_data()
         data['resource_id'] = '32Bit color format bitmap'
@@ -118,6 +137,105 @@ class ImageSerializer(BaseFileSerializer):
         bitmap = [(r << 24) | (g << 16) | (b << 8) | a for (r, g, b, a) in image_rgba.get_flattened_data()]
         data['bitmap'] = bitmap
         return data
+
+    @staticmethod
+    def _current_image(id) -> Optional[dict]:
+        # the image loaded under `id`, which the import replaces
+        if not id:
+            return None
+        from library import require_resource
+
+        try:
+            (_, _, current), _ = require_resource(id)
+        except Exception:
+            return None
+        return current if isinstance(current, dict) and 'bitmap' in current and 'resource_id' in current else None
+
+    def _with_pixels_of(self, current: dict, file_path: str, block, id) -> dict:
+        from library.utils.number_utils import is_power_of_two
+
+        new_image = self.new_image_data(file_path, block)
+        width, height, pixels = new_image['width'], new_image['height'], new_image['bitmap']
+        color_format = current['resource_id']
+        # the palette the image is exported with (without one in the file, the index in the alpha channel), looked
+        # up before the change: the palette of an image is found by comparing the image data
+        palette_colors = self._get_palette_colors(current, block, id)
+        data = {k: (v if k in ('bitmap', 'mipmaps') else deepcopy(v)) for k, v in current.items()}
+        data['width'], data['height'] = width, height
+        if color_format == '8Bit':
+            exact_only = []
+            if id and '.CFM__' in id.upper():
+                from serializers.misc.tnfs_car_colors import LIGHT_BAR_INDICES, TAIL_LIGHT_INDEX
+
+                # the game recolors these: only pixels of exactly their color take them
+                exact_only = LIGHT_BAR_INDICES + [TAIL_LIGHT_INDEX]
+            data['bitmap'] = self.to_palette_indexes(pixels, palette_colors, exact_only)
+            if (width, height) == (current['width'], current['height']):
+                data['bitmap'] = self._keep_unchanged_indexes(data['bitmap'], current['bitmap'], pixels, palette_colors)
+        elif color_format.startswith('4Bit'):
+            # the exported 4Bit image is white with the 4-bit value in the alpha channel
+            data['bitmap'] = block._convert_pixels_to_4bit(
+                pixels, '32Bit color format bitmap', 'alpha', [(width, height)]
+            )
+        elif color_format != '32Bit color format bitmap':
+            # the colors the format can hold, as the color model conversion does
+            data['bitmap'] = block._native_to_internal(
+                color_format, width, height, block._internal_to_native(color_format, width, height, pixels)
+            )
+        else:
+            data['bitmap'] = pixels
+        if current.get('mipmaps') is not None and data['bitmap'] != current['bitmap']:
+            data['mipmaps'] = None
+            if is_power_of_two(width) and is_power_of_two(height) and (width > 1 or height > 1):
+                block.action_generate_mipmaps(data)
+        return data
+
+    @staticmethod
+    def _keep_unchanged_indexes(indexes: List[int], current_indexes: List[int], pixels: List[int], palette: List[int]):
+        # a pixel which still has the color of its index keeps that index: a palette can have one color several times
+        colors = np.asarray(palette + [0], dtype=np.uint32)
+        current = np.asarray(current_indexes, dtype=np.int64)
+        current_colors = colors[np.where((current >= 0) & (current < len(palette)), current, len(palette))]
+        unchanged = current_colors == np.asarray(pixels, dtype=np.uint32)
+        return np.where(unchanged, current, np.asarray(indexes, dtype=np.int64)).tolist()
+
+    @staticmethod
+    def to_palette_indexes(pixels: List[int], palette: List[int], exact_only: Sequence[int] = ()) -> List[int]:
+        """RGBA pixels -> indexes of the same palette color (the first one), else of the nearest one (a transparent
+        pixel takes a transparent entry when there is one). The `exact_only` indexes are taken by their exact color
+        only"""
+        if len(pixels) == 0:
+            return []
+        first_index = {}
+        for i, color in enumerate(palette):
+            first_index.setdefault(color, i)
+        candidates = [i for i in range(len(palette)) if i not in exact_only] or list(range(len(palette)))
+        transparent = [i for i in candidates if palette[i] & 0xFF == 0]
+
+        def channels(colors):
+            colors = np.asarray(colors, dtype=np.uint32)
+            return np.stack([(colors >> shift) & 0xFF for shift in (24, 16, 8, 0)], axis=-1).astype(np.int32)
+
+        unique_pixels, inverse = np.unique(np.asarray(pixels, dtype=np.uint32), return_inverse=True)
+        unique_indexes = np.zeros(len(unique_pixels), dtype=np.int64)
+        to_search = []
+        for n, pixel in enumerate(unique_pixels.tolist()):
+            if pixel in first_index:
+                unique_indexes[n] = first_index[pixel]
+            elif pixel & 0xFF == 0 and transparent:
+                unique_indexes[n] = transparent[0]
+            else:
+                to_search.append(n)
+        if to_search:
+            candidate_channels = channels([palette[i] for i in candidates])
+            searched = channels(unique_pixels[to_search])
+            nearest = []
+            for start in range(0, len(searched), 4096):
+                chunk = searched[start : start + 4096]
+                distances = ((chunk[:, None, :] - candidate_channels[None, :, :]) ** 2).sum(axis=-1)
+                nearest.extend(np.asarray(candidates)[distances.argmin(axis=1)].tolist())
+            unique_indexes[to_search] = nearest
+        return unique_indexes[inverse.reshape(-1)].tolist()
 
 
 class TargaImageSerializer(BaseFileSerializer):

@@ -9,6 +9,7 @@ import { ArchiveDelegateItemTypeDialogComponent } from '../../common/archive-del
 import { firstValueFrom } from 'rxjs';
 import { blockClassStr } from '../../../../utils/block_class_str';
 import { MatSelectionList } from '@angular/material/list';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { isLazyStub } from '../../../../utils/lazy';
 
 // an unloaded entry (`isLazyStub`) has `alias` only, until it is selected
@@ -32,6 +33,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 }> {
   childSchema: BlockSchema | undefined;
   supportsAliases: boolean = false;
+  // the entries can be images (SHPI): image files can be added from disk
+  canImportImages: boolean = false;
+  isImporting: boolean = false;
 
   @ViewChild(MatSelectionList)
   private list!: MatSelectionList;
@@ -44,6 +48,7 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     super.resourceSchema = value;
     this.childSchema = undefined;
     this.supportsAliases = false;
+    this.canImportImages = false;
     if (value) {
       const childrenField = value.fields.find((x: { name: string; schema: BlockSchema }) => x.name === 'children');
       if (childrenField) {
@@ -52,6 +57,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
         this.childSchema = childSchema.fields.find(
           (x: { name: string; schema: BlockSchema }) => x.name === 'item',
         )?.schema;
+        this.canImportImages = (this.childSchema?.possible_resource_schemas || []).some((s: BlockSchema) =>
+          s.block_class_mro.split('__').includes('EacImage'),
+        );
       }
     }
   }
@@ -95,6 +103,7 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
   }
 
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
   override onExternalChanges() {
     super.onExternalChanges();
@@ -167,6 +176,42 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
       index: this.resourceData!.children.length,
       value: newItem,
     });
+  }
+
+  // image files picked on disk become new 32-bit images at the end, as one undoable change
+  async importImagesFromDisk() {
+    const paths = await this.mainService.api.openFileDialog(true, [
+      'Images (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tga;*.webp;*.tif;*.tiff)',
+      'All files (*.*)',
+    ]);
+    if (!paths || paths.length === 0) return;
+    this.isImporting = true;
+    this.cdr.markForCheck();
+    try {
+      const { items, skipped } = await this.mainService.api.newImagesFromFiles(this.resourceId!, paths);
+      const id = joinId(this.resourceId!, 'children');
+      const start = this.resourceData!.children.length;
+      if (items.length > 0) {
+        this.emitNewChange({
+          op: 'bundle',
+          changes: items.map((value, i) => ({
+            op: 'array_insert',
+            id,
+            index: start + i,
+            value,
+            timestamp: Date.now(),
+          })),
+        });
+        this.selectedValue = [start, this.resourceData!.children[start]];
+        this.updateSelectionOnDataChange();
+      }
+      const added = `${items.length} image${items.length === 1 ? '' : 's'} added`;
+      const skippedText = skipped.map(([name, reason]) => `${name} (${reason})`).join(', ');
+      this.snackBar.open(skippedText ? `${added}. Skipped: ${skippedText}` : added, 'OK', { duration: 6000 });
+    } finally {
+      this.isImporting = false;
+      this.cdr.markForCheck();
+    }
   }
 
   async removeItem(index: number) {

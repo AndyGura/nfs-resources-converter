@@ -170,6 +170,13 @@ export class ApiDelegateImplService {
     return this.wrapCall('deserialize_resource', id, filePaths, extraOpts);
   }
 
+  public async newImagesFromFiles(
+    id: string,
+    filePaths: string[],
+  ): Promise<{ items: BlockData[]; skipped: [string, string][] }> {
+    return this.wrapCall('new_images_from_files', id, filePaths);
+  }
+
   // Conversion API
   public async convertFiles(
     inputPath: string,
@@ -240,8 +247,8 @@ export class ApiDelegateImplService {
   }
 
   // File dialog API
-  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
-    return this.wrapCall('open_file_dialog', multiple);
+  public async openFileDialog(multiple: boolean = false, fileTypes: string[] = []): Promise<string[]> {
+    return this.wrapCall('open_file_dialog', multiple, fileTypes);
   }
 
   public async saveFileDialog(fileName?: string): Promise<string | null> {

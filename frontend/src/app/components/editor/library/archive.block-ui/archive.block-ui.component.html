@@ -79,6 +79,19 @@
           <mat-icon>add</mat-icon>
           Add Item
         </button>
+        @if (canImportImages) {
+          <button
+            mat-button
+            color="primary"
+            (click)="importImagesFromDisk()"
+            [disabled]="isImporting"
+            class="add-item-button"
+            matTooltip="Add image files from disk as new 32-bit images, one item per file"
+            matTooltipPosition="above">
+            <mat-icon>add_photo_alternate</mat-icon>
+            Import from disk
+          </button>
+        }
       </div>
     }
   </mat-selection-list>

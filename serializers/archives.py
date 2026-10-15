@@ -157,9 +157,7 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         img_serializer = img_block.serializer_class()()
 
         for file_name in file_names:
-            img = img_serializer.deserialize(
-                [path_join(path, file_name)], join_id(id, f'children/{len(new_shpi["children"])}/item/data'), img_block
-            )
+            img = img_serializer.new_image_data(path_join(path, file_name), img_block)
 
             new_shpi['children'].append(
                 {

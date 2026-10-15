@@ -150,6 +150,14 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).deserializeResource(id, filePaths, extraOpts);
   }
 
+  // new entries of the archive `id` with the image files as 32-bit images, the archive itself is not changed
+  public async newImagesFromFiles(
+    id: string,
+    filePaths: string[],
+  ): Promise<{ items: BlockData[]; skipped: [string, string][] }> {
+    return (await this.getImpl()).newImagesFromFiles(id, filePaths);
+  }
+
   // Conversion API
   public async convertFiles(
     inputPath: string,
@@ -220,8 +228,9 @@ export abstract class BaseApiDelegateService {
   }
 
   // File dialog API
-  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
-    return (await this.getImpl()).openFileDialog(multiple);
+  // fileTypes: e.g. ['Images (*.png;*.jpg)', 'All files (*.*)']
+  public async openFileDialog(multiple: boolean = false, fileTypes: string[] = []): Promise<string[]> {
+    return (await this.getImpl()).openFileDialog(multiple, fileTypes);
   }
 
   public async saveFileDialog(fileName?: string): Promise<string | null> {

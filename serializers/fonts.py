@@ -309,7 +309,7 @@ class FfnFontSerializer(BaseFileSerializer):
         elif current_format == '8Bit':
             palette = current_bitmap.get('embedded_palette')
             if palette and palette['resource_id'] == '32Bit color format palette':
-                bitmap['bitmap'] = FfnFontSerializer._to_palette_indexes(bitmap['bitmap'], palette['colors']['data'])
+                bitmap['bitmap'] = ImageSerializer.to_palette_indexes(bitmap['bitmap'], palette['colors']['data'])
                 bitmap['resource_id'] = '8Bit'
             else:
                 EacImage().action_convert_to_8bit(bitmap, 'alpha')
@@ -317,24 +317,3 @@ class FfnFontSerializer(BaseFileSerializer):
             return
         for name in ['pad', 'embedded_palette', 'embedded_palette_pad']:
             bitmap[name] = deepcopy(current_bitmap.get(name))
-
-    @staticmethod
-    def _to_palette_indexes(pixels: List[int], palette: List[int]) -> List[int]:
-        # RGBA pixel -> index of the same palette color (first one), else of the nearest
-        indexes = {}
-        for i, color in enumerate(palette):
-            indexes.setdefault(color, i)
-
-        def channels(color):
-            return [(color >> shift) & 0xFF for shift in (24, 16, 8, 0)]
-
-        def nearest(color):
-            c = channels(color)
-            return min(range(len(palette)), key=lambda i: sum((a - b) ** 2 for a, b in zip(c, channels(palette[i]))))
-
-        result = []
-        for pixel in pixels:
-            if pixel not in indexes:
-                indexes[pixel] = nearest(pixel)
-            result.append(indexes[pixel])
-        return result

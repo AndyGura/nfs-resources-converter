@@ -184,6 +184,12 @@ When you do:
 - Hot spots: TNFS reads them only in the dashboard loader (`dash`, `tach`, `sped`, `gate` of `DASH/*DH|DL.FSH`, it hangs
   without them); point + `pivot` is the pixel of the bitmap. The GUI's image editor draws them over the image
   (`ImageViewerComponent.overlays`, toggled in its viewport toolbar).
+- PNG import over an image (`ImageSerializer.deserialize` with the image's id) replaces its pixels only: format,
+  position, pivot, hot spots, text and palettes stay, 8Bit pixels take the index of their color in the palette the
+  image is exported with (the same index where unchanged, else the first exact, else the nearest; a CFM's 250..254 by
+  exact color only), mipmaps are made again when the pixels change. Re-importing its own export keeps every game file
+  byte-exact. New images come in as 32-bit: `ImageSerializer.new_image_data`, used by SHPI folder import and by the
+  archive list's "Import from disk" (`SerializationAPI.new_images_from_files`, several files, one undoable change).
 
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 
