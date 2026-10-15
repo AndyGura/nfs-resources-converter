@@ -112,9 +112,14 @@ class LengthPrefixedUtf8Block(UTF8Block):
 
 
 class NullTerminatedUTF8Block(DataBlock):
-    def __init__(self, length, **kwargs):
+    """`errors`: how bytes which are not UTF-8 are read. 'ignore' drops them; 'surrogateescape' keeps each as a
+    character U+DC80..U+DCFF, written back as the same byte (for fields where they occur and the file must stay
+    byte-exact; such a string cannot be written to a UTF-8 text file as is)"""
+
+    def __init__(self, length, errors: str = 'ignore', **kwargs):
         super().__init__(**kwargs)
         self._length = length
+        self.errors = errors
 
     @property
     def schema(self) -> Dict:
@@ -136,10 +141,13 @@ class NullTerminatedUTF8Block(DataBlock):
             if nxt == b'\00':
                 break
             res += nxt
-        return res.decode('utf-8', errors='ignore')
+        return res.decode('utf-8', errors=self.errors)
+
+    def encode(self, data: str) -> bytes:
+        return data.encode('utf-8', errors='surrogateescape' if self.errors == 'surrogateescape' else 'strict')
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        return len(data) + 1
+        return len(self.encode(data)) + 1
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        return data.encode('utf-8') + b'\00'
+        return self.encode(data) + b'\00'

@@ -193,16 +193,23 @@ def orip_polygon_partitions(data: dict) -> List[Optional[str]]:
     return result
 
 
+def is_orip_name(name: str) -> bool:
+    """An ORIP label / fx name made of printable ASCII: the others are garbage (DVIPER's bytes 80 02, LDIABL's e0 01),
+    read with bytes which are not UTF-8 kept as U+DC80..U+DCFF, so they cannot be written to the exported files"""
+    return bool(name) and all(0x20 < ord(c) < 0x7F for c in name)
+
+
 def orip_sub_mesh_names(data: dict) -> Tuple[List[str], List[Optional[str]]]:
     """Name of the exported mesh of each ORIP polygon, and the partition of each polygon (`orip_polygon_partitions`).
-    Polygons are grouped by label and texture: "lbl__<label>__<texture>", "lbl__<label>" or "<texture>". A mesh
+    Polygons are grouped by label and texture: "lbl__<label>__<texture>", "lbl__<label>" or "<texture>", labels with a
+    garbage name (`is_orip_name`) left out. A mesh
     holds polygons of one partition only: when a group spans several, the partition with the most of its polygons
     (on a tie, the one of its first polygon) keeps the name, the others get "__<partition>" ("__none" without one)"""
     partitions = orip_polygon_partitions(data)
     base_names = []
     for pi, polygon in enumerate(data['polygons']):
         texture_id = data['materials'][polygon['material_index']]['file_name']
-        label = ([x['name'] for x in filter(lambda y: y['index'] == pi, data['labels'])] or [None])[0]
+        label = ([x['name'] for x in data['labels'] if x['index'] == pi and is_orip_name(x['name'])] or [None])[0]
         parts = []
         if label:
             parts.append('lbl__' + label)
@@ -243,7 +250,7 @@ def orip_fx_dummies(data: dict) -> List[dict]:
     names = set()
     for entry in data['fx_polys']:
         fx_name, index = entry['name'], entry['index']
-        if not fx_name or not all(0x20 < ord(c) < 0x7F for c in fx_name) or index >= len(vertices):
+        if not is_orip_name(fx_name) or index >= len(vertices):
             continue
         name = f'fx_{fx_name}'
         suffix = 1

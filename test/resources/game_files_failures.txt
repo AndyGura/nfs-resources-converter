@@ -157,7 +157,7 @@ tnfsse/SIMDATA/MISC/TR6INFO		NotImplementedError:
 tnfsse/SIMDATA/MISC/TR7INFO		NotImplementedError: 
 tnfsse/SIMDATA/MISC/TRXINFO		NotImplementedError: 
 
---- Read-again failures (Test 3): 153 ---
+--- Read-again failures (Test 3): 137 ---
 nfs2se/GAMEDATA/DASHHUD/PC/HUDDATA.VIV		Read-again data differs from original data
 nfs2se/SETUP/ENGLISH/_INST32I.EX_		Read-again data differs from original data
 nfs2se/SETUP/SPANISH/_INST32I.EX_		Read-again data differs from original data
@@ -283,18 +283,10 @@ nfsu/Cars/S2000/TEXTURES.BIN		Read-again data differs from original data
 nfsu/Cars/S2000/VINYLS.BIN		Read-again data differs from original data
 nfsu/Global/HUDTEX.BIN		Read-again data differs from original data
 tnfsse/GAMEDATA/CONFIG/CONFIG.DAT		Read-again data differs from original data
-tnfsse/SIMDATA/CARFAMS/DVIPER.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/F512M.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/F512TR.CFM		Read-again data differs from original data
-tnfsse/SIMDATA/CARFAMS/LDIABL.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/LDIABLO.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/MP911T.CFM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/CY3_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/TR1_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/TR5_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/CY3_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/TR1_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/TR5_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/AL2.TRI		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/AL22.TRI		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/AL3.TRI		Read-again data differs from original data
@@ -302,14 +294,6 @@ tnfsse/SIMDATA/MISC/CL1.TRI		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/CL2.TRI		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/CL3.TRI		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/CY3.TRI		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/CY3_M01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/CY3_R01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/CY3_T01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR1_M01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR1_R01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR1_T01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR5_M01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR8_R01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/SOUNDBNK/COLL_SB.BNK		Read-again data differs from original data
 
 --- Comparison failures (Test 4): 120 ---

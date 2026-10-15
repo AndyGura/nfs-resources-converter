@@ -61,3 +61,22 @@ class TestStrings(unittest.TestCase):
 
         field = NullTerminatedUTF8Block(length=None)
         self.assertEqual(field.size_doc_str, '1..?')
+
+    def test_null_terminated_sizes_are_in_bytes(self):
+        from library.read_blocks.strings import NullTerminatedUTF8Block
+
+        field = NullTerminatedUTF8Block(length=None)
+        self.assertEqual(field.estimate_packed_size('Grün'), 6)
+        self.assertEqual(len(field.pack('Grün')), 6)
+
+    def test_null_terminated_keeps_bytes_which_are_not_utf8(self):
+        from library.read_blocks.strings import NullTerminatedUTF8Block
+
+        raw = b'\x80\x02\x00'
+        lossy = NullTerminatedUTF8Block(length=None).unpack(ReadContext(BytesIO(raw)))
+        self.assertEqual(lossy, '\x02')
+        field = NullTerminatedUTF8Block(length=None, errors='surrogateescape')
+        name = field.unpack(ReadContext(BytesIO(raw)))
+        self.assertEqual(name, '\udc80\x02')
+        self.assertEqual(field.pack(name), raw)
+        self.assertEqual(field.estimate_packed_size(name), 3)

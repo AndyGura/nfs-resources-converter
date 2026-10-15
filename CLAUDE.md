@@ -204,7 +204,11 @@ When you do:
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 
 - `OripGeometrySerializer` splits meshes by texture and by ORIP `labels` (polygon indices): mesh names
-  `lbl__<label>__<texture>` (`lbl__lt_frnt`, `lbl__bkll__rsid`...), nfs-web reads them. ORIP `fx_polys` are vertex
+  `lbl__<label>__<texture>` (`lbl__lt_frnt`, `lbl__bkll__rsid`...), nfs-web reads them. Labels and `fx_polys` with a
+  garbage name (DVIPER bytes 80 02, LDIABL e0 01) are left out (`is_orip_name`): `NamedIndex` reads names with
+  bytes which are not UTF-8 kept as U+DC80..U+DCFF (`NullTerminatedUTF8Block(errors='surrogateescape')`), so the
+  file writes back byte-exact but such a name cannot go to a UTF-8 text file. A `NamedIndex` is always 12 bytes
+  (`estimate_packed_size`), whatever the stored padding, so ORIP `block_size` stays right after a rename. ORIP `fx_polys` are vertex
   indices (wheel ground points `FL0`..`RR1` / `fl0`..`rr1`, engine point `smok`, `d`): they go to the meta as dummies
   `fx_<name>` with properties `fx` and `vertex` (`orip_fx_dummies`), at the vertex in mesh space. Field descriptions in
   `resources/eac/geometries/tnfs.py` list what each name marks and which fields the game code reads.

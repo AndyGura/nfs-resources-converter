@@ -262,7 +262,7 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
 
-**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15, item 3 2026-10-16). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
 steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
 
 1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
@@ -285,7 +285,15 @@ steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6
    (`TypeError ... reading 'data'`). Confirmed live (AL1_001.FAM horizon) + headless.
 3. Saving 6 TNFS CFM (DVIPER, F512M, F512TR, LDIABL, LDIABLO, MP911T) and 14 FAM (TR1, CY3, TR5, TR8_R01) writes the
    ORIP `block_size` one byte short (`estimate_packed_size`), so the model re-opens as raw bytes, also after a
-   texture-only edit. Confirmed live (DVIPER) + headless. In-game effect Unknown.
+   texture-only edit. Confirmed live (DVIPER) + headless. In-game effect Unknown. **Fixed**: the garbage `fx_polys` /
+   `labels` names of these models have a byte which is not UTF-8 (DVIPER 80 02), dropped on read, while the padding
+   after the name kept its read length: the size estimate came out a byte short per name. Names keep those bytes
+   now, and a `NamedIndex` is sized 12 bytes whatever its padding (a renamed label had the same problem; a name over
+   7 bytes is refused on save). CY3_M01.FAM also had an empty WWWW entry (offset 0) written with the next entry's
+   offset, which then read as a copy of it: written as 0 again. All 20 files re-read the same after a save; 15 are
+   byte-exact, F512M / F512TR / MP911T differ in their SHPI layout / DOS palette high bits only, LDIABLO's far model
+   is written 3 bytes longer (`unk_morphs`). Confirmed live (DVIPER saved after a palette edit: 3 bytes differ, model
+   opens) + headless.
 4. SHPI action "Convert all images to 8Bit" writes indices for a new `!pal` but keeps each image's embedded palette
    (which wins), so all 37 images of `LDIABLDH.FSH` render garbled; it also deletes non-image items. Confirmed live +
    headless.

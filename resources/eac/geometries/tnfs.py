@@ -1,6 +1,8 @@
 from math import floor
 from typing import Dict
 
+from library.context import WriteContext
+from library.exceptions import DataIntegrityException
 from library.read_blocks import (
     DeclarativeCompoundBlock,
     UTF8Block,
@@ -251,15 +253,34 @@ class NamedIndex(DeclarativeCompoundBlock):
 
     class Fields(DeclarativeCompoundBlock.Fields):
         name = (
-            NullTerminatedUTF8Block(length=8),
-            {'description': 'Name of the entry (up to 7 characters). A few entries have a garbage name, like "\\x02"'},
+            NullTerminatedUTF8Block(length=8, errors='surrogateescape'),
+            {
+                'description': 'Name of the entry (up to 7 bytes). A few entries have a garbage name, like the bytes '
+                '80 02 of a DVIPER `fx_polys` entry (kept as is: a byte which is not UTF-8 is read as U+DC80..U+DCFF)'
+            },
         )
         offset = ArrayBlock(
             child=IntegerBlock(length=1),
             length=(lambda ctx: 8 - ctx.buffer.tell() + ctx.read_start_offset, '7 - len(name)'),
-            programmatic_value=lambda ctx: [0] * (7 - len(ctx.data('name'))),
+            programmatic_value=lambda ctx: [0] * (7 - len(NamedIndex.name_bytes(ctx.data('name')))),
         )
         index = (IntegerBlock(length=4), {'description': 'Index of the vertex (`fx_polys`) or polygon (`labels`)'})
+
+    @staticmethod
+    def name_bytes(name: str) -> bytes:
+        return name.encode('utf-8', errors='surrogateescape')
+
+    def estimate_packed_size(self, data, ctx: WriteContext = None):
+        # always 12: `offset` is written from the name, whatever it was read with (ORIP `block_size` counts on it)
+        return 12
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        if len(self.name_bytes(data['name'])) > 7:
+            raise DataIntegrityException(
+                f'Name "{data["name"]}" is longer than 7 bytes, the most a {name or "named index"} entry can hold',
+                ctx=ctx,
+            )
+        return super().write(data, ctx, name)
 
 
 # TODO check additional info in http://3dodev.com/documentation/file_formats/games/nfs
@@ -487,10 +508,10 @@ class OripGeometry(DeclarativeCompoundBlock):
                 'tyre smoke, dust and skid marks. `smok` is a point at the engine: on the hood of front-engined '
                 'cars (DVIPER, CZR1, MRX7, TSUPRA), at the exhaust or the engine lid of the others; guess: source '
                 'of engine smoke and fire of a wrecked car. Never looked up: `d` (only in the M*.CFM models, a point '
-                'near the bottom of the front left wheel) and the garbage name "\\x02" of one more DVIPER entry (the '
-                'top of a wheel polygon). The gg-web-engine export writes every entry as a dummy "fx_<name>" at the '
-                'vertex, with properties `fx` (the name) and `vertex` (the index), skipping entries with a '
-                'non-printable name like "\\x02"'
+                'near the bottom of the front left wheel) and the garbage name (bytes 80 02) of one more DVIPER entry '
+                '(the top of a wheel polygon). The gg-web-engine export writes every entry as a dummy "fx_<name>" at '
+                'the vertex, with properties `fx` (the name) and `vertex` (the index), skipping entries with a name '
+                'which is not printable ASCII'
             },
         )
         unk_lbl = (
@@ -506,8 +527,8 @@ class OripGeometry(DeclarativeCompoundBlock):
                 'materials `frntires` / `rertires`, which get the animated tyre textures. Never looked up: '
                 '`bkll` / `bklr` (left / right rear light), `bott` (a horizontal quad over the whole underside of '
                 'the body of the simple traffic car models, texture `bott`), `bacr` (P911, the centre part of the '
-                'rear light bar), `mm` (LDIABLO; garbage name "\\x01" on the same polygon of LDIABL: a two-sided '
-                'quad at the inner side of the front right wheel, texture `circ`), `W` (TRAFFC, WARRIOR: a triangle '
+                'rear light bar), `mm` (LDIABLO; garbage name, bytes e0 01, on the same polygon of LDIABL, left out of the exported mesh '
+                'names: a two-sided quad at the inner side of the front right wheel, texture `circ`), `W` (TRAFFC, WARRIOR: a triangle '
                 'at the top rear left corner of the body, texture `abox`) and the COPMUST lights `hll0` / `hlr0` '
                 '(headlights), `bkl0` / `bkr0` (rear lights), `lfl0` / `lfr0` and `lrl0` / `lrr0` (front and rear '
                 'left / right parts of the siren light bar on the roof). Brake and siren lights are palette '
