@@ -162,8 +162,13 @@ export class AppComponent implements OnInit {
 
   async saveResource() {
     try {
-      await this.mainService.saveResource();
-      this.snackBar.open('File Saved!', 'OK', { duration: 1500 });
+      const size = await this.mainService.saveResource();
+      const path = this.mainService.api.openedResourcePath$.getValue() || '';
+      const fileName = path.split(/[\\/]/).pop();
+      // the size the backend found on disk after writing: a save which did not reach the file fails instead
+      this.snackBar.open(size !== null ? `Saved ${fileName} (${size.toLocaleString()} bytes)` : 'File Saved!', 'OK', {
+        duration: 3000,
+      });
     } catch (err: any) {
       this.snackBar.open('Error while saving file! ' + err.errorText, 'OK :(', { duration: 5000 });
     }

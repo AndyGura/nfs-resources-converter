@@ -262,7 +262,7 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
 
-**Status**: Open (found 2026-10-15; items 1, 2 fixed 2026-10-15, items 3–6 2026-10-16). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+**Status**: Fixed (found 2026-10-15; items 1–6 and every lower-severity item fixed 2026-10-15/16, item 7 mitigated: not reproduced, saves now verified and logged). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
 steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
 
 1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
@@ -311,7 +311,11 @@ steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6
    NFS5). Confirmed live (`skidpad.fsh`). **Fixed**: mipmaps convert level by level (DXT encodes 4x4 blocks of each
    level); DXT1/3/5 with mipmaps re-read identically (skidpad.fsh, unit test).
 7. Once, Save cleared the change count without writing the file (after a DXT1 conversion and closing the Changes
-   menu with Escape); 4 later saves wrote. Not reproduced.
+   menu with Escape); 4 later saves wrote. Not reproduced. **Mitigated** (2026-10-16): no code path was found that
+   clears the changes without writing (`ChangesService.on_file_saved` runs after the write). Saves are now
+   verifiable: the file is flushed to disk, its size is checked before the changes count as saved (else the save
+   fails with a message), every save is logged ("Saved <path> (<n> bytes)") and the GUI shows "Saved LDIABLDH.FSH
+   (1 191 271 bytes)". Confirmed live. If it happens again, the log tells whether the backend saved.
 
 Lower-severity items in the same report: Color Model offers every model with no hint for the file's game (DXT1 on a
 TNFS 105×101 image, Mipmaps on a TNFS texture rewrites `position.y` 54 → 28726, new items default to 4Bit 1×1);

@@ -94,12 +94,14 @@ export class MainService {
     }
   }
 
-  public async saveResource() {
+  // the size of the saved file in bytes
+  public async saveResource(): Promise<number | null> {
     this.isSaving$.next(true);
     try {
       await this.changes.settled();
-      await this.api.saveFile();
+      const size = await this.api.saveFile();
       await this.changes.syncState();
+      return size;
     } finally {
       this.isSaving$.next(false);
     }

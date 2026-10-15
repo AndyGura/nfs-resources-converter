@@ -83,16 +83,18 @@ export class ApiDelegateImplService {
     return this.wrapCall('find_files', patterns);
   }
 
-  public async saveFile(): Promise<void> {
+  // the size of the saved file in bytes
+  public async saveFile(): Promise<number | null> {
     const current = this.openedResource$.getValue();
-    if (!current) return;
-    const updatedData = await this.wrapCall('save_file', this.openedResourcePath$.getValue());
+    if (!current) return null;
+    const { data, size } = await this.wrapCall('save_file', this.openedResourcePath$.getValue());
     this.openedResource$.next({
       id: current.id,
       name: current.name,
       schema: current.schema,
-      data: updatedData,
+      data,
     });
+    return size;
   }
 
   public async createNewFile(path: string, format: string) {

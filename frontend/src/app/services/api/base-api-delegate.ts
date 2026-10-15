@@ -92,7 +92,7 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).findFiles(patterns);
   }
 
-  public async saveFile(): Promise<void> {
+  public async saveFile(): Promise<number | null> {
     return (await this.getImpl()).saveFile();
   }
 
