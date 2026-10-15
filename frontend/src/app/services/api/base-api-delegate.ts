@@ -121,6 +121,13 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).getNewItemData(id, patch);
   }
 
+  // color models and mipmaps of the other images of the SHPI holding the image
+  public async archiveImageStats(
+    imageId: string,
+  ): Promise<{ images: number; color_models: { [model: string]: number }; with_mipmaps: number }> {
+    return (await this.getImpl()).archiveImageStats(imageId);
+  }
+
   public async getTrailingOptionalFieldData(id: string): Promise<any> {
     return (await this.getImpl()).getTrailingOptionalFieldData(id);
   }

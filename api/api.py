@@ -63,6 +63,7 @@ class API:
         bridge.expose(self.resource_api.run_custom_action)
         bridge.expose(self.resource_api.get_new_item_data)
         bridge.expose(self.resource_api.get_trailing_optional_field_data)
+        bridge.expose(self.resource_api.archive_image_stats)
 
         # Serialization API
         bridge.expose(self.serialization_api.serialize_resource)

@@ -284,3 +284,18 @@ class TestNewImagesFromFiles(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestNewImageDefaults(unittest.TestCase):
+    def test_new_image_is_32bit_and_new_font_atlas_4bit(self):
+        from resources.eac.fonts import FfnFont
+
+        image = EacImage().new_data()
+        self.assertEqual((image['resource_id'], image['width'], image['height']), ('32Bit color format bitmap', 1, 1))
+        self.assertEqual(FfnFont().new_data()['bitmap']['resource_id'], '4Bit')
+
+    def test_archive_image_stats(self):
+        path = os.path.join(SAMPLES, 'VERTBST.FSH')
+        name, _, data = require_file(path)
+        stats = ResourceAPI(api=None).archive_image_stats(join_id(name, 'children', '0', 'item', 'data'))
+        self.assertEqual(stats, {'images': 8, 'color_models': {'8Bit': 8}, 'with_mipmaps': 0})

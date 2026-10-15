@@ -188,6 +188,38 @@ class ResourceAPI:
             return self.render_data(res_block.child.new_data(patch))
         return None
 
+    def archive_image_stats(self, image_id: str) -> Dict[str, Any]:
+        """
+        Color models and mipmaps of the other images of the archive (SHPI) holding the image `image_id`, so that the
+        GUI can tell which choices the file already uses.
+
+        Returns:
+            {'images': n, 'color_models': {resource_id: count}, 'with_mipmaps': n}
+        """
+        from resources.eac.bitmaps import EacImage
+
+        import re
+
+        # <archive>__children/<i>/item/data or <archive>/children/<i>/item/data
+        match = re.match(r'^(.*)(?:__|/)children/(\d+)/item/data$', image_id)
+        if not match:
+            return {'images': 0, 'color_models': {}, 'with_mipmaps': 0}
+        archive_id, own_index = match.group(1), match.group(2)
+        (_, archive_block, archive), _ = require_resource(archive_id)
+        possible_blocks = getattr(getattr(archive_block, 'item_block', None), 'possible_blocks', [])
+        stats = {'images': 0, 'color_models': {}, 'with_mipmaps': 0}
+        for i, child in enumerate(archive.get('children', [])):
+            if str(i) == own_index:
+                continue
+            item = child['item']
+            if item is None or not isinstance(possible_blocks[item['choice_index']], EacImage):
+                continue
+            stats['images'] += 1
+            resource_id = item['data']['resource_id']
+            stats['color_models'][resource_id] = stats['color_models'].get(resource_id, 0) + 1
+            stats['with_mipmaps'] += item['data'].get('mipmaps') is not None
+        return stats
+
     def get_trailing_optional_field_data(self, resource_id: str) -> Any:
         """
         Get freshly-created data for a `TrailingOptionalBlock` field itself (as opposed to

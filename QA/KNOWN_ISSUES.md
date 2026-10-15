@@ -321,6 +321,12 @@ palette edits one swatch per change, special TNFS car entries unmarked; Changes 
 bundles as "(unknown operation)"; WWWW levels titled by class name with numeric items; QFS compression not shown;
 1×1 mip level of non-square images not offered; TNFS SE frontend FSH / QFS re-laid out on save (baseline).
 
+Fixed since (2026-10-16, report ids):
+- S7 format choices: the Color Model select is grouped (palette / direct color / compressed) and marks the models
+  the other images of the SHPI use (`archive_image_stats`); a model none of them uses, and mipmaps when none has them
+  (with the new `position.y`), ask first. New images are 32-bit (new FFN atlases stay 4Bit). The conversion dialog
+  is "Convert color model" (DXT included) and explains Output colors. Confirmed live (LDIABLDH, AL1_001.FAM).
+
 ---
 
 ## Unknown / not yet investigated (flagged, not silently assumed fine)

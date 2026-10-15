@@ -697,8 +697,10 @@ class EacImage(DeclarativeCompoundBlock):
                 },
                 {
                     'method': 'convert_to_rgba',
-                    'title': 'Convert to RGBA',
-                    'description': 'Converts bitmap to RGBA format.',
+                    'title': 'Convert color model',
+                    'description': 'Converts the bitmap to a 16, 24 or 32-bit or a DXT color model. Output colors '
+                    'matter for 8Bit and 4Bit bitmaps: "use palette" keeps the colors they show now, '
+                    '"transparent-white" makes the index the alpha of white, "black-white" a shade of grey.',
                     'is_pure': False,
                     'args': [
                         {
@@ -712,6 +714,9 @@ class EacImage(DeclarativeCompoundBlock):
                                 '16Bit_1555 color format bitmap',
                                 '24Bit color format bitmap',
                                 '32Bit color format bitmap',
+                                'DXT1 compressed bitmap',
+                                'DXT3 compressed bitmap',
+                                'DXT5 compressed bitmap',
                             ],
                         },
                         {
@@ -736,6 +741,9 @@ class EacImage(DeclarativeCompoundBlock):
 
     def new_data(self, patch=None):
         data = super().new_data(patch)
+        if not (patch or {}).get('resource_id'):
+            # a new image is 32-bit, as images added from disk: a lossless start to convert from
+            data['resource_id'] = '32Bit color format bitmap'
         if data['width'] == 0 or data['height'] == 0:
             data['width'] = 1
             data['height'] = 1

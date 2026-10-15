@@ -315,8 +315,10 @@ class FfnFont(DeclarativeCompoundBlock):
 
     def new_data(self, patch=None):
         data = super().new_data()
-        # the layout of every TNFS - NFS4 font
+        # the layout of every TNFS - NFS4 font, with a 4Bit atlas (alpha only)
         data['version'] = 100
+        data['bitmap']['resource_id'] = '4Bit'
+        data['bitmap']['bitmap'] = [[0]]
         return data
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:

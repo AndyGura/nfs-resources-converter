@@ -134,6 +134,12 @@ export class ApiDelegateImplService {
     return this.wrapCall('get_new_item_data', id, patch);
   }
 
+  public async archiveImageStats(
+    imageId: string,
+  ): Promise<{ images: number; color_models: { [model: string]: number }; with_mipmaps: number }> {
+    return this.wrapCall('archive_image_stats', imageId);
+  }
+
   public async getTrailingOptionalFieldData(id: string): Promise<any> {
     return this.wrapCall('get_trailing_optional_field_data', id);
   }
