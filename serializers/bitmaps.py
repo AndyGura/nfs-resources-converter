@@ -79,12 +79,11 @@ class ImageSerializer(BaseFileSerializer):
         self.to_image(data, palette_colors=palette_colors).save(file_path)
         if data.get('mipmaps') and self.settings.images__save_mipmaps:
             mipmaps_data = self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
-            (width, height) = (data['width'], data['height'])
+            from resources.eac.bitmaps import mipmap_level_dims
+
             offset = 0
-            mipmap_index = 0
-            while min(width, height) > 1:
-                width //= 2
-                height //= 2
+            # every level down to 1x1, also for non-square images (64x128: 7 levels, the last 1x1)
+            for mipmap_index, (width, height) in enumerate(mipmap_level_dims(data['width'], data['height'])):
                 mipmap_path = f'{file_path[:-4]}_mm_{mipmap_index}.png'
                 Image.frombytes(
                     'RGBA',
@@ -93,7 +92,6 @@ class ImageSerializer(BaseFileSerializer):
                 ).save(mipmap_path)
                 saved_files.append(mipmap_path)
                 offset += width * height
-                mipmap_index += 1
         if self.settings.images__save_embedded_palette:
             pal_serializer = PaletteSerializer()
             for i in range(1, 5):

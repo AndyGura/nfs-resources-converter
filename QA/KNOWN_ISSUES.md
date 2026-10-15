@@ -346,6 +346,8 @@ Fixed since (2026-10-16, report ids):
   `__lazy__`), faded; duplicate names get their index; a compressed file's archive shows its algorithm (RefPack /
   QFS2 / QFS3); the archive and block-action icon buttons have accessible names. The one selection jump after a save
   was not reproduced (see item 7). Confirmed live (AL1_001.FAM, OZREC.QFS, iconsRace.fsh).
+- S13 mip levels: the PNG export (and so the viewer's M0..Mn buttons) goes down to 1x1 for non-square images too
+  (`mipmap_level_dims`; it stopped when the shorter side reached 1). Confirmed by unit test (4x8: 2x4, 1x2, 1x1).
 
 ---
 

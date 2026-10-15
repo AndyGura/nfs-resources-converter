@@ -319,3 +319,17 @@ class TestNewImageDefaults(unittest.TestCase):
         kinds = [convert_bytes(c).get('__kind__') for c in data['children']]
         self.assertEqual(kinds, ['OripGeometry', 'ShpiBlock', 'OripGeometry', 'ShpiBlock'])
         clear_file_cache(name)
+
+
+class TestMipmapExport(unittest.TestCase):
+    def test_every_level_of_a_non_square_image_is_exported(self):
+        block = EacImage()
+        image = block.new_data()
+        image.update(width=4, height=8, bitmap=[0xFF0000FF] * 32)
+        block.action_generate_mipmaps(image)
+        with tempfile.TemporaryDirectory() as tmp:
+            serializer = ImageSerializer()
+            serializer.patch_settings({'images__save_mipmaps': True})
+            files = serializer.serialize(image, os.path.join(tmp, 'img'), id='img', block=block)
+            sizes = [Image.open(f).size for f in files[1:]]
+        self.assertEqual(sizes, [(2, 4), (1, 2), (1, 1)])
