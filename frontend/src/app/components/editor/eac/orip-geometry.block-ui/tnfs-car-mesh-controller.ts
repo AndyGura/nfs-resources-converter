@@ -86,7 +86,10 @@ export interface TnfsCarColors {
   };
 }
 
-/** How indices 250..253 are drawn: black (as the game does on cars), the cop's light bar, or as in the PNGs */
+/**
+ * How indices 250..253 are drawn: black (as the game does on cars; as in the PNGs without the controller's
+ * `blackLightBar`), the cop's light bar, or as in the PNGs
+ */
 export type TnfsLightBarMode = 'black' | 'siren' | 'texture';
 
 const hexColor = (color: string) => parseInt(color.substring(1), 16);
@@ -244,7 +247,10 @@ export class TnfsCarMeshController {
     return this._lightBar;
   }
 
-  /** How indices 250..253 are drawn: 'black' for cars, 'siren' for a cop (see sirenActive), 'texture' as in the PNGs */
+  /**
+   * How indices 250..253 are drawn: 'black' for cars (as in the PNGs without `blackLightBar`), 'siren' for a cop (see
+   * sirenActive), 'texture' as in the PNGs
+   */
   set lightBar(value: TnfsLightBarMode) {
     if (value === this._lightBar) return;
     this._lightBar = value;
@@ -277,7 +283,8 @@ export class TnfsCarMeshController {
     if (tail_lights?.textures.includes(name)) {
       result.set(hexColor(tail_lights.texture_color), hexColor(this._tailLightsOn ? tail_lights.on : tail_lights.off));
     }
-    if (light_bar?.textures.includes(name) && this._lightBar !== 'texture') {
+    const lightBarRecolored = this._lightBar === 'siren' || (this._lightBar === 'black' && this.blackLightBar);
+    if (light_bar?.textures.includes(name) && lightBarRecolored) {
       const colors = this.sirenSwapped ? light_bar.siren_colors_swapped : light_bar.siren_colors;
       light_bar.texture_colors.forEach((c, i) =>
         result.set(hexColor(c), this._lightBar === 'siren' ? hexColor(colors[i]) : 0),
@@ -422,6 +429,8 @@ export class TnfsCarMeshController {
     private readonly mesh: Object3D,
     private readonly carColors: TnfsCarColors | null,
     private readonly assetsPath: string,
+    /** lightBar 'black' draws indices 250..253 black, as the game does; false: as in the PNGs */
+    private readonly blackLightBar: boolean,
   ) {
     const { tail_lights, light_bar }: TnfsCarColors = carColors ?? {};
     const recoloredNames = new Set([...(tail_lights?.textures || []), ...(light_bar?.textures || [])]);

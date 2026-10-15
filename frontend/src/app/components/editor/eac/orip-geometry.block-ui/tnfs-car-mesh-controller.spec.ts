@@ -36,7 +36,7 @@ describe('TnfsCarMeshController lights', () => {
   let controller: TnfsCarMeshController;
 
   beforeEach(() => {
-    controller = new TnfsCarMeshController(carMesh(), CAR_COLORS, 'assets');
+    controller = new TnfsCarMeshController(carMesh(), CAR_COLORS, 'assets', true);
   });
 
   afterEach(() => controller.dispose());
@@ -55,6 +55,14 @@ describe('TnfsCarMeshController lights', () => {
     controller.lightBar = 'texture';
     expect(replacements(controller, 'rear').has(0xfc6454)).toBeFalse();
     expect(replacements(controller, 'rsid').has(0xfc6454)).toBeFalse();
+  });
+
+  it('draws the light bar as the texture instead of black without blackLightBar', () => {
+    const asTexture = new TnfsCarMeshController(carMesh(), CAR_COLORS, 'assets', false);
+    expect(replacements(asTexture, 'rear').has(0xfc6454)).toBeFalse();
+    asTexture.lightBar = 'siren';
+    expect(replacements(asTexture, 'rear').get(0xfc6454)).toBe(0xfc0080);
+    asTexture.dispose();
   });
 
   it('flashes only as the siren', () => {
@@ -84,7 +92,7 @@ describe('TnfsCarMeshController lights', () => {
   });
 
   it('has the lights of a model without wheels', () => {
-    const noWheels = new TnfsCarMeshController(new Object3D(), CAR_COLORS, 'assets');
+    const noWheels = new TnfsCarMeshController(new Object3D(), CAR_COLORS, 'assets', true);
     expect(noWheels.hasWheels).toBeFalse();
     noWheels.tailLightsOn = true;
     noWheels.updateTyres(1000, 20, 0, 0, { x: 1, y: 0, z: 0 });

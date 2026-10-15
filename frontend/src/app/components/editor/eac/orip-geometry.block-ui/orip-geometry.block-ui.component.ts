@@ -77,7 +77,8 @@ export class OripGeometryBlockUiComponent extends GuiComponent implements AfterV
           carColors = null;
         }
         this.disposeMeshController();
-        const meshController = new TnfsCarMeshController(obj, carColors, assetsPath);
+        // the preview shows indices 250..253 black, as the game draws them on cars
+        const meshController = new TnfsCarMeshController(obj, carColors, assetsPath, true);
         this.meshController = meshController;
         // the tyre textures animate as if the car drove along x at the wheel speed, as nfs-web's /car-tex-debug
         let speed = 0;
