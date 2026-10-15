@@ -172,6 +172,19 @@ When you do:
   (320 / tan(48 deg)). Settings: `MISC/<track>INFO` for `_T01` FAMs, the executable's table (`SE_HORIZON_SETTINGS`)
   otherwise. nfs-web makes cube map faces of `spherical.png`.
 
+## SHPI images (`EacImage`, `resources/eac/bitmaps.py`, all games up to NFS6)
+
+- Bytes 1..3 of an image (`next_offset`), and of every block attached to it, link to the next attached block (0 in the
+  last): palette (0x22/0x24/0x29/0x2A/0x2D), hot spots (0x7C, `ShpiHotSpots`), text (0x6F), NFS6 0x69 / 0x70 (unparsed,
+  kept as raw bytes). Never a block size. The parser follows the links (`chained_block_criteria`), `write` relinks the
+  parsed blocks (`_link_chained_blocks`); the `next_offset` fields are programmatic only for the GUI to show them
+  read-only. TNFS has negative offsets (to `!PAL`) and garbage in some CFM / FAM textures without attached blocks.
+- Mipmaps exist only in NFS5: the 4 high bits of `position.y` hold the level count (always the full chain), each level
+  is padded with zeros to 16 bytes. `write` sets the count from `mipmaps`.
+- Hot spots: TNFS reads them only in the dashboard loader (`dash`, `tach`, `sped`, `gate` of `DASH/*DH|DL.FSH`, it hangs
+  without them); point + `pivot` is the pixel of the bitmap. The GUI's image editor draws them over the image
+  (`ImageViewerComponent.overlays`, toggled in its viewport toolbar).
+
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 
 - `OripGeometrySerializer` splits meshes by texture and by ORIP `labels` (polygon indices): mesh names
@@ -189,6 +202,26 @@ When you do:
   space). The gg-web-engine Blender exporter writes no morph targets, so `export_scenes` adds them to the written GLB
   (`serializers/common/three_d/glb_morph_targets.py`, glTF vertices matched to sub-mesh vertices by position). The
   delta vectors are the ORIP vertices after `num_shape_vrtx`, which no polygon uses, so they never become geometry.
+- Textures use `!PAL` of their SHPI. `!xxx` beside it is the car's slice of the shared 8-bit VGA palette (Win95 SE
+  `gfx_car_palettes_setup` 0x4572e0: first 23 colours to entries 0x30 / 0x48 for player / opponent, 8 for traffic), never
+  a texture palette; junk in the `M*.CFM` models (single race / tournament opponents, `CARFAMS/CARPAL.FSH` instead), and
+  often typed 0x7B (an 8-bit "bitmap" 256x1 / 256x3). `ShpiArchiveSerializer` writes no file for it.
+- `car_colors.json` (`serializers/misc/tnfs_car_colors.py`, next to the PNGs of each CFM textures SHPI) lists PNG colours
+  the game draws otherwise, with the textures having them, with the same keys for every car (the game, not the file,
+  makes a car the cop, so a modded model can be either): `tail_lights` (index 254: `texture_color`, `off` / `on` from the
+  executable's per-model tables, the common ones for an unknown model), `light_bar` (250..253: `texture_colors`, the
+  cop's `siren_colors` / `siren_colors_swapped`, `swap_interval_ms`; black on other cars), `palette_slice` (the first 24
+  `!xxx` colours, when it holds colours). CFM textures are exported with `car_texture_palette`: a colour of 250..254
+  shared with another palette entry is moved to the nearest free one (deterministic; no shipped file has one), so
+  recolouring a PNG colour hits those pixels only. `ShpiArchiveSerializer.deserialize` of a CFM SHPI
+  (`deserialize_tnfs_car_textures`) builds what the game needs from the PNGs + `car_colors.json`: 8-bit textures on one
+  256-colour `!PAL` (0x24, `unk1` 3 = shape height), 0..249 the PNG colours (exact up to 250, else median cut without
+  dithering, deterministic), 250..254 the JSON's marker colours (pixels of exactly them), 255 alpha 0, `!xxx` (0x22)
+  from `palette_slice` or black (always in the high-poly SHPI: the loader looks it up), directory `WRAP`; textures by
+  name. Exported PNGs + JSON re-import to the same PNGs + JSON (all shipped CFMs). `TnfsCarMeshController` (`tailLightsOn`, `lightBar` 'black' / 'siren'
+  / 'texture', `sirenActive` + `updateLights`) recolours the PNGs with it, also in models without the wheel labels
+  (COPMUST, low-poly: `hasWheels` false, no tyres / steering); the GUI shows the light controls for every CFM model.
+  nfs-web reads these keys: keep them stable.
 
 ## TNFS car specs (SIMDATA/CARSPECS/*.PBS, SIMDATA/CARFAMS/*.PDN)
 

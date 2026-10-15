@@ -1,3 +1,4 @@
+import json
 import os
 import traceback
 from os.path import isdir
@@ -46,9 +47,13 @@ class ShpiArchiveSerializer(BaseFileSerializer):
         save_image_names = {}
         unaliased_idx = 0
         output = []
+        # textures of a TNFS car model: !xxx (often typed as a bitmap) goes to car_colors.json only
+        is_tnfs_car = bool(id) and '.CFM__' in id.upper()
         for i, (name, item_data, item_block) in enumerate(items):
             if name is None:
                 raise Exception(f'No alias for SHPI resource at index {i}')
+            if is_tnfs_car and name == '!xxx':
+                continue
             if isinstance(item_data, Exception):
                 skipped_resources.append((name, format_exception(item_data)))
                 continue
@@ -74,6 +79,13 @@ class ShpiArchiveSerializer(BaseFileSerializer):
             except Exception as ex:
                 traceback.print_exc()
                 skipped_resources.append((name, format_exception(ex)))
+        if is_tnfs_car:
+            from serializers.misc.tnfs_car_colors import tnfs_car_colors
+
+            colors = tnfs_car_colors(id, items)
+            with open(path_join(path, 'car_colors.json'), 'w') as f:
+                json.dump(colors, f, indent=2)
+            output.append(path_join(path, 'car_colors.json'))
         if self.settings.images__save_image_positions:
             with open(path_join(path, 'positions.txt'), 'w') as f:
                 for name, item in [(name, data) for name, data, block in items if isinstance(block, EacImage)]:
@@ -132,9 +144,14 @@ class ShpiArchiveSerializer(BaseFileSerializer):
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs) -> None:
         if not file_paths or not isdir(file_paths[0]):
             raise Exception('A directory must be selected for ShpiArchiveSerializer')
+        path = file_paths[0]
+        if '.CFM__' in (id or '').upper():
+            from serializers.misc.tnfs_car_colors import deserialize_tnfs_car_textures
+
+            # textures of a TNFS car model: 8-bit on one palette, with the special colors of car_colors.json
+            return deserialize_tnfs_car_textures(path, id, block)
         new_shpi = block.new_data()
 
-        path = file_paths[0]
         file_names = [x for x in os.listdir(path)]
         img_block = EacImage()
         img_serializer = img_block.serializer_class()()

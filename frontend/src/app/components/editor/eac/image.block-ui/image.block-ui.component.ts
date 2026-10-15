@@ -4,7 +4,7 @@ import { filter, Subject, takeUntil } from 'rxjs';
 import { BlockData, BlockSchema, CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
 import { MatSelectChange } from '@angular/material/select';
-import { ImageViewerComponent } from '../../common/image-viewer/image-viewer.component';
+import { ImageMarker, ImageOverlay, ImageViewerComponent } from '../../common/image-viewer/image-viewer.component';
 import { joinId } from '../../../../utils/join-id';
 import { ChangeEntry } from '../../../../services/changes.service';
 
@@ -39,6 +39,16 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
           this.viewer.imageNeedsUpdate$.next();
         }
       });
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(
+          x =>
+            !!this.resourceId &&
+            (x.startsWith(joinId(this.resourceId, 'hot_spots')) || x.startsWith(joinId(this.resourceId, 'pivot'))),
+        ),
+      )
+      .subscribe(() => this.cdr.markForCheck());
   }
 
   override ngOnDestroy(): void {
@@ -98,10 +108,41 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   ];
 
   get fieldBlacklist(): string[] {
-    // embedded_palette only applies to 8Bit bitmaps - hide it entirely otherwise.
-    return this.resourceData?.resource_id === '8Bit'
+    // Only 8Bit bitmaps need an embedded palette, but other ones can have one too (NFS6 4Bit fonts): offer it on
+    // 8Bit bitmaps, show it on the others when they have it.
+    return this.resourceData?.resource_id === '8Bit' || !!this.resourceData?.embedded_palette
       ? ImageBlockUiComponent.BASE_FIELD_BLACKLIST
       : ImageBlockUiComponent.NON_8BIT_FIELD_BLACKLIST;
+  }
+
+  private hotSpotOverlaysKey = '';
+  private hotSpotOverlaysCache: ImageOverlay[] = [];
+
+  // the same array while the inputs are the same: a new one on every check would be a changed binding
+  get hotSpotOverlays(): ImageOverlay[] {
+    const data = this.resourceData;
+    const points = data?.hot_spots?.points;
+    const key = JSON.stringify([points, data?.pivot, data?.width, data?.height]);
+    if (key !== this.hotSpotOverlaysKey) {
+      this.hotSpotOverlaysKey = key;
+      const markers = points ? this.buildHotSpotMarkers(data!) : [];
+      this.hotSpotOverlaysCache = markers.length > 0 ? [{ name: 'Hot spots', icon: 'my_location', markers }] : [];
+    }
+    return this.hotSpotOverlaysCache;
+  }
+
+  // Hot spot points are relative to the bitmap moved by `pivot` (TNFS dashboards draw them at position + pivot +
+  // point), the ones out of the bitmap are left out (1x1 placeholder bitmaps carry the points of another bitmap)
+  private buildHotSpotMarkers(data: BlockData): ImageMarker[] {
+    const pivot = data.pivot ?? { x: 0, y: 0 };
+    return data.hot_spots.points
+      .map((p: { x: number; y: number }, i: number) => ({
+        x: pivot.x + p.x,
+        y: pivot.y + p.y,
+        label: '' + i,
+        title: `Hot spot #${i}: (${p.x}, ${p.y})`,
+      }))
+      .filter((m: ImageMarker) => m.x >= 0 && m.y >= 0 && m.x < data.width && m.y < data.height);
   }
 
   // Unchecking clears `mipmaps` generically; checking runs `generate_mipmaps` so the backend

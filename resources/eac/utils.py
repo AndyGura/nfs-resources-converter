@@ -66,7 +66,7 @@ def determine_palette_for_8_bit_bitmap(block, data: dict, id: str):
     # If ignore inline palette in all FAM textures, the train in alpine track will be broken ¯\_(ツ)_/¯
     # autumn valley fence texture broken only in ETRACKFM and NTRACKFM
     # TNFS track FAM files contain WWWW directories with SHPI entries, some of them do not have palette,
-    # use previous available !pal. 7C bitmap resource data seems to not change as well :(
+    # use previous available !pal. The hot spots (0x7C) after bitmaps do not tell it either :(
     if not palette_block and '.FAM' in id:
         (parent_id, parent_block, parent_data), _ = require_resource(shpi_id[: shpi_id.rindex('children') - 1])
         (palette_block, palette_data) = _get_palette_from_wwww(

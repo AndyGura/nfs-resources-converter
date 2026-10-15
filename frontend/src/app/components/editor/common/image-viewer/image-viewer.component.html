@@ -31,18 +31,32 @@
 }
 
 <div class="preview-wrapper">
-  @if (mipmaps.length > 0) {
-    <div class="mipmap-toolbar">
-      <button [class.selected]="currentMipmapLevel === null" (click)="setMipmapLevel(null)" title="Main Image">
-        <mat-icon>image</mat-icon>
-      </button>
-      <div class="separator"></div>
-      @for (mm of mipmaps; track mm.level) {
+  @if (mipmaps.length > 0 || overlays.length > 0) {
+    <div class="viewer-toolbar">
+      @if (mipmaps.length > 0) {
+        <button [class.selected]="currentMipmapLevel === null" (click)="setMipmapLevel(null)" title="Main Image">
+          <mat-icon>image</mat-icon>
+        </button>
+        <div class="separator"></div>
+        @for (mm of mipmaps; track mm.level) {
+          <button
+            [class.selected]="currentMipmapLevel === mm.level"
+            (click)="setMipmapLevel(mm.level)"
+            [title]="'Mipmap Level ' + mm.level">
+            <span class="mm-label">M{{ mm.level }}</span>
+          </button>
+        }
+      }
+      @for (overlay of overlays; track overlay.name; let first = $first) {
+        @if (first && mipmaps.length > 0) {
+          <div class="separator"></div>
+        }
         <button
-          [class.selected]="currentMipmapLevel === mm.level"
-          (click)="setMipmapLevel(mm.level)"
-          [title]="'Mipmap Level ' + mm.level">
-          <span class="mm-label">M{{ mm.level }}</span>
+          [class.selected]="!hiddenOverlays.has(overlay.name)"
+          (click)="toggleOverlay(overlay.name)"
+          [title]="(hiddenOverlays.has(overlay.name) ? 'Show ' : 'Hide ') + overlay.name.toLowerCase()">
+          <mat-icon>{{ overlay.icon }}</mat-icon>
+          <span class="mm-label">{{ overlay.markers.length }}</span>
         </button>
       }
     </div>
@@ -59,13 +73,44 @@
     [style.height]="'calc(' + height + ' - 5rem - 2px)'"
     [style.max-height]="'calc(' + height + ' - 5rem - 2px)'">
     @if (imageUrl$ | async; as imageUrl) {
-      <img
-        [src]="imageUrl"
-        [style.width.px]="((imageWidth || 0) * zoom) / 100"
-        [style.height.px]="((imageHeight || 0) * zoom) / 100"
-        draggable="false"
-        (dragstart)="(false)"
-        (load)="onImageLoad($event)" />
+      <div class="image-frame">
+        <img
+          [src]="imageUrl"
+          [style.width.px]="((imageWidth || 0) * zoom) / 100"
+          [style.height.px]="((imageHeight || 0) * zoom) / 100"
+          draggable="false"
+          (dragstart)="(false)"
+          (load)="onImageLoad($event)" />
+        @if (showMarkers) {
+          <svg
+            class="markers"
+            [attr.viewBox]="'0 0 ' + imageWidth + ' ' + imageHeight"
+            [attr.width]="((imageWidth || 0) * zoom) / 100"
+            [attr.height]="((imageHeight || 0) * zoom) / 100">
+            @for (overlay of overlays; track overlay.name) {
+              @if (!hiddenOverlays.has(overlay.name)) {
+                @for (marker of overlay.markers; track $index) {
+                  <g [attr.transform]="'translate(' + (marker.x + 0.5) + ' ' + (marker.y + 0.5) + ')'">
+                    <title>{{ marker.title || marker.label }}</title>
+                    <circle
+                      class="marker-dot"
+                      [attr.r]="4 * markerScale"
+                      [attr.stroke-width]="1.5 * markerScale"></circle>
+                    <text
+                      class="marker-label"
+                      [attr.x]="6 * markerScale"
+                      [attr.y]="-6 * markerScale"
+                      [attr.font-size]="12 * markerScale"
+                      [attr.stroke-width]="3 * markerScale">
+                      {{ marker.label }}
+                    </text>
+                  </g>
+                }
+              }
+            }
+          </svg>
+        }
+      </div>
     }
     @if (!(imageUrl$ | async)) {
       <div

@@ -12,6 +12,7 @@ import {
   QueryList,
   ElementRef,
 } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { clampToRange, NumberRange, numberRange } from '../../value-validators';
 
 export interface ArrayTableColumn {
@@ -86,6 +87,10 @@ export class DataTableComponent implements DoCheck {
   private previousDataLength: number = 0;
   @Input() disabled?: boolean = false;
   @Input() enableArrayEditing: boolean = false;
+  // false for arrays kept in a fixed order: no move up / down buttons
+  @Input() enableReordering: boolean = true;
+  // returns why a typed value is refused (the cell gets its value back), or null to accept it
+  @Input() validateChange?: (index: number, field: string | null, subField: string | null, value: any) => string | null;
   @Input() selectedIndex: number | null = null;
   @Input() maxHeight?: string | null = null;
   @Input() usePaginator: boolean = false;
@@ -117,7 +122,12 @@ export class DataTableComponent implements DoCheck {
   constructor(
     private cdr: ChangeDetectorRef,
     private differs: IterableDiffers,
+    private snackBar: MatSnackBar,
   ) {}
+
+  get hasItemActions(): boolean {
+    return !this.disabled && (this.enableReordering || this.enableArrayEditing);
+  }
 
   public markForCheck(): void {
     this.cdr.markForCheck();
@@ -211,6 +221,12 @@ export class DataTableComponent implements DoCheck {
     return numberRange(schema);
   }
 
+  // "0..255", shown on hover over a number cell and in out-of-range messages
+  rangeText(schema: any): string {
+    const range = numberRange(schema);
+    return `${range.min ?? '-∞'}..${range.max ?? '∞'}`;
+  }
+
   // a typed value outside the range of the field is set to the nearest bound
   onTableNumberChange(
     index: number,
@@ -219,12 +235,36 @@ export class DataTableComponent implements DoCheck {
     schema: any,
     input: HTMLInputElement,
   ): void {
-    const value = clampToRange(+input.value, numberRange(schema));
+    const typed = +input.value;
+    const value = clampToRange(typed, numberRange(schema));
     input.value = String(value);
-    this.onTableFieldChange(index, field, subField, value);
+    if (value !== typed) {
+      this.snackBar.open(
+        `${subField ?? field ?? 'Value'} must be ${this.rangeText(schema)}: ${typed} was set to ${value}`,
+        'OK',
+        { duration: 4000 },
+      );
+    }
+    this.onTableFieldChange(index, field, subField, value, input);
   }
 
-  onTableFieldChange(index: number, field: string | null, subField: string | null, value: any): void {
+  onTableFieldChange(
+    index: number,
+    field: string | null,
+    subField: string | null,
+    value: any,
+    input?: HTMLInputElement | HTMLSelectElement,
+  ): void {
+    const error = this.validateChange?.(index, field, subField, value);
+    if (error) {
+      if (input) {
+        const item = this.data[index];
+        const current = field === null ? item : subField === null ? item[field] : item[field][subField];
+        input.value = String(current ?? '');
+      }
+      this.snackBar.open(error, 'OK', { duration: 4000 });
+      return;
+    }
     this.dataChanged.emit({ index, field, subField, value });
     this.cdr.markForCheck();
   }
@@ -239,6 +279,18 @@ export class DataTableComponent implements DoCheck {
   onPageChange(event: any): void {
     this.pageSize = event.pageSize;
     this.pageIndex = event.pageIndex;
+  }
+
+  // opens the page of the item and scrolls its row into view
+  public showItem(index: number): void {
+    if (this.usePaginator && this.pageSize > 0) {
+      this.pageIndex = Math.floor(index / this.pageSize);
+    }
+    this.cdr.markForCheck();
+    setTimeout(() => {
+      const rows = this.tableContainer?.nativeElement.querySelectorAll('tbody > tr');
+      rows?.[index - (this.pageSize > 0 ? this.pageIndex * this.pageSize : 0)]?.scrollIntoView({ block: 'nearest' });
+    });
   }
 
   getGlobalIndex(i: number): number {

@@ -136,6 +136,12 @@ that session). Two things to know before reaching for this:
   once you're done — it's a tracked file and the port swap has no reason to survive your session.
   Check for the conflict first with `lsof -nP -iTCP:8000 -sTCP:LISTEN`.
 
+To switch files, kill the backend and start it again with the new path, then reload the tab (confirmed live
+2026-10-15). With `ng serve`, `window.ng` works, so an import (Deserialize) can skip the file dialog:
+`const c = ng.getComponent(document.querySelector('app-font-block-ui')); await c.mainService.deserializeResource(c.resourceId, [paths...])`
+(any block component has `mainService` and `resourceId`). This goes through the same Angular service as the
+button, so the changes list, the error dialog and the editor update as usual.
+
 **Don't bother with macOS `screencapture`/AppleScript for this.** The instinct, when you already
 have a live GUI window open via `python run.py --dev` (native pywebview path), is to just screenshot
 the window directly rather than bothering with the Eel/browser route above. In an agent sandbox this

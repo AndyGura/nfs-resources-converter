@@ -121,3 +121,18 @@
     background: #595959;
   }
 }
+
+.order-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #fff3e0;
+  color: #8a5a00;
+  font-size: 14px;
+
+  span {
+    flex: 1;
+  }
+}

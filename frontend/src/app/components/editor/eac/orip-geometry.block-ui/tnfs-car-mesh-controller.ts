@@ -12,7 +12,7 @@ import {
 import { setupNfs1Texture } from '../../common/obj-viewer/obj-viewer.component';
 import { Pnt3, Point3 } from '@gg-web-engine/core';
 import { sleep } from '../../../../utils/sleep';
-import { replaceColor } from '../../../../utils/recolor-image';
+import { recolorImageSmart } from '../../../../utils/recolor-image';
 
 // tnfs_car_data.tire_skid_front/rear bits, set by the player's physics (tnfs_car_tire_force): wheels locked (brakes,
 // handbrake) or sliding sideways past the cutoff angle; wheelspin
@@ -62,6 +62,92 @@ const STEER_MORPH_MIN_SIDE = Math.sin((0xa0000 / 0x1000000) * 2 * Math.PI);
 
 type CarPartition = 'inside' | 'surface' | 'outside';
 
+/**
+ * `car_colors.json` the converter writes next to the textures of a TNFS car model (CFM): colors of the PNGs (`#rrggbb`)
+ * that stand for palette indices the game draws in other colors (Win95 SE gfx_draw_car_model 0x458d4c,
+ * gfx_shpi_remap_to_vga_palette 0x4470e0), and the textures having them. The same keys for every car: which role a car
+ * has (a cop) is up to the game. The converter keeps these PNG colors unique
+ */
+export interface TnfsCarColors {
+  /** colors the car's `!xxx` gives to its entries of the game's 256-color palette in 8-bit modes, not for the textures */
+  palette_slice?: string[];
+  /** index 254: the car's tail light palette entry, `on` while braking */
+  tail_lights?: { texture_color: string; textures: string[]; off: string; on: string };
+  /**
+   * indices 250..253: a cop's light bar, `siren_colors` and `siren_colors_swapped` alternate during a police chase;
+   * other cars have them black
+   */
+  light_bar?: {
+    texture_colors: string[];
+    textures: string[];
+    siren_colors: string[];
+    siren_colors_swapped: string[];
+    swap_interval_ms: number;
+  };
+}
+
+/** How indices 250..253 are drawn: black (as the game does on cars), the cop's light bar, or as in the PNGs */
+export type TnfsLightBarMode = 'black' | 'siren' | 'texture';
+
+const hexColor = (color: string) => parseInt(color.substring(1), 16);
+
+/** A copy of a car texture with some colors replaced (see TnfsCarColors), given to `onReady` once first drawn */
+class RecoloredTexture {
+  readonly texture: Texture;
+  private readonly img: HTMLImageElement = document.createElement('img');
+  private version = 0;
+  private ready = false;
+
+  constructor(
+    readonly name: string,
+    private readonly original: Texture,
+    onReady: (texture: Texture) => void,
+  ) {
+    this.texture = new Texture(this.img);
+    this.texture.name = original.name;
+    this.texture.flipY = original.flipY;
+    this.texture.wrapS = original.wrapS;
+    this.texture.wrapT = original.wrapT;
+    setupNfs1Texture(this.texture);
+    this.img.onload = () => {
+      this.texture.needsUpdate = true;
+      if (!this.ready) {
+        this.ready = true;
+        onReady(this.texture);
+      }
+    };
+  }
+
+  /** Redraws the copy: the original with these colors (0xRRGGBB) replaced */
+  async recolor(replacements: Map<number, number>) {
+    const version = ++this.version;
+    for (let i = 100; i > 0 && !this.original.source.data; i--) {
+      await sleep(50);
+    }
+    // the original never loaded, or a later call redraws it
+    if (!this.original.source.data || version !== this.version) return;
+    recolorImageSmart(
+      this.original.source.data as HTMLImageElement,
+      (data, i) => {
+        const color = replacements.get((data[i] << 16) | (data[i + 1] << 8) | data[i + 2]);
+        if (color !== undefined) {
+          data[i] = color >> 16;
+          data[i + 1] = (color >> 8) & 0xff;
+          data[i + 2] = color & 0xff;
+        }
+      },
+      this.img,
+    );
+  }
+
+  dispose() {
+    this.version++;
+    this.img.onload = null;
+    this.img.remove();
+    this.texture.dispose();
+  }
+}
+
 /** A mesh's partition (see above), by the converter's extras, else by name for the models converted before */
 function partitionOf(mesh: Mesh): CarPartition {
   const partition = mesh.userData?.['partition'];
@@ -99,15 +185,14 @@ function biasTowardCamera(material: Material, gap: { value: number }) {
 }
 
 export class TnfsCarMeshController {
-  // original texture
-  originalTexWithTailLights: Texture | null = null;
   frontTyreMaterial: MeshBasicMaterial | null = null;
   rearTyreMaterial: MeshBasicMaterial | null = null;
 
-  // runtime texture
-  texWithTailLightsImg: HTMLImageElement | null = null;
-  texWithTailLights: Texture | null = null;
-  tailLightColors: [number, number] = [0, 0];
+  // the textures with colors of carColors, see recolor
+  private readonly recoloredTextures: RecoloredTexture[] = [];
+  // time to the next swap of the siren colors, and whether they are swapped now
+  private sirenTime = 0;
+  private sirenSwapped = false;
   // tyr1..tyr4 on both axles: the game puts them on frntires and rertires, the Warrior's rear rty* are never shown
   tyreTextures: Texture[] = [];
   private frontTyreIndex = 0;
@@ -120,6 +205,8 @@ export class TnfsCarMeshController {
   // the Diablo's front tyres turn whether the car moves or not, see updateTyres
   private readonly frontTyresIgnoreMotion: boolean;
 
+  // the model has the four wheels (labels lt_frnt, rt_frnt, lt_rear, rt_rear): the tyres and the steering work
+  public readonly hasWheels: boolean;
   // order: front right, front left, rear right, rear left
   public wheels: Mesh[] = [];
   public wheelIdlePositions: Point3[] = [];
@@ -134,7 +221,78 @@ export class TnfsCarMeshController {
   set tailLightsOn(value: boolean) {
     if (value === this._tailLightsOn) return;
     this._tailLightsOn = value;
-    this.recolorTailLights(this.tailLightColors[value ? 1 : 0]);
+    this.recolor(this.carColors?.tail_lights?.textures);
+  }
+
+  private _sirenActive: boolean = false;
+  get sirenActive(): boolean {
+    return this._sirenActive;
+  }
+
+  /**
+   * The cop's light bar flashes (police chase, lightBar 'siren'): its colors swap every `swap_interval_ms` in
+   * updateLights. When it stops, they stay as they are, as in the game
+   */
+  set sirenActive(value: boolean) {
+    if (value === this._sirenActive) return;
+    this._sirenActive = value;
+    this.sirenTime = 0;
+  }
+
+  private _lightBar: TnfsLightBarMode = 'black';
+  get lightBar(): TnfsLightBarMode {
+    return this._lightBar;
+  }
+
+  /** How indices 250..253 are drawn: 'black' for cars, 'siren' for a cop (see sirenActive), 'texture' as in the PNGs */
+  set lightBar(value: TnfsLightBarMode) {
+    if (value === this._lightBar) return;
+    this._lightBar = value;
+    this.recolor(this.carColors?.light_bar?.textures);
+  }
+
+  /** Lights over time (the siren), once per frame */
+  updateLights(deltaMs: number): void {
+    const lightBar = this.carColors?.light_bar;
+    if (!lightBar || !this._sirenActive || this._lightBar !== 'siren') {
+      return;
+    }
+    this.sirenTime += deltaMs;
+    if (this.sirenTime < lightBar.swap_interval_ms) {
+      return;
+    }
+    // swaps twice in a long stall are no swap
+    const swaps = Math.floor(this.sirenTime / lightBar.swap_interval_ms);
+    this.sirenTime -= swaps * lightBar.swap_interval_ms;
+    if (swaps % 2) {
+      this.sirenSwapped = !this.sirenSwapped;
+      this.recolor(lightBar.textures);
+    }
+  }
+
+  /** The colors of a texture to replace now: PNG color -> color */
+  private replacementsOf(name: string): Map<number, number> {
+    const result = new Map<number, number>();
+    const { tail_lights, light_bar }: TnfsCarColors = this.carColors ?? {};
+    if (tail_lights?.textures.includes(name)) {
+      result.set(hexColor(tail_lights.texture_color), hexColor(this._tailLightsOn ? tail_lights.on : tail_lights.off));
+    }
+    if (light_bar?.textures.includes(name) && this._lightBar !== 'texture') {
+      const colors = this.sirenSwapped ? light_bar.siren_colors_swapped : light_bar.siren_colors;
+      light_bar.texture_colors.forEach((c, i) =>
+        result.set(hexColor(c), this._lightBar === 'siren' ? hexColor(colors[i]) : 0),
+      );
+    }
+    return result;
+  }
+
+  /** Redraws the recolored textures of these names (all without names) */
+  private recolor(names?: string[]) {
+    for (const texture of this.recoloredTextures) {
+      if (!names || names.includes(texture.name)) {
+        texture.recolor(this.replacementsOf(texture.name)).then();
+      }
+    }
   }
 
   /**
@@ -191,15 +349,18 @@ export class TnfsCarMeshController {
 
   /** Front and rear tyre texture index, see updateTyres */
   setTyreIndices(front: number, rear: number, force = false): void {
+    if (!this.frontTyreMaterial || !this.rearTyreMaterial) {
+      return;
+    }
     if (force || front !== this.frontTyreIndex) {
       this.frontTyreIndex = front;
-      this.frontTyreMaterial!.map = this.tyreTextures[front];
-      this.frontTyreMaterial!.needsUpdate = true;
+      this.frontTyreMaterial.map = this.tyreTextures[front];
+      this.frontTyreMaterial.needsUpdate = true;
     }
     if (force || rear !== this.rearTyreIndex) {
       this.rearTyreIndex = rear;
-      this.rearTyreMaterial!.map = this.tyreTextures[rear];
-      this.rearTyreMaterial!.needsUpdate = true;
+      this.rearTyreMaterial.map = this.tyreTextures[rear];
+      this.rearTyreMaterial.needsUpdate = true;
     }
   }
 
@@ -259,10 +420,13 @@ export class TnfsCarMeshController {
 
   constructor(
     private readonly mesh: Object3D,
-    private readonly tailLightsTexColor: number,
+    private readonly carColors: TnfsCarColors | null,
     private readonly assetsPath: string,
   ) {
-    const headlightsObjects: Mesh[] = [];
+    const { tail_lights, light_bar }: TnfsCarColors = carColors ?? {};
+    const recoloredNames = new Set([...(tail_lights?.textures || []), ...(light_bar?.textures || [])]);
+    // materials of the body by texture name (the OBJ's are named as their texture, the GLB's textures are)
+    const recoloredMaterials = new Map<string, MeshBasicMaterial[]>();
     // car model id 1 in gfx_car_tyre_textures
     this.frontTyresIgnoreMotion = assetsPath.includes('LDIABL.CFM');
     this.wheels = [null!, null!, null!, null!];
@@ -326,27 +490,41 @@ export class TnfsCarMeshController {
         const box = o.geometry.boundingBox!;
         bodyHalfWidth = Math.max(bodyHalfWidth, Math.abs(box.min.x + o.position.x), Math.abs(box.max.x + o.position.x));
       }
-      if (o.name.includes('rsid') || o.name.includes('lite')) {
-        headlightsObjects.push(o);
-        this.originalTexWithTailLights = o.material.map;
+      if (wheelIndex < 0) {
+        for (const material of Array.isArray(o.material) ? o.material : [o.material]) {
+          // any material with a texture (the GUI's OBJ ones are MeshPhongMaterial)
+          const map = (material as MeshBasicMaterial).map;
+          const name = map && (map.name || material.name);
+          if (name && recoloredNames.has(name)) {
+            recoloredMaterials.set(name, [...(recoloredMaterials.get(name) || []), material as MeshBasicMaterial]);
+          }
+        }
       }
     });
-    if (!this.originalTexWithTailLights) {
-      throw new Error('Not a driveable NFS1 car');
+    // no wheels: a model without the wheel labels (COPMUST, low-poly models), only the lights work
+    this.hasWheels = this.wheels.every(wheel => !!wheel);
+    if (!this.hasWheels) {
+      this.wheels = [];
+      this.frontWheels = [];
     }
     if (this.wheelIdlePositions[1]) {
       this.leftSideSign = Math.sign(this.wheelIdlePositions[1].x) || 1;
     }
 
-    // TODO colors seem to be different for different cars, but I don't know how it is defined in the game
-    this.tailLightColors = assetsPath.includes('TRAFFC.CFM') ? [0x911c0f, 0xff0000] : [0x310502, 0xf81414];
-    this.texWithTailLightsImg = document.createElement('img');
-    this.texWithTailLights = new Texture(this.texWithTailLightsImg);
-    this.texWithTailLights.flipY = this.originalTexWithTailLights.flipY;
-    setupNfs1Texture(this.texWithTailLights);
-    this.recolorTailLights(this.tailLightColors[0]).then();
-    for (const o of headlightsObjects) {
-      (o.material as MeshBasicMaterial).map = this.texWithTailLights;
+    for (const [name, materials] of recoloredMaterials) {
+      // the copy replaces the original once drawn
+      this.recoloredTextures.push(
+        new RecoloredTexture(name, materials[0].map!, texture => {
+          for (const material of materials) {
+            material.map = texture;
+            material.needsUpdate = true;
+          }
+        }),
+      );
+    }
+    if (!this.hasWheels) {
+      this.recolor();
+      return;
     }
 
     const loader = new TextureLoader();
@@ -361,6 +539,17 @@ export class TnfsCarMeshController {
         return t;
       });
     this.tyreTextures = loadTyres('tyr');
+    // the game remaps the tyre textures too (light bar colors black)
+    this.tyreTextures.forEach((original, i) => {
+      if (recoloredNames.has(`tyr${i + 1}`)) {
+        this.recoloredTextures.push(
+          new RecoloredTexture(`tyr${i + 1}`, original, texture => {
+            this.tyreTextures[i] = texture;
+            this.setTyreIndices(this.frontTyreIndex, this.rearTyreIndex, true);
+          }),
+        );
+      }
+    });
     // the outside partition: over the own body, see WHEEL_BIAS_MIN_SIN
     const gap = (wheels: number[]) => Math.max(0, ...wheels.map(i => bodyHalfWidth - wheelInnerX[i]));
     // turned by rotation (no morphs): the steering's allowance all the time
@@ -379,32 +568,14 @@ export class TnfsCarMeshController {
     for (const [i, o] of this.wheels.entries()) {
       o.material = i < 2 ? this.frontTyreMaterial : this.rearTyreMaterial;
     }
-  }
-
-  async recolorTailLights(newColor: number) {
-    if (!this.originalTexWithTailLights || !this.texWithTailLights || !this.texWithTailLightsImg) return;
-    for (let i = 100; i > 0; i--) {
-      if (!!this.originalTexWithTailLights.source.data) break;
-      await sleep(50);
-    }
-    replaceColor(
-      this.originalTexWithTailLights.source.data as HTMLImageElement,
-      this.tailLightsTexColor,
-      newColor,
-      this.texWithTailLightsImg,
-    );
-    this.texWithTailLights.needsUpdate = true;
+    this.recolor();
   }
 
   public dispose() {
-    if (this.texWithTailLightsImg) {
-      this.texWithTailLightsImg.remove();
-      this.texWithTailLightsImg = null;
+    for (const texture of this.recoloredTextures) {
+      texture.dispose();
     }
-    if (this.texWithTailLights) {
-      this.texWithTailLights.dispose();
-      this.texWithTailLights = null;
-    }
+    this.recoloredTextures.length = 0;
     this.frontTyreMaterial?.dispose();
     this.frontTyreMaterial = null;
     this.rearTyreMaterial?.dispose();

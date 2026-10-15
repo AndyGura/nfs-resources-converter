@@ -9,9 +9,21 @@ import {
 } from '@angular/core';
 import { auditTime, BehaviorSubject, combineLatest, filter, startWith, Subject, takeUntil } from 'rxjs';
 import { BlockData, BlockSchema } from '../../types';
-import { ArrayTableColumn } from '../../common/data-table/data-table.component';
+import { ArrayTableColumn, DataTableComponent } from '../../common/data-table/data-table.component';
 import { joinId } from '../../../../utils/join-id';
 import { SubscribableGuiComponent } from '../../gui.component';
+import { ChangeEntry } from '../../../../services/changes.service';
+import { numberRange } from '../../value-validators';
+
+// index of an item with `key` = `value` in `items` without the item at `excludeIndex`: after all items with a key
+// <= value, so a sorted array stays sorted and equal keys keep their order
+export function sortedPosition(items: any[], key: string, value: number, excludeIndex: number): number {
+  let position = 0;
+  items.forEach((item, i) => {
+    if (i !== excludeIndex && item[key] <= value) position++;
+  });
+  return position;
+}
 
 @Component({
   selector: 'app-font-block-ui',
@@ -24,6 +36,8 @@ import { SubscribableGuiComponent } from '../../gui.component';
 export class FontBlockUiComponent extends SubscribableGuiComponent implements AfterViewInit {
   @ViewChild('fullBitmapCanvas') fullBitmapCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('textPreviewCanvas') textPreviewCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('glyphsTable') glyphsTable?: DataTableComponent;
+  @ViewChild('kerningsTable') kerningsTable?: DataTableComponent;
 
   _selectedGlyphIndex$: BehaviorSubject<number | null> = new BehaviorSubject<number | null>(0);
   _selectedKerningIndex$: BehaviorSubject<number | null> = new BehaviorSubject<number | null>(0);
@@ -54,6 +68,17 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   public _glyphPageIndex = 0;
   public _kerningPageSize = 100;
   public _kerningPageIndex = 0;
+  private _hideHiddenFields = true;
+  // order problems of data opened that way (imported fonts): the writer sorts on save, "Sort now" does it here
+  public _glyphsUnsorted = false;
+  public _duplicateGlyphCodes: number[] = [];
+  public _kerningsUnsorted = false;
+
+  // glyphs are sorted by code. Kernings of versions > 309 are sorted by right glyph: a glyph's num_kern and
+  // kern_index point at a run of them
+  get kerningsSortField(): string | null {
+    return this.resourceData?.version > 309 ? 'right' : null;
+  }
 
   override get resourceSchema(): BlockSchema | undefined {
     return super.resourceSchema;
@@ -82,7 +107,39 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       this._kerningsWithSymbols$.next([]);
       return;
     }
-    const glyphs = this.resourceData.definitions.map((g: any) => ({ ...g, symbol: this.getSymbol(g.code) }));
+    // num_kern and kern_index are recomputed on save, with kernings sorted by right glyph: show the values the file
+    // will get
+    const kerningRuns = new Map<number, { first: number; count: number }>();
+    for (const k of this.resourceData.kernings || []) {
+      const run = kerningRuns.get(k.right);
+      if (run) run.count++;
+      else kerningRuns.set(k.right, { first: 0, count: 1 });
+    }
+    let first = 0;
+    for (const right of Array.from(kerningRuns.keys()).sort((a, b) => a - b)) {
+      kerningRuns.get(right)!.first = first;
+      first += kerningRuns.get(right)!.count;
+    }
+    const definitions = this.resourceData.definitions;
+    this._glyphsUnsorted = definitions.some((g: any, i: number) => i > 0 && definitions[i - 1].code > g.code);
+    const seenCodes = new Set<number>();
+    const duplicateCodes = new Set<number>();
+    for (const g of definitions) {
+      if (seenCodes.has(g.code)) duplicateCodes.add(g.code);
+      seenCodes.add(g.code);
+    }
+    this._duplicateGlyphCodes = Array.from(duplicateCodes);
+    const kerningsList = this.resourceData.kernings || [];
+    this._kerningsUnsorted =
+      !!this.kerningsSortField &&
+      kerningsList.some((k: any, i: number) => i > 0 && kerningsList[i - 1].right > k.right);
+    const glyphs = definitions.map((g: any) => {
+      const run = kerningRuns.get(g.code);
+      const row = { ...g, symbol: this.getSymbol(g.code) };
+      if (g.num_kern != null) row.num_kern = run?.count || 0;
+      if (g.kern_index != null) row.kern_index = run?.first || 0;
+      return row;
+    });
     this._glyphsWithSymbols$.next(glyphs);
 
     const kernings = (this.resourceData.kernings || []).map((k: any) => ({
@@ -140,6 +197,11 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   readonly ngZone = inject(NgZone);
 
   async ngAfterViewInit(): Promise<void> {
+    this.mainService.hideHiddenFields$.pipe(takeUntil(this.destroyed$)).subscribe(hide => {
+      this._hideHiddenFields = hide;
+      this.updateColumns();
+    });
+
     combineLatest([
       this._text$,
       this._imageRefreshed$,
@@ -830,7 +892,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     }
 
     const lines = text.split('\n');
-    const lineHeight = this.resourceData.line_height || 32;
+    // y_offset is measured from the top of the line: NFS6 capitals end at ascent, descenders at ascent + descent.
+    // Fonts with descent 0 (TNFS, NFS2) keep the whole line height in ascent
+    const lineHeight = this.resourceData.ascent + this.resourceData.descent || 32;
     const padding = 20;
 
     // Measure text to set canvas height
@@ -848,7 +912,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
 
     ctx.imageSmoothingEnabled = false;
 
-    let cursorY = padding + (this.resourceData.base || lineHeight * 0.8);
+    let cursorY = padding;
 
     for (const line of lines) {
       let cursorX = padding;
@@ -865,7 +929,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
           }
 
           const x = cursorX + (glyph.x_offset || 0);
-          const y = cursorY + (glyph.y_offset || 0) - (this.resourceData.base || lineHeight * 0.8);
+          const y = cursorY + (glyph.y_offset || 0);
 
           ctx.drawImage(this._image, glyph.x, glyph.y, glyph.width, glyph.height, x, y, glyph.width, glyph.height);
 
@@ -899,7 +963,14 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
               return this.resourceData.version >= 321 && this.resourceData.flags.format === '16-bytes';
             return true;
           })
-          .map((f: any, i: number) => ({ key: f.name, index: i, schema: f.schema })),
+          // programmatic fields (num_kern, kern_index) are recomputed on save: shown read-only with hidden fields
+          .filter((f: any) => !this._hideHiddenFields || !f.schema.is_programmatic)
+          .map((f: any, i: number) => ({
+            key: f.name,
+            index: i,
+            schema: f.schema,
+            readonly: !!f.schema.is_programmatic,
+          })),
       ];
     }
 
@@ -924,6 +995,11 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   async addGlyph() {
     const rid = joinId(this.resourceId!, 'definitions');
     const newItem = await this.mainService.getNewItemData(rid);
+    // the next code after the last glyph keeps the glyphs sorted
+    const definitions = this.resourceData!.definitions;
+    if (definitions.length > 0) {
+      newItem.code = Math.min(definitions[definitions.length - 1].code + 1, 0xffff);
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -950,46 +1026,13 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       .then();
   }
 
-  moveGlyphUp(index: number) {
-    if (this.currentGlyphIndex === index) {
-      this.onGlyphSelectedIndexChange(index - 1);
-    } else if (this.currentGlyphIndex === index - 1) {
-      this.onGlyphSelectedIndexChange(index);
-    }
-    this.changes
-      .appendChanges({
-        timestamp: Date.now(),
-        id: joinId(this.resourceId!, 'definitions'),
-        op: 'array_swap',
-        indexA: index,
-        indexB: index - 1,
-      })
-      .then();
-  }
-
-  moveGlyphDown(index: number) {
-    if (this.currentGlyphIndex === index) {
-      this.onGlyphSelectedIndexChange(index + 1);
-    } else if (this.currentGlyphIndex === index + 1) {
-      this.onGlyphSelectedIndexChange(index);
-    }
-    this.changes
-      .appendChanges({
-        timestamp: Date.now(),
-        id: joinId(this.resourceId!, 'definitions'),
-        op: 'array_swap',
-        indexA: index,
-        indexB: index + 1,
-      })
-      .then();
-  }
-
   private symbolInputToCode(input: string, oldCode: number): number | undefined {
     if (input && input.length) {
       let charCode = oldCode;
-      for (let i = 0; i < input.length; i++) {
-        if (input.charCodeAt(i) !== oldCode) {
-          charCode = input.charCodeAt(i);
+      // code points, so a character above U+FFFF gets its own code (and a range message), not a surrogate's
+      for (const char of Array.from(input)) {
+        if (char.codePointAt(0) !== oldCode) {
+          charCode = char.codePointAt(0)!;
         }
       }
       if (charCode !== undefined && !isNaN(charCode) && charCode !== oldCode) {
@@ -999,37 +1042,126 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     return undefined;
   }
 
+  // sets a field of a glyph / kerning. A changed sort field moves the item to its sorted place in the same undo step,
+  // then the table shows and selects it there
+  private setItemValue(arrayName: 'definitions' | 'kernings', index: number, field: string, newValue: any) {
+    const array = this.resourceData![arrayName];
+    const arrayId = joinId(this.resourceId!, arrayName);
+    const timestamp = Date.now();
+    const changes: ChangeEntry[] = [
+      { timestamp, id: joinId(arrayId, index, field), op: 'set', oldValue: array[index][field], newValue },
+    ];
+    const sortField = arrayName === 'definitions' ? 'code' : this.kerningsSortField;
+    const target = field === sortField ? sortedPosition(array, field, newValue, index) : index;
+    if (target !== index) {
+      const item = array[index];
+      changes.push(
+        { timestamp, id: arrayId, op: 'array_remove', index, oldValue: item },
+        { timestamp, id: arrayId, op: 'array_insert', index: target, value: item },
+      );
+    }
+    this.changes
+      .appendChanges(changes.length === 1 ? changes[0] : { timestamp, id: arrayId, op: 'bundle', changes })
+      .then();
+    if (target !== index) {
+      // the edited input now shows another item
+      (document.activeElement as HTMLElement | null)?.blur();
+      if (arrayName === 'definitions') {
+        this._hasCustomView = false;
+        this._previewRect = null;
+        this.onGlyphSelectedIndexChange(target);
+        this.glyphsTable?.showItem(target);
+      } else {
+        this.onKerningSelectedIndexChange(target);
+        this.kerningsTable?.showItem(target);
+      }
+    }
+  }
+
+  // a symbol typed for a glyph / kerning code must fit the field (kerning right glyph is 1 byte)
+  private symbolRangeError(arrayName: 'definitions' | 'kernings', field: string, label: string, code: number) {
+    const arraySchema = this.resourceSchema?.fields.find((f: any) => f.name === arrayName)?.schema;
+    const range = numberRange(arraySchema?.child_schema?.fields.find((f: any) => f.name === field)?.schema);
+    if ((range.max !== null && code > range.max) || (range.min !== null && code < range.min)) {
+      return `${label} code must be ${range.min}..${range.max}: "${this.getSymbol(code)}" is ${code}`;
+    }
+    return null;
+  }
+
+  // a glyph code must fit the field and be unique: the edit is refused, the table puts the old value back
+  validateGlyphChange = (index: number, field: string | null, _subField: string | null, value: any): string | null => {
+    const definitions = this.resourceData!.definitions;
+    let code: number | undefined;
+    if (field === 'symbol') code = this.symbolInputToCode(value, definitions[index].code);
+    else if (field === 'code') code = +value;
+    if (code === undefined) return null;
+    if (field === 'symbol') {
+      const rangeError = this.symbolRangeError('definitions', 'code', 'Glyph', code);
+      if (rangeError) return rangeError;
+    }
+    const other = definitions.findIndex((g: any, i: number) => i !== index && g.code === code);
+    if (other < 0) return null;
+    return `Code ${code} ("${this.getSymbol(code)}") is already used by glyph #${other}`;
+  };
+
+  validateKerningChange = (
+    index: number,
+    field: string | null,
+    _subField: string | null,
+    value: any,
+  ): string | null => {
+    if (field !== 'Left Symbol' && field !== 'Right Symbol') return null;
+    const dataField = field === 'Left Symbol' ? 'left' : 'right';
+    const code = this.symbolInputToCode(value, this.resourceData!.kernings[index][dataField]);
+    if (code === undefined) return null;
+    return this.symbolRangeError('kernings', dataField, field === 'Left Symbol' ? 'Left glyph' : 'Right glyph', code);
+  };
+
+  // sorts glyphs by code (or kernings by right glyph) in one undo step, the selected item stays selected
+  sortItems(arrayName: 'definitions' | 'kernings') {
+    const array: any[] = this.resourceData![arrayName];
+    const sortField = arrayName === 'definitions' ? 'code' : 'right';
+    const sorted = [...array].sort((a, b) => a[sortField] - b[sortField]);
+    const timestamp = Date.now();
+    const changes: ChangeEntry[] = sorted
+      .map((item, i): ChangeEntry | null =>
+        item === array[i]
+          ? null
+          : { timestamp, id: joinId(this.resourceId!, arrayName, i), op: 'set', oldValue: array[i], newValue: item },
+      )
+      .filter((c): c is ChangeEntry => c !== null);
+    if (changes.length === 0) return;
+    const selected$ = arrayName === 'definitions' ? this._selectedGlyphIndex$ : this._selectedKerningIndex$;
+    const selectedItem = selected$.getValue() !== null ? array[selected$.getValue()!] : null;
+    this.changes.appendChanges({ timestamp, id: joinId(this.resourceId!, arrayName), op: 'bundle', changes }).then();
+    if (selectedItem) {
+      const index = sorted.indexOf(selectedItem);
+      selected$.next(index);
+      (arrayName === 'definitions' ? this.glyphsTable : this.kerningsTable)?.showItem(index);
+    }
+  }
+
   onGlyphDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
     if (event.field === 'symbol') {
-      let charCode = this.symbolInputToCode(event.value, this.resourceData!.definitions[event.index]['code']);
+      const charCode = this.symbolInputToCode(event.value, this.resourceData!.definitions[event.index]['code']);
       if (charCode !== undefined) {
-        const change = {
-          timestamp: Date.now(),
-          id: joinId(this.resourceId!, 'definitions', event.index, 'code'),
-          op: 'set',
-          oldValue: this.resourceData!.definitions[event.index]['code'],
-          newValue: charCode,
-        };
-        this.changes.appendChanges(change as any).then();
+        this.setItemValue('definitions', event.index, 'code', charCode);
       }
       return;
     }
     if (event.field) {
-      this.changes
-        .appendChanges({
-          timestamp: Date.now(),
-          id: joinId(this.resourceId!, 'definitions', event.index, event.field),
-          op: 'set',
-          oldValue: this.resourceData!.definitions[event.index][event.field],
-          newValue: event.value,
-        })
-        .then();
+      this.setItemValue('definitions', event.index, event.field, event.value);
     }
   }
 
   async addKerning() {
     const rid = joinId(this.resourceId!, 'kernings');
     const newItem = await this.mainService.getNewItemData(rid);
+    // the right glyph of the last pair keeps the pairs sorted
+    const kernings = this.resourceData!.kernings || [];
+    if (this.kerningsSortField && kernings.length > 0) {
+      newItem.right = kernings[kernings.length - 1].right;
+    }
     this.changes
       .appendChanges({
         timestamp: Date.now(),
@@ -1095,16 +1227,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
   onKerningDataChanged(event: { index: number; field: string | null; subField: string | null; value: any }) {
     if (event.field === 'Left Symbol' || event.field === 'Right Symbol') {
       const dataField = event.field === 'Left Symbol' ? 'left' : 'right';
-      let charCode = this.symbolInputToCode(event.value, this.resourceData!.kernings[event.index][dataField]);
+      const charCode = this.symbolInputToCode(event.value, this.resourceData!.kernings[event.index][dataField]);
       if (charCode !== undefined) {
-        const change = {
-          timestamp: Date.now(),
-          id: joinId(this.resourceId!, 'kernings', event.index, dataField),
-          op: 'set',
-          oldValue: this.resourceData!.kernings[event.index][dataField],
-          newValue: charCode,
-        };
-        this.changes.appendChanges(change as any).then();
+        this.setItemValue('kernings', event.index, dataField, charCode);
       }
       return;
     }
@@ -1115,15 +1240,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       else if (dataField === 'Right Symbol Code') dataField = 'right';
       else if (dataField === 'Kerning') dataField = 'kerning';
       else if (dataField === 'Unk') dataField = 'unk';
-      this.changes
-        .appendChanges({
-          timestamp: Date.now(),
-          id: joinId(this.resourceId!, 'kernings', event.index, dataField),
-          op: 'set',
-          oldValue: this.resourceData!.kernings[event.index][dataField],
-          newValue: event.value,
-        })
-        .then();
+      this.setItemValue('kernings', event.index, dataField, event.value);
     }
   }
 

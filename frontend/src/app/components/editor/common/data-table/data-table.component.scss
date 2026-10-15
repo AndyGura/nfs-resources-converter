@@ -141,25 +141,24 @@ table {
 }
 
 .index-cell {
-  position: relative;
   min-width: 40px;
   text-align: center;
+  cursor: pointer;
+}
 
-  .index-number {
-    display: block;
-    width: 100%;
-    text-align: center;
-  }
+// row actions: last column, kept in view on wide tables, shown on row hover / keyboard focus
+.actions-cell {
+  position: sticky;
+  right: 0;
+  width: 1px;
+  padding: 0 4px;
+  background: #fafafa;
 
   .item-actions {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #fafafa;
+    display: flex;
+    gap: 4px;
+    visibility: hidden;
     white-space: nowrap;
-    z-index: 1;
 
     button {
       width: 24px;
@@ -183,14 +182,11 @@ table {
       }
     }
   }
+}
 
-  &.editable:hover {
-    .index-number {
-      visibility: hidden;
-    }
-    .item-actions {
-      display: flex;
-      gap: 4px;
-    }
+tr:hover,
+tr:focus-within {
+  .actions-cell .item-actions {
+    visibility: visible;
   }
 }

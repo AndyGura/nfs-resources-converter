@@ -17,6 +17,11 @@ class DataIntegrityException(ReadWriteException):
         super().__init__(message, **kwargs)
 
 
+# an integer that does not fit its field on write; still an OverflowError for callers that catch that
+class IntegerOutOfRangeException(DataIntegrityException, OverflowError):
+    pass
+
+
 class BlockDefinitionException(ReadWriteException):
     pass
 

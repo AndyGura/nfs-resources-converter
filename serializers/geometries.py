@@ -162,7 +162,8 @@ class OripGeometrySerializer(BaseFileSerializer):
                 .child.field_blocks_map['item']
                 .possible_blocks[c['item']['choice_index']]
             )
-            if isinstance(texture_block, EacImage):
+            # "!..." items are no textures (the game skips them too), a CFM's !xxx is a palette typed as a bitmap
+            if isinstance(texture_block, EacImage) and not c['alias'].startswith('!'):
                 scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
 

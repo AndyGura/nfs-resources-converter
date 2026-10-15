@@ -2,7 +2,7 @@ import struct
 from typing import Dict, Literal, List, Tuple
 
 from library.context import ReadContext, WriteContext
-from library.exceptions import EndOfBufferException, DataIntegrityException
+from library.exceptions import EndOfBufferException, DataIntegrityException, IntegerOutOfRangeException
 from library.read_blocks.basic import DataBlock
 
 
@@ -48,7 +48,17 @@ class IntegerBlock(DataBlock):
         return self.length
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        return data.to_bytes(self.length, byteorder=self.byte_order, signed=self.is_signed).ljust(self.length, b'\0')
+        try:
+            return data.to_bytes(self.length, byteorder=self.byte_order, signed=self.is_signed).ljust(
+                self.length, b'\0'
+            )
+        except OverflowError:
+            schema = self.schema
+            raise IntegerOutOfRangeException(
+                ctx=ctx,
+                message=f'{name + " = " if name else ""}{data} does not fit {schema["block_description"]} '
+                f'({schema["min_value"]}..{schema["max_value"]})',
+            )
 
 
 class FixedPointBlock(IntegerBlock):

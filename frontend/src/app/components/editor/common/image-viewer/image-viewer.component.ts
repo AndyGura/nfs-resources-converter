@@ -14,6 +14,21 @@ import { MainService } from '../../../../services/main.service';
 import { ChangesService } from '../../../../services/changes.service';
 import { BlockData, BlockSchema } from '../../types';
 
+// A point drawn over the main image, in image pixels from its top left corner
+export interface ImageMarker {
+  x: number;
+  y: number;
+  label: string;
+  title?: string;
+}
+
+// A group of markers the viewer's toolbar shows or hides
+export interface ImageOverlay {
+  name: string;
+  icon: string;
+  markers: ImageMarker[];
+}
+
 @Component({
   selector: 'app-image-viewer',
   templateUrl: './image-viewer.component.html',
@@ -55,6 +70,8 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   @Input() hideCustomActions = false;
 
   @Input() customStats?: { label: string; value: string }[];
+  @Input() overlays: ImageOverlay[] = [];
+  hiddenOverlays = new Set<string>();
 
   public imageNeedsUpdate$ = new Subject<void>();
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
@@ -90,6 +107,22 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
     } else {
       this.cdr.markForCheck();
     }
+  }
+
+  // markers keep their size on screen at any zoom
+  get markerScale(): number {
+    return 100 / this.zoom;
+  }
+
+  get showMarkers(): boolean {
+    return this.overlays.length > 0 && this.currentMipmapLevel === null && !!this.imageWidth && !!this.imageHeight;
+  }
+
+  toggleOverlay(name: string) {
+    if (!this.hiddenOverlays.delete(name)) {
+      this.hiddenOverlays.add(name);
+    }
+    this.cdr.markForCheck();
   }
 
   minZoomLog = Math.log2(10 / 100);

@@ -157,7 +157,8 @@ tnfsse/SIMDATA/MISC/TR6INFO		NotImplementedError:
 tnfsse/SIMDATA/MISC/TR7INFO		NotImplementedError: 
 tnfsse/SIMDATA/MISC/TRXINFO		NotImplementedError: 
 
---- Read-again failures (Test 3): 183 ---
+--- Read-again failures (Test 3): 153 ---
+nfs2se/GAMEDATA/DASHHUD/PC/HUDDATA.VIV		Read-again data differs from original data
 nfs2se/SETUP/ENGLISH/_INST32I.EX_		Read-again data differs from original data
 nfs2se/SETUP/SPANISH/_INST32I.EX_		Read-again data differs from original data
 nfs2se/UTILITY/MP/_INST32I.EX_		Read-again data differs from original data
@@ -165,21 +166,6 @@ nfs3/FeData/text/TEXT.FRE		Read-again data differs from original data
 nfs3/FeData/text/TEXT.ITA		Read-again data differs from original data
 nfs3/FeData/text/TEXT.SPA		Read-again data differs from original data
 nfs3/FeData/text/TEXT.SWE		Read-again data differs from original data
-nfs3/GameData/CarModel/Amd7/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Corv/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Cout/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Diab/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Elni/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Fm50/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Jxjr/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Jxk8/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Lcop/CAR.VIV		Read-again data differs from original data
-nfs3/GameData/CarModel/Merc/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Peln/CAR.VIV		Read-again data differs from original data
-nfs3/GameData/CarModel/Scig/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Sl60/car.viv		Read-again data differs from original data
-nfs3/GameData/CarModel/Vcop/CAR.VIV		Read-again data differs from original data
-nfs3/GameData/CarModel/f355/car.viv		Read-again data differs from original data
 nfs4/Data/Tracks/Aquatica/Tr.frd		Read-again data differs from original data
 nfs4/Data/Tracks/Atlantic/Tr.frd		Read-again data differs from original data
 nfs4/Data/Tracks/Coastal/Tr.frd		Read-again data differs from original data
@@ -305,20 +291,10 @@ tnfsse/SIMDATA/CARFAMS/LDIABLO.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/CARFAMS/MP911T.CFM		Read-again data differs from original data
 tnfsse/SIMDATA/ETRACKFM/CY3_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/ETRACKFM/TR1_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/TR2_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/TR3_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/TR4_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/ETRACKFM/TR5_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/TR6_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/ETRACKFM/TR7_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/GTRACKFM/CY3_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/GTRACKFM/TR1_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/TR2_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/TR3_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/TR4_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/GTRACKFM/TR5_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/TR6_001.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/GTRACKFM/TR7_001.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/AL2.TRI		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/AL22.TRI		Read-again data differs from original data
 tnfsse/SIMDATA/MISC/AL3.TRI		Read-again data differs from original data
@@ -332,66 +308,59 @@ tnfsse/SIMDATA/NTRACKFM/CY3_T01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR1_M01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR1_R01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR1_T01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR2_R01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR3_R01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR4_R01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR5_M01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR6_R01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR7_M01.FAM		Read-again data differs from original data
-tnfsse/SIMDATA/NTRACKFM/TR7_R01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/NTRACKFM/TR8_R01.FAM		Read-again data differs from original data
 tnfsse/SIMDATA/SOUNDBNK/COLL_SB.BNK		Read-again data differs from original data
 
---- Comparison failures (Test 4): 121 ---
+--- Comparison failures (Test 4): 120 ---
 nfs2/GAMEDATA/TMPTRK/MAIN.TRK		Output length (966706) differs from input length (1126400)
 nfs2/GAMEDATA/TRACKS/DATA/PC/TR0601.CAN		Output length (178) differs from input length (1088)
 nfs2/GAMEDATA/TRACKS/DATA/PC/TR0701.CAN		Output length (178) differs from input length (1088)
-nfs2se/GAMEDATA/DASHHUD/PC/HUDDATA.VIV		Output differs from input at offset 0x221
 nfs3/GameData/Render/PC/CONE.ART		Output length (16) differs from input length (32788)
 nfs4/Data/GameArt/median.art		Output length (16) differs from input length (8728)
 nfs5/GameData/Sounds/993Tcoupe36.spl		Output length (16) differs from input length (52)
 tnfsse/FRONTEND/ART/CHECK/CHKMENU.QFS		Output length (257486) differs from input length (252427); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/CHECK/FINMENU.QFS		Output length (250656) differs from input length (246203); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/CONTROL/ANI.QFS		Output length (63368) differs from input length (61819); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/CENTRAL.QFS		Output length (142556) differs from input length (142054); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/CENTRAL.QFS		Output length (142539) differs from input length (142054); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/CONTROL/CHAT.QFS		Output length (177455) differs from input length (170672); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/CONTROL/GAMEMOD2.QFS		Output length (240107) differs from input length (235903); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/CONTROL/GAMEMODE.QFS		Output length (246657) differs from input length (242083); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/TOURNY1.QFS		Output length (16848) differs from input length (16207); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/CONTROL/VET2.QFS		Output length (15515) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/TOURNY1.QFS		Output length (16851) differs from input length (16207); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/CONTROL/VET2.QFS		Output length (15518) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/CREDITS.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/ART/CREDITS.QFS		Output length (1036260) differs from input length (1010667); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/GMOUSE.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/ART/IART/INSTCARD.QFS		Output length (270708) differs from input length (271799); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTINST.QFS		Output length (234055) differs from input length (234774); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTINST.QFS		Output length (234439) differs from input length (234774); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/IART/INSTLOAD.QFS		Output length (530315) differs from input length (509130); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/IART/INSTMENU.QFS		Output length (322842) differs from input length (336554); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/IART/INSTMENU.QFS		Output length (322853) differs from input length (336554); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/IART/INSTPATH.QFS		Output length (347774) differs from input length (334167); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/IART/INSTREAD.QFS		Output length (91557) differs from input length (86009); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/IART/INSTUNIN.QFS		Output length (195980) differs from input length (187080); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/IART/INSTVIDO.QFS		Output length (234011) differs from input length (227774); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/JOYCONF.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/ART/OPTION/AUDIO.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/ART/OPTION/AUDIO.QFS		Output length (314598) differs from input length (312853); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/OPTION/MODEMSET.QFS		Output length (428347) differs from input length (416524); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/OPTION/NETSET.QFS		Output length (325114) differs from input length (329523); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/OPTION/OPTIONS.QFS		Output length (275326) differs from input length (269048); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/FINSTND.QFS		Output length (168764) differs from input length (163488); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/AUDIO.QFS		Output length (314075) differs from input length (312853); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/MODEMSET.QFS		Output length (428374) differs from input length (416524); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/NETSET.QFS		Output length (324606) differs from input length (329523); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/OPTION/OPTIONS.QFS		Output length (275375) differs from input length (269048); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/FINSTND.QFS		Output length (169255) differs from input length (163488); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/STATS/SGMTSTND.QFS		Output length (217221) differs from input length (205074); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/STATS/STANDBST.QFS		Output length (211805) differs from input length (198719); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/STATS/STANDLO1.QFS		Output length (199847) differs from input length (191139); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/STATS/STANDLO2.QFS		Output length (223764) differs from input length (210491); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/STATS/TRMTSTND.QFS		Output length (145728) differs from input length (139392); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TITLE.QFS		Output length (200770) differs from input length (196917); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/STATS/TRMTSTND.QFS		Output length (145683) differs from input length (139392); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TITLE.QFS		Output length (200774) differs from input length (196917); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/TRACKSEL/ALPSEL.QFS		Output length (423003) differs from input length (415155); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/TRACKSEL/AUTSEL.QFS		Output length (239065) differs from input length (240893); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/BRUNBST.QFS		Output length (175065) differs from input length (169466); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/BRUNBST.QFS		Output length (174541) differs from input length (169466); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/TRACKSEL/BRUNSEL.QFS		Output length (213771) differs from input length (215504); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/TRACKSEL/CITYSEL.QFS		Output length (399705) differs from input length (394081); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/TRACKSEL/COASTSEL.QFS		Output length (269692) differs from input length (259761); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/TRACKSEL/RUSTSEL.QFS		Output length (185552) differs from input length (182789); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/TROPBST.QFS		Output length (129786) differs from input length (121857); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/ART/TRACKSEL/TROPSEL.QFS		Output length (209325) differs from input length (209670); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/TROPBST.QFS		Output length (129280) differs from input length (121857); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/ART/TRACKSEL/TROPSEL.QFS		Output length (208808) differs from input length (209670); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/ART/TRACKSEL/VERTSEL.QFS		Output length (184925) differs from input length (185266); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CHECK/CHKMENU.QFS		Output length (281159) differs from input length (278049); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CHECK/FINMENU.QFS		Output length (262384) differs from input length (260428); uncompressed contents of 1 compressed block(s) differ
@@ -400,47 +369,47 @@ tnfsse/FRONTEND/GART/CHECK/LOOP6.QFS		Output length (65739) differs from input l
 tnfsse/FRONTEND/GART/CHECK/LOOP7.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/GART/CHECK/LOOP7.QFS		Output length (66562) differs from input length (64858); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CONTROL/ANI.QFS		Output length (63368) differs from input length (61819); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/CENTRAL.QFS		Output length (139597) differs from input length (141319); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/CENTRAL.QFS		Output length (139628) differs from input length (141319); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CONTROL/CHAT.QFS		Output length (177791) differs from input length (175663); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/GAMEMOD2.QFS		Output length (256299) differs from input length (252188); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/GAMEMODE.QFS		Output length (245627) differs from input length (241146); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/CONTROL/VET2.QFS		Output length (15515) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/GAMEMOD2.QFS		Output length (256297) differs from input length (252188); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/GAMEMODE.QFS		Output length (245637) differs from input length (241146); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/CONTROL/VET2.QFS		Output length (15518) differs from input length (15112); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/CREDITS.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/GART/CREDITS.QFS		Output length (1048853) differs from input length (1021888); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/GMOUSE.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/GART/IART/INSTCARD.QFS		Output length (274380) differs from input length (274874); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTCARD.QFS		Output length (274291) differs from input length (274874); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/IART/INSTINST.QFS		Output length (249880) differs from input length (240973); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/IART/INSTLOAD.QFS		Output length (541573) differs from input length (520433); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTMENU.QFS		Output length (300485) differs from input length (288272); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTPATH.QFS		Output length (381530) differs from input length (369430); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTREAD.QFS		Output length (111132) differs from input length (105619); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTMENU.QFS		Output length (300429) differs from input length (288272); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTPATH.QFS		Output length (381535) differs from input length (369430); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTREAD.QFS		Output length (111645) differs from input length (105619); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/IART/INSTUNIN.QFS		Output length (199504) differs from input length (194596); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/IART/INSTVIDO.QFS		Output length (241995) differs from input length (236006); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/IART/INSTVIDO.QFS		Output length (242506) differs from input length (236006); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/JOYCONF.FSH		Output differs from input at offset 0x14
 tnfsse/FRONTEND/GART/OPTION/AUDIO.FSH		Output differs from input at offset 0x14
-tnfsse/FRONTEND/GART/OPTION/AUDIO.QFS		Output length (326064) differs from input length (320394); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/OPTION/MODEMSET.QFS		Output length (432193) differs from input length (421367); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/OPTION/NETSET.QFS		Output length (346295) differs from input length (359073); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/OPTION/AUDIO.QFS		Output length (325591) differs from input length (320394); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/OPTION/MODEMSET.QFS		Output length (431631) differs from input length (421367); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/OPTION/NETSET.QFS		Output length (346278) differs from input length (359073); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/OPTION/OPTIONS.QFS		Output length (277714) differs from input length (281261); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/FINSTND.QFS		Output length (171148) differs from input length (165488); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/SGMTSTND.QFS		Output length (218794) differs from input length (206197); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/FINSTND.QFS		Output length (171134) differs from input length (165488); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/SGMTSTND.QFS		Output length (218792) differs from input length (206197); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/STATS/STANDBST.QFS		Output length (214867) differs from input length (201811); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/STANDLO1.QFS		Output length (206840) differs from input length (194763); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/STATS/STANDLO2.QFS		Output length (233640) differs from input length (219162); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/STANDLO1.QFS		Output length (206814) differs from input length (194763); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/STATS/STANDLO2.QFS		Output length (232879) differs from input length (219162); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/STATS/TRMTSTND.QFS		Output length (147535) differs from input length (140859); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TICKET.QFS		Output length (147991) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TICKET.QFS		Output length (147989) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/ALPSEL.QFS		Output length (422340) differs from input length (413349); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/AUTSEL.QFS		Output length (239403) differs from input length (239422); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/BRUNBST.QFS		Output length (202936) differs from input length (203155); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/BRUNBST.QFS		Output length (202421) differs from input length (203155); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/BRUNSEL.QFS		Output length (215053) differs from input length (208743); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/CITYSEL.QFS		Output length (400826) differs from input length (393185); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/COASTSEL.QFS		Output length (270494) differs from input length (259507); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/LOSTSEL.QFS		Output length (153634) differs from input length (148221); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/RUSTSEL.QFS		Output length (190950) differs from input length (188744); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/TRACKSEL/TROPBST.QFS		Output length (151158) differs from input length (145058); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/TRACKSEL/TROPBST.QFS		Output length (150645) differs from input length (145058); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/TROPSEL.QFS		Output length (199724) differs from input length (191989); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GART/TRACKSEL/VERTSEL.QFS		Output length (187302) differs from input length (181425); uncompressed contents of 1 compressed block(s) differ
-tnfsse/FRONTEND/GART/WINNER.QFS		Output length (147991) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
+tnfsse/FRONTEND/GART/WINNER.QFS		Output length (147989) differs from input length (143882); uncompressed contents of 1 compressed block(s) differ
 tnfsse/FRONTEND/GSPEECH/CON4_B16.EAS		Output length (104914) differs from input length (104916)
 tnfsse/FRONTEND/MUSIC/CREDITS.ASF		Output length (3683886) differs from input length (9134864)
 tnfsse/FRONTEND/MUSIC/PAUSE.ASF		Output length (706600) differs from input length (1415844)

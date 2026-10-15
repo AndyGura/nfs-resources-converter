@@ -151,3 +151,25 @@ https://claude.ai/artifact/7UQmqmxtaK8MenZQcDqpEo.
 ### Not tested
 Real game (DOSBox / Win95 SE), rally mode, PDN collision fields, `handling_factor`, 3DO `.BigSpecsFam`, the native
 macOS window.
+
+---
+
+## 2026-10-15 — FFN font editor
+
+**Commit**: `2425e32` (branch `claude-1`). **Scope**: `FontBlockUiComponent` (Chars / Kernings / Headers / Bitmap
+tabs, Char Preview, Font Preview), save, undo, fnt + png export / import, File → New FFN. GUI driven in Chrome via the
+no-Docker shortcut (`gui_editor_linux.run_gui_editor` on macOS, backend on 8001 because `pocket-ic` held 8000,
+`proxy.conf.json` reverted afterwards), files opened by restarting the backend with the path. Scratch copies of
+`games/` fonts only. Full report: https://claude.ai/artifact/FgTKuR5Zcp2SrTLwpkiZaw.
+
+### Findings
+- 70/70 game FFNs (NFS1–NFS6, versions 100–366) read and write byte-exact; export → import restores all glyph,
+  kerning and header fields (8 fonts) (Confirmed headless).
+- Char Preview move / resize / origin / advance drags, pan, wheel zoom, table edits, symbol column, add / remove
+  glyph, kerning add / edit, undo, save all work (Confirmed live: MAIN18, SWISS36, BlairITC14b, Korean Gulim12 with
+  20 577 glyphs, New.ffn). Import + Color Model 4Bit (alpha) + save gives a byte-exact SWISS36.
+- Issues → `KNOWN_ISSUES.md` KI-6.
+
+### Not tested
+The native Serialize / Deserialize dialogs (import driven through `mainService.deserializeResource` from the console),
+macOS native window, Toggle Hidden Fields on fonts, Bitmap tab pixel editing, in-game behaviour.
