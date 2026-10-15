@@ -368,9 +368,20 @@ class EacPalette(DeclarativeCompoundBlock):
             ],
             'block_description': 'Resource with colors LUT (look-up table). EA 8-bit bitmaps have 1-byte value per pixel, '
             'meaning the index of color in LUT of assigned palette. Has special colors: '
-            '255th in most cases means transparent color, 254th in car textures is replaced by '
-            'tail light color, 250th - 253th in car textures are rendered black: thy are reserved '
-            'for cop car siren',
+            '255th in most cases means transparent color, 254th in TNFS car textures is replaced by '
+            'tail light color, 250th - 253th are the cop car light bar (TNFS maps them to the VGA palette entries '
+            '0xFA - 0xFD: red, dark red, blue, dark blue, swapped every 16 clock ticks during a police chase, Win95 SE '
+            '`gfx_draw_car_model` 0x458d4c) and are rendered black in other cars. The converter writes these colors '
+            'to `car_colors.json` next to the PNGs.<br/>'
+            'TNFS car models (CFM) have a second palette `!xxx` next to `!PAL` in the high-poly textures SHPI (TRAFFC '
+            "in both): the car's slice of the shared 256-color VGA palette in 8-bit modes (Win95 SE "
+            '`gfx_car_palettes_setup` 0x4572e0). Its first 23 colors (8 for traffic, 24 for the player in a single '
+            "race / tournament) go to the car's palette entries (player 0x30, opponent 0x48, traffic 0x60 + 8 * "
+            'slot), then the textures are remapped from `!PAL` to the nearest colors of the VGA palette. `!PAL` is '
+            'the palette of the textures, `!xxx` is never used to draw them. Cops get none, and the `M*.CFM` models '
+            '(opponents of a single race / tournament, which share `CARFAMS/CARPAL.FSH` instead) have junk there. '
+            'Many `!xxx` have the 8-bit bitmap id 0x7B (256x1 or 256x3) instead of a palette id. The converter '
+            'writes its used colors to `car_colors.json` (`palette_slice`) instead of a file of its own',
         }
 
     def new_data(self, patch=None):

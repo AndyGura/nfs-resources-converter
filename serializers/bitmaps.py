@@ -41,6 +41,11 @@ class ImageSerializer(BaseFileSerializer):
                 palette_colors = [0xFFFFFF00 | i for i in range(256)]
             else:
                 palette_colors = [c for c in palette_data['colors']['data']]
+                if id and '.CFM__' in id.upper():
+                    from serializers.misc.tnfs_car_colors import car_texture_palette
+
+                    # TNFS car textures: unique colors of the indices car_colors.json lists
+                    palette_colors = car_texture_palette(palette_colors)
                 if palette_data['last_color_transparent']:
                     palette_colors[255] = 0
         return palette_colors
