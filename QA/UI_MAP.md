@@ -114,7 +114,7 @@ block, an array field with per-item "Click to view items (N)" expanders for larg
 |---|---|---|
 | Image | `EacImage` | — |
 | Palette | `EacPalette` | — |
-| Font | `FfnFont` | — |
+| Font | `FfnFont` | Tabs **Chars** (paged glyph table, 100/200/500 per page, prev/next only; row actions up / down / delete appear on hover over the `#` cell), **Kernings** (same table: Left / Right Symbol, codes, Kerning), **Headers** (generic compound UI without bitmap / definitions / kernings; font-level serialize / deserialize icons), **Bitmap** (image editor; the Color Model select runs the convert-to-4bit / 8bit / RGBA actions). Right column: **Char Preview** canvas (Chars tab only; red rect + 8 resize handles, green origin = `x - x_offset, y - y_offset`, blue advance handle = `x_advance` if non-zero else `advance`, magenta vertical line = `advance`; drag inside = move, drag empty = pan, wheel = zoom, selecting a row resets the view) and **Font Preview** (editable sample text rendered with glyphs + kerning; line height is a fixed 32 px). Confirmed (live, 2026-10-15) |
 | Targa image | `TargaImage` | — |
 | ORIP geometry | `OripGeometry` | embeds an **obj-viewer** (3D, WebGL) |
 | GEO geometry | `GeoGeometry` | embeds obj-viewer |

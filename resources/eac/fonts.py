@@ -35,7 +35,13 @@ class GlyphDefinition(DeclarativeCompoundBlock):
         height = (IntegerBlock(length=1), {'description': 'Height of symbol in font bitmap'})
         x = (IntegerBlock(length=2), {'description': 'Position (x) of symbol in font bitmap'})
         y = (IntegerBlock(length=2), {'description': 'Position (y) of symbol in font bitmap'})
-        advance = (IntegerBlock(length=1), {'description': 'Gap between this symbol and next one in rendered text'})
+        advance = (
+            IntegerBlock(length=1),
+            {
+                'description': 'Distance from the start of this symbol to the start of the next one in rendered text. '
+                '0 in every game font with 16-byte glyphs, which keep it in `x_advance`'
+            },
+        )
         x_offset = (
             IntegerBlock(length=1, is_signed=True),
             {'description': 'Offset (x) for drawing the character image'},
@@ -56,7 +62,7 @@ class GlyphDefinition(DeclarativeCompoundBlock):
                 ),
                 criteria=lambda ctx: ctx.data('../../version') > 309,
             ),
-            {'description': 'Number of kerning pairs for this glyph'},
+            {'description': 'Number of kerning pairs with this glyph as the right (second) glyph'},
         )
         pad = (
             OptionalBlock(
@@ -68,17 +74,29 @@ class GlyphDefinition(DeclarativeCompoundBlock):
         # 13th - 16th bytes
         kern_index = (
             OptionalBlock(
-                child=IntegerBlock(length=2, is_signed=False),
+                child=IntegerBlock(
+                    length=2,
+                    is_signed=False,
+                    programmatic_value=lambda ctx: next(
+                        (i for i, x in enumerate(ctx.data('../../kernings')) if x['right'] == ctx.data('code')), 0
+                    ),
+                ),
                 criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes',
             ),
-            {'description': 'Index in kerning table?'},
+            {
+                'description': 'Index of the first kerning pair with this glyph as the right glyph: its `num_kern` '
+                'pairs follow each other in the kerning table from here. 0 if the glyph has no kerning pairs'
+            },
         )
         x_advance = (
             OptionalBlock(
                 child=IntegerBlock(length=2, is_signed=False),
                 criteria=lambda ctx: ctx.data('../../version') >= 321 and ctx.data('../../flags/format') == '16-bytes',
             ),
-            {'description': 'Gap between this symbol and next one in rendered text?'},
+            {
+                'description': 'Distance from the start of this symbol to the start of the next one in rendered text, '
+                'for 16-byte glyphs (`advance` is 0 in all of them in the game files)'
+            },
         )
 
     def new_data(self, patch=None):
@@ -256,7 +274,10 @@ class FfnFont(DeclarativeCompoundBlock):
         padding_0 = (Padding(to=lambda ctx: ctx.data('definitions_ptr')), {'is_unknown': True})
         definitions = (
             ArrayBlock(child=GlyphDefinition(), length=lambda ctx: ctx.data('num_glyphs')),
-            {'description': 'Definitions of chars in this bitmap font'},
+            {
+                'description': 'Definitions of chars in this bitmap font, sorted by `code` (the writer keeps this '
+                'order, stable sort by `code`)'
+            },
         )
         padding_1 = (
             OptionalBlock(
@@ -270,14 +291,56 @@ class FfnFont(DeclarativeCompoundBlock):
                 child=LengthPrefixedArrayBlock(child=KerningItem(), length_block=IntegerBlock(length=4)),
                 criteria=lambda ctx: ctx.data('kernings_ptr') != 0 or len(ctx.data('kernings') or []) != 0,
             ),
-            {'description': 'Kerning pairs table'},
+            {
+                'description': 'Kerning pairs table. For versions > 309 (glyphs with `num_kern`) the pairs are sorted '
+                'by right glyph, so the pairs of one right glyph follow each other: the writer keeps this order '
+                '(stable sort by `right`)'
+            },
         )
-        padding_2 = (Padding(to=lambda ctx: ctx.data('bdata_ptr')), {'is_unknown': True})
+        padding_2 = (
+            Padding(to=lambda ctx: ctx.data('bdata_ptr')),
+            {
+                'is_unknown': True,
+                'description': 'Puts the bitmap at the offset the game files use: versions < 309 at a multiple of 16 '
+                '(gap filled with 0xAD; NFS2 SWISS36 at a multiple of 8), newer ones so that the pixels after the '
+                '16-byte bitmap header start at a multiple of 128 (gap starts with "Buy ERTS", then zeros). Recomputed '
+                'on save when the glyph or kerning tables change size, keeping the alignment of the file read',
+            },
+        )
         bitmap = (EacImage(), {'description': 'Font atlas bitmap data'})
         remaining_bytes = (
             BytesBlock(length=(lambda ctx: ctx.read_bytes_remaining, 'remaining bytes')),
             {'is_unknown': True},
         )
+
+    def new_data(self, patch=None):
+        data = super().new_data()
+        # the layout of every TNFS - NFS4 font
+        data['version'] = 100
+        return data
+
+    def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        # every game font has glyphs sorted by code
+        data = {**data, 'definitions': sorted(data['definitions'], key=lambda x: x['code'])}
+        # glyph's num_kern and kern_index refer to a run of pairs with the same right glyph
+        if data['version'] > 309 and data.get('kernings'):
+            data = {**data, 'kernings': sorted(data['kernings'], key=lambda x: x['right'])}
+        data['padding_2'] = self._bitmap_padding(data)
+        return super().write(data, ctx, name)
+
+    def _bitmap_padding(self, data) -> bytes:
+        # padding_2 for the bitmap offset of the game files, see its description
+        if data['version'] < 309:
+            (align, residue) = (16, 0)
+            default = b'\xad' * align
+        else:
+            (align, residue) = (128, 112)
+            default = b'Buy ERTS' + b'\0' * align
+        if data.get('bdata_ptr'):
+            residue = data['bdata_ptr'] % align
+        length = (residue - self.offset_to_child_when_packed(data, 'padding_2')) % align
+        old = bytes(data.get('padding_2') or b'')
+        return (old + default[len(old) :])[:length]
 
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None):
         data = super().read(ctx, name, read_bytes_amount)

@@ -2,10 +2,29 @@
   <mat-tab-group class="font-editor-tabs" [(selectedIndex)]="selectedTabIndex">
     <mat-tab label="Chars">
       <div class="font-editor-container">
+        @if (_glyphsUnsorted || _duplicateGlyphCodes.length) {
+          <div class="order-notice">
+            <mat-icon>warning</mat-icon>
+            <span>
+              @if (_glyphsUnsorted) {
+                Glyphs are not sorted by code, the game fonts always are. Saving sorts them.
+              }
+              @if (_duplicateGlyphCodes.length) {
+                Codes used by more than one glyph: {{ _duplicateGlyphCodes.join(', ') }}.
+              }
+            </span>
+            @if (_glyphsUnsorted) {
+              <button mat-button color="primary" (click)="sortItems('definitions')">Sort now</button>
+            }
+          </div>
+        }
         <data-table
+          #glyphsTable
           [data]="(_glyphsWithSymbols$ | async) || []"
           [columns]="_glyphColumns"
           [enableArrayEditing]="true"
+          [enableReordering]="false"
+          [validateChange]="validateGlyphChange"
           [(pageSize)]="_glyphPageSize"
           [(pageIndex)]="_glyphPageIndex"
           [selectedIndex]="_selectedGlyphIndex$ | async"
@@ -14,18 +33,26 @@
           [pageSizeOptions]="[100, 200, 500]"
           (addItem)="addGlyph()"
           (removeItem)="removeGlyph($event)"
-          (moveItemUp)="moveGlyphUp($event)"
-          (moveItemDown)="moveGlyphDown($event)"
           (dataChanged)="onGlyphDataChanged($event)"
           (focusedElement)="onGlyphFocused($event)"></data-table>
       </div>
     </mat-tab>
     <mat-tab label="Kernings">
       <div class="font-editor-container">
+        @if (_kerningsUnsorted) {
+          <div class="order-notice">
+            <mat-icon>warning</mat-icon>
+            <span>Pairs are not sorted by right glyph, which glyphs' kerning index needs. Saving sorts them.</span>
+            <button mat-button color="primary" (click)="sortItems('kernings')">Sort now</button>
+          </div>
+        }
         <data-table
+          #kerningsTable
           [data]="(_kerningsWithSymbols$ | async) || []"
           [columns]="_kerningColumns"
           [enableArrayEditing]="true"
+          [enableReordering]="!kerningsSortField"
+          [validateChange]="validateKerningChange"
           [(pageSize)]="_kerningPageSize"
           [(pageIndex)]="_kerningPageIndex"
           [selectedIndex]="_selectedKerningIndex$ | async"

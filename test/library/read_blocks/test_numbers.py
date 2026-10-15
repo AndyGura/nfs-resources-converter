@@ -61,6 +61,14 @@ class TestByteNumber(unittest.TestCase):
             field.unpack(ReadContext(BytesIO(bytes([244]))))
 
 
+class TestIntegerOutOfRange(unittest.TestCase):
+    def test_pack_names_field_and_range(self):
+        with self.assertRaises(DataIntegrityException) as cm:
+            IntegerBlock(length=1).pack(1046, name='right')
+        self.assertIn('right = 1046', str(cm.exception))
+        self.assertIn('(0..255)', str(cm.exception))
+
+
 class TestShortNumber(unittest.TestCase):
     def test_le_unsigned_unpack(self):
         field = IntegerBlock(length=2)

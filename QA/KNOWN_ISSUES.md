@@ -205,6 +205,61 @@ mixed decimal formatting, Changes list prints arrays as "[object Object]".
 
 ---
 
+## KI-6 — FFN font editor: kerning index goes stale, preview ignores font metrics, import makes the atlas 32-bit
+
+**Status**: Open (found 2026-10-15; items 1–8 and two lower-severity ones fixed 2026-10-15). **Classification**: Confirmed bug (items 1–5, 7, 8), Suspected bug (9), Unclear /
+needs product decision (6). Full report with repro steps and proposed UX changes:
+https://claude.ai/artifact/FgTKuR5Zcp2SrTLwpkiZaw (private to the repo owner).
+
+1. 16-byte NFS6 fonts: `kern_index` (first kerning row whose `right` is the glyph, 62/62 in every shipped 16-byte
+   font) is a plain field, not recalculated. Deleting one kerning in `BlairITC14b` and saving left 61/62 glyphs off by
+   one; Add Item appends a pair at the end, breaking the sort by right glyph. Confirmed live + saved file; in-game
+   effect Inferred. **Fixed**: `kern_index` is programmatic (0 for a glyph without pairs, as in all shipped fonts), the
+   writer sorts the pairs of a version > 309 font by right glyph, and the editor keeps them sorted (a changed right
+   glyph moves the pair to its place). Confirmed live + saved file.
+2. Font Preview reads `line_height` / `base`, which the format doesn't have: always 32 px / 25.6 px, so ascent /
+   descent edits do nothing and tall fonts (NFS2 `SWISS36`) overlap. Confirmed live. **Fixed**: line height is
+   `ascent + descent`, a glyph's top is the line top + `y_offset` (NFS6 capitals end at `ascent`, descenders at
+   `ascent + descent`; fonts with `descent` 0 keep the line height in `ascent`). Confirmed live on `HUDoutline12`.
+3. fnt + png import (`ImageSerializer.deserialize`) always makes the atlas 32-bit RGBA: file 5–7× bigger, NFS6
+   palette lost. Color Model → 4Bit (alpha) afterwards is byte-exact for v100 / v101 fonts, not for NFS6. Confirmed live.
+   **Fixed**: the import keeps the format of the atlas it replaces (4Bit from the alpha channel, 8Bit by the colors
+   of the current palette) and its embedded palette. Export → import → save is byte-exact for all 70 game FFNs; the
+   `dropshadow` flag, exported as True / False and read back as 0, now survives too. Confirmed live on `HUDoutline12`.
+4. The symbol column bypasses range checks: kerning right symbol "Ж" (1046) goes into a 1-byte field and Save fails
+   with `OverflowError('int too big to convert')` (file left intact). Number cells clamp silently (300 → 255).
+   Confirmed live. **Fixed**: an out-of-range symbol is refused with a message ("Right glyph code must be 0..255:
+   "Ж" is 1046"); number cells show their range on hover and say when they clamp; an import with a kerning `second`
+   above 255 fails with a message naming it; a save error names the field and its range
+   (`IntegerOutOfRangeException`, still an `OverflowError`).
+5. Up / down / delete row buttons appear on hover over the `#` cell: clicking a row number to select it moved the
+   glyph. Confirmed live. **Fixed**: the buttons are in a last column (sticky at the right edge, shown on row hover /
+   focus) in every data table, and a click on `#` selects the row.
+6. Glyphs can be reordered and given duplicate codes with no warning; all 70 game FFNs are sorted by code without
+   duplicates. Whether the games need the order is Unknown. **Fixed (order)**: no move buttons, a changed code moves the
+   glyph to its sorted place (one undo step) and selects it there, Add Item gives the code after the last glyph.
+   A code already used by another glyph is refused with a message (the cell gets its value back). Data opened unsorted
+   or with duplicate codes (imports) gets a notice above the table with "Sort now" (one undo step); the writer sorts
+   glyphs by code (all versions) and kernings by right glyph (version > 309) on save anyway.
+7. `num_kern` is editable in the glyph table but recalculated on save (typed 5, saved 8). Confirmed live. **Fixed**:
+   `num_kern` / `kern_index` columns show only with hidden fields, read-only, with the values the save will write.
+8. Import without the converter's `#custom` line (plain BMFont) and File → New give `version` 0 (no game font is
+   below 100): the `version = 100` fallback in `serializers/fonts.py` sits inside the skipped `try`. Confirmed headless.
+   **Fixed**: a new font has version 100 (the TNFS - NFS4 layout); a `.fnt` without `#custom` keeps the header,
+   layout and bitmap format of the font it replaces, and its `xadvance` goes to `x_advance` for 16-byte glyphs
+   (`advance` is 0 in all of them in the game files; the export now writes `x_advance` as `xadvance`). Importing
+   each of the 70 game FFNs from its export without `#custom` is byte-exact.
+9. Char Preview draws `advance` a second time as a magenta vertical line for 12-byte fonts (`x_advance` is `null`,
+   passes `!== undefined`). Confirmed live.
+
+Lower-severity items in the same report: adding / removing glyphs in v100 / v101 fonts leaves the bitmap at an
+unaligned offset (**fixed**: `padding_2` is recomputed on save, see its description; add / remove checked on all 70
+game FFNs), import needs both files multi-selected (**fixed**: the `.fnt` alone is enough, the PNG comes from its
+`page` line; errors name what to pick), missing glyphs vanish from the preview, long preview lines are
+clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / next only paginator.
+
+---
+
 ## Unknown / not yet investigated (flagged, not silently assumed fine)
 
 - Compressed formats (QFS-family, JDLZ) are written back as their original compressed bytes while the

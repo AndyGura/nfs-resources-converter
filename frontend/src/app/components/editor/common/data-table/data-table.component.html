@@ -13,6 +13,9 @@
                 <th [attr.colspan]="f.subFields.length" [matTooltip]="f.description || ''">{{ f.key }}</th>
               }
             }
+            @if (hasItemActions) {
+              <th rowspan="2" class="actions-cell"></th>
+            }
           </tr>
         }
         @if (hasSubFields) {
@@ -36,46 +39,17 @@
             } @else {
               <th>Data</th>
             }
+            @if (hasItemActions) {
+              <th class="actions-cell"></th>
+            }
           </tr>
         }
       </thead>
       <tbody>
         @for (item of pagedData; track trackByFn(getGlobalIndex(i), item); let i = $index) {
           <tr [class.selected]="getGlobalIndex(i) === selectedIndex">
-            <td class="index-cell" [class.editable]="!disabled">
-              <span class="index-number">{{ getGlobalIndex(i) }}</span>
-              @if (!disabled) {
-                <div class="item-actions">
-                  <button
-                    mat-icon-button
-                    color="primary"
-                    class="move-item-button"
-                    [disabled]="getGlobalIndex(i) === 0"
-                    (click)="moveItemUp.emit(getGlobalIndex(i))"
-                    matTooltip="Move up">
-                    <mat-icon>arrow_upward</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    color="primary"
-                    class="move-item-button"
-                    [disabled]="getGlobalIndex(i) === (data?.length || 0) - 1"
-                    (click)="moveItemDown.emit(getGlobalIndex(i))"
-                    matTooltip="Move down">
-                    <mat-icon>arrow_downward</mat-icon>
-                  </button>
-                  @if (enableArrayEditing) {
-                    <button
-                      mat-icon-button
-                      color="warn"
-                      class="remove-item-button"
-                      (click)="removeItem.emit(getGlobalIndex(i))"
-                      matTooltip="Remove item">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  }
-                </div>
-              }
+            <td class="index-cell" (click)="focusedElement.emit([[], getGlobalIndex(i)])">
+              {{ getGlobalIndex(i) }}
             </td>
             @if (columns) {
               @for (f of columns; track f) {
@@ -130,6 +104,42 @@
                   "></ng-container>
               </td>
             }
+            @if (hasItemActions) {
+              <td class="actions-cell">
+                <div class="item-actions">
+                  @if (enableReordering) {
+                    <button
+                      mat-icon-button
+                      color="primary"
+                      class="move-item-button"
+                      [disabled]="getGlobalIndex(i) === 0"
+                      (click)="moveItemUp.emit(getGlobalIndex(i))"
+                      matTooltip="Move up">
+                      <mat-icon>arrow_upward</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      color="primary"
+                      class="move-item-button"
+                      [disabled]="getGlobalIndex(i) === (data?.length || 0) - 1"
+                      (click)="moveItemDown.emit(getGlobalIndex(i))"
+                      matTooltip="Move down">
+                      <mat-icon>arrow_downward</mat-icon>
+                    </button>
+                  }
+                  @if (enableArrayEditing) {
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      class="remove-item-button"
+                      (click)="removeItem.emit(getGlobalIndex(i))"
+                      matTooltip="Remove item">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  }
+                </div>
+              </td>
+            }
           </tr>
         }
       </tbody>
@@ -177,7 +187,7 @@
           [disabled]="disabled || readonly"
           [ngModel]="value"
           (focus)="onFocus(index, field, subField)"
-          (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
+          (change)="onTableFieldChange(index, field, subField, $any($event.target).value, $any($event.target))">
           @for (v of schema.value_validator.possible_values; track v) {
             <option [value]="v">{{ v }}</option>
           }
@@ -190,6 +200,7 @@
             [max]="numberRange(schema).max"
             [min]="numberRange(schema).min"
             [step]="schema.value_interval"
+            [title]="rangeText(schema)"
             [disabled]="disabled || readonly || schema.value_validator?.type === 'eq'"
             [ngModel]="value"
             (focus)="onFocus(index, field, subField)"
@@ -204,7 +215,7 @@
             [minlength]="getMinLength(schema)"
             [ngModel]="value"
             (focus)="onFocus(index, field, subField)"
-            (change)="onTableFieldChange(index, field, subField, $any($event.target).value)" />
+            (change)="onTableFieldChange(index, field, subField, $any($event.target).value, $any($event.target))" />
         }
         @if (isEnum(schema.block_class_mro)) {
           @if (isKnownEnumValue(schema, value)) {
@@ -213,7 +224,7 @@
               [disabled]="disabled || readonly"
               [ngModel]="value"
               (focus)="onFocus(index, field, subField)"
-              (change)="onTableFieldChange(index, field, subField, $any($event.target).value)">
+              (change)="onTableFieldChange(index, field, subField, $any($event.target).value, $any($event.target))">
               @for (enumValue of schema.enum_names; track enumValue) {
                 <option [value]="enumValue[1]">
                   {{ enumValue[1] }}
@@ -229,7 +240,7 @@
               [disabled]="disabled || readonly"
               [ngModel]="value"
               (focus)="onFocus(index, field, subField)"
-              (change)="onTableFieldChange(index, field, subField, +$any($event.target).value)" />
+              (change)="onTableFieldChange(index, field, subField, +$any($event.target).value, $any($event.target))" />
           }
         }
       }
