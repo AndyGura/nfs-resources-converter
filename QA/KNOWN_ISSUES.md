@@ -260,6 +260,42 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ---
 
+## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
+
+**Status**: Open (found 2026-10-15). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
+
+1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
+   pixels but makes the image 32-bit and drops position, pivot, hot spots, embedded palette, text and mipmaps.
+   TNFS `LDIABLDH.FSH` `sped` lost its 18 hot spots (the game hangs without them). Over all game images 41 402 /
+   63 478 lose a field. Confirmed live + headless.
+2. SHPI folder import (`ShpiArchiveSerializer.deserialize`, non-CFM) reads every file of the folder as an image in
+   `os.listdir` order, names it by its first 4 characters, drops palettes, makes everything 32-bit: of 5 067 game
+   SHPIs, 2 213 come back reordered, 2 991 lose palettes, 199 gain images (`spherical.png` → `sphe`), 11 fail on
+   exported `.bin` items; 1.35 GB → 4.19 GB. CFM SHPIs (car_colors.json path) are fine. Confirmed headless.
+3. Saving 6 TNFS CFM (DVIPER, F512M, F512TR, LDIABL, LDIABLO, MP911T) and 14 FAM (TR1, CY3, TR5, TR8_R01) writes the
+   ORIP `block_size` one byte short (`estimate_packed_size`), so the model re-opens as raw bytes, also after a
+   texture-only edit. Confirmed live (DVIPER) + headless. In-game effect Unknown.
+4. SHPI action "Convert all images to 8Bit" writes indices for a new `!pal` but keeps each image's embedded palette
+   (which wins), so all 37 images of `LDIABLDH.FSH` render garbled; it also deletes non-image items. Confirmed live +
+   headless.
+5. Non-ASCII text in a ShpiText (or a 4-char item name) corrupts the image on save: `UTF8Block` sizes in characters,
+   writes UTF-8 bytes, and its reader compares characters to bytes. Confirmed live (NFS5 `iconsRace.fsh`, "ü").
+6. Color Model → DXT1/3/5 fails with `ValueError('cannot reshape array …')` on any image with mipmaps (all 3 139 are
+   NFS5). Confirmed live (`skidpad.fsh`).
+7. Once, Save cleared the change count without writing the file (after a DXT1 conversion and closing the Changes
+   menu with Escape); 4 later saves wrote. Not reproduced.
+
+Lower-severity items in the same report: Color Model offers every model with no hint for the file's game (DXT1 on a
+TNFS 105×101 image, Mipmaps on a TNFS texture rewrites `position.y` 54 → 28726, new items default to 4Bit 1×1);
+alias silently cut to 4 characters, unnamed items saved with an empty name, sidebar label stale after rename; the
+viewer resets zoom to Fit on every edit and Fit exceeds the 1500 % limit; hot spots not draggable, `pivot` hidden;
+palette edits one swatch per change, special TNFS car entries unmarked; Changes list shows colors in decimal and
+bundles as "(unknown operation)"; WWWW levels titled by class name with numeric items; QFS compression not shown;
+1×1 mip level of non-square images not offered; TNFS SE frontend FSH / QFS re-laid out on save (baseline).
+
+---
+
 ## Unknown / not yet investigated (flagged, not silently assumed fine)
 
 - Compressed formats (QFS-family, JDLZ) are written back as their original compressed bytes while the
