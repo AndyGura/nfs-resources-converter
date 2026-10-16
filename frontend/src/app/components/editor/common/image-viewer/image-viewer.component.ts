@@ -7,6 +7,7 @@ import {
   EventEmitter,
   inject,
   Input,
+  NgZone,
   OnDestroy,
   Output,
   ViewChild,
@@ -58,6 +59,7 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   private readonly mainService = inject(MainService);
   private readonly changes = inject(ChangesService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly ngZone = inject(NgZone);
 
   private _resourceId?: string;
   @Input()
@@ -223,10 +225,20 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   minZoom = 10;
   maxZoom = 1500;
 
+  // a fit asked for while the viewer had no size
+  private fitPending = false;
+  private resizeObserver?: ResizeObserver;
+
   ngAfterViewInit() {
     this.imageNeedsUpdate$.pipe(takeUntil(this.destroyed$), debounceTime(20)).subscribe(() => {
       this.reload();
     });
+    if (this.imageContainer && typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        if (this.fitPending) this.ngZone.run(() => this.fitZoom());
+      });
+      this.resizeObserver.observe(this.imageContainer.nativeElement);
+    }
     this.changes.change$
       .pipe(
         takeUntil(this.destroyed$),
@@ -239,6 +251,7 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
     this.destroyed$.next();
     this.destroyed$.complete();
     this.imageNeedsUpdate$.complete();
@@ -463,6 +476,12 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
       const container = this.imageContainer.nativeElement;
       const availableWidth = container.clientWidth - 32;
       const availableHeight = container.clientHeight - 32;
+      if (availableWidth <= 0 || availableHeight <= 0) {
+        // hidden (a tab not shown yet, as the FFN Bitmap tab): fitted once the viewer gets its size
+        this.fitPending = true;
+        return;
+      }
+      this.fitPending = false;
       const zoomX = availableWidth / this.imageWidth;
       const zoomY = availableHeight / this.imageHeight;
       const idealZoom = Math.min(zoomX, zoomY);
