@@ -162,8 +162,13 @@ export class AppComponent implements OnInit {
 
   async saveResource() {
     try {
-      await this.mainService.saveResource();
-      this.snackBar.open('File Saved!', 'OK', { duration: 1500 });
+      const size = await this.mainService.saveResource();
+      const path = this.mainService.api.openedResourcePath$.getValue() || '';
+      const fileName = path.split(/[\\/]/).pop();
+      // the size the backend found on disk after writing: a save which did not reach the file fails instead
+      this.snackBar.open(size !== null ? `Saved ${fileName} (${size.toLocaleString()} bytes)` : 'File Saved!', 'OK', {
+        duration: 3000,
+      });
     } catch (err: any) {
       this.snackBar.open('Error while saving file! ' + err.errorText, 'OK :(', { duration: 5000 });
     }
@@ -242,10 +247,23 @@ export class AppComponent implements OnInit {
     if (doubleUnderscoreIndex !== -1) {
       renderId = renderId.substring(doubleUnderscoreIndex + 2);
     }
+    // a palette color (0xRRGGBBAA)
+    const value = (v: any) =>
+      /\/colors\/data\/\d+$/.test(change.id) && typeof v === 'number'
+        ? '#' + (v >>> 0).toString(16).padStart(8, '0')
+        : v !== null && typeof v === 'object'
+          ? Array.isArray(v)
+            ? `[${v.length} items]`
+            : '{…}'
+          : v;
     if (change.op === 'set') {
-      return `${renderId} = ${change.newValue}`;
+      return `${renderId} = ${value(change.newValue)}`;
+    } else if (change.op === 'bundle') {
+      const parts = change.changes.slice(0, 2).map(c => this.formatChange(c));
+      const more = change.changes.length > 2 ? ` and ${change.changes.length - 2} more` : '';
+      return change.changes.length === 0 ? 'no change' : `${parts.join('; ')}${more}`;
     } else if (change.op === 'array_insert') {
-      return `${renderId}[${change.index}] = ${change.value}`;
+      return `${renderId}[${change.index}] = ${value(change.value)}`;
     } else if (change.op === 'array_remove') {
       return `delete ${renderId}[${change.index}]`;
     } else if (change.op === 'array_swap') {

@@ -260,6 +260,111 @@ clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / nex
 
 ---
 
+## KI-7 — SHPI image editor (FSH / QFS / FAM / CFM): imports drop data, some saves break models or images
+
+**Status**: Fixed (found 2026-10-15; items 1–6 and every lower-severity item fixed 2026-10-15/16, item 7 mitigated: not reproduced, saves now verified and logged). **Classification**: Confirmed bug (1–6), Unclear (7). Full report with repro
+steps, numbers and proposed UX changes: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP (private to the repo owner).
+
+1. PNG import over an image (`ImageSerializer.deserialize` → `block.new_data()`, whole block replaced) keeps the
+   pixels but makes the image 32-bit and drops position, pivot, hot spots, embedded palette, text and mipmaps.
+   TNFS `LDIABLDH.FSH` `sped` lost its 18 hot spots (the game hangs without them). Over all game images 41 402 /
+   63 478 lose a field. Confirmed live + headless. **Fixed**: the import replaces the pixels only and keeps the format
+   (8Bit mapped to the image's palette, unchanged pixels keep their index, CFM 250..254 by exact color only; mipmaps
+   made again when the pixels change). Re-importing every image's own export keeps all game files byte-exact that
+   were before. New 32-bit images come from the archive list's "Import from disk" (several files at once).
+   Confirmed live (`sped`: 8Bit, 18 hot spots, position and palette kept) + headless.
+2. SHPI folder import (`ShpiArchiveSerializer.deserialize`, non-CFM) reads every file of the folder as an image in
+   `os.listdir` order, names it by its first 4 characters, drops palettes, makes everything 32-bit: of 5 067 game
+   SHPIs, 2 213 come back reordered, 2 991 lose palettes, 199 gain images (`spherical.png` → `sphe`), 11 fail on
+   exported `.bin` items; 1.35 GB → 4.19 GB. CFM SHPIs (car_colors.json path) are fine. Confirmed headless.
+   **Fixed**: the import merges into the loaded SHPI by the export's file names (item 1's pixel replacement), adds
+   other images at the end as 32-bit, keeps items without a file and ignores other files; a snackbar says what it
+   did. The export's duplicate-name suffix now ignores case: names differing in case only (NFS5 `AUDI` / `audi`)
+   overwrote each other on macOS / Windows. Export → import keeps all 63 014 images of 5 000 SHPIs and every
+   byte-exact file byte-exact. Changes inside parts the GUI has not loaded no longer abort the GUI's update
+   (`TypeError ... reading 'data'`). Confirmed live (AL1_001.FAM horizon) + headless.
+3. Saving 6 TNFS CFM (DVIPER, F512M, F512TR, LDIABL, LDIABLO, MP911T) and 14 FAM (TR1, CY3, TR5, TR8_R01) writes the
+   ORIP `block_size` one byte short (`estimate_packed_size`), so the model re-opens as raw bytes, also after a
+   texture-only edit. Confirmed live (DVIPER) + headless. In-game effect Unknown. **Fixed**: the garbage `fx_polys` /
+   `labels` names of these models have a byte which is not UTF-8 (DVIPER 80 02), dropped on read, while the padding
+   after the name kept its read length: the size estimate came out a byte short per name. Names keep those bytes
+   now, and a `NamedIndex` is sized 12 bytes whatever its padding (a renamed label had the same problem; a name over
+   7 bytes is refused on save). CY3_M01.FAM also had an empty WWWW entry (offset 0) written with the next entry's
+   offset, which then read as a copy of it: written as 0 again. All 20 files re-read the same after a save; 15 are
+   byte-exact, F512M / F512TR / MP911T differ in their SHPI layout / DOS palette high bits only, LDIABLO's far model
+   is written 3 bytes longer (`unk_morphs`). Confirmed live (DVIPER saved after a palette edit: 3 bytes differ, model
+   opens) + headless.
+4. SHPI action "Convert all images to 8Bit" writes indices for a new `!pal` but keeps each image's embedded palette
+   (which wins), so all 37 images of `LDIABLDH.FSH` render garbled; it also deletes non-image items. Confirmed live +
+   headless. **Fixed**: images drop their own palettes, mipmaps are made again, the other items stay, the palette
+   replaces the one the images use (by name: some TNFS FAM horizons have both `!PAL` and `!pal`) in place or goes at
+   the end (inserting at the front shifted item indices); pixels come from `ImageSerializer.to_image` (the PNG export read duplicate names twice). Refused for CFM
+   textures and for 8Bit images whose palette is not in the file (NFS2 PAUSE). Also fixed: an NFS6 image linking
+   to a raw 0x69 / 0x70 block lost the link when its pixels changed size. Partial alpha (glow textures) still
+   becomes opaque: the quantizer keeps one transparent entry only. Confirmed live (LDIABLDH) + headless (all game
+   SHPIs).
+5. Non-ASCII text in a ShpiText (or a 4-char item name) corrupts the image on save: `UTF8Block` sizes in characters,
+   writes UTF-8 bytes, and its reader compares characters to bytes. Confirmed live (NFS5 `iconsRace.fsh`, "ü").
+   **Fixed**: `UTF8Block` reads, sizes and pads in bytes; a value longer than a fixed-size field is refused on save
+   (`DataIntegrityException` naming the field) and in the GUI's text input ("name holds 4 bytes: "Grün" is 5").
+6. Color Model → DXT1/3/5 fails with `ValueError('cannot reshape array …')` on any image with mipmaps (all 3 139 are
+   NFS5). Confirmed live (`skidpad.fsh`). **Fixed**: mipmaps convert level by level (DXT encodes 4x4 blocks of each
+   level); DXT1/3/5 with mipmaps re-read identically (skidpad.fsh, unit test).
+7. Once, Save cleared the change count without writing the file (after a DXT1 conversion and closing the Changes
+   menu with Escape); 4 later saves wrote. Not reproduced. **Mitigated** (2026-10-16): no code path was found that
+   clears the changes without writing (`ChangesService.on_file_saved` runs after the write). Saves are now
+   verifiable: the file is flushed to disk, its size is checked before the changes count as saved (else the save
+   fails with a message), every save is logged ("Saved <path> (<n> bytes)") and the GUI shows "Saved LDIABLDH.FSH
+   (1 191 271 bytes)". Confirmed live. If it happens again, the log tells whether the backend saved.
+
+Lower-severity items in the same report: Color Model offers every model with no hint for the file's game (DXT1 on a
+TNFS 105×101 image, Mipmaps on a TNFS texture rewrites `position.y` 54 → 28726, new items default to 4Bit 1×1);
+alias silently cut to 4 characters, unnamed items saved with an empty name, sidebar label stale after rename; the
+viewer resets zoom to Fit on every edit and Fit exceeds the 1500 % limit; hot spots not draggable, `pivot` hidden;
+palette edits one swatch per change, special TNFS car entries unmarked; Changes list shows colors in decimal and
+bundles as "(unknown operation)"; WWWW levels titled by class name with numeric items; QFS compression not shown;
+1×1 mip level of non-square images not offered; TNFS SE frontend FSH / QFS re-laid out on save (baseline).
+
+Fixed since (2026-10-16, report ids):
+- S7 format choices: the Color Model select is grouped (palette / direct color / compressed) and marks the models
+  the other images of the SHPI use (`archive_image_stats`); a model none of them uses, and mipmaps when none has them
+  (with the new `position.y`), ask first. New images are 32-bit (new FFN atlases stay 4Bit). The conversion dialog
+  is "Convert color model" (DXT included) and explains Output colors. Confirmed live (LDIABLDH, AL1_001.FAM).
+- S8 item names: a new entry gets a free name (`new0`...); the edit dialog shows the name first (raw
+  `post_offset_payload` with hidden fields only); fixed-size text inputs show their size in bytes and refuse a longer
+  value; the sidebar label follows a rename at once. Confirmed live (AL1_001.FAM horizon).
+- S9 viewer: an edit re-renders the image keeping zoom and scroll when its size stays (no blank flash); Fit stays
+  within 10..1500 %; a viewport toolbar button cycles the background checkerboard / black / white (remembered).
+  Confirmed live (LDIABLDH `sped`: 966 % kept across a hot spot edit; `sstr` fits at 1500 %).
+- S10 hot spots: markers can be dragged (one undoable change for x and y, relative to `pivot`); `pivot` is no longer
+  `is_unknown` (verified for dashboards and horizons), so it shows without hidden fields; the TNFS FAM `horz` bitmap
+  shows its horizon row (`pivot.y`) as an overlay line. Confirmed live (LDIABLDH `gate`, AL1_001.FAM `horz`).
+- S11 palette: colors the images of the palette do not use are faded (`palette_usage`); TNFS car entries 250..255
+  are outlined and named in the tooltip; Shift+click selects a range, Cmd/Ctrl+click toggles one (Ctrl+click is the
+  context menu on macOS), "Set color" and "Shift hue" change the selection as one undoable change; the Changes list
+  prints palette colors in hex and bundles as their first changes "and N more". Confirmed live (JEEP.CFM `!PAL`:
+  50 colors hue-shifted in one change, undone).
+- S12 navigation: archive headers read "SHPI images" / "WWWW archive" / "BIGF archive" (block description on hover);
+  TNFS FAM / CFM levels are named as the export names them ("0 · background", "1 · high-poly textures"...);
+  unloaded entries show the icon of their kind, guessed from their first bytes (`Slot.hint`, `__kind__` next to
+  `__lazy__`), faded; duplicate names get their index; a compressed file's archive shows its algorithm (RefPack /
+  QFS2 / QFS3); the archive and block-action icon buttons have accessible names. The one selection jump after a save
+  was not reproduced (see item 7). Confirmed live (AL1_001.FAM, OZREC.QFS, iconsRace.fsh).
+- S13 mip levels: the PNG export (and so the viewer's M0..Mn buttons) goes down to 1x1 for non-square images too
+  (`mipmap_level_dims`; it stopped when the shorter side reached 1). Confirmed by unit test (4x8: 2x4, 1x2, 1x1).
+- S14 SHPI layout: the reader keeps the order the item data is stored in (`heap_order`; TNFS SE menus store `!pal`
+  last, MASKHI / F512M differently again) and the writer follows it while it covers every item. 98 of the 100 FSH /
+  QFS / CFM files of the TNFS SE failure list now save byte-exact; LDIABLO (ORIP overlap, item 3) and MP911T (high
+  bits of a DOS palette the game ignores, dropped on read) still differ. Confirmed headless.
+- S15 Convert all images to 8Bit: palette type "same as the current palette" by default (32-bit when the SHPI has
+  none and an image has partial alpha); a 32-bit palette keeps partial alpha (RGBA quantization); TNFS car textures
+  (CFM) convert with their colors on 0..249, the light bar / tail light pixels on 250..254, transparent on 255,
+  `!xxx` left alone (it was refused). Confirmed headless (AQUA.QFS glows: alpha error 0.97; JEEP / DVIPER textures
+  unchanged on screen, light entries kept) + live (JEEP dialog default, car unchanged). The first click on Run after
+  closing a select in the dialog is taken by the select's overlay (Angular Material), left as it is.
+
+---
+
 ## Unknown / not yet investigated (flagged, not silently assumed fine)
 
 - Compressed formats (QFS-family, JDLZ) are written back as their original compressed bytes while the

@@ -168,7 +168,12 @@ def chain_padding_length(ctx):
 def image_padding_criteria(ctx, **kwargs):
     if not isinstance(ctx, ReadContext) or ctx.read_bytes_remaining is None:
         return False
-    return 0 < ctx.data('next_offset') - ctx.local_buffer_pos <= ctx.read_bytes_remaining
+    gap = ctx.data('next_offset') - ctx.local_buffer_pos
+    if gap == 0:
+        # a block kept as raw bytes right after the pixels (NFS6 0x70): an empty padding marks the link, so that the
+        # offset follows the pixels on save
+        return _peek_id(ctx, ctx.local_buffer_pos) not in [None, *PALETTE_IDS, HOT_SPOTS_ID, TEXT_ID]
+    return 0 < gap <= ctx.read_bytes_remaining
 
 
 def unlinked_palette_criteria(ctx, **kwargs):
@@ -510,7 +515,6 @@ class EacImage(DeclarativeCompoundBlock):
         pivot = (
             Point2D(child=IntegerBlock(length=2, is_signed=True)),
             {
-                'is_unknown': True,
                 'description': 'TNFS dashboards add both coordinates to the points of `hot_spots`. y coordinate is '
                 'used by the horizon bitmap "horz" of TNFS FAM files when the game scrolls it (horizon "ring type" 0, '
                 'the open road tracks by default): this row of the bitmap lies on the horizon line (Win95 SE '
@@ -692,8 +696,10 @@ class EacImage(DeclarativeCompoundBlock):
                 },
                 {
                     'method': 'convert_to_rgba',
-                    'title': 'Convert to RGBA',
-                    'description': 'Converts bitmap to RGBA format.',
+                    'title': 'Convert color model',
+                    'description': 'Converts the bitmap to a 16, 24 or 32-bit or a DXT color model. Output colors '
+                    'matter for 8Bit and 4Bit bitmaps: "use palette" keeps the colors they show now, '
+                    '"transparent-white" makes the index the alpha of white, "black-white" a shade of grey.',
                     'is_pure': False,
                     'args': [
                         {
@@ -707,6 +713,9 @@ class EacImage(DeclarativeCompoundBlock):
                                 '16Bit_1555 color format bitmap',
                                 '24Bit color format bitmap',
                                 '32Bit color format bitmap',
+                                'DXT1 compressed bitmap',
+                                'DXT3 compressed bitmap',
+                                'DXT5 compressed bitmap',
                             ],
                         },
                         {
@@ -731,6 +740,9 @@ class EacImage(DeclarativeCompoundBlock):
 
     def new_data(self, patch=None):
         data = super().new_data(patch)
+        if not (patch or {}).get('resource_id'):
+            # a new image is 32-bit, as images added from disk: a lossless start to convert from
+            data['resource_id'] = '32Bit color format bitmap'
         if data['width'] == 0 or data['height'] == 0:
             data['width'] = 1
             data['height'] = 1
@@ -899,14 +911,20 @@ class EacImage(DeclarativeCompoundBlock):
     @staticmethod
     def _link_chained_blocks(data):
         """Sets the offsets of the chain of attached blocks parsed into fields. The last one keeps its own offset:
-        0, or a link to a block the parser keeps as raw bytes, written right after it"""
+        0, or a link to a block the parser keeps as raw bytes, written right after it. Without such fields, a link
+        marked by `pad` (a raw block after the padding) follows the pixels too"""
         chained = [name for name in CHAINED_FIELDS if data.get(name) is not None]
-        if not chained:
+        pad = data.get('pad')
+        if not chained and pad is None:
+            # no link, or a TNFS one to elsewhere (negative, to !PAL, or garbage): written as read
             return
-        pad = data.get('pad') or b''
         width, height = data['width'], data['height']
         mipmaps_len = mipmaps_byte_len(data['resource_id'], width, height) if data.get('mipmaps') else 0
-        data['next_offset'] = 16 + get_bitmap_len(data['resource_id'], width, height) + mipmaps_len + len(pad)
+        # the first attached block follows the pixels and the padding: one parsed into a field, or one kept as raw
+        # bytes (NFS6 0x69 / 0x70) when there is none
+        data['next_offset'] = 16 + get_bitmap_len(data['resource_id'], width, height) + mipmaps_len + len(pad or b'')
+        if not chained:
+            return
         blocks = {'embedded_palette': EacPalette(), 'hot_spots': ShpiHotSpots(), 'text': ShpiText()}
         for name, following in zip(chained, chained[1:]):
             gap = data.get(f'{name}_pad') or b''
@@ -1010,14 +1028,17 @@ class EacImage(DeclarativeCompoundBlock):
         presence check only looks at whether they're set, not `resource_id` - stale data here would
         get written anyway and misalign everything read after it."""
         palette = read_data['embedded_palette']
-        if (
-            palette is not None
-            and palette['next_offset'] == 0
-            and all(read_data.get(name) is None for name in CHAINED_FIELDS if name != 'embedded_palette')
+        if palette is not None and all(
+            read_data.get(name) is None for name in CHAINED_FIELDS if name != 'embedded_palette'
         ):
-            # the palette was the only attached block
-            read_data['next_offset'] = 0
-            read_data['pad'] = None
+            if palette['next_offset'] == 0:
+                # the palette was the only attached block
+                read_data['next_offset'] = 0
+                read_data['pad'] = None
+            else:
+                # it links to a block kept as raw bytes (NFS6 0x69 / 0x70), which now follows the pixels: marked by
+                # the padding, see `_link_chained_blocks`
+                read_data['pad'] = read_data.get('pad') or b''
         read_data['embedded_palette'] = None
         read_data['embedded_palette_pad'] = None
         read_data['embedded_palette_2'] = None
@@ -1102,15 +1123,25 @@ class EacImage(DeclarativeCompoundBlock):
             read_data['bitmap'], current_color_format, target_color_format, output_colors, width, height, palette_colors
         )
         if read_data['mipmaps']:
-            read_data['mipmaps'] = self._convert_pixels_to_rgba(
-                read_data['mipmaps'],
-                current_color_format,
-                target_color_format,
-                output_colors,
-                width,
-                height,
-                palette_colors,
-            )
+            # level by level: DXT encodes 4x4 blocks of each level, with its own size
+            mipmaps = []
+            offset = 0
+            for level_width, level_height in mipmap_level_dims(width, height):
+                # 4Bit levels are lists of rows, the other formats lists of pixels
+                count = level_height if current_color_format.startswith('4Bit') else level_width * level_height
+                mipmaps.extend(
+                    self._convert_pixels_to_rgba(
+                        read_data['mipmaps'][offset : offset + count],
+                        current_color_format,
+                        target_color_format,
+                        output_colors,
+                        level_width,
+                        level_height,
+                        palette_colors,
+                    )
+                )
+                offset += count
+            read_data['mipmaps'] = mipmaps
         if current_color_format == '8Bit':
             self._clear_8bit_palette_fields(read_data)
         read_data['resource_id'] = target_color_format

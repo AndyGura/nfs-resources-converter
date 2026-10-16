@@ -1,6 +1,6 @@
 import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { BlockData, CustomAction, ReadError, Resource, ResourceError } from '../../components/editor/types';
+import { BlockData, CustomAction, Resource, ResourceError } from '../../components/editor/types';
 import { ErrorDialogComponent } from '../../components/error.dialog/error.dialog.component';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 import {
@@ -92,7 +92,7 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).findFiles(patterns);
   }
 
-  public async saveFile(): Promise<void> {
+  public async saveFile(): Promise<number | null> {
     return (await this.getImpl()).saveFile();
   }
 
@@ -121,6 +121,18 @@ export abstract class BaseApiDelegateService {
     return (await this.getImpl()).getNewItemData(id, patch);
   }
 
+  // palette indices the images using the palette hold
+  public async paletteUsage(paletteId: string): Promise<number[]> {
+    return (await this.getImpl()).paletteUsage(paletteId);
+  }
+
+  // color models and mipmaps of the other images of the SHPI holding the image
+  public async archiveImageStats(
+    imageId: string,
+  ): Promise<{ images: number; color_models: { [model: string]: number }; with_mipmaps: number }> {
+    return (await this.getImpl()).archiveImageStats(imageId);
+  }
+
   public async getTrailingOptionalFieldData(id: string): Promise<any> {
     return (await this.getImpl()).getTrailingOptionalFieldData(id);
   }
@@ -146,8 +158,16 @@ export abstract class BaseApiDelegateService {
     id: string,
     filePaths: string[],
     extraOpts: any = {},
-  ): Promise<BlockData | ReadError> {
+  ): Promise<{ report: string | null }> {
     return (await this.getImpl()).deserializeResource(id, filePaths, extraOpts);
+  }
+
+  // new entries of the archive `id` with the image files as 32-bit images, the archive itself is not changed
+  public async newImagesFromFiles(
+    id: string,
+    filePaths: string[],
+  ): Promise<{ items: BlockData[]; skipped: [string, string][] }> {
+    return (await this.getImpl()).newImagesFromFiles(id, filePaths);
   }
 
   // Conversion API
@@ -220,8 +240,9 @@ export abstract class BaseApiDelegateService {
   }
 
   // File dialog API
-  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
-    return (await this.getImpl()).openFileDialog(multiple);
+  // fileTypes: e.g. ['Images (*.png;*.jpg)', 'All files (*.*)']
+  public async openFileDialog(multiple: boolean = false, fileTypes: string[] = []): Promise<string[]> {
+    return (await this.getImpl()).openFileDialog(multiple, fileTypes);
   }
 
   public async saveFileDialog(fileName?: string): Promise<string | null> {

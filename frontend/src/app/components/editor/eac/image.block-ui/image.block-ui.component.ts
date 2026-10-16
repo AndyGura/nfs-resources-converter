@@ -4,9 +4,35 @@ import { filter, Subject, takeUntil } from 'rxjs';
 import { BlockData, BlockSchema, CustomAction } from '../../types';
 import { CustomActionService } from '../../../../services/custom-action.service';
 import { MatSelectChange } from '@angular/material/select';
-import { ImageMarker, ImageOverlay, ImageViewerComponent } from '../../common/image-viewer/image-viewer.component';
+import {
+  ImageMarker,
+  ImageMarkerMove,
+  ImageOverlay,
+  ImageViewerComponent,
+} from '../../common/image-viewer/image-viewer.component';
 import { joinId } from '../../../../utils/join-id';
 import { ChangeEntry } from '../../../../services/changes.service';
+import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
+import { ConfirmDialogComponent } from '../../../confirm.dialog/confirm.dialog.component';
+
+type SiblingStats = { images: number; color_models: { [model: string]: number }; with_mipmaps: number };
+
+// the color models of `EacImage.resource_id`, grouped for the select
+const COLOR_MODEL_GROUPS: { name: string; models: string[] }[] = [
+  { name: 'Palette', models: ['8Bit', '4Bit', '4Bit (swapped)', '4Bit PS1'] },
+  {
+    name: 'Direct color',
+    models: [
+      '16Bit_0565 color format bitmap',
+      '16Bit_1555 color format bitmap',
+      '16Bit_4444 color format bitmap',
+      '24Bit color format bitmap',
+      '32Bit color format bitmap',
+    ],
+  },
+  { name: 'Compressed', models: ['DXT1 compressed bitmap', 'DXT3 compressed bitmap', 'DXT5 compressed bitmap'] },
+];
 
 // The extra embedded palette fields on `EacImage`, treated in the GUI as a max-3-length array.
 const EMBEDDED_PALETTE_EXTRA_FIELDS = ['embedded_palette_2', 'embedded_palette_3', 'embedded_palette_4'];
@@ -26,7 +52,40 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   @ViewChild('viewer') viewer?: ImageViewerComponent;
 
   readonly customActionService = inject(CustomActionService);
+  private readonly dialog = inject(MatDialog);
   protected readonly joinId = joinId;
+
+  // every model of the enum, in groups (a model missing from the groups goes to the last one)
+  get colorModelGroups(): { name: string; models: string[] }[] {
+    const all: string[] = (this.resourceSchema?.fields?.[0]?.schema?.enum_names || []).map((x: any) => x[1]);
+    const grouped = COLOR_MODEL_GROUPS.flatMap(g => g.models);
+    const groups = COLOR_MODEL_GROUPS.map(g => ({ ...g, models: g.models.filter(m => all.includes(m)) }));
+    groups[groups.length - 1].models.push(...all.filter(m => !grouped.includes(m)));
+    return groups.filter(g => g.models.length > 0);
+  }
+
+  siblingStats: SiblingStats | null = null;
+  private siblingStatsId: string | null = null;
+
+  // what the other images of the SHPI use: loaded on demand (it parses every entry of the SHPI)
+  async loadSiblingStats(): Promise<SiblingStats | null> {
+    if (!this.resourceId) return null;
+    if (this.siblingStatsId !== this.resourceId) {
+      this.siblingStatsId = this.resourceId;
+      this.siblingStats = null;
+      try {
+        this.siblingStats = await this.mainService.api.archiveImageStats(this.resourceId);
+      } catch {
+        this.siblingStatsId = null;
+      }
+      this.cdr.markForCheck();
+    }
+    return this.siblingStats;
+  }
+
+  private async confirm(text: string): Promise<boolean> {
+    return !!(await firstValueFrom(this.dialog.open(ConfirmDialogComponent, { data: { text } }).afterClosed()));
+  }
 
   async ngAfterViewInit() {
     this.changes.change$
@@ -60,6 +119,17 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   async onFormatChange(event: MatSelectChange) {
     const newFormat = event.value;
     if (!this._resourceData || this._resourceData.resource_id === newFormat) return;
+    const stats = await this.loadSiblingStats();
+    if (stats && stats.images > 0 && !stats.color_models[newFormat]) {
+      const used = Object.keys(stats.color_models).join(', ');
+      const go = await this.confirm(
+        `No other image of this SHPI is ${newFormat} (they are ${used}). The game may not read it. Convert anyway?`,
+      );
+      if (!go) {
+        event.source.value = this.resourceData.resource_id;
+        return;
+      }
+    }
 
     const customActionSimplifiedFormat = (resourceId: string): 'rgba' | '4bit' | '8bit' => {
       if (resourceId.startsWith('4Bit')) {
@@ -122,13 +192,57 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
   get hotSpotOverlays(): ImageOverlay[] {
     const data = this.resourceData;
     const points = data?.hot_spots?.points;
-    const key = JSON.stringify([points, data?.pivot, data?.width, data?.height]);
+    const key = JSON.stringify([points, data?.pivot, data?.width, data?.height, this.resourceId, this.resourceName]);
     if (key !== this.hotSpotOverlaysKey) {
       this.hotSpotOverlaysKey = key;
       const markers = points ? this.buildHotSpotMarkers(data!) : [];
-      this.hotSpotOverlaysCache = markers.length > 0 ? [{ name: 'Hot spots', icon: 'my_location', markers }] : [];
+      this.hotSpotOverlaysCache =
+        markers.length > 0 ? [{ name: 'Hot spots', icon: 'my_location', markers, editable: true }] : [];
+      if (this.isTnfsHorizon && data) {
+        // ring type 0 scrolls the horizon with this row on the horizon line (see `pivot`)
+        this.hotSpotOverlaysCache.push({
+          name: 'Horizon line',
+          icon: 'horizontal_rule',
+          markers: [],
+          lines: [{ y: data.pivot?.y ?? 0, label: `horizon (pivot.y ${data.pivot?.y ?? 0})` }],
+        });
+      }
     }
     return this.hotSpotOverlaysCache;
+  }
+
+  // the horizon bitmap of a TNFS track (FAM)
+  private get isTnfsHorizon(): boolean {
+    return this.resourceName === 'horz' && !!this.resourceId && this.resourceId.toUpperCase().includes('.FAM__');
+  }
+
+  // a dropped marker: the point is relative to the bitmap moved by `pivot`, one undoable change for x and y
+  onHotSpotMoved(move: ImageMarkerMove) {
+    const data = this.resourceData;
+    if (move.overlay !== 'Hot spots' || !this.resourceId || !data?.hot_spots) return;
+    const index = +this.hotSpotOverlaysCache[0].markers[move.index].label;
+    const point = data.hot_spots.points[index];
+    const pivot = data.pivot ?? { x: 0, y: 0 };
+    const x = move.x - pivot.x;
+    const y = move.y - pivot.y;
+    const changes: ChangeEntry[] = [];
+    for (const [axis, value] of [
+      ['x', x],
+      ['y', y],
+    ] as const) {
+      if (point[axis] !== value) {
+        changes.push({
+          op: 'set',
+          id: joinId(this.resourceId, 'hot_spots', 'points', index, axis),
+          timestamp: Date.now(),
+          oldValue: point[axis],
+          newValue: value,
+        });
+      }
+    }
+    if (changes.length > 0) {
+      this.emitNewChange({ op: 'bundle', changes });
+    }
   }
 
   // Hot spot points are relative to the bitmap moved by `pivot` (TNFS dashboards draw them at position + pivot +
@@ -157,11 +271,28 @@ export class ImageBlockUiComponent extends SubscribableGuiComponent implements A
     return d.width > 1 && d.height > 1 && isPowerOfTwo(d.width) && isPowerOfTwo(d.height);
   }
 
-  async onMipmapsToggle(checked: boolean): Promise<void> {
+  async onMipmapsToggle(checked: boolean, checkbox?: { checked: boolean }): Promise<void> {
     if (!this.resourceId || checked === this.mipmapsPresent) return;
     if (!checked) {
       this.onValueSet(null, 'mipmaps');
       return;
+    }
+    const stats = await this.loadSiblingStats();
+    if (!stats?.with_mipmaps) {
+      const d = this.resourceData!;
+      let levels = 0;
+      for (let w = d.width, h = d.height; w > 1 || h > 1; w = Math.max(1, w >> 1), h = Math.max(1, h >> 1)) levels++;
+      const y = d.position?.y ?? 0;
+      const newY = (y & 0xfff) | (levels << 12);
+      const go = await this.confirm(
+        `No other image of this SHPI has mipmaps: only NFS5 reads them. Their level count is stored in the 4 high ` +
+          `bits of position.y (${y} becomes ${newY}), which menus and dashboards use to place the image. ` +
+          `Generate mipmaps anyway?`,
+      );
+      if (!go) {
+        if (checkbox) checkbox.checked = false;
+        return;
+      }
     }
     const action = this.resourceSchema?.custom_actions?.find((a: CustomAction) => a.method === 'generate_mipmaps');
     if (!action) return;

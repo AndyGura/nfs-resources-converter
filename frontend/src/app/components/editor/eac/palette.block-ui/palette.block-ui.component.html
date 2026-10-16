@@ -28,13 +28,32 @@
   [hideBlockActions]="true"
   [hideName]="hideName"
   [fieldBlacklist]="['resource_id', 'colors']"></app-compound-block-ui>
+<div class="selection-toolbar">
+  <span>{{ selection.size ? selection.size + ' selected' : 'No colors selected' }}</span>
+  <button mat-stroked-button (click)="pickSelectionColor()" [disabled]="!selection.size">Set color</button>
+  <mat-form-field subscriptSizing="dynamic" class="hue-field">
+    <mat-label>Hue shift (degrees)</mat-label>
+    <input matInput type="number" [(ngModel)]="hueShift" min="-180" max="180" />
+  </mat-form-field>
+  <button mat-stroked-button (click)="shiftSelectionHue()" [disabled]="!hueShift || !selection.size">Shift hue</button>
+  <button mat-button (click)="clearSelection()" [disabled]="!selection.size">Clear selection</button>
+</div>
+<p class="palette-hint">
+  Click a color to change it; Shift+click selects a range, Ctrl/Cmd+click adds or removes one.
+  @if (usedIndices) {
+    Faded colors are not used by the images of this palette.
+  }
+</p>
 <div id="colors-container">
   @for (color of resourceData?.colors.data; track i; let i = $index) {
     <div
       class="color-box"
+      [class.unused]="usedIndices && !usedIndices.has(i)"
+      [class.selected]="selection.has(i)"
+      [class.special]="!!specialLabel(i)"
       [style.--color-fill]="getColorGradient(color)"
-      [matTooltip]="i + ': #' + color.toString(16)"
-      (click)="onColorClicked($any($event.currentTarget!), i)"></div>
+      [matTooltip]="colorTooltip(i, color)"
+      (click)="onColorClicked($any($event.currentTarget!), i, $event)"></div>
   }
   <div class="color-box extra-btn" (click)="addColor()" matTooltip="Add color">
     <mat-icon>add</mat-icon>

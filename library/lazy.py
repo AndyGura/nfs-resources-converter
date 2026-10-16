@@ -141,7 +141,7 @@ class Slot:
     `parse_fn(ctx, slot)` parses the part with `ctx` being a detached copy of `parent_ctx`, positioned at `offset`.
     `keys` are the keys the parsed dict will have (None if unknown), `seed` the values known without parsing"""
 
-    __slots__ = ('source', 'offset', 'length', 'item_length', 'parse_fn', 'parent_ctx', 'keys', 'seed', 'args')
+    __slots__ = ('source', 'offset', 'length', 'item_length', 'parse_fn', 'parent_ctx', 'keys', 'seed', 'args', 'hint')
 
     def __init__(
         self,
@@ -164,6 +164,8 @@ class Slot:
         self.keys = keys
         self.seed = seed or {}
         self.args = args
+        # what the part probably is, known without parsing it (a block class name), for the GUI's unloaded entries
+        self.hint = None
 
     def parse(self) -> dict:
         with LOAD_LOCK, self.source.open() as buffer:
@@ -430,6 +432,12 @@ def unloaded_items(data):
     if isinstance(data, LazyDict) and not data._loaded:
         return list(dict.items(data))
     return None
+
+
+def unloaded_hint(data) -> Optional[str]:
+    """`Slot.hint` of an unloaded part, None for anything else"""
+    slot = unloaded_slot(data)
+    return slot.hint if slot is not None else None
 
 
 def unloaded_slot(data) -> Optional[Slot]:

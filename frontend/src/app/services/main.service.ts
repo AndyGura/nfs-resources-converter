@@ -80,8 +80,10 @@ export class MainService {
     }
   }
 
-  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}) {
-    await this.api.deserializeResource(id, filePaths, extraOpts);
+  // returns what the import did, for the user, when the importer tells it (folder import into a SHPI)
+  public async deserializeResource(id: string, filePaths: string[], extraOpts: any = {}): Promise<string | null> {
+    const result = await this.api.deserializeResource(id, filePaths, extraOpts);
+    return result?.report ?? null;
   }
 
   public async reloadResource() {
@@ -92,12 +94,14 @@ export class MainService {
     }
   }
 
-  public async saveResource() {
+  // the size of the saved file in bytes
+  public async saveResource(): Promise<number | null> {
     this.isSaving$.next(true);
     try {
       await this.changes.settled();
-      await this.api.saveFile();
+      const size = await this.api.saveFile();
       await this.changes.syncState();
+      return size;
     } finally {
       this.isSaving$.next(false);
     }

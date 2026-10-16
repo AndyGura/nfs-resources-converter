@@ -61,3 +61,39 @@ class TestStrings(unittest.TestCase):
 
         field = NullTerminatedUTF8Block(length=None)
         self.assertEqual(field.size_doc_str, '1..?')
+
+    def test_null_terminated_sizes_are_in_bytes(self):
+        from library.read_blocks.strings import NullTerminatedUTF8Block
+
+        field = NullTerminatedUTF8Block(length=None)
+        self.assertEqual(field.estimate_packed_size('Grün'), 6)
+        self.assertEqual(len(field.pack('Grün')), 6)
+
+    def test_null_terminated_keeps_bytes_which_are_not_utf8(self):
+        from library.read_blocks.strings import NullTerminatedUTF8Block
+
+        raw = b'\x80\x02\x00'
+        lossy = NullTerminatedUTF8Block(length=None).unpack(ReadContext(BytesIO(raw)))
+        self.assertEqual(lossy, '\x02')
+        field = NullTerminatedUTF8Block(length=None, errors='surrogateescape')
+        name = field.unpack(ReadContext(BytesIO(raw)))
+        self.assertEqual(name, '\udc80\x02')
+        self.assertEqual(field.pack(name), raw)
+        self.assertEqual(field.estimate_packed_size(name), 3)
+
+    def test_lengths_are_in_bytes(self):
+        from library.read_blocks import IntegerBlock
+        from library.read_blocks.strings import LengthPrefixedUtf8Block
+
+        field = LengthPrefixedUtf8Block(length_block=IntegerBlock(length=4))
+        self.assertEqual(field.estimate_packed_size('911 ü'), 4 + 6)
+        raw = field.pack('911 ü')
+        self.assertEqual(raw[:4], (6).to_bytes(4, 'little'))
+        self.assertEqual(field.unpack(ReadContext(BytesIO(raw))), '911 ü')
+
+    def test_fixed_length_holds_bytes(self):
+        field = UTF8Block(length=4)
+        self.assertEqual(field.pack('gü'), 'gü'.encode('utf-8') + b'\x00')
+        self.assertEqual(field.unpack(ReadContext(BytesIO(field.pack('gü')))), 'gü')
+        with self.assertRaisesRegex(DataIntegrityException, '5 bytes'):
+            field.pack('Grün')

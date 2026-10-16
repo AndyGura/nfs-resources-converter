@@ -71,6 +71,58 @@ class SerializationAPI:
             exported_file_paths = [x[len(self.api.static_path) :] for x in exported_file_paths]
         return exported_file_paths
 
+    def new_images_from_files(self, id: str, file_paths: List[str]) -> dict:
+        """
+        New entries of the archive `id` holding the image files as 32-bit images, for the GUI to add to it. The
+        archive is not changed here.
+
+        Args:
+            id: ID of an archive whose entries can be images (SHPI)
+            file_paths: Image files (anything PIL reads)
+
+        Returns:
+            {'items': [new entry data], 'skipped': [[file name, reason]]} for the files which are not images
+        """
+        import os
+        from PIL import UnidentifiedImageError
+        from library.read_blocks import UTF8Block
+        from library.read_blocks.archives import ArchiveBlock
+        from resources.eac.bitmaps import EacImage
+        from serializers.archives import entry_alias
+        from serializers.bitmaps import ImageSerializer
+
+        (_, archive_block, _), _ = require_resource(id)
+        if not isinstance(archive_block, ArchiveBlock):
+            raise Exception(f'{id} is not an archive')
+        image_choice = next(
+            (
+                i
+                for i, b in enumerate(getattr(archive_block.item_block, 'possible_blocks', []))
+                if isinstance(b, EacImage)
+            ),
+            None,
+        )
+        if image_choice is None:
+            raise Exception('This archive cannot hold images')
+        image_block = archive_block.item_block.possible_blocks[image_choice]
+        entry_block = archive_block.field_blocks_map['children'].child
+        alias_block = entry_block.field_blocks_map.get('alias')
+        alias_length = alias_block._get_static_length() if isinstance(alias_block, UTF8Block) else None
+        items, skipped = [], []
+        for path in file_paths:
+            file_name = os.path.basename(path)
+            try:
+                image = ImageSerializer.new_image_data(path, image_block)
+            except (UnidentifiedImageError, OSError) as ex:
+                skipped.append([file_name, 'not an image' if isinstance(ex, UnidentifiedImageError) else str(ex)])
+                continue
+            entry = entry_block.new_data()
+            entry['item'] = {'choice_index': image_choice, 'data': image}
+            if alias_block is not None:
+                entry['alias'] = entry_alias(file_name, alias_length)
+            items.append(entry)
+        return {'items': [self.render_data(x) for x in items], 'skipped': skipped}
+
     def deserialize_resource(self, id: str, file_paths: List[str], extra_opts=None) -> Any:
         """
         Deserialize a resource.
@@ -81,7 +133,7 @@ class SerializationAPI:
             extra_opts: Additional options for deserialization
 
         Returns:
-            The deserialized resource
+            {'report': what the import did, for the user, or None}
         """
         (id, res_block, resource), _ = require_resource(id)
         serializer = get_serializer(res_block, resource)
@@ -110,4 +162,4 @@ class SerializationAPI:
                 ]
             )
         remove_file_or_directory(path_join(self.api.static_path, 'resources', *id.split('/')))
-        return self.render_data(resource)
+        return {'report': getattr(serializer, 'deserialize_report', None)}

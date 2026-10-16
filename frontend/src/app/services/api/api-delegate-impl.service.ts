@@ -1,13 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
-import {
-  BlockData,
-  BlockSchema,
-  CustomAction,
-  ReadError,
-  Resource,
-  ResourceError,
-} from '../../components/editor/types';
+import { BlockData, BlockSchema, CustomAction, Resource, ResourceError } from '../../components/editor/types';
 import { ChangeEntry, ChangesFeUpdate } from '../changes.service';
 import {
   ConversionConfig,
@@ -90,16 +83,18 @@ export class ApiDelegateImplService {
     return this.wrapCall('find_files', patterns);
   }
 
-  public async saveFile(): Promise<void> {
+  // the size of the saved file in bytes
+  public async saveFile(): Promise<number | null> {
     const current = this.openedResource$.getValue();
-    if (!current) return;
-    const updatedData = await this.wrapCall('save_file', this.openedResourcePath$.getValue());
+    if (!current) return null;
+    const { data, size } = await this.wrapCall('save_file', this.openedResourcePath$.getValue());
     this.openedResource$.next({
       id: current.id,
       name: current.name,
       schema: current.schema,
-      data: updatedData,
+      data,
     });
+    return size;
   }
 
   public async createNewFile(path: string, format: string) {
@@ -141,6 +136,16 @@ export class ApiDelegateImplService {
     return this.wrapCall('get_new_item_data', id, patch);
   }
 
+  public async paletteUsage(paletteId: string): Promise<number[]> {
+    return this.wrapCall('palette_usage', paletteId);
+  }
+
+  public async archiveImageStats(
+    imageId: string,
+  ): Promise<{ images: number; color_models: { [model: string]: number }; with_mipmaps: number }> {
+    return this.wrapCall('archive_image_stats', imageId);
+  }
+
   public async getTrailingOptionalFieldData(id: string): Promise<any> {
     return this.wrapCall('get_trailing_optional_field_data', id);
   }
@@ -166,8 +171,15 @@ export class ApiDelegateImplService {
     id: string,
     filePaths: string[],
     extraOpts: any = {},
-  ): Promise<BlockData | ReadError> {
+  ): Promise<{ report: string | null }> {
     return this.wrapCall('deserialize_resource', id, filePaths, extraOpts);
+  }
+
+  public async newImagesFromFiles(
+    id: string,
+    filePaths: string[],
+  ): Promise<{ items: BlockData[]; skipped: [string, string][] }> {
+    return this.wrapCall('new_images_from_files', id, filePaths);
   }
 
   // Conversion API
@@ -240,8 +252,8 @@ export class ApiDelegateImplService {
   }
 
   // File dialog API
-  public async openFileDialog(multiple: boolean = false): Promise<string[]> {
-    return this.wrapCall('open_file_dialog', multiple);
+  public async openFileDialog(multiple: boolean = false, fileTypes: string[] = []): Promise<string[]> {
+    return this.wrapCall('open_file_dialog', multiple, fileTypes);
   }
 
   public async saveFileDialog(fileName?: string): Promise<string | null> {

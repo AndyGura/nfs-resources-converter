@@ -22,9 +22,12 @@
         [attr.maxlength]="maxLength"
         [attr.minlength]="minLength"
         [value]="resourceData"
-        (change)="onValueSet($any($event.target).value)"
+        (change)="onTextSet($any($event.target))"
         (focus)="onFocus()"
         (blur)="onBlur()" />
+      @if (maxLength && !disabled && resourceSchema.value_validator?.type !== 'eq') {
+        <mat-hint align="end">{{ maxLength }} bytes</mat-hint>
+      }
     }
   </mat-form-field>
 }

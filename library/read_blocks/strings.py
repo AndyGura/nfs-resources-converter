@@ -1,7 +1,7 @@
 from typing import Dict
 
 from library.context import ReadContext, WriteContext, DocumentationContext
-from library.exceptions import EndOfBufferException
+from library.exceptions import DataIntegrityException, EndOfBufferException
 from library.read_blocks.basic import DataBlock
 
 
@@ -53,26 +53,34 @@ class UTF8Block(DataBlock):
             return self.value_validator.new_data()
         return ''
 
+    # lengths are in bytes: a character outside ASCII takes 2..4 of them
     def read(self, ctx: ReadContext, name: str = '', read_bytes_amount=None, resolved_length=None):
         self_len = self.resolve_length(ctx) if resolved_length is None else resolved_length
-        res = ctx.buffer.read(self_len).decode('utf-8')
-        if len(res) < self_len:
+        raw = ctx.buffer.read(self_len)
+        if len(raw) < self_len:
             raise EndOfBufferException(ctx=ctx)
+        res = raw.decode('utf-8')
         if self._length == self_len:
             res = res.rstrip('\x00')
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         static_length = self._get_static_length()
+        length = len(data.encode('utf-8'))
         if static_length is not None:
-            return max(len(data), static_length)
-        return len(data)
+            return max(length, static_length)
+        return length
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
+        raw = data.encode('utf-8')
         static_length = self._get_static_length()
-        if static_length is not None and len(data) < static_length:
-            data += '\x00' * (static_length - len(data))
-        return data.encode('utf-8')
+        if static_length is not None:
+            if len(raw) > static_length:
+                raise DataIntegrityException(
+                    f'"{data}" is {len(raw)} bytes, {name or "the field"} holds {static_length}', ctx=ctx
+                )
+            raw += b'\x00' * (static_length - len(raw))
+        return raw
 
 
 class LengthPrefixedUtf8Block(UTF8Block):
@@ -104,7 +112,8 @@ class LengthPrefixedUtf8Block(UTF8Block):
         return res
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        return super().estimate_packed_size(data, ctx) + self.length_block.estimate_packed_size(len(data), ctx=ctx)
+        length = super().estimate_packed_size(data, ctx)
+        return length + self.length_block.estimate_packed_size(length, ctx=ctx)
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
         data = super().write(data=data, ctx=ctx, name=name)
@@ -112,9 +121,14 @@ class LengthPrefixedUtf8Block(UTF8Block):
 
 
 class NullTerminatedUTF8Block(DataBlock):
-    def __init__(self, length, **kwargs):
+    """`errors`: how bytes which are not UTF-8 are read. 'ignore' drops them; 'surrogateescape' keeps each as a
+    character U+DC80..U+DCFF, written back as the same byte (for fields where they occur and the file must stay
+    byte-exact; such a string cannot be written to a UTF-8 text file as is)"""
+
+    def __init__(self, length, errors: str = 'ignore', **kwargs):
         super().__init__(**kwargs)
         self._length = length
+        self.errors = errors
 
     @property
     def schema(self) -> Dict:
@@ -136,10 +150,13 @@ class NullTerminatedUTF8Block(DataBlock):
             if nxt == b'\00':
                 break
             res += nxt
-        return res.decode('utf-8', errors='ignore')
+        return res.decode('utf-8', errors=self.errors)
+
+    def encode(self, data: str) -> bytes:
+        return data.encode('utf-8', errors='surrogateescape' if self.errors == 'surrogateescape' else 'strict')
 
     def estimate_packed_size(self, data, ctx: WriteContext = None):
-        return len(data) + 1
+        return len(self.encode(data)) + 1
 
     def write(self, data, ctx: WriteContext = None, name: str = '') -> bytes:
-        return data.encode('utf-8') + b'\00'
+        return self.encode(data) + b'\00'

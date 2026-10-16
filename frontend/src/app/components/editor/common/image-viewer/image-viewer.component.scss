@@ -183,6 +183,14 @@
     cursor: grabbing;
   }
 
+  &.bg-black {
+    background: #000000;
+  }
+
+  &.bg-white {
+    background: #ffffff;
+  }
+
   .image-frame {
     margin: auto;
     position: relative;
@@ -206,6 +214,21 @@
     .marker-dot {
       fill: #ff1744;
       stroke: #ffffff;
+    }
+
+    .editable {
+      cursor: move;
+    }
+
+    .row-line {
+      line {
+        stroke: #00e5ff;
+        stroke-dasharray: 4 2;
+      }
+
+      .marker-label {
+        fill: #00e5ff;
+      }
     }
 
     .marker-label {

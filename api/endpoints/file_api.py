@@ -3,6 +3,7 @@ File API endpoint for the NFS Resources Converter.
 This module handles all file-related operations.
 """
 
+import logging
 import os
 import traceback
 from typing import Dict, Any
@@ -169,13 +170,20 @@ class FileAPI:
             path: Path to the file
 
         Returns:
-            Updated file data
+            {'data': the file data read back, 'size': bytes written}
         """
         bts = self.current_file_block.pack(self.current_file_data)
         # unloaded parts of the old tree must not read the file being overwritten
         close_file_source(path)
         with open(path, 'wb') as file:
             file.write(bts)
+            file.flush()
+            os.fsync(file.fileno())
+        # the file on disk is what was saved, before the changes count as saved
+        written = os.path.getsize(path)
+        if written != len(bts):
+            raise IOError(f'{path} holds {written} bytes after saving {len(bts)}')
+        logging.getLogger(__name__).info('Saved %s (%d bytes)', path, len(bts))
         ChangesService.on_file_saved()
         clear_file_cache(path)
         (name, block, data) = require_file(path)
@@ -183,7 +191,7 @@ class FileAPI:
         self.current_file_name = name
         self.current_file_data = data
         self.current_file_block = block
-        return self.render_data(self.current_file_data)
+        return {'data': self.render_data(self.current_file_data), 'size': len(bts)}
 
     def create_new_file(self, path: str, format_name: str):
         """

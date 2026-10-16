@@ -173,3 +173,27 @@ no-Docker shortcut (`gui_editor_linux.run_gui_editor` on macOS, backend on 8001 
 ### Not tested
 The native Serialize / Deserialize dialogs (import driven through `mainService.deserializeResource` from the console),
 macOS native window, Toggle Hidden Fields on fonts, Bitmap tab pixel editing, in-game behaviour.
+
+---
+
+## 2026-10-15 — SHPI image editor (FSH / QFS / FAM / CFM)
+
+**Commit**: `6b24f8b` (branch `main`). **Scope**: image viewer / editor (`ImageBlockUiComponent`, `ImageViewerComponent`),
+palette editor, SHPI archive list (add / rename / delete / move, Convert all images to 8Bit), color model conversions,
+mipmaps, hot spots, text, PNG and folder import, save, undo, File → New QFS, SHPIs nested in WWWW (FAM, CFM). GUI driven
+in Chrome via the no-Docker shortcut (backend on 8001 because `pocket-ic` held 8000, `proxy.conf.json` reverted
+afterwards), files opened by restarting the backend with the path; imports run through `mainService.deserializeResource`.
+Scratch copies of `games/` files only. Full report: https://claude.ai/artifact/Eid5YRRc5x3a6QD9CSfkNP.
+
+### Findings
+- Round trip of all 2 481 game FSH / QFS / FAM / CFM (`NFS_GAMES_EXTENSIONS=.FSH,.QFS,.FAM,.CFM`, 3 min 37 s): 2 468
+  read and write, 2 352 byte-exact, no regression against the committed stats (Confirmed headless).
+- Headless survey (a scratch script, every SHPI of those files): 5 078 SHPIs, 63 478 images. PNG export → import keeps
+  the pixels of every image; folder export → import keeps CFM SHPIs, not the others (KI-7).
+- Palette edits (incl. the CFM 3D model), hot spot edits, color model changes, item add / delete, undo, save work
+  (Confirmed live). Issues → `KNOWN_ISSUES.md` KI-7.
+
+### Not tested
+Native Open / Save / Serialize / Deserialize dialogs, an NFS6 DXT file in the GUI, the macOS native window,
+in-game behaviour.
+

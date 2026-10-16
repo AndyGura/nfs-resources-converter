@@ -92,7 +92,8 @@ class TestLazyPartsInGui(unittest.TestCase):
         self.assertTrue(is_loaded(children[2]))
         self.assertEqual(children[2]['alias'], 'abcd')
         self.assertFalse(is_loaded(children[3]))
-        saved = self.file_api.save_file(self.path)
+        result = self.file_api.save_file(self.path)
+        saved = result['data']
         self.assertEqual(saved['children'][2]['alias'], 'abcd')
         # untouched entries were written as their original bytes, the saved file is read lazily again
         with open(SAMPLE, 'rb') as f:
@@ -100,6 +101,7 @@ class TestLazyPartsInGui(unittest.TestCase):
         with open(self.path, 'rb') as f:
             written = f.read()
         self.assertEqual(len(written), len(original))
+        self.assertEqual(result['size'], len(written))
         self.assertTrue(saved['children'][3][LAZY_MARKER])
 
 

@@ -79,7 +79,8 @@ docs and a working GUI editor for free.
 - Run the app: `python run.py [path/to/file]`; `python run.py --dev` for the hot-reload GUI
   (see `README.md` "Debugging the Angular frontend" for the full dev-server dance, incl. Linux
   differences).
-- GUI log: `~/nfs-resources-converter-logs.log` (`config.LOG_FILE_PATH`), Python logging and stdout/stderr.
+- GUI log: `~/nfs-resources-converter-logs.log` (`config.LOG_FILE_PATH`), Python logging and stdout/stderr. Every
+  save logs "Saved <path> (<n> bytes)"; `save_file` checks the size on disk and returns it, the GUI shows it.
   `frontend/src/assets/js-error-logger.js` (loaded by `index.html` before the Angular bundle) sends uncaught JS
   errors, scripts that fail to load and `console.error` to it through the `log_frontend_message` endpoint, every line
   prefixed `[JS]`. On Windows the GUI needs the Edge WebView2 Runtime: without it pywebview falls back to MSHTML (IE11,
@@ -178,17 +179,45 @@ When you do:
   last): palette (0x22/0x24/0x29/0x2A/0x2D), hot spots (0x7C, `ShpiHotSpots`), text (0x6F), NFS6 0x69 / 0x70 (unparsed,
   kept as raw bytes). Never a block size. The parser follows the links (`chained_block_criteria`), `write` relinks the
   parsed blocks (`_link_chained_blocks`); the `next_offset` fields are programmatic only for the GUI to show them
-  read-only. TNFS has negative offsets (to `!PAL`) and garbage in some CFM / FAM textures without attached blocks.
+  read-only. NFS6 0x69 / 0x70 blocks stay in the entry's `post_offset_payload`: an image linking to one without a
+  parsed block first has `pad` (empty when the block follows the pixels), and `write` points `next_offset` past the
+  pixels + `pad`, so the link survives a size change. TNFS has negative offsets (to `!PAL`) and garbage in some CFM /
+  FAM textures without attached blocks: no `pad`, written as read.
 - Mipmaps exist only in NFS5: the 4 high bits of `position.y` hold the level count (always the full chain), each level
   is padded with zeros to 16 bytes. `write` sets the count from `mipmaps`.
 - Hot spots: TNFS reads them only in the dashboard loader (`dash`, `tach`, `sped`, `gate` of `DASH/*DH|DL.FSH`, it hangs
   without them); point + `pivot` is the pixel of the bitmap. The GUI's image editor draws them over the image
   (`ImageViewerComponent.overlays`, toggled in its viewport toolbar).
+- PNG import over an image (`ImageSerializer.deserialize` with the image's id) replaces its pixels only: format,
+  position, pivot, hot spots, text and palettes stay, 8Bit pixels take the index of their color in the palette the
+  image is exported with (the same index where unchanged, else the first exact, else the nearest; a CFM's 250..254 by
+  exact color only), mipmaps are made again when the pixels change. Re-importing its own export keeps every game file
+  byte-exact. New images come in as 32-bit: `ImageSerializer.new_image_data`, used by SHPI folder import and by the
+  archive list's "Import from disk" (`SerializationAPI.new_images_from_files`, several files, one undoable change).
+- SHPI folder import (`ShpiArchiveSerializer.deserialize`, not CFM: those go through `car_colors.json`) merges into the
+  loaded SHPI: files match items by the names the export gives them (`export_file_names`: escaped name, `0`, `1`...
+  appended to a name taken ignoring case, as Windows / macOS file systems would merge them). A matching image replaces
+  the pixels as above, a `.pal.txt` the palette, another image file is a new 32-bit item at the end; items without a
+  file stay, other files (`skipped.txt`, `.bin`, `spherical.png`, `_mm_n` levels) are ignored. Exporting every game
+  SHPI and importing the folder back keeps every file byte-exact. `deserialize_resource` returns the importer's
+  `deserialize_report`, shown in a snackbar.
+- SHPI "Convert all images to 8Bit" (`ShpiBlock.action_convert_to_8bit`): the images as they look (`to_image`)
+  quantized onto one palette, which replaces the palette the images use (`_get_palette_from_shpi`, by the names of
+  `SHPI_PALETTE_NAMES` in order: some TNFS FAM horizons have both `!PAL` and `!pal`) in place, or is added at the end
+  (NFS2 tracks pick textures by index); images drop their own palettes, mipmaps are made again, other items stay.
+  Refused for CFM textures (lights at 250..254) and for 8Bit images without a palette in the file (NFS2 PAUSE).
+- Changes the backend makes (imports, custom actions) reach the GUI diffed: entries added to an archive as
+  `array_insert`, the rest as `set`; the GUI skips changes inside lazy parts it has not loaded (they come from the
+  backend, with the change, when shown), except values an unloaded part already shows (an archive entry's alias).
 
 ## TNFS car models (SIMDATA/CARFAMS/*.CFM)
 
 - `OripGeometrySerializer` splits meshes by texture and by ORIP `labels` (polygon indices): mesh names
-  `lbl__<label>__<texture>` (`lbl__lt_frnt`, `lbl__bkll__rsid`...), nfs-web reads them. ORIP `fx_polys` are vertex
+  `lbl__<label>__<texture>` (`lbl__lt_frnt`, `lbl__bkll__rsid`...), nfs-web reads them. Labels and `fx_polys` with a
+  garbage name (DVIPER bytes 80 02, LDIABL e0 01) are left out (`is_orip_name`): `NamedIndex` reads names with
+  bytes which are not UTF-8 kept as U+DC80..U+DCFF (`NullTerminatedUTF8Block(errors='surrogateescape')`), so the
+  file writes back byte-exact but such a name cannot go to a UTF-8 text file. A `NamedIndex` is always 12 bytes
+  (`estimate_packed_size`), whatever the stored padding, so ORIP `block_size` stays right after a rename. ORIP `fx_polys` are vertex
   indices (wheel ground points `FL0`..`RR1` / `fl0`..`rr1`, engine point `smok`, `d`): they go to the meta as dummies
   `fx_<name>` with properties `fx` and `vertex` (`orip_fx_dummies`), at the vertex in mesh space. Field descriptions in
   `resources/eac/geometries/tnfs.py` list what each name marks and which fields the game code reads.

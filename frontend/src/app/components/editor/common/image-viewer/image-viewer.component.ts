@@ -4,9 +4,11 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  EventEmitter,
   inject,
   Input,
   OnDestroy,
+  Output,
   ViewChild,
 } from '@angular/core';
 import { BehaviorSubject, debounceTime, filter, Subject, takeUntil } from 'rxjs';
@@ -22,11 +24,27 @@ export interface ImageMarker {
   title?: string;
 }
 
-// A group of markers the viewer's toolbar shows or hides
+// A horizontal line drawn over the main image, at an image pixel row
+export interface ImageRowLine {
+  y: number;
+  label: string;
+}
+
+// A group of markers (and row lines) the viewer's toolbar shows or hides. Markers of an `editable` overlay can be
+// dragged: `markerMoved` tells the new pixel when one is dropped
 export interface ImageOverlay {
   name: string;
   icon: string;
   markers: ImageMarker[];
+  lines?: ImageRowLine[];
+  editable?: boolean;
+}
+
+export interface ImageMarkerMove {
+  overlay: string;
+  index: number;
+  x: number;
+  y: number;
 }
 
 @Component({
@@ -72,6 +90,80 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   @Input() customStats?: { label: string; value: string }[];
   @Input() overlays: ImageOverlay[] = [];
   hiddenOverlays = new Set<string>();
+  @Output() markerMoved = new EventEmitter<ImageMarkerMove>();
+  // the marker being dragged and its pixel so far
+  dragged: { overlay: string; index: number; x: number; y: number } | null = null;
+
+  markerPosition(overlay: ImageOverlay, index: number): { x: number; y: number } {
+    const d = this.dragged;
+    if (d && d.overlay === overlay.name && d.index === index) return d;
+    return overlay.markers[index];
+  }
+
+  startMarkerDrag(event: MouseEvent, overlay: ImageOverlay, index: number) {
+    if (!overlay.editable || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const marker = overlay.markers[index];
+    this.dragged = { overlay: overlay.name, index, x: marker.x, y: marker.y };
+    const img = this.imageContainer?.nativeElement.querySelector('.image-frame img') as HTMLImageElement | null;
+    const move = (e: MouseEvent) => {
+      if (!this.dragged || !img || !this.imageWidth || !this.imageHeight) return;
+      const rect = img.getBoundingClientRect();
+      const scale = this.zoom / 100;
+      this.dragged = {
+        ...this.dragged,
+        x: Math.min(this.imageWidth - 1, Math.max(0, Math.floor((e.clientX - rect.left) / scale))),
+        y: Math.min(this.imageHeight - 1, Math.max(0, Math.floor((e.clientY - rect.top) / scale))),
+      };
+      this.cdr.markForCheck();
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      const d = this.dragged;
+      this.dragged = null;
+      this.cdr.markForCheck();
+      if (d && (d.x !== marker.x || d.y !== marker.y)) {
+        this.markerMoved.emit(d);
+      }
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+
+  overlayCount(overlay: ImageOverlay): number {
+    return overlay.markers.length + (overlay.lines?.length ?? 0);
+  }
+
+  // background behind the image: the checkerboard hides white and alpha-only (4Bit) sprites. One for all viewers
+  static background: 'checker' | 'black' | 'white' = ImageViewerComponent.storedBackground();
+
+  private static storedBackground(): 'checker' | 'black' | 'white' {
+    try {
+      const stored = localStorage.getItem('imageViewerBackground');
+      return stored === 'black' || stored === 'white' ? stored : 'checker';
+    } catch {
+      return 'checker';
+    }
+  }
+
+  get background() {
+    return ImageViewerComponent.background;
+  }
+
+  cycleBackground() {
+    const order = ['checker', 'black', 'white'] as const;
+    ImageViewerComponent.background = order[(order.indexOf(ImageViewerComponent.background) + 1) % order.length];
+    try {
+      localStorage.setItem('imageViewerBackground', ImageViewerComponent.background);
+    } catch {}
+    this.cdr.markForCheck();
+  }
+
+  // the image this viewer shows: an edit of it re-renders it, keeping zoom and scroll when the size stays
+  private loadedResourceId: string | undefined;
+  private keptView: { width: number; height: number; zoom: number; left: number; top: number } | null = null;
 
   public imageNeedsUpdate$ = new Subject<void>();
   imageUrl$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
@@ -153,14 +245,32 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
   }
 
   reload() {
-    this.imageUrl$.next(null);
-    this.imageWidth = undefined;
-    this.imageHeight = undefined;
+    const sameImage =
+      !!this.resourceId && this.resourceId === this.loadedResourceId && !!this.imageWidth && !!this.imageHeight;
+    const container = this.imageContainer?.nativeElement;
+    this.keptView =
+      sameImage && container && this.currentMipmapLevel === null
+        ? {
+            width: this.imageWidth!,
+            height: this.imageHeight!,
+            zoom: this.zoom,
+            left: container.scrollLeft,
+            top: container.scrollTop,
+          }
+        : null;
+    if (!this.keptView) {
+      this.imageUrl$.next(null);
+      this.imageWidth = undefined;
+      this.imageHeight = undefined;
+    }
     this.mainImageUrl = null;
     this.mipmaps = [];
     this.currentMipmapLevel = null;
+    this.loadedResourceId = this.resourceId;
     if (this.resourceId) {
-      setTimeout(() => this.fitZoom(), 0);
+      if (!this.keptView) {
+        setTimeout(() => this.fitZoom(), 0);
+      }
       this.loading$.next(true);
       this.mainService.api
         .serializeResource(this.resourceId, null, {
@@ -211,6 +321,18 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
     const img = event.target as HTMLImageElement;
     this.imageWidth = img.naturalWidth;
     this.imageHeight = img.naturalHeight;
+    const view = this.keptView;
+    this.keptView = null;
+    if (view && view.width === this.imageWidth && view.height === this.imageHeight && this.imageContainer) {
+      this.zoom = view.zoom;
+      this.cdr.markForCheck();
+      const container = this.imageContainer.nativeElement;
+      requestAnimationFrame(() => {
+        container.scrollLeft = view.left;
+        container.scrollTop = view.top;
+      });
+      return;
+    }
     this.fitZoom();
     this.cdr.markForCheck();
   }
@@ -345,11 +467,7 @@ export class ImageViewerComponent implements AfterViewInit, OnDestroy {
       const zoomY = availableHeight / this.imageHeight;
       const idealZoom = Math.min(zoomX, zoomY);
 
-      this.zoom = Math.floor(idealZoom * 100);
-
-      if (this.zoom <= 0) {
-        this.zoom = 100;
-      }
+      this.zoom = Math.min(this.maxZoom, Math.max(this.minZoom, Math.floor(idealZoom * 100)));
       this.cdr.markForCheck();
     }
   }

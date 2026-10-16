@@ -3,6 +3,7 @@
     <button
       mat-icon-button
       [matTooltip]="'Deserialize from ' + (resource?.schema?.serialization?.file_type || 'common format')"
+      [attr.aria-label]="'Deserialize from ' + (resource?.schema?.serialization?.file_type || 'common format')"
       [class.mat-icon-button-sm-32]="size === 'small'"
       [disabled]="isDeserializing"
       (click)="deserialize()">
@@ -16,6 +17,7 @@
   <button
     mat-icon-button
     [matTooltip]="'Serialize to ' + (resource?.schema?.serialization?.file_type || 'common format')"
+    [attr.aria-label]="'Serialize to ' + (resource?.schema?.serialization?.file_type || 'common format')"
     [class.mat-icon-button-sm-32]="size === 'small'"
     [disabled]="isSerializing"
     (click)="serialize()">
@@ -31,6 +33,7 @@
     mat-icon-button
     [matMenuTriggerFor]="customActionsMenu"
     matTooltip="Run custom action"
+    aria-label="Run custom action"
     [disabled]="isCustomActionRunning"
     [class.mat-icon-button-sm-32]="size === 'small'">
     @if (!isCustomActionRunning) {

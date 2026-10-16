@@ -122,6 +122,16 @@ class ResourceAPI:
             if isinstance(o, dict) and isinstance(n, dict):
                 for key in n:
                     walk(join_id(cur_id, str(key)), o.get(key), n[key])
+            elif (
+                isinstance(o, list) and isinstance(n, list) and len(n) > len(o) and all(isinstance(x, dict) for x in n)
+            ):
+                # entries added at the end (an archive): the others are diffed one by one
+                for i, (oi, ni) in enumerate(zip(o, n)):
+                    walk(join_id(cur_id, str(i)), oi, ni)
+                for i in range(len(o), len(n)):
+                    changes.append(
+                        {'id': cur_id, 'timestamp': timestamp, 'op': 'array_insert', 'index': i, 'value': n[i]}
+                    )
             elif isinstance(o, list) and isinstance(n, list) and len(o) == len(n):
                 if len(n) > 0 and isinstance(n[0], (str, int, float, bool, type(None))):
                     too_different = False
@@ -177,6 +187,83 @@ class ResourceAPI:
         if hasattr(res_block, 'child'):
             return self.render_data(res_block.child.new_data(patch))
         return None
+
+    def archive_image_stats(self, image_id: str) -> Dict[str, Any]:
+        """
+        Color models and mipmaps of the other images of the archive (SHPI) holding the image `image_id`, so that the
+        GUI can tell which choices the file already uses.
+
+        Returns:
+            {'images': n, 'color_models': {resource_id: count}, 'with_mipmaps': n}
+        """
+        from resources.eac.bitmaps import EacImage
+
+        import re
+
+        # <archive>__children/<i>/item/data or <archive>/children/<i>/item/data
+        match = re.match(r'^(.*)(?:__|/)children/(\d+)/item/data$', image_id)
+        if not match:
+            return {'images': 0, 'color_models': {}, 'with_mipmaps': 0}
+        archive_id, own_index = match.group(1), match.group(2)
+        (_, archive_block, archive), _ = require_resource(archive_id)
+        possible_blocks = getattr(getattr(archive_block, 'item_block', None), 'possible_blocks', [])
+        stats = {'images': 0, 'color_models': {}, 'with_mipmaps': 0}
+        for i, child in enumerate(archive.get('children', [])):
+            if str(i) == own_index:
+                continue
+            item = child['item']
+            if item is None or not isinstance(possible_blocks[item['choice_index']], EacImage):
+                continue
+            stats['images'] += 1
+            resource_id = item['data']['resource_id']
+            stats['color_models'][resource_id] = stats['color_models'].get(resource_id, 0) + 1
+            stats['with_mipmaps'] += item['data'].get('mipmaps') is not None
+        return stats
+
+    def palette_usage(self, palette_id: str) -> List[int]:
+        """
+        Indices of the palette `palette_id` the 8Bit images using it hold: the image of an embedded palette, or the
+        images of the SHPI which take this palette item (by name, `determine_palette_for_8_bit_bitmap`)
+
+        Returns:
+            sorted indices
+        """
+        import re
+
+        from resources.eac.bitmaps import EacImage
+        from resources.eac.utils import determine_palette_for_8_bit_bitmap
+
+        (_, _, palette), _ = require_resource(palette_id)
+        images = []
+        if palette_id.endswith('/embedded_palette'):
+            image_id = palette_id[: -len('/embedded_palette')]
+            (_, image_block, image), _ = require_resource(image_id)
+            images.append(image)
+        else:
+            match = re.match(r'^(.*)(?:__|/)children/\d+/item/data$', palette_id)
+            if not match:
+                return []
+            (_, archive_block, archive), _ = require_resource(match.group(1))
+            possible_blocks = getattr(getattr(archive_block, 'item_block', None), 'possible_blocks', [])
+            for i, child in enumerate(archive.get('children', [])):
+                item = child['item']
+                if item is None or not isinstance(possible_blocks[item['choice_index']], EacImage):
+                    continue
+                image = item['data']
+                if image.get('resource_id') != '8Bit':
+                    continue
+                image_id = join_id(match.group(1), 'children', str(i), 'item', 'data')
+                _, used_palette = determine_palette_for_8_bit_bitmap(
+                    possible_blocks[item['choice_index']], image, image_id
+                )
+                if used_palette is palette:
+                    images.append(image)
+        used = set()
+        for image in images:
+            if image.get('resource_id') == '8Bit':
+                used.update(image['bitmap'])
+                used.update(image.get('mipmaps') or [])
+        return sorted(used)
 
     def get_trailing_optional_field_data(self, resource_id: str) -> Any:
         """

@@ -4,6 +4,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { Resource } from '../components/editor/types';
 import { SubscribableGuiComponent } from '../components/editor/gui.component';
 import { splitLastIdPart } from '../utils/join-id';
+import { isLazyStub } from '../utils/lazy';
 
 export type ChangesFeUpdate = {
   newLocalRevision: number;
@@ -49,7 +50,10 @@ export type ChangeEntryPayload =
     };
 
 class ChangeExecutor {
-  private static locateId(resource: Resource, id: string): any {
+  // null when the id lies in a lazy part this window has not loaded: the backend has the change, and the part comes
+  // from it, with the change, when it is shown (changes the backend makes, e.g. a folder import, reach such parts).
+  // With `stubEnd`, an unloaded part itself is returned (its known values, like an archive entry's alias, can change)
+  private static locateId(resource: Resource, id: string, stubEnd: boolean = false): any {
     if (!resource) throw new Error('No resource opened');
     if (resource.id === id) {
       throw new Error('Cannot apply change to the top-level resource');
@@ -61,14 +65,16 @@ class ChangeExecutor {
       .filter(x => x);
     let data: any = resource.data;
     for (const key of dataPath) {
+      if (isLazyStub(data)) return null;
       data = data[key] || data[+key];
     }
-    return data;
+    return isLazyStub(data) && !stubEnd ? null : data;
   }
 
   private static setResourceValue(resource: Resource, id: string, value: any) {
     const [superId, lastKey] = splitLastIdPart(id);
-    const data = ChangeExecutor.locateId(resource, superId);
+    const data = ChangeExecutor.locateId(resource, superId, true);
+    if (data === null || (isLazyStub(data) && !(lastKey in data))) return;
     if (data[lastKey] === undefined && data[+lastKey] !== undefined) {
       data[+lastKey] = value;
     } else {
@@ -83,21 +89,21 @@ class ChangeExecutor {
       return [change.id];
     } else if (change.op == 'array_insert') {
       let array = ChangeExecutor.locateId(res, change.id);
-      array.splice(change.index, 0, change.value);
+      array?.splice(change.index, 0, change.value);
       return [change.id];
     } else if (change.op == 'array_remove') {
       let array = ChangeExecutor.locateId(res, change.id);
-      array.splice(change.index, 1);
+      array?.splice(change.index, 1);
       return [change.id];
     } else if (change.op == 'array_swap') {
       let array = ChangeExecutor.locateId(res, change.id);
-      let tmp = array[change.indexA];
-      array[change.indexA] = array[change.indexB];
-      array[change.indexB] = tmp;
+      if (array) {
+        [array[change.indexA], array[change.indexB]] = [array[change.indexB], array[change.indexA]];
+      }
       return [change.id];
     } else if (change.op == 'binary_delta') {
-      let array = ChangeExecutor.locateId(res, change.id).$bytes;
-      array.splice(change.index, change.oldPart.length, ...change.newPart);
+      let array = ChangeExecutor.locateId(res, change.id)?.$bytes;
+      array?.splice(change.index, change.oldPart.length, ...change.newPart);
       return [change.id];
     } else if (change.op == 'bundle') {
       let ids = new Set<string>();
@@ -119,21 +125,21 @@ class ChangeExecutor {
       return [change.id];
     } else if (change.op == 'array_insert') {
       let array = ChangeExecutor.locateId(res, change.id);
-      array.splice(change.index, 1);
+      array?.splice(change.index, 1);
       return [change.id];
     } else if (change.op == 'array_remove') {
       let array = ChangeExecutor.locateId(res, change.id);
-      array.splice(change.index, 0, change.oldValue);
+      array?.splice(change.index, 0, change.oldValue);
       return [change.id];
     } else if (change.op == 'array_swap') {
       let array = ChangeExecutor.locateId(res, change.id);
-      let tmp = array[change.indexA];
-      array[change.indexA] = array[change.indexB];
-      array[change.indexB] = tmp;
+      if (array) {
+        [array[change.indexA], array[change.indexB]] = [array[change.indexB], array[change.indexA]];
+      }
       return [change.id];
     } else if (change.op == 'binary_delta') {
-      let array = ChangeExecutor.locateId(res, change.id).$bytes;
-      array.splice(change.index, change.newPart.length, ...change.oldPart);
+      let array = ChangeExecutor.locateId(res, change.id)?.$bytes;
+      array?.splice(change.index, change.newPart.length, ...change.oldPart);
       return [change.id];
     } else if (change.op == 'bundle') {
       let ids = new Set<string>();

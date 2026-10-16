@@ -111,7 +111,10 @@ export class BlockActionsComponent {
     this.isDeserializing = true;
     this.cdr.markForCheck();
     try {
-      await this.mainService.deserializeResource(this.resource.id, paths);
+      const report = await this.mainService.deserializeResource(this.resource.id, paths);
+      if (report) {
+        this.snackBar.open(`Imported: ${report}`, 'OK', { duration: 8000 });
+      }
     } finally {
       this.isDeserializing = false;
       this.cdr.markForCheck();

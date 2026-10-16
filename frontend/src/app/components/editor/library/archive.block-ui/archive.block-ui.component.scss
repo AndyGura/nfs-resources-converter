@@ -44,7 +44,9 @@
 
     .add-item-container {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
+      gap: 4px;
       padding: 8px;
     }
 
@@ -112,4 +114,22 @@
   display: flex;
   justify-content: center;
   padding: 2rem;
+}
+
+.compression-chip {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  background: rgba(63, 81, 181, 0.15);
+}
+
+.duplicate-index {
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.type-icon.not-loaded {
+  opacity: 0.5;
 }

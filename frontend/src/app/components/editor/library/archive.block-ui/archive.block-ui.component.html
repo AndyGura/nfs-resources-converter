@@ -5,7 +5,16 @@
     (selectionChange)="selectedValue = $event.source.selectedOptions.selected[0].value">
     <mat-list-option value="___headers___" [selected]="selectedValue == '___headers___'">
       <div class="option-content">
-        <span class="key-label">{{ blockClassStr(resourceSchema) || 'Headers' }}</span>
+        <span class="key-label" [matTooltip]="resourceSchema?.block_description || ''" matTooltipPosition="above">{{
+          archiveTitle
+        }}</span>
+        @if (compressionLabel) {
+          <span
+            class="compression-chip"
+            [matTooltip]="'The file is compressed with ' + compressionLabel + ', and saved with it again'"
+            >{{ compressionLabel }}</span
+          >
+        }
         <div class="flex-spacer"></div>
         @if (resourceSchema && !hideBlockActions) {
           <app-block-actions
@@ -24,11 +33,18 @@
     <div class="list-label">Children</div>
     @for (child of resourceData.children; track i; let i = $index) {
       <mat-list-option [value]="[i, child]" [selected]="selectedValue && selectedValue[1] == child">
-        <mat-icon matListItemIcon class="type-icon">{{ childIcon(child) }}</mat-icon>
+        <mat-icon
+          matListItemIcon
+          class="type-icon"
+          [class.not-loaded]="isChildLoading(child)"
+          [matTooltip]="isChildLoading(child) ? 'Not loaded yet' : ''"
+          >{{ childIcon(child) }}</mat-icon
+        >
         <div class="option-content">
-          <span class="key-label" [class.no-alias]="supportsAliases && !child.alias">{{
-            child.alias || i.toString()
-          }}</span>
+          <span class="key-label" [class.no-alias]="supportsAliases && !child.alias">{{ childLabel(child, i) }}</span>
+          @if (duplicateAliases.has(child.alias || '')) {
+            <span class="duplicate-index" matTooltip="Another item has the same name">#{{ i }}</span>
+          }
           <div class="flex-spacer"></div>
           @if (!disabled) {
             <div matListItemEnd class="item-actions">
@@ -37,7 +53,8 @@
                 color="primary"
                 class="mat-icon-button-sm-24"
                 (click)="$event.stopPropagation(); editItem(i)"
-                matTooltip="Edit item">
+                matTooltip="Edit item"
+                [attr.aria-label]="'Edit item ' + childLabel(child, i)">
                 <mat-icon>edit</mat-icon>
               </button>
               <button
@@ -46,7 +63,8 @@
                 class="mat-icon-button-sm-24 move-item-button"
                 [disabled]="!!disabled || i === 0"
                 (click)="$event.stopPropagation(); moveItemUp(i)"
-                matTooltip="Move up">
+                matTooltip="Move up"
+                [attr.aria-label]="'Move up ' + childLabel(child, i)">
                 <mat-icon>arrow_upward</mat-icon>
               </button>
               <button
@@ -55,7 +73,8 @@
                 class="mat-icon-button-sm-24 move-item-button"
                 [disabled]="!!disabled || i === resourceData.children.length - 1"
                 (click)="$event.stopPropagation(); moveItemDown(i)"
-                matTooltip="Move down">
+                matTooltip="Move down"
+                [attr.aria-label]="'Move down ' + childLabel(child, i)">
                 <mat-icon>arrow_downward</mat-icon>
               </button>
               <button
@@ -64,7 +83,8 @@
                 class="mat-icon-button-sm-24 remove-item-button"
                 [disabled]="!!disabled"
                 (click)="$event.stopPropagation(); removeItem(i)"
-                matTooltip="Remove item">
+                matTooltip="Remove item"
+                [attr.aria-label]="'Remove item ' + childLabel(child, i)">
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
@@ -79,6 +99,19 @@
           <mat-icon>add</mat-icon>
           Add Item
         </button>
+        @if (canImportImages) {
+          <button
+            mat-button
+            color="primary"
+            (click)="importImagesFromDisk()"
+            [disabled]="isImporting"
+            class="add-item-button"
+            matTooltip="Add image files from disk as new 32-bit images, one item per file"
+            matTooltipPosition="above">
+            <mat-icon>add_photo_alternate</mat-icon>
+            Import from disk
+          </button>
+        }
       </div>
     }
   </mat-selection-list>

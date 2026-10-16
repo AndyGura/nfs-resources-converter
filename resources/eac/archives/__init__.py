@@ -107,6 +107,9 @@ class WwwwBlock(ArchiveBlock):
         )
         children = (ArrayBlock(child=None, length=None), {'usage': 'ui'})
 
+    def entry_kind_hint(self, head: bytes):
+        return {b'SHPI': 'ShpiBlock', b'ORIP': 'OripGeometry', b'wwww': 'WwwwBlock'}.get(head[:4], 'BytesBlock')
+
     def estimate_packed_size(self, data, ctx: WriteContext = None):
         total_length = 8 + len(data.get('pre_items_payload', b''))
         for i, child in enumerate(data['children']):
@@ -139,16 +142,34 @@ class WwwwBlock(ArchiveBlock):
         data['data_bytes'] = b''
         data['items_descr'] = []
         for i, child in enumerate(data['children']):
+            if self._is_empty_entry(child):
+                # offset 0: an entry without data, as the files mark it (read as empty bytes)
+                data['items_descr'].append(None)
+                continue
             item_data, post = self.entry_bytes(child, ctx, str(i))
             data['items_descr'].append(len(data['data_bytes']))
             data['data_bytes'] += item_data
             data['data_bytes'] += post
         heap_offset = 8 + len(data['items_descr']) * 4 + len(data.get('pre_items_payload', b''))
-        data['items_descr'] = [x + heap_offset for x in data['items_descr']]
+        data['items_descr'] = [0 if x is None else x + heap_offset for x in data['items_descr']]
         ret = super().write(data=data, ctx=ctx, name=name)
         del data['items_descr']
         del data['data_bytes']
         return ret
+
+    def _is_empty_entry(self, child) -> bool:
+        from library.lazy import LazyDict
+
+        if isinstance(child, LazyDict) and not child.is_loaded:
+            # unloaded entries are read from an offset
+            return False
+        item = child['item']
+        return (
+            item is not None
+            and item['choice_index'] == self.bytes_choice
+            and len(item['data']) == 0
+            and len(child['post_offset_payload']) == 0
+        )
 
     def serializer_class(self):
         from serializers import WwwwArchiveSerializer

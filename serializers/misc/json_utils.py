@@ -1,10 +1,12 @@
 import math
 
-from library.lazy import unloaded_items
+from library.lazy import unloaded_hint, unloaded_items
 
 # marks an unloaded lazy part in data rendered for the frontend: the dict holds only the seeded values, the frontend
 # asks `load_lazy_part` for the rest when it needs it
 LAZY_MARKER = '__lazy__'
+# with it, the block class the unloaded part probably is (`Slot.hint`)
+LAZY_KIND = '__kind__'
 
 
 def convert_bytes(data):
@@ -13,7 +15,11 @@ def convert_bytes(data):
     elif isinstance(data, dict):
         items = unloaded_items(data)
         if items is not None:
-            return {**{key: convert_bytes(value) for key, value in items}, LAZY_MARKER: True}
+            rendered = {**{key: convert_bytes(value) for key, value in items}, LAZY_MARKER: True}
+            hint = unloaded_hint(data)
+            if hint:
+                rendered[LAZY_KIND] = hint
+            return rendered
         return {key: convert_bytes(value) for key, value in data.items()}
     elif isinstance(data, list):
         return [convert_bytes(item) for item in data]

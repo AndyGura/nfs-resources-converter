@@ -95,9 +95,18 @@ class ArchiveBlock(DeclarativeCompoundBlock, ABC):
         if ctx.lazy:
             slot.source = source_for_buffer(ctx.buffer)
             if slot.source is not None:
+                position = ctx.buffer.tell()
+                ctx.buffer.seek(offset)
+                slot.hint = self.entry_kind_hint(ctx.buffer.read(min(4, max(0, length))))
+                ctx.buffer.seek(position)
                 return LazyDict(slot)
         ctx.buffer.seek(offset)
         return _parse_entry(ctx, slot)
+
+    def entry_kind_hint(self, head: bytes) -> Optional[str]:
+        """Class name of the block an entry starting with `head` (up to 4 bytes) probably holds, for the GUI to show
+        unloaded entries; None if unknown"""
+        return None
 
     def entry_sizes(self, child, ctx: WriteContext = None) -> Tuple[int, int]:
         """Lengths of item and post-offset payload of entry when packed"""

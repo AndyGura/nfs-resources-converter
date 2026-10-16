@@ -10,16 +10,31 @@
   [hideCustomActions]="true"
   [customStats]="[{ label: 'Color model', value: resourceData?.resource_id }]"
   [overlays]="hotSpotOverlays"
+  (markerMoved)="onHotSpotMoved($event)"
   height="var(--image-viewer-height)"></app-image-viewer>
 
 @if (resourceData && resourceSchema) {
   <mat-form-field subscriptSizing="dynamic">
     <mat-label>Color Model</mat-label>
-    <mat-select [value]="resourceData.resource_id" (selectionChange)="onFormatChange($event)" #formatSelect>
-      @for (enumValue of resourceSchema.fields[0].schema.enum_names; track enumValue) {
-        <mat-option [value]="enumValue[1]">
-          {{ enumValue[1] }}
-        </mat-option>
+    <mat-select
+      [value]="resourceData.resource_id"
+      (selectionChange)="onFormatChange($event)"
+      (openedChange)="$event && loadSiblingStats()"
+      #formatSelect>
+      <mat-select-trigger>{{ formatSelect.value }}</mat-select-trigger>
+      @for (group of colorModelGroups; track group.name) {
+        <mat-optgroup [label]="group.name">
+          @for (model of group.models; track model) {
+            <mat-option [value]="model">
+              {{ model }}
+              @if (siblingStats?.color_models?.[model]; as count) {
+                <span class="used-in-file"
+                  >· {{ count }} other {{ count === 1 ? 'image' : 'images' }} in this SHPI</span
+                >
+              }
+            </mat-option>
+          }
+        </mat-optgroup>
       }
     </mat-select>
   </mat-form-field>
@@ -33,7 +48,7 @@
         : 'Mipmaps require power-of-two width and height'
     "
     matTooltipPosition="above"
-    (change)="onMipmapsToggle($event.checked)">
+    (change)="onMipmapsToggle($event.checked, $event.source)">
     Mipmaps
   </mat-checkbox>
 }

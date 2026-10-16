@@ -6,9 +6,10 @@ import { SubscribableGuiComponent } from '../../gui.component';
 import { MatDialog } from '@angular/material/dialog';
 import { ArchiveItemEditDialogComponent } from '../../common/archive-item-edit.dialog/archive-item-edit.dialog.component';
 import { ArchiveDelegateItemTypeDialogComponent } from '../../common/archive-delegate-item-type.dialog/archive-delegate-item-type.dialog.component';
-import { firstValueFrom } from 'rxjs';
+import { filter, firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { blockClassStr } from '../../../../utils/block_class_str';
 import { MatSelectionList } from '@angular/material/list';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { isLazyStub } from '../../../../utils/lazy';
 
 // an unloaded entry (`isLazyStub`) has `alias` only, until it is selected
@@ -32,6 +33,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
 }> {
   childSchema: BlockSchema | undefined;
   supportsAliases: boolean = false;
+  // the entries can be images (SHPI): image files can be added from disk
+  canImportImages: boolean = false;
+  isImporting: boolean = false;
 
   @ViewChild(MatSelectionList)
   private list!: MatSelectionList;
@@ -44,6 +48,7 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     super.resourceSchema = value;
     this.childSchema = undefined;
     this.supportsAliases = false;
+    this.canImportImages = false;
     if (value) {
       const childrenField = value.fields.find((x: { name: string; schema: BlockSchema }) => x.name === 'children');
       if (childrenField) {
@@ -52,6 +57,9 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
         this.childSchema = childSchema.fields.find(
           (x: { name: string; schema: BlockSchema }) => x.name === 'item',
         )?.schema;
+        this.canImportImages = (this.childSchema?.possible_resource_schemas || []).some((s: BlockSchema) =>
+          s.block_class_mro.split('__').includes('EacImage'),
+        );
       }
     }
   }
@@ -95,6 +103,33 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
   }
 
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyed$ = new Subject<void>();
+
+  constructor() {
+    super();
+    // a rename (edit dialog, backend) is notified to the most specific component only: the dialog
+    this.changes.change$
+      .pipe(
+        takeUntil(this.destroyed$),
+        filter(id => !!this.resourceId && id.startsWith(joinId(this.resourceId, 'children')) && id.endsWith('/alias')),
+      )
+      .subscribe(() => this.cdr.markForCheck());
+  }
+
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
+    this.destroyed$.next();
+    this.destroyed$.complete();
+  }
+
+  // a free name for a new entry: new0, new1...
+  private newAlias(): string {
+    const taken = new Set((this.resourceData?.children || []).map(c => (c.alias || '').toLowerCase()));
+    let n = 0;
+    while (taken.has(`new${n}`)) n++;
+    return `new${n}`;
+  }
 
   override onExternalChanges() {
     super.onExternalChanges();
@@ -161,12 +196,51 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     }
     const newItem = await this.mainService.getNewItemData(id, newItemKwargs);
     if (newItem === null) return;
+    if (this.supportsAliases && !newItem.alias) {
+      newItem.alias = this.newAlias();
+    }
     this.emitNewChange({
       op: 'array_insert',
       id: id,
       index: this.resourceData!.children.length,
       value: newItem,
     });
+  }
+
+  // image files picked on disk become new 32-bit images at the end, as one undoable change
+  async importImagesFromDisk() {
+    const paths = await this.mainService.api.openFileDialog(true, [
+      'Images (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tga;*.webp;*.tif;*.tiff)',
+      'All files (*.*)',
+    ]);
+    if (!paths || paths.length === 0) return;
+    this.isImporting = true;
+    this.cdr.markForCheck();
+    try {
+      const { items, skipped } = await this.mainService.api.newImagesFromFiles(this.resourceId!, paths);
+      const id = joinId(this.resourceId!, 'children');
+      const start = this.resourceData!.children.length;
+      if (items.length > 0) {
+        this.emitNewChange({
+          op: 'bundle',
+          changes: items.map((value, i) => ({
+            op: 'array_insert',
+            id,
+            index: start + i,
+            value,
+            timestamp: Date.now(),
+          })),
+        });
+        this.selectedValue = [start, this.resourceData!.children[start]];
+        this.updateSelectionOnDataChange();
+      }
+      const added = `${items.length} image${items.length === 1 ? '' : 's'} added`;
+      const skippedText = skipped.map(([name, reason]) => `${name} (${reason})`).join(', ');
+      this.snackBar.open(skippedText ? `${added}. Skipped: ${skippedText}` : added, 'OK', { duration: 6000 });
+    } finally {
+      this.isImporting = false;
+      this.cdr.markForCheck();
+    }
   }
 
   async removeItem(index: number) {
@@ -211,12 +285,76 @@ export class ArchiveBlockUiComponent extends SubscribableGuiComponent<{
     });
   }
 
+  // titles of the archive kinds the GUI shows, by block class
+  private static readonly ARCHIVE_TITLES: { [className: string]: string } = {
+    ShpiBlock: 'SHPI images',
+    WwwwBlock: 'WWWW archive',
+    BigfBlock: 'BIGF archive',
+  };
+
+  get archiveTitle(): string {
+    const className = blockClassStr(this.resourceSchema!);
+    return ArchiveBlockUiComponent.ARCHIVE_TITLES[className] || className || 'Headers';
+  }
+
+  // the compression of a compressed file (QFS) whose content is this archive
+  get compressionLabel(): string | null {
+    if (!this.resourceId?.endsWith('__data')) return null;
+    const opened: any = this.mainService.api.openedResource$.getValue();
+    if (!opened?.schema?.block_class_mro?.includes('EacCompressedBlock')) return null;
+    const flags = opened.data?.compression_flags;
+    if (typeof flags !== 'number') return null;
+    const kind = flags & 0xfe;
+    return kind === 0x10
+      ? 'RefPack'
+      : kind === 0x46
+        ? 'QFS2'
+        : [0x30, 0x32, 0x34].includes(kind)
+          ? 'QFS3'
+          : 'compressed';
+  }
+
+  // names the converter's export gives the entries of TNFS car (CFM) and track (FAM) files
+  private static readonly WWWW_SLOT_NAMES: { [extension: string]: string[] } = {
+    '.CFM': ['high-poly', 'high-poly textures', 'low-poly', 'low-poly textures'],
+    '.FAM': ['background', 'foreground', 'skybox', 'props'],
+  };
+
+  childLabel(child: ArchiveChildData, index: number): string {
+    if (child.alias) return child.alias;
+    const id = this.resourceId || '';
+    const extension = id.includes('__') ? null : id.slice(id.lastIndexOf('.')).toUpperCase();
+    const names = extension ? ArchiveBlockUiComponent.WWWW_SLOT_NAMES[extension] : undefined;
+    if (names && this.resourceData?.children.length === names.length) {
+      return `${index} · ${names[index]}`;
+    }
+    return index.toString();
+  }
+
+  private duplicateAliasesKey: any = null;
+  private duplicateAliasesCache = new Set<string>();
+
+  get duplicateAliases(): Set<string> {
+    const children = this.resourceData?.children;
+    if (children !== this.duplicateAliasesKey) {
+      this.duplicateAliasesKey = children;
+      const seen = new Set<string>();
+      this.duplicateAliasesCache = new Set<string>();
+      for (const c of children || []) {
+        if (!c.alias) continue;
+        if (seen.has(c.alias)) this.duplicateAliasesCache.add(c.alias);
+        seen.add(c.alias);
+      }
+    }
+    return this.duplicateAliasesCache;
+  }
+
   childIcon(child: ArchiveChildData): string {
     let block_class_mro = '';
     if (this.childSchema) {
       if (this.childSchema.block_class_mro.includes('DelegateBlock__')) {
-        // the kind of an unloaded entry is not known yet
-        if (!child.item) return 'hourglass_empty';
+        // an unloaded entry: the kind the backend guessed from its first bytes
+        if (!child.item) return (child as any).__kind__ ? fileFormatIcon((child as any).__kind__) : 'hourglass_empty';
         block_class_mro = this.childSchema.possible_resource_schemas[child.item.choice_index].block_class_mro;
       } else {
         block_class_mro = this.childSchema.block_class_mro;
