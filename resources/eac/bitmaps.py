@@ -839,6 +839,8 @@ class EacImage(DeclarativeCompoundBlock):
                 ),
             )
             if resource_id == '4Bit (swapped)':
+                # swapped copies of the rows: `bd` is the caller's data
+                bd = [list(row) for row in bd]
                 for row in bd:
                     for i in range(0, len(row), 2):
                         row[i], row[i + 1] = row[i + 1], row[i]
@@ -949,10 +951,12 @@ class EacImage(DeclarativeCompoundBlock):
         copied = deepcopy(data)
         self._set_mipmap_count(copied)
         self._link_chained_blocks(copied)
-        copied['bitmap'] = self._internal_to_native(data['resource_id'], data['width'], data['height'], data['bitmap'])
+        copied['bitmap'] = self._internal_to_native(
+            copied['resource_id'], copied['width'], copied['height'], copied['bitmap']
+        )
         if copied['mipmaps']:
             copied['mipmaps'] = self._mipmaps_internal_to_native(
-                data['resource_id'], data['width'], data['height'], data['mipmaps']
+                copied['resource_id'], copied['width'], copied['height'], copied['mipmaps']
             )
         return super().write(copied, ctx, name)
 

@@ -74,6 +74,14 @@ class TestBitmap(unittest.TestCase):
         self.assertEqual(data['bitmap'][0][0], 0xFFFFFF22)
         self.assertEqual(data['bitmap'][0][1], 0xFFFFFF11)
 
+    def test_bitmap_4bit_swapped_write_keeps_data(self):
+        # writing used to swap the pixel pairs of the data itself: a second save (after a failed one) wrote them swapped
+        b = self._gen_two_pixels_bitmap(0x79, bytes([0x12]))
+        data = self.block.unpack_from_bytes(b)
+        self.assertEqual(self.block.pack(data), b)
+        self.assertEqual(self.block.pack(data), b)
+        self.assertEqual(data['bitmap'], [[0xFFFFFF22, 0xFFFFFF11]])
+
     def test_bitmap_8bit_should_be_translated_correctly(self):
         b = self._gen_single_pixel_bitmap(0x7B, bytes([0x42]))
         data = self.block.unpack_from_bytes(b)
