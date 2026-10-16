@@ -197,3 +197,31 @@ Scratch copies of `games/` files only. Full report: https://claude.ai/artifact/E
 Native Open / Save / Serialize / Deserialize dialogs, an NFS6 DXT file in the GUI, the macOS native window,
 in-game behaviour.
 
+
+---
+
+## 2026-10-16 — FFN font editor, re-check after PR #88 (image editor)
+
+**Commit**: `0c60acf` (`main`). **Scope**: KI-6 items re-checked, plus the PR #88 image editor changes as they reach
+the font's Bitmap tab. Same setup as 2026-10-15 (no-Docker shortcut, backend on 8001, `proxy.conf.json` reverted).
+Scratch copies of `games/` fonts only. Full report: https://claude.ai/artifact/FgTKuR5Zcp2SrTLwpkiZaw.
+
+### Findings
+- Every KI-6 fix still holds (Confirmed live + saved files: MAIN18, SWISS36, HUDoutline12, both BlairITC14b, Editor,
+  Korean Gulim12; 70/70 round-trip, export → import and add / remove glyph headless).
+- New: KI-6 items 10 (4Bit (swapped) atlas flipped in memory by a write, corrupt file after a failed save + save) and
+  11 (Bitmap tab opens at 10% zoom, regression from PR #88).
+- PR #88 in the Bitmap tab works: grouped Color Model select, convert + undo, zoom kept on edits, background switch,
+  PNG import over the atlas (keeps 4Bit), palette usage of an embedded palette, "Saved <file> (<n> bytes)".
+
+### Not tested
+Native file dialogs (imports through `mainService.deserializeResource`), Char Preview drags, macOS native window,
+in-game behaviour.
+
+### Fixes (same day, branch `fix/ffn-editor-pass2`)
+KI-6 items 9–11 and the remaining lower-severity items fixed, one commit per finding (F11–F15 in the report).
+Confirmed live: retried save after a failed one is byte-exact (backend: unit test + 70 FFNs packed twice), Bitmap tab
+fits (753% for `Editor.ffn`), Font Preview boxes and lists missing glyphs (`SWISS36`: I X) and scrolls long lines,
+advance drag edits `advance` (MAIN18) / `x_advance` (HUDoutline12), "Find glyph" 가 → row 9034 on page 91 of Korean
+`Gulim12`, arrows / Shift+arrows nudge, kerning search steps through 35 pairs with V (BlairITC14b). Backend 476
+tests and frontend 90 tests pass.
