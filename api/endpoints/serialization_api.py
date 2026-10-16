@@ -138,19 +138,13 @@ class SerializationAPI:
         (id, res_block, resource), _ = require_resource(id)
         serializer = get_serializer(res_block, resource)
         updated_data = serializer.deserialize(file_paths, id, res_block, **(extra_opts or {}))
-        # Snapshot the data before applying the deserialized result, so we can diff it
-        # afterwards and record the mutations as changes in the changes model and notify
-        # the frontend (same approach as run_custom_action).
-        if isinstance(resource, bytes):
-            before = resource
-            resource = updated_data
-        else:
-            before = copy.deepcopy(resource)
-            resource.clear()
-            resource.update(updated_data)
-        changes = self.api.resource_api._diff_to_changes(id, before, resource)
+        # other resources the import changed too (the textures of a model), applied in the same undoable change
+        related = getattr(serializer, 'deserialize_related', None) or {}
+        changes = self._apply_deserialized(id, resource, updated_data)
+        for related_id, related_data in related.items():
+            (related_id, _, related_resource), _ = require_resource(related_id)
+            changes += self._apply_deserialized(related_id, related_resource, related_data)
         if changes:
-            # the mutations have already been applied to resource in place
             ChangesService.append_changes(
                 [
                     {
@@ -161,5 +155,21 @@ class SerializationAPI:
                     }
                 ]
             )
-        remove_file_or_directory(path_join(self.api.static_path, 'resources', *id.split('/')))
+        for changed_id in [id, *related]:
+            remove_file_or_directory(path_join(self.api.static_path, 'resources', *changed_id.split('/')))
         return {'report': getattr(serializer, 'deserialize_report', None)}
+
+    def _apply_deserialized(self, id: str, resource: Any, updated_data: Any) -> list:
+        """Puts the deserialized data in place of the resource loaded under `id` (a dict is updated in place), returns
+        the changes for the changes model and the frontend"""
+        # Snapshot the data before applying the deserialized result, so we can diff it
+        # afterwards and record the mutations as changes (same approach as run_custom_action).
+        if isinstance(resource, bytes):
+            # bytes cannot be updated in place: the parent holds them, the change carries them
+            before = resource
+            resource = updated_data
+        else:
+            before = copy.deepcopy(resource)
+            resource.clear()
+            resource.update(updated_data)
+        return self.api.resource_api._diff_to_changes(id, before, resource)

@@ -263,8 +263,11 @@ When you do:
   at most) or `map_Kd` file names. What an OBJ cannot hold comes from the ORIP being replaced: material fields and
   polygon type bits of the same texture, lookup-only materials (`tire1`..`tire4`, `pal`), non-wheel `fx_polys`
   positions, morphs whose vertices are all still there. Wheel `fx_polys` are the bottom corners of the wheel quads,
-  missing steering morphs are rotations by 30 degrees of the front wheel quad and its `circ` quad. Textures are not
-  imported with it (the SHPI has its own folder import). The export of every ORIP of `test/samples/TSUPRA.CFM`
+  missing steering morphs are rotations by 30 degrees of the front wheel quad and its `circ` quad. UVs are scaled to
+  texels with the size of the `map_Kd` / `assets/<name>.png` image. Those textures go to the SHPI next to the ORIP when
+  they differ from its own export (`_import_textures`: the SHPI's export with the folder's `assets` files and the
+  `map_Kd` images over it, imported with the SHPI folder import, so a CFM's SHPI is made again); the serializer leaves
+  it in `deserialize_related`, which `deserialize_resource` applies in the same change bundle. The export of every ORIP of `test/samples/TSUPRA.CFM`
   imports back to the same polygons, fx points and morphs (`test/serializers/test_orip_import.py`).
 
 ## TNFS car specs (SIMDATA/CARSPECS/*.PBS, SIMDATA/CARFAMS/*.PDN)

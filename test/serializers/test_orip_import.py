@@ -86,8 +86,8 @@ def export_and_import(file_path: str, index: int):
     return data, imported, serializer.deserialize_report
 
 
-def import_obj(obj: str, mtl: str = '', files: dict = None, index: int = 0):
-    """ORIP imported from the OBJ text over ORIP `index` of TSUPRA.CFM, with the report"""
+def import_obj(obj: str, mtl: str = '', files: dict = None, index: int = 0, with_serializer=False):
+    """ORIP imported from the OBJ text over ORIP `index` of TSUPRA.CFM, with the report (and the serializer)"""
     file_id, _, _ = require_file('test/samples/TSUPRA.CFM')
     orip_id = ORIP_ID.format(file_id, index)
     (_, block, _), _ = require_resource(orip_id)
@@ -101,6 +101,8 @@ def import_obj(obj: str, mtl: str = '', files: dict = None, index: int = 0):
         for name, image in (files or {}).items():
             image.save(os.path.join(tmp, name))
         imported = serializer.deserialize([tmp], orip_id, block)
+    if with_serializer:
+        return imported, serializer.deserialize_report, serializer
     return imported, serializer.deserialize_report
 
 
@@ -131,6 +133,8 @@ class TestOripImportRoundTrip(unittest.TestCase):
                 self.assertEqual(len(imported['vertex_uvs']), len(data['vertex_uvs']))
                 self.assertEqual([p['name'] for p in imported['partitions']], [p['name'] for p in data['partitions']])
                 self.assertNotIn('textures not in the FSH', report)
+                # the textures of the export are the ones of the SHPI: it stays as it is
+                self.assertNotIn('Textures', report)
 
     def test_lookup_only_materials_are_kept(self):
         data, imported, _ = export_and_import('test/samples/TSUPRA.CFM', 0)
@@ -230,17 +234,24 @@ class TestOripImportFromEditor(unittest.TestCase):
 
     def test_new_texture_takes_the_size_of_its_image(self):
         image = Image.new('RGBA', (8, 4), (255, 0, 0, 0))
-        data, report = import_obj(
+        data, report, serializer = import_obj(
             'usemtl new_one\n' + quad((0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)),
             'newmtl new_one\nmap_Kd door.png\n',
             {'door.png': image},
+            with_serializer=True,
         )
         polygon = data['polygons'][0]
         self.assertEqual(data['materials'][polygon['material_index']]['file_name'], 'door')
         # transparent texels: colour-keyed
         self.assertEqual(polygon['polygon_type'], 0x8C)
         self.assertEqual(data['vertex_uvs'][data['vmap'][polygon['offset_2d']]], {'u': 2, 'v': 1})
-        self.assertIn('textures not in the FSH: door', report)
+        # the texture goes to the SHPI of the model (a CFM's is made again with it)
+        self.assertIn('Textures: door.png imported', report)
+        self.assertNotIn('textures not in the FSH', report)
+        [shpi] = serializer.deserialize_related.values()
+        door = next(c['item']['data'] for c in shpi['children'] if c['alias'] == 'door')
+        self.assertEqual((door['width'], door['height']), (8, 4))
+        self.assertTrue({'topv', 'circ', 'tyr1', '!PAL', '!xxx'} <= {c['alias'] for c in shpi['children']})
 
     def test_triangles_of_a_quad_and_two_sided_faces(self):
         obj = (
@@ -263,3 +274,70 @@ class TestOripImportFromEditor(unittest.TestCase):
             import_obj(
                 'usemtl Material.001\n' + quad((0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)), 'newmtl Material.001\n'
             )
+
+
+class TestOripImportWithTextures(unittest.TestCase):
+    """OBJ import in the GUI: the model and its textures change in one undoable change"""
+
+    def setUp(self):
+        from types import SimpleNamespace
+        from unittest import mock
+
+        from api.endpoints.resource_api import ResourceAPI
+        from api.endpoints.serialization_api import SerializationAPI
+        from library.changes_service import ChangesService
+
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.changes = ChangesService
+        self.original_ws_instance = ChangesService.ws_instance
+        ChangesService.ws_instance = mock.Mock()
+        ChangesService.clear()
+        self.api = SerializationAPI(SimpleNamespace(resource_api=ResourceAPI(api=None), static_path=self.temp_dir.name))
+
+    def tearDown(self):
+        self.changes.clear()
+        self.changes.ws_instance = self.original_ws_instance
+        self.temp_dir.cleanup()
+
+    def test_bigger_texture_scales_the_texture_coordinates(self):
+        path = os.path.join(self.temp_dir.name, 'TSUPRA.CFM')
+        shutil.copy('test/samples/TSUPRA.CFM', path)
+        file_id, block, data = require_file(path, lazy=False)
+        orip_id = ORIP_ID.format(file_id, 0)
+        (_, orip_block, orip), _ = require_resource(orip_id)
+        topv_size = next(
+            c['item']['data'] for c in data['children'][1]['item']['data']['children'] if c['alias'] == 'topv'
+        )
+        width, height = topv_size['width'], topv_size['height']
+        before = canonical_polygons(orip)
+
+        export = os.path.join(self.temp_dir.name, 'export')
+        serializer = OripGeometrySerializer()
+        serializer.patch_settings(serializer.ui_serialization()['reversible_settings_patch'])
+        serializer.serialize(orip, export + '/', orip_id, orip_block)
+        texture = os.path.join(export, 'assets', 'topv.png')
+        with Image.open(texture) as image:
+            image.resize((width * 2, height * 2), Image.Resampling.NEAREST).save(texture)
+        result = self.api.deserialize_resource(orip_id, [export])
+
+        self.assertIn('Textures: topv.png imported', result['report'])
+        topv = next(c['item']['data'] for c in data['children'][1]['item']['data']['children'] if c['alias'] == 'topv')
+        self.assertEqual((topv['width'], topv['height']), (width * 2, height * 2))
+        # the same model, with texel coordinates twice as big on topv
+        doubled = Counter()
+        for key, count in before.items():
+            if key[4] == 'topv' and not isinstance(key[2][1], bool):
+                key = (*key[:2], tuple((p, (uv[0] * 2, uv[1] * 2)) for p, uv in key[2]), *key[3:])
+            doubled[key] += count
+        new_orip = data['children'][0]['item']['data']
+        self.assertEqual(canonical_polygons(new_orip), doubled)
+        self.assertEqual(len([c for c in self.changes.changes if c.get('op') == 'bundle']), 1)
+        # the file saves and reads back
+        packed = block.pack(data, name='TSUPRA.CFM')
+        with open(path, 'wb') as f:
+            f.write(packed)
+        from library.loader import clear_file_cache
+
+        clear_file_cache(path)
+        _, _, read = require_file(path, lazy=False)
+        self.assertEqual(canonical_polygons(read['children'][0]['item']['data']), doubled)

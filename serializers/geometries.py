@@ -187,8 +187,9 @@ class OripGeometrySerializer(BaseFileSerializer):
 
     def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs) -> dict:
         """The ORIP loaded under `id` with the geometry of an OBJ + MTL (a folder holding one OBJ, "geometry.obj"
-        among several, or the OBJ file), see `serializers/misc/orip_import.py`. The summary is left in
-        `deserialize_report`"""
+        among several, or the OBJ file), see `serializers/misc/orip_import.py`. The textures it uses (`map_Kd` files,
+        the "assets" folder of the export) go to the SHPI next to the ORIP when they differ from it: that SHPI is left
+        in `deserialize_related` ({id: data}), applied with the ORIP. The summary is left in `deserialize_report`"""
         from io import BytesIO
         from library import require_resource
         from library.context import ReadContext
@@ -198,23 +199,93 @@ class OripGeometrySerializer(BaseFileSerializer):
         (_, _, current), _ = require_resource(id)
         if not isinstance(current, dict) or current.get('resource_id') != 'ORIP':
             raise DataIntegrityException(f'No ORIP geometry loaded under {id}')
+        self.deserialize_related = {}
+        texture_report = None
         try:
-            _, _, shpi_data = self.require_shpi(id)
-            shpi_textures = {
-                c['alias']: (c['item']['data']['width'], c['item']['data']['height'])
-                for c in shpi_data['children']
-                if isinstance(c['item']['data'], dict) and 'width' in c['item']['data']
-            }
+            shpi_id, shpi_block, shpi_data = self.require_shpi(id)
         except Exception:
-            shpi_textures = {}
+            shpi_id, shpi_data = None, {'children': []}
+        if shpi_id is not None:
+            new_shpi, texture_report = self._import_textures(obj_path, shpi_id, shpi_block, shpi_data)
+            if new_shpi is not None:
+                self.deserialize_related[shpi_id] = new_shpi
+                shpi_data = new_shpi
+        shpi_textures = {
+            c['alias']: (c['item']['data']['width'], c['item']['data']['height'])
+            for c in shpi_data['children']
+            if isinstance(c['item']['data'], dict) and 'width' in c['item']['data']
+        }
         is_car = current['vertices']['choice_index'] == 0
         data, report = orip_from_obj(obj_path, current, shpi_textures, fraction_bits=7 if is_car else 4)
         # read back what will be saved: pointers and counts as written, and the check that it can be written
         buffer = BytesIO(block.pack(data))
         buffer.name = 'ORIP.CFM' if is_car else 'ORIP.FAM'
         data = block.unpack(ReadContext(buffer), read_bytes_amount=len(buffer.getvalue()))
-        self.deserialize_report = report
+        self.deserialize_report = report + (f'. Textures: {texture_report}' if texture_report else '')
         return data
+
+    @staticmethod
+    def _import_textures(obj_path: str, shpi_id: str, shpi_block, shpi_data) -> Tuple[Optional[dict], Optional[str]]:
+        """(SHPI with the textures of the OBJ folder, summary), or (None, None) when they are the ones of the SHPI. The
+        folder imported into the SHPI is its own export, with the "assets" files of the OBJ folder and the `map_Kd`
+        images (as "<bitmap name>.png") over it: a CFM's SHPI is made again from all of its textures"""
+        import shutil
+        import tempfile
+        from PIL import Image
+        from serializers import ShpiArchiveSerializer
+        from serializers.misc.orip_import import obj_texture_files
+
+        texture_files = obj_texture_files(obj_path)
+        assets_path = path_join(os.path.dirname(obj_path), 'assets')
+        if not texture_files and not os.path.isdir(assets_path):
+            return None, None
+        shpi_serializer = ShpiArchiveSerializer()
+        is_car = '.CFM__' in shpi_id.upper()
+        items = [
+            (x['alias'], x['item']['data'], shpi_block.item_block.possible_blocks[x['item']['choice_index']])
+            for x in shpi_data['children']
+        ]
+        file_names = {items[i][0]: name for i, name in shpi_serializer.export_file_names(items, False, is_car).items()}
+
+        def is_texture_file(name):
+            # what the SHPI import reads
+            return name.lower().endswith('.png') or name.endswith('.pal.txt') or name == 'car_colors.json'
+
+        with tempfile.TemporaryDirectory() as tmp:
+            current_path, new_path = path_join(tmp, 'current'), path_join(tmp, 'new')
+            shpi_serializer.serialize(shpi_data, current_path + '/', shpi_id, shpi_block)
+            shutil.copytree(current_path, new_path)
+            if os.path.isdir(assets_path):
+                for name in os.listdir(assets_path):
+                    if is_texture_file(name) and os.path.isfile(path_join(assets_path, name)):
+                        shutil.copyfile(path_join(assets_path, name), path_join(new_path, name))
+            for alias, source in texture_files.items():
+                target = path_join(new_path, file_names.get(alias, escape_chars(alias).replace('/', '_')) + '.png')
+                if os.path.abspath(source) != os.path.abspath(target):
+                    with Image.open(source) as image:
+                        image.save(target, 'PNG')
+
+            def content(path):
+                if path.lower().endswith('.png'):
+                    with Image.open(path) as image:
+                        return image.size, image.convert('RGBA').tobytes()
+                with open(path, 'rb') as f:
+                    return f.read()
+
+            changed = sorted(
+                name
+                for name in os.listdir(new_path)
+                if is_texture_file(name)
+                and name != 'spherical.png'
+                and (
+                    not os.path.isfile(path_join(current_path, name))
+                    or content(path_join(new_path, name)) != content(path_join(current_path, name))
+                )
+            )
+            if not changed:
+                return None, None
+            new_shpi = shpi_serializer.deserialize([new_path], shpi_id, shpi_block)
+        return new_shpi, f'{", ".join(changed)} imported'
 
     @staticmethod
     def _find_obj(file_paths: List[str]) -> str:

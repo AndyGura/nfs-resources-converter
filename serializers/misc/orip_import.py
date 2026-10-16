@@ -144,6 +144,39 @@ def _parse_mesh_name(name: str, texture: str) -> Tuple[str, Optional[str], Optio
     return name, label, partition
 
 
+def texture_alias(material_name: Optional[str], materials: Dict[str, ObjMaterial]) -> Optional[str]:
+    """FSH bitmap name of an OBJ material: its name when it is one (4 bytes at most, as the export names them), else
+    the file name of its `map_Kd` texture; '' without a material, None when neither fits"""
+    if material_name is None:
+        return ''
+    if len(material_name.encode('utf-8')) <= 4:
+        return material_name
+    material = materials.get(material_name)
+    if material and material.texture_path:
+        stem = os.path.splitext(os.path.basename(material.texture_path))[0]
+        if len(stem.encode('utf-8')) <= 4:
+            return stem
+    return None
+
+
+def obj_texture_files(obj_path: str) -> Dict[str, str]:
+    """FSH bitmap name -> image file of the textures the OBJ uses: the `map_Kd` files of its materials, else
+    "assets/<name>.png" next to it (where the export puts them), when the file is there"""
+    objects, materials = read_obj(obj_path)
+    result = {}
+    for material_name in {face.material for obj in objects for face in obj.faces if face.material is not None}:
+        alias = texture_alias(material_name, materials)
+        if not alias:
+            continue
+        material = materials.get(material_name)
+        path = material.texture_path if material and material.texture_path else None
+        if not path or not os.path.isfile(path):
+            path = os.path.join(os.path.dirname(obj_path), 'assets', f'{alias}.png')
+        if os.path.isfile(path):
+            result[alias] = path
+    return result
+
+
 def _image_size(path: Optional[str]) -> Optional[Tuple[int, int]]:
     if not path or not os.path.isfile(path):
         return None
@@ -197,24 +230,12 @@ def orip_from_obj(
     unknown_materials = set()
 
     def texture_name(material_name: Optional[str]) -> str:
-        if material_name in texture_names:
-            return texture_names[material_name]
-        name = ''
-        if material_name is not None:
-            material = materials.get(material_name)
-            stem = (
-                os.path.splitext(os.path.basename(material.texture_path))[0]
-                if material and material.texture_path
-                else None
-            )
-            if len(material_name.encode('utf-8')) <= 4:
-                name = material_name
-            elif stem is not None and len(stem.encode('utf-8')) <= 4:
-                name = stem
-            else:
+        if material_name not in texture_names:
+            alias = texture_alias(material_name, materials)
+            if alias is None:
                 unknown_materials.add(material_name)
-        texture_names[material_name] = name
-        return name
+            texture_names[material_name] = alias or ''
+        return texture_names[material_name]
 
     for obj in objects:
         faces = [
