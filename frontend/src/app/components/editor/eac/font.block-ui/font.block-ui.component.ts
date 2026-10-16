@@ -189,6 +189,13 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     return this._selectedGlyphIndex$.getValue();
   }
 
+  // the field holding a glyph's advance: 16-byte glyphs keep it in x_advance (advance is 0 in the game files)
+  private get advanceKey(): 'advance' | 'x_advance' {
+    return this.resourceData?.version >= 321 && this.resourceData?.flags?.format === '16-bytes'
+      ? 'x_advance'
+      : 'advance';
+  }
+
   bitmapSchema() {
     return (this.resourceSchema.fields || []).find((x: { name: string; schema: BlockSchema }) => x.name === 'bitmap')
       ?.schema;
@@ -335,17 +342,17 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       // Calculate the bounding box that includes the glyph image, origin, and advance line
       const x_offset = glyph.x_offset || 0;
       const y_offset = glyph.y_offset || 0;
-      const x_advance = glyph.x_advance || 0;
+      const advance = glyph[this.advanceKey] || 0;
 
       // Origin point in image coordinates
       const originX = glyph.x - x_offset;
       const originY = glyph.y - y_offset;
 
       // The area we want to focus on (in image coordinates)
-      const minX = Math.min(glyph.x, originX, originX + x_advance);
-      const maxX = Math.max(glyph.x + glyph.width, originX, originX + x_advance);
-      const minY = Math.min(glyph.y, originY, originY + (glyph.advance || 0));
-      const maxY = Math.max(glyph.y + glyph.height, originY, originY + (glyph.advance || 0));
+      const minX = Math.min(glyph.x, originX, originX + advance);
+      const maxX = Math.max(glyph.x + glyph.width, originX, originX + advance);
+      const minY = Math.min(glyph.y, originY);
+      const maxY = Math.max(glyph.y + glyph.height, originY);
 
       const targetWidth = maxX - minX;
       const targetHeight = maxY - minY;
@@ -444,52 +451,27 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       ctx.stroke();
 
       // Draw advance (Blue)
-      let xAdvance = this._previewAdvance;
-      if (xAdvance === null) {
-        if (glyph.x_advance !== undefined && glyph.x_advance !== 0) {
-          xAdvance = glyph.x_advance;
-        } else {
-          xAdvance = glyph.advance ?? 0;
-        }
-      }
-      if (xAdvance !== undefined && xAdvance !== null) {
-        ctx.strokeStyle = '#4040ff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(originCanvasX, originCanvasY);
-        ctx.lineTo(originCanvasX + xAdvance * ratio, originCanvasY);
-        ctx.stroke();
+      const xAdvance = this._previewAdvance ?? glyph[this.advanceKey] ?? 0;
+      ctx.strokeStyle = '#4040ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(originCanvasX, originCanvasY);
+      ctx.lineTo(originCanvasX + xAdvance * ratio, originCanvasY);
+      ctx.stroke();
 
-        // Little tick at the end of advance
-        const advanceEndX = originCanvasX + xAdvance * ratio;
-        ctx.beginPath();
-        ctx.moveTo(advanceEndX, originCanvasY - 8);
-        ctx.lineTo(advanceEndX, originCanvasY + 8);
-        ctx.stroke();
+      // Little tick at the end of advance
+      const advanceEndX = originCanvasX + xAdvance * ratio;
+      ctx.beginPath();
+      ctx.moveTo(advanceEndX, originCanvasY - 8);
+      ctx.lineTo(advanceEndX, originCanvasY + 8);
+      ctx.stroke();
 
-        // Draw handle at the end of advance
-        ctx.fillStyle = '#4040ff';
-        ctx.fillRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
-      }
-
-      // Draw vertical advance if present
-      if (glyph.x_advance !== undefined && glyph.advance !== 0) {
-        ctx.strokeStyle = '#ff40ff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(originCanvasX, originCanvasY);
-        ctx.lineTo(originCanvasX, originCanvasY + glyph.advance * ratio);
-        ctx.stroke();
-
-        // Little tick at the end of vertical advance
-        ctx.beginPath();
-        ctx.moveTo(originCanvasX - 5, originCanvasY + glyph.advance * ratio);
-        ctx.lineTo(originCanvasX + 5, originCanvasY + glyph.advance * ratio);
-        ctx.stroke();
-      }
+      // Draw handle at the end of advance
+      ctx.fillStyle = '#4040ff';
+      ctx.fillRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
     } else {
       // Default view if no glyph is selected
       const ratio = Math.min(canvasWidth / imgWidth, canvasHeight / imgHeight, 1.0);
@@ -555,19 +537,10 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     }
 
     // Hit test for advance end
-    let xAdvance = this._previewAdvance;
-    if (xAdvance === null) {
-      if (glyph.x_advance !== undefined && glyph.x_advance !== 0) {
-        xAdvance = glyph.x_advance;
-      } else {
-        xAdvance = glyph.advance ?? 0;
-      }
-    }
-    if (xAdvance !== undefined && xAdvance !== null) {
-      const advanceEndX = originCanvasX + xAdvance * ratio;
-      if (Math.abs(canvasX - advanceEndX) <= 8 && Math.abs(canvasY - originCanvasY) <= 12) {
-        return { type: 'advance' };
-      }
+    const xAdvance = this._previewAdvance ?? glyph[this.advanceKey] ?? 0;
+    const advanceEndX = originCanvasX + xAdvance * ratio;
+    if (Math.abs(canvasX - advanceEndX) <= 8 && Math.abs(canvasY - originCanvasY) <= 12) {
+      return { type: 'advance' };
     }
 
     // When zoomed out a lot, prioritize move over resize: disable handles below threshold
@@ -668,10 +641,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       };
       this._previewOffset = { ...this._drag.startOffset! };
     } else if (hit.type === 'advance') {
-      let startAdvance = glyph.x_advance;
-      if (startAdvance === undefined || startAdvance === 0) {
-        startAdvance = glyph.advance ?? 0;
-      }
+      const startAdvance = glyph[this.advanceKey] ?? 0;
       this._drag = {
         mode: 'advance',
         startMouseX: pos.x,
@@ -807,11 +777,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         });
       }
     } else if (this._drag.mode === 'advance') {
-      let advance = this._previewAdvance;
-      if (advance === null) {
-        advance = glyph.x_advance !== undefined && glyph.x_advance !== 0 ? glyph.x_advance : (glyph.advance ?? 0);
-      }
-      const key = glyph.x_advance !== undefined && glyph.x_advance !== 0 ? 'x_advance' : 'advance';
+      const key = this.advanceKey;
+      const advance = this._previewAdvance ?? glyph[key] ?? 0;
       if (advance !== glyph[key]) {
         changes.push({
           op: 'set',
@@ -927,7 +894,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
             cursorX += kerningMap.get(`${prevCharCode}_${charCode}`) || 0;
           }
           items.push({ x: cursorX, glyph });
-          cursorX += glyph.x_advance || glyph.advance || 0;
+          cursorX += glyph[this.advanceKey] || 0;
           prevCharCode = charCode;
         } else {
           missing.add(char);
