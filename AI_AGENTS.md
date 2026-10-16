@@ -1,6 +1,6 @@
 # AI Agent Development Guidelines
 
-Welcome to the NFS Resources Converter project! To ensure smooth, reproducible, and error-free development, please follow these guidelines carefully.
+Welcome to the TailsLab (formerly NFS Resources Converter) project! To ensure smooth, reproducible, and error-free development, please follow these guidelines carefully.
 
 ### Development Environment Setup
 

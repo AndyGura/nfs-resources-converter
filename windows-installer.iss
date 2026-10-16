@@ -1,14 +1,16 @@
 [Setup]
-AppName=NFS Resources Converter
+; AppId keeps the name the app was installed under before the rename, so the installer upgrades it in place
+AppId=NFS Resources Converter
+AppName=TailsLab
 AppVersion={#AppVersion}
-DefaultDirName={pf}\NFS Resources Converter
-DefaultGroupName=NFS Resources Converter
-UninstallDisplayIcon={app}\nfs-resources-converter-{#AppVersion}.exe
-SetupIconFile=frontend\dist\gui\favicon.ico
+DefaultDirName={pf}\TailsLab
+DefaultGroupName=TailsLab
+UninstallDisplayIcon={app}\tailslab-{#AppVersion}.exe
+SetupIconFile=icons\tailslab.ico
 Compression=lzma2
 SolidCompression=yes
 OutputDir=dist
-OutputBaseFilename=nfs-resources-converter-windows-setup-{#AppVersion}
+OutputBaseFilename=tailslab-windows-setup-{#AppVersion}
 ; "ArchitecturesAllowed=x64" specifies that Setup cannot run on
 ; anything but x64.
 ArchitecturesAllowed=x64
@@ -18,7 +20,7 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 
 [Files]
-Source: "dist\nfs-resources-converter-{#AppVersion}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "dist\tailslab-{#AppVersion}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 ; Edge WebView2 Runtime bootstrapper, downloaded by the release workflow. Without the runtime pywebview
 ; falls back to Internet Explorer 11, which can't run the GUI.
 Source: "MicrosoftEdgeWebview2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: not IsWebView2Installed
@@ -27,8 +29,8 @@ Source: "MicrosoftEdgeWebview2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterin
 Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing Microsoft Edge WebView2 Runtime..."; Flags: waituntilterminated; Check: not IsWebView2Installed
 
 [Icons]
-Name: "{group}\NFS Resources Converter"; Filename: "{app}\nfs-resources-converter-{#AppVersion}.exe"
-Name: "{commondesktop}\NFS Resources Converter"; Filename: "{app}\nfs-resources-converter-{#AppVersion}.exe"
+Name: "{group}\TailsLab"; Filename: "{app}\tailslab-{#AppVersion}.exe"
+Name: "{commondesktop}\TailsLab"; Filename: "{app}\tailslab-{#AppVersion}.exe"
 
 [Registry]
 ; File-type associations are generated from file_associations.py by generate_build_configs.py

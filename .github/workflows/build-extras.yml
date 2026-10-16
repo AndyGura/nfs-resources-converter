@@ -62,7 +62,7 @@ jobs:
           git add frontend
           git add -u -- '*.py'
           git add resources/*.md
-          git add nfs-resources-converter-mime.xml nfs-resources-converter.desktop windows-installer.filetypes.iss
+          git add tailslab-mime.xml tailslab.desktop windows-installer.filetypes.iss
           if git diff --cached --quiet; then
             echo "No changes to commit, skipping"
           else

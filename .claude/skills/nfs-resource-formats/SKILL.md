@@ -486,5 +486,5 @@ keeps the generic editor.
 
 ## Roadmap awareness
 
-`docs/milestones.md` tracks coverage game-by-game; current priority is TNFS SE (1996 PC). Check it
-before deciding what to prioritize next.
+The README's "Games and formats" table summarizes coverage game-by-game; keep it in step when a game gains a
+format.

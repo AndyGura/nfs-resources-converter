@@ -1,5 +1,5 @@
 """
-Serialization API endpoint for the NFS Resources Converter.
+Serialization API endpoint for TailsLab.
 This module handles all serialization-related operations.
 """
 

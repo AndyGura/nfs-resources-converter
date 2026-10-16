@@ -1,5 +1,5 @@
 """
-API module for the NFS Resources Converter.
+API module for TailsLab.
 This module provides a clean API boundary between the frontend and backend.
 """
 

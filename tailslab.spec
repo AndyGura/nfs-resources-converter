@@ -46,7 +46,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name=f'nfs-resources-converter-{__version__}',
+    name=f'tailslab-{__version__}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -56,7 +56,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='frontend/dist/gui/favicon.ico',
+    icon='icons/tailslab.ico',
 )
 coll = COLLECT(
     exe,
@@ -66,13 +66,13 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name=f'nfs-resources-converter-{__version__}',
+    name=f'tailslab-{__version__}',
 )
 app = BUNDLE(
     coll,
-    name='NFS Resources Converter.app',
-    icon='frontend/dist/gui/favicon.ico',
-    bundle_identifier='com.andygura.nfs-resources-converter',
+    name='TailsLab.app',
+    icon='icons/tailslab.icns',
+    bundle_identifier='com.andygura.tailslab',
     info_plist={
         'CFBundleShortVersionString': __version__,
         'CFBundleVersion': __version__,

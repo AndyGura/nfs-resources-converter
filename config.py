@@ -42,7 +42,7 @@ def get_config_file_location():
 
 class ConfigManager:
     """
-    Configuration manager for NFS Resources Converter.
+    Configuration manager of TailsLab.
     Handles loading configuration from different sources and provides
     a unified interface for accessing configuration values.
     """
