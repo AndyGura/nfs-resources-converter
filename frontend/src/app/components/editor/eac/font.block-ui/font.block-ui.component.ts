@@ -55,9 +55,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     return this.selectedTabIndex === 0;
   }
 
-  _text$: BehaviorSubject<string> = new BehaviorSubject<string>(
-    'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
-  );
+  static readonly SAMPLE_TEXT =
+    'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
+  _text$: BehaviorSubject<string> = new BehaviorSubject<string>(FontBlockUiComponent.SAMPLE_TEXT);
 
   _glyphColumns: ArrayTableColumn[] = [];
   _kerningColumns: ArrayTableColumn[] = [];
@@ -263,7 +263,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       }
       this._resized$.next();
     });
-    this._resizeObserver.observe(this.textPreviewCanvas.nativeElement);
+    // the panel, not the canvas: the canvas is as wide as its longest line
+    this._resizeObserver.observe(this.textPreviewCanvas.nativeElement.parentElement!);
 
     this.changes.change$
       .pipe(
@@ -896,16 +897,61 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     // Fonts with descent 0 (TNFS, NFS2) keep the whole line height in ascent
     const lineHeight = this.resourceData.ascent + this.resourceData.descent || 32;
     const padding = 20;
+    // a character the font has no glyph for: a hatched box (a gap for whitespace), listed under the text
+    // where most glyphs start and end (capitals), from the line top: TNFS fonts keep the line height in ascent
+    const mostCommon = (values: number[]) => {
+      const counts = new Map<number, number>();
+      values.forEach(v => counts.set(v, (counts.get(v) || 0) + 1));
+      return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0];
+    };
+    const drawn = definitions.filter((g: any) => g.width > 1 && g.height > 1);
+    const missingTop = mostCommon(drawn.map((g: any) => g.y_offset || 0)) ?? 0;
+    const missingBottom = mostCommon(drawn.map((g: any) => (g.y_offset || 0) + g.height)) ?? lineHeight;
+    const missingHeight = Math.max(4, missingBottom - missingTop);
+    const missingWidth = Math.max(4, Math.round(missingHeight * 0.6));
 
-    // Measure text to set canvas height
-    let totalHeight = padding * 2;
-    for (let i = 0; i < lines.length; i++) {
-      totalHeight += lineHeight;
+    // lay out first: the canvas gets the width of the widest line (the container scrolls)
+    type Item = { x: number; glyph?: any; missing?: boolean };
+    const laidOut: Item[][] = [];
+    const missing = new Set<string>();
+    let maxLineWidth = 0;
+    for (const line of lines) {
+      const items: Item[] = [];
+      let cursorX = 0;
+      let prevCharCode: number | null = null;
+      for (const char of Array.from(line)) {
+        const charCode = char.codePointAt(0)!;
+        const glyph = charMap.get(charCode);
+        if (glyph) {
+          if (prevCharCode !== null) {
+            cursorX += kerningMap.get(`${prevCharCode}_${charCode}`) || 0;
+          }
+          items.push({ x: cursorX, glyph });
+          cursorX += glyph.x_advance || glyph.advance || 0;
+          prevCharCode = charCode;
+        } else {
+          missing.add(char);
+          if (/\s/.test(char)) {
+            cursorX += lineHeight * 0.3;
+          } else {
+            items.push({ x: cursorX, missing: true });
+            cursorX += missingWidth + 2;
+          }
+          prevCharCode = null;
+        }
+        maxLineWidth = Math.max(maxLineWidth, cursorX);
+      }
+      laidOut.push(items);
+    }
+    const missingSymbols = Array.from(missing).map(x => (x === ' ' ? 'space' : x === '\t' ? 'tab' : x));
+    if (missingSymbols.join('\n') !== this._missingSymbols.join('\n')) {
+      this._missingSymbols = missingSymbols;
+      this.cdr.markForCheck();
     }
 
-    const canvasWidth = canvas.parentElement?.clientWidth || 800;
-    canvas.width = canvasWidth;
-    canvas.height = Math.max(totalHeight, 200);
+    const containerWidth = canvas.parentElement?.clientWidth || 800;
+    canvas.width = Math.max(containerWidth, Math.ceil(maxLineWidth) + padding * 2);
+    canvas.height = Math.max(padding * 2 + lines.length * lineHeight, 200);
 
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -913,36 +959,78 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     ctx.imageSmoothingEnabled = false;
 
     let cursorY = padding;
-
-    for (const line of lines) {
-      let cursorX = padding;
-      let prevCharCode: number | null = null;
-
-      for (let i = 0; i < line.length; i++) {
-        const charCode = line.charCodeAt(i);
-        const glyph = charMap.get(charCode);
-
-        if (glyph) {
-          if (prevCharCode !== null) {
-            const kerning = kerningMap.get(`${prevCharCode}_${charCode}`) || 0;
-            cursorX += kerning;
-          }
-
-          const x = cursorX + (glyph.x_offset || 0);
-          const y = cursorY + (glyph.y_offset || 0);
-
-          ctx.drawImage(this._image, glyph.x, glyph.y, glyph.width, glyph.height, x, y, glyph.width, glyph.height);
-
-          cursorX += glyph.x_advance || glyph.advance || 0;
-          prevCharCode = charCode;
-        } else {
-          // Fallback for space or missing characters
-          cursorX += lineHeight * 0.3;
-          prevCharCode = null;
+    for (const items of laidOut) {
+      for (const item of items) {
+        const x = padding + item.x;
+        if (item.missing) {
+          this.drawMissingGlyph(ctx, x, cursorY + missingTop, missingWidth, missingHeight);
+          continue;
         }
+        const glyph = item.glyph;
+        ctx.drawImage(
+          this._image,
+          glyph.x,
+          glyph.y,
+          glyph.width,
+          glyph.height,
+          x + (glyph.x_offset || 0),
+          cursorY + (glyph.y_offset || 0),
+          glyph.width,
+          glyph.height,
+        );
       }
       cursorY += lineHeight;
     }
+  }
+
+  private drawMissingGlyph(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
+    ctx.save();
+    ctx.strokeStyle = '#ff5252';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+    ctx.beginPath();
+    for (let d = -height; d < width; d += 4) {
+      ctx.moveTo(x + d, y + height);
+      ctx.lineTo(x + d + height, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // characters of the preview text the font has no glyph for
+  _missingSymbols: string[] = [];
+
+  readonly textPresets: { label: string; title: string }[] = [
+    { label: 'Sample', title: 'Pangram, digits and punctuation' },
+    { label: 'A–Z', title: 'Capital letters' },
+    { label: 'a–z', title: 'Small letters' },
+    { label: '0–9', title: 'Digits' },
+    { label: 'All', title: 'Every glyph of the font, by code' },
+  ];
+
+  setTextPreset(label: string) {
+    const range = (from: string, to: string) =>
+      Array.from({ length: to.charCodeAt(0) - from.charCodeAt(0) + 1 }, (_, i) =>
+        String.fromCharCode(from.charCodeAt(0) + i),
+      ).join('');
+    let text = FontBlockUiComponent.SAMPLE_TEXT;
+    if (label === 'A–Z') text = range('A', 'Z');
+    else if (label === 'a–z') text = range('a', 'z');
+    else if (label === '0–9') text = range('0', '9');
+    else if (label === 'All') {
+      const symbols = [...(this.resourceData?.definitions || [])]
+        .map((g: any) => g.code)
+        .sort((a: number, b: number) => a - b)
+        .map((code: number) => this.getSymbol(code))
+        .filter((s: string) => s && !/\s/.test(s));
+      const lines: string[] = [];
+      for (let i = 0; i < symbols.length; i += 16) lines.push(symbols.slice(i, i + 16).join(''));
+      text = lines.join('\n');
+    }
+    this._text$.next(text);
   }
 
   private updateColumns() {

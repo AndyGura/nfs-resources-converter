@@ -42,10 +42,35 @@
     flex-direction: column;
 
     .preview-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
       padding: 2px 5px;
       background: #e0e0e0;
       border-bottom: 1px solid #ccc;
       font-size: 12px;
+
+      .preview-presets {
+        display: flex;
+        gap: 2px;
+
+        button {
+          padding: 0 5px;
+          border: 1px solid #bbb;
+          border-radius: 3px;
+          background: white;
+          font-size: 11px;
+          line-height: 16px;
+          cursor: pointer;
+
+          &:hover,
+          &:focus-visible {
+            border-color: #3949ab;
+            color: #3949ab;
+          }
+        }
+      }
     }
   }
 }
@@ -97,11 +122,20 @@
     background: #eee;
     border: 1px solid #ddd;
 
+    // as wide as the longest line: the container scrolls
     canvas {
       display: block;
-      width: 100%;
       background: #000000;
     }
+  }
+
+  .missing-symbols {
+    margin-bottom: 5px;
+    color: #b3261e;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
