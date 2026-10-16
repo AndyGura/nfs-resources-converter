@@ -73,11 +73,11 @@ def _check_web_engine():
     MB_YESNO, MB_ICONERROR, IDYES = 0x04, 0x10, 6
     answer = ctypes.windll.user32.MessageBoxW(
         None,
-        'NFS Resources Converter needs Microsoft Edge WebView2 Runtime and .NET Framework 4.6.2 or newer '
+        'TailsLab needs Microsoft Edge WebView2 Runtime and .NET Framework 4.6.2 or newer '
         'to show its window, and one of them is not installed.\n\n'
         'Open the WebView2 Runtime download page? Install the "Evergreen Bootstrapper" there, '
         'then start the application again.',
-        'NFS Resources Converter',
+        'TailsLab',
         MB_YESNO | MB_ICONERROR,
     )
     if answer == IDYES:
@@ -269,7 +269,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     api = API(static_path, file_path)
 
     window = webview.create_window(
-        'NFS Resources Converter',
+        'TailsLab',
         url=window_url,
         width=1280,
         height=800,

@@ -2,8 +2,8 @@
 # (`file_associations.py`). Mirrors the codegen convention of `generate_resource_doc.py`.
 #
 # Outputs:
-#   - nfs-resources-converter-mime.xml        (Linux MIME database)
-#   - nfs-resources-converter.desktop         (Linux desktop entry)
+#   - tailslab-mime.xml        (Linux MIME database)
+#   - tailslab.desktop         (Linux desktop entry)
 #   - windows-installer.filetypes.iss         (Windows installer [Registry] rows, #include-d)
 #
 # Run `python generate_build_configs.py` after editing `file_associations.py` to keep macOS,
@@ -49,9 +49,9 @@ def generate_desktop() -> str:
     lines = [
         '[Desktop Entry]',
         f'# {GENERATED_NOTICE}',
-        'Name=NFS Resources Converter',
-        'Exec=nfs-resources-converter %f',
-        'Icon=/usr/share/icons/hicolor/256x256/apps/nfs-resources-converter.ico',
+        'Name=TailsLab',
+        'Exec=tailslab %f',
+        'Icon=tailslab',
         'Type=Application',
         'Categories=Development;',
         f'MimeType={mime_types}',
@@ -77,16 +77,16 @@ def generate_windows_filetypes() -> str:
         )
         lines.append(
             f'Root: HKCR; Subkey: "{pid}\\DefaultIcon"; ValueType: string; ValueName: ""; '
-            f'ValueData: "{{app}}\\nfs-resources-converter-{{#AppVersion}}.exe,0"'
+            f'ValueData: "{{app}}\\tailslab-{{#AppVersion}}.exe,0"'
         )
         lines.append(
             f'Root: HKCR; Subkey: "{pid}\\shell\\open\\command"; ValueType: string; ValueName: ""; '
-            f'ValueData: """{{app}}\\nfs-resources-converter-{{#AppVersion}}.exe"" ""%1"""'
+            f'ValueData: """{{app}}\\tailslab-{{#AppVersion}}.exe"" ""%1"""'
         )
     return '\n'.join(lines) + '\n'
 
 
 if __name__ == '__main__':
-    write_if_changed('nfs-resources-converter-mime.xml', generate_mime_xml())
-    write_if_changed('nfs-resources-converter.desktop', generate_desktop())
+    write_if_changed('tailslab-mime.xml', generate_mime_xml())
+    write_if_changed('tailslab.desktop', generate_desktop())
     write_if_changed('windows-installer.filetypes.iss', generate_windows_filetypes())

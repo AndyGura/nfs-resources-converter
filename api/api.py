@@ -1,5 +1,5 @@
 """
-Main API class for the NFS Resources Converter.
+Main API class for TailsLab.
 This class initializes and manages all API endpoints.
 """
 

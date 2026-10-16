@@ -1,8 +1,11 @@
-# NFS Resources Converter
+# TailsLab
 
-A parser/converter library + GUI app for binary resource files from EA's **Need For Speed** series
-(games 1–6). Current focus is **The Need For Speed SE** (1996, PC / "TNFS"), though many EA Canada
-formats (FSH images, FFN fonts, ...) are shared across later titles too. Output feeds
+TailsLab (formerly NFS Resources Converter) is a parser/converter library + GUI app for binary resource files from
+EA's **Need For Speed** series (games 1–9, TNFS to NFS Most Wanted). The deepest coverage is **The Need For Speed SE**
+(1996, PC / "TNFS"); many EA Canada formats (FSH images, FFN fonts, ...) are shared across later titles too. The repo,
+Python packages, settings / log file names, `~/.nfs-resources-converter` cache, Windows ProgIDs / installer `AppId` and
+the `NFS_RESOURCES_CONVERTER_*` env vars keep the old name (renaming them would lose users' settings or duplicate
+installs). Output feeds
 [The Need For Speed Web](https://tnfsw.guraklgames.com/).
 
 It's a "3-in-1" project — a single Python format definition simultaneously provides:
@@ -56,7 +59,7 @@ docs and a working GUI editor for free.
 | `frontend/` | Angular GUI. `.../editor/library/*.block-ui` = generic components, one per `read_blocks` base class. `.../editor/eac/*` and `.../editor/common/*` = bespoke rich viewers (image, 3D geometry, map, audio, font, hex/targa, TNFS car specs) and widgets they share (`curve-editor` = editable SVG charts, `stat-tiles`). |
 | `actions/` | OS-integration entry points (convert all, open in GUI editor, uncompress) wired to file-manager context menus / installers. |
 | `test/` | unittest suite mirroring `library/`/`resources/`. `test/golden_corpus/` + `test/test_gui_golden_corpus.sh` = manual smoke test that opens every sample file through `run.py`. |
-| `docs/milestones.md` | AI-maintained roadmap of format coverage by game. |
+| `icons/` | App icon source (`tailslab.png`) and the per-platform icons made from it by `icons/generate_icons.py` (also writes the GUI's favicon and `assets/logo.png`). |
 | `QA/` | QA knowledge base for testing the GUI application: application/UI maps, test strategy/plan, regression procedure, known issues, environment setup (incl. how to get a browser-automatable instance of the desktop GUI), and test history. Start at `QA/CLAUDE_QA_INSTRUCTIONS.md`. |
 | `generate_resource_doc.py` | Regenerates `resources/*.md` from block schemas. |
 

@@ -41,9 +41,9 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     this.api.openedResourcePath$.subscribe(path => {
       if (path) {
-        this.titleService.setTitle(`${this.getFileName(path)} | NFS Resources Converter`);
+        this.titleService.setTitle(`${this.getFileName(path)} | TailsLab`);
       } else {
-        this.titleService.setTitle('NFS Resources Converter');
+        this.titleService.setTitle('TailsLab');
       }
     });
     this.autoDetectExecutablesOnFirstRun().then();

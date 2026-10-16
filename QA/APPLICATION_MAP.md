@@ -5,7 +5,7 @@
 
 ## What this application does
 
-NFS Resources Converter is a **3-in-1** tool built around one thing: a Python declaration, per
+TailsLab (formerly NFS Resources Converter) is a **3-in-1** tool built around one thing: a Python declaration, per
 binary file format, of how to parse/serialize it (see repo-root `CLAUDE.md` for the
 `DataBlock`/`DeclarativeCompoundBlock` framework). That single declaration drives three
 user-facing surfaces:
@@ -75,7 +75,7 @@ directory, optionally tune per-format conversion settings (image mipmaps/palette
 collision/skybox/props export, 3D geometry OBJ vs. BLEND vs. an external "gg-web-engine" export),
 and it walks the input tree in a multiprocess pool, converting every recognized file and writing a
 `skipped.txt` per directory for anything it couldn't convert. This is also available headless via
-`./nfs-resources-converter convert <in> --out <out>` (see `run.py`).
+`python run.py convert <in> --out <out>`.
 
 ### 5. System configuration (Tools → System Configuration)
 Paths to the two optional external executables the converter shells out to: **Blender** (4+, for

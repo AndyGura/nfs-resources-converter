@@ -1,244 +1,204 @@
-The goal of this project is to implement parsers for uncommon game files and save them in widely used format. Supports a variety of files for EA games Need For Speed series 1 - 6. Right now I'm focused on The Need For Speed SE (1996) game only, however some files, like FSH, were used even in NFS HP 2 (2002)
+<p align="center">
+  <img src="icons/tailslab-256.png" alt="TailsLab logo" width="160" />
+</p>
 
-Feel free to contribute
+<h1 align="center">TailsLab</h1>
 
-# 3-in-1 solution
-This project, apart from file parsers themselves, provides:
+<p align="center">
+  <b>A growing library of reverse-engineered old game file formats, with an editor, a converter and specs for each.</b><br/>
+  <i>Formerly known as <b>NFS Resources Converter</b>.</i>
+</p>
 
-## 1. Conversion of resources to common widely used format
-Various kinds of game resources can be easily converted to formats:
-- 3D models: **obj**, **blend**, **glb**
-- archives: **directory**
-- audio: **wav**
-- fonts: **fnt + png** (raster Windows Font). Nice edit tool: https://snowb.org/
-- images: **png**
-- info files (palette, positions, skipped resources etc.): **txt**
-- metadata: **json**
-- videos: **mp4**
+---
 
-Output files are directly used in my project [The Need For Speed Web](https://tnfsw.guraklgames.com/)
+TailsLab is a library of file formats from old games, reverse-engineered one by one and described down to the
+byte. Every format in the library can be opened and edited in a desktop editor, converted to formats any modern tool
+opens, and read as a precise specification to build your own tools on. Files outside the library are not supported:
+TailsLab does not guess unknown formats.
 
+Right now the lab works on **EA's Need for Speed series 1 to 9**, from The Need for Speed (1994) to NFS Most Wanted
+(2005). Many EA Canada formats (FSH images, FFN fonts, QFS compression...) are shared across other EA titles of that
+era too.
 
-## 2. Knowledge base of resource formats
-At this moment, this repo contains the fullest publicly available documentation of formats, used in TNFS SE (PC version). 
-The documentation is auto-generated from this repo's parsers source code
+## Why TailsLab
 
-### [Observe documentation](resources/README.md)
+- 📖 **Every format is documented, and the documentation is the parser.** Each file format is described once, in
+  Python. That one description reads the file, writes it back, drives the editor and generates the
+  [format specs](resources/README.md). The docs can't drift away from the code, because they are the code.
+- 🛠️ **A modding tool.** Open a game file, change it, save it, play it. The game reads it back, byte-exact where you
+  changed nothing.
+- 🧩 **Or build your own tools.** The specs are complete enough to write a parser from them alone, in any language.
+  AI agents can do it too: point one at a spec and it writes a working reader.
+- 🔄 **A converter.** Get the game's content out in widely used formats, in bulk or one file at a time.
 
-## 3. GUI application
-Project provides a full-featured GUI application where you can:
-- Open and view any supported game resource file
-- Edit resource files (experimental feature - use with caution)
-- Convert resources to common formats with customizable settings
-- Configure system settings (paths to Blender and FFmpeg executables)
-- Run custom commands on specific file types
+## The editor
 
-# Roadmap and Milestones
-Milestones are AI-generated to guide public planning and will evolve over time.
-- View the roadmap: [docs/milestones.md](docs/milestones.md)
+Full featured editors, made for the format:
 
-# Installation:
+| Format | What you get |
+|---|---|
+| **FSH / QFS** image archives | View, replace, add and export images, palettes, hot spots; import a PNG folder back; convert to 8-bit; DXT textures (NFS6) |
+| **FFN** bitmap fonts | Glyphs, kerning pairs and the font bitmap, with live glyph and text previews; export to fnt + png and back |
+| **PBS / PDN** TNFS car specs | Car physics and AI on charts: torque and power, gearing, grip, brakes, top speed, corner slowdown |
 
+And more is coming down the road. Rich viewers are already there for 3D cars and tracks of most games, TNFS track
+maps, sound banks and audio.
 
-These are required for both release artifacts and development mode:
-- If you need to convert audio/video files - install `ffmpeg`
-- If you need to convert 3D models - install `blender` (version 4+)
+Every other supported file opens in the **generic editor**, built automatically from the format description: a tree
+of every field with its description, editable in place. It might or might not be enough for what you want to do, but
+you always see the whole file.
 
-The GUI application runs in a native web view (powered by [pywebview](https://pywebview.flowrlab.com/)) on Windows + MacOS, so it looks and feels like a standalone desktop app, no external browser is required: it uses the OS-native web renderer (WebView2 on Windows, WebKit on macOS). On linux, it requires browser to be installed on the system. Recomended browser is Chrome
+## Games and formats
 
-### Release Artifacts (Recommended for Windows and MacOS)
+| Game | Highlights |
+|---|---|
+| **The Need for Speed** (SE PC, 3DO) | Cars (CFM), tracks (TRI, FAM), car specs (PBS, PDN, 3DO BigSpecsFam), images (FSH, QFS), fonts (FFN), audio (BNK, ASF, EAS), videos (TGV), replays (RPL), saved config |
+| **NFS II / II SE** | Cars (GEO), tracks (TRK, COL), archives (VIV, MSK), images, fonts, sound banks, videos (UV) |
+| **NFS III Hot Pursuit** | Cars (FCE in VIV), tracks (FRD, COL), images, fonts, sound banks |
+| **NFS High Stakes** | Cars (FCE4), tracks (FRD), images, fonts, sound banks |
+| **NFS Porsche Unleashed** | Cars and tracks (CRP), images (FSH, ENV), fonts, sound banks |
+| **NFS Hot Pursuit 2** | Cars with their skins, tracks and race routes, DXT images, fonts, sound banks |
+| **NFS Underground / Underground 2 / Most Wanted** | City maps (Olympic City, Bayview, Rockport), car models, texture packs |
 
-You can use pre-built installer from the [Releases page](https://github.com/AndyGura/nfs-resources-converter/releases).
+The full list, with every field of every format, is in the [file specs](resources/README.md). Coverage differs
+from file to file; if something you need is missing or wrong, [open an issue](https://github.com/AndyGura/nfs-resources-converter/issues).
 
-#### Windows/MacOS:
-1. Download `nfs-resources-converter-windows-setup-<version>`.
-2. Run the installer to install the application and set up file associations (`*.fsh`, `*.fam`, `*.qfs`, `*.tri` etc.).
+## Conversion
 
-#### Running app (Windows/macOS Security Warnings):
-Since the pre-built application is unsigned, you may encounter security warnings when running it for the first time on Windows or macOS:
+| Content | Output |
+|---|---|
+| 3D models, tracks | **obj**, **blend**, **glb** |
+| Images | **png** |
+| Fonts | **fnt + png** (edit them with e.g. [SnowB](https://snowb.org/)) |
+| Audio | **wav** |
+| Videos | **mp4** |
+| Archives | a **directory** of converted items |
+| Metadata, palettes, settings | **json**, **txt** |
 
-- **Windows (SmartScreen)**:
-  1. If you see the "Windows protected your PC" screen, click **More info**.
-  2. Click **Run anyway** to start the app.
+The output feeds [The Need For Speed Web](https://tnfsw.guraklgames.com/), a browser remake of TNFS.
 
-- **macOS (Gatekeeper)**:
-  1. Locate the app in **Finder** (do not open it from Launchpad).
-  2. Right-click (or Control-click) the app icon and select **Open** from the context menu.
-  3. In the warning dialog that appears, click **Open**.
-  4. *Alternatively*, if the app is blocked, go to **System Settings > Privacy & Security**, scroll down to the **Security** section, and click **Open Anyway** next to the blocked app.
+# Installation
 
-### Development Mode (Recommended for Linux)
+Converting audio and video needs `ffmpeg`, converting 3D models needs `blender` (version 4+). Set their paths in the
+app's System Configuration if they are not on your `PATH`.
 
-If you want to run the project from source (required for Linux):
+### Windows and macOS
 
-0) Install a fresh version of python (the project uses 3.14.6) and pip
-1) Install dependencies `pip install -r requirements.txt`
-2) Run the application: `python run.py`
+Download the installer (`tailslab-windows-setup-<version>.exe` or `tailslab-macos-<version>.dmg`) from the
+[Releases page](https://github.com/AndyGura/nfs-resources-converter/releases). The Windows installer also sets up
+file associations (`*.fsh`, `*.qfs`, `*.ffn`, `*.pbs`, `*.pdn`...).
+
+The builds are unsigned, so the system warns you the first time:
+
+- **Windows (SmartScreen)**: click **More info**, then **Run anyway**.
+- **macOS (Gatekeeper)**: in **Finder**, right-click the app and choose **Open**, then **Open** again. If it is still
+  blocked, go to **System Settings > Privacy & Security** and click **Open Anyway**.
+
+The app runs in a native web view (WebView2 on Windows, WebKit on macOS): no browser needed.
+
+### From source (Linux, or anyone who wants the latest)
+
+1. Install Python 3.14 and pip.
+2. `pip install -r requirements.txt`
+3. `python run.py`
+
+On Linux the GUI opens in a Chrome / Chromium app window, so one of them needs to be installed. A pre-built Linux
+binary is not available yet: the standalone build fails to launch, and help with it is very welcome.
+
+# Usage
+
+## GUI
+
+```bash
+python run.py                                  # or the installed app
+python run.py NFSSE/SIMDATA/MISC/AL1.TRI       # open a file directly
+```
+
+**WARNING**: the editor does not make backups. Work on copies of your game files.
+
+## Command line
+
+Commands below use `python run.py`; the installed app's executable takes the same arguments.
+
+### Convert
+
+```bash
+python run.py convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED
+```
+
+Walks the input directory recursively, converts every supported file and writes the result to the output directory
+with the same structure. The input can also be a single file. **Don't point the output at a directory with data you
+care about**: it can be overwritten.
+
+Conversion settings come from the settings file: the default ones (the `[Conversion]` section, "No preset" in the GUI
+converter), or a user-defined preset created in the GUI converter. A preset also keeps input and output paths, used
+when the command doesn't give them:
+
+```bash
+python run.py convert --preset "My Preset"
+python run.py convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED --preset "My Preset"
+```
+
+A preset is a `[Conversion: <name>]` section of the settings file. Its name has letters, digits, spaces, `-`, `_` and
+`.` only; quote it if it has spaces.
+
+### Show settings location
+
+```bash
+python run.py show_settings
+```
+
+Prints the path of the settings file (in your home directory) and the names of the conversion presets.
+
+### Uncompress
+
+```bash
+python run.py uncompress /path/to/compressed/file.qfs
+```
+
+Writes the uncompressed data next to the original, with `_uncompressed` appended (`AL1.QFS` becomes
+`AL1.QFS_uncompressed`).
+
+### Custom commands
+
+Scripts for particular file types, also available in the GUI from the block actions menu (flash icon at the top).
+
+```bash
+# TNFS *.TRI: make an open track fully flat (handy for testing acceleration)
+python run.py custom_command --custom-command flatten_track examples/maps/TR3.TRI --out examples/maps/flat/
+
+# TNFS *.TRI: make a track go backwards (may have glitches)
+python run.py custom_command --custom-command reverse_track examples/maps/TR3.TRI --out examples/maps/reversed/
+
+# TNFS *.TRI: scale track length without touching road width, props etc.
+python run.py custom_command --custom-command scale_track --custom-command-args=0.5 /media/fast/AL1.TRI --out /media/fast/AL1_SCALED.TRI
+```
+
+# Development
+
+Python tests: `python -m unittest`. Frontend (Angular, in `frontend/`): `npm install`, then
+`npm run test -- --watch=false --browsers=ChromeHeadless`.
 
 ### Debugging the Angular frontend
 
-The GUI now runs inside a native web view (pywebview) instead of an external Chrome
-instance, so the JavaScript ⟷ Python bridge (`window.pywebview.api`) is available **only
-inside that native window**. This means the frontend can no longer be debugged from a
-separate browser tab — it must be loaded by the application window itself. Development
-mode does exactly that: it points the native window at the Angular dev server (`ng serve`),
-so you keep live reload, source maps and full DevTools while talking to the real backend.
+The JavaScript ⟷ Python bridge (`window.pywebview.api`) only exists inside the app's native window, so development
+mode points that window at the Angular dev server: live reload, source maps and DevTools, talking to the real backend.
 
-Prerequisites (once): install the frontend toolchain.
+1. Once: `cd frontend && npm install`.
+2. Start the dev server from `frontend`: `npm run start`. It serves `http://localhost:4200` and its `proxy.conf.json`
+   forwards `/eel.js` (the bridge shim) and `/resources` (serialized previews) to `http://127.0.0.1:8000`.
+3. In another terminal, from the project root: `python run.py --dev` (optionally with a file to open, and
+   `--dev-server http://localhost:4200` if you changed the port). It opens the native window with developer tools
+   enabled and serves the shim and the previews on port `8000`.
+4. Right-click in the window and choose **Inspect Element** for DevTools. Frontend edits reload instantly; Python
+   edits need a restart of `python run.py --dev`.
 
-```bash
-cd frontend
-npm install
-```
+**On Linux** the GUI runs on Eel (a Chrome app window) instead. In `--dev` mode it opens no window at all, only the
+backend on port `8000`: open `http://localhost:4200` in a normal browser tab and use its DevTools.
 
-Then, every time you want to debug:
+# Contributing and support
 
-1) Start the Angular dev server (live reload + source maps), from the `frontend` directory:
-
-```bash
-npm run start
-```
-
-This serves the app on `http://localhost:4200`. Its `proxy.conf.json` forwards `/eel.js`
-(the bridge shim) and `/resources` (serialized resource previews) to `http://127.0.0.1:8000`.
-
-2) In another terminal, start the application in development mode (from the project root):
-
-```bash
-python run.py --dev
-```
-
-This launches the native window pointed at the dev server with **developer tools enabled**.
-It also starts a small static server on port `8000` that serves the `eel.js` shim and the
-serialized resource files the proxy expects. You can open a specific file as usual, e.g.
-`python run.py --dev NFSSE/SIMDATA/MISC/AL1.TRI`, and override the dev server URL with
-`--dev-server http://localhost:4200` if you changed the Angular port.
-
-3) Debug: right-click anywhere in the window and choose **Inspect Element** to open the
-native DevTools (WebKit Web Inspector on macOS, the Edge/WebView2 DevTools on Windows).
-You get the console, network panel and breakpoints. Edit any file under `frontend/src` and
-the window reloads automatically. (On **Linux** debugging works differently — see below.)
-
-> Note: editing **Python** (backend) code does not hot-reload — restart `python run.py --dev`
-> to pick up backend changes. Editing the **Angular** code reloads instantly.
-
-#### Debugging on Linux (different from macOS/Windows)
-
-On Linux the GUI still runs on **Eel** (a Chrome/Chromium application window), not
-the native web view used on macOS and Windows. Because of that, debugging works
-differently: **there is no native window to inspect**. In development mode Eel does
-**not** open its own window at all — it only runs as the backend web server on port
-`8000` (so `proxy.conf.json` can forward `/eel` and `/resources` to it).
-
-So on Linux, to debug:
-
-1) Start the Angular dev server as above (`npm run start` in `frontend`).
-2) Start the backend in development mode (`python run.py --dev`).
-3) Open the app in a normal browser tab at `http://localhost:4200`. Use the browser's
-   built-in DevTools there, with full live reload and source maps.
-
-### Support for Linux Binary (Help Wanted!)
-
-Currently, pre-built binary support for Linux is suspended because the standalone binary fails to launch (tested on Arch Linux, installed via `dpkg`).
-
-If you are an experienced developer on this platform and would like to help restore binary support, your contributions are highly welcome! In the meantime, please use the **Development Mode** described above.
-
-All commands below will work in development mode if you replace the binary file name with "python run.py", for instance:
-
-```bash
-python run.py NFSSE/SIMDATA/MISC/AL1.TRI
-```
-
-# Usage:
-
-## GUI Application (Main Entry Point)
-
-```bash
-./nfs-resources-converter
-```
-
-This command launches the GUI application, which is the main interface for the project. The GUI provides:
-
-- **File Management**: Open, close, save, and reload resource files
-- **Resource Viewer/Editor**: View and edit the contents of supported game resource files
-- **Converter**: Convert game resources to common formats with customizable settings
-- **System Configuration**: Configure paths to external tools (Blender, FFmpeg)
-
-You can also open a specific file directly:
-
-```bash
-./nfs-resources-converter NFSSE/SIMDATA/MISC/AL1.TRI
-```
-
-**WARNING**: The editor does not make backups and saved file consistency is not guaranteed! Use only on copied files.
-
-## Command Line Tools
-The following command line tools are still available for those who prefer terminal usage:
-
-### Converter
-```
-./nfs-resources-converter convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED
-```
-
-This command will recursively walk over the `/media/fast/NFSSE` directory, parse all supported resources and save them 
-in common formats in the `/tmp/NFSSE_PARSED` directory. Output directory will have the same structure as input one.
-You can also point the script to a single file to convert just that file.
-
-Conversion settings come from the settings file: without `--preset` the default ones (the `[Conversion]` section, "No
-preset" in the GUI converter), with `--preset` a user-defined preset, created and edited in the GUI converter. A preset
-also keeps input and output paths, used when the command doesn't give them:
-```
-./nfs-resources-converter convert --preset "My Preset"
-./nfs-resources-converter convert /media/fast/NFSSE --out /tmp/NFSSE_PARSED --preset "My Preset"
-```
-A preset is a `[Conversion: <name>]` section of the settings file. Its name has letters, digits, spaces, `-`, `_` and `.`
-only; quote it if it has spaces.
-
-**WARNING**: Please do not set as output an existing directory with important data, as it can be overwritten!
-
-### Show Settings Location
-```
-./nfs-resources-converter show_settings
-```
-
-This command displays the full path to the settings file used by the application, and the names of the conversion presets. The settings file is stored in your home directory.
-
-### Uncompress File
-```
-./nfs-resources-converter uncompress /path/to/compressed/file.qfs
-```
-
-This command uncompresses compressed game resource files and saves uncompressed data to file. 
-The uncompressed file will be saved in the same directory as the original file with "_uncompressed" added to the filename. For example, `AL1.QFS` becomes `AL1.QFS_uncompressed`.
-
-### Custom Commands
-Custom commands are more complex scripts that can be run on particular resource files. They are available in the GUI 
-through the block actions menu (flash icon at the top).
-
-#### *.TRI: flatten track
-Makes open track fully flat. Useful for testing car acceleration/deceleration dynamics.
-
-```
-./nfs-resources-converter custom_command --custom-command flatten_track examples/maps/TR3.TRI --out examples/maps/flat/
-```
-
-#### *.TRI: reverse track
-Makes track go backwards. Note that reversed tracks may have some issues and glitches.
-
-```
-./nfs-resources-converter custom_command --custom-command reverse_track examples/maps/TR3.TRI --out examples/maps/reversed/
-```
-
-#### *.TRI: scale track
-Scales track length without affecting road width, props etc.
-Scale with factor 0.5 (make track 2x shorter):
-
-```
-./nfs-resources-converter custom_command --custom-command scale_track --custom-command-args=0.5 /media/fast/AL1.TRI --out /media/fast/AL1_SCALED.TRI
-```
-
-# Support me
-You can support project by:
-- giving any feedback, bug report, feature request, providing missed info about resources to [Issues](https://github.com/AndyGura/nfs-resources-converter/issues) 
-- fork & submit a [Pull Request](https://github.com/AndyGura/nfs-resources-converter/pulls)
+- Feedback, bug reports, feature requests and anything you know about these formats:
+  [Issues](https://github.com/AndyGura/nfs-resources-converter/issues)
+- Fork and send a [Pull Request](https://github.com/AndyGura/nfs-resources-converter/pulls)
 - [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/andygura)

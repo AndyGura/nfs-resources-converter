@@ -1,5 +1,5 @@
 """
-Resource API endpoint for the NFS Resources Converter.
+Resource API endpoint for TailsLab.
 This module handles all resource-related operations.
 """
 

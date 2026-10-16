@@ -479,7 +479,7 @@ def run_gui_editor(file_path=None, dev_server_url=None):
     _current_api = api
 
     window = webview.create_window(
-        'NFS Resources Converter',
+        'TailsLab',
         url=window_url,
         width=1280,
         height=800,

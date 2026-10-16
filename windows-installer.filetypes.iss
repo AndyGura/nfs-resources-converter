@@ -3,35 +3,35 @@
 ; .bigspecsfam
 Root: HKCR; Subkey: ".bigspecsfam"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.bigspecsfam"; Flags: uninsdeletevalue
 Root: HKCR; Subkey: "NFSResourcesConverter.bigspecsfam"; ValueType: string; ValueName: ""; ValueData: "BigSpecsFam Player Car Physics File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.bigspecsfam\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.bigspecsfam\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+Root: HKCR; Subkey: "NFSResourcesConverter.bigspecsfam\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\tailslab-{#AppVersion}.exe,0"
+Root: HKCR; Subkey: "NFSResourcesConverter.bigspecsfam\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\tailslab-{#AppVersion}.exe"" ""%1"""
 
 ; .ffn
 Root: HKCR; Subkey: ".ffn"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.ffn"; Flags: uninsdeletevalue
 Root: HKCR; Subkey: "NFSResourcesConverter.ffn"; ValueType: string; ValueName: ""; ValueData: "FFN Bitmap Font File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.ffn\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.ffn\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+Root: HKCR; Subkey: "NFSResourcesConverter.ffn\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\tailslab-{#AppVersion}.exe,0"
+Root: HKCR; Subkey: "NFSResourcesConverter.ffn\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\tailslab-{#AppVersion}.exe"" ""%1"""
 
 ; .fsh
 Root: HKCR; Subkey: ".fsh"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.fsh"; Flags: uninsdeletevalue
 Root: HKCR; Subkey: "NFSResourcesConverter.fsh"; ValueType: string; ValueName: ""; ValueData: "FSH Image Archive File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.fsh\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.fsh\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+Root: HKCR; Subkey: "NFSResourcesConverter.fsh\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\tailslab-{#AppVersion}.exe,0"
+Root: HKCR; Subkey: "NFSResourcesConverter.fsh\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\tailslab-{#AppVersion}.exe"" ""%1"""
 
 ; .pbs
 Root: HKCR; Subkey: ".pbs"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.pbs"; Flags: uninsdeletevalue
 Root: HKCR; Subkey: "NFSResourcesConverter.pbs"; ValueType: string; ValueName: ""; ValueData: "PBS Player Car Physics File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.pbs\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.pbs\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+Root: HKCR; Subkey: "NFSResourcesConverter.pbs\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\tailslab-{#AppVersion}.exe,0"
+Root: HKCR; Subkey: "NFSResourcesConverter.pbs\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\tailslab-{#AppVersion}.exe"" ""%1"""
 
 ; .pdn
 Root: HKCR; Subkey: ".pdn"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.pdn"; Flags: uninsdeletevalue
 Root: HKCR; Subkey: "NFSResourcesConverter.pdn"; ValueType: string; ValueName: ""; ValueData: "PDN Car AI and Crash Body File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.pdn\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.pdn\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+Root: HKCR; Subkey: "NFSResourcesConverter.pdn\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\tailslab-{#AppVersion}.exe,0"
+Root: HKCR; Subkey: "NFSResourcesConverter.pdn\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\tailslab-{#AppVersion}.exe"" ""%1"""
 
 ; .qfs
 Root: HKCR; Subkey: ".qfs"; ValueType: string; ValueName: ""; ValueData: "NFSResourcesConverter.qfs"; Flags: uninsdeletevalue
 Root: HKCR; Subkey: "NFSResourcesConverter.qfs"; ValueType: string; ValueName: ""; ValueData: "QFS Compressed Image Archive File"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "NFSResourcesConverter.qfs\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\nfs-resources-converter-{#AppVersion}.exe,0"
-Root: HKCR; Subkey: "NFSResourcesConverter.qfs\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\nfs-resources-converter-{#AppVersion}.exe"" ""%1"""
+Root: HKCR; Subkey: "NFSResourcesConverter.qfs\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\tailslab-{#AppVersion}.exe,0"
+Root: HKCR; Subkey: "NFSResourcesConverter.qfs\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\tailslab-{#AppVersion}.exe"" ""%1"""

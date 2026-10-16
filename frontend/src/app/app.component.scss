@@ -15,6 +15,13 @@ app-landing-page {
   flex: 1 1 auto;
 }
 
+.toolbar-logo {
+  height: 32px;
+  width: 32px;
+  border-radius: 6px;
+  margin-right: 8px;
+}
+
 .app-version {
   font-size: 0.75rem;
   opacity: 0.7;
