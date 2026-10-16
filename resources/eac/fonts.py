@@ -193,7 +193,9 @@ class FfnFont(DeclarativeCompoundBlock):
             IntegerBlock(length=2, is_signed=False),
             {
                 'description': 'Font format version. Defines the layout of glyph definitions (see '
-                '[GlyphDefinition](#glyphdefinition))'
+                '[GlyphDefinition](#glyphdefinition)): 11 bytes below 200, 12 bytes up to 309 (last one padding), '
+                '12 bytes with `num_kern` above 309, 16 bytes from 321 with the `format` flag 16-bytes. Changing it '
+                'changes the size of every glyph definition. Game fonts: 100 / 101 (TNFS to NFS4), 309 to 366 (NFS6)'
             },
         )
         num_glyphs = (
@@ -205,7 +207,13 @@ class FfnFont(DeclarativeCompoundBlock):
                 length=4,
                 schema=[
                     (13, 'pad', 'number', [], 'pad structure to 32 bits'),
-                    (1, 'format', 'enum', ['12-bytes', '16-bytes'], ''),
+                    (
+                        1,
+                        'format',
+                        'enum',
+                        ['12-bytes', '16-bytes'],
+                        'Size of glyph definitions for versions >= 321: 16 bytes add `kern_index` and `x_advance`',
+                    ),
                     (2, 'encoding', 'enum', ['ASCII', 'Unicode', 'Shift-JIS', 'Reserved'], ''),
                     (4, 'layoutpad', 'number', [], 'pad to save 4 other layout bits'),
                     (1, 'direction', 'enum', ['LTR', 'RTL'], ''),
@@ -237,12 +245,17 @@ class FfnFont(DeclarativeCompoundBlock):
             IntegerBlock(length=1, is_signed=False),
             {
                 'description': 'Distance from the baseline to the top of the glyphs in pixels. '
-                '`ascent + descent` is the line height'
+                '`ascent + descent` is the line height, and a glyph is drawn `y_offset` below the top of its line. '
+                'NFS6 capitals end at `ascent`; TNFS and NFS2 fonts have `descent` 0 and keep the whole line height '
+                'here'
             },
         )
         descent = (
             IntegerBlock(length=1, is_signed=False),
-            {'description': 'Distance from the baseline to the bottom of the glyphs in pixels'},
+            {
+                'description': 'Distance from the baseline to the bottom of the glyphs in pixels: NFS6 descenders end '
+                'at `ascent + descent`'
+            },
         )
         definitions_ptr = (
             IntegerBlock(

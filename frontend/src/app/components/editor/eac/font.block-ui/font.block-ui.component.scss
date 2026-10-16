@@ -170,3 +170,32 @@
     flex: 1;
   }
 }
+
+.table-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  input {
+    width: 220px;
+    padding: 4px 6px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .search-message {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #586074;
+    font-size: 13px;
+  }
+}
+
+.preview-container canvas:focus-visible {
+  outline: 2px solid #3949ab;
+  outline-offset: -2px;
+}

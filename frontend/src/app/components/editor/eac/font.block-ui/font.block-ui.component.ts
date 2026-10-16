@@ -472,6 +472,18 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 1;
       ctx.strokeRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
+
+      // the values the glyph has, or gets when the drag ends
+      const readout =
+        `x ${rectX}  y ${rectY}  w ${rectW}  h ${rectH}  ` +
+        `offset ${currentXOffset}, ${currentYOffset}  advance ${xAdvance}`;
+      ctx.font = '11px monospace';
+      ctx.textBaseline = 'bottom';
+      const readoutWidth = ctx.measureText(readout).width;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, canvasHeight - 18, readoutWidth + 10, 18);
+      ctx.fillStyle = this._drag ? '#ffeb3b' : '#e0e0e0';
+      ctx.fillText(readout, 5, canvasHeight - 3);
     } else {
       // Default view if no glyph is selected
       const ratio = Math.min(canvasWidth / imgWidth, canvasHeight / imgHeight, 1.0);
@@ -816,6 +828,106 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     this._previewAdvance = null;
   }
 
+  // frames the selected glyph again, as when it was selected
+  fitCharPreview() {
+    this._hasCustomView = false;
+    this.renderFullBitmap(this.currentGlyphIndex);
+  }
+
+  // arrows move the glyph rectangle by 1 px, Shift+arrows resize it (right / down grow): one change per key
+  onFullCanvasKeyDown(evt: KeyboardEvent) {
+    const steps: { [key: string]: [number, number] } = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    };
+    const step = steps[evt.key];
+    const idx = this.currentGlyphIndex;
+    if (!step || idx === null || !this.resourceData || this._drag) return;
+    const glyph: any = this.resourceData.definitions[idx];
+    if (!glyph) return;
+    evt.preventDefault();
+    const [dx, dy] = step;
+    const [key, value] = evt.shiftKey
+      ? dx !== 0
+        ? ['width', Math.max(1, glyph.width + dx)]
+        : ['height', Math.max(1, glyph.height + dy)]
+      : dx !== 0
+        ? ['x', Math.max(0, glyph.x + dx)]
+        : ['y', Math.max(0, glyph.y + dy)];
+    if (value === glyph[key]) return;
+    this.emitNewChange({
+      op: 'set',
+      id: joinId(this.resourceId!, 'definitions', idx, key),
+      oldValue: glyph[key],
+      newValue: value,
+    });
+  }
+
+  _glyphSearch = '';
+  _kerningSearch = '';
+  _glyphSearchMessage = '';
+  _kerningSearchMessage = '';
+
+  // a typed character ("A", "가"), a code (65) or a hex code (0x41, U+AC00)
+  private searchCode(query: string): number | null {
+    const q = query.trim();
+    if (!q) return null;
+    const hex = /^(?:0x|u\+)([0-9a-f]+)$/i.exec(q);
+    if (hex) return parseInt(hex[1], 16);
+    const chars = Array.from(q);
+    if (chars.length === 1) return chars[0].codePointAt(0)!;
+    if (/^\d+$/.test(q)) return parseInt(q, 10);
+    return null;
+  }
+
+  private describeCode(code: number): string {
+    return `"${this.getSymbol(code)}" (${code}, 0x${code.toString(16).toUpperCase()})`;
+  }
+
+  findGlyph(query: string) {
+    const code = this.searchCode(query);
+    if (code === null) {
+      this._glyphSearchMessage = query.trim() ? 'Type a character, a code (65) or a hex code (0x41)' : '';
+      return;
+    }
+    const index = (this.resourceData?.definitions || []).findIndex((g: any) => g.code === code);
+    if (index < 0) {
+      this._glyphSearchMessage = `No glyph for ${this.describeCode(code)}`;
+      return;
+    }
+    this._glyphSearchMessage = '';
+    this._hasCustomView = false;
+    this._previewRect = null;
+    this.onGlyphSelectedIndexChange(index);
+    this.glyphsTable?.showItem(index);
+  }
+
+  private _lastKerningSearchCode: number | null = null;
+
+  // the next pair (after the selected one) with the glyph on either side
+  findKerning(query: string) {
+    const code = this.searchCode(query);
+    if (code === null) {
+      this._kerningSearchMessage = query.trim() ? 'Type a character, a code (65) or a hex code (0x41)' : '';
+      return;
+    }
+    const kernings: any[] = this.resourceData?.kernings || [];
+    const matches = kernings.map((k, i) => (k.left === code || k.right === code ? i : -1)).filter(i => i >= 0);
+    if (!matches.length) {
+      this._kerningSearchMessage = `No pairs with ${this.describeCode(code)}`;
+      return;
+    }
+    // a new search starts at the first pair, the same one again goes on after the selected pair
+    const selected = code === this._lastKerningSearchCode ? (this._selectedKerningIndex$.getValue() ?? -1) : -1;
+    this._lastKerningSearchCode = code;
+    const index = matches.find(i => i > selected) ?? matches[0];
+    this._kerningSearchMessage = `Pair ${matches.indexOf(index) + 1} of ${matches.length} with ${this.describeCode(code)}`;
+    this.onKerningSelectedIndexChange(index);
+    this.kerningsTable?.showItem(index);
+  }
+
   onFullCanvasWheel(evt: WheelEvent) {
     if (!this.fullBitmapCanvas || !this._image) return;
     evt.preventDefault();
@@ -825,7 +937,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     // Anchor image coords under cursor
     const imgPt = this.canvasToImage(pos.x, pos.y);
 
-    const zoomFactor = Math.pow(1.8, -evt.deltaY / 100);
+    const zoomFactor = Math.pow(1.25, -evt.deltaY / 100);
     const minZoom = 0.05;
     const maxZoom = 32;
     let newRatio = this._viewRatio * zoomFactor;

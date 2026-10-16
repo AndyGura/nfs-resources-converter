@@ -2,6 +2,19 @@
   <mat-tab-group class="font-editor-tabs" [(selectedIndex)]="selectedTabIndex">
     <mat-tab label="Chars">
       <div class="font-editor-container">
+        <div class="table-search">
+          <input
+            id="glyph-search"
+            type="search"
+            placeholder="Find glyph: A, 65, 0x41"
+            aria-label="Find glyph by character or code"
+            [(ngModel)]="_glyphSearch"
+            (keydown.enter)="findGlyph(_glyphSearch)" />
+          <button mat-button (click)="findGlyph(_glyphSearch)">Find</button>
+          @if (_glyphSearchMessage) {
+            <span class="search-message">{{ _glyphSearchMessage }}</span>
+          }
+        </div>
         @if (_glyphsUnsorted || _duplicateGlyphCodes.length) {
           <div class="order-notice">
             <mat-icon>warning</mat-icon>
@@ -39,6 +52,19 @@
     </mat-tab>
     <mat-tab label="Kernings">
       <div class="font-editor-container">
+        <div class="table-search">
+          <input
+            id="kerning-search"
+            type="search"
+            placeholder="Find pairs with: A, 65, 0x41"
+            aria-label="Find kerning pairs by character or code"
+            [(ngModel)]="_kerningSearch"
+            (keydown.enter)="findKerning(_kerningSearch)" />
+          <button mat-button (click)="findKerning(_kerningSearch)">Next</button>
+          @if (_kerningSearchMessage) {
+            <span class="search-message">{{ _kerningSearchMessage }}</span>
+          }
+        </div>
         @if (_kerningsUnsorted) {
           <div class="order-notice">
             <mat-icon>warning</mat-icon>
@@ -94,10 +120,18 @@
   <div class="previews-column">
     @if (isCharPreviewVisible) {
       <div class="section-preview">
-        <div class="preview-title">Char Preview</div>
+        <div class="preview-title">
+          <span>Char Preview</span>
+          <span class="preview-presets">
+            <button type="button" title="Frame the selected glyph again" (click)="fitCharPreview()">Fit</button>
+          </span>
+        </div>
         <div class="preview-container">
           <canvas
             #fullBitmapCanvas
+            tabindex="0"
+            title="Drag to edit; arrows move the glyph by 1 px, Shift+arrows resize it; wheel zooms"
+            (keydown)="onFullCanvasKeyDown($event)"
             (mousedown)="onFullCanvasMouseDown($event)"
             (mousemove)="onFullCanvasMouseMove($event)"
             (mouseup)="onFullCanvasMouseUp($event)"
