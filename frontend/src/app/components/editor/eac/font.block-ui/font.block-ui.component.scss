@@ -42,10 +42,35 @@
     flex-direction: column;
 
     .preview-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
       padding: 2px 5px;
       background: #e0e0e0;
       border-bottom: 1px solid #ccc;
       font-size: 12px;
+
+      .preview-presets {
+        display: flex;
+        gap: 2px;
+
+        button {
+          padding: 0 5px;
+          border: 1px solid #bbb;
+          border-radius: 3px;
+          background: white;
+          font-size: 11px;
+          line-height: 16px;
+          cursor: pointer;
+
+          &:hover,
+          &:focus-visible {
+            border-color: #3949ab;
+            color: #3949ab;
+          }
+        }
+      }
     }
   }
 }
@@ -97,11 +122,20 @@
     background: #eee;
     border: 1px solid #ddd;
 
+    // as wide as the longest line: the container scrolls
     canvas {
       display: block;
-      width: 100%;
       background: #000000;
     }
+  }
+
+  .missing-symbols {
+    margin-bottom: 5px;
+    color: #b3261e;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -135,4 +169,33 @@
   span {
     flex: 1;
   }
+}
+
+.table-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  input {
+    width: 220px;
+    padding: 4px 6px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .search-message {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #586074;
+    font-size: 13px;
+  }
+}
+
+.preview-container canvas:focus-visible {
+  outline: 2px solid #3949ab;
+  outline-offset: -2px;
 }

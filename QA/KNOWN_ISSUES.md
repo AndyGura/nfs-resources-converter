@@ -207,7 +207,7 @@ mixed decimal formatting, Changes list prints arrays as "[object Object]".
 
 ## KI-6 — FFN font editor: kerning index goes stale, preview ignores font metrics, import makes the atlas 32-bit
 
-**Status**: Open (found 2026-10-15; items 1–8 and two lower-severity ones fixed 2026-10-15). **Classification**: Confirmed bug (items 1–5, 7, 8), Suspected bug (9), Unclear /
+**Status**: Fixed (found 2026-10-15; items 1–8 and two lower-severity ones fixed 2026-10-15, re-checked 2026-10-16 after PR #88; items 10, 11 found and items 9–11 and the remaining lower-severity ones fixed 2026-10-16). **Classification**: Confirmed bug (items 1–5, 7, 8), Suspected bug (9), Unclear /
 needs product decision (6). Full report with repro steps and proposed UX changes:
 https://claude.ai/artifact/FgTKuR5Zcp2SrTLwpkiZaw (private to the repo owner).
 
@@ -249,14 +249,27 @@ https://claude.ai/artifact/FgTKuR5Zcp2SrTLwpkiZaw (private to the repo owner).
    layout and bitmap format of the font it replaces, and its `xadvance` goes to `x_advance` for 16-byte glyphs
    (`advance` is 0 in all of them in the game files; the export now writes `x_advance` as `xadvance`). Importing
    each of the 70 game FFNs from its export without `#custom` is byte-exact.
-9. Char Preview draws `advance` a second time as a magenta vertical line for 12-byte fonts (`x_advance` is `null`,
-   passes `!== undefined`). Confirmed live.
+9. Char Preview draws `advance` a second time as a magenta vertical line for 12-byte fonts (`x_advance` reads as 0,
+   passes `!== undefined`). Confirmed live. **Fixed**: the line is gone, and the advance handle edits the field of the
+   glyph format (`x_advance` for 16-byte glyphs, `advance` otherwise) instead of choosing by value.
+10. Writing a "4Bit (swapped)" image swaps its nibble pairs in the loaded data: `EacImage.write` passes
+    `data['bitmap']`, not its deep copy, to `_internal_to_native`, which swaps rows in place. GUI Save re-reads the file,
+    so only a save after a failed one (read-only file) writes the flipped atlas: NFS6 `Editor.ffn`, 855 bytes wrong,
+    "Saved" shown, Changes 0. Affects the 10 NFS6 FFNs with 4Bit (swapped) atlases and any SHPI image in that format;
+    packing the same data twice gives a wrong second result. Confirmed live + saved file (found 2026-10-16, code
+    from June). **Fixed**: `write` converts its copy, the swap works on copied rows; all 70 game FFNs write the same
+    bytes twice.
+11. The Bitmap tab opens the atlas at 10% zoom: the viewer fits while the tab is hidden (0×0), and the 10..1500 % clamp
+    of PR #88 turns that into 10% (before: 100%). Confirmed live + code (found 2026-10-16). **Fixed**: Fit waits while
+    the container has no size and runs when a ResizeObserver sees it get one (753% for `Editor.ffn`).
 
 Lower-severity items in the same report: adding / removing glyphs in v100 / v101 fonts leaves the bitmap at an
 unaligned offset (**fixed**: `padding_2` is recomputed on save, see its description; add / remove checked on all 70
 game FFNs), import needs both files multi-selected (**fixed**: the `.fnt` alone is enough, the PNG comes from its
-`page` line; errors name what to pick), missing glyphs vanish from the preview, long preview lines are
-clipped, coarse 1.8× wheel zoom with no Fit button, no glyph search, prev / next only paginator.
+`page` line; errors name what to pick), missing glyphs vanish from the preview and long preview lines are clipped
+(**fixed** 2026-10-16: hatched box + list, the canvas scrolls, sample presets), coarse 1.8× wheel zoom with no Fit
+button, no glyph search, prev / next only paginator (**fixed** 2026-10-16: Fit button, 1.25× steps, arrow-key nudge,
+readout, glyph / kerning search, first / last page buttons).
 
 ---
 

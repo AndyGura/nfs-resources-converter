@@ -55,9 +55,9 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     return this.selectedTabIndex === 0;
   }
 
-  _text$: BehaviorSubject<string> = new BehaviorSubject<string>(
-    'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
-  );
+  static readonly SAMPLE_TEXT =
+    'The quick brown fox jumps over the lazy dog\n0123456789\n!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
+  _text$: BehaviorSubject<string> = new BehaviorSubject<string>(FontBlockUiComponent.SAMPLE_TEXT);
 
   _glyphColumns: ArrayTableColumn[] = [];
   _kerningColumns: ArrayTableColumn[] = [];
@@ -189,6 +189,13 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     return this._selectedGlyphIndex$.getValue();
   }
 
+  // the field holding a glyph's advance: 16-byte glyphs keep it in x_advance (advance is 0 in the game files)
+  private get advanceKey(): 'advance' | 'x_advance' {
+    return this.resourceData?.version >= 321 && this.resourceData?.flags?.format === '16-bytes'
+      ? 'x_advance'
+      : 'advance';
+  }
+
   bitmapSchema() {
     return (this.resourceSchema.fields || []).find((x: { name: string; schema: BlockSchema }) => x.name === 'bitmap')
       ?.schema;
@@ -263,7 +270,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       }
       this._resized$.next();
     });
-    this._resizeObserver.observe(this.textPreviewCanvas.nativeElement);
+    // the panel, not the canvas: the canvas is as wide as its longest line
+    this._resizeObserver.observe(this.textPreviewCanvas.nativeElement.parentElement!);
 
     this.changes.change$
       .pipe(
@@ -334,17 +342,17 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       // Calculate the bounding box that includes the glyph image, origin, and advance line
       const x_offset = glyph.x_offset || 0;
       const y_offset = glyph.y_offset || 0;
-      const x_advance = glyph.x_advance || 0;
+      const advance = glyph[this.advanceKey] || 0;
 
       // Origin point in image coordinates
       const originX = glyph.x - x_offset;
       const originY = glyph.y - y_offset;
 
       // The area we want to focus on (in image coordinates)
-      const minX = Math.min(glyph.x, originX, originX + x_advance);
-      const maxX = Math.max(glyph.x + glyph.width, originX, originX + x_advance);
-      const minY = Math.min(glyph.y, originY, originY + (glyph.advance || 0));
-      const maxY = Math.max(glyph.y + glyph.height, originY, originY + (glyph.advance || 0));
+      const minX = Math.min(glyph.x, originX, originX + advance);
+      const maxX = Math.max(glyph.x + glyph.width, originX, originX + advance);
+      const minY = Math.min(glyph.y, originY);
+      const maxY = Math.max(glyph.y + glyph.height, originY);
 
       const targetWidth = maxX - minX;
       const targetHeight = maxY - minY;
@@ -443,52 +451,39 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       ctx.stroke();
 
       // Draw advance (Blue)
-      let xAdvance = this._previewAdvance;
-      if (xAdvance === null) {
-        if (glyph.x_advance !== undefined && glyph.x_advance !== 0) {
-          xAdvance = glyph.x_advance;
-        } else {
-          xAdvance = glyph.advance ?? 0;
-        }
-      }
-      if (xAdvance !== undefined && xAdvance !== null) {
-        ctx.strokeStyle = '#4040ff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(originCanvasX, originCanvasY);
-        ctx.lineTo(originCanvasX + xAdvance * ratio, originCanvasY);
-        ctx.stroke();
+      const xAdvance = this._previewAdvance ?? glyph[this.advanceKey] ?? 0;
+      ctx.strokeStyle = '#4040ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(originCanvasX, originCanvasY);
+      ctx.lineTo(originCanvasX + xAdvance * ratio, originCanvasY);
+      ctx.stroke();
 
-        // Little tick at the end of advance
-        const advanceEndX = originCanvasX + xAdvance * ratio;
-        ctx.beginPath();
-        ctx.moveTo(advanceEndX, originCanvasY - 8);
-        ctx.lineTo(advanceEndX, originCanvasY + 8);
-        ctx.stroke();
+      // Little tick at the end of advance
+      const advanceEndX = originCanvasX + xAdvance * ratio;
+      ctx.beginPath();
+      ctx.moveTo(advanceEndX, originCanvasY - 8);
+      ctx.lineTo(advanceEndX, originCanvasY + 8);
+      ctx.stroke();
 
-        // Draw handle at the end of advance
-        ctx.fillStyle = '#4040ff';
-        ctx.fillRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
-      }
+      // Draw handle at the end of advance
+      ctx.fillStyle = '#4040ff';
+      ctx.fillRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(advanceEndX - 3, originCanvasY - 8, 6, 16);
 
-      // Draw vertical advance if present
-      if (glyph.x_advance !== undefined && glyph.advance !== 0) {
-        ctx.strokeStyle = '#ff40ff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(originCanvasX, originCanvasY);
-        ctx.lineTo(originCanvasX, originCanvasY + glyph.advance * ratio);
-        ctx.stroke();
-
-        // Little tick at the end of vertical advance
-        ctx.beginPath();
-        ctx.moveTo(originCanvasX - 5, originCanvasY + glyph.advance * ratio);
-        ctx.lineTo(originCanvasX + 5, originCanvasY + glyph.advance * ratio);
-        ctx.stroke();
-      }
+      // the values the glyph has, or gets when the drag ends
+      const readout =
+        `x ${rectX}  y ${rectY}  w ${rectW}  h ${rectH}  ` +
+        `offset ${currentXOffset}, ${currentYOffset}  advance ${xAdvance}`;
+      ctx.font = '11px monospace';
+      ctx.textBaseline = 'bottom';
+      const readoutWidth = ctx.measureText(readout).width;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, canvasHeight - 18, readoutWidth + 10, 18);
+      ctx.fillStyle = this._drag ? '#ffeb3b' : '#e0e0e0';
+      ctx.fillText(readout, 5, canvasHeight - 3);
     } else {
       // Default view if no glyph is selected
       const ratio = Math.min(canvasWidth / imgWidth, canvasHeight / imgHeight, 1.0);
@@ -554,19 +549,10 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     }
 
     // Hit test for advance end
-    let xAdvance = this._previewAdvance;
-    if (xAdvance === null) {
-      if (glyph.x_advance !== undefined && glyph.x_advance !== 0) {
-        xAdvance = glyph.x_advance;
-      } else {
-        xAdvance = glyph.advance ?? 0;
-      }
-    }
-    if (xAdvance !== undefined && xAdvance !== null) {
-      const advanceEndX = originCanvasX + xAdvance * ratio;
-      if (Math.abs(canvasX - advanceEndX) <= 8 && Math.abs(canvasY - originCanvasY) <= 12) {
-        return { type: 'advance' };
-      }
+    const xAdvance = this._previewAdvance ?? glyph[this.advanceKey] ?? 0;
+    const advanceEndX = originCanvasX + xAdvance * ratio;
+    if (Math.abs(canvasX - advanceEndX) <= 8 && Math.abs(canvasY - originCanvasY) <= 12) {
+      return { type: 'advance' };
     }
 
     // When zoomed out a lot, prioritize move over resize: disable handles below threshold
@@ -667,10 +653,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
       };
       this._previewOffset = { ...this._drag.startOffset! };
     } else if (hit.type === 'advance') {
-      let startAdvance = glyph.x_advance;
-      if (startAdvance === undefined || startAdvance === 0) {
-        startAdvance = glyph.advance ?? 0;
-      }
+      const startAdvance = glyph[this.advanceKey] ?? 0;
       this._drag = {
         mode: 'advance',
         startMouseX: pos.x,
@@ -806,11 +789,8 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
         });
       }
     } else if (this._drag.mode === 'advance') {
-      let advance = this._previewAdvance;
-      if (advance === null) {
-        advance = glyph.x_advance !== undefined && glyph.x_advance !== 0 ? glyph.x_advance : (glyph.advance ?? 0);
-      }
-      const key = glyph.x_advance !== undefined && glyph.x_advance !== 0 ? 'x_advance' : 'advance';
+      const key = this.advanceKey;
+      const advance = this._previewAdvance ?? glyph[key] ?? 0;
       if (advance !== glyph[key]) {
         changes.push({
           op: 'set',
@@ -848,6 +828,106 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     this._previewAdvance = null;
   }
 
+  // frames the selected glyph again, as when it was selected
+  fitCharPreview() {
+    this._hasCustomView = false;
+    this.renderFullBitmap(this.currentGlyphIndex);
+  }
+
+  // arrows move the glyph rectangle by 1 px, Shift+arrows resize it (right / down grow): one change per key
+  onFullCanvasKeyDown(evt: KeyboardEvent) {
+    const steps: { [key: string]: [number, number] } = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    };
+    const step = steps[evt.key];
+    const idx = this.currentGlyphIndex;
+    if (!step || idx === null || !this.resourceData || this._drag) return;
+    const glyph: any = this.resourceData.definitions[idx];
+    if (!glyph) return;
+    evt.preventDefault();
+    const [dx, dy] = step;
+    const [key, value] = evt.shiftKey
+      ? dx !== 0
+        ? ['width', Math.max(1, glyph.width + dx)]
+        : ['height', Math.max(1, glyph.height + dy)]
+      : dx !== 0
+        ? ['x', Math.max(0, glyph.x + dx)]
+        : ['y', Math.max(0, glyph.y + dy)];
+    if (value === glyph[key]) return;
+    this.emitNewChange({
+      op: 'set',
+      id: joinId(this.resourceId!, 'definitions', idx, key),
+      oldValue: glyph[key],
+      newValue: value,
+    });
+  }
+
+  _glyphSearch = '';
+  _kerningSearch = '';
+  _glyphSearchMessage = '';
+  _kerningSearchMessage = '';
+
+  // a typed character ("A", "가"), a code (65) or a hex code (0x41, U+AC00)
+  private searchCode(query: string): number | null {
+    const q = query.trim();
+    if (!q) return null;
+    const hex = /^(?:0x|u\+)([0-9a-f]+)$/i.exec(q);
+    if (hex) return parseInt(hex[1], 16);
+    const chars = Array.from(q);
+    if (chars.length === 1) return chars[0].codePointAt(0)!;
+    if (/^\d+$/.test(q)) return parseInt(q, 10);
+    return null;
+  }
+
+  private describeCode(code: number): string {
+    return `"${this.getSymbol(code)}" (${code}, 0x${code.toString(16).toUpperCase()})`;
+  }
+
+  findGlyph(query: string) {
+    const code = this.searchCode(query);
+    if (code === null) {
+      this._glyphSearchMessage = query.trim() ? 'Type a character, a code (65) or a hex code (0x41)' : '';
+      return;
+    }
+    const index = (this.resourceData?.definitions || []).findIndex((g: any) => g.code === code);
+    if (index < 0) {
+      this._glyphSearchMessage = `No glyph for ${this.describeCode(code)}`;
+      return;
+    }
+    this._glyphSearchMessage = '';
+    this._hasCustomView = false;
+    this._previewRect = null;
+    this.onGlyphSelectedIndexChange(index);
+    this.glyphsTable?.showItem(index);
+  }
+
+  private _lastKerningSearchCode: number | null = null;
+
+  // the next pair (after the selected one) with the glyph on either side
+  findKerning(query: string) {
+    const code = this.searchCode(query);
+    if (code === null) {
+      this._kerningSearchMessage = query.trim() ? 'Type a character, a code (65) or a hex code (0x41)' : '';
+      return;
+    }
+    const kernings: any[] = this.resourceData?.kernings || [];
+    const matches = kernings.map((k, i) => (k.left === code || k.right === code ? i : -1)).filter(i => i >= 0);
+    if (!matches.length) {
+      this._kerningSearchMessage = `No pairs with ${this.describeCode(code)}`;
+      return;
+    }
+    // a new search starts at the first pair, the same one again goes on after the selected pair
+    const selected = code === this._lastKerningSearchCode ? (this._selectedKerningIndex$.getValue() ?? -1) : -1;
+    this._lastKerningSearchCode = code;
+    const index = matches.find(i => i > selected) ?? matches[0];
+    this._kerningSearchMessage = `Pair ${matches.indexOf(index) + 1} of ${matches.length} with ${this.describeCode(code)}`;
+    this.onKerningSelectedIndexChange(index);
+    this.kerningsTable?.showItem(index);
+  }
+
   onFullCanvasWheel(evt: WheelEvent) {
     if (!this.fullBitmapCanvas || !this._image) return;
     evt.preventDefault();
@@ -857,7 +937,7 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     // Anchor image coords under cursor
     const imgPt = this.canvasToImage(pos.x, pos.y);
 
-    const zoomFactor = Math.pow(1.8, -evt.deltaY / 100);
+    const zoomFactor = Math.pow(1.25, -evt.deltaY / 100);
     const minZoom = 0.05;
     const maxZoom = 32;
     let newRatio = this._viewRatio * zoomFactor;
@@ -896,16 +976,61 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     // Fonts with descent 0 (TNFS, NFS2) keep the whole line height in ascent
     const lineHeight = this.resourceData.ascent + this.resourceData.descent || 32;
     const padding = 20;
+    // a character the font has no glyph for: a hatched box (a gap for whitespace), listed under the text
+    // where most glyphs start and end (capitals), from the line top: TNFS fonts keep the line height in ascent
+    const mostCommon = (values: number[]) => {
+      const counts = new Map<number, number>();
+      values.forEach(v => counts.set(v, (counts.get(v) || 0) + 1));
+      return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0];
+    };
+    const drawn = definitions.filter((g: any) => g.width > 1 && g.height > 1);
+    const missingTop = mostCommon(drawn.map((g: any) => g.y_offset || 0)) ?? 0;
+    const missingBottom = mostCommon(drawn.map((g: any) => (g.y_offset || 0) + g.height)) ?? lineHeight;
+    const missingHeight = Math.max(4, missingBottom - missingTop);
+    const missingWidth = Math.max(4, Math.round(missingHeight * 0.6));
 
-    // Measure text to set canvas height
-    let totalHeight = padding * 2;
-    for (let i = 0; i < lines.length; i++) {
-      totalHeight += lineHeight;
+    // lay out first: the canvas gets the width of the widest line (the container scrolls)
+    type Item = { x: number; glyph?: any; missing?: boolean };
+    const laidOut: Item[][] = [];
+    const missing = new Set<string>();
+    let maxLineWidth = 0;
+    for (const line of lines) {
+      const items: Item[] = [];
+      let cursorX = 0;
+      let prevCharCode: number | null = null;
+      for (const char of Array.from(line)) {
+        const charCode = char.codePointAt(0)!;
+        const glyph = charMap.get(charCode);
+        if (glyph) {
+          if (prevCharCode !== null) {
+            cursorX += kerningMap.get(`${prevCharCode}_${charCode}`) || 0;
+          }
+          items.push({ x: cursorX, glyph });
+          cursorX += glyph[this.advanceKey] || 0;
+          prevCharCode = charCode;
+        } else {
+          missing.add(char);
+          if (/\s/.test(char)) {
+            cursorX += lineHeight * 0.3;
+          } else {
+            items.push({ x: cursorX, missing: true });
+            cursorX += missingWidth + 2;
+          }
+          prevCharCode = null;
+        }
+        maxLineWidth = Math.max(maxLineWidth, cursorX);
+      }
+      laidOut.push(items);
+    }
+    const missingSymbols = Array.from(missing).map(x => (x === ' ' ? 'space' : x === '\t' ? 'tab' : x));
+    if (missingSymbols.join('\n') !== this._missingSymbols.join('\n')) {
+      this._missingSymbols = missingSymbols;
+      this.cdr.markForCheck();
     }
 
-    const canvasWidth = canvas.parentElement?.clientWidth || 800;
-    canvas.width = canvasWidth;
-    canvas.height = Math.max(totalHeight, 200);
+    const containerWidth = canvas.parentElement?.clientWidth || 800;
+    canvas.width = Math.max(containerWidth, Math.ceil(maxLineWidth) + padding * 2);
+    canvas.height = Math.max(padding * 2 + lines.length * lineHeight, 200);
 
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -913,36 +1038,78 @@ export class FontBlockUiComponent extends SubscribableGuiComponent implements Af
     ctx.imageSmoothingEnabled = false;
 
     let cursorY = padding;
-
-    for (const line of lines) {
-      let cursorX = padding;
-      let prevCharCode: number | null = null;
-
-      for (let i = 0; i < line.length; i++) {
-        const charCode = line.charCodeAt(i);
-        const glyph = charMap.get(charCode);
-
-        if (glyph) {
-          if (prevCharCode !== null) {
-            const kerning = kerningMap.get(`${prevCharCode}_${charCode}`) || 0;
-            cursorX += kerning;
-          }
-
-          const x = cursorX + (glyph.x_offset || 0);
-          const y = cursorY + (glyph.y_offset || 0);
-
-          ctx.drawImage(this._image, glyph.x, glyph.y, glyph.width, glyph.height, x, y, glyph.width, glyph.height);
-
-          cursorX += glyph.x_advance || glyph.advance || 0;
-          prevCharCode = charCode;
-        } else {
-          // Fallback for space or missing characters
-          cursorX += lineHeight * 0.3;
-          prevCharCode = null;
+    for (const items of laidOut) {
+      for (const item of items) {
+        const x = padding + item.x;
+        if (item.missing) {
+          this.drawMissingGlyph(ctx, x, cursorY + missingTop, missingWidth, missingHeight);
+          continue;
         }
+        const glyph = item.glyph;
+        ctx.drawImage(
+          this._image,
+          glyph.x,
+          glyph.y,
+          glyph.width,
+          glyph.height,
+          x + (glyph.x_offset || 0),
+          cursorY + (glyph.y_offset || 0),
+          glyph.width,
+          glyph.height,
+        );
       }
       cursorY += lineHeight;
     }
+  }
+
+  private drawMissingGlyph(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
+    ctx.save();
+    ctx.strokeStyle = '#ff5252';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+    ctx.beginPath();
+    for (let d = -height; d < width; d += 4) {
+      ctx.moveTo(x + d, y + height);
+      ctx.lineTo(x + d + height, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // characters of the preview text the font has no glyph for
+  _missingSymbols: string[] = [];
+
+  readonly textPresets: { label: string; title: string }[] = [
+    { label: 'Sample', title: 'Pangram, digits and punctuation' },
+    { label: 'A–Z', title: 'Capital letters' },
+    { label: 'a–z', title: 'Small letters' },
+    { label: '0–9', title: 'Digits' },
+    { label: 'All', title: 'Every glyph of the font, by code' },
+  ];
+
+  setTextPreset(label: string) {
+    const range = (from: string, to: string) =>
+      Array.from({ length: to.charCodeAt(0) - from.charCodeAt(0) + 1 }, (_, i) =>
+        String.fromCharCode(from.charCodeAt(0) + i),
+      ).join('');
+    let text = FontBlockUiComponent.SAMPLE_TEXT;
+    if (label === 'A–Z') text = range('A', 'Z');
+    else if (label === 'a–z') text = range('a', 'z');
+    else if (label === '0–9') text = range('0', '9');
+    else if (label === 'All') {
+      const symbols = [...(this.resourceData?.definitions || [])]
+        .map((g: any) => g.code)
+        .sort((a: number, b: number) => a - b)
+        .map((code: number) => this.getSymbol(code))
+        .filter((s: string) => s && !/\s/.test(s));
+      const lines: string[] = [];
+      for (let i = 0; i < symbols.length; i += 16) lines.push(symbols.slice(i, i + 16).join(''));
+      text = lines.join('\n');
+    }
+    this._text$.next(text);
   }
 
   private updateColumns() {
