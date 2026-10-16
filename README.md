@@ -5,15 +5,16 @@
 <h1 align="center">TailsLab</h1>
 
 <p align="center">
-  <b>A lab for old game file formats: read them, understand them, edit them, convert them.</b><br/>
+  <b>A growing library of reverse-engineered old game file formats, with an editor, a converter and specs for each.</b><br/>
   <i>Formerly known as <b>NFS Resources Converter</b>.</i>
 </p>
 
 ---
 
-TailsLab takes the binary resource files of old games, figures out what every byte means and lets you work with
-them: browse and edit them in a desktop editor, convert them to formats any modern tool opens, or read a precise
-specification of the format and build your own tools on top of it.
+TailsLab is a library of file formats from old games, reverse-engineered one by one and described down to the
+byte. Every format in the library can be opened and edited in a desktop editor, converted to formats any modern tool
+opens, and read as a precise specification to build your own tools on. Files outside the library are not supported:
+TailsLab does not guess unknown formats.
 
 Right now the lab works on **EA's Need for Speed series 1 to 9**, from The Need for Speed (1994) to NFS Most Wanted
 (2005). Many EA Canada formats (FSH images, FFN fonts, QFS compression...) are shared across other EA titles of that
