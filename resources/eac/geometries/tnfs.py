@@ -290,7 +290,9 @@ class OripGeometry(DeclarativeCompoundBlock):
         return {
             **super().schema,
             'block_description': 'Geometry block for 3D model with few materials: TNFS car models (CFM) and track '
-            'props (FAM)',
+            'props (FAM). Exported to OBJ + MTL, and imported from them: the polygons, labels and partitions of the OBJ '
+            'replace the geometry, the rest (material names and colours, morphs, fx points) follows the replaced '
+            'model and the wheel quads',
         }
 
     class Fields(DeclarativeCompoundBlock.Fields):

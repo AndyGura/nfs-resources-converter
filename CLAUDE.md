@@ -254,6 +254,18 @@ When you do:
   / 'texture', `sirenActive` + `updateLights`) recolours the PNGs with it, also in models without the wheel labels
   (COPMUST, low-poly: `hasWheels` false, no tyres / steering); the GUI shows the light controls for every CFM model.
   nfs-web reads these keys: keep them stable.
+- OBJ + MTL import (`OripGeometrySerializer.deserialize`, `serializers/misc/orip_import.py`, CFM cars and FAM props
+  alike; OBJ reader `serializers/common/three_d/obj_reader.py`) is the inverse of the export: OBJ axes are ORIP with y
+  and z swapped (Blender: export with forward Y, up Z, as the converter imports it), quads are found again in the
+  export's triangle pairs (the pair order tells `flip_normal`), two-sided polygons in a polygon followed by its
+  reverse, corner UVs mean no `use_uv`. Labels and partitions come from the mesh names (`__<partition>` suffix,
+  extras `objects`, else the current mesh of that name), textures from MTL material names (FSH bitmap names, 4 bytes
+  at most) or `map_Kd` file names. What an OBJ cannot hold comes from the ORIP being replaced: material fields and
+  polygon type bits of the same texture, lookup-only materials (`tire1`..`tire4`, `pal`), non-wheel `fx_polys`
+  positions, morphs whose vertices are all still there. Wheel `fx_polys` are the bottom corners of the wheel quads,
+  missing steering morphs are rotations by 30 degrees of the front wheel quad and its `circ` quad. Textures are not
+  imported with it (the SHPI has its own folder import). The export of every ORIP of `test/samples/TSUPRA.CFM`
+  imports back to the same polygons, fx points and morphs (`test/serializers/test_orip_import.py`).
 
 ## TNFS car specs (SIMDATA/CARSPECS/*.PBS, SIMDATA/CARFAMS/*.PDN)
 

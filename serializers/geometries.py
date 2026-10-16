@@ -172,6 +172,64 @@ class OripGeometrySerializer(BaseFileSerializer):
         ShpiArchiveSerializer().serialize(textures_shpi_data, path_join(path, 'assets/'), shpi_id, textures_shpi_block)
         return export_scenes([scene], path, self.settings)
 
+    def ui_serialization(self):
+        return {
+            'file_type': 'OBJ + MTL directory',
+            'is_directory': True,
+            'output_file_name_suffix': None,
+            'reversible': True,
+            'reversible_settings_patch': {
+                'geometry__save_obj': True,
+                'geometry__save_blend': False,
+                'geometry__export_to_gg_web_engine': False,
+            },
+        }
+
+    def deserialize(self, file_paths: List[str], id=None, block=None, **kwargs) -> dict:
+        """The ORIP loaded under `id` with the geometry of an OBJ + MTL (a folder holding one OBJ, "geometry.obj"
+        among several, or the OBJ file), see `serializers/misc/orip_import.py`. The summary is left in
+        `deserialize_report`"""
+        from io import BytesIO
+        from library import require_resource
+        from library.context import ReadContext
+        from serializers.misc.orip_import import orip_from_obj
+
+        obj_path = self._find_obj(file_paths)
+        (_, _, current), _ = require_resource(id)
+        if not isinstance(current, dict) or current.get('resource_id') != 'ORIP':
+            raise DataIntegrityException(f'No ORIP geometry loaded under {id}')
+        try:
+            _, _, shpi_data = self.require_shpi(id)
+            shpi_textures = {
+                c['alias']: (c['item']['data']['width'], c['item']['data']['height'])
+                for c in shpi_data['children']
+                if isinstance(c['item']['data'], dict) and 'width' in c['item']['data']
+            }
+        except Exception:
+            shpi_textures = {}
+        is_car = current['vertices']['choice_index'] == 0
+        data, report = orip_from_obj(obj_path, current, shpi_textures, fraction_bits=7 if is_car else 4)
+        # read back what will be saved: pointers and counts as written, and the check that it can be written
+        buffer = BytesIO(block.pack(data))
+        buffer.name = 'ORIP.CFM' if is_car else 'ORIP.FAM'
+        data = block.unpack(ReadContext(buffer), read_bytes_amount=len(buffer.getvalue()))
+        self.deserialize_report = report
+        return data
+
+    @staticmethod
+    def _find_obj(file_paths: List[str]) -> str:
+        if not file_paths:
+            raise DataIntegrityException('Select the folder of the OBJ file')
+        path = file_paths[0]
+        if os.path.isfile(path):
+            return path
+        obj_files = sorted(x for x in os.listdir(path) if x.lower().endswith('.obj'))
+        if len(obj_files) > 1 and 'geometry.obj' in obj_files:
+            obj_files = ['geometry.obj']
+        if len(obj_files) != 1:
+            raise DataIntegrityException(f'Expected one OBJ file (or "geometry.obj") in {path}, found {len(obj_files)}')
+        return path_join(path, obj_files[0])
+
 
 # partitions the game draws, in this order (the others, like NON-SORT, are not drawn by the car code)
 ORIP_DRAWN_PARTITIONS = ('inside', 'surface', 'outside')
