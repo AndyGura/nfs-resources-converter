@@ -166,6 +166,8 @@ class OripGeometrySerializer(BaseFileSerializer):
             if isinstance(texture_block, EacImage) and not c['alias'].startswith('!'):
                 scene.mtl_texture_names.append(c['alias'])
         scene.mtl_texture_path_func = lambda name: f'assets/{name}.png'
+        # nfs-web draws TNFS models unlit
+        scene.export_normals = False
 
         from serializers import ShpiArchiveSerializer
 

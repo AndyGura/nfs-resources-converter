@@ -91,6 +91,9 @@ docs and a working GUI editor for free.
   `gui_editor_windows.py` also maps `.js` / `.mjs` / `.css` to their standard types in `mimetypes`, which takes them from
   the Windows registry (`.js` is often `text/plain` there, and the web view refuses module scripts with it).
 - `ffmpeg` and Blender 4+ are required for audio/video/3D conversions.
+- The gg-web-engine export (`.glb` + `.meta`) imports gg-web-engine's Blender `exporter.py` in the generated Blender
+  script, downloaded from the engine's main branch and cached in `~/.nfs-resources-converter/gg_web_engine_exporter`
+  for 24 h (`serializers/common/three_d/gg_web_engine_exporter.py`; delete `.meta.json` there to force a download).
 - CI (`.github/workflows/pull_request_build.yml`) runs exactly the two test commands above —
   keep both green before considering a change done.
 
@@ -121,6 +124,11 @@ When you do:
   `frontend/.../editor/eac/` are copied into the nfs-web game as they are (only import paths change): keep them free
   of GUI services, depending on three.js, gg-web-engine and rxjs only. nfs-web loads the converter's gg-web-engine
   export with "Add props to obj" off, so a track's props must reach it as dummies.
+- TNFS GLBs for nfs-web (chunked `*.TRI` terrain chunks and every ORIP model: cars, props) are exported without NORMAL / TANGENT
+  (`Scene(export_normals=False)`, the exporter's `export_normals` / `export_tangents` options): nfs-web draws them unlit.
+  Blender then splits vertices along texture coordinate seams only. An option that the loaded `exporter.py` does not
+  accept yet is dropped (`_gg_export_options` in the Blender script, warning in the converter log) and the GLB keeps
+  its normals.
 - Conversion settings presets (`config.py`): "No preset" is the `[Conversion]` section, a user-defined preset is a
   `[Conversion: <name>]` section with the conversion settings and input / output paths (everything but
   `selected_preset`, see `CONVERSION_NON_PRESET_KEYS`); a setting missing in a preset takes the built-in default.

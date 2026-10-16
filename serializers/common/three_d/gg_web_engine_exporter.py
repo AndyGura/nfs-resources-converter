@@ -11,14 +11,19 @@ it again, which is exactly what this module does.
 imports, so it can be dropped into any directory and imported standalone - no add-on
 install/registration inside Blender's preferences is needed, matching how the upstream headless
 CLI script itself uses it.
+
+`export_glb_meta` options newer than the downloaded copy may be missing: `export_option_names` reads which keyword
+arguments the copy accepts (without Blender), and `scenes.py` passes an option only when the function accepts it.
 """
 
+import ast
 import json
 import logging
 import os
 import time
 import urllib.error
 import urllib.request
+from typing import Optional, Set
 
 _RAW_BASE_URL = 'https://raw.githubusercontent.com/AndyGura/gg-web-engine/main/blender-addon/gg_web_engine_exporter'
 _EXPORTER_URL = f'{_RAW_BASE_URL}/exporter.py'
@@ -102,3 +107,22 @@ def ensure_gg_web_engine_exporter_installed() -> str:
         )
     _write_meta({'checked_at': time.time()})
     return _CACHE_DIR
+
+
+def export_option_names(exporter_dir: str) -> Optional[Set[str]]:
+    """
+    Names of the keyword arguments that `export_glb_meta` of the `exporter.py` in `exporter_dir` accepts, read from its
+    source (Blender is not needed). None when any is accepted (`**kwargs`) or the source cannot be read, so the caller
+    can't tell: the generated Blender script checks the function itself before passing an option.
+    """
+    try:
+        with open(os.path.join(exporter_dir, 'exporter.py'), 'rb') as f:
+            tree = ast.parse(f.read())
+    except OSError, SyntaxError, ValueError:
+        return None
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == 'export_glb_meta':
+            if node.args.kwarg:
+                return None
+            return {a.arg for a in node.args.args + node.args.kwonlyargs}
+    return set()

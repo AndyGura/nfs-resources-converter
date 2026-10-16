@@ -87,5 +87,27 @@ class TestGgWebEngineExporter(unittest.TestCase):
             self.assertEqual(f.read(), b'exporter v1')
 
 
+class TestExportOptionNames(unittest.TestCase):
+    def _names(self, source):
+        with tempfile.TemporaryDirectory() as directory:
+            if source is not None:
+                with open(os.path.join(directory, 'exporter.py'), 'w') as f:
+                    f.write(source)
+            return sut.export_option_names(directory)
+
+    def test_reads_the_signature(self):
+        self.assertEqual(
+            self._names('def export_glb_meta(filepath, export_materials=True, *, export_normals=True):\n    pass\n'),
+            {'filepath', 'export_materials', 'export_normals'},
+        )
+
+    def test_unknown_when_any_keyword_is_accepted_or_no_file(self):
+        self.assertIsNone(self._names('def export_glb_meta(filepath, **kwargs):\n    pass\n'))
+        self.assertIsNone(self._names(None))
+
+    def test_no_function(self):
+        self.assertEqual(self._names('def other():\n    pass\n'), set())
+
+
 if __name__ == '__main__':
     unittest.main()

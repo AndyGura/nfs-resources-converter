@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from string import Template
 from typing import Callable
@@ -7,7 +8,7 @@ from typing import List
 
 from library.utils import path_join
 from .blender_scripts import get_blender_save_script, run_blender
-from .gg_web_engine_exporter import ensure_gg_web_engine_exporter_installed
+from .gg_web_engine_exporter import ensure_gg_web_engine_exporter_installed, export_option_names
 from .glb_morph_targets import add_glb_morph_targets
 from .mesh import SubMesh
 
@@ -30,6 +31,7 @@ class Scene:
         skip_obj_export: bool = False,
         skip_mtl_export: bool = False,
         directory: str = '',
+        export_normals: bool = True,
     ):
         self.name = name
         self.sub_meshes = sub_meshes or []
@@ -51,6 +53,51 @@ class Scene:
         # sub-directory of the export path for all files of this scene, so that scenes with the same file names
         # (e.g. one "body"/"geometry.obj"/"material.mtl" model per folder) are exported in one go
         self.directory = directory
+        # False: the gg-web-engine GLB has no NORMAL / TANGENT attributes, for consumers that draw it unlit. Blender
+        # then splits no vertex per face normal either, only along texture coordinate seams
+        self.export_normals = export_normals
+
+
+# Blender script helper: the options that the loaded `export_glb_meta` accepts, the others dropped with a warning in
+# the Blender log (the exporter downloaded from gg-web-engine's main branch can be older than the converter)
+_GG_EXPORT_OPTIONS_SCRIPT = """
+import inspect
+
+def _gg_export_option_names():
+    try:
+        parameters = inspect.signature(gg_web_engine_exporter.export_glb_meta).parameters
+    except (TypeError, ValueError):
+        return set()
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
+        return None
+    return set(parameters)
+
+_gg_accepted_options = _gg_export_option_names()
+_gg_ignored_options = set()
+
+def _gg_export_options(**options):
+    if _gg_accepted_options is None:
+        return options
+    ignored = set(options) - _gg_accepted_options - _gg_ignored_options
+    if ignored:
+        print('WARNING: gg-web-engine export_glb_meta does not accept', sorted(ignored), '- exported without them')
+        _gg_ignored_options.update(ignored)
+    return {key: value for key, value in options.items() if key in _gg_accepted_options}
+"""
+_warned_missing_export_options = False
+
+
+def _warn_if_exporter_lacks_normals_options(gg_exporter_dir: str):
+    """Logs once per process that the exporter writes normals anyway: the Blender log is hidden by default"""
+    global _warned_missing_export_options
+    accepted = export_option_names(gg_exporter_dir)
+    if _warned_missing_export_options or accepted is None or {'export_normals', 'export_tangents'} <= accepted:
+        return
+    _warned_missing_export_options = True
+    logging.warning(
+        'The gg-web-engine Blender exporter has no export_normals / export_tangents options yet: GLB files are '
+        'exported with normals and tangents'
+    )
 
 
 def export_scenes(scenes: List[Scene], output_path: str, settings) -> List[str]:
@@ -171,6 +218,9 @@ $extra_script
             script += (
                 f'\n\nimport sys\nsys.path.insert(0, "{gg_exporter_dir}")\nimport exporter as gg_web_engine_exporter\n'
             )
+            if any(not scene.export_normals for scene in scenes):
+                script += _GG_EXPORT_OPTIONS_SCRIPT
+                _warn_if_exporter_lacks_normals_options(gg_exporter_dir)
         for scene in scenes:
             script += '\n\n' + import_template.substitute(
                 {
@@ -184,9 +234,14 @@ $extra_script
             file_path = path_join(os.getcwd(), output_path, scene.directory, scene.name)
             if settings.geometry__export_to_gg_web_engine:
                 gg_export_target = file_path.replace('\\', '/')
+                options = (
+                    ''
+                    if scene.export_normals
+                    else ', **_gg_export_options(export_normals=False, export_tangents=False)'
+                )
                 script += (
                     f'\ngg_web_engine_exporter.export_glb_meta("{gg_export_target}", '
-                    f'export_materials={scene.bake_textures}, copyright="Gurakl Games")\n'
+                    f'export_materials={scene.bake_textures}, copyright="Gurakl Games"{options})\n'
                 )
                 exported_files.append(file_path + '.glb')
                 exported_files.append(file_path + '.meta')

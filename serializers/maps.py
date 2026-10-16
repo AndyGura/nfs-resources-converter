@@ -606,6 +606,8 @@ for obj in bpy.context.selected_objects:
                     mtl_name='terrain',
                     bake_textures=False,
                     skip_mtl_export=True,
+                    # nfs-web draws the terrain unlit
+                    export_normals=False,
                 )
                 if self.settings.maps__add_props_to_obj:
                     (meshes, txs) = self.render_tnfs_props(id, data, is_opened, i * 4, (i + 1) * 4 - 1, position)
