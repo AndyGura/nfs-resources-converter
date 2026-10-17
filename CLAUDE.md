@@ -199,6 +199,13 @@ When you do:
 - Hot spots: TNFS reads them only in the dashboard loader (`dash`, `tach`, `sped`, `gate` of `DASH/*DH|DL.FSH`, it hangs
   without them); point + `pivot` is the pixel of the bitmap. The GUI's image editor draws them over the image
   (`ImageViewerComponent.overlays`, toggled in its viewport toolbar).
+- PNG export: 8Bit images (with their mipmaps; also NFSU P8 textures) are saved as indexed PNGs
+  (`ImageSerializer.to_png_image` / `indexed_image` / `save_png`): pixels keep their indexes (duplicate colours are not
+  merged), PLTE / tRNS hold the palette the image is exported with (`_get_palette_colors`: CFM light colours, the
+  transparent last colour), cut after the last index used, so they decode to the RGBA of `to_image`, bytes under alpha
+  0 included. Every other format stays RGBA. `to_image` is always RGBA: code that composes, tints or measures images
+  uses it, or `.convert('RGBA')` on a PNG it reads back (each image has its own palette). Blender embeds the PNG bytes
+  in GLBs as they are. Import converts any PNG to RGBA first.
 - PNG import over an image (`ImageSerializer.deserialize` with the image's id) replaces its pixels only: format,
   position, pivot, hot spots, text and palettes stay, 8Bit pixels take the index of their color in the palette the
   image is exported with (the same index where unchanged, else the first exact, else the nearest; a CFM's 250..254 by

@@ -60,12 +60,51 @@ class ImageSerializer(BaseFileSerializer):
         return palette_colors
 
     def to_image(self, data: dict, block=None, id=None, palette_colors=None) -> Image.Image:
+        """The image as it is exported, always RGBA"""
         if palette_colors is None:
             palette_colors = self._get_palette_colors(data, block, id)
         bitmap = self._transform_to_rgba(data['resource_id'], data['bitmap'], palette_colors)
         return Image.frombytes(
             'RGBA', (data['width'], data['height']), bytes().join([c.to_bytes(4, 'big') for c in bitmap])
         )
+
+    def to_png_image(self, data: dict, block=None, id=None, palette_colors=None) -> Image.Image:
+        """The image as it is saved to PNG: an 8Bit image is indexed (`indexed_image`), the others are `to_image`"""
+        if palette_colors is None:
+            palette_colors = self._get_palette_colors(data, block, id)
+        if data['resource_id'].startswith('8Bit'):
+            image = self.indexed_image(data['bitmap'], data['width'], data['height'], palette_colors)
+            if image is not None:
+                return image
+        return self.to_image(data, palette_colors=palette_colors)
+
+    @staticmethod
+    def indexed_image(
+        indexes: Sequence[int], width: int, height: int, palette_colors: List[int]
+    ) -> Optional[Image.Image]:
+        """8Bit pixels as an indexed (P) image which decodes to the RGBA of `to_image`, bytes under alpha 0 included:
+        the pixels keep their indexes (duplicate palette colors are not merged), entry i is `palette_colors[i]`
+        (transparent black past its end), RGB in PLTE, alpha in tRNS. The palette ends at the last index used, tRNS
+        at the last entry not opaque (none when all are). None when an index is not 0..255"""
+        try:
+            pixels = bytes(indexes[: width * height])
+        except ValueError, TypeError:
+            return None
+        if len(pixels) < width * height:
+            return None
+        count = max(pixels, default=0) + 1
+        colors = list(palette_colors[:count]) + [0] * max(0, count - len(palette_colors))
+        image = Image.frombytes('P', (width, height), pixels)
+        image.putpalette(b''.join((c >> 8).to_bytes(3, 'big') for c in colors), 'RGB')
+        alpha = bytes(c & 0xFF for c in colors).rstrip(b'\xff')
+        if alpha:
+            image.info['transparency'] = alpha
+        return image
+
+    @staticmethod
+    def save_png(image: Image.Image, file_path: str):
+        """Saves an image made by `to_png_image`. Indexed images get the best zlib compression, they are small"""
+        image.save(file_path, **({'compress_level': 9} if image.mode == 'P' else {}))
 
     def serialize(self, data: dict, path: str, id=None, block=None, **kwargs) -> List[str]:
         super().serialize(data, path, id=id, block=block)
@@ -76,20 +115,26 @@ class ImageSerializer(BaseFileSerializer):
         if not file_path.endswith('.png'):
             file_path += '.png'
         saved_files = [file_path]
-        self.to_image(data, palette_colors=palette_colors).save(file_path)
+        self.save_png(self.to_png_image(data, palette_colors=palette_colors), file_path)
         if data.get('mipmaps') and self.settings.images__save_mipmaps:
-            mipmaps_data = self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
             from resources.eac.bitmaps import mipmap_level_dims
 
+            is_8bit = data['resource_id'].startswith('8Bit')
+            mipmaps_data = (
+                data['mipmaps']
+                if is_8bit
+                else self._transform_to_rgba(data['resource_id'], data['mipmaps'], palette_colors)
+            )
             offset = 0
             # every level down to 1x1, also for non-square images (64x128: 7 levels, the last 1x1)
             for mipmap_index, (width, height) in enumerate(mipmap_level_dims(data['width'], data['height'])):
                 mipmap_path = f'{file_path[:-4]}_mm_{mipmap_index}.png'
-                Image.frombytes(
-                    'RGBA',
-                    (width, height),
-                    bytes().join([c.to_bytes(4, 'big') for c in mipmaps_data[offset : offset + width * height]]),
-                ).save(mipmap_path)
+                level = mipmaps_data[offset : offset + width * height]
+                image = self.indexed_image(level, width, height, palette_colors) if is_8bit else None
+                if image is None:
+                    rgba = self._transform_to_rgba(data['resource_id'], level, palette_colors) if is_8bit else level
+                    image = Image.frombytes('RGBA', (width, height), bytes().join([c.to_bytes(4, 'big') for c in rgba]))
+                self.save_png(image, mipmap_path)
                 saved_files.append(mipmap_path)
                 offset += width * height
         if self.settings.images__save_embedded_palette:
@@ -396,8 +441,9 @@ def nfsu_texture_pack_textures(tpk_data: dict) -> List[tuple]:
     ]
 
 
-def nfsu_texture_to_image(info: dict, d3d_format: int, data: bytes) -> Image.Image:
-    """Full-size image of NFS Underground texture"""
+def nfsu_texture_to_image(info: dict, d3d_format: int, data: bytes, indexed: bool = False) -> Image.Image:
+    """Full-size image of NFS Underground texture, RGBA. With `indexed`, a palettized (P8) texture is an indexed image
+    (`ImageSerializer.indexed_image`) of the same RGBA, to save it to PNG"""
     import numpy as np
     from library.utils.dxt import decode_dxt, dxt_byte_len
 
@@ -414,6 +460,9 @@ def nfsu_texture_to_image(info: dict, d3d_format: int, data: bytes) -> Image.Ima
         palette_offset = info['palette_placement']
         palette = np.frombuffer(data[palette_offset : palette_offset + 1024], dtype=np.uint8)
         palette = np.pad(palette, (0, 1024 - len(palette))).reshape(256, 4)[:, [2, 1, 0, 3]]
+        if indexed and len(indices) == width * height:
+            colors = np.frombuffer(np.ascontiguousarray(palette).tobytes(), dtype='>u4').tolist()
+            return ImageSerializer.indexed_image(indices.tolist(), width, height, colors)
         return Image.frombytes('RGBA', (width, height), palette[indices].tobytes())
     raise NotImplementedError(f'Unsupported NFSU texture format {d3d_format}')
 
@@ -435,11 +484,11 @@ class NfsuTexturePackSerializer(BaseFileSerializer):
         for info, d3d_format, image_data in nfsu_texture_pack_textures(data):
             name = re.sub(r'[^0-9A-Za-z_-]', '_', info['name']) or f'{info["name_hash"]:08x}'
             try:
-                image = nfsu_texture_to_image(info, d3d_format, image_data)
+                image = nfsu_texture_to_image(info, d3d_format, image_data, indexed=True)
             except Exception:
                 traceback.print_exc()
                 continue
             file_path = os.path.join(path, f'{name}.png')
-            image.save(file_path)
+            ImageSerializer.save_png(image, file_path)
             files.append(file_path)
         return files

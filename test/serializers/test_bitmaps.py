@@ -117,6 +117,44 @@ class TestImageImport(unittest.TestCase):
         self.assertEqual(image['bitmap'][0], 254)
         self.assertNotIn(image['bitmap'][1], [250, 251, 252, 253, 254])
 
+    def test_8bit_exports_are_indexed_and_reimport_as_they_are(self):
+        path = self.copy(os.path.join(SAMPLES, 'VERTBST.FSH'))
+        name, _, data = require_file(path, lazy=False)
+        id = image_ids(name, data)[0]
+        (_, image_block, image), _ = require_resource(id)
+        before = list(image['bitmap'])
+        png = self.export_png(id)
+        with Image.open(png) as exported:
+            self.assertEqual(exported.mode, 'P')
+            self.assertEqual(
+                exported.convert('RGBA').tobytes(), ImageSerializer().to_image(image, image_block, id).tobytes()
+            )
+        self.api.deserialize_resource(id, [png])
+        (_, _, image), _ = require_resource(id)
+        self.assertEqual(image['bitmap'], before)
+
+    def test_indexed_png_edited_as_indexed_is_imported_by_its_colors(self):
+        # an editor keeping the PNG indexed: a palette entry recolored, a pixel moved to another entry
+        path = self.copy(os.path.join(SAMPLES, 'VERTBST.FSH'))
+        name, _, data = require_file(path, lazy=False)
+        id = image_ids(name, data)[0]
+        (_, image_block, image), _ = require_resource(id)
+        palette = ImageSerializer()._found_palette_colors(image, image_block, id)
+        png = self.export_png(id)
+        edited = Image.open(png)
+        edited.load()
+        entry = image['bitmap'][1]
+        other = next(i for i in range(len(palette)) if palette[i] != palette[entry] and palette[i] & 0xFF == 0xFF)
+        rgb = bytearray(edited.getpalette('RGB'))
+        rgb[entry * 3 : entry * 3 + 3] = (palette[other] >> 8).to_bytes(3, 'big')
+        edited.putpalette(bytes(rgb), 'RGB')
+        edited.save(png)
+        self.api.deserialize_resource(id, [png])
+        (_, _, image), _ = require_resource(id)
+        self.assertEqual(image['resource_id'], '8Bit')
+        self.assertEqual(palette[image['bitmap'][1]], palette[other])
+        self.assertNotIn(entry, image['bitmap'])
+
     def test_other_formats_are_kept_and_mipmaps_made_again(self):
         block = EacImage()
         png = os.path.join(self.temp_dir.name, 'new.png')
@@ -333,3 +371,95 @@ class TestMipmapExport(unittest.TestCase):
             files = serializer.serialize(image, os.path.join(tmp, 'img'), id='img', block=block)
             sizes = [Image.open(f).size for f in files[1:]]
         self.assertEqual(sizes, [(2, 4), (1, 2), (1, 1)])
+
+
+class TestIndexedExport(unittest.TestCase):
+    """8Bit images are saved as indexed PNGs which decode to the RGBA of `to_image`"""
+
+    @staticmethod
+    def rgba(path):
+        with Image.open(path) as image:
+            return image.mode, image.convert('RGBA').tobytes()
+
+    def serialize(self, image, palette_colors=None, block=None, **settings):
+        serializer = ImageSerializer()
+        serializer.patch_settings(settings)
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(ImageSerializer, '_get_palette_colors', return_value=palette_colors or []):
+                files = serializer.serialize(image, os.path.join(tmp, 'img'), id='img', block=block or EacImage())
+            result = []
+            for f in files:
+                with open(f, 'rb') as file:
+                    result.append((self.rgba(f), file.read()))
+            return result
+
+    def image_8bit(self, width, height, bitmap):
+        image = EacImage().new_data()
+        image.update(resource_id='8Bit', width=width, height=height, bitmap=bitmap)
+        return image
+
+    def test_pixels_keep_their_indexes_and_decode_to_the_same_rgba(self):
+        import random
+
+        rng = random.Random(7)
+        # alpha 0 with color under it, partial alpha, duplicate colors, a palette shorter than the indexes
+        palette = [rng.getrandbits(32) for _ in range(200)]
+        palette[5] = palette[9] = 0x10203040
+        palette[6] = 0x12345600
+        image = self.image_8bit(16, 8, [rng.randrange(256) for _ in range(128)] + [5, 9])
+        [((mode, rgba), png)] = self.serialize(image, palette)
+        self.assertEqual(mode, 'P')
+        self.assertEqual(rgba, ImageSerializer().to_image(image, palette_colors=palette).tobytes())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'a.png')
+            with open(path, 'wb') as f:
+                f.write(png)
+            with Image.open(path) as saved:
+                self.assertEqual(list(saved.tobytes()), image['bitmap'][:128])
+        # the same image gives the same bytes
+        self.assertEqual(self.serialize(image, palette)[0][1], png)
+
+    def test_transparency_is_written_only_where_the_palette_has_it(self):
+        opaque = [0xFF0000FF, 0x00FF00FF, 0x0000FFFF]
+        image = self.image_8bit(3, 1, [0, 1, 2])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'a.png')
+            ImageSerializer.save_png(ImageSerializer().to_png_image(image, palette_colors=opaque), path)
+            with Image.open(path) as saved:
+                self.assertEqual(saved.mode, 'P')
+                self.assertNotIn('transparency', saved.info)
+            ImageSerializer.save_png(
+                ImageSerializer().to_png_image(image, palette_colors=[0xFF000000, 0x00FF0080, 0x0000FFFF]), path
+            )
+            with Image.open(path) as saved:
+                self.assertEqual(saved.info['transparency'], b'\x00\x80')
+                self.assertEqual(
+                    list(saved.convert('RGBA').getdata()), [(255, 0, 0, 0), (0, 255, 0, 128), (0, 0, 255, 255)]
+                )
+
+    def test_8bit_image_without_palette_keeps_the_index_in_alpha(self):
+        image = self.image_8bit(2, 1, [0, 200])
+        serializer = ImageSerializer()
+        palette = serializer._get_palette_colors(image, EacImage(), 'img')
+        [((mode, rgba), _)] = self.serialize(image, palette)
+        self.assertEqual(mode, 'P')
+        self.assertEqual(rgba, bytes([255, 255, 255, 0, 255, 255, 255, 200]))
+
+    def test_other_formats_stay_rgba(self):
+        block = EacImage()
+        image = block.new_data()
+        image.update(resource_id='32Bit color format bitmap', width=2, height=1, bitmap=[0xFF000080, 0x00FF00FF])
+        [((mode, rgba), _)] = self.serialize(image)
+        self.assertEqual((mode, rgba), ('RGBA', bytes([255, 0, 0, 128, 0, 255, 0, 255])))
+        image = block.new_data({'resource_id': '4Bit'})
+        image.update(width=2, height=1, bitmap=[[0xFFFFFF07, 0xFFFFFF0F]])
+        [((mode, rgba), _)] = self.serialize(image)
+        self.assertEqual((mode, rgba), ('RGBA', bytes([255, 255, 255, 7, 255, 255, 255, 15])))
+
+    def test_8bit_mipmaps_are_indexed(self):
+        palette = [0xFF0000FF, 0x00FF0000, 0x0000FF80, 0x000000FF]
+        image = self.image_8bit(2, 2, [0, 1, 2, 3])
+        image['mipmaps'] = [2]
+        files = self.serialize(image, palette, images__save_mipmaps=True)
+        self.assertEqual([mode for (mode, _), _ in files], ['P', 'P'])
+        self.assertEqual(files[1][0][1], bytes([0, 0, 255, 128]))

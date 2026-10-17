@@ -110,7 +110,8 @@ class ShpiArchiveSerializer(BaseFileSerializer):
                     source_images = []
                     out_half_width = 0
                     for i in range(0, 8):
-                        img = Image.open(path_join(path, f'000{i}.png'))
+                        # the images have palettes of their own (indexed PNGs): pasted as RGBA
+                        img = Image.open(path_join(path, f'000{i}.png')).convert('RGBA')
                         source_images.append(img)
                         out_half_width += img.width
                     out_half_height = int(out_half_width / 2)
